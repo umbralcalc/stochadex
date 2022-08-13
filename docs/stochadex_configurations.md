@@ -32,7 +32,7 @@ In the algorithm formalism, these generally take the form
 
 $$
 \begin{align}
-& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{(B_{H_i})^i_{t+1}}-\textcolor{red}{(B'_{H_i})^i_{t}},
+& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{(B_{H_i})^i_{t+1}}-\textcolor{red}{(B_{H_i}')^i_{t}},
 \end{align}
 $$
 
