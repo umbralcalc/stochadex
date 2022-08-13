@@ -6,7 +6,7 @@ In the algorithm formalism, these are
 
 $$
 \begin{align}
-& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{W^i_{t+1}}-\textcolor{red}{W^i_{t}} \,,
+& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{W^i_{t+1}}-\textcolor{red}{W^i_{t}},
 \end{align}
 $$
 

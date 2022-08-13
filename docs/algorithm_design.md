@@ -8,7 +8,7 @@ $$
 \begin{align}
 & S''\longrightarrow S' \longrightarrow S \\
 & X''\longrightarrow X' \longrightarrow X \\
-& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + S^i_{t+1}(X',S')-S^i_{t}(X'',S'') \,,
+& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + S^i_{t+1}(X',S')-S^i_{t}(X'',S''),
 \end{align}
 $$
 
