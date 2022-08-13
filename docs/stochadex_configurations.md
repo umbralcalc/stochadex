@@ -13,7 +13,7 @@ $$
 \end{align}
 $$
 
-where $W^i_{t+1}$ is a Wiener process for each of the states indexed by $i$. Note that we may also allow for correlations between the noises in different dimensions.
+where $W^i_{t+1}$ is a sample from a Wiener process for each of the states indexed by $i$. Note that we may also allow for correlations between the noises in different dimensions.
 
 ### Geometric Brownian motion noise
 
@@ -36,7 +36,7 @@ $$
 \end{align}
 $$
 
-where $(B_{H_i})^i_{t+1}$ is a fractional Brownian motion process with Hurst exponent $H_i$ for each of the states indexed by $i$. Note that we may also allow for correlations between the noises in different dimensions.
+where $(B_{H_i})^i_{t+1}$ is a sample from a fractional Brownian motion process with Hurst exponent $H_i$ for each of the states indexed by $i$. Note that we may also allow for correlations between the noises in different dimensions.
 
 ### Generalised continuous noises
 
@@ -52,3 +52,14 @@ where $g^i_{t+1}(X', W^i_{t+1})$ is some continuous function of $X'$ and $W^i_{t
 
 ## Flavours of jump process noise
 
+### Poisson process noise
+
+In the algorithm formalism, these generally take the form
+
+$$
+\begin{align}
+& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{N^i_{t+1}}-\textcolor{red}{(N')^i_{t}},
+\end{align}
+$$
+
+where $N^i_{t+1}$ is a sample from a Poisson process for each of the states indexed by $i$. Note that we may also allow for correlations between the noises in different dimensions.
