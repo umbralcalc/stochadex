@@ -1,16 +1,54 @@
 # Configurations of the stochadex
 
-## Flavours of diffusion
+Let's make some noise.
+## Flavours of continuous noise
 
-In the algorithm formalism, these are
+### Wiener process noise
+
+In the algorithm formalism, these generally take the form
 
 $$
 \begin{align}
-& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{W^i_{t+1}}-\textcolor{red}{W^i_{t}},
+& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{W^i_{t+1}}-\textcolor{red}{(W')^i_{t}},
 \end{align}
 $$
 
-where $W_{it}$ is a standard Wiener process for each of the states indexed by $i$. Note that we may also allow for correlations between the noises in different dimensions.
+where $W^i_{t+1}$ is a Wiener process for each of the states indexed by $i$. Note that we may also allow for correlations between the noises in different dimensions.
 
-## General classes of jump process
+### Geometric Brownian motion noise
+
+In the algorithm formalism, these generally take the form
+
+$$
+\begin{align}
+& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{(X')^i_{t}W^i_{t+1}}-\textcolor{red}{(X'')^i_{i-1}(W')^i_{t}}.
+\end{align}
+$$
+
+
+### Fractional Brownian motion noise
+
+In the algorithm formalism, these generally take the form
+
+$$
+\begin{align}
+& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{(B_{H_i})^i_{t+1}}-\textcolor{red}{(B'_{H_i})^i_{t}},
+\end{align}
+$$
+
+where $(B_{H_i})^i_{t+1}$ is a fractional Brownian motion process with Hurst exponent $H_i$ for each of the states indexed by $i$. Note that we may also allow for correlations between the noises in different dimensions.
+
+### Generalised continuous noises
+
+In the algorithm formalism, these generally could take the form
+
+$$
+\begin{align}
+& X^i_{t+1} = (X')^i_{t} + F^i_{t+1}(X') + \textcolor{red}{g^i_{t+1}(X', W^i_{t+1})}-\textcolor{red}{g^i_{t}(X'', W^i_{t})},
+\end{align}
+$$
+
+where $g^i_{t+1}(X', W^i_{t+1})$ is some continuous function of $X'$ and $W^i_{t+1}$.
+
+## Flavours of jump process noise
 
