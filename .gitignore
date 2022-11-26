@@ -6,3 +6,4 @@ src_old/anglersim/output/*
 src_old/anglersim/input/*
 __pycache__/
 *.pyc
+.ipynb_checkpoints
