@@ -1,7 +1,6 @@
 *.csv
 *.zip
 data/*
-venv/*
 src_old/anglersim/output/*
 src_old/anglersim/input/*
 __pycache__/
