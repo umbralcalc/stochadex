@@ -1,11 +1,12 @@
 package stochadex
 
+type TypeName string
 type PartitionName string
-type StateTypeName string
-type OutputConditionTypeName string
-type OutputFunctionTypeName string
-type TerminationConditionTypeName string
-type TimestepFunctionTypeName string
+type StateTypeName TypeName
+type OutputConditionTypeName TypeName
+type OutputFunctionTypeName TypeName
+type TerminationConditionTypeName TypeName
+type TimestepFunctionTypeName TypeName
 
 type ParamsConfig struct {
 	InitStateValues []float64
