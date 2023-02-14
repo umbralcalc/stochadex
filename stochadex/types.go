@@ -1,5 +1,7 @@
 package stochadex
 
+import "gonum.org/v1/gonum/mat"
+
 type TypeName string
 type PartitionName string
 type StateTypeName TypeName
@@ -35,4 +37,12 @@ type StochadexConfig struct {
 	LinkagesByPartition map[PartitionName][]PartitionName
 	Output              OutputConfig
 	Steps               StepsConfig
+}
+
+type State struct {
+	Values *mat.VecDense
+}
+
+type StateHistory struct {
+	Values *mat.Dense
 }
