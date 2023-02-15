@@ -40,9 +40,14 @@ type StochadexConfig struct {
 }
 
 type State struct {
-	Values *mat.VecDense
+	Values     *mat.VecDense
+	StateWidth int
 }
 
 type StateHistory struct {
-	Values *mat.Dense
+	// each row is a different state in the history, by convention,
+	// starting with the most recent
+	Values            *mat.Dense
+	StateWidth        int
+	StateHistoryDepth int
 }
