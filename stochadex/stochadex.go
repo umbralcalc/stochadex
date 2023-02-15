@@ -1,1 +1,5 @@
 package stochadex
+
+func main() {
+
+}
