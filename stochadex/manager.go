@@ -1,7 +1,6 @@
 package stochadex
 
 type PartitionManager struct {
-	PartitionName           PartitionName
 	broadcastingChannels    [](chan *IteratorOutputMessage)
 	stateHistoryByPartition map[PartitionName]*StateHistory
 	updatesByPartition      map[PartitionName]int
@@ -31,20 +30,24 @@ func (m *PartitionManager) Receive(message *IteratorOutputMessage) {
 			return
 		}
 	}
-	m.LaunchThread()
+	for partition := range m.updatesByPartition {
+		m.LaunchThread(partition)
+	}
 }
 
-func (m *PartitionManager) LaunchThread() {
+func (m *PartitionManager) LaunchThread(partitionName PartitionName) {
 	m.updatesCount += 1
 	go m.iterator.IterateAndBroadcast(
-		m.PartitionName,
+		partitionName,
 		m.stateHistoryByPartition,
 		m.broadcastingChannels,
 	)
 }
 
 func (m *PartitionManager) Run() {
-	m.LaunchThread()
+	for partition := range m.updatesByPartition {
+		m.LaunchThread(partition)
+	}
 	for _, channel := range m.broadcastingChannels {
 		m.Receive(<-channel)
 	}
