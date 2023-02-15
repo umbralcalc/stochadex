@@ -33,10 +33,9 @@ type OutputConfig struct {
 }
 
 type StochadexConfig struct {
-	PartitionByName     map[PartitionName]StateConfig
-	LinkagesByPartition map[PartitionName][]PartitionName
-	Output              OutputConfig
-	Steps               StepsConfig
+	PartitionByName map[PartitionName]StateConfig
+	Output          OutputConfig
+	Steps           StepsConfig
 }
 
 type State struct {
