@@ -4,19 +4,21 @@ import "gonum.org/v1/gonum/mat"
 
 type TypeName string
 type PartitionName string
-type StateTypeName TypeName
+type IterationTypeName TypeName
 type OutputConditionTypeName TypeName
 type OutputFunctionTypeName TypeName
 type TerminationConditionTypeName TypeName
 type TimestepFunctionTypeName TypeName
+type OtherParams interface{}
 
 type ParamsConfig struct {
+	Other           OtherParams
 	InitStateValues []float64
 	Seed            int
 }
 
 type StateConfig struct {
-	TypeName     StateTypeName
+	Iteration    IterationTypeName
 	Params       ParamsConfig
 	Width        int
 	HistoryDepth int
@@ -48,5 +50,10 @@ type StateHistory struct {
 	// starting with the most recent
 	Values            *mat.Dense
 	StateWidth        int
+	StateHistoryDepth int
+}
+
+type TimestepsHistory struct {
+	Values            *mat.VecDense
 	StateHistoryDepth int
 }

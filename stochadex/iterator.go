@@ -2,8 +2,10 @@ package stochadex
 
 type Iteration interface {
 	Iterate(
+		params *OtherParams,
 		partition PartitionName,
 		stateHistoryByPartition map[PartitionName]*StateHistory,
+		timestepsHistory *TimestepsHistory,
 	) *State
 }
 
@@ -13,30 +15,36 @@ type IteratorOutputMessage struct {
 }
 
 type StateIterator struct {
-	iteration Iteration
+	partitionName PartitionName
+	params        *ParamsConfig
+	iteration     Iteration
 }
 
 func (s *StateIterator) Iterate(
-	partition PartitionName,
 	stateHistoryByPartition map[PartitionName]*StateHistory,
+	timestepsHistory *TimestepsHistory,
 ) *State {
-	return s.iteration.Iterate(partition, stateHistoryByPartition)
+	return s.iteration.Iterate(
+		&s.params.Other,
+		s.partitionName,
+		stateHistoryByPartition,
+		timestepsHistory,
+	)
 }
 
 func (s *StateIterator) Broadcast(
-	partition PartitionName,
 	state *State,
 	channels [](chan *IteratorOutputMessage),
 ) {
 	for _, channel := range channels {
-		channel <- &IteratorOutputMessage{PartitionName: partition, State: state}
+		channel <- &IteratorOutputMessage{PartitionName: s.partitionName, State: state}
 	}
 }
 
 func (s *StateIterator) IterateAndBroadcast(
-	partition PartitionName,
 	stateHistoryByPartition map[PartitionName]*StateHistory,
+	timestepsHistory *TimestepsHistory,
 	channels [](chan *IteratorOutputMessage),
 ) {
-	s.Broadcast(partition, s.Iterate(partition, stateHistoryByPartition), channels)
+	s.Broadcast(s.Iterate(stateHistoryByPartition, timestepsHistory), channels)
 }
