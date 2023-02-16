@@ -3,7 +3,6 @@ package stochadex
 import "gonum.org/v1/gonum/mat"
 
 type TypeName string
-type PartitionName string
 type IterationTypeName TypeName
 type OutputConditionTypeName TypeName
 type OutputFunctionTypeName TypeName
@@ -35,9 +34,9 @@ type OutputConfig struct {
 }
 
 type StochadexConfig struct {
-	PartitionByName map[PartitionName]StateConfig
-	Output          OutputConfig
-	Steps           StepsConfig
+	Partitions []*StateConfig
+	Output     OutputConfig
+	Steps      StepsConfig
 }
 
 type State struct {
@@ -56,4 +55,9 @@ type StateHistory struct {
 type TimestepsHistory struct {
 	Values            *mat.VecDense
 	StateHistoryDepth int
+}
+
+type IteratorOutputMessage struct {
+	PartitionIndex int
+	State          *State
 }

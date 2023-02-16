@@ -3,48 +3,38 @@ package stochadex
 type Iteration interface {
 	Iterate(
 		params *OtherParams,
-		partition PartitionName,
-		stateHistoryByPartition map[PartitionName]*StateHistory,
+		partitionIndex int,
+		stateHistories []*StateHistory,
 		timestepsHistory *TimestepsHistory,
 	) *State
 }
 
-type IteratorOutputMessage struct {
-	PartitionName PartitionName
-	State         *State
-}
-
 type StateIterator struct {
-	partitionName PartitionName
-	params        *ParamsConfig
-	iteration     Iteration
+	partitionIndex int
+	params         *ParamsConfig
+	iteration      Iteration
 }
 
 func (s *StateIterator) Iterate(
-	stateHistoryByPartition map[PartitionName]*StateHistory,
+	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
 ) *State {
-	return s.iteration.Iterate(
-		&s.params.Other,
-		s.partitionName,
-		stateHistoryByPartition,
-		timestepsHistory,
-	)
+	return s.iteration.Iterate(&s.params.Other, s.partitionIndex, stateHistories, timestepsHistory)
 }
 
 func (s *StateIterator) Broadcast(
 	state *State,
 	channels [](chan *IteratorOutputMessage),
 ) {
-	for _, channel := range channels {
-		channel <- &IteratorOutputMessage{PartitionName: s.partitionName, State: state}
+	for index, channel := range channels {
+		channel <- &IteratorOutputMessage{PartitionIndex: index, State: state}
 	}
 }
 
 func (s *StateIterator) IterateAndBroadcast(
-	stateHistoryByPartition map[PartitionName]*StateHistory,
+	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
 	channels [](chan *IteratorOutputMessage),
 ) {
-	s.Broadcast(s.Iterate(stateHistoryByPartition, timestepsHistory), channels)
+	s.Broadcast(s.Iterate(stateHistories, timestepsHistory), channels)
 }
