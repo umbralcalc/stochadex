@@ -9,18 +9,19 @@ type PartitionManager struct {
 	numberOfPartitions   int
 	timestepsHistory     *TimestepsHistory
 	timestepFunction     TimestepFunction
+	terminationCondition TerminationCondition
 }
 
 func (m *PartitionManager) UpdateHistory(partitionIndex int, state *State) {
 	// reference this partition
 	partition := m.stateHistories[partitionIndex]
-	// update the latest state in the history
-	partition.Values.SetRow(0, state.Values.RawVector().Data)
 	// iterate over the history (matrix columns) and shift them
 	// back one timestep
 	for i := 0; i < partition.StateHistoryDepth-1; i++ {
 		partition.Values.SetRow(i+1, partition.Values.RawRowView(i))
 	}
+	// update the latest state in the history
+	partition.Values.SetRow(0, state.Values.RawVector().Data)
 	// update the count of how many steps this partition has received
 	m.partitionTimesteps[partitionIndex] += 1
 }
@@ -41,6 +42,15 @@ func (m *PartitionManager) Receive(message *IteratorOutputMessage) {
 	// to update for the next step
 	m.overallTimesteps += 1
 	m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
+	// terminate without launching another thread if the condition has been met
+	if m.terminationCondition.Terminate(
+		m.stateHistories,
+		m.timestepsHistory,
+		m.overallTimesteps,
+	) {
+		return
+	}
+	// otherwise, launch more threads for the next step
 	for index := 0; index < m.numberOfPartitions; index++ {
 		m.LaunchThread(index)
 	}
@@ -56,10 +66,7 @@ func (m *PartitionManager) LaunchThread(partitionIndex int) {
 }
 
 func (m *PartitionManager) Run() {
-	// update the overall step count and launch new jobs to
-	// to update for the next step
-	m.overallTimesteps += 1
-	m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
+	// launch new jobs to update for the next step
 	for index := 0; index < m.numberOfPartitions; index++ {
 		m.LaunchThread(index)
 	}
