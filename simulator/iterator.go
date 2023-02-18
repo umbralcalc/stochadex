@@ -1,4 +1,4 @@
-package stochadex
+package simulator
 
 type Iteration interface {
 	Iterate(

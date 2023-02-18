@@ -1,4 +1,4 @@
-package stochadex
+package simulator
 
 import "gonum.org/v1/gonum/mat"
 

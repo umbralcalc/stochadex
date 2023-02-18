@@ -1,4 +1,4 @@
-package stochadex
+package simulator
 
 import (
 	"golang.org/x/exp/rand"

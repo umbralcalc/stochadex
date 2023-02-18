@@ -1,4 +1,4 @@
-module anglersim
+module stochadex
 
 go 1.18
 

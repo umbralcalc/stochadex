@@ -1,4 +1,4 @@
-package stochadex
+package simulator
 
 type PartitionManager struct {
 	broadcastingChannels [](chan *IteratorOutputMessage)
@@ -75,3 +75,25 @@ func (m *PartitionManager) Run() {
 		m.Receive(<-channel)
 	}
 }
+
+// func NewPartitionManager(config *StochadexConfig) *PartitionManager {
+// 	broadcastingChannels := make([](chan *IteratorOutputMessage))
+// 	for index, stateConfig := range config.Partitions {
+// 		stateConfig.Iteration
+//         broadcastingChannels = append(
+// 			broadcastingChannels,
+// 			make(chan *IteratorOutputMessage),
+// 		)
+// 	}
+// 	return &PartitionManager{
+// 		broadcastingChannels: broadcastingChannels,
+// 		iterators:
+// 		stateHistories:
+// 		partitionTimesteps:
+// 		overallTimesteps:
+// 		numberOfPartitions:
+// 		timestepsHistory:
+// 		timestepFunction:
+// 		terminationCondition:
+// 	}
+// }
