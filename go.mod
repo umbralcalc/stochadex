@@ -1,4 +1,4 @@
-module stochadex
+module github.com/umbralcalc/stochadex
 
 go 1.18
 

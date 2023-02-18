@@ -2,12 +2,6 @@ package simulator
 
 import "gonum.org/v1/gonum/mat"
 
-type TypeName string
-type IterationTypeName TypeName
-type OutputConditionTypeName TypeName
-type OutputFunctionTypeName TypeName
-type TerminationConditionTypeName TypeName
-type TimestepFunctionTypeName TypeName
 type OtherParams interface{}
 
 type ParamsConfig struct {
@@ -17,20 +11,20 @@ type ParamsConfig struct {
 }
 
 type StateConfig struct {
-	Iteration    IterationTypeName
+	Iteration    Iteration
 	Params       ParamsConfig
 	Width        int
 	HistoryDepth int
 }
 
 type StepsConfig struct {
-	TerminationCondition TerminationConditionTypeName
-	TimestepFunction     TimestepFunctionTypeName
+	TerminationCondition TerminationCondition
+	TimestepFunction     TimestepFunction
 }
 
 type OutputConfig struct {
-	Condition OutputConditionTypeName
-	Function  OutputFunctionTypeName
+	Condition OutputCondition
+	Function  OutputFunction
 }
 
 type StochadexConfig struct {
@@ -46,7 +40,7 @@ type State struct {
 
 type StateHistory struct {
 	// each row is a different state in the history, by convention,
-	// starting with the most recent
+	// starting with the most recent at index = 0
 	Values            *mat.Dense
 	StateWidth        int
 	StateHistoryDepth int

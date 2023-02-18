@@ -1,6 +1,6 @@
 package stochadex
 
-import "stochadex/simulator"
+import "github.com/umbralcalc/stochadex/simulator"
 
 type WienerProcessIteration struct {
 }

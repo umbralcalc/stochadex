@@ -1,7 +1,15 @@
 # So what is the 'stochadex'?
 
-So what's the _big_ idea here? This is a generalised simulation engine that is able to generate samples from a <img src="images/pokedex.png" width="60"/> of possible stochastic processes that a researcher might encounter. A 'Pokédex' here is just a fanciful description for a very general class of multidimensional stochastic processes that pop up everywhere in taming the mathematical wilds of real-world phenomena, and which also leads to a name for the software: the _stochadex_. With such a thing pre-built and self-contained, it can become the basis upon which to build generalised software solutions for a lot of different interesting problems - happy days!
+So what's the _big_ idea here? This is a generalised simulation engine that is able to generate samples from a 'Pokédex' of possible stochastic processes that a researcher might encounter. A 'Pokédex' here is just a fanciful description for a very general class of multidimensional stochastic processes that pop up everywhere in taming the mathematical wilds of real-world phenomena, and which also leads to a name for the software: the _stochadex_. With such a thing pre-built and self-contained, it can become the basis upon which to build generalised software solutions for a lot of different interesting problems - happy days!
 
-<img src="images/frontmatter_mashup_animated.gif" alt="Drawing" style="width: 450px;"/>
+The point here, from a software engineering perspective, is to design something which abstracts away many of the common features that sampling algorithms have for performing these computations behind an easier- (and hence faster) -to-use API. This isn't particularly new as a concept (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), however the design provides a mathematical formalism to reference in future projects, and, to be honest, writing the code from scratch has just been a lot of fun in Go!
 
-The point here, from a software engineering perspective, is to design something which abstracts away many of the common features that sampling algorithms have for performing these computations behind an easier- (and hence faster) -to-use API. This isn't particularly new as a concept (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), however the design provides a mathematical formalism to reference in future projects, and, to be honest, writing the code from scratch has just been a lot of fun in [Go](https://go.dev/). <img src="images/gopher.png" width="20"/>
+# Setup
+
+```
+# update the go modules
+go mod tidy
+
+# build the stochadex binary
+go build -o bin/
+```
