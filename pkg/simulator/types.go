@@ -18,8 +18,9 @@ type StateConfig struct {
 }
 
 type StepsConfig struct {
-	TerminationCondition TerminationCondition
-	TimestepFunction     TimestepFunction
+	TerminationCondition  TerminationCondition
+	TimestepFunction      TimestepFunction
+	TimestepsHistoryDepth int
 }
 
 type OutputConfig struct {

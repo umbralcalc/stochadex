@@ -1,6 +1,6 @@
-package stochadex
+package main
 
-import "github.com/umbralcalc/stochadex/simulator"
+import "github.com/umbralcalc/stochadex/pkg/simulator"
 
 type WienerProcessIteration struct {
 }
@@ -12,4 +12,9 @@ func (w *WienerProcessIteration) Iterate(
 	timestepsHistory *simulator.TimestepsHistory,
 ) *simulator.State {
 	return &simulator.State{}
+}
+
+func main() {
+	manager := simulator.LoadNewPartitionManagerFromConfig()
+	manager.Run()
 }

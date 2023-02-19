@@ -10,6 +10,6 @@ The point here, from a software engineering perspective, is to design something 
 # update the go modules
 go mod tidy
 
-# build the stochadex binary
-go build -o bin/
+# build one of the binaries, e.g.,
+go build -o bin/ ./cmd/weiner_process
 ```

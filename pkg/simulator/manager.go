@@ -1,5 +1,7 @@
 package simulator
 
+import "gonum.org/v1/gonum/mat"
+
 type PartitionManager struct {
 	broadcastingChannels [](chan *IteratorOutputMessage)
 	iterators            []*StateIterator
@@ -10,6 +12,8 @@ type PartitionManager struct {
 	timestepsHistory     *TimestepsHistory
 	timestepFunction     TimestepFunction
 	terminationCondition TerminationCondition
+	outputCondition      OutputCondition
+	outputFunction       OutputFunction
 }
 
 func (m *PartitionManager) UpdateHistory(partitionIndex int, state *State) {
@@ -42,6 +46,14 @@ func (m *PartitionManager) Receive(message *IteratorOutputMessage) {
 	// to update for the next step
 	m.overallTimesteps += 1
 	m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
+	// apply the output function if this step requires it
+	if m.outputCondition.IsOutputStep(
+		m.stateHistories,
+		m.timestepsHistory,
+		m.overallTimesteps,
+	) {
+		m.outputFunction.Output(m.stateHistories, m.timestepsHistory, m.overallTimesteps)
+	}
 	// terminate without launching another thread if the condition has been met
 	if m.terminationCondition.Terminate(
 		m.stateHistories,
@@ -76,24 +88,53 @@ func (m *PartitionManager) Run() {
 	}
 }
 
-// func NewPartitionManager(config *StochadexConfig) *PartitionManager {
-// 	broadcastingChannels := make([](chan *IteratorOutputMessage))
-// 	for index, stateConfig := range config.Partitions {
-// 		stateConfig.Iteration
-//         broadcastingChannels = append(
-// 			broadcastingChannels,
-// 			make(chan *IteratorOutputMessage),
-// 		)
-// 	}
-// 	return &PartitionManager{
-// 		broadcastingChannels: broadcastingChannels,
-// 		iterators:
-// 		stateHistories:
-// 		partitionTimesteps:
-// 		overallTimesteps:
-// 		numberOfPartitions:
-// 		timestepsHistory:
-// 		timestepFunction:
-// 		terminationCondition:
-// 	}
-// }
+func NewPartitionManager(config *StochadexConfig) *PartitionManager {
+	timestepsHistory := &TimestepsHistory{
+		Values:            mat.NewVecDense(config.Steps.TimestepsHistoryDepth, nil),
+		StateHistoryDepth: config.Steps.TimestepsHistoryDepth,
+	}
+	broadcastingChannels := make([](chan *IteratorOutputMessage), 0)
+	iterators := make([]*StateIterator, 0)
+	stateHistories := make([]*StateHistory, 0)
+	partitionTimesteps := make([]int, 0)
+	for index, stateConfig := range config.Partitions {
+		partitionTimesteps = append(partitionTimesteps, 0)
+		stateHistories = append(
+			stateHistories,
+			&StateHistory{
+				Values: mat.NewDense(
+					stateConfig.HistoryDepth,
+					stateConfig.Width,
+					stateConfig.Params.InitStateValues,
+				),
+				StateWidth:        stateConfig.Width,
+				StateHistoryDepth: stateConfig.HistoryDepth,
+			},
+		)
+		iterators = append(
+			iterators,
+			&StateIterator{
+				partitionIndex: index,
+				params:         &stateConfig.Params,
+				iteration:      stateConfig.Iteration,
+			},
+		)
+		broadcastingChannels = append(
+			broadcastingChannels,
+			make(chan *IteratorOutputMessage),
+		)
+	}
+	return &PartitionManager{
+		broadcastingChannels: broadcastingChannels,
+		iterators:            iterators,
+		stateHistories:       stateHistories,
+		partitionTimesteps:   partitionTimesteps,
+		overallTimesteps:     0,
+		numberOfPartitions:   len(partitionTimesteps),
+		timestepsHistory:     timestepsHistory,
+		timestepFunction:     config.Steps.TimestepFunction,
+		terminationCondition: config.Steps.TerminationCondition,
+		outputCondition:      config.Output.Condition,
+		outputFunction:       config.Output.Function,
+	}
+}
