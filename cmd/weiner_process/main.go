@@ -15,6 +15,19 @@ func (w *WienerProcessIteration) Iterate(
 }
 
 func main() {
-	manager := simulator.LoadNewPartitionManagerFromConfig()
+	config := simulator.NewStochadexConfig(
+		otherParams: []OtherParams,
+		initStateValues: [][]float64,
+		seeds: []int,
+		iterations: []Iteration,
+		stateWidths: []int{1},
+		stateHistoryDepths: []int{1},
+		outputCondition: ,
+		outputFunction: ,
+		terminationCondition: ,
+		timestepFunction: ,
+		timestepsHistoryDepth: 1,
+	)
+	manager := simulator.NewPartitionManager(config)
 	manager.Run()
 }
