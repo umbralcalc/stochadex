@@ -11,5 +11,5 @@ The point here, from a software engineering perspective, is to design something 
 go mod tidy
 
 # build one of the binaries, e.g.,
-go build -o bin/ ./cmd/weiner_process
+go build -o bin/ ./cmd/wiener_process
 ```
