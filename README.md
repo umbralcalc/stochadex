@@ -10,7 +10,7 @@ The design, development, implementation details behind and practical documentati
 
 ## Builds
 
-```
+```shell
 # update the go modules
 go mod tidy
 
