@@ -8,6 +8,15 @@ type OutputFunction interface {
 	)
 }
 
+type NilOutputFunction struct{}
+
+func (f *NilOutputFunction) Output(
+	stateHistories []*StateHistory,
+	timestepsHistory *TimestepsHistory,
+	overallTimesteps int,
+) {
+}
+
 type OutputCondition interface {
 	IsOutputStep(
 		stateHistories []*StateHistory,

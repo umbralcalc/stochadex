@@ -5,33 +5,33 @@ import "gonum.org/v1/gonum/mat"
 type OtherParams interface{}
 
 type ParamsConfig struct {
-	Other           OtherParams
+	Other           *OtherParams
 	InitStateValues []float64
-	Seed            int
+	Seed            uint64
 }
 
 type StateConfig struct {
-	Iteration    Iteration
-	Params       ParamsConfig
+	Iteration    *Iteration
+	Params       *ParamsConfig
 	Width        int
 	HistoryDepth int
 }
 
 type StepsConfig struct {
-	TerminationCondition  TerminationCondition
-	TimestepFunction      TimestepFunction
+	TerminationCondition  *TerminationCondition
+	TimestepFunction      *TimestepFunction
 	TimestepsHistoryDepth int
 }
 
 type OutputConfig struct {
-	Condition OutputCondition
-	Function  OutputFunction
+	Condition *OutputCondition
+	Function  *OutputFunction
 }
 
 type StochadexConfig struct {
 	Partitions []*StateConfig
-	Output     OutputConfig
-	Steps      StepsConfig
+	Output     *OutputConfig
+	Steps      *StepsConfig
 }
 
 type State struct {
