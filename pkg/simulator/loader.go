@@ -1,8 +1,11 @@
 package simulator
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
 
+	"github.com/akamensky/argparse"
 	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
 )
@@ -12,6 +15,7 @@ type PartitionedInitStateValues struct {
 }
 
 type LoadSettingsConfig struct {
+	OtherParams           []*OtherParams                `mapstructure:"other_params"`
 	InitStateValues       []*PartitionedInitStateValues `mapstructure:"init_state_values"`
 	Seeds                 []uint64                      `mapstructure:"seeds"`
 	StateWidths           []int                         `mapstructure:"state_widths"`
@@ -37,6 +41,23 @@ func NewLoadSettingsConfigFromYaml(path string) *LoadSettingsConfig {
 	return &settings
 }
 
+func NewLoadSettingsConfigFromArgParsedYaml() *LoadSettingsConfig {
+	parser := argparse.NewParser(
+		"stochadex simulator",
+		"simulates your chosen stochastic process",
+	)
+	s := parser.String(
+		"s",
+		"string",
+		&argparse.Options{Required: true, Help: "yaml config path for settings"},
+	)
+	err := parser.Parse(os.Args)
+	if err != nil {
+		fmt.Print(parser.Usage(err))
+	}
+	return NewLoadSettingsConfigFromYaml(*s)
+}
+
 type LoadImplementationsConfig struct {
 	Iterations           []Iteration
 	OutputCondition      OutputCondition
@@ -46,7 +67,6 @@ type LoadImplementationsConfig struct {
 }
 
 func NewStochadexConfig(
-	otherParams []OtherParams,
 	settings *LoadSettingsConfig,
 	implementations *LoadImplementationsConfig,
 ) *StochadexConfig {
@@ -57,7 +77,7 @@ func NewStochadexConfig(
 			&StateConfig{
 				Iteration: &iteration,
 				Params: &ParamsConfig{
-					Other:           &otherParams[index],
+					Other:           settings.OtherParams[index],
 					InitStateValues: settings.InitStateValues[index].Values,
 					Seed:            settings.Seeds[index],
 				},

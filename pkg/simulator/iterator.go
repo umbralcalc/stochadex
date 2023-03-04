@@ -19,7 +19,7 @@ func (s *StateIterator) Iterate(
 	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
 ) *State {
-	return s.iteration.Iterate(&s.params.Other, s.partitionIndex, stateHistories, timestepsHistory)
+	return s.iteration.Iterate(s.params.Other, s.partitionIndex, stateHistories, timestepsHistory)
 }
 
 func (s *StateIterator) Broadcast(

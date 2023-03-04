@@ -115,8 +115,8 @@ func NewPartitionManager(config *StochadexConfig) *PartitionManager {
 			iterators,
 			&StateIterator{
 				partitionIndex: index,
-				params:         &stateConfig.Params,
-				iteration:      stateConfig.Iteration,
+				params:         stateConfig.Params,
+				iteration:      *stateConfig.Iteration,
 			},
 		)
 		broadcastingChannels = append(
@@ -132,9 +132,9 @@ func NewPartitionManager(config *StochadexConfig) *PartitionManager {
 		overallTimesteps:     0,
 		numberOfPartitions:   len(partitionTimesteps),
 		timestepsHistory:     timestepsHistory,
-		timestepFunction:     config.Steps.TimestepFunction,
-		terminationCondition: config.Steps.TerminationCondition,
-		outputCondition:      config.Output.Condition,
-		outputFunction:       config.Output.Function,
+		timestepFunction:     *config.Steps.TimestepFunction,
+		terminationCondition: *config.Steps.TerminationCondition,
+		outputCondition:      *config.Output.Condition,
+		outputFunction:       *config.Output.Function,
 	}
 }

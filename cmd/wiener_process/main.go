@@ -9,16 +9,12 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-type WienerProcessParams struct {
-	Variances []float64
-}
-
 type WienerProcessIteration struct {
 	unitNormalDist *distuv.Normal
 }
 
 func (w *WienerProcessIteration) Iterate(
-	params *WienerProcessParams,
+	otherParams *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.TimestepsHistory,
@@ -27,7 +23,8 @@ func (w *WienerProcessIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +
-			math.Sqrt(params.Variances[i])*w.dist.Rand()
+			math.Sqrt(otherParams.FloatParams["variances"][i])*
+				w.unitNormalDist.Rand()
 	}
 	return &simulator.State{
 		Values: mat.NewVecDense(
@@ -39,11 +36,8 @@ func (w *WienerProcessIteration) Iterate(
 }
 
 func main() {
-	var baseConfigPath string
-	settings := simulator.NewLoadSettingsConfigFromYaml(baseConfigPath)
-	var variances [][]float64
-	var otherParams []WienerProcessParams
-	iterations := make([]*WienerProcessIteration, 0)
+	settings := simulator.NewLoadSettingsConfigFromYaml("config.yaml")
+	iterations := make([]simulator.Iteration, 0)
 	for partitionIndex := range settings.StateWidths {
 		iterations = append(
 			iterations,
@@ -68,7 +62,6 @@ func main() {
 		},
 	}
 	config := simulator.NewStochadexConfig(
-		otherParams,
 		settings,
 		implementations,
 	)

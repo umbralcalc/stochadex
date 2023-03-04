@@ -2,7 +2,10 @@ package simulator
 
 import "gonum.org/v1/gonum/mat"
 
-type OtherParams interface{}
+type OtherParams struct {
+	FloatParams map[string][]float64 `mapstructure:"float_params"`
+	IntParams   map[string][]int64   `mapstructure:"int_params"`
+}
 
 type ParamsConfig struct {
 	Other           *OtherParams
