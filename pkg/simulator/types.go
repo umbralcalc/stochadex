@@ -3,8 +3,8 @@ package simulator
 import "gonum.org/v1/gonum/mat"
 
 type OtherParams struct {
-	FloatParams map[string][]float64 `mapstructure:"float_params"`
-	IntParams   map[string][]int64   `mapstructure:"int_params"`
+	FloatParams map[string][]float64 `yaml:"float_params"`
+	IntParams   map[string][]int64   `yaml:"int_params"`
 }
 
 type ParamsConfig struct {

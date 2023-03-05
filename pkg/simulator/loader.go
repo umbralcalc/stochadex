@@ -6,21 +6,16 @@ import (
 	"os"
 
 	"github.com/akamensky/argparse"
-	"github.com/mitchellh/mapstructure"
 	"gopkg.in/yaml.v2"
 )
 
-type PartitionedInitStateValues struct {
-	Values []float64 `mapstructure:"values"`
-}
-
 type LoadSettingsConfig struct {
-	OtherParams           []*OtherParams                `mapstructure:"other_params"`
-	InitStateValues       []*PartitionedInitStateValues `mapstructure:"init_state_values"`
-	Seeds                 []uint64                      `mapstructure:"seeds"`
-	StateWidths           []int                         `mapstructure:"state_widths"`
-	StateHistoryDepths    []int                         `mapstructure:"state_history_depths"`
-	TimestepsHistoryDepth int                           `mapstructure:"timesteps_history_depth"`
+	OtherParams           []*OtherParams `yaml:"other_params"`
+	InitStateValues       [][]float64    `yaml:"init_state_values"`
+	Seeds                 []uint64       `yaml:"seeds"`
+	StateWidths           []int          `yaml:"state_widths"`
+	StateHistoryDepths    []int          `yaml:"state_history_depths"`
+	TimestepsHistoryDepth int            `yaml:"timesteps_history_depth"`
 }
 
 func NewLoadSettingsConfigFromYaml(path string) *LoadSettingsConfig {
@@ -28,13 +23,8 @@ func NewLoadSettingsConfigFromYaml(path string) *LoadSettingsConfig {
 	if err != nil {
 		panic(err)
 	}
-	var input map[string]interface{}
-	err = yaml.Unmarshal(yamlFile, input)
-	if err != nil {
-		panic(err)
-	}
 	var settings LoadSettingsConfig
-	err = mapstructure.Decode(input, &settings)
+	err = yaml.Unmarshal(yamlFile, &settings)
 	if err != nil {
 		panic(err)
 	}
@@ -78,7 +68,7 @@ func NewStochadexConfig(
 				Iteration: &iteration,
 				Params: &ParamsConfig{
 					Other:           settings.OtherParams[index],
-					InitStateValues: settings.InitStateValues[index].Values,
+					InitStateValues: settings.InitStateValues[index],
 					Seed:            settings.Seeds[index],
 				},
 				Width:        settings.StateWidths[index],
