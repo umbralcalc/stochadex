@@ -10,5 +10,5 @@ init_state_values:
 - [0.67, -0.01, 0.1]
 seeds: [4673, 2783]
 state_widths: [5, 3]
-state_history_depths: [1, 1]
-timesteps_history_depth: 1
+state_history_depths: [2, 2]
+timesteps_history_depth: 2

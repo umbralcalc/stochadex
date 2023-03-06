@@ -21,8 +21,8 @@ func (m *PartitionManager) UpdateHistory(partitionIndex int, state *State) {
 	partition := m.stateHistories[partitionIndex]
 	// iterate over the history (matrix columns) and shift them
 	// back one timestep
-	for i := 0; i < partition.StateHistoryDepth-1; i++ {
-		partition.Values.SetRow(i+1, partition.Values.RawRowView(i))
+	for i := 1; i < partition.StateHistoryDepth; i++ {
+		partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
 	}
 	// update the latest state in the history
 	partition.Values.SetRow(0, state.Values.RawVector().Data)
@@ -99,14 +99,18 @@ func NewPartitionManager(config *StochadexConfig) *PartitionManager {
 	partitionTimesteps := make([]int, 0)
 	for index, stateConfig := range config.Partitions {
 		partitionTimesteps = append(partitionTimesteps, 0)
+		stateHistoryValues := mat.NewDense(
+			stateConfig.HistoryDepth,
+			stateConfig.Width,
+			nil,
+		)
+		for elementIndex, element := range stateConfig.Params.InitStateValues {
+			stateHistoryValues.Set(0, elementIndex, element)
+		}
 		stateHistories = append(
 			stateHistories,
 			&StateHistory{
-				Values: mat.NewDense(
-					stateConfig.HistoryDepth,
-					stateConfig.Width,
-					stateConfig.Params.InitStateValues,
-				),
+				Values:            stateHistoryValues,
 				StateWidth:        stateConfig.Width,
 				StateHistoryDepth: stateConfig.HistoryDepth,
 			},

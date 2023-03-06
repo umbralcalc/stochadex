@@ -56,8 +56,8 @@ func (t *ExponentialDistributionTimestepFunction) Iterate(
 	timestepsHistory *TimestepsHistory,
 ) *TimestepsHistory {
 	// iterate over the history of timesteps and shift them back one
-	for i := 0; i < timestepsHistory.StateHistoryDepth-1; i++ {
-		timestepsHistory.Values.SetVec(i+1, timestepsHistory.Values.AtVec(i))
+	for i := 1; i < timestepsHistory.StateHistoryDepth; i++ {
+		timestepsHistory.Values.SetVec(i, timestepsHistory.Values.AtVec(i-1))
 	}
 	// now update the latest state in the history
 	timestepsHistory.Values.SetVec(0, t.distribution.Rand())
