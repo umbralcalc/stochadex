@@ -26,8 +26,8 @@ func (s *StateIterator) Broadcast(
 	state *State,
 	channels [](chan *IteratorOutputMessage),
 ) {
-	for index, channel := range channels {
-		channel <- &IteratorOutputMessage{PartitionIndex: index, State: state}
+	for _, channel := range channels {
+		channel <- &IteratorOutputMessage{PartitionIndex: s.partitionIndex, State: state}
 	}
 }
 

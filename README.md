@@ -6,7 +6,7 @@ The point here, from a software engineering perspective, is to design something 
 
 ## Need more context and documentation?
 
-The design, development, implementation details behind and practical documentation for the stochadex can all be found in the first chapter of this very delightful book: [Diffusing Ideas](https://github.com/umbralcalc/diffusing-ideas/raw/main/book.pdf).
+The design, development, implementation details behind and practical documentation for the stochadex can all be found in the [first chapter](https://umbralcalc.github.io/diffusing-ideas/building_a_generalised_simulator/chapter.pdf) of this very delightful book: [Diffusing Ideas](https://umbralcalc.github.io/diffusing-ideas).
 
 ## Builds
 
