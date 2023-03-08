@@ -17,7 +17,7 @@ func (t *ConstantNoMemoryTimestepFunction) Iterate(
 	timestepsHistory *TimestepsHistory,
 ) *TimestepsHistory {
 	// update only the latest state in the history
-	timestepsHistory.Values.SetVec(0, t.Stepsize)
+	timestepsHistory.Values.SetVec(0, timestepsHistory.Values.AtVec(0)+t.Stepsize)
 	return timestepsHistory
 }
 
@@ -31,7 +31,10 @@ func (t *ExponentialDistributionNoMemoryTimestepFunction) Iterate(
 	timestepsHistory *TimestepsHistory,
 ) *TimestepsHistory {
 	// update only the latest state in the history
-	timestepsHistory.Values.SetVec(0, t.distribution.Rand())
+	timestepsHistory.Values.SetVec(
+		0,
+		timestepsHistory.Values.AtVec(0)+t.distribution.Rand(),
+	)
 	return timestepsHistory
 }
 
@@ -60,7 +63,10 @@ func (t *ExponentialDistributionTimestepFunction) Iterate(
 		timestepsHistory.Values.SetVec(i, timestepsHistory.Values.AtVec(i-1))
 	}
 	// now update the latest state in the history
-	timestepsHistory.Values.SetVec(0, t.distribution.Rand())
+	timestepsHistory.Values.SetVec(
+		0,
+		timestepsHistory.Values.AtVec(0)+t.distribution.Rand(),
+	)
 	return timestepsHistory
 }
 

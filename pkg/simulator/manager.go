@@ -1,6 +1,10 @@
 package simulator
 
-import "gonum.org/v1/gonum/mat"
+import (
+	"sync"
+
+	"gonum.org/v1/gonum/mat"
+)
 
 type PartitionManager struct {
 	broadcastingChannels [](chan *IteratorOutputMessage)
@@ -30,7 +34,10 @@ func (m *PartitionManager) UpdateHistory(partitionIndex int, state *State) {
 	m.partitionTimesteps[partitionIndex] += 1
 }
 
-func (m *PartitionManager) Receive(message *IteratorOutputMessage) {
+func (m *PartitionManager) Receive(
+	message *IteratorOutputMessage,
+	waitGroup *sync.WaitGroup,
+) {
 	// update the state history for whichever partition message arrives
 	m.UpdateHistory(message.PartitionIndex, message.State)
 	// iterate the count of updates for that partition
@@ -65,6 +72,11 @@ func (m *PartitionManager) Receive(message *IteratorOutputMessage) {
 	// otherwise, launch more threads for the next step
 	for index := 0; index < m.numberOfPartitions; index++ {
 		m.LaunchThread(index)
+		waitGroup.Add(1)
+	}
+	// setup channels to receive the messages from each job
+	for _, channel := range m.broadcastingChannels {
+		m.Receive(<-channel, waitGroup)
 	}
 }
 
@@ -78,13 +90,17 @@ func (m *PartitionManager) LaunchThread(partitionIndex int) {
 }
 
 func (m *PartitionManager) Run() {
+	var waitGroup sync.WaitGroup
+	defer waitGroup.Done()
+
 	// launch new jobs to update for the next step
 	for index := 0; index < m.numberOfPartitions; index++ {
 		m.LaunchThread(index)
+		waitGroup.Add(1)
 	}
 	// setup channels to receive the messages from each job
 	for _, channel := range m.broadcastingChannels {
-		m.Receive(<-channel)
+		m.Receive(<-channel, &waitGroup)
 	}
 }
 

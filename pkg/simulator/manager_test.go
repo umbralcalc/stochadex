@@ -6,9 +6,9 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-type SquareIncreasingProcessIteration struct{}
+type DoublingProcessIteration struct{}
 
-func (s *SquareIncreasingProcessIteration) Iterate(
+func (d *DoublingProcessIteration) Iterate(
 	otherParams *OtherParams,
 	partitionIndex int,
 	stateHistories []*StateHistory,
@@ -17,7 +17,7 @@ func (s *SquareIncreasingProcessIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := 0; i < stateHistory.StateWidth; i++ {
-		values[i] = stateHistory.Values.At(0, i) * stateHistory.Values.At(0, i)
+		values[i] = stateHistory.Values.At(0, i) * 2.0
 	}
 	return &State{
 		Values: mat.NewVecDense(
@@ -60,6 +60,14 @@ func iterateHistory(m *PartitionManager) {
 	}
 	m.overallTimesteps += 1
 	m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
+	// apply the output function if this step requires it
+	if m.outputCondition.IsOutputStep(
+		m.stateHistories,
+		m.timestepsHistory,
+		m.overallTimesteps,
+	) {
+		m.outputFunction.Output(m.stateHistories, m.timestepsHistory, m.overallTimesteps)
+	}
 }
 
 func run(m *PartitionManager) {
@@ -88,10 +96,7 @@ func TestPartitionManager(t *testing.T) {
 			}
 			iterations := make([]Iteration, 0)
 			for range settings.StateWidths {
-				iterations = append(
-					iterations,
-					&SquareIncreasingProcessIteration{},
-				)
+				iterations = append(iterations, &DoublingProcessIteration{})
 			}
 			outputWithGoroutines := &VariableStoreOutputFunction{}
 			implementations := &LoadImplementationsConfig{
@@ -99,7 +104,7 @@ func TestPartitionManager(t *testing.T) {
 				OutputCondition: &EveryStepOutputCondition{},
 				OutputFunction:  outputWithGoroutines,
 				TerminationCondition: &NumberOfStepsTerminationCondition{
-					MaxNumberOfSteps: 100,
+					MaxNumberOfSteps: 10,
 				},
 				TimestepFunction: &ConstantNoMemoryTimestepFunction{
 					Stepsize: 1.0,
