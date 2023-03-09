@@ -55,6 +55,11 @@ type TimestepsHistory struct {
 	StateHistoryDepth int
 }
 
+type IteratorInputMessage struct {
+	StateHistories   []*StateHistory
+	TimestepsHistory *TimestepsHistory
+}
+
 type IteratorOutputMessage struct {
 	PartitionIndex int
 	State          *State

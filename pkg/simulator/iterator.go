@@ -26,15 +26,18 @@ func (s *StateIterator) Broadcast(
 	state *State,
 	channels [](chan *IteratorOutputMessage),
 ) {
-	for _, channel := range channels {
-		channel <- &IteratorOutputMessage{PartitionIndex: s.partitionIndex, State: state}
+	channels[s.partitionIndex] <- &IteratorOutputMessage{
+		PartitionIndex: s.partitionIndex,
+		State:          state,
 	}
 }
 
-func (s *StateIterator) IterateAndBroadcast(
-	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
+func (s *StateIterator) ReceiveIterateAndBroadcast(
+	inputMessage *IteratorInputMessage,
 	channels [](chan *IteratorOutputMessage),
 ) {
-	s.Broadcast(s.Iterate(stateHistories, timestepsHistory), channels)
+	s.Broadcast(
+		s.Iterate(inputMessage.StateHistories, inputMessage.TimestepsHistory),
+		channels,
+	)
 }
