@@ -5,7 +5,7 @@ import (
 )
 
 type PartitionManager struct {
-	broadcastingChannels [](chan *IteratorOutputMessage)
+	broadcastingChannel  chan *IteratorOutputMessage
 	newWorkChannels      [](chan *IteratorInputMessage)
 	pendingStateUpdates  []*State
 	iterators            []*StateIterator
@@ -34,7 +34,8 @@ func (m *PartitionManager) UpdateHistory(partitionIndex int, state *State) {
 	m.partitionTimesteps[partitionIndex] += 1
 }
 
-func (m *PartitionManager) Receive(message *IteratorOutputMessage) {
+func (m *PartitionManager) Receive(inputChannel <-chan *IteratorOutputMessage) {
+	message := <-inputChannel
 	// add to the pending state updates for whichever partition message arrives
 	m.pendingStateUpdates[message.PartitionIndex] = message.State
 	// iterate the count of updates for that partition
@@ -46,9 +47,7 @@ func (m *PartitionManager) Receive(message *IteratorOutputMessage) {
 			return
 		}
 	}
-	// otherwise, update the overall step count and implement the pending state updates
-	// to the history
-	m.overallTimesteps += 1
+	// otherwise, implement the pending state updates to the history
 	m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
 	for partitionIndex, state := range m.pendingStateUpdates {
 		m.UpdateHistory(partitionIndex, state)
@@ -73,6 +72,15 @@ func (m *PartitionManager) Receive(message *IteratorOutputMessage) {
 }
 
 func (m *PartitionManager) RequestMoreIterations() {
+	// update the overall step count
+	m.overallTimesteps += 1
+	// setup iterators to receive an broadcast their iterations
+	for index := 0; index < m.numberOfPartitions; index++ {
+		go m.iterators[index].ReceiveIterateAndBroadcast(
+			m.newWorkChannels[index],
+			m.broadcastingChannel,
+		)
+	}
 	// send messages on the new work channels to ask for the next iteration
 	// in the case of each partition
 	for index := 0; index < m.numberOfPartitions; index++ {
@@ -81,16 +89,9 @@ func (m *PartitionManager) RequestMoreIterations() {
 			TimestepsHistory: m.timestepsHistory,
 		}
 	}
-	// setup iterators to receive an broadcast their iterations
+	// setup to receive the messages from each job
 	for index := 0; index < m.numberOfPartitions; index++ {
-		m.iterators[index].ReceiveIterateAndBroadcast(
-			<-m.newWorkChannels[index],
-			m.broadcastingChannels,
-		)
-	}
-	// setup channels to receive the messages from each job
-	for _, channel := range m.broadcastingChannels {
-		m.Receive(<-channel)
+		m.Receive(m.broadcastingChannel)
 	}
 }
 
@@ -104,10 +105,10 @@ func NewPartitionManager(config *StochadexConfig) *PartitionManager {
 		Values:            mat.NewVecDense(config.Steps.TimestepsHistoryDepth, nil),
 		StateHistoryDepth: config.Steps.TimestepsHistoryDepth,
 	}
-	broadcastingChannels := make([](chan *IteratorOutputMessage), 0)
 	iterators := make([]*StateIterator, 0)
 	stateHistories := make([]*StateHistory, 0)
 	partitionTimesteps := make([]int, 0)
+	newWorkChannels := make([](chan *IteratorInputMessage), 0)
 	for index, stateConfig := range config.Partitions {
 		partitionTimesteps = append(partitionTimesteps, 0)
 		stateHistoryValues := mat.NewDense(
@@ -134,13 +135,15 @@ func NewPartitionManager(config *StochadexConfig) *PartitionManager {
 				iteration:      *stateConfig.Iteration,
 			},
 		)
-		broadcastingChannels = append(
-			broadcastingChannels,
-			make(chan *IteratorOutputMessage),
+		newWorkChannels = append(
+			newWorkChannels,
+			make(chan *IteratorInputMessage),
 		)
 	}
 	return &PartitionManager{
-		broadcastingChannels: broadcastingChannels,
+		broadcastingChannel:  make(chan *IteratorOutputMessage),
+		newWorkChannels:      newWorkChannels,
+		pendingStateUpdates:  make([]*State, len(config.Partitions)),
 		iterators:            iterators,
 		stateHistories:       stateHistories,
 		partitionTimesteps:   partitionTimesteps,

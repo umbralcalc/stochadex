@@ -19,25 +19,24 @@ func (s *StateIterator) Iterate(
 	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
 ) *State {
-	return s.iteration.Iterate(s.params.Other, s.partitionIndex, stateHistories, timestepsHistory)
-}
-
-func (s *StateIterator) Broadcast(
-	state *State,
-	channels [](chan *IteratorOutputMessage),
-) {
-	channels[s.partitionIndex] <- &IteratorOutputMessage{
-		PartitionIndex: s.partitionIndex,
-		State:          state,
-	}
+	return s.iteration.Iterate(
+		s.params.Other,
+		s.partitionIndex,
+		stateHistories,
+		timestepsHistory,
+	)
 }
 
 func (s *StateIterator) ReceiveIterateAndBroadcast(
-	inputMessage *IteratorInputMessage,
-	channels [](chan *IteratorOutputMessage),
+	inputChannel <-chan *IteratorInputMessage,
+	outputChannel chan<- *IteratorOutputMessage,
 ) {
-	s.Broadcast(
-		s.Iterate(inputMessage.StateHistories, inputMessage.TimestepsHistory),
-		channels,
-	)
+	inputMessage := <-inputChannel
+	outputChannel <- &IteratorOutputMessage{
+		PartitionIndex: s.partitionIndex,
+		State: s.Iterate(
+			inputMessage.StateHistories,
+			inputMessage.TimestepsHistory,
+		),
+	}
 }
