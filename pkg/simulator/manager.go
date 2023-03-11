@@ -19,8 +19,6 @@ type PartitionManager struct {
 	timestepsHistory     *TimestepsHistory
 	timestepFunction     TimestepFunction
 	terminationCondition TerminationCondition
-	outputCondition      OutputCondition
-	outputFunction       OutputFunction
 }
 
 func (m *PartitionManager) UpdateHistory(partitionIndex int, state *State) {
@@ -92,19 +90,6 @@ func (m *PartitionManager) Run() {
 		for partitionIndex, state := range m.pendingStateUpdates {
 			m.UpdateHistory(partitionIndex, state)
 		}
-
-		// also apply the output function if this step requires it
-		if m.outputCondition.IsOutputStep(
-			m.stateHistories,
-			m.timestepsHistory,
-			m.overallTimesteps,
-		) {
-			m.outputFunction.Output(
-				m.stateHistories,
-				m.timestepsHistory,
-				m.overallTimesteps,
-			)
-		}
 	}
 }
 
@@ -138,9 +123,11 @@ func NewPartitionManager(config *StochadexConfig) *PartitionManager {
 		iterators = append(
 			iterators,
 			&StateIterator{
-				partitionIndex: index,
-				params:         stateConfig.Params,
-				iteration:      *stateConfig.Iteration,
+				partitionIndex:  index,
+				params:          stateConfig.Params,
+				iteration:       *stateConfig.Iteration,
+				outputCondition: *config.Output.Condition,
+				outputFunction:  *config.Output.Function,
 			},
 		)
 		newWorkChannels = append(
@@ -160,7 +147,5 @@ func NewPartitionManager(config *StochadexConfig) *PartitionManager {
 		timestepsHistory:     timestepsHistory,
 		timestepFunction:     *config.Steps.TimestepFunction,
 		terminationCondition: *config.Steps.TerminationCondition,
-		outputCondition:      *config.Output.Condition,
-		outputFunction:       *config.Output.Function,
 	}
 }

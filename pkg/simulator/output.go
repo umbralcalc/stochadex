@@ -1,36 +1,24 @@
 package simulator
 
 type OutputFunction interface {
-	Output(
-		stateHistories []*StateHistory,
-		timestepsHistory *TimestepsHistory,
-		overallTimesteps int,
-	)
+	Output(partitionIndex int, state *State, timesteps int)
 }
 
 type NilOutputFunction struct{}
 
-func (f *NilOutputFunction) Output(
-	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
-	overallTimesteps int,
-) {
+func (f *NilOutputFunction) Output(partitionIndex int, state *State, timesteps int) {
 }
 
 type OutputCondition interface {
-	IsOutputStep(
-		stateHistories []*StateHistory,
-		timestepsHistory *TimestepsHistory,
-		overallTimesteps int,
-	) bool
+	IsOutputStep(partitionIndex int, state *State, timesteps int) bool
 }
 
 type EveryStepOutputCondition struct{}
 
 func (c *EveryStepOutputCondition) IsOutputStep(
-	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
-	overallTimesteps int,
+	partitionIndex int,
+	state *State,
+	timesteps int,
 ) bool {
 	return true
 }
@@ -41,9 +29,9 @@ type EveryNStepsOutputCondition struct {
 }
 
 func (c *EveryNStepsOutputCondition) IsOutputStep(
-	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
-	overallTimesteps int,
+	partitionIndex int,
+	state *State,
+	timesteps int,
 ) bool {
 	c.ticker += 1
 	if c.ticker == c.N {

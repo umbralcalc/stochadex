@@ -29,19 +29,18 @@ func (d *DoublingProcessIteration) Iterate(
 }
 
 type VariableStoreOutputFunction struct {
-	Store *[][][]float64
+	Store [][][]float64
 }
 
 func (f *VariableStoreOutputFunction) Output(
-	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
-	overallTimesteps int,
+	partitionIndex int,
+	state *State,
+	timesteps int,
 ) {
-	store := make([][]float64, 0)
-	for _, stateHistory := range stateHistories {
-		store = append(store, stateHistory.Values.RawRowView(0))
-	}
-	*f.Store = append(*f.Store, store)
+	f.Store[partitionIndex] = append(
+		f.Store[partitionIndex],
+		state.Values.RawVector().Data,
+	)
 }
 
 func iteratePartition(m *PartitionManager, partitionIndex int) *State {
@@ -60,14 +59,6 @@ func iterateHistory(m *PartitionManager) {
 	}
 	m.overallTimesteps += 1
 	m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
-	// apply the output function if this step requires it
-	if m.outputCondition.IsOutputStep(
-		m.stateHistories,
-		m.timestepsHistory,
-		m.overallTimesteps,
-	) {
-		m.outputFunction.Output(m.stateHistories, m.timestepsHistory, m.overallTimesteps)
-	}
 }
 
 func run(m *PartitionManager) {
@@ -98,11 +89,11 @@ func TestPartitionManager(t *testing.T) {
 			for range settings.StateWidths {
 				iterations = append(iterations, &DoublingProcessIteration{})
 			}
-			storeWithGoroutines := make([][][]float64, 0)
+			storeWithGoroutines := make([][][]float64, 2)
 			implementations := &LoadImplementationsConfig{
 				Iterations:      iterations,
 				OutputCondition: &EveryStepOutputCondition{},
-				OutputFunction:  &VariableStoreOutputFunction{Store: &storeWithGoroutines},
+				OutputFunction:  &VariableStoreOutputFunction{Store: storeWithGoroutines},
 				TerminationCondition: &NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 10,
 				},
@@ -112,9 +103,9 @@ func TestPartitionManager(t *testing.T) {
 			}
 			configWithGoroutines := NewStochadexConfig(settings, implementations)
 			managerWithGoroutines := NewPartitionManager(configWithGoroutines)
-			storeWithoutGoroutines := make([][][]float64, 0)
+			storeWithoutGoroutines := make([][][]float64, 2)
 			outputWithoutGoroutines := &VariableStoreOutputFunction{
-				Store: &storeWithoutGoroutines,
+				Store: storeWithoutGoroutines,
 			}
 			implementations.OutputFunction = outputWithoutGoroutines
 			configWithoutGoroutines := NewStochadexConfig(settings, implementations)
