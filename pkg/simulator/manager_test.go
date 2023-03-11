@@ -29,7 +29,7 @@ func (d *DoublingProcessIteration) Iterate(
 }
 
 type VariableStoreOutputFunction struct {
-	Store [][][]float64
+	Store *[][][]float64
 }
 
 func (f *VariableStoreOutputFunction) Output(
@@ -39,9 +39,9 @@ func (f *VariableStoreOutputFunction) Output(
 ) {
 	store := make([][]float64, 0)
 	for _, stateHistory := range stateHistories {
-		store = append(store, stateHistory.Values.RawMatrix().Data)
+		store = append(store, stateHistory.Values.RawRowView(0))
 	}
-	f.Store = append(f.Store, store)
+	*f.Store = append(*f.Store, store)
 }
 
 func iteratePartition(m *PartitionManager, partitionIndex int) *State {
@@ -98,11 +98,11 @@ func TestPartitionManager(t *testing.T) {
 			for range settings.StateWidths {
 				iterations = append(iterations, &DoublingProcessIteration{})
 			}
-			outputWithGoroutines := &VariableStoreOutputFunction{}
+			storeWithGoroutines := make([][][]float64, 0)
 			implementations := &LoadImplementationsConfig{
 				Iterations:      iterations,
 				OutputCondition: &EveryStepOutputCondition{},
-				OutputFunction:  outputWithGoroutines,
+				OutputFunction:  &VariableStoreOutputFunction{Store: &storeWithGoroutines},
 				TerminationCondition: &NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 10,
 				},
@@ -112,16 +112,19 @@ func TestPartitionManager(t *testing.T) {
 			}
 			configWithGoroutines := NewStochadexConfig(settings, implementations)
 			managerWithGoroutines := NewPartitionManager(configWithGoroutines)
-			outputWithoutGoroutines := &VariableStoreOutputFunction{}
+			storeWithoutGoroutines := make([][][]float64, 0)
+			outputWithoutGoroutines := &VariableStoreOutputFunction{
+				Store: &storeWithoutGoroutines,
+			}
 			implementations.OutputFunction = outputWithoutGoroutines
 			configWithoutGoroutines := NewStochadexConfig(settings, implementations)
 			managerWithoutGoroutines := NewPartitionManager(configWithoutGoroutines)
 			managerWithGoroutines.Run()
 			run(managerWithoutGoroutines)
-			for tIndex, store := range outputWithoutGoroutines.Store {
+			for tIndex, store := range storeWithoutGoroutines {
 				for pIndex, partitionStore := range store {
 					for eIndex, element := range partitionStore {
-						if element != outputWithGoroutines.Store[tIndex][pIndex][eIndex] {
+						if element != storeWithGoroutines[tIndex][pIndex][eIndex] {
 							t.Error("outputs with and without goroutines don't match")
 						}
 					}

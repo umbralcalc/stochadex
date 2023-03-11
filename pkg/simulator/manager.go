@@ -1,9 +1,12 @@
 package simulator
 
 import (
+	"sync"
+
 	"gonum.org/v1/gonum/mat"
 )
 
+// PartitionManager
 type PartitionManager struct {
 	broadcastingChannel  chan *IteratorOutputMessage
 	newWorkChannels      [](chan *IteratorInputMessage)
@@ -40,46 +43,22 @@ func (m *PartitionManager) Receive(inputChannel <-chan *IteratorOutputMessage) {
 	m.pendingStateUpdates[message.PartitionIndex] = message.State
 	// iterate the count of updates for that partition
 	m.partitionTimesteps[message.PartitionIndex] += 1
-	// if we are yet to receive any of the latest partition messages for
-	// this step, then do nothing
-	for _, timesteps := range m.partitionTimesteps {
-		if timesteps != m.overallTimesteps {
-			return
-		}
-	}
-	// otherwise, implement the pending state updates to the history
-	m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
-	for partitionIndex, state := range m.pendingStateUpdates {
-		m.UpdateHistory(partitionIndex, state)
-	}
-	// also apply the output function if this step requires it
-	if m.outputCondition.IsOutputStep(
-		m.stateHistories,
-		m.timestepsHistory,
-		m.overallTimesteps,
-	) {
-		m.outputFunction.Output(m.stateHistories, m.timestepsHistory, m.overallTimesteps)
-	}
-	// terminate without launching another thread if the condition has been met
-	if m.terminationCondition.Terminate(
-		m.stateHistories,
-		m.timestepsHistory,
-		m.overallTimesteps,
-	) {
-		return
-	}
-	m.RequestMoreIterations()
 }
 
-func (m *PartitionManager) RequestMoreIterations() {
+func (m *PartitionManager) RequestMoreIterations(wg *sync.WaitGroup) {
 	// update the overall step count
 	m.overallTimesteps += 1
 	// setup iterators to receive an broadcast their iterations
 	for index := 0; index < m.numberOfPartitions; index++ {
-		go m.iterators[index].ReceiveIterateAndBroadcast(
-			m.newWorkChannels[index],
-			m.broadcastingChannel,
-		)
+		wg.Add(1)
+		i := index
+		go func() {
+			defer wg.Done()
+			m.iterators[i].ReceiveIterateAndBroadcast(
+				m.newWorkChannels[i],
+				m.broadcastingChannel,
+			)
+		}()
 	}
 	// send messages on the new work channels to ask for the next iteration
 	// in the case of each partition
@@ -96,8 +75,37 @@ func (m *PartitionManager) RequestMoreIterations() {
 }
 
 func (m *PartitionManager) Run() {
-	// begin by requesting iterations for the next step
-	m.RequestMoreIterations()
+	var wg sync.WaitGroup
+
+	// terminate the for loop if the condition has been met
+	for !m.terminationCondition.Terminate(
+		m.stateHistories,
+		m.timestepsHistory,
+		m.overallTimesteps,
+	) {
+		// begin by requesting iterations for the next step and waiting
+		m.RequestMoreIterations(&wg)
+		wg.Wait()
+
+		// otherwise, implement the pending state updates to the history
+		m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
+		for partitionIndex, state := range m.pendingStateUpdates {
+			m.UpdateHistory(partitionIndex, state)
+		}
+
+		// also apply the output function if this step requires it
+		if m.outputCondition.IsOutputStep(
+			m.stateHistories,
+			m.timestepsHistory,
+			m.overallTimesteps,
+		) {
+			m.outputFunction.Output(
+				m.stateHistories,
+				m.timestepsHistory,
+				m.overallTimesteps,
+			)
+		}
+	}
 }
 
 func NewPartitionManager(config *StochadexConfig) *PartitionManager {
