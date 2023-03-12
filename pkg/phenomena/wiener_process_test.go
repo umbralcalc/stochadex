@@ -18,10 +18,11 @@ func TestWienerProcess(t *testing.T) {
 					NewWienerProcessIteration(settings.Seeds[partitionIndex]),
 				)
 			}
+			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.LoadImplementationsConfig{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
-				OutputFunction:  &simulator.NilOutputFunction{},
+				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},

@@ -14,15 +14,16 @@ type Iteration interface {
 	) *State
 }
 
-// StateIterator uses an implemented Iteration interface on a given state
-// partition, the latter of which is referenced by an index.
+// StateIterator handles iterations of a given state partition on a
+// separate goroutine and writing output data to disk or some DB
 type StateIterator struct {
-	partitionIndex  int
-	timesteps       int
-	params          *ParamsConfig
-	iteration       Iteration
-	outputCondition OutputCondition
-	outputFunction  OutputFunction
+	partitionIndex     int
+	timesteps          int
+	params             *ParamsConfig
+	iteration          Iteration
+	outputCondition    OutputCondition
+	outputFunction     OutputFunction
+	pendingStateUpdate *State
 }
 
 // Iterate takes the state and timesteps history and outputs an updated
@@ -44,20 +45,31 @@ func (s *StateIterator) Iterate(
 	return newState
 }
 
-// ReceiveIterateAndSend listens for input messages sent to the input
+// ReceiveAndIteratePending listens for input messages sent to the input
 // channel, runs Iterate when an IteratorInputMessage has been received on the
-// provided inputChannel then sends the resulting IteratorOutputMessage on
-// the provided outputChannel.
-func (s *StateIterator) ReceiveIterateAndSend(
+// provided inputChannel and then updates an internal pending state update object.
+func (s *StateIterator) ReceiveAndIteratePending(
 	inputChannel <-chan *IteratorInputMessage,
-	outputChannel chan<- *IteratorOutputMessage,
 ) {
 	inputMessage := <-inputChannel
-	outputChannel <- &IteratorOutputMessage{
-		PartitionIndex: s.partitionIndex,
-		State: s.Iterate(
-			inputMessage.StateHistories,
-			inputMessage.TimestepsHistory,
-		),
+	s.pendingStateUpdate = s.Iterate(
+		inputMessage.StateHistories,
+		inputMessage.TimestepsHistory,
+	)
+}
+
+// UpdateHistory should always follow a call to ReceiveAndIteratePending as it
+// enacts the internal pending state update on the StateHistory object passed over
+// the provided inputChannel.
+func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage) {
+	inputMessage := <-inputChannel
+	// reference this partition
+	partition := inputMessage.StateHistories[s.partitionIndex]
+	// iterate over the history (matrix columns) and shift them
+	// back one timestep
+	for i := 1; i < partition.StateHistoryDepth; i++ {
+		partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
 	}
+	// update the latest state in the history
+	partition.Values.SetRow(0, s.pendingStateUpdate.Values.RawVector().Data)
 }

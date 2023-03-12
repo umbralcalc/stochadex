@@ -28,21 +28,6 @@ func (d *DoublingProcessIteration) Iterate(
 	}
 }
 
-type VariableStoreOutputFunction struct {
-	Store [][][]float64
-}
-
-func (f *VariableStoreOutputFunction) Output(
-	partitionIndex int,
-	state *State,
-	timesteps int,
-) {
-	f.Store[partitionIndex] = append(
-		f.Store[partitionIndex],
-		state.Values.RawVector().Data,
-	)
-}
-
 func iteratePartition(c *PartitionCoordinator, partitionIndex int) *State {
 	// iterate this partition by one step within the same thread
 	return c.iterators[partitionIndex].Iterate(
@@ -54,8 +39,16 @@ func iteratePartition(c *PartitionCoordinator, partitionIndex int) *State {
 func iterateHistory(c *PartitionCoordinator) {
 	// update the state history for each job in turn within the same thread
 	for index := 0; index < c.numberOfPartitions; index++ {
-		c.UpdateHistory(index, iteratePartition(c, index))
-		c.partitionTimesteps[index] += 1
+		state := iteratePartition(c, index)
+		// reference this partition
+		partition := c.stateHistories[index]
+		// iterate over the history (matrix columns) and shift them
+		// back one timestep
+		for i := 1; i < partition.StateHistoryDepth; i++ {
+			partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
+		}
+		// update the latest state in the history
+		partition.Values.SetRow(0, state.Values.RawVector().Data)
 	}
 	c.overallTimesteps += 1
 	c.timestepsHistory = c.timestepFunction.Iterate(c.timestepsHistory)

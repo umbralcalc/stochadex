@@ -9,6 +9,21 @@ type NilOutputFunction struct{}
 func (f *NilOutputFunction) Output(partitionIndex int, state *State, timesteps int) {
 }
 
+type VariableStoreOutputFunction struct {
+	Store [][][]float64
+}
+
+func (f *VariableStoreOutputFunction) Output(
+	partitionIndex int,
+	state *State,
+	timesteps int,
+) {
+	f.Store[partitionIndex] = append(
+		f.Store[partitionIndex],
+		state.Values.RawVector().Data,
+	)
+}
+
 type OutputCondition interface {
 	IsOutputStep(partitionIndex int, state *State, timesteps int) bool
 }

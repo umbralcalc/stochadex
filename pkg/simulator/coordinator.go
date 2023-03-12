@@ -6,14 +6,14 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// Coordinator
+// PartitionCoordinator coordinates the assignment of iteration work to
+// separate StatIterator objects on separate goroutines and when to enact
+// these updates on the state history.
 type PartitionCoordinator struct {
-	receivingChannel     chan *IteratorOutputMessage
 	newWorkChannels      [](chan *IteratorInputMessage)
 	pendingStateUpdates  []*State
 	iterators            []*StateIterator
 	stateHistories       []*StateHistory
-	partitionTimesteps   []int
 	overallTimesteps     int
 	numberOfPartitions   int
 	timestepsHistory     *TimestepsHistory
@@ -21,41 +21,16 @@ type PartitionCoordinator struct {
 	terminationCondition TerminationCondition
 }
 
-func (c *PartitionCoordinator) UpdateHistory(partitionIndex int, state *State) {
-	// reference this partition
-	partition := c.stateHistories[partitionIndex]
-	// iterate over the history (matrix columns) and shift them
-	// back one timestep
-	for i := 1; i < partition.StateHistoryDepth; i++ {
-		partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
-	}
-	// update the latest state in the history
-	partition.Values.SetRow(0, state.Values.RawVector().Data)
-	// update the count of how many steps this partition has received
-	c.partitionTimesteps[partitionIndex] += 1
-}
-
-func (c *PartitionCoordinator) Receive(inputChannel <-chan *IteratorOutputMessage) {
-	message := <-inputChannel
-	// add to the pending state updates for whichever partition message arrives
-	c.pendingStateUpdates[message.PartitionIndex] = message.State
-	// iterate the count of updates for that partition
-	c.partitionTimesteps[message.PartitionIndex] += 1
-}
-
+// RequestMoreIterations spawns a goroutine for each state partition to
+// carry out a ReceiveAndIteratePending job.
 func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
-	// update the overall step count
-	c.overallTimesteps += 1
 	// setup iterators to receive and send their iteration results
 	for index := 0; index < c.numberOfPartitions; index++ {
 		wg.Add(1)
 		i := index
 		go func() {
 			defer wg.Done()
-			c.iterators[i].ReceiveIterateAndSend(
-				c.newWorkChannels[i],
-				c.receivingChannel,
-			)
+			c.iterators[i].ReceiveAndIteratePending(c.newWorkChannels[i])
 		}()
 	}
 	// send messages on the new work channels to ask for the next iteration
@@ -66,12 +41,32 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 			TimestepsHistory: c.timestepsHistory,
 		}
 	}
-	// setup to receive the messages from each job
+}
+
+// RequestMoreIterations spawns a goroutine for each state partition to
+// carry out an UpdateHistory job.
+func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
+	// setup iterators to receive and send their iteration results
 	for index := 0; index < c.numberOfPartitions; index++ {
-		c.Receive(c.receivingChannel)
+		wg.Add(1)
+		i := index
+		go func() {
+			defer wg.Done()
+			c.iterators[i].UpdateHistory(c.newWorkChannels[i])
+		}()
+	}
+	// send messages on the new work channels to ask for the next iteration
+	// in the case of each partition
+	for index := 0; index < c.numberOfPartitions; index++ {
+		c.newWorkChannels[index] <- &IteratorInputMessage{
+			StateHistories:   c.stateHistories,
+			TimestepsHistory: c.timestepsHistory,
+		}
 	}
 }
 
+// Run is the main method call of PartitionCoordinator - call this proceeding
+// a new configuration of the latter to run the desired process.
 func (c *PartitionCoordinator) Run() {
 	var wg sync.WaitGroup
 
@@ -81,18 +76,22 @@ func (c *PartitionCoordinator) Run() {
 		c.timestepsHistory,
 		c.overallTimesteps,
 	) {
+		// update the overall step count
+		c.overallTimesteps += 1
+
 		// begin by requesting iterations for the next step and waiting
 		c.RequestMoreIterations(&wg)
 		wg.Wait()
 
-		// otherwise, implement the pending state updates to the history
+		// then implement the pending state updates to the history
 		c.timestepsHistory = c.timestepFunction.Iterate(c.timestepsHistory)
-		for partitionIndex, state := range c.pendingStateUpdates {
-			c.UpdateHistory(partitionIndex, state)
-		}
+		c.UpdateHistory(&wg)
+		wg.Wait()
 	}
 }
 
+// NewPartitionCoordinator creates a new PartitionCoordinator given a
+// StochadexConfig.
 func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 	timestepsHistory := &TimestepsHistory{
 		Values:            mat.NewVecDense(config.Steps.TimestepsHistoryDepth, nil),
@@ -100,10 +99,8 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 	}
 	iterators := make([]*StateIterator, 0)
 	stateHistories := make([]*StateHistory, 0)
-	partitionTimesteps := make([]int, 0)
 	newWorkChannels := make([](chan *IteratorInputMessage), 0)
 	for index, stateConfig := range config.Partitions {
-		partitionTimesteps = append(partitionTimesteps, 0)
 		stateHistoryValues := mat.NewDense(
 			stateConfig.HistoryDepth,
 			stateConfig.Width,
@@ -136,14 +133,12 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 		)
 	}
 	return &PartitionCoordinator{
-		receivingChannel:     make(chan *IteratorOutputMessage),
 		newWorkChannels:      newWorkChannels,
 		pendingStateUpdates:  make([]*State, len(config.Partitions)),
 		iterators:            iterators,
 		stateHistories:       stateHistories,
-		partitionTimesteps:   partitionTimesteps,
 		overallTimesteps:     0,
-		numberOfPartitions:   len(partitionTimesteps),
+		numberOfPartitions:   len(config.Partitions),
 		timestepsHistory:     timestepsHistory,
 		timestepFunction:     *config.Steps.TimestepFunction,
 		terminationCondition: *config.Steps.TerminationCondition,
