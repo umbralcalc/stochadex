@@ -43,36 +43,36 @@ func (f *VariableStoreOutputFunction) Output(
 	)
 }
 
-func iteratePartition(m *PartitionManager, partitionIndex int) *State {
+func iteratePartition(c *PartitionCoordinator, partitionIndex int) *State {
 	// iterate this partition by one step within the same thread
-	return m.iterators[partitionIndex].Iterate(
-		m.stateHistories,
-		m.timestepsHistory,
+	return c.iterators[partitionIndex].Iterate(
+		c.stateHistories,
+		c.timestepsHistory,
 	)
 }
 
-func iterateHistory(m *PartitionManager) {
+func iterateHistory(c *PartitionCoordinator) {
 	// update the state history for each job in turn within the same thread
-	for index := 0; index < m.numberOfPartitions; index++ {
-		m.UpdateHistory(index, iteratePartition(m, index))
-		m.partitionTimesteps[index] += 1
+	for index := 0; index < c.numberOfPartitions; index++ {
+		c.UpdateHistory(index, iteratePartition(c, index))
+		c.partitionTimesteps[index] += 1
 	}
-	m.overallTimesteps += 1
-	m.timestepsHistory = m.timestepFunction.Iterate(m.timestepsHistory)
+	c.overallTimesteps += 1
+	c.timestepsHistory = c.timestepFunction.Iterate(c.timestepsHistory)
 }
 
-func run(m *PartitionManager) {
+func run(c *PartitionCoordinator) {
 	// terminate without iterating again if the condition has not been met
-	for !m.terminationCondition.Terminate(
-		m.stateHistories,
-		m.timestepsHistory,
-		m.overallTimesteps,
+	for !c.terminationCondition.Terminate(
+		c.stateHistories,
+		c.timestepsHistory,
+		c.overallTimesteps,
 	) {
-		iterateHistory(m)
+		iterateHistory(c)
 	}
 }
 
-func TestPartitionManager(t *testing.T) {
+func TestPartitionCoordinator(t *testing.T) {
 	t.Run(
 		"test for the correct usage of goroutines in partition manager",
 		func(t *testing.T) {
@@ -102,16 +102,16 @@ func TestPartitionManager(t *testing.T) {
 				},
 			}
 			configWithGoroutines := NewStochadexConfig(settings, implementations)
-			managerWithGoroutines := NewPartitionManager(configWithGoroutines)
+			coordWithGoroutines := NewPartitionCoordinator(configWithGoroutines)
 			storeWithoutGoroutines := make([][][]float64, 2)
 			outputWithoutGoroutines := &VariableStoreOutputFunction{
 				Store: storeWithoutGoroutines,
 			}
 			implementations.OutputFunction = outputWithoutGoroutines
 			configWithoutGoroutines := NewStochadexConfig(settings, implementations)
-			managerWithoutGoroutines := NewPartitionManager(configWithoutGoroutines)
-			managerWithGoroutines.Run()
-			run(managerWithoutGoroutines)
+			coordWithoutGoroutines := NewPartitionCoordinator(configWithoutGoroutines)
+			coordWithGoroutines.Run()
+			run(coordWithoutGoroutines)
 			for tIndex, store := range storeWithoutGoroutines {
 				for pIndex, partitionStore := range store {
 					for eIndex, element := range partitionStore {

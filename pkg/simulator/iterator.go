@@ -1,9 +1,10 @@
 package simulator
 
 // Iteration is the interface that must be implemented for any stochastic
-// phenomenon within the stochadex. It reads in a params struct, an index
-// corresponding to which state partition is being iterated, a state history
-// and a timesteps history and outputs an updated State struct.
+// phenomenon within the stochadex. It reads in an OtherParams struct, a int
+// partitionIndex, the full current history of the process defined by a slice
+// []*StateHistory and a TimestepsHistory reference and outputs an updated
+// State struct.
 type Iteration interface {
 	Iterate(
 		params *OtherParams,
@@ -43,10 +44,11 @@ func (s *StateIterator) Iterate(
 	return newState
 }
 
-// ReceiveIterateAndBroadcast listens for input messages sent to the input
-// channel, processes the iteration once one has been received and then
-// broadcasts the resulting state update output back.
-func (s *StateIterator) ReceiveIterateAndBroadcast(
+// ReceiveIterateAndSend listens for input messages sent to the input
+// channel, runs Iterate when an IteratorInputMessage has been received on the
+// provided inputChannel then sends the resulting IteratorOutputMessage on
+// the provided outputChannel.
+func (s *StateIterator) ReceiveIterateAndSend(
 	inputChannel <-chan *IteratorInputMessage,
 	outputChannel chan<- *IteratorOutputMessage,
 ) {

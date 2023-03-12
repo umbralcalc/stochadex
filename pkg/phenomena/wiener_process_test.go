@@ -33,8 +33,8 @@ func TestWienerProcess(t *testing.T) {
 				settings,
 				implementations,
 			)
-			manager := simulator.NewPartitionManager(config)
-			manager.Run()
+			coordinator := simulator.NewPartitionCoordinator(config)
+			coordinator.Run()
 		},
 	)
 }
