@@ -9,6 +9,8 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
+// WienerProcessIteration defines an iteration for a simple wiener
+// process.
 type WienerProcessIteration struct {
 	unitNormalDist *distuv.Normal
 }
@@ -35,6 +37,7 @@ func (w *WienerProcessIteration) Iterate(
 	}
 }
 
+// NewWienerProcessIteration creates a new WienerProcessIteration given a seed.
 func NewWienerProcessIteration(seed uint64) *WienerProcessIteration {
 	return &WienerProcessIteration{
 		unitNormalDist: &distuv.Normal{

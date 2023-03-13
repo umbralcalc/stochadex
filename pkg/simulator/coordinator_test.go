@@ -6,6 +6,9 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+// DoublingProcessIteration defines an iteration which is only for
+// testing - the process multiplies the values of the previous timestep
+// by a factor of 2.
 type DoublingProcessIteration struct{}
 
 func (d *DoublingProcessIteration) Iterate(

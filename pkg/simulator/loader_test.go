@@ -6,6 +6,9 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+// DummyProcessIteration defines an iteration which is only for
+// testing - the process simply sets the values to be their
+// element indices at each timestep.
 type DummyProcessIteration struct{}
 
 func (d *DummyProcessIteration) Iterate(

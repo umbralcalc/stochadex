@@ -9,6 +9,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// LoadSettingsConfig is the yaml-loadable config which defines all of
+// the settings that can be set for a stochastic process defined by the
+// stochadex.
 type LoadSettingsConfig struct {
 	OtherParams           []*OtherParams `yaml:"other_params"`
 	InitStateValues       [][]float64    `yaml:"init_state_values"`
@@ -18,6 +21,8 @@ type LoadSettingsConfig struct {
 	TimestepsHistoryDepth int            `yaml:"timesteps_history_depth"`
 }
 
+// NewLoadSettingsConfigFromYaml creates a new LoadSettingsConfig from
+// a provided yaml path.
 func NewLoadSettingsConfigFromYaml(path string) *LoadSettingsConfig {
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -31,6 +36,8 @@ func NewLoadSettingsConfigFromYaml(path string) *LoadSettingsConfig {
 	return &settings
 }
 
+// NewLoadSettingsConfigFromYaml calls NewLoadSettingsConfigFromYaml
+// with a yaml path string provided by argparse.
 func NewLoadSettingsConfigFromArgParsedYaml() *LoadSettingsConfig {
 	parser := argparse.NewParser(
 		"stochadex simulator",
@@ -48,6 +55,9 @@ func NewLoadSettingsConfigFromArgParsedYaml() *LoadSettingsConfig {
 	return NewLoadSettingsConfigFromYaml(*s)
 }
 
+// LoadImplementationsConfig is the yaml-loadable config which defines all of
+// the methods that must be implemented in order to configure a stochastic process
+// defined by the stochadex.
 type LoadImplementationsConfig struct {
 	Iterations           []Iteration
 	OutputCondition      OutputCondition
@@ -56,6 +66,8 @@ type LoadImplementationsConfig struct {
 	TimestepFunction     TimestepFunction
 }
 
+// NewStochadexConfig creates a new StochadexConfig from the provided LoadSettingsConfig
+// and LoadImplementationsConfig.
 func NewStochadexConfig(
 	settings *LoadSettingsConfig,
 	implementations *LoadImplementationsConfig,
