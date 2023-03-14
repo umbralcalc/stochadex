@@ -9,7 +9,7 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// WienerProcessIteration defines an iteration for a simple wiener
+// WienerProcessIteration defines an iteration for a simple Wiener
 // process.
 type WienerProcessIteration struct {
 	unitNormalDist *distuv.Normal
@@ -25,8 +25,8 @@ func (w *WienerProcessIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +
-			math.Sqrt(otherParams.FloatParams["variances"][i])*
-				w.unitNormalDist.Rand()
+			math.Sqrt(otherParams.FloatParams["variances"][i]*
+				timestepsHistory.NextIncrement)*w.unitNormalDist.Rand()
 	}
 	return &simulator.State{
 		Values: mat.NewVecDense(

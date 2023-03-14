@@ -8,7 +8,7 @@ import (
 
 func TestWienerProcess(t *testing.T) {
 	t.Run(
-		"test that the wiener process runs",
+		"test that the Wiener process runs",
 		func(t *testing.T) {
 			settings := simulator.NewLoadSettingsConfigFromYaml("wiener_process_config.yaml")
 			iterations := make([]simulator.Iteration, 0)
@@ -26,9 +26,7 @@ func TestWienerProcess(t *testing.T) {
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},
-				TimestepFunction: &simulator.ConstantNoMemoryTimestepFunction{
-					Stepsize: 1.0,
-				},
+				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 			}
 			config := simulator.NewStochadexConfig(
 				settings,

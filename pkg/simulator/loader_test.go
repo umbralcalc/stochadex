@@ -50,9 +50,7 @@ func TestNewStochadexConfig(t *testing.T) {
 				TerminationCondition: &NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 1000,
 				},
-				TimestepFunction: &ConstantNoMemoryTimestepFunction{
-					Stepsize: 1.0,
-				},
+				TimestepFunction: &ConstantTimestepFunction{Stepsize: 1.0},
 			}
 			_ = NewStochadexConfig(settings, implementations)
 		},

@@ -63,6 +63,16 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 			TimestepsHistory: c.timestepsHistory,
 		}
 	}
+
+	// iterate over the history of timesteps and shift them back one
+	for i := 1; i < c.timestepsHistory.StateHistoryDepth; i++ {
+		c.timestepsHistory.Values.SetVec(i, c.timestepsHistory.Values.AtVec(i-1))
+	}
+	// now update the history with the next time increment
+	c.timestepsHistory.Values.SetVec(
+		0,
+		c.timestepsHistory.Values.AtVec(0)+c.timestepsHistory.NextIncrement,
+	)
 }
 
 // Run is the main method call of PartitionCoordinator - call this proceeding
@@ -76,15 +86,15 @@ func (c *PartitionCoordinator) Run() {
 		c.timestepsHistory,
 		c.overallTimesteps,
 	) {
-		// update the overall step count
+		// update the overall step count and get the next time increment
 		c.overallTimesteps += 1
+		c.timestepsHistory = c.timestepFunction.NextIncrement(c.timestepsHistory)
 
 		// begin by requesting iterations for the next step and waiting
 		c.RequestMoreIterations(&wg)
 		wg.Wait()
 
-		// then implement the pending state updates to the history
-		c.timestepsHistory = c.timestepFunction.Iterate(c.timestepsHistory)
+		// then implement the pending state and time updates to the histories
 		c.UpdateHistory(&wg)
 		wg.Wait()
 	}
@@ -94,6 +104,7 @@ func (c *PartitionCoordinator) Run() {
 // StochadexConfig.
 func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 	timestepsHistory := &TimestepsHistory{
+		NextIncrement:     0.0,
 		Values:            mat.NewVecDense(config.Steps.TimestepsHistoryDepth, nil),
 		StateHistoryDepth: config.Steps.TimestepsHistoryDepth,
 	}

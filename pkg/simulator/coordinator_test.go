@@ -53,8 +53,16 @@ func iterateHistory(c *PartitionCoordinator) {
 		// update the latest state in the history
 		partition.Values.SetRow(0, state.Values.RawVector().Data)
 	}
-	c.overallTimesteps += 1
-	c.timestepsHistory = c.timestepFunction.Iterate(c.timestepsHistory)
+
+	// iterate over the history of timesteps and shift them back one
+	for i := 1; i < c.timestepsHistory.StateHistoryDepth; i++ {
+		c.timestepsHistory.Values.SetVec(i, c.timestepsHistory.Values.AtVec(i-1))
+	}
+	// now update the history with the next time increment
+	c.timestepsHistory.Values.SetVec(
+		0,
+		c.timestepsHistory.Values.AtVec(0)+c.timestepsHistory.NextIncrement,
+	)
 }
 
 func run(c *PartitionCoordinator) {
@@ -64,6 +72,8 @@ func run(c *PartitionCoordinator) {
 		c.timestepsHistory,
 		c.overallTimesteps,
 	) {
+		c.overallTimesteps += 1
+		c.timestepsHistory = c.timestepFunction.NextIncrement(c.timestepsHistory)
 		iterateHistory(c)
 	}
 }
@@ -93,9 +103,7 @@ func TestPartitionCoordinator(t *testing.T) {
 				TerminationCondition: &NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 10,
 				},
-				TimestepFunction: &ConstantNoMemoryTimestepFunction{
-					Stepsize: 1.0,
-				},
+				TimestepFunction: &ConstantTimestepFunction{Stepsize: 1.0},
 			}
 			configWithGoroutines := NewStochadexConfig(settings, implementations)
 			coordWithGoroutines := NewPartitionCoordinator(configWithGoroutines)

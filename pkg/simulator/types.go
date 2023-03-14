@@ -65,8 +65,10 @@ type StateHistory struct {
 	StateHistoryDepth int
 }
 
-// TimestepsHistory is a windowed history of timestep values.
+// TimestepsHistory is a windowed history of timestep values which includes
+// the next value to increment time by.
 type TimestepsHistory struct {
+	NextIncrement     float64
 	Values            *mat.VecDense
 	StateHistoryDepth int
 }
