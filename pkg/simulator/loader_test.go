@@ -6,12 +6,12 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// DummyProcessIteration defines an iteration which is only for
+// dummyProcessIteration defines an iteration which is only for
 // testing - the process simply sets the values to be their
 // element indices at each timestep.
-type DummyProcessIteration struct{}
+type dummyProcessIteration struct{}
 
-func (d *DummyProcessIteration) Iterate(
+func (d *dummyProcessIteration) Iterate(
 	otherParams *OtherParams,
 	partitionIndex int,
 	stateHistories []*StateHistory,
@@ -40,7 +40,7 @@ func TestNewStochadexConfig(t *testing.T) {
 			for range settings.StateWidths {
 				iterations = append(
 					iterations,
-					&DummyProcessIteration{},
+					&dummyProcessIteration{},
 				)
 			}
 			implementations := &LoadImplementationsConfig{

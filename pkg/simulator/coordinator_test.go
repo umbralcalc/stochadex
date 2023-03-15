@@ -6,12 +6,12 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// DoublingProcessIteration defines an iteration which is only for
+// doublingProcessIteration defines an iteration which is only for
 // testing - the process multiplies the values of the previous timestep
 // by a factor of 2.
-type DoublingProcessIteration struct{}
+type doublingProcessIteration struct{}
 
-func (d *DoublingProcessIteration) Iterate(
+func (d *doublingProcessIteration) Iterate(
 	otherParams *OtherParams,
 	partitionIndex int,
 	stateHistories []*StateHistory,
@@ -93,7 +93,7 @@ func TestPartitionCoordinator(t *testing.T) {
 			}
 			iterations := make([]Iteration, 0)
 			for range settings.StateWidths {
-				iterations = append(iterations, &DoublingProcessIteration{})
+				iterations = append(iterations, &doublingProcessIteration{})
 			}
 			storeWithGoroutines := make([][][]float64, 2)
 			implementations := &LoadImplementationsConfig{
