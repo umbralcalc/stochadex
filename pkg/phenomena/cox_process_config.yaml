@@ -1,0 +1,14 @@
+other_params:
+- float_params:
+    rates: [1.4, 1.2, 0.2, 1.1, 5.0]
+  int_params: {}
+- float_params:
+    rates: [1.5, 0.2, 0.6, 1.0, 3.0]
+  int_params: {}
+init_state_values:
+- [0.0, 0.0, 0.0, 0.0, 0.0]
+- [0.0, 0.0, 0.0, 0.0, 0.0]
+seeds: [563, 8312]
+state_widths: [5, 5]
+state_history_depths: [2, 2]
+timesteps_history_depth: 2
