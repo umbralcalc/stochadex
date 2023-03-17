@@ -1,0 +1,16 @@
+other_params:
+- float_params:
+    variances: [1.0, 1.0]
+    hurst_exponents: [0.2, 0.67]
+  int_params: {}
+- float_params:
+    variances: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    hurst_exponents: [0.8, 1.0, 0.4, 0.2, 0.34, 0.9, 0.8]
+  int_params: {}
+init_state_values:
+- [0.0, 0.0]
+- [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+seeds: [271, 13]
+state_widths: [2, 7]
+state_history_depths: [2, 2]
+timesteps_history_depth: 2
