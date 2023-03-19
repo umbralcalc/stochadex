@@ -77,7 +77,7 @@ func NewStochadexConfig(
 		partitions = append(
 			partitions,
 			&StateConfig{
-				Iteration: &iteration,
+				Iteration: iteration,
 				Params: &ParamsConfig{
 					Other:           settings.OtherParams[index],
 					InitStateValues: settings.InitStateValues[index],
@@ -91,12 +91,12 @@ func NewStochadexConfig(
 	return &StochadexConfig{
 		Partitions: partitions,
 		Output: &OutputConfig{
-			Condition: &implementations.OutputCondition,
-			Function:  &implementations.OutputFunction,
+			Condition: implementations.OutputCondition,
+			Function:  implementations.OutputFunction,
 		},
 		Steps: &StepsConfig{
-			TerminationCondition:  &implementations.TerminationCondition,
-			TimestepFunction:      &implementations.TimestepFunction,
+			TerminationCondition:  implementations.TerminationCondition,
+			TimestepFunction:      implementations.TimestepFunction,
 			TimestepsHistoryDepth: settings.TimestepsHistoryDepth,
 		},
 	}

@@ -133,9 +133,9 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 			&StateIterator{
 				partitionIndex:  index,
 				params:          stateConfig.Params,
-				iteration:       *stateConfig.Iteration,
-				outputCondition: *config.Output.Condition,
-				outputFunction:  *config.Output.Function,
+				iteration:       stateConfig.Iteration,
+				outputCondition: config.Output.Condition,
+				outputFunction:  config.Output.Function,
 			},
 		)
 		newWorkChannels = append(
@@ -151,7 +151,7 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 		overallTimesteps:     0,
 		numberOfPartitions:   len(config.Partitions),
 		timestepsHistory:     timestepsHistory,
-		timestepFunction:     *config.Steps.TimestepFunction,
-		terminationCondition: *config.Steps.TerminationCondition,
+		timestepFunction:     config.Steps.TimestepFunction,
+		terminationCondition: config.Steps.TerminationCondition,
 	}
 }

@@ -31,6 +31,32 @@ func (d *doublingProcessIteration) Iterate(
 	}
 }
 
+// paramMultProcessIteration defines an iteration which is only for
+// testing - the process multiplies the values of the previous timestep
+// by factors passed as a slice in otherParams.FloatParams["multipliers"].
+type paramMultProcessIteration struct{}
+
+func (p *paramMultProcessIteration) Iterate(
+	otherParams *OtherParams,
+	partitionIndex int,
+	stateHistories []*StateHistory,
+	timestepsHistory *TimestepsHistory,
+) *State {
+	stateHistory := stateHistories[partitionIndex]
+	values := make([]float64, stateHistory.StateWidth)
+	for i := 0; i < stateHistory.StateWidth; i++ {
+		values[i] = stateHistory.Values.At(0, i) *
+			otherParams.FloatParams["multipliers"][i]
+	}
+	return &State{
+		Values: mat.NewVecDense(
+			stateHistory.StateWidth,
+			values,
+		),
+		StateWidth: stateHistory.StateWidth,
+	}
+}
+
 func iteratePartition(c *PartitionCoordinator, partitionIndex int) *State {
 	// iterate this partition by one step within the same thread
 	return c.iterators[partitionIndex].Iterate(
@@ -82,19 +108,25 @@ func TestPartitionCoordinator(t *testing.T) {
 	t.Run(
 		"test for the correct usage of goroutines in partition manager",
 		func(t *testing.T) {
-			params := &OtherParams{FloatParams: make(map[string][]float64)}
+			params := make(map[string][]float64)
+			params["multipliers"] = []float64{2.4, 1.0, 4.3, 3.2, 1.1}
 			settings := &LoadSettingsConfig{
-				OtherParams:           []*OtherParams{params, params},
-				InitStateValues:       [][]float64{{7.0, 8.0, 3.0}, {1.0, 2.0}},
+				OtherParams: []*OtherParams{
+					{FloatParams: make(map[string][]float64)},
+					{FloatParams: params},
+				},
+				InitStateValues: [][]float64{
+					{7.0, 8.0, 3.0, 7.0, 1.0},
+					{1.0, 2.0, 3.0},
+				},
 				Seeds:                 []uint64{2365, 167},
-				StateWidths:           []int{3, 2},
-				StateHistoryDepths:    []int{2, 2},
-				TimestepsHistoryDepth: 2,
+				StateWidths:           []int{5, 3},
+				StateHistoryDepths:    []int{2, 10},
+				TimestepsHistoryDepth: 10,
 			}
 			iterations := make([]Iteration, 0)
-			for range settings.StateWidths {
-				iterations = append(iterations, &doublingProcessIteration{})
-			}
+			iterations = append(iterations, &doublingProcessIteration{})
+			iterations = append(iterations, &paramMultProcessIteration{})
 			storeWithGoroutines := make([][][]float64, 2)
 			implementations := &LoadImplementationsConfig{
 				Iterations:      iterations,

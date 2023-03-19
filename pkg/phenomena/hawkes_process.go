@@ -10,7 +10,12 @@ import (
 // HawkesProcessExcitingKernel defines an interface that must be implemented
 // for an exciting kernel of the Hawkes process.
 type HawkesProcessExcitingKernel interface {
-	Evaluate(currentTime float64, somePreviousTime float64) float64
+	Evaluate(
+		otherParams *simulator.OtherParams,
+		currentTime float64,
+		somePreviousTime float64,
+		stateElement int,
+	) float64
 }
 
 // HawkesProcessIntensityIteration an iteration for a Hawkes process
@@ -30,12 +35,14 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
-		values[i] = otherParams.FloatParams["background_rate"][i]
+		values[i] = otherParams.FloatParams["background_rates"][i]
 		for j := 1; j < hawkesHistory.StateHistoryDepth; j++ {
 			values[i] += (hawkesHistory.Values.At(j, i) -
 				hawkesHistory.Values.At(j-1, i)) * h.excitingKernel.Evaluate(
+				otherParams,
 				timestepsHistory.Values.AtVec(j),
 				timestepsHistory.Values.AtVec(j-1),
+				i,
 			)
 		}
 	}
@@ -52,9 +59,11 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 // HawkesProcessIntensityIteration given a partition index
 // for the Hawkes process itself.
 func NewHawkesProcessIntensityIteration(
+	excitingKernel HawkesProcessExcitingKernel,
 	hawkesPartitionIndex int,
 ) *HawkesProcessIntensityIteration {
 	return &HawkesProcessIntensityIteration{
+		excitingKernel:       excitingKernel,
 		hawkesPartitionIndex: hawkesPartitionIndex,
 	}
 }

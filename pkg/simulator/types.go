@@ -19,7 +19,7 @@ type ParamsConfig struct {
 // StateConfig completely configures a given state partition of the
 // full stochastic process.
 type StateConfig struct {
-	Iteration    *Iteration
+	Iteration    Iteration
 	Params       *ParamsConfig
 	Width        int
 	HistoryDepth int
@@ -28,16 +28,16 @@ type StateConfig struct {
 // StepsConfig completely configures all of the necessary information
 // required to specify how the stochastic process evolves (steps) in time.
 type StepsConfig struct {
-	TerminationCondition  *TerminationCondition
-	TimestepFunction      *TimestepFunction
+	TerminationCondition  TerminationCondition
+	TimestepFunction      TimestepFunction
 	TimestepsHistoryDepth int
 }
 
 // OutputConfig completely specifies how each state partition outputs
 // information to the user.
 type OutputConfig struct {
-	Condition *OutputCondition
-	Function  *OutputFunction
+	Condition OutputCondition
+	Function  OutputFunction
 }
 
 // StochadexConfig fully configures a stochastic process implemented
