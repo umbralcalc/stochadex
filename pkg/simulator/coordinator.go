@@ -11,7 +11,6 @@ import (
 // these updates on the state history.
 type PartitionCoordinator struct {
 	newWorkChannels      [](chan *IteratorInputMessage)
-	pendingStateUpdates  []*State
 	iterators            []*StateIterator
 	stateHistories       []*StateHistory
 	overallTimesteps     int
@@ -145,7 +144,6 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 	}
 	return &PartitionCoordinator{
 		newWorkChannels:      newWorkChannels,
-		pendingStateUpdates:  make([]*State, len(config.Partitions)),
 		iterators:            iterators,
 		stateHistories:       stateHistories,
 		overallTimesteps:     0,
