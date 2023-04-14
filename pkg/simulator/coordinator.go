@@ -7,7 +7,7 @@ import (
 )
 
 // PartitionCoordinator coordinates the assignment of iteration work to
-// separate StatIterator objects on separate goroutines and when to enact
+// separate StateIterator objects on separate goroutines and when to enact
 // these updates on the state history.
 type PartitionCoordinator struct {
 	newWorkChannels      [](chan *IteratorInputMessage)
