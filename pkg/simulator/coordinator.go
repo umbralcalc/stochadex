@@ -74,28 +74,38 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	)
 }
 
-// Run is the main method call of PartitionCoordinator - call this proceeding
-// a new configuration of the latter to run the desired process.
+// Step is the main method call of PartitionCoordinator - call this proceeding
+// a new configuration of the latter to run the desired process for a single step.
+func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
+	// update the overall step count and get the next time increment
+	c.overallTimesteps += 1
+	c.timestepsHistory = c.timestepFunction.NextIncrement(c.timestepsHistory)
+
+	// begin by requesting iterations for the next step and waiting
+	c.RequestMoreIterations(wg)
+	wg.Wait()
+
+	// then implement the pending state and time updates to the histories
+	c.UpdateHistory(wg)
+	wg.Wait()
+}
+
+// ReadyToTerminate returns whether or not the process has met the TerminationCondition.
+func (c *PartitionCoordinator) ReadyToTerminate() bool {
+	return c.terminationCondition.Terminate(
+		c.stateHistories,
+		c.timestepsHistory,
+		c.overallTimesteps,
+	)
+}
+
+// Run calls multiple steps up until the TerminationCondition has been met.
 func (c *PartitionCoordinator) Run() {
 	var wg sync.WaitGroup
 
 	// terminate the for loop if the condition has been met
-	for !c.terminationCondition.Terminate(
-		c.stateHistories,
-		c.timestepsHistory,
-		c.overallTimesteps,
-	) {
-		// update the overall step count and get the next time increment
-		c.overallTimesteps += 1
-		c.timestepsHistory = c.timestepFunction.NextIncrement(c.timestepsHistory)
-
-		// begin by requesting iterations for the next step and waiting
-		c.RequestMoreIterations(&wg)
-		wg.Wait()
-
-		// then implement the pending state and time updates to the histories
-		c.UpdateHistory(&wg)
-		wg.Wait()
+	for !c.ReadyToTerminate() {
+		c.Step(&wg)
 	}
 }
 
