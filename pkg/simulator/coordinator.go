@@ -99,7 +99,7 @@ func (c *PartitionCoordinator) ReadyToTerminate() bool {
 	)
 }
 
-// Run calls multiple steps up until the TerminationCondition has been met.
+// Run runs multiple Step calls up until the TerminationCondition has been met.
 func (c *PartitionCoordinator) Run() {
 	var wg sync.WaitGroup
 
