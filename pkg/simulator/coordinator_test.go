@@ -59,7 +59,7 @@ func (p *paramMultProcessIteration) Iterate(
 
 func iteratePartition(c *PartitionCoordinator, partitionIndex int) *State {
 	// iterate this partition by one step within the same thread
-	return c.iterators[partitionIndex].Iterate(
+	return c.Iterators[partitionIndex].Iterate(
 		c.stateHistories,
 		c.timestepsHistory,
 	)

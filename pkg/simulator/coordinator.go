@@ -10,8 +10,8 @@ import (
 // separate StateIterator objects on separate goroutines and when to enact
 // these updates on the state history.
 type PartitionCoordinator struct {
+	Iterators            []*StateIterator
 	newWorkChannels      [](chan *IteratorInputMessage)
-	iterators            []*StateIterator
 	stateHistories       []*StateHistory
 	overallTimesteps     int
 	numberOfPartitions   int
@@ -29,7 +29,7 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 		i := index
 		go func() {
 			defer wg.Done()
-			c.iterators[i].ReceiveAndIteratePending(c.newWorkChannels[i])
+			c.Iterators[i].ReceiveAndIteratePending(c.newWorkChannels[i])
 		}()
 	}
 	// send messages on the new work channels to ask for the next iteration
@@ -51,7 +51,7 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 		i := index
 		go func() {
 			defer wg.Done()
-			c.iterators[i].UpdateHistory(c.newWorkChannels[i])
+			c.Iterators[i].UpdateHistory(c.newWorkChannels[i])
 		}()
 	}
 	// send messages on the new work channels to ask for the next iteration
@@ -153,8 +153,8 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 		)
 	}
 	return &PartitionCoordinator{
+		Iterators:            iterators,
 		newWorkChannels:      newWorkChannels,
-		iterators:            iterators,
 		stateHistories:       stateHistories,
 		overallTimesteps:     0,
 		numberOfPartitions:   len(config.Partitions),
