@@ -11,11 +11,11 @@ import (
 // these updates on the state history.
 type PartitionCoordinator struct {
 	Iterators            []*StateIterator
+	StateHistories       []*StateHistory
+	TimestepsHistory     *TimestepsHistory
 	newWorkChannels      [](chan *IteratorInputMessage)
-	stateHistories       []*StateHistory
 	overallTimesteps     int
 	numberOfPartitions   int
-	timestepsHistory     *TimestepsHistory
 	timestepFunction     TimestepFunction
 	terminationCondition TerminationCondition
 }
@@ -36,8 +36,8 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 	// in the case of each partition
 	for index := 0; index < c.numberOfPartitions; index++ {
 		c.newWorkChannels[index] <- &IteratorInputMessage{
-			StateHistories:   c.stateHistories,
-			TimestepsHistory: c.timestepsHistory,
+			StateHistories:   c.StateHistories,
+			TimestepsHistory: c.TimestepsHistory,
 		}
 	}
 }
@@ -58,19 +58,19 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	// in the case of each partition
 	for index := 0; index < c.numberOfPartitions; index++ {
 		c.newWorkChannels[index] <- &IteratorInputMessage{
-			StateHistories:   c.stateHistories,
-			TimestepsHistory: c.timestepsHistory,
+			StateHistories:   c.StateHistories,
+			TimestepsHistory: c.TimestepsHistory,
 		}
 	}
 
 	// iterate over the history of timesteps and shift them back one
-	for i := 1; i < c.timestepsHistory.StateHistoryDepth; i++ {
-		c.timestepsHistory.Values.SetVec(i, c.timestepsHistory.Values.AtVec(i-1))
+	for i := 1; i < c.TimestepsHistory.StateHistoryDepth; i++ {
+		c.TimestepsHistory.Values.SetVec(i, c.TimestepsHistory.Values.AtVec(i-1))
 	}
 	// now update the history with the next time increment
-	c.timestepsHistory.Values.SetVec(
+	c.TimestepsHistory.Values.SetVec(
 		0,
-		c.timestepsHistory.Values.AtVec(0)+c.timestepsHistory.NextIncrement,
+		c.TimestepsHistory.Values.AtVec(0)+c.TimestepsHistory.NextIncrement,
 	)
 }
 
@@ -79,7 +79,7 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// update the overall step count and get the next time increment
 	c.overallTimesteps += 1
-	c.timestepsHistory = c.timestepFunction.NextIncrement(c.timestepsHistory)
+	c.TimestepsHistory = c.timestepFunction.NextIncrement(c.TimestepsHistory)
 
 	// begin by requesting iterations for the next step and waiting
 	c.RequestMoreIterations(wg)
@@ -93,8 +93,8 @@ func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 // ReadyToTerminate returns whether or not the process has met the TerminationCondition.
 func (c *PartitionCoordinator) ReadyToTerminate() bool {
 	return c.terminationCondition.Terminate(
-		c.stateHistories,
-		c.timestepsHistory,
+		c.StateHistories,
+		c.TimestepsHistory,
 		c.overallTimesteps,
 	)
 }
@@ -154,11 +154,11 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 	}
 	return &PartitionCoordinator{
 		Iterators:            iterators,
+		StateHistories:       stateHistories,
+		TimestepsHistory:     timestepsHistory,
 		newWorkChannels:      newWorkChannels,
-		stateHistories:       stateHistories,
 		overallTimesteps:     0,
 		numberOfPartitions:   len(config.Partitions),
-		timestepsHistory:     timestepsHistory,
 		timestepFunction:     config.Steps.TimestepFunction,
 		terminationCondition: config.Steps.TerminationCondition,
 	}

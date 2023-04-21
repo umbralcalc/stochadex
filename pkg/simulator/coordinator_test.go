@@ -60,8 +60,8 @@ func (p *paramMultProcessIteration) Iterate(
 func iteratePartition(c *PartitionCoordinator, partitionIndex int) *State {
 	// iterate this partition by one step within the same thread
 	return c.Iterators[partitionIndex].Iterate(
-		c.stateHistories,
-		c.timestepsHistory,
+		c.StateHistories,
+		c.TimestepsHistory,
 	)
 }
 
@@ -70,7 +70,7 @@ func iterateHistory(c *PartitionCoordinator) {
 	for index := 0; index < c.numberOfPartitions; index++ {
 		state := iteratePartition(c, index)
 		// reference this partition
-		partition := c.stateHistories[index]
+		partition := c.StateHistories[index]
 		// iterate over the history (matrix columns) and shift them
 		// back one timestep
 		for i := 1; i < partition.StateHistoryDepth; i++ {
@@ -81,25 +81,25 @@ func iterateHistory(c *PartitionCoordinator) {
 	}
 
 	// iterate over the history of timesteps and shift them back one
-	for i := 1; i < c.timestepsHistory.StateHistoryDepth; i++ {
-		c.timestepsHistory.Values.SetVec(i, c.timestepsHistory.Values.AtVec(i-1))
+	for i := 1; i < c.TimestepsHistory.StateHistoryDepth; i++ {
+		c.TimestepsHistory.Values.SetVec(i, c.TimestepsHistory.Values.AtVec(i-1))
 	}
 	// now update the history with the next time increment
-	c.timestepsHistory.Values.SetVec(
+	c.TimestepsHistory.Values.SetVec(
 		0,
-		c.timestepsHistory.Values.AtVec(0)+c.timestepsHistory.NextIncrement,
+		c.TimestepsHistory.Values.AtVec(0)+c.TimestepsHistory.NextIncrement,
 	)
 }
 
 func run(c *PartitionCoordinator) {
 	// terminate without iterating again if the condition has not been met
 	for !c.terminationCondition.Terminate(
-		c.stateHistories,
-		c.timestepsHistory,
+		c.StateHistories,
+		c.TimestepsHistory,
 		c.overallTimesteps,
 	) {
 		c.overallTimesteps += 1
-		c.timestepsHistory = c.timestepFunction.NextIncrement(c.timestepsHistory)
+		c.TimestepsHistory = c.timestepFunction.NextIncrement(c.TimestepsHistory)
 		iterateHistory(c)
 	}
 }
