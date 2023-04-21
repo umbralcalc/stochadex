@@ -17,10 +17,10 @@ type Iteration interface {
 // StateIterator handles iterations of a given state partition on a
 // separate goroutine and writing output data to disk or some DB
 type StateIterator struct {
+	Iteration          Iteration
 	partitionIndex     int
 	timesteps          int
 	params             *ParamsConfig
-	iteration          Iteration
 	outputCondition    OutputCondition
 	outputFunction     OutputFunction
 	pendingStateUpdate *State
@@ -32,7 +32,7 @@ func (s *StateIterator) Iterate(
 	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
 ) *State {
-	newState := s.iteration.Iterate(
+	newState := s.Iteration.Iterate(
 		s.params.Other,
 		s.partitionIndex,
 		stateHistories,
