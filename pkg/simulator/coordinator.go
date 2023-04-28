@@ -140,9 +140,9 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 		iterators = append(
 			iterators,
 			&StateIterator{
-				partitionIndex:  index,
-				params:          stateConfig.Params,
 				Iteration:       stateConfig.Iteration,
+				Params:          stateConfig.Params,
+				partitionIndex:  index,
 				outputCondition: config.Output.Condition,
 				outputFunction:  config.Output.Function,
 			},

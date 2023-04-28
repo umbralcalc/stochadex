@@ -18,9 +18,9 @@ type Iteration interface {
 // separate goroutine and writing output data to disk or some DB.
 type StateIterator struct {
 	Iteration          Iteration
+	Params             *ParamsConfig
 	partitionIndex     int
 	timesteps          int
-	params             *ParamsConfig
 	outputCondition    OutputCondition
 	outputFunction     OutputFunction
 	pendingStateUpdate *State
@@ -33,7 +33,7 @@ func (s *StateIterator) Iterate(
 	timestepsHistory *TimestepsHistory,
 ) *State {
 	newState := s.Iteration.Iterate(
-		s.params.Other,
+		s.Params.Other,
 		s.partitionIndex,
 		stateHistories,
 		timestepsHistory,
