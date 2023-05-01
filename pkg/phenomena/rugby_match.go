@@ -34,27 +34,20 @@ func GetRugbyMatchStateMap() map[int]string {
 	}
 }
 
-// GetRugbyMatchTransitionProbabilities returns a tuple of one slice to record the
-// prospective next state to transition into from the current state and another slice
-// to record the probability associated to each of these transitions in turn.
-func GetRugbyMatchTransitionProbabilities(
-	matchStateFrom int,
-	matchStateTo int,
-	state *simulator.State,
-	otherParams *simulator.OtherParams,
-	timestep int,
-) ([]int64, []float64) {
-	matchState := fmt.Sprintf("%d", int(state.Values.AtVec(0)))
-	transitions := otherParams.IntParams["transitions_from_"+matchState]
-	transitionProbs := otherParams.FloatParams["transition_probs_from_"+matchState]
-	return transitions, transitionProbs
-}
-
 // RugbyMatchIteration defines an iteration for a model of a rugby match
 // which was defined in this chapter of the book Diffusing Ideas:
 // https://umbralcalc.github.io/diffusing-ideas/managing_a_rugby_match/chapter.pdf
 type RugbyMatchIteration struct {
 	unitUniformDist *distuv.Uniform
+}
+
+func (r *RugbyMatchIteration) getPossessionChangeTransitionRate(
+	state []float64,
+	otherParams *simulator.OtherParams,
+	timestepsHistory *simulator.TimestepsHistory,
+) float64 {
+	rate := 0.0
+	return rate
 }
 
 func (r *RugbyMatchIteration) Iterate(
@@ -63,22 +56,46 @@ func (r *RugbyMatchIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.TimestepsHistory,
 ) *simulator.State {
-	stateHistory := stateHistories[partitionIndex]
-	values := make([]float64, stateHistory.StateWidth)
-	for i := range values {
-		if otherParams.FloatParams["rates"][i] > (otherParams.FloatParams["rates"][i]+
-			(1.0/timestepsHistory.NextIncrement))*r.unitUniformDist.Rand() {
-			values[i] = stateHistory.Values.At(0, i) + 1.0
-		} else {
-			values[i] = stateHistory.Values.At(0, i)
+	state := stateHistories[partitionIndex].Values.RawRowView(0)
+	matchState := fmt.Sprintf("%d", int(state[0]))
+	transitions := otherParams.IntParams["transitions_from_"+matchState]
+	transitionProbs := otherParams.FloatParams["transition_probs_from_"+matchState]
+	// compute the cumulative probabilities and overall normalisation for transitions
+	cumulative := 0.0
+	cumulativeProbs := make([]float64, 0)
+	normalisation := (1.0 / timestepsHistory.NextIncrement)
+	for i, prob := range transitionProbs {
+		normalisation +=
+			prob * otherParams.FloatParams["background_event_rates"][transitions[i]]
+		cumulative += prob
+		cumulativeProbs = append(cumulativeProbs, cumulative)
+	}
+	// find out what the next transition is
+	event := r.unitUniformDist.Rand()
+	for i, prob := range cumulativeProbs {
+		if event*normalisation < prob {
+			if i == 0 {
+				state[0] = float64(transitions[i])
+			} else if event*normalisation >= cumulativeProbs[i-1] {
+				state[0] = float64(transitions[i])
+			}
 		}
+	}
+	// find out if there is a change in possession
+	rate := r.getPossessionChangeTransitionRate(
+		state,
+		otherParams,
+		timestepsHistory,
+	)
+	if rate > (rate+(1.0/timestepsHistory.NextIncrement))*r.unitUniformDist.Rand() {
+		state[1] = (1.0 - state[1])
 	}
 	return &simulator.State{
 		Values: mat.NewVecDense(
-			stateHistory.StateWidth,
-			values,
+			stateHistories[partitionIndex].StateWidth,
+			state,
 		),
-		StateWidth: stateHistory.StateWidth,
+		StateWidth: stateHistories[partitionIndex].StateWidth,
 	}
 }
 
