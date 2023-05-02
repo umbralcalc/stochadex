@@ -39,15 +39,55 @@ func GetRugbyMatchStateMap() map[int]string {
 // https://umbralcalc.github.io/diffusing-ideas/managing_a_rugby_match/chapter.pdf
 type RugbyMatchIteration struct {
 	unitUniformDist *distuv.Uniform
+	exponentialDist *distuv.Exponential
 }
 
-func (r *RugbyMatchIteration) getPossessionChangeTransitionRate(
+func (r *RugbyMatchIteration) getPossessionChange(
 	state []float64,
 	otherParams *simulator.OtherParams,
 	timestepsHistory *simulator.TimestepsHistory,
 ) float64 {
 	rate := 0.0
-	return rate
+	newPossessionState := state[1]
+	if rate > (rate+(1.0/timestepsHistory.NextIncrement))*r.unitUniformDist.Rand() {
+		newPossessionState = (1.0 - state[1])
+	}
+	return newPossessionState
+}
+
+func (r *RugbyMatchIteration) getLongitudinalRunChange(
+	state []float64,
+	otherParams *simulator.OtherParams,
+) float64 {
+	newLonState := state[2]
+	defensiveRunScaleParam := 0.0
+	attackingRunScaleParam := 0.0
+	r.exponentialDist.Rate = defensiveRunScaleParam
+	newLonState -= r.exponentialDist.Rand()
+	r.exponentialDist.Rate = attackingRunScaleParam
+	newLonState += r.exponentialDist.Rand()
+	return newLonState
+}
+
+func (r *RugbyMatchIteration) getLateralRunChange(
+	state []float64,
+	otherParams *simulator.OtherParams,
+) float64 {
+	return 0.0
+}
+
+func (r *RugbyMatchIteration) getLongitudinalKickChange(
+	state []float64,
+	otherParams *simulator.OtherParams,
+) float64 {
+	return 0.0
+}
+
+func (r *RugbyMatchIteration) getLateralKickChange(
+	state []float64,
+	otherParams *simulator.OtherParams,
+) float64 {
+	return 0.0
 }
 
 func (r *RugbyMatchIteration) Iterate(
@@ -57,6 +97,7 @@ func (r *RugbyMatchIteration) Iterate(
 	timestepsHistory *simulator.TimestepsHistory,
 ) *simulator.State {
 	state := stateHistories[partitionIndex].Values.RawRowView(0)
+	lastState := state
 	matchState := fmt.Sprintf("%d", int(state[0]))
 	transitions := otherParams.IntParams["transitions_from_"+matchState]
 	transitionProbs := otherParams.FloatParams["transition_probs_from_"+matchState]
@@ -82,13 +123,18 @@ func (r *RugbyMatchIteration) Iterate(
 		}
 	}
 	// find out if there is a change in possession
-	rate := r.getPossessionChangeTransitionRate(
-		state,
-		otherParams,
-		timestepsHistory,
-	)
-	if rate > (rate+(1.0/timestepsHistory.NextIncrement))*r.unitUniformDist.Rand() {
-		state[1] = (1.0 - state[1])
+	state[1] = r.getPossessionChange(state, otherParams, timestepsHistory)
+	// if the next phase is a run phase and we are entering this for the first time
+	// then decide on what spatial movements the ball location makes as a result
+	if (lastState[0] != 6) && (state[0] == 6) {
+		state[2] = r.getLongitudinalRunChange(state, otherParams)
+		state[3] = r.getLateralRunChange(state, otherParams)
+	}
+	// similarly, if the next phase is a kick phase and we are entering this for
+	// the first time then decide on what spatial movements the ball location makes
+	if (lastState[0] != 5) && (state[0] == 5) {
+		state[2] = r.getLongitudinalKickChange(state, otherParams)
+		state[3] = r.getLateralKickChange(state, otherParams)
 	}
 	return &simulator.State{
 		Values: mat.NewVecDense(
@@ -106,6 +152,10 @@ func NewRugbyMatchIteration(seed uint64) *RugbyMatchIteration {
 			Min: 0.0,
 			Max: 1.0,
 			Src: rand.NewSource(seed),
+		},
+		exponentialDist: &distuv.Exponential{
+			Rate: 1.0,
+			Src:  rand.NewSource(seed),
 		},
 	}
 }
