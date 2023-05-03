@@ -31,6 +31,7 @@ func GetRugbyMatchStateMap() map[int]string {
 		9:  "Lineout",
 		10: "Ruck",
 		11: "Maul",
+		12: "Kickoff",
 	}
 }
 
@@ -38,6 +39,9 @@ func GetRugbyMatchStateMap() map[int]string {
 // which was defined in this chapter of the book Diffusing Ideas:
 // https://umbralcalc.github.io/diffusing-ideas/managing_a_rugby_match/chapter.pdf
 type RugbyMatchIteration struct {
+	currentAttacker int
+	currentDefender int
+	normalDist      *distuv.Normal
 	unitUniformDist *distuv.Uniform
 	exponentialDist *distuv.Exponential
 }
@@ -60,11 +64,13 @@ func (r *RugbyMatchIteration) getLongitudinalRunChange(
 	otherParams *simulator.OtherParams,
 ) float64 {
 	newLonState := state[2]
-	defensiveRunScaleParam := 0.0
-	attackingRunScaleParam := 0.0
-	r.exponentialDist.Rate = defensiveRunScaleParam
+	attackerIndex := r.currentAttacker + int(15*state[1])
+	defenderIndex := r.currentDefender + int(15*(1-state[1]))
+	r.exponentialDist.Rate =
+		otherParams.FloatParams["player_defensive_run_param"][defenderIndex]
 	newLonState -= r.exponentialDist.Rand()
-	r.exponentialDist.Rate = attackingRunScaleParam
+	r.exponentialDist.Rate =
+		otherParams.FloatParams["player_attacking_run_param"][attackerIndex]
 	newLonState += r.exponentialDist.Rand()
 	return newLonState
 }
@@ -73,7 +79,10 @@ func (r *RugbyMatchIteration) getLateralRunChange(
 	state []float64,
 	otherParams *simulator.OtherParams,
 ) float64 {
-	return 0.0
+	index := r.currentAttacker + int(15*state[1])
+	r.normalDist.Mu = 0.0
+	r.normalDist.Sigma = otherParams.FloatParams["player_lateral_run_sigma"][index]
+	return state[3] + r.normalDist.Rand()
 }
 
 func (r *RugbyMatchIteration) getLongitudinalKickChange(
@@ -148,6 +157,11 @@ func (r *RugbyMatchIteration) Iterate(
 // NewRugbyMatchIteration creates a new RugbyMatchIteration given a seed.
 func NewRugbyMatchIteration(seed uint64) *RugbyMatchIteration {
 	return &RugbyMatchIteration{
+		normalDist: &distuv.Normal{
+			Mu:    0.0,
+			Sigma: 1.0,
+			Src:   rand.NewSource(seed),
+		},
 		unitUniformDist: &distuv.Uniform{
 			Min: 0.0,
 			Max: 1.0,
