@@ -44,6 +44,7 @@ type RugbyMatchIteration struct {
 	normalDist      *distuv.Normal
 	unitUniformDist *distuv.Uniform
 	exponentialDist *distuv.Exponential
+	categoricalDist *distuv.Categorical
 }
 
 func (r *RugbyMatchIteration) getPossessionChange(
@@ -51,7 +52,30 @@ func (r *RugbyMatchIteration) getPossessionChange(
 	otherParams *simulator.OtherParams,
 	timestepsHistory *simulator.TimestepsHistory,
 ) float64 {
-	rate := 0.0
+	rate := otherParams.FloatParams["max_possession_change_rates"][int(state[0])]
+	playersFactor := 1.0
+	if state[0] == 8 {
+		playersFactor = 0.0
+		norm := 0.0
+		for i := 0; i < 3; i++ {
+			attackingFrontRowPos :=
+				otherParams.FloatParams["front_row_scrum_possessions"][i+int(3*state[1])]
+			defendingFrontRowPos :=
+				otherParams.FloatParams["front_row_scrum_possessions"][i+int(3*(1-state[1]))]
+			playersFactor += defendingFrontRowPos
+			norm += attackingFrontRowPos + defendingFrontRowPos
+		}
+		for i := 0; i < 2; i++ {
+			attackingSecondRowPos :=
+				otherParams.FloatParams["second_row_scrum_possessions"][i+int(3*state[1])]
+			defendingSecondRowPos :=
+				otherParams.FloatParams["second_row_scrum_possessions"][i+int(3*(1-state[1]))]
+			playersFactor += defendingSecondRowPos
+			norm += attackingSecondRowPos + defendingSecondRowPos
+		}
+		playersFactor /= norm
+	}
+	rate *= playersFactor
 	newPossessionState := state[1]
 	if rate > (rate+(1.0/timestepsHistory.NextIncrement))*r.unitUniformDist.Rand() {
 		newPossessionState = (1.0 - state[1])
@@ -67,10 +91,10 @@ func (r *RugbyMatchIteration) getLongitudinalRunChange(
 	attackerIndex := r.currentAttacker + int(15*state[1])
 	defenderIndex := r.currentDefender + int(15*(1-state[1]))
 	r.exponentialDist.Rate =
-		otherParams.FloatParams["player_defensive_run_param"][defenderIndex]
+		otherParams.FloatParams["player_defensive_run_scales"][defenderIndex]
 	newLonState -= r.exponentialDist.Rand()
 	r.exponentialDist.Rate =
-		otherParams.FloatParams["player_attacking_run_param"][attackerIndex]
+		otherParams.FloatParams["player_attacking_run_scales"][attackerIndex]
 	newLonState += r.exponentialDist.Rand()
 	return newLonState
 }
@@ -81,7 +105,8 @@ func (r *RugbyMatchIteration) getLateralRunChange(
 ) float64 {
 	index := r.currentAttacker + int(15*state[1])
 	r.normalDist.Mu = 0.0
-	r.normalDist.Sigma = otherParams.FloatParams["player_lateral_run_sigma"][index]
+	r.normalDist.Sigma =
+		otherParams.FloatParams["player_lateral_run_scales"][index]
 	return state[3] + r.normalDist.Rand()
 }
 
@@ -131,6 +156,19 @@ func (r *RugbyMatchIteration) Iterate(
 			}
 		}
 	}
+	// if the state hasn't changed then continue without doing anything else
+	if lastState[0] == state[0] {
+		return &simulator.State{
+			Values: mat.NewVecDense(
+				stateHistories[partitionIndex].StateWidth,
+				state,
+			),
+			StateWidth: stateHistories[partitionIndex].StateWidth,
+		}
+	}
+	// randomly select new attacking and defending player indices
+	r.currentAttacker = int(r.categoricalDist.Rand())
+	r.currentDefender = int(r.categoricalDist.Rand())
 	// find out if there is a change in possession
 	state[1] = r.getPossessionChange(state, otherParams, timestepsHistory)
 	// if the next phase is a run phase and we are entering this for the first time
@@ -156,6 +194,11 @@ func (r *RugbyMatchIteration) Iterate(
 
 // NewRugbyMatchIteration creates a new RugbyMatchIteration given a seed.
 func NewRugbyMatchIteration(seed uint64) *RugbyMatchIteration {
+	weights := make([]float64, 0)
+	for i := 0; i < 15; i++ {
+		weights = append(weights, 1.0)
+	}
+	catDist := distuv.NewCategorical(weights, rand.NewSource(seed))
 	return &RugbyMatchIteration{
 		normalDist: &distuv.Normal{
 			Mu:    0.0,
@@ -171,5 +214,6 @@ func NewRugbyMatchIteration(seed uint64) *RugbyMatchIteration {
 			Rate: 1.0,
 			Src:  rand.NewSource(seed),
 		},
+		categoricalDist: &catDist,
 	}
 }
