@@ -2,6 +2,7 @@ package phenomena
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
@@ -35,6 +36,214 @@ func GetRugbyMatchStateMap() map[int]string {
 	}
 }
 
+// getPlayerFatigue is an internal method to retrieve a player's fatigue factor
+func getPlayerFatigue(
+	playerIndex int,
+	otherParams *simulator.OtherParams,
+	timestepsHistory *simulator.TimestepsHistory,
+) float64 {
+	return math.Exp(
+		-otherParams.FloatParams["player_fatigue_rates"][playerIndex] *
+			(timestepsHistory.Values.AtVec(0) -
+				otherParams.FloatParams["player_start_times"][playerIndex]),
+	)
+}
+
+// getScrumPossessionFactor is an internal method to retrieve the player weightings
+// for the scrum possession transition probability
+func getScrumPossessionFactor(
+	state []float64,
+	otherParams *simulator.OtherParams,
+	timestepsHistory *simulator.TimestepsHistory,
+) float64 {
+	playersFactor := 0.0
+	norm := 0.0
+	for i := 0; i < 3; i++ {
+		attackingFrontRowPos :=
+			otherParams.FloatParams["front_row_scrum_possessions"][i+int(3*state[1])] *
+				getPlayerFatigue(i+int(15*state[1]), otherParams, timestepsHistory)
+		defendingFrontRowPos :=
+			otherParams.FloatParams["front_row_scrum_possessions"][i+int(3*(1-state[1]))] *
+				getPlayerFatigue(i+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingFrontRowPos
+		norm += attackingFrontRowPos + defendingFrontRowPos
+	}
+	for i := 0; i < 2; i++ {
+		attackingSecondRowPos :=
+			otherParams.FloatParams["second_row_scrum_possessions"][i+int(2*state[1])] *
+				getPlayerFatigue(i+3+int(15*state[1]), otherParams, timestepsHistory)
+		defendingSecondRowPos :=
+			otherParams.FloatParams["second_row_scrum_possessions"][i+int(2*(1-state[1]))] *
+				getPlayerFatigue(i+3+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingSecondRowPos
+		norm += attackingSecondRowPos + defendingSecondRowPos
+	}
+	playersFactor /= norm
+	return playersFactor
+}
+
+// getLineoutPossessionFactor is an internal method to retrieve the player weightings
+// for the lineout possession transition probability
+func getLineoutPossessionFactor(
+	state []float64,
+	otherParams *simulator.OtherParams,
+	timestepsHistory *simulator.TimestepsHistory,
+) float64 {
+	playersFactor := 0.0
+	norm := 0.0
+	for i := 0; i < 3; i++ {
+		attackingFrontRowPos :=
+			otherParams.FloatParams["front_row_lineout_possessions"][i+int(3*state[1])] *
+				getPlayerFatigue(i+int(15*state[1]), otherParams, timestepsHistory)
+		defendingFrontRowPos :=
+			otherParams.FloatParams["front_row_lineout_possessions"][i+int(3*(1-state[1]))] *
+				getPlayerFatigue(i+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingFrontRowPos
+		norm += attackingFrontRowPos + defendingFrontRowPos
+	}
+	for i := 0; i < 2; i++ {
+		attackingSecondRowPos :=
+			otherParams.FloatParams["second_row_lineout_possessions"][i+int(2*state[1])] *
+				getPlayerFatigue(i+3+int(15*state[1]), otherParams, timestepsHistory)
+		defendingSecondRowPos :=
+			otherParams.FloatParams["second_row_lineout_possessions"][i+int(2*(1-state[1]))] *
+				getPlayerFatigue(i+3+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingSecondRowPos
+		norm += attackingSecondRowPos + defendingSecondRowPos
+	}
+	for i := 0; i < 3; i++ {
+		attackingBackRowPos :=
+			otherParams.FloatParams["back_row_lineout_possessions"][i+int(3*state[1])] *
+				getPlayerFatigue(i+5+int(15*state[1]), otherParams, timestepsHistory)
+		defendingBackRowPos :=
+			otherParams.FloatParams["back_row_lineout_possessions"][i+int(3*(1-state[1]))] *
+				getPlayerFatigue(i+5+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingBackRowPos
+		norm += attackingBackRowPos + defendingBackRowPos
+	}
+	playersFactor /= norm
+	return playersFactor
+}
+
+// getMaulPossessionFactor is an internal method to retrieve the player weightings
+// for the maul possession transition probability
+func getMaulPossessionFactor(
+	state []float64,
+	otherParams *simulator.OtherParams,
+	timestepsHistory *simulator.TimestepsHistory,
+) float64 {
+	playersFactor := 0.0
+	norm := 0.0
+	for i := 0; i < 3; i++ {
+		attackingFrontRowPos :=
+			otherParams.FloatParams["front_row_maul_possessions"][i+int(3*state[1])] *
+				getPlayerFatigue(i+int(15*state[1]), otherParams, timestepsHistory)
+		defendingFrontRowPos :=
+			otherParams.FloatParams["front_row_maul_possessions"][i+int(3*(1-state[1]))] *
+				getPlayerFatigue(i+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingFrontRowPos
+		norm += attackingFrontRowPos + defendingFrontRowPos
+	}
+	for i := 0; i < 2; i++ {
+		attackingSecondRowPos :=
+			otherParams.FloatParams["second_row_maul_possessions"][i+int(2*state[1])] *
+				getPlayerFatigue(i+3+int(15*state[1]), otherParams, timestepsHistory)
+		defendingSecondRowPos :=
+			otherParams.FloatParams["second_row_maul_possessions"][i+int(2*(1-state[1]))] *
+				getPlayerFatigue(i+3+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingSecondRowPos
+		norm += attackingSecondRowPos + defendingSecondRowPos
+	}
+	for i := 0; i < 3; i++ {
+		attackingBackRowPos :=
+			otherParams.FloatParams["back_row_maul_possessions"][i+int(3*state[1])] *
+				getPlayerFatigue(i+5+int(15*state[1]), otherParams, timestepsHistory)
+		defendingBackRowPos :=
+			otherParams.FloatParams["back_row_maul_possessions"][i+int(3*(1-state[1]))] *
+				getPlayerFatigue(i+5+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingBackRowPos
+		norm += attackingBackRowPos + defendingBackRowPos
+	}
+	playersFactor /= norm
+	return playersFactor
+}
+
+// getRuckPossessionFactor is an internal method to retrieve the player weightings
+// for the ruck possession transition probability
+func getRuckPossessionFactor(
+	state []float64,
+	otherParams *simulator.OtherParams,
+	timestepsHistory *simulator.TimestepsHistory,
+) float64 {
+	playersFactor := 0.0
+	norm := 0.0
+	for i := 0; i < 3; i++ {
+		attackingFrontRowPos :=
+			otherParams.FloatParams["front_row_ruck_possessions"][i+int(3*state[1])] *
+				getPlayerFatigue(i+int(15*state[1]), otherParams, timestepsHistory)
+		defendingFrontRowPos :=
+			otherParams.FloatParams["front_row_ruck_possessions"][i+int(3*(1-state[1]))] *
+				getPlayerFatigue(i+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingFrontRowPos
+		norm += attackingFrontRowPos + defendingFrontRowPos
+	}
+	for i := 0; i < 2; i++ {
+		attackingSecondRowPos :=
+			otherParams.FloatParams["second_row_ruck_possessions"][i+int(2*state[1])] *
+				getPlayerFatigue(i+3+int(15*state[1]), otherParams, timestepsHistory)
+		defendingSecondRowPos :=
+			otherParams.FloatParams["second_row_ruck_possessions"][i+int(2*(1-state[1]))] *
+				getPlayerFatigue(i+3+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingSecondRowPos
+		norm += attackingSecondRowPos + defendingSecondRowPos
+	}
+	for i := 0; i < 3; i++ {
+		attackingBackRowPos :=
+			otherParams.FloatParams["back_row_ruck_possessions"][i+int(3*state[1])] *
+				getPlayerFatigue(i+5+int(15*state[1]), otherParams, timestepsHistory)
+		defendingBackRowPos :=
+			otherParams.FloatParams["back_row_ruck_possessions"][i+int(3*(1-state[1]))] *
+				getPlayerFatigue(i+5+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingBackRowPos
+		norm += attackingBackRowPos + defendingBackRowPos
+	}
+	for i := 0; i < 2; i++ {
+		attackingCentresPos :=
+			otherParams.FloatParams["centres_ruck_possessions"][i+int(2*state[1])] *
+				getPlayerFatigue(i+11+int(15*state[1]), otherParams, timestepsHistory)
+		defendingCentresPos :=
+			otherParams.FloatParams["centres_ruck_possessions"][i+int(2*(1-state[1]))] *
+				getPlayerFatigue(i+11+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingCentresPos
+		norm += attackingCentresPos + defendingCentresPos
+	}
+	playersFactor /= norm
+	return playersFactor
+}
+
+// getRunPossessionFactor is an internal method to retrieve the player weightings
+// for the run possession transition probability
+func getRunPossessionFactor(
+	state []float64,
+	otherParams *simulator.OtherParams,
+	timestepsHistory *simulator.TimestepsHistory,
+) float64 {
+	playersFactor := 0.0
+	norm := 0.0
+	for i := 0; i < 15; i++ {
+		attackingPos :=
+			otherParams.FloatParams["player_run_possessions"][i+int(3*state[1])] *
+				getPlayerFatigue(i+int(15*state[1]), otherParams, timestepsHistory)
+		defendingPos :=
+			otherParams.FloatParams["player_run_possessions"][i+int(3*(1-state[1]))] *
+				getPlayerFatigue(i+int(15*(1-state[1])), otherParams, timestepsHistory)
+		playersFactor += defendingPos
+		norm += attackingPos + defendingPos
+	}
+	playersFactor /= norm
+	return playersFactor
+}
+
 // RugbyMatchIteration defines an iteration for a model of a rugby match
 // which was defined in this chapter of the book Diffusing Ideas:
 // https://umbralcalc.github.io/diffusing-ideas/managing_a_rugby_match/chapter.pdf
@@ -54,26 +263,16 @@ func (r *RugbyMatchIteration) getPossessionChange(
 ) float64 {
 	rate := otherParams.FloatParams["max_possession_change_rates"][int(state[0])]
 	playersFactor := 1.0
-	if state[0] == 8 {
-		playersFactor = 0.0
-		norm := 0.0
-		for i := 0; i < 3; i++ {
-			attackingFrontRowPos :=
-				otherParams.FloatParams["front_row_scrum_possessions"][i+int(3*state[1])]
-			defendingFrontRowPos :=
-				otherParams.FloatParams["front_row_scrum_possessions"][i+int(3*(1-state[1]))]
-			playersFactor += defendingFrontRowPos
-			norm += attackingFrontRowPos + defendingFrontRowPos
-		}
-		for i := 0; i < 2; i++ {
-			attackingSecondRowPos :=
-				otherParams.FloatParams["second_row_scrum_possessions"][i+int(3*state[1])]
-			defendingSecondRowPos :=
-				otherParams.FloatParams["second_row_scrum_possessions"][i+int(3*(1-state[1]))]
-			playersFactor += defendingSecondRowPos
-			norm += attackingSecondRowPos + defendingSecondRowPos
-		}
-		playersFactor /= norm
+	if state[0] == 6 {
+		playersFactor = getRunPossessionFactor(state, otherParams, timestepsHistory)
+	} else if state[0] == 8 {
+		playersFactor = getScrumPossessionFactor(state, otherParams, timestepsHistory)
+	} else if state[0] == 9 {
+		playersFactor = getLineoutPossessionFactor(state, otherParams, timestepsHistory)
+	} else if state[0] == 10 {
+		playersFactor = getRuckPossessionFactor(state, otherParams, timestepsHistory)
+	} else if state[0] == 11 {
+		playersFactor = getMaulPossessionFactor(state, otherParams, timestepsHistory)
 	}
 	rate *= playersFactor
 	newPossessionState := state[1]
