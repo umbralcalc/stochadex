@@ -10,6 +10,11 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
+// GetRugbyMatchPitchDimensions returns a tuple of pitch dimensions (Lon, Lat).
+func GetRugbyMatchPitchDimensions() (float64, float64) {
+	return 100.0, 70.0
+}
+
 // GetRugbyMatchPossessionMap returns a map from the integer possession Id to a
 // string description.
 func GetRugbyMatchPossessionMap() map[int]string {
@@ -295,6 +300,15 @@ func (r *RugbyMatchIteration) getLongitudinalRunChange(
 	r.exponentialDist.Rate =
 		otherParams.FloatParams["player_attacking_run_scales"][attackerIndex]
 	newLonState += r.exponentialDist.Rand()
+	// if the newLonState would end up moving over a tryline, just restrict
+	// this movement so that it remains just within the field of play
+	maxLon, _ := GetRugbyMatchPitchDimensions()
+	if newLonState > maxLon {
+		newLonState = maxLon - 0.5
+	}
+	if newLonState < 0.0 {
+		newLonState = 0.5
+	}
 	return newLonState
 }
 
@@ -306,20 +320,58 @@ func (r *RugbyMatchIteration) getLateralRunChange(
 	r.normalDist.Mu = 0.0
 	r.normalDist.Sigma =
 		otherParams.FloatParams["player_lateral_run_scales"][index]
-	return state[3] + r.normalDist.Rand()
+	newLatState := state[3] + r.normalDist.Rand()
+	// if the newLatState would end up moving out of bounds, just restrict
+	// this movement so that it remains just within the field of play
+	_, maxLat := GetRugbyMatchPitchDimensions()
+	if newLatState > maxLat {
+		newLatState = maxLat - 0.5
+	}
+	if newLatState < 0.0 {
+		newLatState = 0.5
+	}
+	return newLatState
 }
 
 func (r *RugbyMatchIteration) getLongitudinalKickChange(
+	lastState []float64,
 	state []float64,
 	otherParams *simulator.OtherParams,
 ) float64 {
+	// if this is a kick at goal or a drop goal
+	if ((lastState[0] == 0) && (state[0] == 2)) ||
+		((lastState[0] == 5) && (state[0] == 3)) {
+
+	}
+	// if this is a kick in the field of play
+	if (lastState[0] == 5) && (state[0] != 3) && (state[0] != 9) {
+
+	}
+	// if this is a kick to touch
+	if (lastState[0] == 5) && (state[0] == 9) {
+
+	}
 	return 0.0
 }
 
 func (r *RugbyMatchIteration) getLateralKickChange(
+	lastState []float64,
 	state []float64,
 	otherParams *simulator.OtherParams,
 ) float64 {
+	// if this is a kick at goal or a drop goal
+	if ((lastState[0] == 0) && (state[0] == 2)) ||
+		((lastState[0] == 5) && (state[0] == 3)) {
+
+	}
+	// if this is a kick in the field of play
+	if (lastState[0] == 5) && (state[0] != 3) && (state[0] != 9) {
+
+	}
+	// if this is a kick to touch
+	if (lastState[0] == 5) && (state[0] == 9) {
+
+	}
 	return 0.0
 }
 
@@ -379,8 +431,8 @@ func (r *RugbyMatchIteration) Iterate(
 	// similarly, if the next phase is a kick phase and we are entering this for
 	// the first time then decide on what spatial movements the ball location makes
 	if (lastState[0] != 5) && (state[0] == 5) {
-		state[2] = r.getLongitudinalKickChange(state, otherParams)
-		state[3] = r.getLateralKickChange(state, otherParams)
+		state[2] = r.getLongitudinalKickChange(lastState, state, otherParams)
+		state[3] = r.getLateralKickChange(lastState, state, otherParams)
 	}
 	return &simulator.State{
 		Values: mat.NewVecDense(
