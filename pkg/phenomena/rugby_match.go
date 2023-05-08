@@ -338,10 +338,11 @@ func (r *RugbyMatchIteration) getLongitudinalKickChange(
 	state []float64,
 	otherParams *simulator.OtherParams,
 ) float64 {
-	// if this is a kick at goal or a drop goal
+	// maxLon, _ := GetRugbyMatchPitchDimensions()
+	// if this is a kick at goal or a drop goal don't move
 	if ((lastState[0] == 0) && (state[0] == 2)) ||
 		((lastState[0] == 5) && (state[0] == 3)) {
-
+		return state[2]
 	}
 	// if this is a kick in the field of play
 	if (lastState[0] == 5) && (state[0] != 3) && (state[0] != 9) {
@@ -351,7 +352,7 @@ func (r *RugbyMatchIteration) getLongitudinalKickChange(
 	if (lastState[0] == 5) && (state[0] == 9) {
 
 	}
-	return 0.0
+	return state[2]
 }
 
 func (r *RugbyMatchIteration) getLateralKickChange(
@@ -359,10 +360,11 @@ func (r *RugbyMatchIteration) getLateralKickChange(
 	state []float64,
 	otherParams *simulator.OtherParams,
 ) float64 {
-	// if this is a kick at goal or a drop goal
+	// _, maxLat := GetRugbyMatchPitchDimensions()
+	// if this is a kick at goal or a drop goal don't move
 	if ((lastState[0] == 0) && (state[0] == 2)) ||
 		((lastState[0] == 5) && (state[0] == 3)) {
-
+		return state[3]
 	}
 	// if this is a kick in the field of play
 	if (lastState[0] == 5) && (state[0] != 3) && (state[0] != 9) {
@@ -372,7 +374,43 @@ func (r *RugbyMatchIteration) getLateralKickChange(
 	if (lastState[0] == 5) && (state[0] == 9) {
 
 	}
-	return 0.0
+	return state[3]
+}
+
+func (r *RugbyMatchIteration) getKickAtGoalSuccess(state []float64) bool {
+	success := true
+	if success {
+
+	} else {
+
+	}
+	return success
+}
+
+func (r *RugbyMatchIteration) updateScoreAndBallLocation(state []float64) {
+	maxLon, maxLat := GetRugbyMatchPitchDimensions()
+	// update either home team or away team scores with this index
+	scorerIndex := int(5*state[1] + 4*(1-state[1]))
+	line22m := maxLon * (0.78*state[1] + 0.22*(1-state[1]))
+	midPitch := 0.5 * maxLat
+	// update home team score
+	if (state[0] == 2) || (state[0] == 3) {
+		if r.getKickAtGoalSuccess(state) {
+			state[scorerIndex] += 3.0
+		} else {
+			// if unsuccessful with a penalty or drop goal, restart with dropout
+			state[2] = line22m
+			state[3] = midPitch
+		}
+	} else if state[0] == 4 {
+		state[scorerIndex] += 5.0
+		// always by default move the ball back to 22m line after a try is
+		// scored, ready to kick at goal
+		state[2] = line22m
+		if r.getKickAtGoalSuccess(state) {
+			state[scorerIndex] += 2.0
+		}
+	}
 }
 
 func (r *RugbyMatchIteration) Iterate(
@@ -417,20 +455,44 @@ func (r *RugbyMatchIteration) Iterate(
 			StateWidth: stateHistories[partitionIndex].StateWidth,
 		}
 	}
+	// if at kickoff, reset the ball location to be central and continue
+	if state[0] == 12 {
+		maxLon, maxLat := GetRugbyMatchPitchDimensions()
+		state[2] = 0.5 * maxLon
+		state[3] = 0.5 * maxLat
+		return &simulator.State{
+			Values: mat.NewVecDense(
+				stateHistories[partitionIndex].StateWidth,
+				state,
+			),
+			StateWidth: stateHistories[partitionIndex].StateWidth,
+		}
+	}
 	// randomly select new attacking and defending player indices
 	r.currentAttacker = int(r.categoricalDist.Rand())
 	r.currentDefender = int(r.categoricalDist.Rand())
+	// handle scoring if there was a score event and then continue
+	if (state[0] == 2) || (state[0] == 3) || (state[0] == 4) {
+		r.updateScoreAndBallLocation(state)
+		return &simulator.State{
+			Values: mat.NewVecDense(
+				stateHistories[partitionIndex].StateWidth,
+				state,
+			),
+			StateWidth: stateHistories[partitionIndex].StateWidth,
+		}
+	}
 	// find out if there is a change in possession
 	state[1] = r.getPossessionChange(state, otherParams, timestepsHistory)
 	// if the next phase is a run phase and we are entering this for the first time
 	// then decide on what spatial movements the ball location makes as a result
-	if (lastState[0] != 6) && (state[0] == 6) {
+	if state[0] == 6 {
 		state[2] = r.getLongitudinalRunChange(state, otherParams)
 		state[3] = r.getLateralRunChange(state, otherParams)
 	}
 	// similarly, if the next phase is a kick phase and we are entering this for
 	// the first time then decide on what spatial movements the ball location makes
-	if (lastState[0] != 5) && (state[0] == 5) {
+	if state[0] == 5 {
 		state[2] = r.getLongitudinalKickChange(lastState, state, otherParams)
 		state[3] = r.getLateralKickChange(lastState, state, otherParams)
 	}
