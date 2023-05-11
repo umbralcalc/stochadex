@@ -316,10 +316,8 @@ func (r *RugbyMatchIteration) getLateralRunChange(
 	state []float64,
 	otherParams *simulator.OtherParams,
 ) float64 {
-	index := r.currentAttacker + int(15*state[1])
 	r.normalDist.Mu = 0.0
-	r.normalDist.Sigma =
-		otherParams.FloatParams["player_lateral_run_scales"][index]
+	r.normalDist.Sigma = otherParams.FloatParams["lateral_run_scale"][0]
 	newLatState := state[3] + r.normalDist.Rand()
 	// if the newLatState would end up moving out of bounds, just restrict
 	// this movement so that it remains just within the field of play
@@ -338,7 +336,7 @@ func (r *RugbyMatchIteration) getLongitudinalKickChange(
 	state []float64,
 	otherParams *simulator.OtherParams,
 ) float64 {
-	// maxLon, _ := GetRugbyMatchPitchDimensions()
+	maxLon, _ := GetRugbyMatchPitchDimensions()
 	// if this is a kick at goal or a drop goal don't move
 	if ((lastState[0] == 0) && (state[0] == 2)) ||
 		((lastState[0] == 5) && (state[0] == 3)) {
@@ -360,7 +358,7 @@ func (r *RugbyMatchIteration) getLateralKickChange(
 	state []float64,
 	otherParams *simulator.OtherParams,
 ) float64 {
-	// _, maxLat := GetRugbyMatchPitchDimensions()
+	_, maxLat := GetRugbyMatchPitchDimensions()
 	// if this is a kick at goal or a drop goal don't move
 	if ((lastState[0] == 0) && (state[0] == 2)) ||
 		((lastState[0] == 5) && (state[0] == 3)) {
@@ -368,11 +366,15 @@ func (r *RugbyMatchIteration) getLateralKickChange(
 	}
 	// if this is a kick in the field of play
 	if (lastState[0] == 5) && (state[0] != 3) && (state[0] != 9) {
-
+		return maxLat * r.unitUniformDist.Rand()
 	}
 	// if this is a kick to touch
 	if (lastState[0] == 5) && (state[0] == 9) {
-
+		if r.unitUniformDist.Rand() > 0.5 {
+			return maxLat
+		} else {
+			return 0.0
+		}
 	}
 	return state[3]
 }
@@ -413,6 +415,16 @@ func (r *RugbyMatchIteration) updateScoreAndBallLocation(state []float64) {
 	}
 }
 
+func (r *RugbyMatchIteration) possessionChangeCanOccur(state []float64) bool {
+	cantOccur := []float64{0, 1, 2, 3, 4, 7, 12}
+	for _, value := range cantOccur {
+		if value == state[0] {
+			return false
+		}
+	}
+	return true
+}
+
 func (r *RugbyMatchIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -421,6 +433,7 @@ func (r *RugbyMatchIteration) Iterate(
 ) *simulator.State {
 	state := stateHistories[partitionIndex].Values.RawRowView(0)
 	lastState := state
+	stateWidth := stateHistories[partitionIndex].StateWidth
 	matchState := fmt.Sprintf("%d", int(state[0]))
 	transitions := otherParams.IntParams["transitions_from_"+matchState]
 	transitionProbs := otherParams.FloatParams["transition_probs_from_"+matchState]
@@ -448,11 +461,8 @@ func (r *RugbyMatchIteration) Iterate(
 	// if the state hasn't changed then continue without doing anything else
 	if lastState[0] == state[0] {
 		return &simulator.State{
-			Values: mat.NewVecDense(
-				stateHistories[partitionIndex].StateWidth,
-				state,
-			),
-			StateWidth: stateHistories[partitionIndex].StateWidth,
+			Values:     mat.NewVecDense(stateWidth, state),
+			StateWidth: stateWidth,
 		}
 	}
 	// if at kickoff, reset the ball location to be central and continue
@@ -461,11 +471,16 @@ func (r *RugbyMatchIteration) Iterate(
 		state[2] = 0.5 * maxLon
 		state[3] = 0.5 * maxLat
 		return &simulator.State{
-			Values: mat.NewVecDense(
-				stateHistories[partitionIndex].StateWidth,
-				state,
-			),
-			StateWidth: stateHistories[partitionIndex].StateWidth,
+			Values:     mat.NewVecDense(stateWidth, state),
+			StateWidth: stateWidth,
+		}
+	}
+	// if a knock-on has led to a scrum, change possession and continue
+	if (lastState[0] == 7) && (lastState[0] == 8) {
+		state[1] = (1 - state[1])
+		return &simulator.State{
+			Values:     mat.NewVecDense(stateWidth, state),
+			StateWidth: stateWidth,
 		}
 	}
 	// randomly select new attacking and defending player indices
@@ -475,15 +490,14 @@ func (r *RugbyMatchIteration) Iterate(
 	if (state[0] == 2) || (state[0] == 3) || (state[0] == 4) {
 		r.updateScoreAndBallLocation(state)
 		return &simulator.State{
-			Values: mat.NewVecDense(
-				stateHistories[partitionIndex].StateWidth,
-				state,
-			),
-			StateWidth: stateHistories[partitionIndex].StateWidth,
+			Values:     mat.NewVecDense(stateWidth, state),
+			StateWidth: stateWidth,
 		}
 	}
-	// find out if there is a change in possession
-	state[1] = r.getPossessionChange(state, otherParams, timestepsHistory)
+	// find out if there is a change in possession if possible
+	if r.possessionChangeCanOccur(state) {
+		state[1] = r.getPossessionChange(state, otherParams, timestepsHistory)
+	}
 	// if the next phase is a run phase and we are entering this for the first time
 	// then decide on what spatial movements the ball location makes as a result
 	if state[0] == 6 {
@@ -497,11 +511,8 @@ func (r *RugbyMatchIteration) Iterate(
 		state[3] = r.getLateralKickChange(lastState, state, otherParams)
 	}
 	return &simulator.State{
-		Values: mat.NewVecDense(
-			stateHistories[partitionIndex].StateWidth,
-			state,
-		),
-		StateWidth: stateHistories[partitionIndex].StateWidth,
+		Values:     mat.NewVecDense(stateWidth, state),
+		StateWidth: stateWidth,
 	}
 }
 
