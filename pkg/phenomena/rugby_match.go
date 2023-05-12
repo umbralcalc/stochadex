@@ -255,6 +255,7 @@ func getRunPossessionFactor(
 type RugbyMatchIteration struct {
 	currentAttacker int
 	currentDefender int
+	playDirection   float64
 	normalDist      *distuv.Normal
 	unitUniformDist *distuv.Uniform
 	exponentialDist *distuv.Exponential
@@ -296,10 +297,10 @@ func (r *RugbyMatchIteration) getLongitudinalRunChange(
 	defenderIndex := r.currentDefender + int(15*(1-state[1]))
 	r.exponentialDist.Rate =
 		otherParams.FloatParams["player_defensive_run_scales"][defenderIndex]
-	newLonState -= r.exponentialDist.Rand()
+	newLonState -= r.playDirection * r.exponentialDist.Rand()
 	r.exponentialDist.Rate =
 		otherParams.FloatParams["player_attacking_run_scales"][attackerIndex]
-	newLonState += r.exponentialDist.Rand()
+	newLonState += r.playDirection * r.exponentialDist.Rand()
 	// if the newLonState would end up moving over a tryline, just restrict
 	// this movement so that it remains just within the field of play
 	maxLon, _ := GetRugbyMatchPitchDimensions()
@@ -344,7 +345,29 @@ func (r *RugbyMatchIteration) getLongitudinalKickChange(
 	}
 	// if this is a kick in the field of play
 	if (lastState[0] == 5) && (state[0] != 3) && (state[0] != 9) {
-
+		newLonState := state[2]
+		// choose a kicker at random
+		possibleKickers := []float64{9, 10, 11, 14, 15}
+		r.currentAttacker = int(possibleKickers[int(rand.Intn(5))])
+		var kickerIndex int
+		if (r.currentAttacker == 9) || (r.currentAttacker == 10) {
+			kickerIndex = (r.currentAttacker - 9) + 2*int(state[1])
+			r.exponentialDist.Rate =
+				otherParams.FloatParams["halves_kick_scales"][kickerIndex]
+		} else {
+			if r.currentAttacker == 11 {
+				kickerIndex = 3 * int(state[1])
+			} else {
+				kickerIndex = (r.currentAttacker - 13) + 3*int(state[1])
+			}
+			r.exponentialDist.Rate =
+				otherParams.FloatParams["back_three_kick_scales"][kickerIndex]
+		}
+		newLonState += r.playDirection * r.exponentialDist.Rand()
+		if newLonState >= maxLon {
+			newLonState = maxLon - 0.5
+		}
+		return newLonState
 	}
 	// if this is a kick to touch
 	if (lastState[0] == 5) && (state[0] == 9) {
@@ -379,17 +402,32 @@ func (r *RugbyMatchIteration) getLateralKickChange(
 	return state[3]
 }
 
-func (r *RugbyMatchIteration) getKickAtGoalSuccess(state []float64) bool {
-	success := true
+func (r *RugbyMatchIteration) getKickAtGoalSuccess(
+	state []float64,
+	otherParams *simulator.OtherParams,
+) bool {
+	maxLon, maxLat := GetRugbyMatchPitchDimensions()
+	success := r.unitUniformDist.Rand() <
+		otherParams.FloatParams["goal_probabilities"][int(state[1])]
+	midPitch := 0.5 * maxLat
 	if success {
-
+		// move ball back to halfway line for kickoff
+		line50m := 0.5 * maxLon
+		state[2] = line50m
+		state[3] = midPitch
 	} else {
-
+		// move ball to 22 for a dropout (another kind of kickoff event)
+		line22m := maxLon * (0.78*state[1] + 0.22*(1-state[1]))
+		state[2] = line22m
+		state[3] = midPitch
 	}
 	return success
 }
 
-func (r *RugbyMatchIteration) updateScoreAndBallLocation(state []float64) {
+func (r *RugbyMatchIteration) updateScoreAndBallLocation(
+	state []float64,
+	otherParams *simulator.OtherParams,
+) {
 	maxLon, maxLat := GetRugbyMatchPitchDimensions()
 	// update either home team or away team scores with this index
 	scorerIndex := int(5*state[1] + 4*(1-state[1]))
@@ -397,7 +435,7 @@ func (r *RugbyMatchIteration) updateScoreAndBallLocation(state []float64) {
 	midPitch := 0.5 * maxLat
 	// update home team score
 	if (state[0] == 2) || (state[0] == 3) {
-		if r.getKickAtGoalSuccess(state) {
+		if r.getKickAtGoalSuccess(state, otherParams) {
 			state[scorerIndex] += 3.0
 		} else {
 			// if unsuccessful with a penalty or drop goal, restart with dropout
@@ -409,7 +447,7 @@ func (r *RugbyMatchIteration) updateScoreAndBallLocation(state []float64) {
 		// always by default move the ball back to 22m line after a try is
 		// scored, ready to kick at goal
 		state[2] = line22m
-		if r.getKickAtGoalSuccess(state) {
+		if r.getKickAtGoalSuccess(state, otherParams) {
 			state[scorerIndex] += 2.0
 		}
 	}
@@ -432,6 +470,7 @@ func (r *RugbyMatchIteration) Iterate(
 	timestepsHistory *simulator.TimestepsHistory,
 ) *simulator.State {
 	state := stateHistories[partitionIndex].Values.RawRowView(0)
+	r.playDirection = 1.0*state[1] - 1.0*(1-state[1])
 	lastState := state
 	stateWidth := stateHistories[partitionIndex].StateWidth
 	matchState := fmt.Sprintf("%d", int(state[0]))
@@ -451,10 +490,9 @@ func (r *RugbyMatchIteration) Iterate(
 	event := r.unitUniformDist.Rand()
 	for i, prob := range cumulativeProbs {
 		if event*normalisation < prob {
-			if i == 0 {
+			if (i == 0) || (event*normalisation >= cumulativeProbs[i-1]) {
 				state[0] = float64(transitions[i])
-			} else if event*normalisation >= cumulativeProbs[i-1] {
-				state[0] = float64(transitions[i])
+				break
 			}
 		}
 	}
@@ -476,7 +514,7 @@ func (r *RugbyMatchIteration) Iterate(
 		}
 	}
 	// if a knock-on has led to a scrum, change possession and continue
-	if (lastState[0] == 7) && (lastState[0] == 8) {
+	if (lastState[0] == 7) && (state[0] == 8) {
 		state[1] = (1 - state[1])
 		return &simulator.State{
 			Values:     mat.NewVecDense(stateWidth, state),
@@ -488,7 +526,7 @@ func (r *RugbyMatchIteration) Iterate(
 	r.currentDefender = int(r.categoricalDist.Rand())
 	// handle scoring if there was a score event and then continue
 	if (state[0] == 2) || (state[0] == 3) || (state[0] == 4) {
-		r.updateScoreAndBallLocation(state)
+		r.updateScoreAndBallLocation(state, otherParams)
 		return &simulator.State{
 			Values:     mat.NewVecDense(stateWidth, state),
 			StateWidth: stateWidth,
@@ -523,6 +561,7 @@ func NewRugbyMatchIteration(seed uint64) *RugbyMatchIteration {
 		weights = append(weights, 1.0)
 	}
 	catDist := distuv.NewCategorical(weights, rand.NewSource(seed))
+	rand.Seed(seed)
 	return &RugbyMatchIteration{
 		normalDist: &distuv.Normal{
 			Mu:    0.0,

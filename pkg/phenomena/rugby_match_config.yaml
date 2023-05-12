@@ -32,6 +32,8 @@ other_params:
     back_three_kick_regains: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     # Lateral run scale is Std of runs 
     lateral_run_scale: [1.0]
+    # Probabilities of success for kicking at goal [Home, Away]
+    goal_probabilities: [0.75, 0.75]
     # Match event rates
     background_event_rates: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     max_possession_change_rates: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
@@ -91,6 +93,6 @@ other_params:
 init_state_values:
 - [12, 0, 50.0, 35.0, 0, 0]
 seeds: [563]
-state_widths: [5]
+state_widths: [6]
 state_history_depths: [2]
 timesteps_history_depth: 2

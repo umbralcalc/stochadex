@@ -1,6 +1,7 @@
 package phenomena
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -34,6 +35,7 @@ func TestRugbyMatch(t *testing.T) {
 			)
 			coordinator := simulator.NewPartitionCoordinator(config)
 			coordinator.Run()
+			fmt.Println("hello")
 		},
 	)
 }
