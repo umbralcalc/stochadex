@@ -1,7 +1,6 @@
 package phenomena
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -19,7 +18,7 @@ func TestRugbyMatch(t *testing.T) {
 					NewRugbyMatchIteration(settings.Seeds[partitionIndex]),
 				)
 			}
-			store := make([][][]float64, len(settings.StateWidths))
+			store := make([][][]float64, 1)
 			implementations := &simulator.LoadImplementationsConfig{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
@@ -35,7 +34,6 @@ func TestRugbyMatch(t *testing.T) {
 			)
 			coordinator := simulator.NewPartitionCoordinator(config)
 			coordinator.Run()
-			fmt.Println("hello")
 		},
 	)
 }
