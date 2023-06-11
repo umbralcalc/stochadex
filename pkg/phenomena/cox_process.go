@@ -3,7 +3,6 @@ package phenomena
 import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
-	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -18,7 +17,7 @@ func (c *CoxProcessIteration) Iterate(
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.TimestepsHistory,
-) *simulator.State {
+) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	rateHistory := stateHistories[c.rateProcessPartitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
@@ -30,13 +29,7 @@ func (c *CoxProcessIteration) Iterate(
 			values[i] = stateHistory.Values.At(0, i)
 		}
 	}
-	return &simulator.State{
-		Values: mat.NewVecDense(
-			stateHistory.StateWidth,
-			values,
-		),
-		StateWidth: stateHistory.StateWidth,
-	}
+	return values
 }
 
 // NewCoxProcessIteration creates a new CoxProcessIteration given a

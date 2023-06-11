@@ -3,7 +3,6 @@ package phenomena
 import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
-	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -30,7 +29,7 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.TimestepsHistory,
-) *simulator.State {
+) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
@@ -46,13 +45,7 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 			)
 		}
 	}
-	return &simulator.State{
-		Values: mat.NewVecDense(
-			stateHistory.StateWidth,
-			values,
-		),
-		StateWidth: stateHistory.StateWidth,
-	}
+	return values
 }
 
 // NewHawkesProcessIntensityIteration creates a new
@@ -79,7 +72,7 @@ func (h *HawkesProcessIteration) Iterate(
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.TimestepsHistory,
-) *simulator.State {
+) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	rateHistory := stateHistories[h.intensityPartitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
@@ -91,13 +84,7 @@ func (h *HawkesProcessIteration) Iterate(
 			values[i] = stateHistory.Values.At(0, i)
 		}
 	}
-	return &simulator.State{
-		Values: mat.NewVecDense(
-			stateHistory.StateWidth,
-			values,
-		),
-		StateWidth: stateHistory.StateWidth,
-	}
+	return values
 }
 
 // NewHawkesProcessIteration creates a new HawkesProcessIteration given a

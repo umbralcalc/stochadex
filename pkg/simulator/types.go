@@ -48,13 +48,6 @@ type StochadexConfig struct {
 	Steps      *StepsConfig
 }
 
-// State defines state information in a given partition at a specific
-// point in time.
-type State struct {
-	Values     *mat.VecDense
-	StateWidth int
-}
-
 // StateHistory represents the information contained within a windowed
 // history of State structs.
 type StateHistory struct {

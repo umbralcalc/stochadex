@@ -2,8 +2,6 @@ package simulator
 
 import (
 	"testing"
-
-	"gonum.org/v1/gonum/mat"
 )
 
 // dummyProcessIteration defines an iteration which is only for
@@ -16,19 +14,13 @@ func (d *dummyProcessIteration) Iterate(
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
-) *State {
+) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := 0; i < stateHistory.StateWidth; i++ {
 		values[i] = float64(i)
 	}
-	return &State{
-		Values: mat.NewVecDense(
-			stateHistory.StateWidth,
-			values,
-		),
-		StateWidth: stateHistory.StateWidth,
-	}
+	return values
 }
 
 func TestNewStochadexConfig(t *testing.T) {

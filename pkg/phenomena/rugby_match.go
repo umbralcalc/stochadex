@@ -6,7 +6,6 @@ import (
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
-	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -472,11 +471,10 @@ func (r *RugbyMatchIteration) Iterate(
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.TimestepsHistory,
-) *simulator.State {
+) []float64 {
 	state := make([]float64, 0)
 	state = append(state, stateHistories[partitionIndex].Values.RawRowView(0)...)
 	r.playDirection = 1.0*state[1] - 1.0*(1-state[1])
-	stateWidth := stateHistories[partitionIndex].StateWidth
 	matchState := fmt.Sprintf("%d", int(state[0]))
 	transitions := otherParams.IntParams["transitions_from_"+matchState]
 	// if we are currently not planned to do anything, find the next transition
@@ -506,10 +504,7 @@ func (r *RugbyMatchIteration) Iterate(
 	event := r.unitUniformDist.Rand()
 	if event < probDoNothing {
 		// if the state hasn't changed then continue without doing anything else
-		return &simulator.State{
-			Values:     mat.NewVecDense(stateWidth, state),
-			StateWidth: stateWidth,
-		}
+		return state
 	} else {
 		// else change the state
 		r.lastState = int64(state[0])
@@ -520,18 +515,12 @@ func (r *RugbyMatchIteration) Iterate(
 		maxLon, maxLat := GetRugbyMatchPitchDimensions()
 		state[2] = 0.5 * maxLon
 		state[3] = 0.5 * maxLat
-		return &simulator.State{
-			Values:     mat.NewVecDense(stateWidth, state),
-			StateWidth: stateWidth,
-		}
+		return state
 	}
 	// if a knock-on has led to a scrum, change possession and continue
 	if (r.lastState == 7) && (state[0] == 8) {
 		state[1] = (1 - state[1])
-		return &simulator.State{
-			Values:     mat.NewVecDense(stateWidth, state),
-			StateWidth: stateWidth,
-		}
+		return state
 	}
 	// randomly select new attacking and defending player indices
 	r.currentAttacker = int(r.categoricalDist.Rand())
@@ -539,10 +528,7 @@ func (r *RugbyMatchIteration) Iterate(
 	// handle scoring if there was a score event and then continue
 	if (state[0] == 2) || (state[0] == 3) || (state[0] == 4) {
 		state = r.updateScoreAndBallLocation(state, otherParams)
-		return &simulator.State{
-			Values:     mat.NewVecDense(stateWidth, state),
-			StateWidth: stateWidth,
-		}
+		return state
 	}
 	// find out if there is a change in possession if possible
 	if r.possessionChangeCanOccur(state) {
@@ -560,10 +546,7 @@ func (r *RugbyMatchIteration) Iterate(
 		state = r.getLongitudinalKickChange(state, otherParams)
 		state = r.getLateralKickChange(state, otherParams)
 	}
-	return &simulator.State{
-		Values:     mat.NewVecDense(stateWidth, state),
-		StateWidth: stateWidth,
-	}
+	return state
 }
 
 // NewRugbyMatchIteration creates a new RugbyMatchIteration given a seed.

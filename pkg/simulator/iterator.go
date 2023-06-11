@@ -11,7 +11,7 @@ type Iteration interface {
 		partitionIndex int,
 		stateHistories []*StateHistory,
 		timestepsHistory *TimestepsHistory,
-	) *State
+	) []float64
 }
 
 // StateIterator handles iterations of a given state partition on a
@@ -23,7 +23,7 @@ type StateIterator struct {
 	timesteps          int
 	outputCondition    OutputCondition
 	outputFunction     OutputFunction
-	pendingStateUpdate *State
+	pendingStateUpdate []float64
 }
 
 // Iterate takes the state and timesteps history and outputs an updated
@@ -31,7 +31,7 @@ type StateIterator struct {
 func (s *StateIterator) Iterate(
 	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
-) *State {
+) []float64 {
 	newState := s.Iteration.Iterate(
 		s.Params.Other,
 		s.partitionIndex,
@@ -71,5 +71,5 @@ func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage)
 		partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
 	}
 	// update the latest state in the history
-	partition.Values.SetRow(0, s.pendingStateUpdate.Values.RawVector().Data)
+	partition.Values.SetRow(0, s.pendingStateUpdate)
 }

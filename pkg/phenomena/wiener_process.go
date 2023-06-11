@@ -5,7 +5,6 @@ import (
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
-	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -20,7 +19,7 @@ func (w *WienerProcessIteration) Iterate(
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.TimestepsHistory,
-) *simulator.State {
+) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
@@ -28,13 +27,7 @@ func (w *WienerProcessIteration) Iterate(
 			math.Sqrt(otherParams.FloatParams["variances"][i]*
 				timestepsHistory.NextIncrement)*w.unitNormalDist.Rand()
 	}
-	return &simulator.State{
-		Values: mat.NewVecDense(
-			stateHistory.StateWidth,
-			values,
-		),
-		StateWidth: stateHistory.StateWidth,
-	}
+	return values
 }
 
 // NewWienerProcessIteration creates a new WienerProcessIteration given a seed.

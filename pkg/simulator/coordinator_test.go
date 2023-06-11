@@ -2,8 +2,6 @@ package simulator
 
 import (
 	"testing"
-
-	"gonum.org/v1/gonum/mat"
 )
 
 // doublingProcessIteration defines an iteration which is only for
@@ -16,19 +14,13 @@ func (d *doublingProcessIteration) Iterate(
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
-) *State {
+) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := 0; i < stateHistory.StateWidth; i++ {
 		values[i] = stateHistory.Values.At(0, i) * 2.0
 	}
-	return &State{
-		Values: mat.NewVecDense(
-			stateHistory.StateWidth,
-			values,
-		),
-		StateWidth: stateHistory.StateWidth,
-	}
+	return values
 }
 
 // paramMultProcessIteration defines an iteration which is only for
@@ -41,23 +33,17 @@ func (p *paramMultProcessIteration) Iterate(
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *TimestepsHistory,
-) *State {
+) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := 0; i < stateHistory.StateWidth; i++ {
 		values[i] = stateHistory.Values.At(0, i) *
 			otherParams.FloatParams["multipliers"][i]
 	}
-	return &State{
-		Values: mat.NewVecDense(
-			stateHistory.StateWidth,
-			values,
-		),
-		StateWidth: stateHistory.StateWidth,
-	}
+	return values
 }
 
-func iteratePartition(c *PartitionCoordinator, partitionIndex int) *State {
+func iteratePartition(c *PartitionCoordinator, partitionIndex int) []float64 {
 	// iterate this partition by one step within the same thread
 	return c.Iterators[partitionIndex].Iterate(
 		c.StateHistories,
@@ -77,7 +63,7 @@ func iterateHistory(c *PartitionCoordinator) {
 			partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
 		}
 		// update the latest state in the history
-		partition.Values.SetRow(0, state.Values.RawVector().Data)
+		partition.Values.SetRow(0, state)
 	}
 
 	// iterate over the history of timesteps and shift them back one

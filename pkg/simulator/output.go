@@ -4,13 +4,13 @@ package simulator
 // which can be used to outputs data from the stochastic process when the provided
 // OutputCondition is met.
 type OutputFunction interface {
-	Output(partitionIndex int, state *State, timesteps int)
+	Output(partitionIndex int, state []float64, timesteps int)
 }
 
 // NilOutputFunction outputs nothing from the stochastic process.
 type NilOutputFunction struct{}
 
-func (f *NilOutputFunction) Output(partitionIndex int, state *State, timesteps int) {
+func (f *NilOutputFunction) Output(partitionIndex int, state []float64, timesteps int) {
 }
 
 // VariableStoreOutputFunction stores the data from the stochastic process in a provided
@@ -21,19 +21,16 @@ type VariableStoreOutputFunction struct {
 
 func (f *VariableStoreOutputFunction) Output(
 	partitionIndex int,
-	state *State,
+	state []float64,
 	timesteps int,
 ) {
-	f.Store[partitionIndex] = append(
-		f.Store[partitionIndex],
-		state.Values.RawVector().Data,
-	)
+	f.Store[partitionIndex] = append(f.Store[partitionIndex], state)
 }
 
 // OutputCondition is the interface that must be implemented to define when the
 // stochastic process calls the OutputFunction.
 type OutputCondition interface {
-	IsOutputStep(partitionIndex int, state *State, timesteps int) bool
+	IsOutputStep(partitionIndex int, state []float64, timesteps int) bool
 }
 
 // EveryStepOutputCondition calls the OutputFunction at every step.
@@ -41,7 +38,7 @@ type EveryStepOutputCondition struct{}
 
 func (c *EveryStepOutputCondition) IsOutputStep(
 	partitionIndex int,
-	state *State,
+	state []float64,
 	timesteps int,
 ) bool {
 	return true
@@ -56,7 +53,7 @@ type EveryNStepsOutputCondition struct {
 
 func (c *EveryNStepsOutputCondition) IsOutputStep(
 	partitionIndex int,
-	state *State,
+	state []float64,
 	timesteps int,
 ) bool {
 	c.ticker += 1
