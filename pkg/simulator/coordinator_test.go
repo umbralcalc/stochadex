@@ -13,7 +13,7 @@ func (d *doublingProcessIteration) Iterate(
 	otherParams *OtherParams,
 	partitionIndex int,
 	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
@@ -32,7 +32,7 @@ func (p *paramMultProcessIteration) Iterate(
 	otherParams *OtherParams,
 	partitionIndex int,
 	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
@@ -85,7 +85,7 @@ func run(c *PartitionCoordinator) {
 		c.overallTimesteps,
 	) {
 		c.overallTimesteps += 1
-		c.TimestepsHistory = c.timestepFunction.NextIncrement(c.TimestepsHistory)
+		c.TimestepsHistory = c.timestepFunction.SetNextIncrement(c.TimestepsHistory)
 		iterateHistory(c)
 	}
 }

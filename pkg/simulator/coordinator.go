@@ -12,7 +12,7 @@ import (
 type PartitionCoordinator struct {
 	Iterators            []*StateIterator
 	StateHistories       []*StateHistory
-	TimestepsHistory     *TimestepsHistory
+	TimestepsHistory     *CumulativeTimestepsHistory
 	newWorkChannels      [](chan *IteratorInputMessage)
 	overallTimesteps     int
 	numberOfPartitions   int
@@ -79,7 +79,7 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// update the overall step count and get the next time increment
 	c.overallTimesteps += 1
-	c.TimestepsHistory = c.timestepFunction.NextIncrement(c.TimestepsHistory)
+	c.TimestepsHistory = c.timestepFunction.SetNextIncrement(c.TimestepsHistory)
 
 	// begin by requesting iterations for the next step and waiting
 	c.RequestMoreIterations(wg)
@@ -112,7 +112,7 @@ func (c *PartitionCoordinator) Run() {
 // NewPartitionCoordinator creates a new PartitionCoordinator given a
 // StochadexConfig.
 func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
-	timestepsHistory := &TimestepsHistory{
+	timestepsHistory := &CumulativeTimestepsHistory{
 		NextIncrement:     0.0,
 		Values:            mat.NewVecDense(config.Steps.TimestepsHistoryDepth, nil),
 		StateHistoryDepth: config.Steps.TimestepsHistoryDepth,

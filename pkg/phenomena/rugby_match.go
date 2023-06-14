@@ -44,7 +44,7 @@ func GetRugbyMatchStateMap() map[int]string {
 func getPlayerFatigue(
 	playerIndex int,
 	otherParams *simulator.OtherParams,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	return math.Exp(
 		-otherParams.FloatParams["player_fatigue_rates"][playerIndex] *
@@ -58,7 +58,7 @@ func getPlayerFatigue(
 func getScrumPossessionFactor(
 	state []float64,
 	otherParams *simulator.OtherParams,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	playersFactor := 0.0
 	norm := 0.0
@@ -91,7 +91,7 @@ func getScrumPossessionFactor(
 func getLineoutPossessionFactor(
 	state []float64,
 	otherParams *simulator.OtherParams,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	playersFactor := 0.0
 	norm := 0.0
@@ -134,7 +134,7 @@ func getLineoutPossessionFactor(
 func getMaulPossessionFactor(
 	state []float64,
 	otherParams *simulator.OtherParams,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	playersFactor := 0.0
 	norm := 0.0
@@ -177,7 +177,7 @@ func getMaulPossessionFactor(
 func getRuckPossessionFactor(
 	state []float64,
 	otherParams *simulator.OtherParams,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	playersFactor := 0.0
 	norm := 0.0
@@ -230,7 +230,7 @@ func getRuckPossessionFactor(
 func getRunPossessionFactor(
 	state []float64,
 	otherParams *simulator.OtherParams,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	playersFactor := 0.0
 	norm := 0.0
@@ -266,7 +266,7 @@ type RugbyMatchIteration struct {
 func (r *RugbyMatchIteration) getPossessionChange(
 	state []float64,
 	otherParams *simulator.OtherParams,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	rate := otherParams.FloatParams["max_possession_change_rates"][int(state[0])]
 	playersFactor := 1.0
@@ -470,7 +470,7 @@ func (r *RugbyMatchIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	state := make([]float64, 0)
 	state = append(state, stateHistories[partitionIndex].Values.RawRowView(0)...)

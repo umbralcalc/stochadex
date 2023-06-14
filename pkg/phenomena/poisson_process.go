@@ -16,7 +16,7 @@ func (p *PoissonProcessIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)

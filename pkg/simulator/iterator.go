@@ -10,7 +10,7 @@ type Iteration interface {
 		params *OtherParams,
 		partitionIndex int,
 		stateHistories []*StateHistory,
-		timestepsHistory *TimestepsHistory,
+		timestepsHistory *CumulativeTimestepsHistory,
 	) []float64
 }
 
@@ -30,7 +30,7 @@ type StateIterator struct {
 // State struct using an implemented Iteration interface.
 func (s *StateIterator) Iterate(
 	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	newState := s.Iteration.Iterate(
 		s.Params.Other,

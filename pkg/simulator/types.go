@@ -58,9 +58,9 @@ type StateHistory struct {
 	StateHistoryDepth int
 }
 
-// TimestepsHistory is a windowed history of timestep values which includes
-// the next value to increment time by.
-type TimestepsHistory struct {
+// CumulativeTimestepsHistory is a windowed history of cumulative timestep values
+// which includes the next value to increment time by.
+type CumulativeTimestepsHistory struct {
 	NextIncrement     float64
 	Values            *mat.VecDense
 	StateHistoryDepth int
@@ -71,5 +71,5 @@ type TimestepsHistory struct {
 // the former is requesting the latter to perform a job.
 type IteratorInputMessage struct {
 	StateHistories   []*StateHistory
-	TimestepsHistory *TimestepsHistory
+	TimestepsHistory *CumulativeTimestepsHistory
 }

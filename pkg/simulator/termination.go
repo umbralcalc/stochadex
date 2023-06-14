@@ -5,7 +5,7 @@ package simulator
 type TerminationCondition interface {
 	Terminate(
 		stateHistories []*StateHistory,
-		timestepsHistory *TimestepsHistory,
+		timestepsHistory *CumulativeTimestepsHistory,
 		overallTimesteps int,
 	) bool
 }
@@ -18,7 +18,7 @@ type NumberOfStepsTerminationCondition struct {
 
 func (t *NumberOfStepsTerminationCondition) Terminate(
 	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
 	overallTimesteps int,
 ) bool {
 	if overallTimesteps >= t.MaxNumberOfSteps {
@@ -35,7 +35,7 @@ type TimeElapsedTerminationCondition struct {
 
 func (t *TimeElapsedTerminationCondition) Terminate(
 	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
 	overallTimesteps int,
 ) bool {
 	if timestepsHistory.Values.AtVec(0) >= t.MaxTimeElapsed {

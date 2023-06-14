@@ -13,7 +13,7 @@ func (d *dummyProcessIteration) Iterate(
 	otherParams *OtherParams,
 	partitionIndex int,
 	stateHistories []*StateHistory,
-	timestepsHistory *TimestepsHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)

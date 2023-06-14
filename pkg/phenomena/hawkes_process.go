@@ -28,7 +28,7 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
@@ -71,7 +71,7 @@ func (h *HawkesProcessIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.TimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	rateHistory := stateHistories[h.intensityPartitionIndex]
