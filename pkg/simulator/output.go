@@ -33,6 +33,17 @@ type OutputCondition interface {
 	IsOutputStep(partitionIndex int, state []float64, timesteps int) bool
 }
 
+// NilOutputCondition never outputs.
+type NilOutputCondition struct{}
+
+func (c *NilOutputCondition) IsOutputStep(
+	partitionIndex int,
+	state []float64,
+	timesteps int,
+) bool {
+	return false
+}
+
 // EveryStepOutputCondition calls the OutputFunction at every step.
 type EveryStepOutputCondition struct{}
 
