@@ -64,13 +64,14 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	}
 
 	// iterate over the history of timesteps and shift them back one
+	timestepsHistoryValuesCopy := *c.TimestepsHistory.Values
 	for i := 1; i < c.TimestepsHistory.StateHistoryDepth; i++ {
-		c.TimestepsHistory.Values.SetVec(i, c.TimestepsHistory.Values.AtVec(i-1))
+		c.TimestepsHistory.Values.SetVec(i, timestepsHistoryValuesCopy.AtVec(i-1))
 	}
 	// now update the history with the next time increment
 	c.TimestepsHistory.Values.SetVec(
 		0,
-		c.TimestepsHistory.Values.AtVec(0)+c.TimestepsHistory.NextIncrement,
+		timestepsHistoryValuesCopy.AtVec(0)+c.TimestepsHistory.NextIncrement,
 	)
 }
 

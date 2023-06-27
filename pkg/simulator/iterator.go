@@ -65,10 +65,12 @@ func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage)
 	inputMessage := <-inputChannel
 	// reference this partition
 	partition := inputMessage.StateHistories[s.partitionIndex]
+	// make a temporary copy of this partition's previous values
+	partitionValuesCopy := *inputMessage.StateHistories[s.partitionIndex].Values
 	// iterate over the history (matrix columns) and shift them
 	// back one timestep
 	for i := 1; i < partition.StateHistoryDepth; i++ {
-		partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
+		partition.Values.SetRow(i, partitionValuesCopy.RawRowView(i-1))
 	}
 	// update the latest state in the history
 	partition.Values.SetRow(0, s.pendingStateUpdate)
