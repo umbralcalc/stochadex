@@ -64,7 +64,8 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	}
 
 	// iterate over the history of timesteps and shift them back one
-	timestepsHistoryValuesCopy := *c.TimestepsHistory.Values
+	var timestepsHistoryValuesCopy mat.VecDense
+	timestepsHistoryValuesCopy.CloneFromVec(c.TimestepsHistory.Values)
 	for i := 1; i < c.TimestepsHistory.StateHistoryDepth; i++ {
 		c.TimestepsHistory.Values.SetVec(i, timestepsHistoryValuesCopy.AtVec(i-1))
 	}

@@ -1,5 +1,7 @@
 package simulator
 
+import "gonum.org/v1/gonum/mat"
+
 // Iteration is the interface that must be implemented for any stochastic
 // phenomenon within the stochadex. It reads in an OtherParams struct, a int
 // partitionIndex, the full current history of the process defined by a slice
@@ -66,7 +68,8 @@ func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage)
 	// reference this partition
 	partition := inputMessage.StateHistories[s.partitionIndex]
 	// make a temporary copy of this partition's previous values
-	partitionValuesCopy := *inputMessage.StateHistories[s.partitionIndex].Values
+	var partitionValuesCopy mat.Dense
+	partitionValuesCopy.CloneFrom(inputMessage.StateHistories[s.partitionIndex].Values)
 	// iterate over the history (matrix columns) and shift them
 	// back one timestep
 	for i := 1; i < partition.StateHistoryDepth; i++ {
