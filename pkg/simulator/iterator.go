@@ -40,9 +40,11 @@ func (s *StateIterator) Iterate(
 		stateHistories,
 		timestepsHistory,
 	)
+	// get the new time for output
+	time := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	// also apply the output function if this step requires it
-	if s.outputCondition.IsOutputStep(s.partitionIndex, newState, s.timesteps) {
-		s.outputFunction.Output(s.partitionIndex, newState, s.timesteps)
+	if s.outputCondition.IsOutputStep(s.partitionIndex, newState, time) {
+		s.outputFunction.Output(s.partitionIndex, newState, time)
 	}
 	return newState
 }
