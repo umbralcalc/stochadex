@@ -30,17 +30,14 @@ func TestHawkesProcess(t *testing.T) {
 				"hawkes_process_config.yaml",
 			)
 			iterations := make([]simulator.Iteration, 0)
-			iterations = append(
-				iterations,
-				NewHawkesProcessIteration(settings.Seeds[0], 1),
-			)
-			iterations = append(
-				iterations,
-				NewHawkesProcessIntensityIteration(
-					&exponentialExcitingKernel{},
-					0,
-				),
-			)
+			hawkesIteration := &HawkesProcessIteration{}
+			hawkesIteration.Configure(0, settings)
+			iterations = append(iterations, hawkesIteration)
+			intensityIteration := &HawkesProcessIntensityIteration{
+				excitingKernel: &exponentialExcitingKernel{},
+			}
+			intensityIteration.Configure(1, settings)
+			iterations = append(iterations, intensityIteration)
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.LoadImplementationsConfig{
 				Iterations:      iterations,

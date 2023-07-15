@@ -14,15 +14,13 @@ func TestCoxProcess(t *testing.T) {
 				"cox_process_config.yaml",
 			)
 			iterations := make([]simulator.Iteration, 0)
-			iterations = append(
-				iterations,
-				NewCoxProcessIteration(settings.Seeds[0], 1),
-			)
+			coxIteration := &CoxProcessIteration{}
+			coxIteration.Configure(0, settings)
+			iterations = append(iterations, coxIteration)
 			// this implements a Neyman-Scott process
-			iterations = append(
-				iterations,
-				NewPoissonProcessIteration(settings.Seeds[1]),
-			)
+			rateIteration := &PoissonProcessIteration{}
+			rateIteration.Configure(1, settings)
+			iterations = append(iterations, rateIteration)
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.LoadImplementationsConfig{
 				Iterations:      iterations,

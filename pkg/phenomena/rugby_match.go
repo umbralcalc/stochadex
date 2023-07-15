@@ -466,6 +466,36 @@ func (r *RugbyMatchIteration) possessionChangeCanOccur(state []float64) bool {
 	return true
 }
 
+func (r *RugbyMatchIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	seed := settings.Seeds[partitionIndex]
+	weights := make([]float64, 0)
+	for i := 0; i < 15; i++ {
+		weights = append(weights, 1.0)
+	}
+	catDist := distuv.NewCategorical(weights, rand.NewSource(seed))
+	rand.Seed(seed)
+	r.nextState = 12
+	r.lastState = 12
+	r.normalDist = &distuv.Normal{
+		Mu:    0.0,
+		Sigma: 1.0,
+		Src:   rand.NewSource(seed),
+	}
+	r.unitUniformDist = &distuv.Uniform{
+		Min: 0.0,
+		Max: 1.0,
+		Src: rand.NewSource(seed),
+	}
+	r.exponentialDist = &distuv.Exponential{
+		Rate: 1.0,
+		Src:  rand.NewSource(seed),
+	}
+	r.categoricalDist = &catDist
+}
+
 func (r *RugbyMatchIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -547,33 +577,4 @@ func (r *RugbyMatchIteration) Iterate(
 		state = r.getLateralKickChange(state, otherParams)
 	}
 	return state
-}
-
-// NewRugbyMatchIteration creates a new RugbyMatchIteration given a seed.
-func NewRugbyMatchIteration(seed uint64) *RugbyMatchIteration {
-	weights := make([]float64, 0)
-	for i := 0; i < 15; i++ {
-		weights = append(weights, 1.0)
-	}
-	catDist := distuv.NewCategorical(weights, rand.NewSource(seed))
-	rand.Seed(seed)
-	return &RugbyMatchIteration{
-		nextState: 12,
-		lastState: 12,
-		normalDist: &distuv.Normal{
-			Mu:    0.0,
-			Sigma: 1.0,
-			Src:   rand.NewSource(seed),
-		},
-		unitUniformDist: &distuv.Uniform{
-			Min: 0.0,
-			Max: 1.0,
-			Src: rand.NewSource(seed),
-		},
-		exponentialDist: &distuv.Exponential{
-			Rate: 1.0,
-			Src:  rand.NewSource(seed),
-		},
-		categoricalDist: &catDist,
-	}
 }

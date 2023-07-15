@@ -64,6 +64,7 @@ type LoadImplementationsConfig struct {
 	OutputFunction       OutputFunction
 	TerminationCondition TerminationCondition
 	TimestepFunction     TimestepFunction
+	Additional           map[string][]string
 }
 
 // NewStochadexConfig creates a new StochadexConfig from the provided LoadSettingsConfig

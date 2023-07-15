@@ -12,6 +12,21 @@ type CoxProcessIteration struct {
 	rateProcessPartitionIndex int
 }
 
+func (c *CoxProcessIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	c.unitUniformDist = &distuv.Uniform{
+		Min: 0.0,
+		Max: 1.0,
+		Src: rand.NewSource(settings.Seeds[partitionIndex]),
+	}
+	c.rateProcessPartitionIndex = int(
+		settings.OtherParams[partitionIndex].
+			IntParams["rate_process_partition_index"][0],
+	)
+}
+
 func (c *CoxProcessIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -30,20 +45,4 @@ func (c *CoxProcessIteration) Iterate(
 		}
 	}
 	return values
-}
-
-// NewCoxProcessIteration creates a new CoxProcessIteration given a
-// seed and a partition index for the rate process.
-func NewCoxProcessIteration(
-	seed uint64,
-	rateProcessPartitionIndex int,
-) *CoxProcessIteration {
-	return &CoxProcessIteration{
-		unitUniformDist: &distuv.Uniform{
-			Min: 0.0,
-			Max: 1.0,
-			Src: rand.NewSource(seed),
-		},
-		rateProcessPartitionIndex: rateProcessPartitionIndex,
-	}
 }

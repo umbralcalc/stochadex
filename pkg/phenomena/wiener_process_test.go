@@ -13,10 +13,9 @@ func TestWienerProcess(t *testing.T) {
 			settings := simulator.NewLoadSettingsConfigFromYaml("wiener_process_config.yaml")
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
-				iterations = append(
-					iterations,
-					NewWienerProcessIteration(settings.Seeds[partitionIndex]),
-				)
+				iteration := &WienerProcessIteration{}
+				iteration.Configure(partitionIndex, settings)
+				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.LoadImplementationsConfig{

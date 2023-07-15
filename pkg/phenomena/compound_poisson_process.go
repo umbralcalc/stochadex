@@ -20,6 +20,17 @@ type CompoundPoissonProcessIteration struct {
 	jumpDist        CompoundPoissonProcessJumpDistribution
 }
 
+func (c *CompoundPoissonProcessIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	c.unitUniformDist = &distuv.Uniform{
+		Min: 0.0,
+		Max: 1.0,
+		Src: rand.NewSource(settings.Seeds[partitionIndex]),
+	}
+}
+
 func (c *CompoundPoissonProcessIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -37,20 +48,4 @@ func (c *CompoundPoissonProcessIteration) Iterate(
 		}
 	}
 	return values
-}
-
-// NewCompoundPoissonProcessIteration creates a new
-// CompoundPoissonProcessIteration given a seed and jump distribution.
-func NewCompoundPoissonProcessIteration(
-	seed uint64,
-	jumpDist CompoundPoissonProcessJumpDistribution,
-) *CompoundPoissonProcessIteration {
-	return &CompoundPoissonProcessIteration{
-		unitUniformDist: &distuv.Uniform{
-			Min: 0.0,
-			Max: 1.0,
-			Src: rand.NewSource(seed),
-		},
-		jumpDist: jumpDist,
-	}
 }

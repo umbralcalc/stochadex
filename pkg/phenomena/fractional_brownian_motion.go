@@ -44,6 +44,21 @@ type FractionalBrownianMotionIteration struct {
 	numberOfIntegrationSteps int
 }
 
+func (f *FractionalBrownianMotionIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	f.unitNormalDist = &distuv.Normal{
+		Mu:    0.0,
+		Sigma: 1.0,
+		Src:   rand.NewSource(settings.Seeds[partitionIndex]),
+	}
+	f.numberOfIntegrationSteps = int(
+		settings.OtherParams[partitionIndex].
+			IntParams["number_of_integration_steps"][0],
+	)
+}
+
 func (f *FractionalBrownianMotionIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -65,21 +80,4 @@ func (f *FractionalBrownianMotionIteration) Iterate(
 				)/timestepsHistory.NextIncrement
 	}
 	return values
-}
-
-// NewFractionalBrownianMotionIteration creates a new
-// FractionalBrownianMotionIteration given a seed and number of
-// integration steps.
-func NewFractionalBrownianMotionIteration(
-	seed uint64,
-	numberOfIntegrationSteps int,
-) *FractionalBrownianMotionIteration {
-	return &FractionalBrownianMotionIteration{
-		unitNormalDist: &distuv.Normal{
-			Mu:    0.0,
-			Sigma: 1.0,
-			Src:   rand.NewSource(seed),
-		},
-		numberOfIntegrationSteps: numberOfIntegrationSteps,
-	}
 }

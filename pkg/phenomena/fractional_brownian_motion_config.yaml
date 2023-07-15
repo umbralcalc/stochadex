@@ -2,11 +2,13 @@ other_params:
 - float_params:
     variances: [1.0, 1.0]
     hurst_exponents: [0.2, 0.67]
-  int_params: {}
+  int_params:
+    number_of_integration_steps: [15]
 - float_params:
     variances: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     hurst_exponents: [0.8, 1.0, 0.4, 0.2, 0.34, 0.9, 0.8]
-  int_params: {}
+  int_params:
+    number_of_integration_steps: [15]
 init_state_values:
 - [0.0, 0.0]
 - [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

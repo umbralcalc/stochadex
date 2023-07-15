@@ -15,13 +15,9 @@ func TestFractionalBrownianMotion(t *testing.T) {
 			)
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
-				iterations = append(
-					iterations,
-					NewFractionalBrownianMotionIteration(
-						settings.Seeds[partitionIndex],
-						15,
-					),
-				)
+				iteration := &FractionalBrownianMotionIteration{}
+				iteration.Configure(partitionIndex, settings)
+				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.LoadImplementationsConfig{

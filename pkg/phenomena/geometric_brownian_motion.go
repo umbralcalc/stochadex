@@ -14,6 +14,17 @@ type GeometricBrownianMotionIteration struct {
 	unitNormalDist *distuv.Normal
 }
 
+func (g *GeometricBrownianMotionIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	g.unitNormalDist = &distuv.Normal{
+		Mu:    0.0,
+		Sigma: 1.0,
+		Src:   rand.NewSource(settings.Seeds[partitionIndex]),
+	}
+}
+
 func (g *GeometricBrownianMotionIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -28,18 +39,4 @@ func (g *GeometricBrownianMotionIteration) Iterate(
 				timestepsHistory.NextIncrement)*g.unitNormalDist.Rand())
 	}
 	return values
-}
-
-// NewGeometricBrownianMotionIteration creates a new
-// GeometricBrownianMotionIteration given a seed.
-func NewGeometricBrownianMotionIteration(
-	seed uint64,
-) *GeometricBrownianMotionIteration {
-	return &GeometricBrownianMotionIteration{
-		unitNormalDist: &distuv.Normal{
-			Mu:    0.0,
-			Sigma: 1.0,
-			Src:   rand.NewSource(seed),
-		},
-	}
 }

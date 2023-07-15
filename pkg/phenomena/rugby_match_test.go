@@ -13,10 +13,9 @@ func TestRugbyMatch(t *testing.T) {
 			settings := simulator.NewLoadSettingsConfigFromYaml("rugby_match_config.yaml")
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
-				iterations = append(
-					iterations,
-					NewRugbyMatchIteration(settings.Seeds[partitionIndex]),
-				)
+				iteration := &RugbyMatchIteration{}
+				iteration.Configure(partitionIndex, settings)
+				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, 1)
 			implementations := &simulator.LoadImplementationsConfig{

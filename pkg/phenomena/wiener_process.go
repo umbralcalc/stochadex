@@ -14,6 +14,17 @@ type WienerProcessIteration struct {
 	unitNormalDist *distuv.Normal
 }
 
+func (w *WienerProcessIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	w.unitNormalDist = &distuv.Normal{
+		Mu:    0.0,
+		Sigma: 1.0,
+		Src:   rand.NewSource(settings.Seeds[partitionIndex]),
+	}
+}
+
 func (w *WienerProcessIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -28,15 +39,4 @@ func (w *WienerProcessIteration) Iterate(
 				timestepsHistory.NextIncrement)*w.unitNormalDist.Rand()
 	}
 	return values
-}
-
-// NewWienerProcessIteration creates a new WienerProcessIteration given a seed.
-func NewWienerProcessIteration(seed uint64) *WienerProcessIteration {
-	return &WienerProcessIteration{
-		unitNormalDist: &distuv.Normal{
-			Mu:    0.0,
-			Sigma: 1.0,
-			Src:   rand.NewSource(seed),
-		},
-	}
 }

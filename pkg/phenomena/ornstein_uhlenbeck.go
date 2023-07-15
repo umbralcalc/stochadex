@@ -14,6 +14,17 @@ type OrnsteinUhlenbeckIteration struct {
 	unitNormalDist *distuv.Normal
 }
 
+func (o *OrnsteinUhlenbeckIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	o.unitNormalDist = &distuv.Normal{
+		Mu:    0.0,
+		Sigma: 1.0,
+		Src:   rand.NewSource(settings.Seeds[partitionIndex]),
+	}
+}
+
 func (o *OrnsteinUhlenbeckIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -30,15 +41,4 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(
 				timestepsHistory.NextIncrement)*o.unitNormalDist.Rand()
 	}
 	return values
-}
-
-// NewOrnsteinUhlenbeckIteration creates a new OrnsteinUhlenbeckIteration given a seed.
-func NewOrnsteinUhlenbeckIteration(seed uint64) *OrnsteinUhlenbeckIteration {
-	return &OrnsteinUhlenbeckIteration{
-		unitNormalDist: &distuv.Normal{
-			Mu:    0.0,
-			Sigma: 1.0,
-			Src:   rand.NewSource(seed),
-		},
-	}
 }

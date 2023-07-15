@@ -9,6 +9,12 @@ import (
 // by a factor of 2.
 type doublingProcessIteration struct{}
 
+func (d *doublingProcessIteration) Configure(
+	partitionIndex int,
+	settings *LoadSettingsConfig,
+) {
+}
+
 func (d *doublingProcessIteration) Iterate(
 	otherParams *OtherParams,
 	partitionIndex int,
@@ -27,6 +33,12 @@ func (d *doublingProcessIteration) Iterate(
 // testing - the process multiplies the values of the previous timestep
 // by factors passed as a slice in otherParams.FloatParams["multipliers"].
 type paramMultProcessIteration struct{}
+
+func (p *paramMultProcessIteration) Configure(
+	partitionIndex int,
+	settings *LoadSettingsConfig,
+) {
+}
 
 func (p *paramMultProcessIteration) Iterate(
 	otherParams *OtherParams,

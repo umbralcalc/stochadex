@@ -12,6 +12,17 @@ type PoissonProcessIteration struct {
 	unitUniformDist *distuv.Uniform
 }
 
+func (p *PoissonProcessIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	p.unitUniformDist = &distuv.Uniform{
+		Min: 0.0,
+		Max: 1.0,
+		Src: rand.NewSource(settings.Seeds[partitionIndex]),
+	}
+}
+
 func (p *PoissonProcessIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -29,15 +40,4 @@ func (p *PoissonProcessIteration) Iterate(
 		}
 	}
 	return values
-}
-
-// NewPoissonProcessIteration creates a new PoissonProcessIteration given a seed.
-func NewPoissonProcessIteration(seed uint64) *PoissonProcessIteration {
-	return &PoissonProcessIteration{
-		unitUniformDist: &distuv.Uniform{
-			Min: 0.0,
-			Max: 1.0,
-			Src: rand.NewSource(seed),
-		},
-	}
 }

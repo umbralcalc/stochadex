@@ -9,6 +9,12 @@ import (
 // element indices at each timestep.
 type dummyProcessIteration struct{}
 
+func (d *dummyProcessIteration) Configure(
+	partitionIndex int,
+	settings *LoadSettingsConfig,
+) {
+}
+
 func (d *dummyProcessIteration) Iterate(
 	otherParams *OtherParams,
 	partitionIndex int,

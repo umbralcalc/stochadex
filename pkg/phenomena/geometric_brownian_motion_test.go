@@ -15,12 +15,9 @@ func TestGeometricBrownianMotion(t *testing.T) {
 			)
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
-				iterations = append(
-					iterations,
-					NewGeometricBrownianMotionIteration(
-						settings.Seeds[partitionIndex],
-					),
-				)
+				iteration := &GeometricBrownianMotionIteration{}
+				iteration.Configure(partitionIndex, settings)
+				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.LoadImplementationsConfig{

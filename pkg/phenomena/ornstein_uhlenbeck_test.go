@@ -13,10 +13,9 @@ func TestOrnsteinUhlenbeckProcess(t *testing.T) {
 			settings := simulator.NewLoadSettingsConfigFromYaml("ornstein_uhlenbeck_config.yaml")
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
-				iterations = append(
-					iterations,
-					NewOrnsteinUhlenbeckIteration(settings.Seeds[partitionIndex]),
-				)
+				iteration := &OrnsteinUhlenbeckIteration{}
+				iteration.Configure(partitionIndex, settings)
+				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.LoadImplementationsConfig{

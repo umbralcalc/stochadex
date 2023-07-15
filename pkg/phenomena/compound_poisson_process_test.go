@@ -32,21 +32,19 @@ func TestCompoundPoissonProcess(t *testing.T) {
 			)
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
-				iterations = append(
-					iterations,
-					NewCompoundPoissonProcessIteration(
-						settings.Seeds[partitionIndex],
-						&gammaJumpDistribution{
-							dist: &distuv.Gamma{
-								Alpha: 1.0,
-								Beta:  1.0,
-								Src: rand.NewSource(
-									settings.Seeds[partitionIndex],
-								),
-							},
+				iteration := &CompoundPoissonProcessIteration{
+					jumpDist: &gammaJumpDistribution{
+						dist: &distuv.Gamma{
+							Alpha: 1.0,
+							Beta:  1.0,
+							Src: rand.NewSource(
+								settings.Seeds[partitionIndex],
+							),
 						},
-					),
-				)
+					},
+				}
+				iteration.Configure(partitionIndex, settings)
+				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.LoadImplementationsConfig{

@@ -24,6 +24,16 @@ type HawkesProcessIntensityIteration struct {
 	hawkesPartitionIndex int
 }
 
+func (h *HawkesProcessIntensityIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	h.hawkesPartitionIndex = int(
+		settings.OtherParams[partitionIndex].
+			IntParams["hawkes_partition_index"][0],
+	)
+}
+
 func (h *HawkesProcessIntensityIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -67,6 +77,21 @@ type HawkesProcessIteration struct {
 	intensityPartitionIndex int
 }
 
+func (h *HawkesProcessIteration) Configure(
+	partitionIndex int,
+	settings *simulator.LoadSettingsConfig,
+) {
+	h.unitUniformDist = &distuv.Uniform{
+		Min: 0.0,
+		Max: 1.0,
+		Src: rand.NewSource(settings.Seeds[partitionIndex]),
+	}
+	h.intensityPartitionIndex = int(
+		settings.OtherParams[partitionIndex].
+			IntParams["intensity_partition_index"][0],
+	)
+}
+
 func (h *HawkesProcessIteration) Iterate(
 	otherParams *simulator.OtherParams,
 	partitionIndex int,
@@ -85,20 +110,4 @@ func (h *HawkesProcessIteration) Iterate(
 		}
 	}
 	return values
-}
-
-// NewHawkesProcessIteration creates a new HawkesProcessIteration given a
-// seed and a partition index for the rate process.
-func NewHawkesProcessIteration(
-	seed uint64,
-	intensityPartitionIndex int,
-) *HawkesProcessIteration {
-	return &HawkesProcessIteration{
-		unitUniformDist: &distuv.Uniform{
-			Min: 0.0,
-			Max: 1.0,
-			Src: rand.NewSource(seed),
-		},
-		intensityPartitionIndex: intensityPartitionIndex,
-	}
 }

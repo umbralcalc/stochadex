@@ -68,10 +68,9 @@ func main() {
 			settings := simulator.NewLoadSettingsConfigFromYaml(config.LoadSettingsConfig)
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
-				iterations = append(
-					iterations,
-					phenomena.NewWienerProcessIteration(settings.Seeds[partitionIndex]),
-				)
+				iteration := &phenomena.WienerProcessIteration{}
+				iteration.Configure(partitionIndex, settings)
+				iterations = append(iterations, iteration)
 			}
 			implementations := &simulator.LoadImplementationsConfig{
 				Iterations:      iterations,
