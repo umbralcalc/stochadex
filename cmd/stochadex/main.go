@@ -72,7 +72,7 @@ func main() {
 				iteration.Configure(partitionIndex, settings)
 				iterations = append(iterations, iteration)
 			}
-			implementations := &simulator.LoadImplementationsConfig{
+			implementations := &simulator.LoadImplementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  simulator.NewWebsocketOutputFunction(connection),

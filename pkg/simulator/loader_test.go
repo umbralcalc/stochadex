@@ -33,7 +33,7 @@ func TestNewStochadexConfig(t *testing.T) {
 	t.Run(
 		"test config is initialised properly",
 		func(t *testing.T) {
-			settings := NewLoadSettingsConfigFromYaml("test_config.yaml")
+			settings := NewLoadSettingsConfigFromYaml("test_settings_config.yaml")
 			iterations := make([]Iteration, 0)
 			for range settings.StateWidths {
 				iterations = append(
@@ -41,7 +41,7 @@ func TestNewStochadexConfig(t *testing.T) {
 					&dummyProcessIteration{},
 				)
 			}
-			implementations := &LoadImplementationsConfig{
+			implementations := &LoadImplementations{
 				Iterations:      iterations,
 				OutputCondition: &EveryStepOutputCondition{},
 				OutputFunction:  &NilOutputFunction{},

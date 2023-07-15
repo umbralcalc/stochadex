@@ -20,7 +20,7 @@ func TestGeometricBrownianMotion(t *testing.T) {
 				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementationsConfig{
+			implementations := &simulator.LoadImplementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},

@@ -1,11 +1,8 @@
 package simulator
 
 import (
-	"fmt"
 	"io/ioutil"
-	"os"
 
-	"github.com/akamensky/argparse"
 	"gopkg.in/yaml.v2"
 )
 
@@ -36,42 +33,53 @@ func NewLoadSettingsConfigFromYaml(path string) *LoadSettingsConfig {
 	return &settings
 }
 
-// NewLoadSettingsConfigFromYaml calls NewLoadSettingsConfigFromYaml
-// with a yaml path string provided by argparse.
-func NewLoadSettingsConfigFromArgParsedYaml() *LoadSettingsConfig {
-	parser := argparse.NewParser(
-		"stochadex simulator",
-		"simulates your chosen stochastic process",
-	)
-	s := parser.String(
-		"s",
-		"string",
-		&argparse.Options{Required: true, Help: "yaml config path for settings"},
-	)
-	err := parser.Parse(os.Args)
-	if err != nil {
-		fmt.Print(parser.Usage(err))
-	}
-	return NewLoadSettingsConfigFromYaml(*s)
-}
-
 // LoadImplementationsConfig is the yaml-loadable config which defines all of
-// the methods that must be implemented in order to configure a stochastic process
+// the types that must be implemented in order to configure a stochastic process
 // defined by the stochadex.
 type LoadImplementationsConfig struct {
+	Iterations                 []string           `yaml:"iterations"`
+	AdditionalImplementations  []string           `yaml:"additional_implementations,omitempty"`
+	OutputCondition            string             `yaml:"output_condition"`
+	OutputConditionConfig      map[string]float64 `yaml:"output_condition_config,omitempty"`
+	OutputFunction             string             `yaml:"output_function"`
+	OutputFunctionConfig       map[string]float64 `yaml:"output_function_config,omitempty"`
+	TerminationCondition       string             `yaml:"termination_condition"`
+	TerminationConditionConfig map[string]float64 `yaml:"termination_condition_config,omitempty"`
+	TimestepFunction           string             `yaml:"timestep_function"`
+	TimestepFunctionConfig     map[string]float64 `yaml:"timestep_function_config,omitempty"`
+}
+
+// LoadImplementations defines all of the types that must be implemented in
+// order to configure a stochastic process defined by the stochadex.
+type LoadImplementations struct {
 	Iterations           []Iteration
 	OutputCondition      OutputCondition
 	OutputFunction       OutputFunction
 	TerminationCondition TerminationCondition
 	TimestepFunction     TimestepFunction
-	Additional           map[string][]string
+}
+
+// NewLoadImplementationsFromYaml creates a new LoadImplementations from
+// a provided yaml path.
+func NewLoadImplementationsFromYaml(path string) *LoadImplementations {
+	yamlFile, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	var implementationsConfig LoadImplementationsConfig
+	err = yaml.Unmarshal(yamlFile, &implementationsConfig)
+	if err != nil {
+		panic(err)
+	}
+	implementations := &LoadImplementations{}
+	return implementations
 }
 
 // NewStochadexConfig creates a new StochadexConfig from the provided LoadSettingsConfig
-// and LoadImplementationsConfig.
+// and LoadImplementations.
 func NewStochadexConfig(
 	settings *LoadSettingsConfig,
-	implementations *LoadImplementationsConfig,
+	implementations *LoadImplementations,
 ) *StochadexConfig {
 	partitions := make([]*StateConfig, 0)
 	for index, iteration := range implementations.Iterations {

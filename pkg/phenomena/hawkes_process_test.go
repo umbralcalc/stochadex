@@ -39,7 +39,7 @@ func TestHawkesProcess(t *testing.T) {
 			intensityIteration.Configure(1, settings)
 			iterations = append(iterations, intensityIteration)
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementationsConfig{
+			implementations := &simulator.LoadImplementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},

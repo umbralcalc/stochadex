@@ -1,2 +1,0 @@
-load_settings_config: "pkg/phenomena/wiener_process_config.yaml"
-number_of_steps_to_run: 1000

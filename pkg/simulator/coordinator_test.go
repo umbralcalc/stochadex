@@ -126,7 +126,7 @@ func TestPartitionCoordinator(t *testing.T) {
 			iterations = append(iterations, &doublingProcessIteration{})
 			iterations = append(iterations, &paramMultProcessIteration{})
 			storeWithGoroutines := make([][][]float64, 2)
-			implementations := &LoadImplementationsConfig{
+			implementations := &LoadImplementations{
 				Iterations:      iterations,
 				OutputCondition: &EveryStepOutputCondition{},
 				OutputFunction:  &VariableStoreOutputFunction{Store: storeWithGoroutines},
