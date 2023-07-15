@@ -1,5 +1,10 @@
 package simulator
 
+import (
+	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
+)
+
 // OutputFunction is the interface that must be implemented for any function
 // which can be used to outputs data from the stochastic process when the provided
 // OutputCondition is met.
@@ -29,6 +34,39 @@ func (f *VariableStoreOutputFunction) Output(
 	cumulativeTimesteps float64,
 ) {
 	f.Store[partitionIndex] = append(f.Store[partitionIndex], state)
+}
+
+// WebsocketOutputFunction serialises the state of each partition of the simulation
+// and sends this data via a websocket connection.
+type WebsocketOutputFunction struct {
+	connection *websocket.Conn
+}
+
+func (w *WebsocketOutputFunction) Output(
+	partitionIndex int,
+	state []float64,
+	cumulativeTimesteps float64,
+) {
+	data, err := proto.Marshal(
+		&DashboardPartitionState{
+			CumulativeTimesteps: cumulativeTimesteps,
+			PartitionIndex:      int64(partitionIndex),
+			State:               state,
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+	err = w.connection.WriteMessage(websocket.BinaryMessage, data)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// NewWebsocketOutputFunction creates a new WebsocketOutputFunction given a
+// connection struct.
+func NewWebsocketOutputFunction(connection *websocket.Conn) *WebsocketOutputFunction {
+	return &WebsocketOutputFunction{connection: connection}
 }
 
 // OutputCondition is the interface that must be implemented to define when the
