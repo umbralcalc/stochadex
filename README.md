@@ -8,7 +8,7 @@ The point here, from a software engineering perspective, is to design something 
 
 The design, development, implementation details behind and practical documentation for the stochadex can all be found in the [first chapter](https://umbralcalc.github.io/diffusing-ideas/building_a_generalised_simulator/chapter.pdf) of this very delightful book: [Diffusing Ideas](https://umbralcalc.github.io/diffusing-ideas).
 
-## Building and running the real-time dashboard
+## Building and running the binary
 
 ```shell
 # update the go modules
@@ -17,6 +17,14 @@ go mod tidy
 # build the binary
 go build -o bin/ ./cmd/stochadex
 
+# run your configs with the dashboard off
+./bin/stochadex --settings cfg/settings_config.yaml \
+--implementations cfg/implementations_config.yaml
+```
+
+## Running the real-time dashboard
+
+```shell
 # open the dashboard in your browser
 open ./index.html
 
