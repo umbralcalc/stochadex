@@ -1,7 +1,7 @@
 iterations:
-- ""
-additional:
-output_condition:
-output_function:
-termination_condition:
-timestep_function:
+- "&phenomena.WienerProcessIteration{}"
+- "&phenomena.WienerProcessIteration{}"
+output_condition: "&simulator.EveryStepOutputCondition{}"
+output_function: "&simulator.StdoutOutputFunction{}"
+termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1000}"
+timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"

@@ -1,6 +1,8 @@
 package simulator
 
 import (
+	"fmt"
+
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
 )
@@ -20,6 +22,17 @@ func (f *NilOutputFunction) Output(
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
+}
+
+// StdoutOutputFunction outputs the state to the terminal.
+type StdoutOutputFunction struct{}
+
+func (s *StdoutOutputFunction) Output(
+	partitionIndex int,
+	state []float64,
+	cumulativeTimesteps float64,
+) {
+	fmt.Println(state)
 }
 
 // VariableStoreOutputFunction stores the data from the stochastic process in a provided

@@ -41,7 +41,7 @@ func TestNewStochadexConfig(t *testing.T) {
 					&dummyProcessIteration{},
 				)
 			}
-			implementations := &LoadImplementations{
+			implementations := &LoadImplementationsConfig{
 				Iterations:      iterations,
 				OutputCondition: &EveryStepOutputCondition{},
 				OutputFunction:  &NilOutputFunction{},

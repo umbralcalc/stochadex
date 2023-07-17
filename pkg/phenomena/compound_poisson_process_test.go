@@ -47,7 +47,7 @@ func TestCompoundPoissonProcess(t *testing.T) {
 				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementations{
+			implementations := &simulator.LoadImplementationsConfig{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},

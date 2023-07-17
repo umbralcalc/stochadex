@@ -14,12 +14,12 @@ The design, development, implementation details behind and practical documentati
 # update the go modules
 go mod tidy
 
-# build the dashboard binary
-go build -o bin/ ./cmd/stochadex_dashboard
+# build the binary
+go build -o bin/ ./cmd/stochadex
 
 # open the dashboard in your browser
 open ./index.html
 
-# run the dashboard with its config
-./bin/stochadex_dashboard cmd/stochadex_dashboard/config.yaml
+# run your configs with the dashboard on
+./bin/stochadex --settings cmd/stochadex/settings_config.yaml --implementations cmd/stochadex/implementations_config.yaml --dashboard cmd/stochadex/dashboard_config.yaml
 ```

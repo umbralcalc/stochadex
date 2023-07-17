@@ -22,7 +22,7 @@ func TestCoxProcess(t *testing.T) {
 			rateIteration.Configure(1, settings)
 			iterations = append(iterations, rateIteration)
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementations{
+			implementations := &simulator.LoadImplementationsConfig{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
