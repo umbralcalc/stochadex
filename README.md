@@ -21,5 +21,7 @@ go build -o bin/ ./cmd/stochadex
 open ./index.html
 
 # run your configs with the dashboard on
-./bin/stochadex --settings cmd/stochadex/settings_config.yaml --implementations cmd/stochadex/implementations_config.yaml --dashboard cmd/stochadex/dashboard_config.yaml
+./bin/stochadex --settings cmd/stochadex/settings_config.yaml \
+--implementations cmd/stochadex/implementations_config.yaml \
+--dashboard cmd/stochadex/dashboard_config.yaml
 ```
