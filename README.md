@@ -18,8 +18,8 @@ go mod tidy
 go build -o bin/ ./cmd/stochadex
 
 # run your configs with the dashboard off
-./bin/stochadex --settings cfg/settings_config.yaml \
---implementations cfg/implementations_config.yaml
+./bin/stochadex --settings ./cfg/settings_config.yaml \
+--implementations ./cfg/implementations_config.yaml
 ```
 
 ## Running the real-time dashboard
@@ -29,7 +29,7 @@ go build -o bin/ ./cmd/stochadex
 open ./index.html
 
 # run your configs with the dashboard on
-./bin/stochadex --settings cfg/settings_config.yaml \
---implementations cfg/implementations_config.yaml \
---dashboard cfg/dashboard_config.yaml
+./bin/stochadex --settings ./cfg/settings_config.yaml \
+--implementations ./cfg/implementations_config.yaml \
+--dashboard ./cfg/dashboard_config.yaml
 ```
