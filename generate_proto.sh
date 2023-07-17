@@ -1,1 +1,1 @@
-protoc -I=. --go_out=$(pwd) --python_out=$(pwd) --js_out=$(pwd) dashboard.proto
+protoc -I=. --go_out=$(pwd) --js_out=$(pwd)/app dashboard.proto

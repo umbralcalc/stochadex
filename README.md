@@ -26,7 +26,7 @@ go build -o bin/ ./cmd/stochadex
 
 ```shell
 # open the dashboard in your browser
-open ./index.html
+open ./app/index.html
 
 # run your configs with the dashboard on
 ./bin/stochadex --settings ./cfg/settings_config.yaml \
