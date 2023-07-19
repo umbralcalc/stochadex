@@ -25,8 +25,9 @@ go build -o bin/ ./cmd/stochadex
 ## Running the real-time dashboard
 
 ```shell
-# open the dashboard in your browser
-open ./app/index.html
+# launch the http server for the dashboard app and
+# then open it in your browser (http://127.0.0.1:8080/dashboard.html)
+npx http-server ./app
 
 # run your configs with the dashboard on
 ./bin/stochadex --settings ./cfg/settings_config.yaml \
