@@ -116,6 +116,7 @@ func writeMainProgram() {
 import (
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/phenomena"
@@ -153,9 +154,10 @@ func main() {
 					return
 				}
 				defer connection.Close()
-
-                implementations.OutputFunction =
-		            simulator.NewWebsocketOutputFunction(connection)
+                
+				var mutex sync.Mutex
+                config.Output.Function =
+					simulator.NewWebsocketOutputFunction(connection, &mutex)
 				coordinator := simulator.NewPartitionCoordinator(config)
 				coordinator.Run()
 			},

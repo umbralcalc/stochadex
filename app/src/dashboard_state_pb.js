@@ -1,4 +1,4 @@
-// source: app/dashboard/dashboard.proto
+// source: app/src/dashboard_state.proto
 /**
  * @fileoverview
  * @enhanceable

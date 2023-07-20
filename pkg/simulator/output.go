@@ -2,6 +2,7 @@ package simulator
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
@@ -32,7 +33,7 @@ func (s *StdoutOutputFunction) Output(
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
-	fmt.Println(state)
+	fmt.Println(cumulativeTimesteps, partitionIndex, state)
 }
 
 // VariableStoreOutputFunction stores the data from the stochastic process in a provided
@@ -53,6 +54,7 @@ func (f *VariableStoreOutputFunction) Output(
 // and sends this data via a websocket connection.
 type WebsocketOutputFunction struct {
 	connection *websocket.Conn
+	mutex      *sync.Mutex
 }
 
 func (w *WebsocketOutputFunction) Output(
@@ -68,18 +70,26 @@ func (w *WebsocketOutputFunction) Output(
 		},
 	)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error marshaling protobuf message:", err)
 	}
+
+	// lock the mutex to prevent concurrent writing to the websocket connection
+	w.mutex.Lock()
 	err = w.connection.WriteMessage(websocket.BinaryMessage, data)
+	w.mutex.Unlock()
+
 	if err != nil {
-		panic(err)
+		fmt.Println("Error writing to WebSocket:", err)
 	}
 }
 
 // NewWebsocketOutputFunction creates a new WebsocketOutputFunction given a
-// connection struct.
-func NewWebsocketOutputFunction(connection *websocket.Conn) *WebsocketOutputFunction {
-	return &WebsocketOutputFunction{connection: connection}
+// connection struct and mutex to protect concurrent writes to the connection.
+func NewWebsocketOutputFunction(
+	connection *websocket.Conn,
+	mutex *sync.Mutex,
+) *WebsocketOutputFunction {
+	return &WebsocketOutputFunction{connection: connection, mutex: mutex}
 }
 
 // OutputCondition is the interface that must be implemented to define when the

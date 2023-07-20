@@ -22,12 +22,14 @@ go build -o bin/ ./cmd/stochadex
 --implementations ./cfg/implementations_config.yaml
 ```
 
-## Running the real-time dashboard
+## Building and running the real-time dashboard
 
 ```shell
-# launch the http server for the dashboard app and
-# then open it in your browser (http://127.0.0.1:8080/dashboard.html)
-npx http-server ./app
+# build the app
+cd ./app && npm run build
+
+# launch the dashboard app
+cd ./app && npm start
 
 # run your configs with the dashboard on
 ./bin/stochadex --settings ./cfg/settings_config.yaml \

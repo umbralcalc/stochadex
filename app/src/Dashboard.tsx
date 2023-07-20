@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { DashboardPartitionState } from './dashboard_pb';
+import { DashboardPartitionState } from './dashboard_state';
 import Chart from 'chart.js/auto';
 
 const Dashboard: React.FC = () => {
@@ -9,6 +9,7 @@ const Dashboard: React.FC = () => {
     state: number[];
   }[]>([]);
   const chartRef = useRef<HTMLCanvasElement | null>(null);
+  const chartInstanceRef = useRef<Chart | null>(null);
 
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:2112/dashboard');
@@ -17,17 +18,15 @@ const Dashboard: React.FC = () => {
       console.log('Connected to WebSocket server');
     };
 
-    ws.onmessage = (event: MessageEvent) => {
-      // Parse the received protobuf message
-      const decodedMessage = DashboardPartitionState.deserializeBinary(event.data);
-      const cumulativeTimesteps = decodedMessage.getCumulativeTimesteps();
-      const partitionIndex = decodedMessage.getPartitionIndex();
-      const stateList = decodedMessage.getStateList();
+    ws.onmessage = async (event: MessageEvent) => {
+      const decodedMessage = DashboardPartitionState.deserializeBinary(
+        Uint8Array.from(event.data)
+      );
       setData((prevData) => [
         ...prevData, {
-          cumulativeTimesteps: cumulativeTimesteps, 
-          partitionIndex: partitionIndex, 
-          state: stateList
+          cumulativeTimesteps: decodedMessage.cumulative_timesteps, 
+          partitionIndex: decodedMessage.partition_index, 
+          state: decodedMessage.state
         },
       ]);
     };
@@ -44,12 +43,20 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (!chartRef.current || !data.length) return;
 
+    // Destroy the previous Chart instance if it exists
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy();
+    }
+
     const chartData = {
       labels: data.map((item) => item.partitionIndex),
       datasets: [
         {
           label: 'Trendline Plot',
-          data: data.map((item) => item.cumulativeTimesteps),
+          data: data.map((item) => ({
+            x: item.cumulativeTimesteps,
+            y: item.state[item.partitionIndex],
+          })),
           borderColor: 'rgba(75, 192, 192, 1)',
           borderWidth: 2,
           fill: false,
@@ -59,7 +66,7 @@ const Dashboard: React.FC = () => {
 
     const ctx = chartRef.current.getContext('2d');
     if (ctx) {
-      new Chart(ctx, {
+      chartInstanceRef.current = new Chart(ctx, {
         type: 'line',
         data: chartData,
         options: {
