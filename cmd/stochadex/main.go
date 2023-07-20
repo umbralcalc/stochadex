@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -24,8 +25,9 @@ type ImplementationStrings struct {
 
 // DashboardConfig is a yaml-loadable config for the real-time dashboard.
 type DashboardConfig struct {
-	Address string `yaml:"address"`
-	Handle  string `yaml:"handle"`
+	Address          string `yaml:"address"`
+	Handle           string `yaml:"handle"`
+	MillisecondDelay uint64 `yaml:"millisecond_delay"`
 }
 
 // StochadexArgParse builds the configs parsed as args to the stochadex binary and
@@ -117,6 +119,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/phenomena"
@@ -159,7 +162,13 @@ func main() {
                 config.Output.Function =
 					simulator.NewWebsocketOutputFunction(connection, &mutex)
 				coordinator := simulator.NewPartitionCoordinator(config)
-				coordinator.Run()
+				
+				var wg sync.WaitGroup
+				// terminate the for loop if the condition has been met
+				for !coordinator.ReadyToTerminate() {
+					coordinator.Step(&wg)
+					time.Sleep({{.MillisecondDelay}} * time.Millisecond)
+				}
 			},
 		)
 		log.Fatal(http.ListenAndServe("{{.Address}}", nil))
@@ -179,6 +188,7 @@ func main() {
 			"Dashboard":            dashboardOn,
 			"Address":              dashboard.Address,
 			"Handle":               dashboard.Handle,
+			"MillisecondDelay":     strconv.Itoa(int(dashboard.MillisecondDelay)),
 			"Iterations":           iterations,
 			"OutputCondition":      implementations.OutputCondition,
 			"OutputFunction":       implementations.OutputFunction,

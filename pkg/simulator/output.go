@@ -75,12 +75,23 @@ func (w *WebsocketOutputFunction) Output(
 
 	// lock the mutex to prevent concurrent writing to the websocket connection
 	w.mutex.Lock()
-	err = w.connection.WriteMessage(websocket.BinaryMessage, data)
-	w.mutex.Unlock()
-
-	if err != nil {
-		fmt.Println("Error writing to WebSocket:", err)
+	if w.connection != nil {
+		err := w.connection.WriteMessage(websocket.BinaryMessage, data)
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(
+				err,
+				websocket.CloseGoingAway,
+				websocket.CloseAbnormalClosure,
+			) {
+				fmt.Println("WebSocket closed unexpectedly:", err)
+			} else {
+				fmt.Println("Error writing to WebSocket:", err)
+			}
+		}
+	} else {
+		fmt.Println("WebSocket connection is closed or not ready.")
 	}
+	w.mutex.Unlock()
 }
 
 // NewWebsocketOutputFunction creates a new WebsocketOutputFunction given a
