@@ -26,13 +26,19 @@ go build -o bin/ ./cmd/stochadex
 
 ```shell
 # build the app
-cd ./app && npm run build
+cd ./app && npm run build && cd ..
 
 # launch the dashboard app
-cd ./app && npm start
+cd ./app && serve -s build && cd ..
 
-# run your configs with the dashboard on
+# in a separate terminal, run your configs with the dashboard on
 ./bin/stochadex --settings ./cfg/settings_config.yaml \
 --implementations ./cfg/implementations_config.yaml \
 --dashboard ./cfg/dashboard_config.yaml
 ```
+
+## Developing the code and real-time dashboard
+
+You can add any new stochastic phenomena you like by following the patterns for other processes given in the `pkg/phenomena` package.
+
+To develop the real-time dashboard, you can start the development server by running `cd ./app && npm run build && cd ..` and develop in the `app/` directory.

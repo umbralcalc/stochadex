@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { DashboardPartitionState } from './dashboard_state';
 import Chart from 'chart.js/auto';
 
+
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<{
     cumulativeTimesteps: number;
@@ -11,6 +12,42 @@ const Dashboard: React.FC = () => {
   const [selectedPartitionIndex, setSelectedPartitionIndex] = useState<string | null>(null);
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
+  const [lineColours, setLineColours] = useState<{
+    [partitionIndexString: string]: { [index: number]: string }
+  }>({});
+
+  function getRandomColour() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    const minBrightness = 0.6;
+  
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+  
+    // Get the RGB components of the color
+    const red = parseInt(color.substring(1, 3), 16);
+    const green = parseInt(color.substring(3, 5), 16);
+    const blue = parseInt(color.substring(5, 7), 16);
+  
+    // Calculate the brightness of the color (normalized value between 0 and 1)
+    const brightness = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+  
+    // If the brightness is below the minimum, adjust the color to make it brighter
+    if (brightness < minBrightness) {
+      const correctionFactor = minBrightness / brightness;
+      const newRed = Math.min(255, Math.floor(red * correctionFactor));
+      const newGreen = Math.min(255, Math.floor(green * correctionFactor));
+      const newBlue = Math.min(255, Math.floor(blue * correctionFactor));
+  
+      // Convert the RGB components back to hexadecimal and update the color
+      color = `#${(newRed < 16 ? '0' : '') + newRed.toString(16)}` +
+              `${(newGreen < 16 ? '0' : '') + newGreen.toString(16)}` +
+              `${(newBlue < 16 ? '0' : '') + newBlue.toString(16)}`;
+    }
+  
+    return color;
+  }
 
   // create a memoized version of a function that generates the datasets
   const datasets = useMemo(() => {
@@ -25,18 +62,29 @@ const Dashboard: React.FC = () => {
       fill: boolean;
     }[]} = {};
 
-    function getRandomColor() {
-      const letters = '0123456789ABCDEF';
-      let color = '#';
-      for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-      }
-      return color;
-    }
-
     data.forEach((datum) => {
       for (let index = 0; index < datum.state.length; index++) {
         const partitionIndexString = String(datum.partitionIndex);
+
+        if (!(partitionIndexString in lineColours)) {
+          setLineColours((prevLineColours) => ({
+            ...prevLineColours,
+            [partitionIndexString]: {},
+          }));
+          lineColours[partitionIndexString] = {}
+        }
+
+        if (!(index in lineColours[partitionIndexString])) {
+          const colour = getRandomColour()
+          setLineColours((prevLineColours) => ({
+            ...prevLineColours,
+            [partitionIndexString]: {
+              ...prevLineColours[partitionIndexString],
+              [index]: colour,
+            },
+          }));
+          lineColours[partitionIndexString][index] = colour
+        }
 
         if (!(partitionIndexString in result)) {
           result[partitionIndexString] = [];
@@ -49,7 +97,7 @@ const Dashboard: React.FC = () => {
               x: datum.cumulativeTimesteps,
               y: datum.state[index],
             }],
-            borderColor: getRandomColor(),
+            borderColor: lineColours[partitionIndexString][index],
             borderWidth: 2,
             fill: false,
           });
@@ -63,7 +111,7 @@ const Dashboard: React.FC = () => {
     });
 
     return result;
-  }, [data]);
+  }, [data, lineColours]);
 
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:2112/dashboard');
@@ -99,7 +147,9 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!chartRef.current || !data.length || selectedPartitionIndex === null) return;
+    if (!chartRef.current || selectedPartitionIndex === null) return;
+
+    if (!datasets[selectedPartitionIndex].length) return;
 
     // Destroy the previous Chart instance if it exists
     if (chartInstanceRef.current) {
@@ -112,25 +162,61 @@ const Dashboard: React.FC = () => {
 
     const ctx = chartRef.current.getContext('2d');
     if (ctx) {
+      chartRef.current.height = 300;
       chartInstanceRef.current = new Chart(ctx, {
-        type: 'scatter',
+        type: 'line',
         data: chartData,
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: {
+            duration: 0
+          },
           scales: {
             x: {
               type: 'linear',
               position: 'bottom',
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: 'white'
+              },
             },
             y: {
               display: true,
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: 'white'
+              },
             },
           },
+          plugins: {
+            legend: {
+              labels: {
+                color: 'white'
+              }
+            },
+            title: {
+              display: false
+            },
+          },
+          elements: {
+            point: {
+              borderColor: 'white',
+              borderWidth: 1
+            },
+            line: {
+              borderColor: 'white',
+              borderWidth: 1
+            }
+          }
         },
       });
     }
-  }, [data, selectedPartitionIndex, datasets]);
+  }, [selectedPartitionIndex, datasets]);
 
   return (
     <div>
