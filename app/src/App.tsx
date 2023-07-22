@@ -4,8 +4,10 @@ import Dashboard from './Dashboard';
 const App: React.FC = () => {
   return (
     <div>
-      <h1>Stochadex Real-time Dashboard</h1>
       <Dashboard />
+      <h5>Zoom: Mousewheel or Shift + Click + Drag</h5>
+      <h5>Pan: Ctrl + Click + Drag</h5>
+      <h5>Reset: r Key</h5>
     </div>
   );
 };

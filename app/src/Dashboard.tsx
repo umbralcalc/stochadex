@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { DashboardPartitionState } from './dashboard_state';
 import Chart from 'chart.js/auto';
+import zoomPlugin from 'chartjs-plugin-zoom';
 
 
 const Dashboard: React.FC = () => {
@@ -9,12 +10,14 @@ const Dashboard: React.FC = () => {
     partitionIndex: number;
     state: number[];
   }[]>([]);
+  const [chartUpdatesEnabled, setChartUpdatesEnabled] = useState(true);
   const [selectedPartitionIndex, setSelectedPartitionIndex] = useState<string | null>(null);
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
   const [lineColours, setLineColours] = useState<{
     [partitionIndexString: string]: { [index: number]: string }
   }>({});
+  Chart.register(zoomPlugin);
 
   function getRandomColour() {
     const letters = '0123456789ABCDEF';
@@ -146,12 +149,32 @@ const Dashboard: React.FC = () => {
     setSelectedPartitionIndex(partitionIndex);
   };
 
+  const resetZoom = () => {
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.resetZoom();
+    }
+  };
+
+  const handleKeyPress = (event: KeyboardEvent) => {
+    if (event.key === 'r') {
+      resetZoom();
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('keypress', handleKeyPress);
+
+    // Clean up the event listener when the component unmounts
+    return () => {
+      window.removeEventListener('keypress', handleKeyPress);
+    };
+  }, []);
+
   useEffect(() => {
     if (!chartRef.current || selectedPartitionIndex === null) return;
 
     if (!datasets[selectedPartitionIndex].length) return;
 
-    // Destroy the previous Chart instance if it exists
     if (chartInstanceRef.current) {
       chartInstanceRef.current.destroy();
     }
@@ -202,6 +225,26 @@ const Dashboard: React.FC = () => {
             title: {
               display: false
             },
+            zoom: {
+              pan: {
+                enabled: true,
+                mode: 'xy',
+                modifierKey: 'ctrl',
+              },
+              zoom: {
+                drag: {
+                  enabled: true,
+                  modifierKey: 'shift',
+                },
+                wheel: {
+                  enabled: true,
+                },
+                pinch: {
+                  enabled: true
+                },
+                mode: 'xy',
+              },
+            },
           },
           elements: {
             point: {
@@ -216,7 +259,11 @@ const Dashboard: React.FC = () => {
         },
       });
     }
-  }, [selectedPartitionIndex, datasets]);
+  }, [selectedPartitionIndex, chartUpdatesEnabled && datasets]);
+  
+  const handleToggleChartUpdates = () => {
+    setChartUpdatesEnabled((prev) => !prev); // Toggle the state between true and false
+  };
 
   return (
     <div>
@@ -225,6 +272,9 @@ const Dashboard: React.FC = () => {
       </div>
       <div>
         <div>
+          <button onClick={handleToggleChartUpdates}>
+            {chartUpdatesEnabled ? 'Disable Live Updates' : 'Enable Live Updates'}
+          </button><br/>
           {Object.entries(datasets).map(([k, v]) => (
             <button
               key={k}
