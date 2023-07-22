@@ -37,10 +37,10 @@ cd ./app && serve -s build && cd ..
 --dashboard ./cfg/dashboard_config.yaml
 ```
 
+![Using Dashboard](app/public/using-dashboard.gif)
+
 ## Developing the code and real-time dashboard
 
 You can add any new stochastic phenomena you like by following the patterns for other processes given in the `pkg/phenomena` package.
 
 To develop the real-time dashboard, you can start the development server by running `cd ./app && npm run build && cd ..` and view the code in the `app/` directory.
-
-![Using Dashboard](app/public/using-dashboard.gif)
