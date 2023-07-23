@@ -9,6 +9,13 @@ type OtherParams struct {
 	IntParams   map[string][]int64   `yaml:"int_params"`
 }
 
+// OtherParamsMask is a yaml-loadable struct to lay a mask over the
+// OtherParams struct.
+type OtherParamsMask struct {
+	FloatParams map[string][]bool `yaml:"float_params"`
+	IntParams   map[string][]bool `yaml:"int_params"`
+}
+
 // ParamsConfig contains all the hyperparameters of the stochastic process.
 type ParamsConfig struct {
 	Other           *OtherParams
