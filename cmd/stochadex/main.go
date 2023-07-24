@@ -69,9 +69,6 @@ func StochadexArgParse() (
 	if *implementationsFile == "" {
 		panic(fmt.Errorf("Parsed no implementations config file"))
 	}
-	if err != nil {
-		fmt.Print(parser.Usage(err))
-	}
 	yamlFile, err := ioutil.ReadFile(*implementationsFile)
 	if err != nil {
 		panic(err)
