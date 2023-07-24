@@ -179,7 +179,11 @@ func main() {
 }`))
 	file, err := os.Create("tmp/main.go")
 	if err != nil {
-		panic(err)
+		err := os.Mkdir("tmp", 0755)
+		if err != nil {
+			panic(err)
+		}
+		file, err = os.Create("tmp/main.go")
 	}
 	err = codeTemplate.Execute(
 		file,
