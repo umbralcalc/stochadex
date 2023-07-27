@@ -5,15 +5,10 @@ import "gonum.org/v1/gonum/mat"
 // OtherParams is a yaml-loadable struct to put any additional
 // parameters needed to configure the stochastic process.
 type OtherParams struct {
-	FloatParams map[string][]float64 `yaml:"float_params"`
-	IntParams   map[string][]int64   `yaml:"int_params"`
-}
-
-// OtherParamsMask is a yaml-loadable struct to lay a mask over the
-// OtherParams struct.
-type OtherParamsMask struct {
-	FloatParams map[string][]bool `yaml:"float_params"`
-	IntParams   map[string][]bool `yaml:"int_params"`
+	FloatParams     map[string][]float64 `yaml:"float_params"`
+	IntParams       map[string][]int64   `yaml:"int_params"`
+	FloatParamsMask map[string][]bool    `yaml:"float_params_mask,omitempty"`
+	IntParamsMask   map[string][]bool    `yaml:"int_params_mask,omitempty"`
 }
 
 // ParamsConfig contains all the hyperparameters of the stochastic process.
