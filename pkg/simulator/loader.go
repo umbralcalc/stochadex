@@ -43,6 +43,16 @@ type LoadImplementationsConfig struct {
 	TimestepFunction     TimestepFunction
 }
 
+// ImplementationStrings is the yaml-loadable config which consists of string type
+// names to insert into templating.
+type ImplementationStrings struct {
+	Iterations           []string `yaml:"iterations"`
+	OutputCondition      string   `yaml:"output_condition"`
+	OutputFunction       string   `yaml:"output_function"`
+	TerminationCondition string   `yaml:"termination_condition"`
+	TimestepFunction     string   `yaml:"timestep_function"`
+}
+
 // NewStochadexConfig creates a new StochadexConfig from the provided LoadSettingsConfig
 // and LoadImplementations.
 func NewStochadexConfig(

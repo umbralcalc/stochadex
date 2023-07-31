@@ -28,7 +28,7 @@ go build -o bin/ ./cmd/stochadex
 # build the app
 cd ./app && npm run build && cd ..
 
-# launch the dashboard app
+# launch the dashboard
 cd ./app && serve -s build && cd ..
 
 # in a separate terminal, run your configs with the dashboard on

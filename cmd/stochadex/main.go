@@ -10,18 +10,9 @@ import (
 	"text/template"
 
 	"github.com/akamensky/argparse"
+	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gopkg.in/yaml.v2"
 )
-
-// ImplementationStrings is the yaml-loadable config which consists of string type
-// names to insert into templating.
-type ImplementationStrings struct {
-	Iterations           []string `yaml:"iterations"`
-	OutputCondition      string   `yaml:"output_condition"`
-	OutputFunction       string   `yaml:"output_function"`
-	TerminationCondition string   `yaml:"termination_condition"`
-	TimestepFunction     string   `yaml:"timestep_function"`
-}
 
 // DashboardConfig is a yaml-loadable config for the real-time dashboard.
 type DashboardConfig struct {
@@ -34,7 +25,7 @@ type DashboardConfig struct {
 // also retrieves other args.
 func StochadexArgParse() (
 	string,
-	*ImplementationStrings,
+	*simulator.ImplementationStrings,
 	*DashboardConfig,
 ) {
 	parser := argparse.NewParser("stochadex", "a simulator of stochastic phenomena")
@@ -73,7 +64,7 @@ func StochadexArgParse() (
 	if err != nil {
 		panic(err)
 	}
-	var implementations ImplementationStrings
+	var implementations simulator.ImplementationStrings
 	err = yaml.Unmarshal(yamlFile, &implementations)
 	if err != nil {
 		panic(err)
