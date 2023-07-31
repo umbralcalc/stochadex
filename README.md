@@ -6,7 +6,7 @@ The point, from a software engineering perspective, is to design something which
 
 ## Need more context and documentation?
 
-The design, development, implementation details behind and practical documentation for the stochadex can all be found in the [first chapter](https://umbralcalc.github.io/diffusing-ideas/building_a_generalised_simulator/chapter.pdf) of this very delightful book: [Diffusing Ideas](https://umbralcalc.github.io/diffusing-ideas).
+The design, development, implementation details behind and practical documentation for the stochadex can all be found in **Part 1** of this very delightful book: [Diffusing Ideas](https://umbralcalc.github.io/diffusing-ideas).
 
 ## Building and running the binary
 
