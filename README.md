@@ -41,6 +41,6 @@ cd ./app && serve -s build && cd ..
 
 ## Developing the code and real-time dashboard
 
-You can add any new stochastic phenomena you like by following the patterns for other processes given in the `pkg/phenomena` package. The key implementation detail is to create a new instance of the `simulator.Iteration` interface.
+You can add any new stochastic phenomena you like by following the patterns for other processes given in the `pkg/phenomena` package. The key step is to create a new struct for your process which implements the `simulator.Iteration` interface.
 
 To develop the real-time dashboard, you can start the development server by running `cd ./app && npm run build && cd ..` and view the code in the `app/` directory. The dashboard is a React app which is served by the stochadex via a websocket connection.
