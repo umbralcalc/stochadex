@@ -28,10 +28,7 @@ go build -o bin/ ./cmd/stochadex
 # build the app
 cd ./app && npm run build && cd ..
 
-# launch the dashboard
-cd ./app && serve -s build && cd ..
-
-# in a separate terminal, run your configs with the dashboard on
+# run the stochadex with a dashboard config and checkout http://localhost:3000
 ./bin/stochadex --settings ./cfg/settings_config.yaml \
 --implementations ./cfg/implementations_config.yaml \
 --dashboard ./cfg/dashboard_config.yaml

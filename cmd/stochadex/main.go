@@ -104,8 +104,11 @@ func writeMainProgram() {
 	template.Must(codeTemplate.Parse(`package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -116,6 +119,19 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+func startDashboardApp() (*os.Process, error) {
+	cmd := exec.Command("serve", "-s", "build")
+	cmd.Dir = "app/"
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start dashboard app: %w", err)
+	}
+
+	return cmd.Process, nil
 }
 
 func main() {
@@ -136,6 +152,11 @@ func main() {
 		implementations,
 	)
 	if {{.Dashboard}} {
+		dashboardProcess, err := startDashboardApp()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer dashboardProcess.Signal(os.Interrupt)
 		http.HandleFunc(
 			"{{.Handle}}",
 			func(w http.ResponseWriter, r *http.Request) {
@@ -160,6 +181,8 @@ func main() {
 			},
 		)
 		log.Fatal(http.ListenAndServe("{{.Address}}", nil))
+		dashboardProcess.Signal(os.Interrupt)
+		dashboardProcess.Wait()
 	} else {
 		coordinator := simulator.NewPartitionCoordinator(config)
 		coordinator.Run()
