@@ -10,9 +10,17 @@ import (
 	"text/template"
 
 	"github.com/akamensky/argparse"
+	"github.com/umbralcalc/stochadex/pkg/agent"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gopkg.in/yaml.v2"
 )
+
+// ImplementationStrings is the yaml-loadable config which consists of string type
+// names to insert into templating.
+type ImplementationStrings struct {
+	Simulator simulator.ImplementationStrings `yaml:"simulator"`
+	Agents    []agent.AgentConfigStrings      `yaml:"agents,omitempty"`
+}
 
 // DashboardConfig is a yaml-loadable config for the real-time dashboard.
 type DashboardConfig struct {
@@ -25,7 +33,7 @@ type DashboardConfig struct {
 // also retrieves other args.
 func StochadexArgParse() (
 	string,
-	*simulator.ImplementationStrings,
+	*ImplementationStrings,
 	*DashboardConfig,
 ) {
 	parser := argparse.NewParser("stochadex", "a simulator of stochastic phenomena")
@@ -64,7 +72,7 @@ func StochadexArgParse() (
 	if err != nil {
 		panic(err)
 	}
-	var implementations simulator.ImplementationStrings
+	var implementations ImplementationStrings
 	err = yaml.Unmarshal(yamlFile, &implementations)
 	if err != nil {
 		panic(err)
@@ -99,7 +107,20 @@ func writeMainProgram() {
 	fmt.Println("\nParsed implementations:")
 	fmt.Println(implementations)
 	iterations := "[]simulator.Iteration{" +
-		strings.Join(implementations.Iterations, ", ") + "}"
+		strings.Join(implementations.Simulator.Iterations, ", ") + "}"
+	agents := "[]*agent.AgentConfig{"
+	for _, agentStrings := range implementations.Agents {
+		agents += "{Actors: &agent.Actors{"
+		if agentStrings.Actors.Parametric != "" {
+			agents += "Parametric: " + agentStrings.Actors.Parametric + ", "
+		}
+		if agentStrings.Actors.State != "" {
+			agents += "State: " + agentStrings.Actors.State
+		}
+		agents += "}, Generator: " + agentStrings.Generator
+		agents += ", Observation: " + agentStrings.Observation + "},"
+	}
+	agents += "}"
 	codeTemplate := template.New("stochadexMain")
 	template.Must(codeTemplate.Parse(`package main
 
@@ -113,6 +134,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/umbralcalc/stochadex/pkg/agent"
+	"github.com/umbralcalc/stochadex/pkg/environment"
 	"github.com/umbralcalc/stochadex/pkg/phenomena"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -134,6 +157,35 @@ func startDashboardApp() (*os.Process, error) {
 	return cmd.Process, nil
 }
 
+type StepperOrRunner interface {
+	Run()
+	Step(wg *sync.WaitGroup)
+	ReadyToTerminate() bool
+}
+
+func LoadStepperOrRunner(
+	settings *simulator.LoadSettingsConfig,
+	implementations *simulator.LoadImplementationsConfig,
+	agents []*agent.AgentConfig,
+) StepperOrRunner {
+	if len(agents) == 0 {
+		return simulator.NewPartitionCoordinator(
+			simulator.NewStochadexConfig(
+				settings,
+				implementations,
+			),
+		)
+	} else {
+		return environment.NewEnvironment(
+			&environment.LoadConfigWithAgents{
+				Settings:        settings,
+				Implementations: implementations,
+				Agents:          agents,
+			},
+		)
+	}
+}
+
 func main() {
 	settings := simulator.NewLoadSettingsConfigFromYaml("{{.SettingsFile}}")
 	iterations := {{.Iterations}}
@@ -147,10 +199,7 @@ func main() {
 		TerminationCondition: {{.TerminationCondition}},
 		TimestepFunction: {{.TimestepFunction}},
 	}
-	config := simulator.NewStochadexConfig(
-		settings,
-		implementations,
-	)
+	agents := {{.Agents}}
 	if {{.Dashboard}} {
 		dashboardProcess, err := startDashboardApp()
 		if err != nil {
@@ -168,15 +217,15 @@ func main() {
 				defer connection.Close()
                 
 				var mutex sync.Mutex
-                config.Output.Function =
+                implementations.OutputFunction =
 					simulator.NewWebsocketOutputFunction(connection, &mutex)
-				coordinator := simulator.NewPartitionCoordinator(config)
-				
+				stepperOrRunner := LoadStepperOrRunner(settings, implementations, agents)
+
 				var wg sync.WaitGroup
 				// terminate the for loop if the condition has been met
-				for !coordinator.ReadyToTerminate() {
-					coordinator.Step(&wg)
-					time.Sleep({{.MillisecondDelay}} * time.Millisecond)
+				for !stepperOrRunner.ReadyToTerminate() {
+					stepperOrRunner.Step(&wg)
+					time.Sleep(200 * time.Millisecond)
 				}
 			},
 		)
@@ -184,8 +233,8 @@ func main() {
 		dashboardProcess.Signal(os.Interrupt)
 		dashboardProcess.Wait()
 	} else {
-		coordinator := simulator.NewPartitionCoordinator(config)
-		coordinator.Run()
+		stepperOrRunner := LoadStepperOrRunner(settings, implementations, agents)
+		stepperOrRunner.Run()
 	}
 }`))
 	file, err := os.Create("tmp/main.go")
@@ -205,10 +254,11 @@ func main() {
 			"Handle":               dashboard.Handle,
 			"MillisecondDelay":     strconv.Itoa(int(dashboard.MillisecondDelay)),
 			"Iterations":           iterations,
-			"OutputCondition":      implementations.OutputCondition,
-			"OutputFunction":       implementations.OutputFunction,
-			"TerminationCondition": implementations.TerminationCondition,
-			"TimestepFunction":     implementations.TimestepFunction,
+			"Agents":               agents,
+			"OutputCondition":      implementations.Simulator.OutputCondition,
+			"OutputFunction":       implementations.Simulator.OutputFunction,
+			"TerminationCondition": implementations.Simulator.TerminationCondition,
+			"TimestepFunction":     implementations.Simulator.TimestepFunction,
 		},
 	)
 	if err != nil {
