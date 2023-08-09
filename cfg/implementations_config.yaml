@@ -8,12 +8,12 @@ simulator:
   timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
 agents:
 - actors:
-    parametric: "&agent.DoNothingParametricActor{}"
-    state: "&agent.DoNothingStateActor{}"
-  generator: "&agent.DoNothingActionGenerator{}"
-  observation: "&agent.GaussianNoiseStateObservation{}"
+    parametric: "&interactions.DoNothingParametricActor{}"
+    state: "&interactions.DoNothingStateActor{}"
+  generator: "&interactions.DoNothingActionGenerator{}"
+  observation: "&interactions.GaussianNoiseStateObservation{}"
 - actors:
-    parametric: "&agent.DoNothingParametricActor{}"
-    state: "&agent.DoNothingStateActor{}"
-  generator: "&agent.DoNothingActionGenerator{}"
-  observation: "&agent.GaussianNoiseStateObservation{}"
+    parametric: "&interactions.DoNothingParametricActor{}"
+    state: "&interactions.DoNothingStateActor{}"
+  generator: "&interactions.DoNothingActionGenerator{}"
+  observation: "&interactions.GaussianNoiseStateObservation{}"

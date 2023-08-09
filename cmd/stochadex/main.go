@@ -10,7 +10,7 @@ import (
 	"text/template"
 
 	"github.com/akamensky/argparse"
-	"github.com/umbralcalc/stochadex/pkg/agent"
+	"github.com/umbralcalc/stochadex/pkg/interactions"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gopkg.in/yaml.v2"
 )
@@ -18,8 +18,8 @@ import (
 // ImplementationStrings is the yaml-loadable config which consists of string type
 // names to insert into templating.
 type ImplementationStrings struct {
-	Simulator simulator.ImplementationStrings `yaml:"simulator"`
-	Agents    []agent.AgentConfigStrings      `yaml:"agents,omitempty"`
+	Simulator simulator.ImplementationStrings   `yaml:"simulator"`
+	Agents    []interactions.AgentConfigStrings `yaml:"agents,omitempty"`
 }
 
 // DashboardConfig is a yaml-loadable config for the real-time dashboard.
@@ -108,9 +108,9 @@ func writeMainProgram() {
 	fmt.Println(implementations)
 	iterations := "[]simulator.Iteration{" +
 		strings.Join(implementations.Simulator.Iterations, ", ") + "}"
-	agents := "[]*agent.AgentConfig{"
+	agents := "[]*interactions.AgentConfig{"
 	for _, agentStrings := range implementations.Agents {
-		agents += "{Actors: &agent.Actors{"
+		agents += "{Actors: &interactions.Actors{"
 		if agentStrings.Actors.Parametric != "" {
 			agents += "Parametric: " + agentStrings.Actors.Parametric + ", "
 		}
@@ -134,7 +134,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/umbralcalc/stochadex/pkg/agent"
+	"github.com/umbralcalc/stochadex/pkg/interactions"
 	"github.com/umbralcalc/stochadex/pkg/phenomena"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -165,7 +165,7 @@ type StepperOrRunner interface {
 func LoadStepperOrRunner(
 	settings *simulator.LoadSettingsConfig,
 	implementations *simulator.LoadImplementationsConfig,
-	agents []*agent.AgentConfig,
+	agents []*interactions.AgentConfig,
 ) StepperOrRunner {
 	if len(agents) == 0 {
 		return simulator.NewPartitionCoordinator(
@@ -175,8 +175,8 @@ func LoadStepperOrRunner(
 			),
 		)
 	} else {
-		return agent.NewPartitionCoordinatorWithAgents(
-			&agent.LoadConfigWithAgents{
+		return interactions.NewPartitionCoordinatorWithAgents(
+			&interactions.LoadConfigWithAgents{
 				Settings:        settings,
 				Implementations: implementations,
 				Agents:          agents,

@@ -1,4 +1,4 @@
-package agent
+package interactions
 
 import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"

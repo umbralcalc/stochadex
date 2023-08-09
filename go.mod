@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	github.com/akamensky/argparse v1.4.0
-	golang.org/x/exp v0.0.0-20230420155640-133eef4313cb
-	gonum.org/v1/gonum v0.12.0
+	golang.org/x/exp v0.0.0-20230809150735-7b3493d9a819
+	gonum.org/v1/gonum v0.13.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/yaml.v2 v2.4.0
 	scientificgo.org/special v0.0.0
