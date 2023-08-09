@@ -1,10 +1,9 @@
-package environment
+package agent
 
 import (
 	"sync"
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/agent"
 	"github.com/umbralcalc/stochadex/pkg/phenomena"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
@@ -32,10 +31,10 @@ func (r *randomActionGenerator) Configure(
 }
 
 func (r *randomActionGenerator) Generate(
-	actions *agent.Actions,
+	actions *Actions,
 	params *simulator.OtherParams,
 	observedState []float64,
-) *agent.Actions {
+) *Actions {
 	for i := 0; i < r.numDims; i++ {
 		actions.State.Values.SetVec(i, r.uniformDist.Rand())
 	}
@@ -55,7 +54,7 @@ func (j *jumpStateActor) Configure(
 
 func (j *jumpStateActor) Act(
 	state []float64,
-	actions *agent.Actions,
+	actions *Actions,
 ) []float64 {
 	for i := range state {
 		state[i] += actions.State.Values.AtVec(i)
@@ -63,35 +62,37 @@ func (j *jumpStateActor) Act(
 	return state
 }
 
-func step(e *Environment, wg *sync.WaitGroup) {
+func step(p *PartitionCoordinatorWithAgents, wg *sync.WaitGroup) {
 	// interact with the system
-	for index := 0; index < e.numberOfPartitions; index++ {
-		e.agents[index].Interact(
-			e.coordinator.StateHistories,
-			e.coordinator.TimestepsHistory,
-			e.coordinator.Iterators[index],
+	for index := 0; index < p.numberOfPartitions; index++ {
+		p.agents[index].Interact(
+			p.coordinator.StateHistories,
+			p.coordinator.TimestepsHistory,
+			p.coordinator.Iterators[index],
 		)
 	}
 	// now step the underlying simulation
-	e.coordinator.Step(wg)
+	p.coordinator.Step(wg)
 }
 
-func run(e *Environment) {
+func run(p *PartitionCoordinatorWithAgents) {
 	// use this WaitGroup just to pass to the underlying simulation
 	var wg sync.WaitGroup
 
-	for !e.coordinator.ReadyToTerminate() {
-		step(e, &wg)
+	for !p.coordinator.ReadyToTerminate() {
+		step(p, &wg)
 	}
 }
 
-// initEnvForTesting just creates a new environment to try with and without
-// the goroutines methods in testing.
-func initEnvForTesting(outputFunction simulator.OutputFunction) *Environment {
+// initCoordinatorForTesting just creates a new coordinator with agents to try
+// with and without the goroutines methods in testing.
+func initCoordinatorForTesting(
+	outputFunction simulator.OutputFunction,
+) *PartitionCoordinatorWithAgents {
 	otherParams := &simulator.OtherParams{
 		FloatParams: map[string][]float64{
 			"variances":                   {1.0, 1.5, 0.5, 1.0, 2.0},
-			"environment_noise_variances": {1.0, 2.0, 3.0, 4.0, 5.0},
+			"observation_noise_variances": {1.0, 2.0, 3.0, 4.0, 5.0},
 			"init_state_action_values":    {1.0, 1.0, 0.0, 0.0, 1.0},
 		},
 	}
@@ -111,25 +112,25 @@ func initEnvForTesting(outputFunction simulator.OutputFunction) *Environment {
 	iterations = append(iterations, firstIteration)
 	secondIteration := &phenomena.WienerProcessIteration{}
 	iterations = append(iterations, secondIteration)
-	actors := &agent.Actors{
+	actors := &Actors{
 		State:      &jumpStateActor{},
-		Parametric: &agent.DoNothingParametricActor{},
+		Parametric: &DoNothingParametricActor{},
 	}
-	agents := make([]*agent.AgentConfig, 0)
+	agents := make([]*AgentConfig, 0)
 	agents = append(
 		agents,
-		&agent.AgentConfig{
+		&AgentConfig{
 			Actors:      actors,
 			Generator:   &randomActionGenerator{},
-			Observation: &agent.GaussianNoiseStateObservation{},
+			Observation: &GaussianNoiseStateObservation{},
 		},
 	)
 	agents = append(
 		agents,
-		&agent.AgentConfig{
+		&AgentConfig{
 			Actors:      actors,
 			Generator:   &randomActionGenerator{},
-			Observation: &agent.GaussianNoiseStateObservation{},
+			Observation: &GaussianNoiseStateObservation{},
 		},
 	)
 	implementations := &simulator.LoadImplementationsConfig{
@@ -141,7 +142,7 @@ func initEnvForTesting(outputFunction simulator.OutputFunction) *Environment {
 		},
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 	}
-	return NewEnvironment(
+	return NewPartitionCoordinatorWithAgents(
 		&LoadConfigWithAgents{
 			Settings:        settings,
 			Implementations: implementations,
@@ -150,20 +151,20 @@ func initEnvForTesting(outputFunction simulator.OutputFunction) *Environment {
 	)
 }
 
-func TestEnvironment(t *testing.T) {
+func TestPartitionCoordinatorWithAgents(t *testing.T) {
 	t.Run(
-		"test for the correct usage of goroutines in the environment",
+		"test for the correct usage of goroutines in the coordinator with agents",
 		func(t *testing.T) {
 			storeWithGoroutines := make([][][]float64, 2)
 			outputWithGoroutines := &simulator.VariableStoreOutputFunction{
 				Store: storeWithGoroutines,
 			}
-			envWithGoroutines := initEnvForTesting(outputWithGoroutines)
+			envWithGoroutines := initCoordinatorForTesting(outputWithGoroutines)
 			storeWithoutGoroutines := make([][][]float64, 2)
 			outputWithoutGoroutines := &simulator.VariableStoreOutputFunction{
 				Store: storeWithoutGoroutines,
 			}
-			envWithoutGoroutines := initEnvForTesting(outputWithoutGoroutines)
+			envWithoutGoroutines := initCoordinatorForTesting(outputWithoutGoroutines)
 			envWithGoroutines.Run()
 			run(envWithoutGoroutines)
 			for tIndex, store := range storeWithoutGoroutines {

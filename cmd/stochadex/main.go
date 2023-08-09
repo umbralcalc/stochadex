@@ -135,7 +135,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/agent"
-	"github.com/umbralcalc/stochadex/pkg/environment"
 	"github.com/umbralcalc/stochadex/pkg/phenomena"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -176,8 +175,8 @@ func LoadStepperOrRunner(
 			),
 		)
 	} else {
-		return environment.NewEnvironment(
-			&environment.LoadConfigWithAgents{
+		return agent.NewPartitionCoordinatorWithAgents(
+			&agent.LoadConfigWithAgents{
 				Settings:        settings,
 				Implementations: implementations,
 				Agents:          agents,

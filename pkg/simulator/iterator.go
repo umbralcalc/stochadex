@@ -18,7 +18,7 @@ type Iteration interface {
 }
 
 // StateIterator handles iterations of a given state partition on a
-// separate goroutine and writing output data to disk or some DB.
+// separate goroutine and writing output data to somewhere.
 type StateIterator struct {
 	Iteration          Iteration
 	Params             *ParamsConfig

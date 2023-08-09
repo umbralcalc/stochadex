@@ -3,7 +3,7 @@ package agent
 import "github.com/umbralcalc/stochadex/pkg/simulator"
 
 // ActionGenerator is the interface that must be implemented in order
-// to enact the policy of the agent on its Environment.
+// to enact the policy of the agent in the simulation.
 type ActionGenerator interface {
 	Configure(partitionIndex int, settings *simulator.LoadSettingsConfig)
 	Generate(

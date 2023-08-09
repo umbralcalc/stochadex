@@ -1,13 +1,13 @@
 other_params:
 - float_params:
     variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-    environment_noise_variances: [0.5, 0.5, 0.5, 0.5, 0.5]
+    observation_noise_variances: [0.5, 0.5, 0.5, 0.5, 0.5]
     # init_state_action_values: []
     # init_parametric_action_values: []
   int_params: {}
 - float_params:
     variances: [1.0, 1.0, 1.0]
-    environment_noise_variances: [0.5, 0.5, 0.5]
+    observation_noise_variances: [0.5, 0.5, 0.5]
     # init_state_action_values: []
     # init_parametric_action_values: []
   int_params: {}

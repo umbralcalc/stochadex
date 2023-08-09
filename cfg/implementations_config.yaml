@@ -6,14 +6,14 @@ simulator:
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1000}"
   timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
-agents: []
-# - actors:
-#     parametric: "&agent.DoNothingParametricActor{}"
-#     state: "&agent.DoNothingStateActor{}"
-#   generator: "&agent.DoNothingActionGenerator{}"
-#   observation: "&agent.GaussianNoiseStateObservation{}"
-# - actors:
-#     parametric: "&agent.DoNothingParametricActor{}"
-#     state: "&agent.DoNothingStateActor{}"
-#   generator: "&agent.DoNothingActionGenerator{}"
-#   observation: "&agent.GaussianNoiseStateObservation{}"
+agents:
+- actors:
+    parametric: "&agent.DoNothingParametricActor{}"
+    state: "&agent.DoNothingStateActor{}"
+  generator: "&agent.DoNothingActionGenerator{}"
+  observation: "&agent.GaussianNoiseStateObservation{}"
+- actors:
+    parametric: "&agent.DoNothingParametricActor{}"
+    state: "&agent.DoNothingStateActor{}"
+  generator: "&agent.DoNothingActionGenerator{}"
+  observation: "&agent.GaussianNoiseStateObservation{}"

@@ -1,6 +1,8 @@
 package simulator
 
-import "gonum.org/v1/gonum/mat"
+import (
+	"gonum.org/v1/gonum/mat"
+)
 
 // OtherParams is a yaml-loadable struct to put any additional
 // parameters needed to configure the stochastic process.

@@ -45,8 +45,16 @@ type AgentConfigStrings struct {
 	Observation string       `yaml:"observation"`
 }
 
-// InteractorInputMessage is a struct which gets passed from the Environment
-// to an Interactor in order to trigger it to call its .Interact method.
+// LoadConfigWithAgents fully configures a stochastic process with agent
+// interactions included.
+type LoadConfigWithAgents struct {
+	Settings        *simulator.LoadSettingsConfig
+	Implementations *simulator.LoadImplementationsConfig
+	Agents          []*AgentConfig
+}
+
+// InteractorInputMessage is a struct which gets passed from the
+// PartitionCoordinatorWithAgents to an Interactor.
 type InteractorInputMessage struct {
 	StateHistories   []*simulator.StateHistory
 	TimestepsHistory *simulator.CumulativeTimestepsHistory

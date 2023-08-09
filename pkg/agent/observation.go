@@ -7,7 +7,7 @@ import (
 )
 
 // StateObservation is the interface that must be implemented in order
-// for the Agent to learn what the environment state is from the Environment.
+// for the Agent to learn what the state is from the simulation.
 type StateObservation interface {
 	Configure(partitionIndex int, settings *simulator.LoadSettingsConfig)
 	Observe(
@@ -61,7 +61,7 @@ func (g *GaussianNoiseStateObservation) Observe(
 ) []float64 {
 	noisyValues := make([]float64, 0)
 	for i := 0; i < stateHistories[partitionIndex].StateWidth; i++ {
-		g.unitNormalDist.Sigma = params.FloatParams["environment_noise_variances"][i]
+		g.unitNormalDist.Sigma = params.FloatParams["observation_noise_variances"][i]
 		noisyValues = append(
 			noisyValues,
 			stateHistories[partitionIndex].Values.At(0, i)+g.unitNormalDist.Rand(),
