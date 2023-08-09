@@ -4,7 +4,7 @@ So what's the _big_ idea here? This is a generalised simulation engine that is a
 
 The point, from a software engineering perspective, is to design something which abstracts away many of the common features that sampling algorithms have for performing these computations behind a highly-configurable interface. This isn't particularly new as a concept (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), however the design provides a mathematical formalism to reference in future projects, and, to be honest, writing the code from scratch has just been a lot of fun in Go!
 
-In addition to being a simulation engine for any stochastic phenomena that the developer can dream up; the stochadex has also been extended in an 'interactions' package which enables one to design agents which can observe and influence the phenomena in a generalised fashion. 
+In addition to being a simulation engine for any stochastic phenomena that the developer can dream up; the stochadex has also been extended to include an 'interactions' package, which enables one to design agents that can observe and influence the phenomena in a generalised fashion. 
 
 ## Need more context and documentation?
 
