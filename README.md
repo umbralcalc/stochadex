@@ -6,7 +6,7 @@ The point, from a software engineering perspective, is to design something which
 
 ## Need more context and documentation?
 
-The design, development, implementation details behind and practical documentation for the stochadex can all be found in **Part 1** of this very delightful book: [Diffusing Ideas](https://umbralcalc.github.io/diffusing-ideas).
+The design, development, implementation details behind and practical documentation for the stochadex can all be found in **Part 1** and **Part 3** of this very delightful book: [Diffusing Ideas](https://umbralcalc.github.io/diffusing-ideas).
 
 ## Building and running the binary
 
@@ -39,5 +39,7 @@ cd ./app && npm run build && cd ..
 ## Developing the code and real-time dashboard
 
 You can add any new stochastic phenomena you like by following the patterns for other processes given in the `pkg/phenomena` package. The key step is to create a new struct for your process which implements the `simulator.Iteration` interface.
+
+You can also design agents to interact with these phenomena by implementing the interfaces which can be found in the `pkg/agent` package. There are a few different interfaces in this case, so it may make sense to review how they are used by the `pkg/environment` package as well.
 
 To develop the real-time dashboard, you can start the development server by running `cd ./app && npm run build && cd ..` and view the code in the `app/` directory. The dashboard is a React app which is served by the stochadex via a websocket connection.
