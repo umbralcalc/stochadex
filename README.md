@@ -44,4 +44,4 @@ You can add any new stochastic phenomena you like by following the patterns for 
 
 You can also design agents to interact with these phenomena by implementing the interfaces which can be found in the `pkg/interactions` package.
 
-To develop the real-time dashboard, you can start the development server by running `cd ./app && npm run build && cd ..` and view the code in the `app/` directory. The dashboard is a React app which is served by the stochadex via a websocket connection.
+To develop the real-time dashboard, you can start the development server by running `cd ./app && npm start && cd ..` and view the code in the `app/` directory. The dashboard is a React app which is served by the stochadex via a websocket connection.
