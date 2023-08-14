@@ -1,3 +1,4 @@
 address: ":2112"
 handle: "/dashboard"
 millisecond_delay: 200
+launch_dashboard: true

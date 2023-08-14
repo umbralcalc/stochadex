@@ -27,6 +27,7 @@ type DashboardConfig struct {
 	Address          string `yaml:"address"`
 	Handle           string `yaml:"handle"`
 	MillisecondDelay uint64 `yaml:"millisecond_delay"`
+	LaunchDashboard  bool   `yaml:"launch_dashboard"`
 }
 
 // StochadexArgParse builds the configs parsed as args to the stochadex binary and
@@ -98,9 +99,9 @@ func StochadexArgParse() (
 func writeMainProgram() {
 	fmt.Println("\nReading in args...")
 	settingsFile, implementations, dashboard := StochadexArgParse()
-	dashboardOn := "true"
+	websocketOn := "true"
 	if dashboard.Address == "" {
-		dashboardOn = "false"
+		websocketOn = "false"
 		dashboard.Address = "dummy"
 		dashboard.Handle = "dummy"
 	}
@@ -199,12 +200,15 @@ func main() {
 		TimestepFunction: {{.TimestepFunction}},
 	}
 	agents := {{.Agents}}
-	if {{.Dashboard}} {
-		dashboardProcess, err := startDashboardApp()
-		if err != nil {
-			log.Fatal(err)
+	if {{.Websocket}} {
+		var dashboardProcess *os.Process
+		if {{.Dashboard}} {
+		    dashboardProcess, err := startDashboardApp()
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer dashboardProcess.Signal(os.Interrupt)
 		}
-		defer dashboardProcess.Signal(os.Interrupt)
 		http.HandleFunc(
 			"{{.Handle}}",
 			func(w http.ResponseWriter, r *http.Request) {
@@ -229,8 +233,10 @@ func main() {
 			},
 		)
 		log.Fatal(http.ListenAndServe("{{.Address}}", nil))
-		dashboardProcess.Signal(os.Interrupt)
-		dashboardProcess.Wait()
+		if {{.Dashboard}} {
+			dashboardProcess.Signal(os.Interrupt)
+			dashboardProcess.Wait()
+		}
 	} else {
 		stepperOrRunner := LoadStepperOrRunner(settings, implementations, agents)
 		stepperOrRunner.Run()
@@ -248,7 +254,8 @@ func main() {
 		file,
 		map[string]string{
 			"SettingsFile":         settingsFile,
-			"Dashboard":            dashboardOn,
+			"Dashboard":            strconv.FormatBool(dashboard.LaunchDashboard),
+			"Websocket":            websocketOn,
 			"Address":              dashboard.Address,
 			"Handle":               dashboard.Handle,
 			"MillisecondDelay":     strconv.Itoa(int(dashboard.MillisecondDelay)),
