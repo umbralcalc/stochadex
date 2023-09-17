@@ -91,8 +91,8 @@ other_params:
     # From Kickoff to [Kick Phase]
     transitions_from_12: [5]
 init_state_values:
-- [12, 0, 50.0, 35.0, 0, 0]
+- [12, 0, 50.0, 35.0, 0, 0, 12, 12, 0, 0, 1.0]
 seeds: [563]
-state_widths: [6]
+state_widths: [11]
 state_history_depths: [2]
 timesteps_history_depth: 2
