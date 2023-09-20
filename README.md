@@ -27,8 +27,8 @@ go build -o bin/ ./cmd/stochadex
 ## Building and running the real-time dashboard
 
 ```shell
-# build the app
-cd ./app && npm run build && cd ..
+# install the dependencies of and build the app
+cd ./app && npm install && npm run build && cd ..
 
 # run the stochadex with a dashboard config and checkout http://localhost:3000
 ./bin/stochadex --settings ./cfg/settings_config.yaml \
