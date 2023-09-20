@@ -39,8 +39,8 @@ func (a *Interactor) Interact(
 	)
 	// generate actions based on the Policy and observedState
 	// and update the coordinator with the corresponding new iteration
-	a.iteration.Actions = a.generator.Generate(
-		a.iteration.Actions,
+	a.iteration.Action = a.generator.Generate(
+		a.iteration.Action,
 		a.settings.OtherParams[a.partitionIndex],
 		observedState,
 	)

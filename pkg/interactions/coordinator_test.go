@@ -31,19 +31,19 @@ func (r *randomActionGenerator) Configure(
 }
 
 func (r *randomActionGenerator) Generate(
-	actions *Actions,
+	action *Action,
 	params *simulator.OtherParams,
 	observedState []float64,
-) *Actions {
+) *Action {
 	for i := 0; i < r.numDims; i++ {
-		actions.State.Values.SetVec(i, r.uniformDist.Rand())
+		action.Values.SetVec(i, r.uniformDist.Rand())
 	}
-	return actions
+	return action
 }
 
 // jumpStateActor defines a state actor which is only for testing -
-// the .Act method will add the .State action to state values that
-// already exist, 'jumping' the state.
+// the .Act method will add action to state values that already
+// exist, 'jumping' the state.
 type jumpStateActor struct{}
 
 func (j *jumpStateActor) Configure(
@@ -54,10 +54,10 @@ func (j *jumpStateActor) Configure(
 
 func (j *jumpStateActor) Act(
 	state []float64,
-	actions *Actions,
+	action *Action,
 ) []float64 {
 	for i := range state {
-		state[i] += actions.State.Values.AtVec(i)
+		state[i] += action.Values.AtVec(i)
 	}
 	return state
 }
@@ -93,7 +93,7 @@ func initCoordinatorForTesting(
 		FloatParams: map[string][]float64{
 			"variances":                   {1.0, 1.5, 0.5, 1.0, 2.0},
 			"observation_noise_variances": {1.0, 2.0, 3.0, 4.0, 5.0},
-			"init_state_action_values":    {1.0, 1.0, 0.0, 0.0, 1.0},
+			"init_action_values":          {1.0, 1.0, 0.0, 0.0, 1.0},
 		},
 	}
 	settings := &simulator.LoadSettingsConfig{
@@ -112,15 +112,11 @@ func initCoordinatorForTesting(
 	iterations = append(iterations, firstIteration)
 	secondIteration := &phenomena.WienerProcessIteration{}
 	iterations = append(iterations, secondIteration)
-	actors := &Actors{
-		State:      &jumpStateActor{},
-		Parametric: &DoNothingParametricActor{},
-	}
 	agents := make([]*AgentConfig, 0)
 	agents = append(
 		agents,
 		&AgentConfig{
-			Actors:      actors,
+			Actor:       &jumpStateActor{},
 			Generator:   &randomActionGenerator{},
 			Observation: &GaussianNoiseStateObservation{},
 		},
@@ -128,7 +124,7 @@ func initCoordinatorForTesting(
 	agents = append(
 		agents,
 		&AgentConfig{
-			Actors:      actors,
+			Actor:       &jumpStateActor{},
 			Generator:   &randomActionGenerator{},
 			Observation: &GaussianNoiseStateObservation{},
 		},

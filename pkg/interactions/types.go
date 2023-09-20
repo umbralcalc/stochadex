@@ -11,28 +11,9 @@ type Action struct {
 	Width  int
 }
 
-// Actions is a struct which holds the parameters required to specify all
-// actions that are to be performed on a given timestep of the stochastic process.
-type Actions struct {
-	State      *Action
-	Parametric *Action
-}
-
-// Actors is a struct which holds the types of actors chosen for the agent.
-type Actors struct {
-	State      StateActor
-	Parametric ParametricActor
-}
-
-// ActorStrings are the string inputs which enable templating for the Actors struct.
-type ActorStrings struct {
-	Parametric string `yaml:"parametric"`
-	State      string `yaml:"state"`
-}
-
 // AgentConfig specifies the settings and method implementations for an agent.
 type AgentConfig struct {
-	Actors      *Actors
+	Actor       Actor
 	Generator   ActionGenerator
 	Observation StateObservation
 }
@@ -40,9 +21,9 @@ type AgentConfig struct {
 // AgentConfigStrings are the string inputs which enable templating for the
 // AgentConfig struct.
 type AgentConfigStrings struct {
-	Actors      ActorStrings `yaml:"actors"`
-	Generator   string       `yaml:"generator"`
-	Observation string       `yaml:"observation"`
+	Actor       string `yaml:"actor"`
+	Generator   string `yaml:"generator"`
+	Observation string `yaml:"observation"`
 }
 
 // LoadConfigWithAgents fully configures a stochastic process with agent

@@ -111,14 +111,8 @@ func writeMainProgram() {
 		strings.Join(implementations.Simulator.Iterations, ", ") + "}"
 	agents := "[]*interactions.AgentConfig{"
 	for _, agentStrings := range implementations.Agents {
-		agents += "{Actors: &interactions.Actors{"
-		if agentStrings.Actors.Parametric != "" {
-			agents += "Parametric: " + agentStrings.Actors.Parametric + ", "
-		}
-		if agentStrings.Actors.State != "" {
-			agents += "State: " + agentStrings.Actors.State
-		}
-		agents += "}, Generator: " + agentStrings.Generator
+		agents += "{Actor: " + agentStrings.Actor
+		agents += ", Generator: " + agentStrings.Generator
 		agents += ", Observation: " + agentStrings.Observation + "},"
 	}
 	agents += "}"

@@ -7,13 +7,9 @@ simulator:
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1000}"
   timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
 agents:
-- actors:
-    parametric: "&interactions.DoNothingParametricActor{}"
-    state: "&interactions.DoNothingStateActor{}"
+- actor: "&interactions.DoNothingActor{}"
   generator: "&interactions.DoNothingActionGenerator{}"
   observation: "&interactions.GaussianNoiseStateObservation{}"
-- actors:
-    parametric: "&interactions.DoNothingParametricActor{}"
-    state: "&interactions.DoNothingStateActor{}"
+- actor: "&interactions.DoNothingActor{}"
   generator: "&interactions.DoNothingActionGenerator{}"
   observation: "&interactions.GaussianNoiseStateObservation{}"

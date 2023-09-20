@@ -77,28 +77,19 @@ func NewPartitionCoordinatorWithAgents(
 			newWorkChannels,
 			make(chan *InteractorInputMessage),
 		)
-		stateActions := config.Settings.
-			OtherParams[index].FloatParams["init_state_action_values"]
-		parametricActions := config.Settings.
-			OtherParams[index].FloatParams["init_parametric_action_values"]
-		actions := &Actions{}
-		if stateActions != nil {
-			actions.State = &Action{
-				Values: mat.NewVecDense(len(stateActions), stateActions),
-				Width:  len(stateActions),
-			}
-		}
-		if parametricActions != nil {
-			actions.Parametric = &Action{
-				Values: mat.NewVecDense(len(parametricActions), parametricActions),
-				Width:  len(parametricActions),
+		actionValues := config.Settings.
+			OtherParams[index].FloatParams["init_action_values"]
+		action := &Action{}
+		if actionValues != nil {
+			action = &Action{
+				Values: mat.NewVecDense(len(actionValues), actionValues),
+				Width:  len(actionValues),
 			}
 		}
 		iteration := &ActingAgentIteration{
-			Actions:         actions,
-			Iteration:       config.Implementations.Iterations[index],
-			StateActor:      config.Agents[index].Actors.State,
-			ParametricActor: config.Agents[index].Actors.Parametric,
+			Action:    action,
+			Iteration: config.Implementations.Iterations[index],
+			Actor:     config.Agents[index].Actor,
 		}
 		agents = append(
 			agents,
