@@ -38,6 +38,18 @@ cd ./app && npm install && npm run build && cd ..
 
 ![Using Dashboard](app/public/using-dashboard.gif)
 
+## Building and running the Docker container (may need sudo)
+
+```shell
+# build the stochadex container
+docker build --tag stochadex .
+
+# run the binary in the container with your configs
+docker run -p 2112:2112 stochadex --settings ./cfg/settings_config.yaml \
+--implementations ./cfg/implementations_config.yaml \
+--dashboard ./cfg/dashboard_config.yaml
+```
+
 ## Developing the code and real-time dashboard
 
 You can add any new stochastic phenomena you like by following the patterns for other processes given in the `pkg/phenomena` package. The key step is to create a new struct for your process which implements the `simulator.Iteration` interface.
