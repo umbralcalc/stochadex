@@ -8,7 +8,7 @@ In addition to being a simulation engine for any stochastic phenomena that the d
 
 ## Need more context and documentation?
 
-The design, development, implementation details behind and practical documentation for the stochadex can all be found in **Part 1** and **Part 3** of this very delightful book: [Diffusing Ideas](https://umbralcalc.github.io/diffusing-ideas).
+The design, development, implementation details behind and practical documentation for the stochadex can all be found in **Part 1** of this very delightful book: [Diffusing Ideas](https://umbralcalc.github.io/diffusing-ideas).
 
 ## Building and running the binary
 
