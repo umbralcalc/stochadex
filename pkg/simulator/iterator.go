@@ -23,7 +23,6 @@ type StateIterator struct {
 	Iteration          Iteration
 	Params             *ParamsConfig
 	partitionIndex     int
-	timesteps          int
 	outputCondition    OutputCondition
 	outputFunction     OutputFunction
 	pendingStateUpdate []float64

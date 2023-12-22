@@ -21,10 +21,7 @@ func (t *NumberOfStepsTerminationCondition) Terminate(
 	timestepsHistory *CumulativeTimestepsHistory,
 	overallTimesteps int,
 ) bool {
-	if overallTimesteps >= t.MaxNumberOfSteps {
-		return true
-	}
-	return false
+	return overallTimesteps >= t.MaxNumberOfSteps
 }
 
 // TimeElapsedTerminationCondition terminates the process when the
@@ -38,8 +35,5 @@ func (t *TimeElapsedTerminationCondition) Terminate(
 	timestepsHistory *CumulativeTimestepsHistory,
 	overallTimesteps int,
 ) bool {
-	if timestepsHistory.Values.AtVec(0) >= t.MaxTimeElapsed {
-		return true
-	}
-	return false
+	return timestepsHistory.Values.AtVec(0) >= t.MaxTimeElapsed
 }
