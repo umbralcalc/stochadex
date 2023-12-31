@@ -43,6 +43,7 @@ func (a *Interactor) Interact(
 		a.iteration.Action,
 		a.settings.OtherParams[a.partitionIndex],
 		observedState,
+		timestepsHistory.Values.AtVec(0),
 	)
 	iteratorToUpdate.Iteration = a.iteration
 }

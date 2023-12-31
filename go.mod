@@ -11,4 +11,9 @@ require (
 	scientificgo.org/special v0.0.0
 )
 
-require github.com/gorilla/websocket v1.5.0
+require (
+	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
+	github.com/gorilla/websocket v1.5.0
+)
+
+require golang.org/x/sys v0.1.0 // indirect

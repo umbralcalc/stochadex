@@ -34,6 +34,7 @@ func (r *randomActionGenerator) Generate(
 	action *Action,
 	params *simulator.OtherParams,
 	observedState []float64,
+	timestep float64,
 ) *Action {
 	for i := 0; i < r.numDims; i++ {
 		action.Values.SetVec(i, r.uniformDist.Rand())

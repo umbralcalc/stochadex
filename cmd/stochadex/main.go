@@ -222,7 +222,7 @@ func main() {
 				// terminate the for loop if the condition has been met
 				for !stepperOrRunner.ReadyToTerminate() {
 					stepperOrRunner.Step(&wg)
-					time.Sleep(200 * time.Millisecond)
+					time.Sleep({{.MillisecondDelay}} * time.Millisecond)
 				}
 			},
 		)
