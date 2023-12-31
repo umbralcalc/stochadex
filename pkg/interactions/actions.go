@@ -41,7 +41,7 @@ func (d *DoNothingActionGenerator) Generate(
 }
 
 // UserInputActionGenerator implements an action generator that returns
-// configured actions based on requested user input.
+// configured actions based on user keyboard input.
 type UserInputActionGenerator struct {
 	keystrokeMap     map[string]int64
 	keyEvents        <-chan keyboard.KeyEvent
