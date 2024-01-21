@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -64,12 +63,12 @@ func StochadexArgParse() (
 		fmt.Print(parser.Usage(err))
 	}
 	if *settingsFile == "" {
-		panic(fmt.Errorf("Parsed no settings config file"))
+		panic(fmt.Errorf("parsed no settings config file"))
 	}
 	if *implementationsFile == "" {
-		panic(fmt.Errorf("Parsed no implementations config file"))
+		panic(fmt.Errorf("parsed no implementations config file"))
 	}
-	yamlFile, err := ioutil.ReadFile(*implementationsFile)
+	yamlFile, err := os.ReadFile(*implementationsFile)
 	if err != nil {
 		panic(err)
 	}
@@ -82,7 +81,7 @@ func StochadexArgParse() (
 	if *dashboardFile == "" {
 		fmt.Printf("Parsed no dashboard config file: running without dashboard")
 	} else {
-		yamlFile, err := ioutil.ReadFile(*dashboardFile)
+		yamlFile, err := os.ReadFile(*dashboardFile)
 		if err != nil {
 			panic(err)
 		}
