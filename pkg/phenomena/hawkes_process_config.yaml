@@ -10,6 +10,7 @@ other_params:
 init_state_values:
 - [0.0, 0.0, 0.0, 0.0, 0.0]
 - [0.0, 0.0, 0.0, 0.0, 0.0]
+init_time_value: 0.0
 seeds: [253, 1112]
 state_widths: [5, 5]
 state_history_depths: [50, 50]

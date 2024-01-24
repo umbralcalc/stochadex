@@ -12,6 +12,7 @@ import (
 type LoadSettingsConfig struct {
 	OtherParams           []*OtherParams `yaml:"other_params"`
 	InitStateValues       [][]float64    `yaml:"init_state_values"`
+	InitTimeValue         float64        `yaml:"init_time_value"`
 	Seeds                 []uint64       `yaml:"seeds"`
 	StateWidths           []int          `yaml:"state_widths"`
 	StateHistoryDepths    []int          `yaml:"state_history_depths"`
@@ -68,6 +69,7 @@ func NewStochadexConfig(
 				Params: &ParamsConfig{
 					Other:           settings.OtherParams[index],
 					InitStateValues: settings.InitStateValues[index],
+					InitTimeValue:   settings.InitTimeValue,
 					Seed:            settings.Seeds[index],
 				},
 				Width:        settings.StateWidths[index],

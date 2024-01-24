@@ -119,6 +119,8 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 		Values:            mat.NewVecDense(config.Steps.TimestepsHistoryDepth, nil),
 		StateHistoryDepth: config.Steps.TimestepsHistoryDepth,
 	}
+	// all of the initial time values will be the same
+	timestepsHistory.Values.SetVec(0, config.Partitions[0].Params.InitTimeValue)
 	iterators := make([]*StateIterator, 0)
 	stateHistories := make([]*StateHistory, 0)
 	newWorkChannels := make([](chan *IteratorInputMessage), 0)

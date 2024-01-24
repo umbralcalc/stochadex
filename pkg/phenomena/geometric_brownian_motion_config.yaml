@@ -8,6 +8,7 @@ other_params:
 init_state_values:
 - [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 - [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+init_time_value: 1.0
 seeds: [713, 673]
 state_widths: [10, 10]
 state_history_depths: [2, 2]

@@ -103,6 +103,7 @@ func initCoordinatorForTesting(
 			{0.0, 2.1, 3.5, -1.0, -2.3},
 			{-1.8, 2.0, 3.2, 1.1, 2.3},
 		},
+		InitTimeValue:         0.0,
 		Seeds:                 []uint64{236, 167},
 		StateWidths:           []int{5, 5},
 		StateHistoryDepths:    []int{2, 2},

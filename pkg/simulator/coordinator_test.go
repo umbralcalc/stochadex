@@ -117,6 +117,7 @@ func TestPartitionCoordinator(t *testing.T) {
 					{7.0, 8.0, 3.0, 7.0, 1.0},
 					{1.0, 2.0, 3.0},
 				},
+				InitTimeValue:         0.0,
 				Seeds:                 []uint64{2365, 167},
 				StateWidths:           []int{5, 3},
 				StateHistoryDepths:    []int{2, 10},

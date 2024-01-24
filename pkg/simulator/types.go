@@ -17,6 +17,7 @@ type OtherParams struct {
 type ParamsConfig struct {
 	Other           *OtherParams
 	InitStateValues []float64
+	InitTimeValue   float64
 	Seed            uint64
 }
 
