@@ -19,7 +19,7 @@ import (
 type ImplementationStrings struct {
 	Simulator          simulator.ImplementationStrings   `yaml:"simulator"`
 	Agents             []interactions.AgentConfigStrings `yaml:"agents,omitempty"`
-	ExtraVarsByPackage map[string]map[string]string      `yaml:"extra_vars_by_package,omitempty"`
+	ExtraVarsByPackage []map[string][]map[string]string  `yaml:"extra_vars_by_package,omitempty"`
 }
 
 // DashboardConfig is a yaml-loadable config for the real-time dashboard.
@@ -118,10 +118,16 @@ func writeMainProgram() string {
 	agents += "}"
 	extraPackages := ""
 	extraVariables := ""
-	for extraPackage, extraVars := range implementations.ExtraVarsByPackage {
-		extraPackages += "" + extraPackage + "" + "\n    "
-		for varName, varValue := range extraVars {
-			extraVariables += varName + " := " + varValue + "\n    "
+	for _, extraVarsByPackage := range implementations.ExtraVarsByPackage {
+		for extraPackage, extraVarsSlice := range extraVarsByPackage {
+			if extraPackage != "" {
+				extraPackages += "\"" + extraPackage + "\"" + "\n    "
+			}
+			for _, extraVars := range extraVarsSlice {
+				for varName, varValue := range extraVars {
+					extraVariables += varName + " := " + varValue + "\n    "
+				}
+			}
 		}
 	}
 	codeTemplate := template.New("stochadexMain")
@@ -138,7 +144,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/interactions"
-	"github.com/umbralcalc/stochadex/pkg/phenomena"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	{{.ExtraPackages}}
 )
