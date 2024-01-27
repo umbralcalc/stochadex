@@ -22,7 +22,7 @@ type CompoundPoissonProcessIteration struct {
 
 func (c *CompoundPoissonProcessIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	c.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,

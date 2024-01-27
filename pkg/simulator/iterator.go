@@ -8,7 +8,7 @@ import "gonum.org/v1/gonum/mat"
 // by a slice []*StateHistory and a TimestepsHistory reference and outputs an
 // updated State struct.
 type Iteration interface {
-	Configure(partitionIndex int, settings *LoadSettingsConfig)
+	Configure(partitionIndex int, settings *Settings)
 	Iterate(
 		params *OtherParams,
 		partitionIndex int,
@@ -21,7 +21,7 @@ type Iteration interface {
 // separate goroutine and writing output data to somewhere.
 type StateIterator struct {
 	Iteration          Iteration
-	Params             *ParamsConfig
+	Params             *OtherParams
 	partitionIndex     int
 	outputCondition    OutputCondition
 	outputFunction     OutputFunction
@@ -35,7 +35,7 @@ func (s *StateIterator) Iterate(
 	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	newState := s.Iteration.Iterate(
-		s.Params.Other,
+		s.Params,
 		s.partitionIndex,
 		stateHistories,
 		timestepsHistory,

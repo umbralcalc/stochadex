@@ -9,7 +9,7 @@ import (
 // StateObservation is the interface that must be implemented in order
 // for the Agent to learn what the state is from the simulation.
 type StateObservation interface {
-	Configure(partitionIndex int, settings *simulator.LoadSettingsConfig)
+	Configure(partitionIndex int, settings *simulator.Settings)
 	Observe(
 		params *simulator.OtherParams,
 		partitionIndex int,
@@ -23,7 +23,7 @@ type ExactStateObservation struct{}
 
 func (e *ExactStateObservation) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 }
 
@@ -44,7 +44,7 @@ type GaussianNoiseStateObservation struct {
 
 func (g *GaussianNoiseStateObservation) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	g.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,

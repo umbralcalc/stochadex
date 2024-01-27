@@ -10,7 +10,7 @@ func TestCoxProcess(t *testing.T) {
 	t.Run(
 		"test that the Cox process runs",
 		func(t *testing.T) {
-			settings := simulator.NewLoadSettingsConfigFromYaml(
+			settings := simulator.LoadSettingsFromYaml(
 				"cox_process_config.yaml",
 			)
 			iterations := make([]simulator.Iteration, 0)
@@ -22,7 +22,7 @@ func TestCoxProcess(t *testing.T) {
 			rateIteration.Configure(1, settings)
 			iterations = append(iterations, rateIteration)
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementationsConfig{
+			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
@@ -31,11 +31,10 @@ func TestCoxProcess(t *testing.T) {
 				},
 				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 			}
-			config := simulator.NewStochadexConfig(
+			coordinator := simulator.NewPartitionCoordinator(
 				settings,
 				implementations,
 			)
-			coordinator := simulator.NewPartitionCoordinator(config)
 			coordinator.Run()
 		},
 	)

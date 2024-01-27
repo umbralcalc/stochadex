@@ -12,7 +12,7 @@ import (
 // ActionGenerator is the interface that must be implemented in order
 // to enact the policy of the agent in the simulation.
 type ActionGenerator interface {
-	Configure(partitionIndex int, settings *simulator.LoadSettingsConfig)
+	Configure(partitionIndex int, settings *simulator.Settings)
 	Generate(
 		action *Action,
 		params *simulator.OtherParams,
@@ -27,7 +27,7 @@ type DoNothingActionGenerator struct{}
 
 func (d *DoNothingActionGenerator) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 }
 
@@ -52,7 +52,7 @@ type UserInputActionGenerator struct {
 
 func (u *UserInputActionGenerator) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	u.partitionIndex = partitionIndex
 	u.keystrokeMap = make(map[string]int64)
@@ -110,7 +110,7 @@ func (u *UserInputActionGenerator) Generate(
 // Actor is the interface that must be implemented in order for the Agent
 // to perform actions directly on the state of the stochastic process.
 type Actor interface {
-	Configure(partitionIndex int, settings *simulator.LoadSettingsConfig)
+	Configure(partitionIndex int, settings *simulator.Settings)
 	Act(state []float64, action *Action) []float64
 }
 
@@ -119,7 +119,7 @@ type DoNothingActor struct{}
 
 func (d *DoNothingActor) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 }
 
@@ -143,7 +143,7 @@ type ActingAgentIteration struct {
 // iteration as well as the actor.
 func (a *ActingAgentIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	a.Iteration.Configure(partitionIndex, settings)
 	a.Actor.Configure(partitionIndex, settings)

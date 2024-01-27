@@ -10,7 +10,7 @@ func TestOrnsteinUhlenbeckProcess(t *testing.T) {
 	t.Run(
 		"test that the Ornstein-Uhlenbeck process runs",
 		func(t *testing.T) {
-			settings := simulator.NewLoadSettingsConfigFromYaml("ornstein_uhlenbeck_config.yaml")
+			settings := simulator.LoadSettingsFromYaml("ornstein_uhlenbeck_config.yaml")
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
 				iteration := &OrnsteinUhlenbeckIteration{}
@@ -18,7 +18,7 @@ func TestOrnsteinUhlenbeckProcess(t *testing.T) {
 				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementationsConfig{
+			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
@@ -27,11 +27,10 @@ func TestOrnsteinUhlenbeckProcess(t *testing.T) {
 				},
 				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 			}
-			config := simulator.NewStochadexConfig(
+			coordinator := simulator.NewPartitionCoordinator(
 				settings,
 				implementations,
 			)
-			coordinator := simulator.NewPartitionCoordinator(config)
 			coordinator.Run()
 		},
 	)

@@ -26,7 +26,7 @@ type HawkesProcessIntensityIteration struct {
 
 func (h *HawkesProcessIntensityIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	h.hawkesPartitionIndex = int(
 		settings.OtherParams[partitionIndex].
@@ -79,7 +79,7 @@ type HawkesProcessIteration struct {
 
 func (h *HawkesProcessIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	h.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,

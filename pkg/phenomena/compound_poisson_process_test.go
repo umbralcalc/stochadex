@@ -27,7 +27,7 @@ func TestCompoundPoissonProcess(t *testing.T) {
 	t.Run(
 		"test that the Compound Poisson process runs",
 		func(t *testing.T) {
-			settings := simulator.NewLoadSettingsConfigFromYaml(
+			settings := simulator.LoadSettingsFromYaml(
 				"compound_poisson_process_config.yaml",
 			)
 			iterations := make([]simulator.Iteration, 0)
@@ -47,7 +47,7 @@ func TestCompoundPoissonProcess(t *testing.T) {
 				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementationsConfig{
+			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
@@ -56,11 +56,10 @@ func TestCompoundPoissonProcess(t *testing.T) {
 				},
 				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 			}
-			config := simulator.NewStochadexConfig(
+			coordinator := simulator.NewPartitionCoordinator(
 				settings,
 				implementations,
 			)
-			coordinator := simulator.NewPartitionCoordinator(config)
 			coordinator.Run()
 		},
 	)

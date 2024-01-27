@@ -113,42 +113,44 @@ func (c *PartitionCoordinator) Run() {
 
 // NewPartitionCoordinator creates a new PartitionCoordinator given a
 // StochadexConfig.
-func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
+func NewPartitionCoordinator(
+	settings *Settings,
+	implementations *Implementations,
+) *PartitionCoordinator {
 	timestepsHistory := &CumulativeTimestepsHistory{
 		NextIncrement:     0.0,
-		Values:            mat.NewVecDense(config.Steps.TimestepsHistoryDepth, nil),
-		StateHistoryDepth: config.Steps.TimestepsHistoryDepth,
+		Values:            mat.NewVecDense(settings.TimestepsHistoryDepth, nil),
+		StateHistoryDepth: settings.TimestepsHistoryDepth,
 	}
-	// all of the initial time values will be the same
-	timestepsHistory.Values.SetVec(0, config.Partitions[0].Params.InitTimeValue)
+	timestepsHistory.Values.SetVec(0, settings.InitTimeValue)
 	iterators := make([]*StateIterator, 0)
 	stateHistories := make([]*StateHistory, 0)
 	newWorkChannels := make([](chan *IteratorInputMessage), 0)
-	for index, stateConfig := range config.Partitions {
+	for index, initStateValues := range settings.InitStateValues {
 		stateHistoryValues := mat.NewDense(
-			stateConfig.HistoryDepth,
-			stateConfig.Width,
+			settings.StateHistoryDepths[index],
+			settings.StateWidths[index],
 			nil,
 		)
-		for elementIndex, element := range stateConfig.Params.InitStateValues {
+		for elementIndex, element := range initStateValues {
 			stateHistoryValues.Set(0, elementIndex, element)
 		}
 		stateHistories = append(
 			stateHistories,
 			&StateHistory{
 				Values:            stateHistoryValues,
-				StateWidth:        stateConfig.Width,
-				StateHistoryDepth: stateConfig.HistoryDepth,
+				StateWidth:        settings.StateWidths[index],
+				StateHistoryDepth: settings.StateHistoryDepths[index],
 			},
 		)
 		iterators = append(
 			iterators,
 			&StateIterator{
-				Iteration:       stateConfig.Iteration,
-				Params:          stateConfig.Params,
+				Iteration:       implementations.Iterations[index],
+				Params:          settings.OtherParams[index],
 				partitionIndex:  index,
-				outputCondition: config.Output.Condition,
-				outputFunction:  config.Output.Function,
+				outputCondition: implementations.OutputCondition,
+				outputFunction:  implementations.OutputFunction,
 			},
 		)
 		newWorkChannels = append(
@@ -162,8 +164,8 @@ func NewPartitionCoordinator(config *StochadexConfig) *PartitionCoordinator {
 		TimestepsHistory:     timestepsHistory,
 		newWorkChannels:      newWorkChannels,
 		overallTimesteps:     0,
-		numberOfPartitions:   len(config.Partitions),
-		timestepFunction:     config.Steps.TimestepFunction,
-		terminationCondition: config.Steps.TerminationCondition,
+		numberOfPartitions:   len(implementations.Iterations),
+		timestepFunction:     implementations.TimestepFunction,
+		terminationCondition: implementations.TerminationCondition,
 	}
 }

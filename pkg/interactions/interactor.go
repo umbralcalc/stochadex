@@ -11,7 +11,7 @@ type Interactor struct {
 	iteration      *ActingAgentIteration
 	generator      ActionGenerator
 	observation    StateObservation
-	settings       *simulator.LoadSettingsConfig
+	settings       *simulator.Settings
 }
 
 // Configure configures all of the internal structs with the settings
@@ -67,7 +67,7 @@ func NewInteractor(
 	partitionIndex int,
 	iteration *ActingAgentIteration,
 	config *AgentConfig,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) *Interactor {
 	interactor := &Interactor{
 		partitionIndex: partitionIndex,

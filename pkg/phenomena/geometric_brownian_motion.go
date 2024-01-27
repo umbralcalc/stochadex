@@ -16,7 +16,7 @@ type GeometricBrownianMotionIteration struct {
 
 func (g *GeometricBrownianMotionIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	g.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,

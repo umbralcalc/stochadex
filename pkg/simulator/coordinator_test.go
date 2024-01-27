@@ -11,7 +11,7 @@ type doublingProcessIteration struct{}
 
 func (d *doublingProcessIteration) Configure(
 	partitionIndex int,
-	settings *LoadSettingsConfig,
+	settings *Settings,
 ) {
 }
 
@@ -36,7 +36,7 @@ type paramMultProcessIteration struct{}
 
 func (p *paramMultProcessIteration) Configure(
 	partitionIndex int,
-	settings *LoadSettingsConfig,
+	settings *Settings,
 ) {
 }
 
@@ -108,7 +108,7 @@ func TestPartitionCoordinator(t *testing.T) {
 		func(t *testing.T) {
 			params := make(map[string][]float64)
 			params["multipliers"] = []float64{2.4, 1.0, 4.3, 3.2, 1.1}
-			settings := &LoadSettingsConfig{
+			settings := &Settings{
 				OtherParams: []*OtherParams{
 					{FloatParams: make(map[string][]float64)},
 					{FloatParams: params},
@@ -127,7 +127,7 @@ func TestPartitionCoordinator(t *testing.T) {
 			iterations = append(iterations, &doublingProcessIteration{})
 			iterations = append(iterations, &paramMultProcessIteration{})
 			storeWithGoroutines := make([][][]float64, 2)
-			implementations := &LoadImplementationsConfig{
+			implementations := &Implementations{
 				Iterations:      iterations,
 				OutputCondition: &EveryStepOutputCondition{},
 				OutputFunction:  &VariableStoreOutputFunction{Store: storeWithGoroutines},
@@ -136,15 +136,13 @@ func TestPartitionCoordinator(t *testing.T) {
 				},
 				TimestepFunction: &ConstantTimestepFunction{Stepsize: 1.0},
 			}
-			configWithGoroutines := NewStochadexConfig(settings, implementations)
-			coordWithGoroutines := NewPartitionCoordinator(configWithGoroutines)
+			coordWithGoroutines := NewPartitionCoordinator(settings, implementations)
 			storeWithoutGoroutines := make([][][]float64, 2)
 			outputWithoutGoroutines := &VariableStoreOutputFunction{
 				Store: storeWithoutGoroutines,
 			}
 			implementations.OutputFunction = outputWithoutGoroutines
-			configWithoutGoroutines := NewStochadexConfig(settings, implementations)
-			coordWithoutGoroutines := NewPartitionCoordinator(configWithoutGoroutines)
+			coordWithoutGoroutines := NewPartitionCoordinator(settings, implementations)
 			coordWithGoroutines.Run()
 			run(coordWithoutGoroutines)
 			for tIndex, store := range storeWithoutGoroutines {

@@ -16,7 +16,7 @@ type OrnsteinUhlenbeckIteration struct {
 
 func (o *OrnsteinUhlenbeckIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	o.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,

@@ -16,7 +16,7 @@ type WienerProcessIteration struct {
 
 func (w *WienerProcessIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	w.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,

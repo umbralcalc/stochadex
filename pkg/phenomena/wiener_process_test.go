@@ -10,7 +10,7 @@ func TestWienerProcess(t *testing.T) {
 	t.Run(
 		"test that the Wiener process runs",
 		func(t *testing.T) {
-			settings := simulator.NewLoadSettingsConfigFromYaml("wiener_process_config.yaml")
+			settings := simulator.LoadSettingsFromYaml("wiener_process_config.yaml")
 			iterations := make([]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
 				iteration := &WienerProcessIteration{}
@@ -18,7 +18,7 @@ func TestWienerProcess(t *testing.T) {
 				iterations = append(iterations, iteration)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementationsConfig{
+			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
@@ -27,11 +27,10 @@ func TestWienerProcess(t *testing.T) {
 				},
 				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 			}
-			config := simulator.NewStochadexConfig(
+			coordinator := simulator.NewPartitionCoordinator(
 				settings,
 				implementations,
 			)
-			coordinator := simulator.NewPartitionCoordinator(config)
 			coordinator.Run()
 		},
 	)

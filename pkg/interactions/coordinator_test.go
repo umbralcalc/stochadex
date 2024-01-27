@@ -20,7 +20,7 @@ type randomActionGenerator struct {
 
 func (r *randomActionGenerator) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	r.numDims = settings.StateWidths[partitionIndex]
 	r.uniformDist = &distuv.Uniform{
@@ -49,7 +49,7 @@ type jumpStateActor struct{}
 
 func (j *jumpStateActor) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 }
 
@@ -97,7 +97,7 @@ func initCoordinatorForTesting(
 			"init_action_values":          {1.0, 1.0, 0.0, 0.0, 1.0},
 		},
 	}
-	settings := &simulator.LoadSettingsConfig{
+	settings := &simulator.Settings{
 		OtherParams: []*simulator.OtherParams{otherParams, otherParams},
 		InitStateValues: [][]float64{
 			{0.0, 2.1, 3.5, -1.0, -2.3},
@@ -131,7 +131,7 @@ func initCoordinatorForTesting(
 			Observation: &GaussianNoiseStateObservation{},
 		},
 	)
-	implementations := &simulator.LoadImplementationsConfig{
+	implementations := &simulator.Implementations{
 		Iterations:      iterations,
 		OutputCondition: &simulator.EveryStepOutputCondition{},
 		OutputFunction:  outputFunction,
@@ -141,11 +141,9 @@ func initCoordinatorForTesting(
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 	}
 	return NewPartitionCoordinatorWithAgents(
-		&LoadConfigWithAgents{
-			Settings:        settings,
-			Implementations: implementations,
-			Agents:          agents,
-		},
+		settings,
+		implementations,
+		agents,
 	)
 }
 

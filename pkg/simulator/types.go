@@ -78,3 +78,36 @@ type IteratorInputMessage struct {
 	StateHistories   []*StateHistory
 	TimestepsHistory *CumulativeTimestepsHistory
 }
+
+// Implementations defines all of the types that must be implemented in
+// order to configure a stochastic process defined by the stochadex.
+type Implementations struct {
+	Iterations           []Iteration
+	OutputCondition      OutputCondition
+	OutputFunction       OutputFunction
+	TerminationCondition TerminationCondition
+	TimestepFunction     TimestepFunction
+}
+
+// ImplementationStrings is the yaml-loadable config which consists of string type
+// names to insert into templating.
+type ImplementationStrings struct {
+	Iterations           []string `yaml:"iterations"`
+	OutputCondition      string   `yaml:"output_condition"`
+	OutputFunction       string   `yaml:"output_function"`
+	TerminationCondition string   `yaml:"termination_condition"`
+	TimestepFunction     string   `yaml:"timestep_function"`
+}
+
+// Settings is the yaml-loadable config which defines all of the
+// settings that can be set for a stochastic process defined by the
+// stochadex.
+type Settings struct {
+	OtherParams           []*OtherParams `yaml:"other_params"`
+	InitStateValues       [][]float64    `yaml:"init_state_values"`
+	InitTimeValue         float64        `yaml:"init_time_value"`
+	Seeds                 []uint64       `yaml:"seeds"`
+	StateWidths           []int          `yaml:"state_widths"`
+	StateHistoryDepths    []int          `yaml:"state_history_depths"`
+	TimestepsHistoryDepth int            `yaml:"timesteps_history_depth"`
+}

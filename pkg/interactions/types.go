@@ -26,14 +26,6 @@ type AgentConfigStrings struct {
 	Observation string `yaml:"observation"`
 }
 
-// LoadConfigWithAgents fully configures a stochastic process with agent
-// interactions included.
-type LoadConfigWithAgents struct {
-	Settings        *simulator.LoadSettingsConfig
-	Implementations *simulator.LoadImplementationsConfig
-	Agents          []*AgentConfig
-}
-
 // InteractorInputMessage is a struct which gets passed from the
 // PartitionCoordinatorWithAgents to an Interactor.
 type InteractorInputMessage struct {

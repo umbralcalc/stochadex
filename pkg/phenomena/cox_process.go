@@ -14,7 +14,7 @@ type CoxProcessIteration struct {
 
 func (c *CoxProcessIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	c.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,

@@ -68,16 +68,18 @@ func (p *PartitionCoordinatorWithAgents) Run() {
 // NewPartitionCoordinatorWithAgents creates a new PartitionCoordinatorWithAgents
 // given a LoadConfigWithAgents.
 func NewPartitionCoordinatorWithAgents(
-	config *LoadConfigWithAgents,
+	settings *simulator.Settings,
+	implementations *simulator.Implementations,
+	agents []*AgentConfig,
 ) *PartitionCoordinatorWithAgents {
-	agents := make([]*Interactor, 0)
+	interactors := make([]*Interactor, 0)
 	newWorkChannels := make([](chan *InteractorInputMessage), 0)
-	for index := range config.Implementations.Iterations {
+	for index := range implementations.Iterations {
 		newWorkChannels = append(
 			newWorkChannels,
 			make(chan *InteractorInputMessage),
 		)
-		actionValues := config.Settings.
+		actionValues := settings.
 			OtherParams[index].FloatParams["init_action_values"]
 		action := &Action{}
 		if actionValues != nil {
@@ -88,31 +90,29 @@ func NewPartitionCoordinatorWithAgents(
 		}
 		iteration := &ActingAgentIteration{
 			Action:    action,
-			Iteration: config.Implementations.Iterations[index],
-			Actor:     config.Agents[index].Actor,
+			Iteration: implementations.Iterations[index],
+			Actor:     agents[index].Actor,
 		}
-		agents = append(
-			agents,
+		interactors = append(
+			interactors,
 			NewInteractor(
 				index,
 				iteration,
-				config.Agents[index],
-				config.Settings,
+				agents[index],
+				settings,
 			),
 		)
 		// overwrite the base stochastic process iteration with one that
 		// has actions by the agent in it
-		config.Implementations.Iterations[index] = iteration
+		implementations.Iterations[index] = iteration
 	}
 	return &PartitionCoordinatorWithAgents{
 		coordinator: simulator.NewPartitionCoordinator(
-			simulator.NewStochadexConfig(
-				config.Settings,
-				config.Implementations,
-			),
+			settings,
+			implementations,
 		),
-		agents:             agents,
+		agents:             interactors,
 		newWorkChannels:    newWorkChannels,
-		numberOfPartitions: len(config.Implementations.Iterations),
+		numberOfPartitions: len(implementations.Iterations),
 	}
 }

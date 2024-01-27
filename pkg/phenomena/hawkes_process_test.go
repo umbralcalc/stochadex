@@ -26,7 +26,7 @@ func TestHawkesProcess(t *testing.T) {
 	t.Run(
 		"test that the Hawkes process runs",
 		func(t *testing.T) {
-			settings := simulator.NewLoadSettingsConfigFromYaml(
+			settings := simulator.LoadSettingsFromYaml(
 				"hawkes_process_config.yaml",
 			)
 			iterations := make([]simulator.Iteration, 0)
@@ -39,7 +39,7 @@ func TestHawkesProcess(t *testing.T) {
 			intensityIteration.Configure(1, settings)
 			iterations = append(iterations, intensityIteration)
 			store := make([][][]float64, len(settings.StateWidths))
-			implementations := &simulator.LoadImplementationsConfig{
+			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
@@ -48,11 +48,10 @@ func TestHawkesProcess(t *testing.T) {
 				},
 				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 			}
-			config := simulator.NewStochadexConfig(
+			coordinator := simulator.NewPartitionCoordinator(
 				settings,
 				implementations,
 			)
-			coordinator := simulator.NewPartitionCoordinator(config)
 			coordinator.Run()
 		},
 	)

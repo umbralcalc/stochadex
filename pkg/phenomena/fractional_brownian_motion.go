@@ -46,7 +46,7 @@ type FractionalBrownianMotionIteration struct {
 
 func (f *FractionalBrownianMotionIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	f.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,

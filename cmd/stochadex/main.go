@@ -17,8 +17,9 @@ import (
 // ImplementationStrings is the yaml-loadable config which consists of string type
 // names to insert into templating.
 type ImplementationStrings struct {
-	Simulator simulator.ImplementationStrings   `yaml:"simulator"`
-	Agents    []interactions.AgentConfigStrings `yaml:"agents,omitempty"`
+	Simulator          simulator.ImplementationStrings   `yaml:"simulator"`
+	Agents             []interactions.AgentConfigStrings `yaml:"agents,omitempty"`
+	ExtraVarsByPackage map[string]map[string]string      `yaml:"extra_vars_by_package,omitempty"`
 }
 
 // DashboardConfig is a yaml-loadable config for the real-time dashboard.
@@ -95,7 +96,7 @@ func StochadexArgParse() (
 
 // writeMainProgram writes string representations of various types of data
 // to a template tmp/main.go file ready for runtime execution in this main.go
-func writeMainProgram() {
+func writeMainProgram() string {
 	fmt.Println("\nReading in args...")
 	settingsFile, implementations, dashboard := StochadexArgParse()
 	websocketOn := "true"
@@ -115,6 +116,14 @@ func writeMainProgram() {
 		agents += ", Observation: " + agentStrings.Observation + "},"
 	}
 	agents += "}"
+	extraPackages := ""
+	extraVariables := ""
+	for extraPackage, extraVars := range implementations.ExtraVarsByPackage {
+		extraPackages += "" + extraPackage + "" + "\n    "
+		for varName, varValue := range extraVars {
+			extraVariables += varName + " := " + varValue + "\n    "
+		}
+	}
 	codeTemplate := template.New("stochadexMain")
 	template.Must(codeTemplate.Parse(`package main
 
@@ -131,6 +140,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/interactions"
 	"github.com/umbralcalc/stochadex/pkg/phenomena"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	{{.ExtraPackages}}
 )
 
 var upgrader = websocket.Upgrader{
@@ -157,35 +167,32 @@ type StepperOrRunner interface {
 }
 
 func LoadStepperOrRunner(
-	settings *simulator.LoadSettingsConfig,
-	implementations *simulator.LoadImplementationsConfig,
+	settings *simulator.Settings,
+	implementations *simulator.Implementations,
 	agents []*interactions.AgentConfig,
 ) StepperOrRunner {
 	if len(agents) == 0 {
 		return simulator.NewPartitionCoordinator(
-			simulator.NewStochadexConfig(
-				settings,
-				implementations,
-			),
+			settings,
+		    implementations,
 		)
 	} else {
 		return interactions.NewPartitionCoordinatorWithAgents(
-			&interactions.LoadConfigWithAgents{
-				Settings:        settings,
-				Implementations: implementations,
-				Agents:          agents,
-			},
+			settings,
+			implementations,
+			agents,
 		)
 	}
 }
 
 func main() {
-	settings := simulator.NewLoadSettingsConfigFromYaml("{{.SettingsFile}}")
+	{{.ExtraVars}}
+	settings := simulator.LoadSettingsFromYaml("{{.SettingsFile}}")
 	iterations := {{.Iterations}}
 	for partitionIndex := range settings.StateWidths {
 		iterations[partitionIndex].Configure(partitionIndex, settings)
 	}
-	implementations := &simulator.LoadImplementationsConfig{
+	implementations := &simulator.Implementations{
 		Iterations:      iterations,
 		OutputCondition: {{.OutputCondition}},
 		OutputFunction:  {{.OutputFunction}},
@@ -235,13 +242,13 @@ func main() {
 		stepperOrRunner.Run()
 	}
 }`))
-	file, err := os.Create("tmp/main.go")
+	file, err := os.CreateTemp("tmp", "*main.go")
 	if err != nil {
 		err := os.Mkdir("tmp", 0755)
 		if err != nil {
 			panic(err)
 		}
-		file, err = os.Create("tmp/main.go")
+		file, _ = os.CreateTemp("tmp", "*main.go")
 	}
 	err = codeTemplate.Execute(
 		file,
@@ -254,6 +261,8 @@ func main() {
 			"MillisecondDelay":     strconv.Itoa(int(dashboard.MillisecondDelay)),
 			"Iterations":           iterations,
 			"Agents":               agents,
+			"ExtraVars":            extraVariables,
+			"ExtraPackages":        extraPackages,
 			"OutputCondition":      implementations.Simulator.OutputCondition,
 			"OutputFunction":       implementations.Simulator.OutputFunction,
 			"TerminationCondition": implementations.Simulator.TerminationCondition,
@@ -263,15 +272,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	file.Close()
+	return file.Name()
 }
 
 func main() {
 	// hydrate the template code and write it to tmp/main.go
-	writeMainProgram()
+	fileName := writeMainProgram()
+	defer os.Remove(fileName)
 
 	// execute the code
-	runCmd := exec.Command("go", "run", "tmp/main.go")
+	runCmd := exec.Command("go", "run", fileName)
 	runCmd.Stdout = os.Stdout
 	runCmd.Stderr = os.Stderr
 	if err := runCmd.Run(); err != nil {

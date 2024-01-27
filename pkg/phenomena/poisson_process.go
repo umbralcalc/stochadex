@@ -14,7 +14,7 @@ type PoissonProcessIteration struct {
 
 func (p *PoissonProcessIteration) Configure(
 	partitionIndex int,
-	settings *simulator.LoadSettingsConfig,
+	settings *simulator.Settings,
 ) {
 	p.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,
