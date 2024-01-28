@@ -95,8 +95,9 @@ func run(c *PartitionCoordinator) {
 		c.StateHistories,
 		c.TimestepsHistory,
 	) {
-		c.TimestepsHistory.StepsTaken += 1
-		c.TimestepsHistory = c.timestepFunction.SetNextIncrement(c.TimestepsHistory)
+		c.TimestepsHistory.CurrentStepNumber += 1
+		c.TimestepsHistory =
+			c.timestepFunction.SetNextIncrement(c.TimestepsHistory)
 		iterateHistory(c)
 	}
 }

@@ -19,7 +19,7 @@ func (t *NumberOfStepsTerminationCondition) Terminate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
 ) bool {
-	return timestepsHistory.StepsTaken >= t.MaxNumberOfSteps
+	return timestepsHistory.CurrentStepNumber >= t.MaxNumberOfSteps
 }
 
 // TimeElapsedTerminationCondition terminates the process when the

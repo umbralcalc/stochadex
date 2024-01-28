@@ -79,7 +79,7 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 // a new configuration of the latter to run the desired process for a single step.
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// update the overall step count and get the next time increment
-	c.TimestepsHistory.StepsTaken += 1
+	c.TimestepsHistory.CurrentStepNumber += 1
 	c.TimestepsHistory = c.timestepFunction.SetNextIncrement(c.TimestepsHistory)
 
 	// begin by requesting iterations for the next step and waiting
@@ -117,8 +117,8 @@ func NewPartitionCoordinator(
 ) *PartitionCoordinator {
 	timestepsHistory := &CumulativeTimestepsHistory{
 		NextIncrement:     0.0,
-		StepsTaken:        0,
 		Values:            mat.NewVecDense(settings.TimestepsHistoryDepth, nil),
+		CurrentStepNumber: 0,
 		StateHistoryDepth: settings.TimestepsHistoryDepth,
 	}
 	timestepsHistory.Values.SetVec(0, settings.InitTimeValue)

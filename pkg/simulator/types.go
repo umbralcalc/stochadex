@@ -27,8 +27,8 @@ type StateHistory struct {
 // which includes the next value to increment time by and number of steps taken.
 type CumulativeTimestepsHistory struct {
 	NextIncrement     float64
-	StepsTaken        int
 	Values            *mat.VecDense
+	CurrentStepNumber int
 	StateHistoryDepth int
 }
 
