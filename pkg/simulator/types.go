@@ -13,46 +13,6 @@ type OtherParams struct {
 	IntParamsMask   map[string][]bool    `yaml:"int_params_mask,omitempty"`
 }
 
-// ParamsConfig contains all the hyperparameters of the stochastic process.
-type ParamsConfig struct {
-	Other           *OtherParams
-	InitStateValues []float64
-	InitTimeValue   float64
-	Seed            uint64
-}
-
-// StateConfig completely configures a given state partition of the
-// full stochastic process.
-type StateConfig struct {
-	Iteration    Iteration
-	Params       *ParamsConfig
-	Width        int
-	HistoryDepth int
-}
-
-// StepsConfig completely configures all of the necessary information
-// required to specify how the stochastic process evolves (steps) in time.
-type StepsConfig struct {
-	TerminationCondition  TerminationCondition
-	TimestepFunction      TimestepFunction
-	TimestepsHistoryDepth int
-}
-
-// OutputConfig completely specifies how each state partition outputs
-// information to the user.
-type OutputConfig struct {
-	Condition OutputCondition
-	Function  OutputFunction
-}
-
-// StochadexConfig fully configures a stochastic process implemented
-// in the stochadex.
-type StochadexConfig struct {
-	Partitions []*StateConfig
-	Output     *OutputConfig
-	Steps      *StepsConfig
-}
-
 // StateHistory represents the information contained within a windowed
 // history of State structs.
 type StateHistory struct {
@@ -64,9 +24,10 @@ type StateHistory struct {
 }
 
 // CumulativeTimestepsHistory is a windowed history of cumulative timestep values
-// which includes the next value to increment time by.
+// which includes the next value to increment time by and number of steps taken.
 type CumulativeTimestepsHistory struct {
 	NextIncrement     float64
+	StepsTaken        int
 	Values            *mat.VecDense
 	StateHistoryDepth int
 }

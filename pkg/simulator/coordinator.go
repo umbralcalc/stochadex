@@ -14,7 +14,6 @@ type PartitionCoordinator struct {
 	StateHistories       []*StateHistory
 	TimestepsHistory     *CumulativeTimestepsHistory
 	newWorkChannels      [](chan *IteratorInputMessage)
-	overallTimesteps     int
 	numberOfPartitions   int
 	timestepFunction     TimestepFunction
 	terminationCondition TerminationCondition
@@ -80,7 +79,7 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 // a new configuration of the latter to run the desired process for a single step.
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// update the overall step count and get the next time increment
-	c.overallTimesteps += 1
+	c.TimestepsHistory.StepsTaken += 1
 	c.TimestepsHistory = c.timestepFunction.SetNextIncrement(c.TimestepsHistory)
 
 	// begin by requesting iterations for the next step and waiting
@@ -97,7 +96,6 @@ func (c *PartitionCoordinator) ReadyToTerminate() bool {
 	return c.terminationCondition.Terminate(
 		c.StateHistories,
 		c.TimestepsHistory,
-		c.overallTimesteps,
 	)
 }
 
@@ -119,6 +117,7 @@ func NewPartitionCoordinator(
 ) *PartitionCoordinator {
 	timestepsHistory := &CumulativeTimestepsHistory{
 		NextIncrement:     0.0,
+		StepsTaken:        0,
 		Values:            mat.NewVecDense(settings.TimestepsHistoryDepth, nil),
 		StateHistoryDepth: settings.TimestepsHistoryDepth,
 	}
@@ -163,7 +162,6 @@ func NewPartitionCoordinator(
 		StateHistories:       stateHistories,
 		TimestepsHistory:     timestepsHistory,
 		newWorkChannels:      newWorkChannels,
-		overallTimesteps:     0,
 		numberOfPartitions:   len(implementations.Iterations),
 		timestepFunction:     implementations.TimestepFunction,
 		terminationCondition: implementations.TerminationCondition,

@@ -6,7 +6,6 @@ type TerminationCondition interface {
 	Terminate(
 		stateHistories []*StateHistory,
 		timestepsHistory *CumulativeTimestepsHistory,
-		overallTimesteps int,
 	) bool
 }
 
@@ -19,9 +18,8 @@ type NumberOfStepsTerminationCondition struct {
 func (t *NumberOfStepsTerminationCondition) Terminate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
-	overallTimesteps int,
 ) bool {
-	return overallTimesteps >= t.MaxNumberOfSteps
+	return timestepsHistory.StepsTaken >= t.MaxNumberOfSteps
 }
 
 // TimeElapsedTerminationCondition terminates the process when the
@@ -33,7 +31,6 @@ type TimeElapsedTerminationCondition struct {
 func (t *TimeElapsedTerminationCondition) Terminate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
-	overallTimesteps int,
 ) bool {
 	return timestepsHistory.Values.AtVec(0) >= t.MaxTimeElapsed
 }
