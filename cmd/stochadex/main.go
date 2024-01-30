@@ -27,6 +27,7 @@ type DashboardConfig struct {
 	Address          string `yaml:"address"`
 	Handle           string `yaml:"handle"`
 	MillisecondDelay uint64 `yaml:"millisecond_delay"`
+	ReactAppLocation string `yaml:"react_app_location"`
 	LaunchDashboard  bool   `yaml:"launch_dashboard"`
 }
 
@@ -154,7 +155,7 @@ var upgrader = websocket.Upgrader{
 
 func startDashboardApp() (*os.Process, error) {
 	cmd := exec.Command("serve", "-s", "build")
-	cmd.Dir = "app/"
+	cmd.Dir = "{{.ReactAppLocation}}"
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -263,6 +264,7 @@ func main() {
 			"Websocket":            websocketOn,
 			"Address":              dashboard.Address,
 			"Handle":               dashboard.Handle,
+			"ReactAppLocation":     dashboard.ReactAppLocation,
 			"MillisecondDelay":     strconv.Itoa(int(dashboard.MillisecondDelay)),
 			"Iterations":           iterations,
 			"Agents":               agents,
