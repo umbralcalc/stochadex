@@ -57,7 +57,7 @@ func StochadexArgParse() (
 		"dashboard",
 		&argparse.Options{
 			Required: false,
-			Help:     "yaml config path for string implementations",
+			Help:     "yaml config path for dashboard",
 		},
 	)
 	err := parser.Parse(os.Args)
