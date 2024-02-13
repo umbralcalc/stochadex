@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"strconv"
 	"sync"
 
 	"gonum.org/v1/gonum/mat"
@@ -10,11 +11,11 @@ import (
 // separate StateIterator objects on separate goroutines and when to enact
 // these updates on the state history.
 type PartitionCoordinator struct {
-	Iterators            []*StateIterator
+	Iterators            [][]*StateIterator
 	StateHistories       []*StateHistory
 	TimestepsHistory     *CumulativeTimestepsHistory
 	newWorkChannels      [](chan *IteratorInputMessage)
-	numberOfPartitions   int
+	partitionIndices     [][]int
 	timestepFunction     TimestepFunction
 	terminationCondition TerminationCondition
 }
@@ -23,18 +24,28 @@ type PartitionCoordinator struct {
 // carry out a ReceiveAndIteratePending job.
 func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 	// setup iterators to receive and send their iteration results
-	for index := 0; index < c.numberOfPartitions; index++ {
+	for parallelIndex, serialPartitions := range c.partitionIndices {
 		wg.Add(1)
-		i := index
+		i := parallelIndex
+		parts := serialPartitions
 		go func() {
 			defer wg.Done()
-			c.Iterators[i].ReceiveAndIteratePending(c.newWorkChannels[i])
+			latestStateValues := make(map[string][]float64)
+			for serialIndex, iterator := range c.Iterators[i] {
+				partitionIndex := parts[serialIndex]
+				for k, v := range latestStateValues {
+					iterator.Params.FloatParams[k] = v
+				}
+				iterator.ReceiveAndIteratePending(c.newWorkChannels[partitionIndex])
+				latestStateValues["partition_"+strconv.Itoa(partitionIndex)] =
+					iterator.PendingStateUpdate
+			}
 		}()
 	}
 	// send messages on the new work channels to ask for the next iteration
 	// in the case of each partition
-	for index := 0; index < c.numberOfPartitions; index++ {
-		c.newWorkChannels[index] <- &IteratorInputMessage{
+	for _, channel := range c.newWorkChannels {
+		channel <- &IteratorInputMessage{
 			StateHistories:   c.StateHistories,
 			TimestepsHistory: c.TimestepsHistory,
 		}
@@ -45,18 +56,21 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 // carry out an UpdateHistory job.
 func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	// setup iterators to receive and send their iteration results
-	for index := 0; index < c.numberOfPartitions; index++ {
-		wg.Add(1)
-		i := index
-		go func() {
-			defer wg.Done()
-			c.Iterators[i].UpdateHistory(c.newWorkChannels[i])
-		}()
+	for parallelIndex, serialPartitions := range c.partitionIndices {
+		for serialIndex, index := range serialPartitions {
+			wg.Add(1)
+			i := index
+			iterator := c.Iterators[parallelIndex][serialIndex]
+			go func() {
+				defer wg.Done()
+				iterator.UpdateHistory(c.newWorkChannels[i])
+			}()
+		}
 	}
 	// send messages on the new work channels to ask for the next iteration
 	// in the case of each partition
-	for index := 0; index < c.numberOfPartitions; index++ {
-		c.newWorkChannels[index] <- &IteratorInputMessage{
+	for _, channel := range c.newWorkChannels {
+		channel <- &IteratorInputMessage{
 			StateHistories:   c.StateHistories,
 			TimestepsHistory: c.TimestepsHistory,
 		}
@@ -122,47 +136,58 @@ func NewPartitionCoordinator(
 		StateHistoryDepth: settings.TimestepsHistoryDepth,
 	}
 	timestepsHistory.Values.SetVec(0, settings.InitTimeValue)
-	iterators := make([]*StateIterator, 0)
+	iterators := make([][]*StateIterator, 0)
 	stateHistories := make([]*StateHistory, 0)
 	newWorkChannels := make([](chan *IteratorInputMessage), 0)
-	for index, initStateValues := range settings.InitStateValues {
-		stateHistoryValues := mat.NewDense(
-			settings.StateHistoryDepths[index],
-			settings.StateWidths[index],
-			nil,
-		)
-		for elementIndex, element := range initStateValues {
-			stateHistoryValues.Set(0, elementIndex, element)
+	partitionIndices := make([][]int, 0)
+	index := 0
+	for parallelIndex, iterations := range implementations.Iterations {
+		iterators = append(iterators, make([]*StateIterator, 0))
+		partitionIndices = append(partitionIndices, make([]int, 0))
+		for _, iteration := range iterations {
+			partitionIndices[parallelIndex] = append(
+				partitionIndices[parallelIndex],
+				index,
+			)
+			stateHistoryValues := mat.NewDense(
+				settings.StateHistoryDepths[index],
+				settings.StateWidths[index],
+				nil,
+			)
+			for elementIndex, element := range settings.InitStateValues[index] {
+				stateHistoryValues.Set(0, elementIndex, element)
+			}
+			stateHistories = append(
+				stateHistories,
+				&StateHistory{
+					Values:            stateHistoryValues,
+					StateWidth:        settings.StateWidths[index],
+					StateHistoryDepth: settings.StateHistoryDepths[index],
+				},
+			)
+			iterators[parallelIndex] = append(
+				iterators[parallelIndex],
+				&StateIterator{
+					Iteration:       iteration,
+					Params:          settings.OtherParams[index],
+					partitionIndex:  index,
+					outputCondition: implementations.OutputCondition,
+					outputFunction:  implementations.OutputFunction,
+				},
+			)
+			newWorkChannels = append(
+				newWorkChannels,
+				make(chan *IteratorInputMessage),
+			)
+			index += 1
 		}
-		stateHistories = append(
-			stateHistories,
-			&StateHistory{
-				Values:            stateHistoryValues,
-				StateWidth:        settings.StateWidths[index],
-				StateHistoryDepth: settings.StateHistoryDepths[index],
-			},
-		)
-		iterators = append(
-			iterators,
-			&StateIterator{
-				Iteration:       implementations.Iterations[index],
-				Params:          settings.OtherParams[index],
-				partitionIndex:  index,
-				outputCondition: implementations.OutputCondition,
-				outputFunction:  implementations.OutputFunction,
-			},
-		)
-		newWorkChannels = append(
-			newWorkChannels,
-			make(chan *IteratorInputMessage),
-		)
 	}
 	return &PartitionCoordinator{
 		Iterators:            iterators,
 		StateHistories:       stateHistories,
 		TimestepsHistory:     timestepsHistory,
 		newWorkChannels:      newWorkChannels,
-		numberOfPartitions:   len(implementations.Iterations),
+		partitionIndices:     partitionIndices,
 		timestepFunction:     implementations.TimestepFunction,
 		terminationCondition: implementations.TerminationCondition,
 	}

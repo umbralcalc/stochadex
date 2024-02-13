@@ -1,6 +1,8 @@
 package phenomena
 
 import (
+	"strconv"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
@@ -99,10 +101,10 @@ func (h *HawkesProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	rateHistory := stateHistories[h.intensityPartitionIndex]
+	rates := otherParams.FloatParams["partition_"+strconv.Itoa(h.intensityPartitionIndex)]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
-		if rateHistory.Values.At(0, i) > (rateHistory.Values.At(0, i)+
+		if rates[i] > (rates[i]+
 			(1.0/timestepsHistory.NextIncrement))*h.unitUniformDist.Rand() {
 			values[i] = stateHistory.Values.At(0, i) + 1.0
 		} else {

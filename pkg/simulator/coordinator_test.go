@@ -55,9 +55,13 @@ func (p *paramMultProcessIteration) Iterate(
 	return values
 }
 
-func iteratePartition(c *PartitionCoordinator, partitionIndex int) []float64 {
+func iteratePartition(
+	c *PartitionCoordinator,
+	parallelIndex int,
+	serialIndex int,
+) []float64 {
 	// iterate this partition by one step within the same thread
-	return c.Iterators[partitionIndex].Iterate(
+	return c.Iterators[parallelIndex][serialIndex].Iterate(
 		c.StateHistories,
 		c.TimestepsHistory,
 	)
@@ -65,17 +69,19 @@ func iteratePartition(c *PartitionCoordinator, partitionIndex int) []float64 {
 
 func iterateHistory(c *PartitionCoordinator) {
 	// update the state history for each job in turn within the same thread
-	for index := 0; index < c.numberOfPartitions; index++ {
-		state := iteratePartition(c, index)
-		// reference this partition
-		partition := c.StateHistories[index]
-		// iterate over the history (matrix columns) and shift them
-		// back one timestep
-		for i := 1; i < partition.StateHistoryDepth; i++ {
-			partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
+	for parallelIndex, serialPartitions := range c.partitionIndices {
+		for serialIndex, index := range serialPartitions {
+			state := iteratePartition(c, parallelIndex, serialIndex)
+			// reference this partition
+			partition := c.StateHistories[index]
+			// iterate over the history (matrix columns) and shift them
+			// back one timestep
+			for i := 1; i < partition.StateHistoryDepth; i++ {
+				partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
+			}
+			// update the latest state in the history
+			partition.Values.SetRow(0, state)
 		}
-		// update the latest state in the history
-		partition.Values.SetRow(0, state)
 	}
 
 	// iterate over the history of timesteps and shift them back one
@@ -123,9 +129,9 @@ func TestPartitionCoordinator(t *testing.T) {
 				StateHistoryDepths:    []int{2, 10},
 				TimestepsHistoryDepth: 10,
 			}
-			iterations := make([]Iteration, 0)
-			iterations = append(iterations, &doublingProcessIteration{})
-			iterations = append(iterations, &paramMultProcessIteration{})
+			iterations := make([][]Iteration, 0)
+			iterations = append(iterations, []Iteration{&doublingProcessIteration{}})
+			iterations = append(iterations, []Iteration{&paramMultProcessIteration{}})
 			storeWithGoroutines := make([][][]float64, 2)
 			implementations := &Implementations{
 				Iterations:      iterations,

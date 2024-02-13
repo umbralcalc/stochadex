@@ -43,7 +43,7 @@ type IteratorInputMessage struct {
 // Implementations defines all of the types that must be implemented in
 // order to configure a stochastic process defined by the stochadex.
 type Implementations struct {
-	Iterations           []Iteration
+	Iterations           [][]Iteration
 	OutputCondition      OutputCondition
 	OutputFunction       OutputFunction
 	TerminationCondition TerminationCondition
@@ -53,11 +53,11 @@ type Implementations struct {
 // ImplementationStrings is the yaml-loadable config which consists of string type
 // names to insert into templating.
 type ImplementationStrings struct {
-	Iterations           []string `yaml:"iterations"`
-	OutputCondition      string   `yaml:"output_condition"`
-	OutputFunction       string   `yaml:"output_function"`
-	TerminationCondition string   `yaml:"termination_condition"`
-	TimestepFunction     string   `yaml:"timestep_function"`
+	Iterations           [][]string `yaml:"iterations"`
+	OutputCondition      string     `yaml:"output_condition"`
+	OutputFunction       string     `yaml:"output_function"`
+	TerminationCondition string     `yaml:"termination_condition"`
+	TimestepFunction     string     `yaml:"timestep_function"`
 }
 
 // Settings is the yaml-loadable config which defines all of the

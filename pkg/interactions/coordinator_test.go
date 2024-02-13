@@ -65,11 +65,11 @@ func (j *jumpStateActor) Act(
 
 func step(p *PartitionCoordinatorWithAgents, wg *sync.WaitGroup) {
 	// interact with the system
-	for index := 0; index < p.numberOfPartitions; index++ {
-		p.agents[index].Interact(
+	for i, agent := range p.agents {
+		agent.Interact(
 			p.coordinator.StateHistories,
 			p.coordinator.TimestepsHistory,
-			p.coordinator.Iterators[index],
+			p.coordinator.Iterators[p.parallelIndices[i]][p.serialIndices[i]],
 		)
 	}
 	// now step the underlying simulation
@@ -109,28 +109,24 @@ func initCoordinatorForTesting(
 		StateHistoryDepths:    []int{2, 2},
 		TimestepsHistoryDepth: 2,
 	}
-	iterations := make([]simulator.Iteration, 0)
+	iterations := make([][]simulator.Iteration, 0)
 	firstIteration := &phenomena.WienerProcessIteration{}
-	iterations = append(iterations, firstIteration)
+	firstIteration.Configure(0, settings)
+	iterations = append(iterations, []simulator.Iteration{firstIteration})
 	secondIteration := &phenomena.WienerProcessIteration{}
-	iterations = append(iterations, secondIteration)
-	agents := make([]*AgentConfig, 0)
-	agents = append(
-		agents,
-		&AgentConfig{
-			Actor:       &jumpStateActor{},
-			Generator:   &randomActionGenerator{},
-			Observation: &GaussianNoiseStateObservation{},
-		},
-	)
-	agents = append(
-		agents,
-		&AgentConfig{
-			Actor:       &jumpStateActor{},
-			Generator:   &randomActionGenerator{},
-			Observation: &GaussianNoiseStateObservation{},
-		},
-	)
+	secondIteration.Configure(0, settings)
+	iterations = append(iterations, []simulator.Iteration{secondIteration})
+	agents := make(map[int]*AgentConfig)
+	agents[0] = &AgentConfig{
+		Actor:       &jumpStateActor{},
+		Generator:   &randomActionGenerator{},
+		Observation: &GaussianNoiseStateObservation{},
+	}
+	agents[1] = &AgentConfig{
+		Actor:       &jumpStateActor{},
+		Generator:   &randomActionGenerator{},
+		Observation: &GaussianNoiseStateObservation{},
+	}
 	implementations := &simulator.Implementations{
 		Iterations:      iterations,
 		OutputCondition: &simulator.EveryStepOutputCondition{},

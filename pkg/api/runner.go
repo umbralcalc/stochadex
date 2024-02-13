@@ -26,7 +26,7 @@ type StepperOrRunner interface {
 func LoadStepperOrRunner(
 	settings *simulator.Settings,
 	implementations *simulator.Implementations,
-	agents []*interactions.AgentConfig,
+	agents map[int]*interactions.AgentConfig,
 ) StepperOrRunner {
 	if len(agents) == 0 {
 		return simulator.NewPartitionCoordinator(
@@ -47,7 +47,7 @@ func LoadStepperOrRunner(
 func StepAndServeWebsocket(
 	settings *simulator.Settings,
 	implementations *simulator.Implementations,
-	agents []*interactions.AgentConfig,
+	agents map[int]*interactions.AgentConfig,
 	stepDelay time.Duration,
 	handle string,
 	address string,

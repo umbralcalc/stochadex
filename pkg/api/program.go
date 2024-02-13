@@ -15,9 +15,9 @@ import (
 // ImplementationsConfigStrings is the yaml-loadable config which consists of
 // string type names to insert into templating.
 type ImplementationsConfigStrings struct {
-	Simulator          simulator.ImplementationStrings   `yaml:"simulator"`
-	Agents             []interactions.AgentConfigStrings `yaml:"agents,omitempty"`
-	ExtraVarsByPackage []map[string][]map[string]string  `yaml:"extra_vars_by_package,omitempty"`
+	Simulator          simulator.ImplementationStrings         `yaml:"simulator"`
+	AgentByPartition   map[int]interactions.AgentConfigStrings `yaml:"agent_by_partition,omitempty"`
+	ExtraVarsByPackage []map[string][]map[string]string        `yaml:"extra_vars_by_package,omitempty"`
 }
 
 // WriteMainProgram writes string representations of various types of data
@@ -35,10 +35,14 @@ func WriteMainProgram(
 	}
 	fmt.Println("\nParsed implementations:")
 	fmt.Println(implementations)
-	iterations := "[]simulator.Iteration{" +
-		strings.Join(implementations.Simulator.Iterations, ", ") + "}"
-	agents := "[]*interactions.AgentConfig{"
-	for _, agentStrings := range implementations.Agents {
+	iterations := "[][]simulator.Iteration{"
+	for _, serialIterations := range implementations.Simulator.Iterations {
+		iterations += "{" + strings.Join(serialIterations, ", ") + "}, "
+	}
+	iterations += "}"
+	agents := "map[int]*interactions.AgentConfig{"
+	for i, agentStrings := range implementations.AgentByPartition {
+		agents += strconv.Itoa(i) + ": "
 		agents += "{Actor: " + agentStrings.Actor
 		agents += ", Generator: " + agentStrings.Generator
 		agents += ", Observation: " + agentStrings.Observation + "},"
@@ -76,8 +80,12 @@ func main() {
 	{{.ExtraVars}}
 	settings := simulator.LoadSettingsFromYaml("{{.SettingsFile}}")
 	iterations := {{.Iterations}}
-	for partitionIndex := range settings.StateWidths {
-		iterations[partitionIndex].Configure(partitionIndex, settings)
+	index := 0
+	for _, serialPartitions := range iterations {
+		for _, iteration := range serialPartitions {
+			iteration.Configure(index, settings)
+			index += 1
+		}
 	}
 	implementations := &simulator.Implementations{
 		Iterations:      iterations,

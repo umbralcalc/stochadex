@@ -11,11 +11,11 @@ func TestPoissonProcess(t *testing.T) {
 		"test that the Poisson process runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("poisson_process_config.yaml")
-			iterations := make([]simulator.Iteration, 0)
+			iterations := make([][]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
 				iteration := &PoissonProcessIteration{}
 				iteration.Configure(partitionIndex, settings)
-				iterations = append(iterations, iteration)
+				iterations = append(iterations, []simulator.Iteration{iteration})
 			}
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.Implementations{
