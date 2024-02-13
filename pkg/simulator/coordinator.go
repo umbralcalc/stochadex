@@ -30,15 +30,14 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 		parts := serialPartitions
 		go func() {
 			defer wg.Done()
-			latestStateValues := make(map[string][]float64)
 			for serialIndex, iterator := range c.Iterators[i] {
 				partitionIndex := parts[serialIndex]
-				for k, v := range latestStateValues {
-					iterator.Params.FloatParams[k] = v
+				for si := 0; si < serialIndex; si++ {
+					iterator.Params.FloatParams["partition_"+strconv.Itoa(
+						partitionIndex-serialIndex+si)] =
+						c.Iterators[i][si].PendingStateUpdate
 				}
 				iterator.ReceiveAndIteratePending(c.newWorkChannels[partitionIndex])
-				latestStateValues["partition_"+strconv.Itoa(partitionIndex)] =
-					iterator.PendingStateUpdate
 			}
 		}()
 	}
