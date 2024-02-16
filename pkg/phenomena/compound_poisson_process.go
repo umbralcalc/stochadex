@@ -32,7 +32,7 @@ func (c *CompoundPoissonProcessIteration) Configure(
 }
 
 func (c *CompoundPoissonProcessIteration) Iterate(
-	otherParams *simulator.OtherParams,
+	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -40,9 +40,9 @@ func (c *CompoundPoissonProcessIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
-		if otherParams.FloatParams["rates"][i] > (otherParams.FloatParams["rates"][i]+
+		if params.FloatParams["rates"][i] > (params.FloatParams["rates"][i]+
 			(1.0/timestepsHistory.NextIncrement))*c.unitUniformDist.Rand() {
-			values[i] = stateHistory.Values.At(0, i) + c.jumpDist.NewJump(otherParams, i)
+			values[i] = stateHistory.Values.At(0, i) + c.jumpDist.NewJump(params, i)
 		} else {
 			values[i] = stateHistory.Values.At(0, i)
 		}

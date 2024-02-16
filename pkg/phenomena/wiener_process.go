@@ -26,7 +26,7 @@ func (w *WienerProcessIteration) Configure(
 }
 
 func (w *WienerProcessIteration) Iterate(
-	otherParams *simulator.OtherParams,
+	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -35,7 +35,7 @@ func (w *WienerProcessIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +
-			math.Sqrt(otherParams.FloatParams["variances"][i]*
+			math.Sqrt(params.FloatParams["variances"][i]*
 				timestepsHistory.NextIncrement)*w.unitNormalDist.Rand()
 	}
 	return values

@@ -12,7 +12,7 @@ import (
 // for an exciting kernel of the Hawkes process.
 type HawkesProcessExcitingKernel interface {
 	Evaluate(
-		otherParams *simulator.OtherParams,
+		params *simulator.OtherParams,
 		currentTime float64,
 		somePreviousTime float64,
 		stateElement int,
@@ -37,7 +37,7 @@ func (h *HawkesProcessIntensityIteration) Configure(
 }
 
 func (h *HawkesProcessIntensityIteration) Iterate(
-	otherParams *simulator.OtherParams,
+	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -46,11 +46,11 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
-		values[i] = otherParams.FloatParams["background_rates"][i]
+		values[i] = params.FloatParams["background_rates"][i]
 		for j := 1; j < hawkesHistory.StateHistoryDepth; j++ {
 			values[i] += (hawkesHistory.Values.At(j, i) -
 				hawkesHistory.Values.At(j-1, i)) * h.excitingKernel.Evaluate(
-				otherParams,
+				params,
 				timestepsHistory.Values.AtVec(j),
 				timestepsHistory.Values.AtVec(j-1),
 				i,
@@ -95,13 +95,13 @@ func (h *HawkesProcessIteration) Configure(
 }
 
 func (h *HawkesProcessIteration) Iterate(
-	otherParams *simulator.OtherParams,
+	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	rates := otherParams.FloatParams["partition_"+strconv.Itoa(h.intensityPartitionIndex)]
+	rates := params.FloatParams["partition_"+strconv.Itoa(h.intensityPartitionIndex)]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		if rates[i] > (rates[i]+

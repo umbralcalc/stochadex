@@ -26,7 +26,7 @@ func (g *GeometricBrownianMotionIteration) Configure(
 }
 
 func (g *GeometricBrownianMotionIteration) Iterate(
-	otherParams *simulator.OtherParams,
+	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -35,7 +35,7 @@ func (g *GeometricBrownianMotionIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) * (1.0 +
-			math.Sqrt(otherParams.FloatParams["variances"][i]*
+			math.Sqrt(params.FloatParams["variances"][i]*
 				timestepsHistory.NextIncrement)*g.unitNormalDist.Rand())
 	}
 	return values

@@ -15,11 +15,11 @@ type gammaJumpDistribution struct {
 }
 
 func (g *gammaJumpDistribution) NewJump(
-	otherParams *simulator.OtherParams,
+	params *simulator.OtherParams,
 	stateElement int,
 ) float64 {
-	g.dist.Alpha = otherParams.FloatParams["gamma_alphas"][stateElement]
-	g.dist.Beta = otherParams.FloatParams["gamma_betas"][stateElement]
+	g.dist.Alpha = params.FloatParams["gamma_alphas"][stateElement]
+	g.dist.Beta = params.FloatParams["gamma_betas"][stateElement]
 	return g.dist.Rand()
 }
 

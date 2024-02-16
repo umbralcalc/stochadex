@@ -30,13 +30,13 @@ func (c *CoxProcessIteration) Configure(
 }
 
 func (c *CoxProcessIteration) Iterate(
-	otherParams *simulator.OtherParams,
+	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	rates := otherParams.FloatParams["partition_"+strconv.Itoa(c.rateProcessPartitionIndex)]
+	rates := params.FloatParams["partition_"+strconv.Itoa(c.rateProcessPartitionIndex)]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		if rates[i] > (rates[i]+

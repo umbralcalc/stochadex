@@ -12,13 +12,13 @@ import (
 type exponentialExcitingKernel struct{}
 
 func (e *exponentialExcitingKernel) Evaluate(
-	otherParams *simulator.OtherParams,
+	params *simulator.OtherParams,
 	currentTime float64,
 	somePreviousTime float64,
 	stateElement int,
 ) float64 {
 	return math.Exp(
-		-otherParams.FloatParams["exponential_decays"][stateElement] *
+		-params.FloatParams["exponential_decays"][stateElement] *
 			(currentTime - somePreviousTime))
 }
 

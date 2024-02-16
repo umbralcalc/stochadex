@@ -16,7 +16,7 @@ func (d *doublingProcessIteration) Configure(
 }
 
 func (d *doublingProcessIteration) Iterate(
-	otherParams *OtherParams,
+	params *OtherParams,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -41,7 +41,7 @@ func (p *paramMultProcessIteration) Configure(
 }
 
 func (p *paramMultProcessIteration) Iterate(
-	otherParams *OtherParams,
+	params *OtherParams,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -50,7 +50,7 @@ func (p *paramMultProcessIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := 0; i < stateHistory.StateWidth; i++ {
 		values[i] = stateHistory.Values.At(0, i) *
-			otherParams.FloatParams["multipliers"][i]
+			params.FloatParams["multipliers"][i]
 	}
 	return values
 }
