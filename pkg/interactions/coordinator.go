@@ -11,9 +11,9 @@ import (
 type PartitionCoordinatorWithAgents struct {
 	coordinator     *simulator.PartitionCoordinator
 	agents          []*Interactor
-	newWorkChannels [](chan *InteractorInputMessage)
 	parallelIndices []int
 	serialIndices   []int
+	newWorkChannels [](chan *InteractorInputMessage)
 }
 
 // RequestMoreInteractions spawns a goroutine for each interactor to
@@ -121,8 +121,8 @@ func NewPartitionCoordinatorWithAgents(
 			implementations,
 		),
 		agents:          interactors,
-		newWorkChannels: newWorkChannels,
 		parallelIndices: parallelIndices,
 		serialIndices:   serialIndices,
+		newWorkChannels: newWorkChannels,
 	}
 }

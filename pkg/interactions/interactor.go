@@ -5,7 +5,7 @@ import (
 )
 
 // Interactor handles interactions with a given state partition on a
-// separate goroutine by modifying its underlying Iteration function.
+// separate goroutine by modifying its underlying Iteration PendingStateUpdate.
 type Interactor struct {
 	actor              Actor
 	statePartition     int
@@ -21,7 +21,7 @@ func (a *Interactor) Configure() {
 
 // Interact will perform a state observation given the stochadex
 // StateHistory in time and then generates new actions to be performed
-// on the state by modifying the underlying Iteration function.
+// on the state by modifying the underlying Iteration PendingStateUpdate.
 func (a *Interactor) Interact(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -29,10 +29,9 @@ func (a *Interactor) Interact(
 ) {
 	// get actions based on the Policy iteration and update
 	// the coordinator with the corresponding new iteration
-	action := stateHistories[a.generatorPartition].Values.RawRowView(0)
 	iteratorToUpdate.PendingStateUpdate = a.actor.Act(
 		iteratorToUpdate.PendingStateUpdate,
-		action,
+		stateHistories[a.generatorPartition].Values.RawRowView(0),
 	)
 }
 
