@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/mat"
 )
 
 // PartitionCoordinatorWithAgents handles agent action generation and performing
@@ -43,12 +42,23 @@ func (p *PartitionCoordinatorWithAgents) RequestMoreInteractions(wg *sync.WaitGr
 
 // Step a simulation with a collection of agents acting.
 func (p *PartitionCoordinatorWithAgents) Step(wg *sync.WaitGroup) {
-	// begin by requesting interactions for the next step and waiting
+	// update the overall step count and get the next time increment
+	p.coordinator.TimestepsHistory.CurrentStepNumber += 1
+	p.coordinator.TimestepsHistory = p.coordinator.TimestepFunction.SetNextIncrement(
+		p.coordinator.TimestepsHistory,
+	)
+
+	// begin by requesting iterations for the next step and waiting
+	p.coordinator.RequestMoreIterations(wg)
+	wg.Wait()
+
+	// then request interactions for the next step and waiting
 	p.RequestMoreInteractions(wg)
 	wg.Wait()
 
-	// now step the underlying simulation
-	p.coordinator.Step(wg)
+	// then implement the pending state and time updates to the histories
+	p.coordinator.UpdateHistory(wg)
+	wg.Wait()
 }
 
 // ReadyToTerminate just wraps the same call to the coordinator.
@@ -91,25 +101,10 @@ func NewPartitionCoordinatorWithAgents(
 				newWorkChannels,
 				make(chan *InteractorInputMessage),
 			)
-			actionValues := settings.
-				OtherParams[index].FloatParams["init_action_values"]
-			action := &Action{}
-			if actionValues != nil {
-				action = &Action{
-					Values: mat.NewVecDense(len(actionValues), actionValues),
-					Width:  len(actionValues),
-				}
-			}
-			iteration := &ActingAgentIteration{
-				Action:    action,
-				Iteration: iteration,
-				Actor:     agent.Actor,
-			}
 			interactors = append(
 				interactors,
 				NewInteractor(
 					index,
-					iteration,
 					agent,
 					settings,
 				),

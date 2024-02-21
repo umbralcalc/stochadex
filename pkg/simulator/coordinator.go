@@ -14,17 +14,17 @@ type PartitionCoordinator struct {
 	Iterators            [][]*StateIterator
 	StateHistories       []*StateHistory
 	TimestepsHistory     *CumulativeTimestepsHistory
+	TimestepFunction     TimestepFunction
+	TerminationCondition TerminationCondition
+	PartitionIndices     [][]int
 	newWorkChannels      [](chan *IteratorInputMessage)
-	partitionIndices     [][]int
-	timestepFunction     TimestepFunction
-	terminationCondition TerminationCondition
 }
 
 // RequestMoreIterations spawns a goroutine for each state partition to
 // carry out a ReceiveAndIteratePending job.
 func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 	// setup iterators to receive and send their iteration results
-	for parallelIndex, serialPartitions := range c.partitionIndices {
+	for parallelIndex, serialPartitions := range c.PartitionIndices {
 		wg.Add(1)
 		i := parallelIndex
 		parts := serialPartitions
@@ -55,7 +55,7 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 // carry out an UpdateHistory job.
 func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	// setup iterators to receive and send their iteration results
-	for parallelIndex, serialPartitions := range c.partitionIndices {
+	for parallelIndex, serialPartitions := range c.PartitionIndices {
 		for serialIndex, index := range serialPartitions {
 			wg.Add(1)
 			i := index
@@ -93,7 +93,7 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// update the overall step count and get the next time increment
 	c.TimestepsHistory.CurrentStepNumber += 1
-	c.TimestepsHistory = c.timestepFunction.SetNextIncrement(c.TimestepsHistory)
+	c.TimestepsHistory = c.TimestepFunction.SetNextIncrement(c.TimestepsHistory)
 
 	// begin by requesting iterations for the next step and waiting
 	c.RequestMoreIterations(wg)
@@ -106,7 +106,7 @@ func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 
 // ReadyToTerminate returns whether or not the process has met the TerminationCondition.
 func (c *PartitionCoordinator) ReadyToTerminate() bool {
-	return c.terminationCondition.Terminate(
+	return c.TerminationCondition.Terminate(
 		c.StateHistories,
 		c.TimestepsHistory,
 	)
@@ -185,9 +185,9 @@ func NewPartitionCoordinator(
 		Iterators:            iterators,
 		StateHistories:       stateHistories,
 		TimestepsHistory:     timestepsHistory,
+		TimestepFunction:     implementations.TimestepFunction,
+		TerminationCondition: implementations.TerminationCondition,
+		PartitionIndices:     partitionIndices,
 		newWorkChannels:      newWorkChannels,
-		partitionIndices:     partitionIndices,
-		timestepFunction:     implementations.TimestepFunction,
-		terminationCondition: implementations.TerminationCondition,
 	}
 }

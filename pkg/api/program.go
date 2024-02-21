@@ -44,8 +44,8 @@ func WriteMainProgram(
 	for i, agentStrings := range implementations.AgentByPartition {
 		agents += strconv.Itoa(i) + ": "
 		agents += "{Actor: " + agentStrings.Actor
-		agents += ", Generator: " + agentStrings.Generator
-		agents += ", Observation: " + agentStrings.Observation + "},"
+		agents += ", GeneratorPartition: " +
+			strconv.Itoa(agentStrings.GeneratorPartition) + "},"
 	}
 	agents += "}"
 	extraPackages := ""

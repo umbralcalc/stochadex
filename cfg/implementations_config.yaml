@@ -1,7 +1,11 @@
 simulator:
   iterations:
   - - "firstWienerProcess"
+    - "&interactions.GaussianNoiseStateObservationIteration{}"
+    - "&interactions.DoNothingActionIteration{}"
   - - "secondWienerProcess"
+    - "&interactions.GaussianNoiseStateObservationIteration{}"
+    - "&interactions.DoNothingActionIteration{}"
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
@@ -9,12 +13,10 @@ simulator:
 agent_by_partition:
   0:
     actor: "&interactions.DoNothingActor{}"
-    generator: "&interactions.DoNothingActionGenerator{}"
-    observation: "&interactions.GaussianNoiseStateObservation{}"
+    generator_partition: 2
   1: 
     actor: "&interactions.DoNothingActor{}"
-    generator: "&interactions.DoNothingActionGenerator{}"
-    observation: "&interactions.GaussianNoiseStateObservation{}"
+    generator_partition: 5
 extra_vars_by_package:
 - github.com/umbralcalc/stochadex/pkg/phenomena:
   - firstWienerProcess: "&phenomena.WienerProcessIteration{}"

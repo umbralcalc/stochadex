@@ -69,7 +69,7 @@ func iteratePartition(
 
 func iterateHistory(c *PartitionCoordinator) {
 	// update the state history for each job in turn within the same thread
-	for parallelIndex, serialPartitions := range c.partitionIndices {
+	for parallelIndex, serialPartitions := range c.PartitionIndices {
 		for serialIndex, index := range serialPartitions {
 			state := iteratePartition(c, parallelIndex, serialIndex)
 			// reference this partition
@@ -97,13 +97,13 @@ func iterateHistory(c *PartitionCoordinator) {
 
 func run(c *PartitionCoordinator) {
 	// terminate without iterating again if the condition has not been met
-	for !c.terminationCondition.Terminate(
+	for !c.TerminationCondition.Terminate(
 		c.StateHistories,
 		c.TimestepsHistory,
 	) {
 		c.TimestepsHistory.CurrentStepNumber += 1
 		c.TimestepsHistory =
-			c.timestepFunction.SetNextIncrement(c.TimestepsHistory)
+			c.TimestepFunction.SetNextIncrement(c.TimestepsHistory)
 		iterateHistory(c)
 	}
 }
