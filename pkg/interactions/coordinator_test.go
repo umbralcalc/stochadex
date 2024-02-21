@@ -101,9 +101,14 @@ func run(p *PartitionCoordinatorWithAgents) {
 func initCoordinatorForTesting(
 	outputFunction simulator.OutputFunction,
 ) *PartitionCoordinatorWithAgents {
-	otherParams := &simulator.OtherParams{
+	otherParamsFirst := &simulator.OtherParams{
 		FloatParams: map[string][]float64{
 			"variances": {1.0, 1.5, 0.5, 1.0, 2.0},
+		},
+	}
+	otherParamsSecond := &simulator.OtherParams{
+		FloatParams: map[string][]float64{
+			"variances": {1.0, 1.5, 2.0},
 		},
 	}
 	obsOtherParamsFirst := &simulator.OtherParams{
@@ -124,24 +129,24 @@ func initCoordinatorForTesting(
 	}
 	settings := &simulator.Settings{
 		OtherParams: []*simulator.OtherParams{
-			otherParams,
+			otherParamsFirst,
 			obsOtherParamsFirst,
-			otherParams,
-			otherParams,
+			{FloatParams: map[string][]float64{}},
+			otherParamsSecond,
 			obsOtherParamsSecond,
-			otherParams,
+			{FloatParams: map[string][]float64{}},
 		},
 		InitStateValues: [][]float64{
 			{0.0, 2.1, 3.5, -1.0, -2.3},
 			{0.0, 0.0, 0.0, 0.0, 0.0},
 			{1.0, 1.0, 0.0, 0.0, 1.0},
-			{-1.8, 2.0, 3.2, 1.1, 2.3},
-			{0.0, 0.0, 0.0, 0.0, 0.0},
-			{1.0, 1.0, 0.0, 0.0, 1.0},
+			{3.2, 1.1, 2.3},
+			{0.0, 0.0, 0.0},
+			{0.0, 0.0, 1.0},
 		},
 		InitTimeValue:         0.0,
 		Seeds:                 []uint64{236, 111, 232, 167, 1024, 2939},
-		StateWidths:           []int{5, 5, 5, 5, 5, 5},
+		StateWidths:           []int{5, 5, 5, 3, 3, 3},
 		StateHistoryDepths:    []int{2, 2, 2, 2, 2, 2},
 		TimestepsHistoryDepth: 2,
 	}
@@ -174,7 +179,7 @@ func initCoordinatorForTesting(
 		Actor:              &jumpStateActor{},
 		GeneratorPartition: 2,
 	}
-	agents[1] = &AgentConfig{
+	agents[3] = &AgentConfig{
 		Actor:              &jumpStateActor{},
 		GeneratorPartition: 5,
 	}

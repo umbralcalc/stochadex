@@ -14,7 +14,7 @@ agent_by_partition:
   0:
     actor: "&interactions.DoNothingActor{}"
     generator_partition: 2
-  1: 
+  3: 
     actor: "&interactions.DoNothingActor{}"
     generator_partition: 5
 extra_vars_by_package:
