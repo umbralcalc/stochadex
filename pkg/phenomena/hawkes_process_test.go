@@ -1,26 +1,11 @@
 package phenomena
 
 import (
-	"math"
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
-
-// exponentialExcitingKernel weights the historic Hawkes process increments
-// with an exponential function - this is just for testing.
-type exponentialExcitingKernel struct{}
-
-func (e *exponentialExcitingKernel) Evaluate(
-	params *simulator.OtherParams,
-	currentTime float64,
-	somePreviousTime float64,
-	stateElement int,
-) float64 {
-	return math.Exp(
-		-params.FloatParams["exponential_decays"][stateElement] *
-			(currentTime - somePreviousTime))
-}
 
 func TestHawkesProcess(t *testing.T) {
 	t.Run(
@@ -32,7 +17,7 @@ func TestHawkesProcess(t *testing.T) {
 			iterations := make([][]simulator.Iteration, 0)
 			serialIterations := make([]simulator.Iteration, 0)
 			intensityIteration := &HawkesProcessIntensityIteration{
-				excitingKernel: &exponentialExcitingKernel{},
+				excitingKernel: &kernels.ExponentialIntegrationKernel{},
 			}
 			intensityIteration.Configure(0, settings)
 			serialIterations = append(serialIterations, intensityIteration)

@@ -3,26 +3,17 @@ package phenomena
 import (
 	"strconv"
 
+	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
+	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat/distuv"
 )
-
-// HawkesProcessExcitingKernel defines an interface that must be implemented
-// for an exciting kernel of the Hawkes process.
-type HawkesProcessExcitingKernel interface {
-	Evaluate(
-		params *simulator.OtherParams,
-		currentTime float64,
-		somePreviousTime float64,
-		stateElement int,
-	) float64
-}
 
 // HawkesProcessIntensityIteration an iteration for a Hawkes process
 // self-exciting intensity function.
 type HawkesProcessIntensityIteration struct {
-	excitingKernel       HawkesProcessExcitingKernel
+	excitingKernel       kernels.IntegrationKernel
 	hawkesPartitionIndex int
 }
 
@@ -30,6 +21,7 @@ func (h *HawkesProcessIntensityIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	h.excitingKernel.Configure(partitionIndex, settings)
 	h.hawkesPartitionIndex = int(
 		settings.OtherParams[partitionIndex].
 			IntParams["hawkes_partition_index"][0],
@@ -42,20 +34,22 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	stateHistory := stateHistories[partitionIndex]
+	h.excitingKernel.SetParams(params)
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
-	values := make([]float64, stateHistory.StateWidth)
-	for i := range values {
-		values[i] = params.FloatParams["background_rates"][i]
-		for j := 1; j < hawkesHistory.StateHistoryDepth; j++ {
-			values[i] += (hawkesHistory.Values.At(j, i) -
-				hawkesHistory.Values.At(j-1, i)) * h.excitingKernel.Evaluate(
-				params,
-				timestepsHistory.Values.AtVec(j),
-				timestepsHistory.Values.AtVec(j-1),
-				i,
-			)
-		}
+	values := params.FloatParams["background_rates"]
+	for i := 1; i < hawkesHistory.StateHistoryDepth; i++ {
+		sumValues := hawkesHistory.Values.RawRowView(i - 1)
+		floats.Sub(sumValues, hawkesHistory.Values.RawRowView(i))
+		floats.Scale(
+			h.excitingKernel.Evaluate(
+				hawkesHistory.Values.RawRowView(0),
+				hawkesHistory.Values.RawRowView(i),
+				timestepsHistory.Values.AtVec(0),
+				timestepsHistory.Values.AtVec(i),
+			),
+			sumValues,
+		)
+		floats.Add(values, sumValues)
 	}
 	return values
 }
@@ -64,7 +58,7 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 // HawkesProcessIntensityIteration given a partition index
 // for the Hawkes process itself.
 func NewHawkesProcessIntensityIteration(
-	excitingKernel HawkesProcessExcitingKernel,
+	excitingKernel kernels.IntegrationKernel,
 	hawkesPartitionIndex int,
 ) *HawkesProcessIntensityIteration {
 	return &HawkesProcessIntensityIteration{
