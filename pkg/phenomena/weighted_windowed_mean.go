@@ -21,7 +21,7 @@ func (w *WeightedWindowedMeanIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	w.Kernel.Configure(partitionIndex, settings)
-	w.valuesPartition = int(settings.OtherParams[partitionIndex].IntParams["values_partition"][0])
+	w.valuesPartition = int(settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
 }
 
 func (w *WeightedWindowedMeanIteration) Iterate(

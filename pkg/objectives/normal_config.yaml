@@ -1,0 +1,29 @@
+other_params:
+- float_params:
+    mean: [0.5, -1.0, 0.8]
+    upper_triangle_cholesky_of_cov_matrix: [3.0, 0.0, 0.0, 3.0, 0.0, 3.0]
+  int_params: {}
+- float_params:
+    exponential_weighting_timescale: [30.0]
+  int_params:
+    data_values_partition: [0]
+- float_params:
+    exponential_weighting_timescale: [30.0]
+  int_params:
+    data_values_partition: [0]
+    mean_partition: [1]
+- float_params: {}
+  int_params:
+    data_values_partition: [0]
+    mean_partition: [1]
+    cov_mat_partition: [2]
+init_state_values:
+- [2.0, -1.2, 0.5]
+- [0.0, 0.0, 0.0]
+- [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+- [0.0]
+init_time_value: 0.0
+seeds: [621, 0, 0, 0]
+state_widths: [3, 3, 9, 1]
+state_history_depths: [30, 2, 2, 2]
+timesteps_history_depth: 30

@@ -10,26 +10,13 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-func ToUpperTriangular(m *mat.SymDense) []float64 {
-	values := make([]float64, 0)
-	nrows, ncols := m.Dims()
-	diagCol := int(math.Floor(float64(ncols) / 2.0))
-	for i := 0; i < nrows; i++ {
-		values = append(
-			values,
-			m.RawSymmetric().Data[(i*ncols)+diagCol:((i+1)*ncols)]...,
-		)
-	}
-	return values
-}
-
 // WeightedWindowedCovarianceIteration computes the rolling windowed weighted covariance
 // estimate of values specified by another partition using a mean vector also specified by
 // another partition.
 type WeightedWindowedCovarianceIteration struct {
 	Kernel          kernels.IntegrationKernel
 	valuesPartition int
-	meansPartition  int
+	meanPartition   int
 }
 
 func (w *WeightedWindowedCovarianceIteration) Configure(
@@ -37,8 +24,8 @@ func (w *WeightedWindowedCovarianceIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	w.Kernel.Configure(partitionIndex, settings)
-	w.valuesPartition = int(settings.OtherParams[partitionIndex].IntParams["values_partition"][0])
-	w.meansPartition = int(settings.OtherParams[partitionIndex].IntParams["means_partition"][0])
+	w.valuesPartition = int(settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
+	w.meanPartition = int(settings.OtherParams[partitionIndex].IntParams["mean_partition"][0])
 }
 
 func (w *WeightedWindowedCovarianceIteration) Iterate(
@@ -49,19 +36,19 @@ func (w *WeightedWindowedCovarianceIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[w.valuesPartition]
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
-		return ToUpperTriangular(mat.NewSymDense(stateHistory.StateWidth, nil))
+		return mat.NewSymDense(stateHistory.StateWidth, nil).RawSymmetric().Data
 	}
 	w.Kernel.SetParams(params)
 	var valuesTrans mat.Dense
 	valuesTrans.CloneFrom(stateHistory.Values.T())
-	means := params.FloatParams["partition_"+strconv.Itoa(w.meansPartition)]
+	mean := params.FloatParams["partition_"+strconv.Itoa(w.meanPartition)]
 	mostRecentDiffVec := mat.NewVecDense(stateHistory.StateWidth, nil)
 	latestStateValues := params.FloatParams["partition_"+strconv.Itoa(w.valuesPartition)]
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	for j := 0; j < stateHistory.StateWidth; j++ {
 		v := valuesTrans.RawRowView(j)
-		floats.AddConst(-means[j], v)
-		mostRecentDiffVec.SetVec(j, latestStateValues[j]-means[j])
+		floats.AddConst(-mean[j], v)
+		mostRecentDiffVec.SetVec(j, latestStateValues[j]-mean[j])
 	}
 	covMat := mat.NewSymDense(stateHistory.StateWidth, nil)
 	sqrtWeights := make([]float64, 0)
@@ -100,5 +87,5 @@ func (w *WeightedWindowedCovarianceIteration) Iterate(
 	covMat.SymRankOne(covMat, 1.0/cumulativeWeightSum, mostRecentDiffVec)
 
 	// returns the upper triangular part of the covariance matrix
-	return ToUpperTriangular(covMat)
+	return covMat.RawSymmetric().Data
 }

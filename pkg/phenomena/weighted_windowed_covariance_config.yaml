@@ -5,17 +5,17 @@ other_params:
 - float_params: 
     exponential_weighting_timescale: [1.1]
   int_params:
-    values_partition: [0]
+    data_values_partition: [0]
 - float_params:
     exponential_weighting_timescale: [1.1]
   int_params:
-    values_partition: [0]
-    means_partition: [1]
+    data_values_partition: [0]
+    mean_partition: [1]
 init_state_values:
 - [0.0, 0.0, 0.0]
 - [0.0, 0.0, 0.0]
-- [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+- [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 seeds: [4252, 0, 0]
-state_widths: [3, 3, 6]
+state_widths: [3, 3, 9]
 state_history_depths: [30, 2, 2]
 timesteps_history_depth: 30
