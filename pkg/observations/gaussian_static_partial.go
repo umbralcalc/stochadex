@@ -1,8 +1,6 @@
 package observations
 
 import (
-	"strconv"
-
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
@@ -35,7 +33,7 @@ func (g *GaussianStaticPartialStateObservationIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := params.FloatParams["partition_"+strconv.Itoa(g.partitionToObserve)]
+	stateValues := stateHistories[g.partitionToObserve].NextValues
 	for i, index := range params.IntParams["state_value_observation_indices"] {
 		g.unitNormalDist.Sigma = params.FloatParams["observation_noise_variances"][i]
 		outputValues = append(outputValues, stateValues[index]+g.unitNormalDist.Rand())

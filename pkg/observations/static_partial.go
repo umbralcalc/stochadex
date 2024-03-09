@@ -1,8 +1,6 @@
 package observations
 
 import (
-	"strconv"
-
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -27,7 +25,7 @@ func (p *StaticPartialStateObservationIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := params.FloatParams["partition_"+strconv.Itoa(p.partitionToObserve)]
+	stateValues := stateHistories[p.partitionToObserve].NextValues
 	for _, index := range params.IntParams["state_value_observation_indices"] {
 		outputValues = append(outputValues, stateValues[index])
 	}

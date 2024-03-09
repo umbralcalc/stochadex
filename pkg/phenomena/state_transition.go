@@ -57,8 +57,7 @@ func (s *StateTransitionIteration) Iterate(
 	cumulatives := make([]float64, 0)
 	cumulatives = append(cumulatives, cumulative)
 	slices := s.rateSlices[int(state[0])]
-	transitionRates := params.FloatParams["partition_"+
-		strconv.Itoa(s.transitionRatesIndex)][slices[0]:slices[1]]
+	transitionRates := stateHistories[s.transitionRatesIndex].NextValues[slices[0]:slices[1]]
 	for _, rate := range transitionRates {
 		cumulative += 1.0 / rate
 		cumulatives = append(cumulatives, cumulative)

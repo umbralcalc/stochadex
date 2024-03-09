@@ -1,8 +1,6 @@
 package observations
 
 import (
-	"strconv"
-
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
@@ -40,8 +38,8 @@ func (f *FalseStaticPartialStateObservationIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := params.FloatParams["partition_"+strconv.Itoa(f.partitionToObserve)]
-	probs := params.FloatParams["partition_"+strconv.Itoa(f.falseObservationProbsIndex)]
+	stateValues := stateHistories[f.partitionToObserve].NextValues
+	probs := stateHistories[f.falseObservationProbsIndex].NextValues
 	for i, index := range params.IntParams["state_value_observation_indices"] {
 		f.bernoulliDist.P = probs[i]
 		value := stateValues[index] + (2.0 * (f.falsePositives - 0.5) * f.bernoulliDist.Rand())

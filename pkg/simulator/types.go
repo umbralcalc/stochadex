@@ -18,7 +18,9 @@ type OtherParams struct {
 type StateHistory struct {
 	// each row is a different state in the history, by convention,
 	// starting with the most recent at index = 0
-	Values            *mat.Dense
+	Values *mat.Dense
+	// should be of length = StateWidth
+	NextValues        []float64
 	StateWidth        int
 	StateHistoryDepth int
 }

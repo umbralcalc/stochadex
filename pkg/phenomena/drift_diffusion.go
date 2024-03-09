@@ -2,7 +2,6 @@ package phenomena
 
 import (
 	"math"
-	"strconv"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
@@ -33,10 +32,10 @@ func (d *DriftDiffusionIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	driftCoefficients := params.FloatParams["partition_"+
-		strconv.Itoa(int(params.IntParams["drift_coefficients_partition"][0]))]
-	diffusionCoefficients := params.FloatParams["partition_"+
-		strconv.Itoa(int(params.IntParams["diffusion_coefficients_partition"][0]))]
+	driftCoefficients := stateHistories[int(
+		params.IntParams["drift_coefficients_partition"][0])].NextValues
+	diffusionCoefficients := stateHistories[int(
+		params.IntParams["diffusion_coefficients_partition"][0])].NextValues
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +

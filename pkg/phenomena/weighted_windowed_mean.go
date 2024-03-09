@@ -1,8 +1,6 @@
 package phenomena
 
 import (
-	"strconv"
-
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
@@ -30,7 +28,7 @@ func (w *WeightedWindowedMeanIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	latestStateValues := params.FloatParams["partition_"+strconv.Itoa(w.valuesPartition)]
+	latestStateValues := stateHistories[w.valuesPartition].NextValues
 	stateHistory := stateHistories[w.valuesPartition]
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
 		return latestStateValues

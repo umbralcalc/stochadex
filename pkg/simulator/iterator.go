@@ -40,12 +40,11 @@ func (c *ConstantValuesIteration) Iterate(
 // StateIterator handles iterations of a given state partition on a
 // separate goroutine and writing output data to somewhere.
 type StateIterator struct {
-	Iteration          Iteration
-	Params             *OtherParams
-	PendingStateUpdate []float64
-	partitionIndex     int
-	outputCondition    OutputCondition
-	outputFunction     OutputFunction
+	Iteration       Iteration
+	Params          *OtherParams
+	partitionIndex  int
+	outputCondition OutputCondition
+	outputFunction  OutputFunction
 }
 
 // Iterate takes the state and timesteps history and outputs an updated
@@ -76,7 +75,7 @@ func (s *StateIterator) ReceiveAndIteratePending(
 	inputChannel <-chan *IteratorInputMessage,
 ) {
 	inputMessage := <-inputChannel
-	s.PendingStateUpdate = s.Iterate(
+	inputMessage.StateHistories[s.partitionIndex].NextValues = s.Iterate(
 		inputMessage.StateHistories,
 		inputMessage.TimestepsHistory,
 	)
@@ -98,5 +97,5 @@ func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage)
 		partition.Values.SetRow(i, partitionValuesCopy.RawRowView(i-1))
 	}
 	// update the latest state in the history
-	partition.Values.SetRow(0, s.PendingStateUpdate)
+	partition.Values.SetRow(0, partition.NextValues)
 }

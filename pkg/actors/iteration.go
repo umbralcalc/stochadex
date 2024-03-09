@@ -1,4 +1,4 @@
-package interactions
+package actors
 
 import (
 	"fmt"
@@ -9,36 +9,56 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// DoNothingActionIteration implements an action iteration that just returns
-// the last Action.
-type DoNothingActionIteration struct {
+// ActorIteration implements an actor as an iteration in the stochadex
+// based on actions provided by another iteration.
+type ActorIteration struct {
+	Actor            Actor
+	ActionsInput     simulator.Iteration
+	partitionToActOn int
 }
 
-func (d *DoNothingActionIteration) Configure(
+func (a *ActorIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+
+	a.ActionsInput.Configure(partitionIndex, settings)
+	a.Actor.Configure(partitionIndex, settings)
+	a.partitionToActOn = int(
+		settings.OtherParams[partitionIndex].IntParams["partition_to_act_on"][0])
 }
 
-func (d *DoNothingActionIteration) Iterate(
+func (a *ActorIteration) Iterate(
 	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	return stateHistories[partitionIndex].Values.RawRowView(0)
+	action := a.ActionsInput.Iterate(
+		params,
+		partitionIndex,
+		stateHistories,
+		timestepsHistory,
+	)
+	stateHistories[a.partitionToActOn].NextValues = a.Actor.Act(
+		stateHistories[a.partitionToActOn].NextValues,
+		action,
+	)
+	return action
 }
 
-// UserInputActionIteration implements an action iteration that returns
-// configured actions based on user keyboard input.
-type UserInputActionIteration struct {
+// UserInputActorIteration implements an actor iteration that uses
+// actions based on user keyboard input.
+type UserInputActorIteration struct {
+	Actor            Actor
 	keystrokeMap     map[string]int64
 	keyEvents        <-chan keyboard.KeyEvent
 	waitMilliseconds uint64
 	skipScanning     bool
+	partitionToActOn int
 }
 
-func (u *UserInputActionIteration) Configure(
+func (u *UserInputActorIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
@@ -64,9 +84,11 @@ func (u *UserInputActionIteration) Configure(
 		"of partitionIndex = " + fmt.Sprintf("%d", partitionIndex) +
 		". Press ESC to stop.")
 	u.skipScanning = false // useful for graceful exits
+	u.partitionToActOn = int(
+		settings.OtherParams[partitionIndex].IntParams["partition_to_act_on"][0])
 }
 
-func (u *UserInputActionIteration) Iterate(
+func (u *UserInputActorIteration) Iterate(
 	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -74,6 +96,10 @@ func (u *UserInputActionIteration) Iterate(
 ) []float64 {
 	action := stateHistories[partitionIndex].Values.RawRowView(0)
 	if u.skipScanning {
+		stateHistories[u.partitionToActOn].NextValues = u.Actor.Act(
+			stateHistories[u.partitionToActOn].NextValues,
+			action,
+		)
 		return action
 	}
 	select {
@@ -93,5 +119,9 @@ func (u *UserInputActionIteration) Iterate(
 	case <-time.After(time.Duration(u.waitMilliseconds) * time.Millisecond):
 		break
 	}
+	stateHistories[u.partitionToActOn].NextValues = u.Actor.Act(
+		stateHistories[u.partitionToActOn].NextValues,
+		action,
+	)
 	return action
 }

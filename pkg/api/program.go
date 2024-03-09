@@ -8,16 +8,14 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/umbralcalc/stochadex/pkg/interactions"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
 // ImplementationsConfigStrings is the yaml-loadable config which consists of
 // string type names to insert into templating.
 type ImplementationsConfigStrings struct {
-	Simulator          simulator.ImplementationStrings         `yaml:"simulator"`
-	AgentByPartition   map[int]interactions.AgentConfigStrings `yaml:"agent_by_partition,omitempty"`
-	ExtraVarsByPackage []map[string][]map[string]string        `yaml:"extra_vars_by_package,omitempty"`
+	Simulator          simulator.ImplementationStrings  `yaml:"simulator"`
+	ExtraVarsByPackage []map[string][]map[string]string `yaml:"extra_vars_by_package,omitempty"`
 }
 
 // WriteMainProgram writes string representations of various types of data
@@ -40,14 +38,6 @@ func WriteMainProgram(
 		iterations += "{" + strings.Join(serialIterations, ", ") + "}, "
 	}
 	iterations += "}"
-	agents := "map[int]*interactions.AgentConfig{"
-	for i, agentStrings := range implementations.AgentByPartition {
-		agents += strconv.Itoa(i) + ": "
-		agents += "{Actor: " + agentStrings.Actor
-		agents += ", GeneratorPartition: " +
-			strconv.Itoa(agentStrings.GeneratorPartition) + "},"
-	}
-	agents += "}"
 	extraPackages := ""
 	extraVariables := ""
 	for _, extraVarsByPackage := range implementations.ExtraVarsByPackage {
@@ -71,7 +61,6 @@ import (
 	"time"
 
 	"github.com/umbralcalc/stochadex/pkg/api"
-	"github.com/umbralcalc/stochadex/pkg/interactions"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	{{.ExtraPackages}}
 )
@@ -94,7 +83,6 @@ func main() {
 		TerminationCondition: {{.TerminationCondition}},
 		TimestepFunction: {{.TimestepFunction}},
 	}
-	agents := {{.Agents}}
 	if {{.Websocket}} {
 		var dashboardProcess *os.Process
 		if {{.Dashboard}} {
@@ -107,7 +95,6 @@ func main() {
         api.StepAndServeWebsocket(
 			settings,
 			implementations,
-			agents,
 			time.Duration({{.MillisecondDelay}}),
 			"{{.Handle}}",
 			"{{.Address}}",
@@ -117,12 +104,11 @@ func main() {
 			dashboardProcess.Wait()
 		}
 	} else {
-		stepperOrRunner := api.LoadStepperOrRunner(
-			settings, 
-			implementations, 
-			agents,
+		coordinator := simulator.NewPartitionCoordinator(
+			settings,
+			implementations,
 		)
-		stepperOrRunner.Run()
+		coordinator.Run()
 	}
 }`))
 	file, err := os.CreateTemp("/tmp", "*main.go")
@@ -144,7 +130,6 @@ func main() {
 			"ReactAppLocation":     dashboard.ReactAppLocation,
 			"MillisecondDelay":     strconv.Itoa(int(dashboard.MillisecondDelay)),
 			"Iterations":           iterations,
-			"Agents":               agents,
 			"ExtraVars":            extraVariables,
 			"ExtraPackages":        extraPackages,
 			"OutputCondition":      implementations.Simulator.OutputCondition,

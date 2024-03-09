@@ -2,7 +2,6 @@ package phenomena
 
 import (
 	"math"
-	"strconv"
 
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -41,9 +40,9 @@ func (w *WeightedWindowedCovarianceIteration) Iterate(
 	w.Kernel.SetParams(params)
 	var valuesTrans mat.Dense
 	valuesTrans.CloneFrom(stateHistory.Values.T())
-	mean := params.FloatParams["partition_"+strconv.Itoa(w.meanPartition)]
+	mean := stateHistories[w.meanPartition].NextValues
 	mostRecentDiffVec := mat.NewVecDense(stateHistory.StateWidth, nil)
-	latestStateValues := params.FloatParams["partition_"+strconv.Itoa(w.valuesPartition)]
+	latestStateValues := stateHistories[w.valuesPartition].NextValues
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	for j := 0; j < stateHistory.StateWidth; j++ {
 		v := valuesTrans.RawRowView(j)

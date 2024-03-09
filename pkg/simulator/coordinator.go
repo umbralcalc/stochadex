@@ -1,7 +1,6 @@
 package simulator
 
 import (
-	"strconv"
 	"sync"
 
 	"gonum.org/v1/gonum/mat"
@@ -32,11 +31,6 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 			defer wg.Done()
 			for serialIndex, iterator := range c.Iterators[i] {
 				partitionIndex := parts[serialIndex]
-				for si := 0; si < serialIndex; si++ {
-					iterator.Params.FloatParams["partition_"+strconv.Itoa(
-						partitionIndex-serialIndex+si)] =
-						c.Iterators[i][si].PendingStateUpdate
-				}
 				iterator.ReceiveAndIteratePending(c.newWorkChannels[partitionIndex])
 			}
 		}()

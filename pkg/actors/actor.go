@@ -1,4 +1,4 @@
-package interactions
+package actors
 
 import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"

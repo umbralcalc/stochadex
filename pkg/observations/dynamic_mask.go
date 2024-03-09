@@ -1,8 +1,6 @@
 package observations
 
 import (
-	"strconv"
-
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -34,8 +32,8 @@ func (d *DynamicMaskStateObservationIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	maskValues := params.FloatParams["partition_"+strconv.Itoa(d.maskPartition)]
-	stateValues := params.FloatParams["partition_"+strconv.Itoa(d.partitionToObserve)]
+	maskValues := stateHistories[d.maskPartition].NextValues
+	stateValues := stateHistories[d.partitionToObserve].NextValues
 	for i, maskValue := range maskValues {
 		if maskValue == 0 {
 			outputValues = append(outputValues, d.nanValue)

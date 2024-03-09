@@ -1,0 +1,34 @@
+other_params:
+- float_params:
+    variances: [1.0, 1.0]
+  int_params: {}
+- float_params:
+    variances: [1.0, 1.0]
+  int_params:
+    partition_to_act_on: [0]
+- float_params:
+    variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+  int_params: {}
+- float_params:
+    variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+  int_params:
+    partition_to_act_on: [2]
+- float_params:
+    variances: [1.0, 1.0, 1.0]
+  int_params: {}
+- float_params:
+    variances: [1.0, 1.0, 1.0]
+  int_params:
+    partition_to_act_on: [4]
+init_state_values:
+- [0.0, 0.0]
+- [0.0, 0.0]
+- [0.0, 0.0, 0.0, 0.0, 0.0]
+- [0.0, 0.0, 0.0, 0.0, 0.0]
+- [0.0, 0.0, 0.0]
+- [0.0, 0.0, 0.0]
+init_time_value: 0.0
+seeds: [7167, 1024, 2939, 1111, 313, 2242]
+state_widths: [2, 2, 5, 5, 3, 3]
+state_history_depths: [2, 2, 2, 2, 2, 2]
+timesteps_history_depth: 2

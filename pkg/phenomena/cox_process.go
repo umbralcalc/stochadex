@@ -1,8 +1,6 @@
 package phenomena
 
 import (
-	"strconv"
-
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
@@ -36,7 +34,7 @@ func (c *CoxProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	rates := params.FloatParams["partition_"+strconv.Itoa(c.rateProcessPartitionIndex)]
+	rates := stateHistories[c.rateProcessPartitionIndex].NextValues
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		if rates[i] > (rates[i]+
