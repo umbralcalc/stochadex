@@ -1,0 +1,17 @@
+other_params:
+- float_params:
+    rates: [0.8, 1.0, 1.1]
+  int_params: {}
+- float_params:
+    state_value_observation_probs: [0.4, 0.8]
+  int_params:
+    partition_to_observe: [0]
+    state_value_observation_indices: [1, 2]
+init_state_values:
+- [0.0, 0.0, 0.0]
+- [0.0, 0.0]
+init_time_value: 0.0
+seeds: [563, 228]
+state_widths: [3, 2]
+state_history_depths: [2, 2]
+timesteps_history_depth: 2

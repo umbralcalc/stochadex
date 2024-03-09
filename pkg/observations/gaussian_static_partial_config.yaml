@@ -1,0 +1,16 @@
+other_params:
+- float_params: {}
+  int_params: {}
+- float_params:
+    observation_noise_variances: [0.1, 0.5]
+  int_params:
+    partition_to_observe: [0]
+    state_value_observation_indices: [1, 2]
+init_state_values:
+- [0.0, 0.0, 0.0]
+- [0.0, 0.0]
+init_time_value: 0.0
+seeds: [0, 228]
+state_widths: [3, 2]
+state_history_depths: [2, 2]
+timesteps_history_depth: 2
