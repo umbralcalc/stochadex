@@ -33,7 +33,7 @@ func TestCompoundPoissonProcess(t *testing.T) {
 			iterations := make([][]simulator.Iteration, 0)
 			for partitionIndex := range settings.StateWidths {
 				iteration := &CompoundPoissonProcessIteration{
-					jumpDist: &gammaJumpDistribution{
+					JumpDist: &gammaJumpDistribution{
 						dist: &distuv.Gamma{
 							Alpha: 1.0,
 							Beta:  1.0,

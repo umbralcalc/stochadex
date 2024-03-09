@@ -16,8 +16,8 @@ type CompoundPoissonProcessJumpDistribution interface {
 // CompoundPoissonProcessIteration defines an iteration for a compound
 // Poisson process.
 type CompoundPoissonProcessIteration struct {
+	JumpDist        CompoundPoissonProcessJumpDistribution
 	unitUniformDist *distuv.Uniform
-	jumpDist        CompoundPoissonProcessJumpDistribution
 }
 
 func (c *CompoundPoissonProcessIteration) Configure(
@@ -42,7 +42,7 @@ func (c *CompoundPoissonProcessIteration) Iterate(
 	for i := range values {
 		if params.FloatParams["rates"][i] > (params.FloatParams["rates"][i]+
 			(1.0/timestepsHistory.NextIncrement))*c.unitUniformDist.Rand() {
-			values[i] = stateHistory.Values.At(0, i) + c.jumpDist.NewJump(params, i)
+			values[i] = stateHistory.Values.At(0, i) + c.JumpDist.NewJump(params, i)
 		} else {
 			values[i] = stateHistory.Values.At(0, i)
 		}
