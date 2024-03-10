@@ -5,167 +5,142 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// OptimiserParamsMapping is a struct which ensures that the configured
-// params of the simulator can be correctly mapped to and from a generic
-// optimisation algorithm.
-type OptimiserParamsMapping struct {
+// ParamsMapping is a struct which ensures that the configured params of the
+// simulator can be correctly mapped to and from a generic flattened format.
+type ParamsMapping struct {
 	Names            []string
 	ParamIndices     []int
-	PartitionIndices []int
-	OptimiserIndices []int
+	FlattenedIndices []int
 }
 
-func (o *OptimiserParamsMapping) SortByOptimiserIndices() {
+func (p *ParamsMapping) SortByOptimiserIndices() {
 	sortedIndices := argsort.SortSlice(
-		o.OptimiserIndices,
+		p.FlattenedIndices,
 		func(i, j int) bool {
-			return o.OptimiserIndices[i] < o.OptimiserIndices[j]
+			return p.FlattenedIndices[i] < p.FlattenedIndices[j]
 		},
 	)
-	sortedNames := o.Names
-	sortedParamIndices := o.ParamIndices
-	sortedPartitionIndices := o.PartitionIndices
-	sortedOptimiserIndices := o.OptimiserIndices
+	sortedNames := p.Names
+	sortedParamIndices := p.ParamIndices
+	sortedFlattenedIndices := p.FlattenedIndices
 	for i, sortedIndex := range sortedIndices {
-		sortedNames[i] = o.Names[sortedIndex]
-		sortedParamIndices[i] = o.ParamIndices[sortedIndex]
-		sortedPartitionIndices[i] = o.PartitionIndices[sortedIndex]
-		sortedOptimiserIndices[i] = o.OptimiserIndices[sortedIndex]
+		sortedNames[i] = p.Names[sortedIndex]
+		sortedParamIndices[i] = p.ParamIndices[sortedIndex]
+		sortedFlattenedIndices[i] = p.FlattenedIndices[sortedIndex]
 	}
-	o.Names = sortedNames
-	o.ParamIndices = sortedParamIndices
-	o.PartitionIndices = sortedPartitionIndices
-	o.OptimiserIndices = sortedOptimiserIndices
+	p.Names = sortedNames
+	p.ParamIndices = sortedParamIndices
+	p.FlattenedIndices = sortedFlattenedIndices
 }
 
-// OptimiserParamsMappings provides a OptimiserParamsMapping for both
-// .FloatParams and .IntParams in the simulator.OtherParams struct.
-type OptimiserParamsMappings struct {
-	FloatParams *OptimiserParamsMapping
-	IntParams   *OptimiserParamsMapping
+// ParamsMappings provides a ParamsMapping for both .FloatParams and
+// .IntParams in the simulator.OtherParams struct.
+type ParamsMappings struct {
+	FloatParams *ParamsMapping
+	IntParams   *ParamsMapping
 }
 
-// GetParamsForOptimiser is a convenience function which returns the params
+// GetParamsFlattened is a convenience function which returns the params
 // from the stochadex where the mask has been applied to them in a flattened
-// single slice format ready to input into an optimiser.
-func (o *OptimiserParamsMappings) GetParamsForOptimiser(
-	params []*simulator.OtherParams,
+// single slice format.
+func (p *ParamsMappings) GetParamsFlattened(
+	params *simulator.OtherParams,
 ) []float64 {
-	paramsForOptimiser := make([]float64, 0)
-	for i, name := range o.FloatParams.Names {
-		paramsForOptimiser = append(
-			paramsForOptimiser,
-			params[o.FloatParams.PartitionIndices[i]].
-				FloatParams[name][o.FloatParams.ParamIndices[i]],
+	flattenedParams := make([]float64, 0)
+	for i, name := range p.FloatParams.Names {
+		flattenedParams = append(
+			flattenedParams,
+			params.FloatParams[name][p.FloatParams.ParamIndices[i]],
 		)
 	}
-	for i, name := range o.IntParams.Names {
-		paramsForOptimiser = append(
-			paramsForOptimiser,
+	for i, name := range p.IntParams.Names {
+		flattenedParams = append(
+			flattenedParams,
 			float64(
-				params[o.IntParams.PartitionIndices[i]].
-					IntParams[name][o.IntParams.ParamIndices[i]],
+				params.IntParams[name][p.IntParams.ParamIndices[i]],
 			),
 		)
 	}
-	return paramsForOptimiser
+	return flattenedParams
 }
 
-// UpdateParamsFromOptimiser is a convenience function which updates the input params
-// from the stochadex which have been retrieved from the flattened slice format that
-// is typically used in an optimiser package.
-func (o *OptimiserParamsMappings) UpdateParamsFromOptimiser(
-	fromOptimiser []float64,
-	params []*simulator.OtherParams,
-) []*simulator.OtherParams {
+// UpdateParamsFromFlattened is a convenience function which updates the
+// input params from the stochadex which have been retrieved from the flattened
+// slice format.
+func (p *ParamsMappings) UpdateParamsFromFlattened(
+	fromFlattened []float64,
+	params *simulator.OtherParams,
+) *simulator.OtherParams {
 	largestFloatParamIndex :=
-		o.FloatParams.OptimiserIndices[len(o.FloatParams.OptimiserIndices)-1]
-	for optimiserIndex, param := range fromOptimiser {
-		if optimiserIndex <= largestFloatParamIndex {
-			partition := o.FloatParams.PartitionIndices[optimiserIndex]
-			name := o.FloatParams.Names[optimiserIndex]
-			index := o.FloatParams.ParamIndices[optimiserIndex]
-			params[partition].FloatParams[name][index] = param
+		p.FloatParams.FlattenedIndices[len(p.FloatParams.FlattenedIndices)-1]
+	for flattenedIndex, param := range fromFlattened {
+		if flattenedIndex <= largestFloatParamIndex {
+			name := p.FloatParams.Names[flattenedIndex]
+			index := p.FloatParams.ParamIndices[flattenedIndex]
+			params.FloatParams[name][index] = param
 		} else {
-			partition := o.IntParams.PartitionIndices[optimiserIndex]
-			name := o.IntParams.Names[optimiserIndex]
-			index := o.IntParams.ParamIndices[optimiserIndex]
-			params[partition].IntParams[name][index] = int64(param)
+			name := p.IntParams.Names[flattenedIndex]
+			index := p.IntParams.ParamIndices[flattenedIndex]
+			params.IntParams[name][index] = int64(param)
 		}
 	}
 	return params
 }
 
-// NewOptimiserParamsMappings creates a new OptimiserParamsMappings.
-func NewOptimiserParamsMappings(
-	params []*simulator.OtherParams,
-) *OptimiserParamsMappings {
-	optimiserParamsIndex := 0
-	floatParamsMapping := &OptimiserParamsMapping{
+// NewParamsMappings creates a new ParamsMappings.
+func NewParamsMappings(params *simulator.OtherParams) *ParamsMappings {
+	flattenedParamsIndex := 0
+	floatParamsMapping := &ParamsMapping{
 		Names:            make([]string, 0),
-		PartitionIndices: make([]int, 0),
-		OptimiserIndices: make([]int, 0),
+		FlattenedIndices: make([]int, 0),
 	}
-	for index, partitionParams := range params {
-		for name, paramSlice := range partitionParams.FloatParams {
-			_, ok := partitionParams.FloatParamsMask[name]
-			if !ok {
-				continue
-			}
-			for i := range paramSlice {
-				if partitionParams.FloatParamsMask[name][i] {
-					floatParamsMapping.Names = append(floatParamsMapping.Names, name)
-					floatParamsMapping.ParamIndices = append(
-						floatParamsMapping.ParamIndices,
-						i,
-					)
-					floatParamsMapping.PartitionIndices = append(
-						floatParamsMapping.PartitionIndices,
-						index,
-					)
-					floatParamsMapping.OptimiserIndices = append(
-						floatParamsMapping.OptimiserIndices,
-						optimiserParamsIndex,
-					)
-					optimiserParamsIndex += 1
-				}
+	for name, paramSlice := range params.FloatParams {
+		_, ok := params.FloatParamsMask[name]
+		if !ok {
+			continue
+		}
+		for i := range paramSlice {
+			if params.FloatParamsMask[name][i] {
+				floatParamsMapping.Names = append(floatParamsMapping.Names, name)
+				floatParamsMapping.ParamIndices = append(
+					floatParamsMapping.ParamIndices,
+					i,
+				)
+				floatParamsMapping.FlattenedIndices = append(
+					floatParamsMapping.FlattenedIndices,
+					flattenedParamsIndex,
+				)
+				flattenedParamsIndex += 1
 			}
 		}
 	}
-	intParamsMapping := &OptimiserParamsMapping{
+	intParamsMapping := &ParamsMapping{
 		Names:            make([]string, 0),
-		PartitionIndices: make([]int, 0),
-		OptimiserIndices: make([]int, 0),
+		FlattenedIndices: make([]int, 0),
 	}
-	for index, partitionParams := range params {
-		for name, paramSlice := range partitionParams.IntParams {
-			_, ok := partitionParams.IntParamsMask[name]
-			if !ok {
-				continue
-			}
-			for i := range paramSlice {
-				if partitionParams.IntParamsMask[name][i] {
-					intParamsMapping.Names = append(intParamsMapping.Names, name)
-					intParamsMapping.ParamIndices = append(
-						intParamsMapping.ParamIndices,
-						i,
-					)
-					intParamsMapping.PartitionIndices = append(
-						intParamsMapping.PartitionIndices,
-						index,
-					)
-					intParamsMapping.OptimiserIndices = append(
-						intParamsMapping.OptimiserIndices,
-						optimiserParamsIndex,
-					)
-					optimiserParamsIndex += 1
-				}
+	for name, paramSlice := range params.IntParams {
+		_, ok := params.IntParamsMask[name]
+		if !ok {
+			continue
+		}
+		for i := range paramSlice {
+			if params.IntParamsMask[name][i] {
+				intParamsMapping.Names = append(intParamsMapping.Names, name)
+				intParamsMapping.ParamIndices = append(
+					intParamsMapping.ParamIndices,
+					i,
+				)
+				intParamsMapping.FlattenedIndices = append(
+					intParamsMapping.FlattenedIndices,
+					flattenedParamsIndex,
+				)
+				flattenedParamsIndex += 1
 			}
 		}
 	}
 	floatParamsMapping.SortByOptimiserIndices()
 	intParamsMapping.SortByOptimiserIndices()
-	return &OptimiserParamsMappings{
+	return &ParamsMappings{
 		FloatParams: floatParamsMapping,
 		IntParams:   intParamsMapping,
 	}
