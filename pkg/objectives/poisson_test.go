@@ -30,7 +30,7 @@ func TestPoissonLogLikelihood(t *testing.T) {
 			iterations = append(
 				iterations,
 				[]simulator.Iteration{
-					&ObjectiveIteration{
+					&LastObjectiveValueIteration{
 						DataLinking: &PoissonDataLinkingLogLikelihood{},
 					},
 				},

@@ -14,9 +14,10 @@ type DataLinkingLogLikelihood interface {
 	GenerateNewSamples(mean *mat.VecDense, covariance mat.Symmetric) []float64
 }
 
-// ObjectiveIteration allows for any data linking log-likelihood to be used as a comparison
-// distribution between data values and a stream of means and covariance matrices.
-type ObjectiveIteration struct {
+// LastObjectiveValueIteration allows for any data linking log-likelihood to be used
+// as a comparison distribution between data values and a stream of means and
+// covariance matrices.
+type LastObjectiveValueIteration struct {
 	DataLinking         DataLinkingLogLikelihood
 	dataValuesPartition int
 	meanPartition       int
@@ -24,46 +25,46 @@ type ObjectiveIteration struct {
 	covMatOk            bool
 }
 
-func (o *ObjectiveIteration) Configure(
+func (l *LastObjectiveValueIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	o.dataValuesPartition = int(
+	l.dataValuesPartition = int(
 		settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0],
 	)
-	o.meanPartition = int(settings.OtherParams[partitionIndex].IntParams["mean_partition"][0])
+	l.meanPartition = int(settings.OtherParams[partitionIndex].IntParams["mean_partition"][0])
 	c, covMatOk := settings.OtherParams[partitionIndex].IntParams["cov_mat_partition"]
-	o.covMatOk = covMatOk
-	if o.covMatOk {
-		o.covMatPartition = int(c[0])
+	l.covMatOk = covMatOk
+	if l.covMatOk {
+		l.covMatPartition = int(c[0])
 	}
-	o.DataLinking.Configure(partitionIndex, settings)
+	l.DataLinking.Configure(partitionIndex, settings)
 }
 
-func (o *ObjectiveIteration) Iterate(
+func (l *LastObjectiveValueIteration) Iterate(
 	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	if timestepsHistory.CurrentStepNumber <
-		stateHistories[o.dataValuesPartition].StateHistoryDepth {
+		stateHistories[l.dataValuesPartition].StateHistoryDepth {
 		return []float64{0.0}
 	}
-	dims := stateHistories[o.meanPartition].StateWidth
+	dims := stateHistories[l.meanPartition].StateWidth
 	var covMat *mat.SymDense
-	if o.covMatOk {
+	if l.covMatOk {
 		covMat = mat.NewSymDense(
 			dims,
-			stateHistories[o.covMatPartition].Values.RawRowView(0),
+			stateHistories[l.covMatPartition].Values.RawRowView(0),
 		)
 	}
-	return []float64{o.DataLinking.Evaluate(
+	return []float64{l.DataLinking.Evaluate(
 		mat.NewVecDense(
 			dims,
-			stateHistories[o.meanPartition].Values.RawRowView(0),
+			stateHistories[l.meanPartition].Values.RawRowView(0),
 		),
 		covMat,
-		stateHistories[o.dataValuesPartition].Values.RawRowView(0),
+		stateHistories[l.dataValuesPartition].Values.RawRowView(0),
 	)}
 }

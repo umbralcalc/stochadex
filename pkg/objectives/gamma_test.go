@@ -33,7 +33,7 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 			iterations = append(
 				iterations,
 				[]simulator.Iteration{
-					&ObjectiveIteration{
+					&LastObjectiveValueIteration{
 						DataLinking: &GammaDataLinkingLogLikelihood{},
 					},
 				},
