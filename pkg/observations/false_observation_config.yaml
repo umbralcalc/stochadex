@@ -6,8 +6,6 @@ other_params:
 - float_params: {}
   int_params:
     false_positives: [1]
-    partition_to_observe: [0]
-    false_observation_probs_partition: [1]
     state_value_observation_indices: [0, 1, 2, 3]
 init_state_values:
 - [0.0, 1.0, 1.0, 0.0]

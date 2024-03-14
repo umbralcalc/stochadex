@@ -12,34 +12,46 @@ func TestParamsReaderIteration(t *testing.T) {
 		"test that the params reader iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("reader_config.yaml")
-			iterations := make([][]simulator.Iteration, 0)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&simulator.ConstantValuesIteration{},
-					&ParamsReaderIteration{
+			partitions := make([]simulator.Partition, 0)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &ParamsReaderIteration{
 						Iteration: &phenomena.PoissonProcessIteration{},
+					},
+					ParamsByUpstreamPartition: map[int]string{
+						0: "param_values",
 					},
 				},
 			)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&simulator.ConstantValuesIteration{},
-					&ParamsReaderIteration{
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &ParamsReaderIteration{
 						Iteration: &phenomena.PoissonProcessIteration{},
+					},
+					ParamsByUpstreamPartition: map[int]string{
+						2: "param_values",
 					},
 				},
 			)
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

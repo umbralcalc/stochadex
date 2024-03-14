@@ -10,9 +10,7 @@ import (
 // well as both checking for objects entering and indicating that objects
 // are leaving this stage for another one of an overall pipeline.
 type PipelineStageIteration struct {
-	unitUniformDist          *distuv.Uniform
-	downstreamFlowRatesIndex int
-	dispatchProbsIndex       int
+	unitUniformDist *distuv.Uniform
 }
 
 func (p *PipelineStageIteration) Configure(
@@ -27,10 +25,6 @@ func (p *PipelineStageIteration) Configure(
 		Max: 1.0,
 		Src: rand.NewSource(seed),
 	}
-	p.downstreamFlowRatesIndex = int(settings.OtherParams[partitionIndex].
-		IntParams["downstream_flow_rates_partition_index"][0])
-	p.dispatchProbsIndex = int(settings.OtherParams[partitionIndex].
-		IntParams["object_dispatch_probs_partition_index"][0])
 }
 
 func (p *PipelineStageIteration) Iterate(
@@ -53,7 +47,7 @@ func (p *PipelineStageIteration) Iterate(
 	cumulative := timestepsHistory.NextIncrement
 	cumulatives := make([]float64, 0)
 	cumulatives = append(cumulatives, cumulative)
-	for _, rate := range stateHistories[p.downstreamFlowRatesIndex].NextValues {
+	for _, rate := range params.FloatParams["downstream_flow_rates"] {
 		cumulative += 1.0 / rate
 		cumulatives = append(cumulatives, cumulative)
 	}
@@ -67,7 +61,7 @@ func (p *PipelineStageIteration) Iterate(
 	objects := make([]int, 0)
 	objectCumulatives := make([]float64, 0)
 	stateHistory := stateHistories[partitionIndex]
-	probs := stateHistories[p.dispatchProbsIndex].NextValues
+	probs := params.FloatParams["object_dispatch_probs"]
 	for i := 0; i < stateHistory.StateWidth-2; i++ {
 		prob := stateHistory.Values.At(0, i)
 		if prob == 0 {

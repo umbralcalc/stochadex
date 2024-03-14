@@ -11,9 +11,8 @@ import (
 // StateTransitionIteration is essentially a state machine which transitions
 // between states according to the event rate parameters.
 type StateTransitionIteration struct {
-	unitUniformDist      *distuv.Uniform
-	transitionRatesIndex int
-	rateSlices           [][]int
+	unitUniformDist *distuv.Uniform
+	rateSlices      [][]int
 }
 
 func (s *StateTransitionIteration) Configure(
@@ -41,8 +40,6 @@ func (s *StateTransitionIteration) Configure(
 		i += 1
 		ratesTotal += len(rates)
 	}
-	s.transitionRatesIndex =
-		int(settings.OtherParams[partitionIndex].IntParams["transition_rates_partition_index"][0])
 }
 
 func (s *StateTransitionIteration) Iterate(
@@ -57,7 +54,7 @@ func (s *StateTransitionIteration) Iterate(
 	cumulatives := make([]float64, 0)
 	cumulatives = append(cumulatives, cumulative)
 	slices := s.rateSlices[int(state[0])]
-	transitionRates := stateHistories[s.transitionRatesIndex].NextValues[slices[0]:slices[1]]
+	transitionRates := params.FloatParams["transition_rates"][slices[0]:slices[1]]
 	for _, rate := range transitionRates {
 		cumulative += 1.0 / rate
 		cumulatives = append(cumulatives, cumulative)

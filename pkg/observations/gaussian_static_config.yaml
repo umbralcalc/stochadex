@@ -3,8 +3,7 @@ other_params:
   int_params: {}
 - float_params:
     observation_noise_variances: [0.1, 0.5, 0.9]
-  int_params:
-    partition_to_observe: [0]
+  int_params: {}
 init_state_values:
 - [0.0, 0.0, 0.0]
 - [0.0, 0.0, 0.0]

@@ -1,4 +1,4 @@
-package objectives
+package inference
 
 import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -18,26 +18,17 @@ type DataLinkingLogLikelihood interface {
 // as a comparison distribution between data values and a stream of means and
 // covariance matrices.
 type LastObjectiveValueIteration struct {
-	DataLinking         DataLinkingLogLikelihood
-	dataValuesPartition int
-	meanPartition       int
-	covMatPartition     int
-	covMatOk            bool
+	DataLinking DataLinkingLogLikelihood
+	burnInSteps int
 }
 
 func (l *LastObjectiveValueIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	l.dataValuesPartition = int(
-		settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0],
+	l.burnInSteps = int(
+		settings.OtherParams[partitionIndex].IntParams["burn_in_steps"][0],
 	)
-	l.meanPartition = int(settings.OtherParams[partitionIndex].IntParams["mean_partition"][0])
-	c, covMatOk := settings.OtherParams[partitionIndex].IntParams["cov_mat_partition"]
-	l.covMatOk = covMatOk
-	if l.covMatOk {
-		l.covMatPartition = int(c[0])
-	}
 	l.DataLinking.Configure(partitionIndex, settings)
 }
 
@@ -47,24 +38,21 @@ func (l *LastObjectiveValueIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	if timestepsHistory.CurrentStepNumber <
-		stateHistories[l.dataValuesPartition].StateHistoryDepth {
+	if timestepsHistory.CurrentStepNumber < l.burnInSteps {
 		return []float64{0.0}
 	}
-	dims := stateHistories[l.meanPartition].StateWidth
+	dims := len(params.FloatParams["mean"])
 	var covMat *mat.SymDense
-	if l.covMatOk {
-		covMat = mat.NewSymDense(
-			dims,
-			stateHistories[l.covMatPartition].Values.RawRowView(0),
-		)
+	cVals, ok := params.FloatParams["covariance_matrix"]
+	if ok {
+		covMat = mat.NewSymDense(dims, cVals)
 	}
 	return []float64{l.DataLinking.Evaluate(
 		mat.NewVecDense(
 			dims,
-			stateHistories[l.meanPartition].Values.RawRowView(0),
+			params.FloatParams["mean"],
 		),
 		covMat,
-		stateHistories[l.dataValuesPartition].Values.RawRowView(0),
+		params.FloatParams["latest_data_values"],
 	)}
 }

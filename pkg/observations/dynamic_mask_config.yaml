@@ -6,9 +6,7 @@ other_params:
   int_params: {}
 - float_params:
     nan_value: [0.0]
-  int_params:
-    partition_to_observe: [0]
-    mask_partition: [1]
+  int_params: {}
 init_state_values:
 - [0.0, 0.0, 0.0, 0.0, 0.0]
 - [0.0, 1.0, 0.0, 1.0, 1.0]

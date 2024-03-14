@@ -6,28 +6,24 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestWeightedPointIteration(t *testing.T) {
+func TestWeightedMeanIteration(t *testing.T) {
 	t.Run(
-		"test that the weighted point iteration runs",
+		"test that the weighted mean iteration runs",
 		func(t *testing.T) {
 			settings :=
-				simulator.LoadSettingsFromYaml("./weighted_point_config.yaml")
-			iterations := [][]simulator.Iteration{
-				{&WeightedPointIteration{}},
-				{&WienerProcessIteration{}},
-				{&WienerProcessIteration{}},
-				{&WienerProcessIteration{}},
-				{&WienerProcessIteration{}},
+				simulator.LoadSettingsFromYaml("./weighted_mean_config.yaml")
+			partitions := []simulator.Partition{
+				{Iteration: &WeightedMeanIteration{}},
+				{Iteration: &WienerProcessIteration{}},
+				{Iteration: &WienerProcessIteration{}},
+				{Iteration: &WienerProcessIteration{}},
+				{Iteration: &WienerProcessIteration{}},
 			}
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

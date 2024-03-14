@@ -9,8 +9,7 @@ import (
 // BinomialStaticPartialStateObservationIteration observes each count value in the
 // state with a binomial probability - emulating a sequence of Bernoulli trials.
 type BinomialStaticPartialStateObservationIteration struct {
-	binomialDist       *distuv.Binomial
-	partitionToObserve int
+	binomialDist *distuv.Binomial
 }
 
 func (b *BinomialStaticPartialStateObservationIteration) Configure(
@@ -22,8 +21,6 @@ func (b *BinomialStaticPartialStateObservationIteration) Configure(
 		P:   1.0,
 		Src: rand.NewSource(settings.Seeds[partitionIndex]),
 	}
-	b.partitionToObserve = int(settings.OtherParams[partitionIndex].
-		IntParams["partition_to_observe"][0])
 }
 
 func (b *BinomialStaticPartialStateObservationIteration) Iterate(
@@ -33,7 +30,7 @@ func (b *BinomialStaticPartialStateObservationIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := stateHistories[b.partitionToObserve].NextValues
+	stateValues := params.FloatParams["observed_values"]
 	probs := params.FloatParams["state_value_observation_probs"]
 	for i, index := range params.IntParams["state_value_observation_indices"] {
 		b.binomialDist.N = stateValues[index]

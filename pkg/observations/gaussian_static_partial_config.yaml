@@ -4,7 +4,6 @@ other_params:
 - float_params:
     observation_noise_variances: [0.1, 0.5]
   int_params:
-    partition_to_observe: [0]
     state_value_observation_indices: [1, 2]
 init_state_values:
 - [0.0, 0.0, 0.0]

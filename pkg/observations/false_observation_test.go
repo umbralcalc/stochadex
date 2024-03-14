@@ -13,24 +13,34 @@ func TestFalseStaticPartialStateObservationIteration(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"false_observation_config.yaml",
 			)
-			iterations := make([][]simulator.Iteration, 0)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&simulator.ConstantValuesIteration{},
-					&simulator.ConstantValuesIteration{},
-					&FalseStaticPartialStateObservationIteration{},
+			partitions := make([]simulator.Partition, 0)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &simulator.ConstantValuesIteration{},
 				},
 			)
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &FalseStaticPartialStateObservationIteration{},
+					ParamsByUpstreamPartition: map[int]string{
+						0: "values_to_observe",
+						1: "false_observation_probs",
+					},
+				},
+			)
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

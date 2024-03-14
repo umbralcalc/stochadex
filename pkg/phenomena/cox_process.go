@@ -8,8 +8,7 @@ import (
 
 // CoxProcessIteration defines an iteration for a Cox process.
 type CoxProcessIteration struct {
-	unitUniformDist           *distuv.Uniform
-	rateProcessPartitionIndex int
+	unitUniformDist *distuv.Uniform
 }
 
 func (c *CoxProcessIteration) Configure(
@@ -21,10 +20,6 @@ func (c *CoxProcessIteration) Configure(
 		Max: 1.0,
 		Src: rand.NewSource(settings.Seeds[partitionIndex]),
 	}
-	c.rateProcessPartitionIndex = int(
-		settings.OtherParams[partitionIndex].
-			IntParams["rate_process_partition_index"][0],
-	)
 }
 
 func (c *CoxProcessIteration) Iterate(
@@ -34,7 +29,7 @@ func (c *CoxProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	rates := stateHistories[c.rateProcessPartitionIndex].NextValues
+	rates := params.FloatParams["rates"]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		if rates[i] > (rates[i]+

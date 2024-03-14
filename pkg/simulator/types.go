@@ -42,24 +42,38 @@ type IteratorInputMessage struct {
 	TimestepsHistory *CumulativeTimestepsHistory
 }
 
+// Partition is the config which defines an iteration which acts on a
+// partition of the the global simulation state and its upstream partitions
+// which may provide params for it.
+type Partition struct {
+	Iteration                 Iteration
+	ParamsByUpstreamPartition map[int]string
+}
+
 // Implementations defines all of the types that must be implemented in
 // order to configure a stochastic process defined by the stochadex.
 type Implementations struct {
-	Iterations           [][]Iteration
+	Partitions           []Partition
 	OutputCondition      OutputCondition
 	OutputFunction       OutputFunction
 	TerminationCondition TerminationCondition
 	TimestepFunction     TimestepFunction
 }
 
+// PartitionStrings is the yaml-loadable config for a Partition.
+type PartitionStrings struct {
+	Iteration                 string         `yaml:"iteration"`
+	ParamsByUpstreamPartition map[int]string `yaml:"params_by_upstream_partition,omitempty"`
+}
+
 // ImplementationStrings is the yaml-loadable config which consists of string type
 // names to insert into templating.
 type ImplementationStrings struct {
-	Iterations           [][]string `yaml:"iterations"`
-	OutputCondition      string     `yaml:"output_condition"`
-	OutputFunction       string     `yaml:"output_function"`
-	TerminationCondition string     `yaml:"termination_condition"`
-	TimestepFunction     string     `yaml:"timestep_function"`
+	Partitions           []PartitionStrings `yaml:"partitions"`
+	OutputCondition      string             `yaml:"output_condition"`
+	OutputFunction       string             `yaml:"output_function"`
+	TerminationCondition string             `yaml:"termination_condition"`
+	TimestepFunction     string             `yaml:"timestep_function"`
 }
 
 // Settings is the yaml-loadable config which defines all of the

@@ -1,4 +1,4 @@
-package objectives
+package inference
 
 import (
 	"testing"
@@ -15,36 +15,44 @@ func TestPoissonLogLikelihood(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"poisson_config.yaml",
 			)
-			iterations := make([][]simulator.Iteration, 0)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&DataGenerationIteration{
+			partitions := make([]simulator.Partition, 0)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &DataGenerationIteration{
 						DataLinking: &PoissonDataLinkingLogLikelihood{},
 					},
-					&phenomena.WeightedWindowedMeanIteration{
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &phenomena.WeightedWindowedMeanIteration{
 						Kernel: &kernels.ExponentialIntegrationKernel{},
 					},
-				},
-			)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&LastObjectiveValueIteration{
-						DataLinking: &PoissonDataLinkingLogLikelihood{},
+					ParamsByUpstreamPartition: map[int]string{
+						0: "latest_data_values",
 					},
 				},
 			)
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &LastObjectiveValueIteration{
+						DataLinking: &PoissonDataLinkingLogLikelihood{},
+					},
+					ParamsByUpstreamPartition: map[int]string{
+						0: "latest_data_values",
+						1: "mean",
+					},
+				},
+			)
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

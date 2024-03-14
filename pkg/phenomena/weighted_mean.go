@@ -5,18 +5,18 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// WeightedPointIteration computed the weighted sample average for each state vector
+// WeightedMeanIteration computed the weighted sample average for each state vector
 // element across all of the neighbouring partitions.
-type WeightedPointIteration struct {
+type WeightedMeanIteration struct {
 }
 
-func (w *WeightedPointIteration) Configure(
+func (w *WeightedMeanIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
-func (w *WeightedPointIteration) Iterate(
+func (w *WeightedMeanIteration) Iterate(
 	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,

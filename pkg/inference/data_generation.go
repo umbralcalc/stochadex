@@ -1,4 +1,4 @@
-package objectives
+package inference
 
 import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"

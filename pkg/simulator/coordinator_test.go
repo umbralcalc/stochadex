@@ -57,11 +57,10 @@ func (p *paramMultProcessIteration) Iterate(
 
 func iteratePartition(
 	c *PartitionCoordinator,
-	parallelIndex int,
-	serialIndex int,
+	partitionIndex int,
 ) []float64 {
 	// iterate this partition by one step within the same thread
-	return c.Iterators[parallelIndex][serialIndex].Iterate(
+	return c.Iterators[partitionIndex].Iterate(
 		c.StateHistories,
 		c.TimestepsHistory,
 	)
@@ -69,19 +68,15 @@ func iteratePartition(
 
 func iterateHistory(c *PartitionCoordinator) {
 	// update the state history for each job in turn within the same thread
-	for parallelIndex, serialPartitions := range c.PartitionIndices {
-		for serialIndex, index := range serialPartitions {
-			state := iteratePartition(c, parallelIndex, serialIndex)
-			// reference this partition
-			partition := c.StateHistories[index]
-			// iterate over the history (matrix columns) and shift them
-			// back one timestep
-			for i := 1; i < partition.StateHistoryDepth; i++ {
-				partition.Values.SetRow(i, partition.Values.RawRowView(i-1))
-			}
-			// update the latest state in the history
-			partition.Values.SetRow(0, state)
+	for partitionIndex, stateHistory := range c.StateHistories {
+		state := iteratePartition(c, partitionIndex)
+		// iterate over the history (matrix columns) and shift them
+		// back one timestep
+		for i := 1; i < stateHistory.StateHistoryDepth; i++ {
+			stateHistory.Values.SetRow(i, stateHistory.Values.RawRowView(i-1))
 		}
+		// update the latest state in the history
+		stateHistory.Values.SetRow(0, state)
 	}
 
 	// iterate over the history of timesteps and shift them back one
@@ -129,12 +124,15 @@ func TestPartitionCoordinator(t *testing.T) {
 				StateHistoryDepths:    []int{2, 10},
 				TimestepsHistoryDepth: 10,
 			}
-			iterations := make([][]Iteration, 0)
-			iterations = append(iterations, []Iteration{&doublingProcessIteration{}})
-			iterations = append(iterations, []Iteration{&paramMultProcessIteration{}})
+			partitions := make([]Partition, 0)
+			partitions = append(partitions, Partition{Iteration: &doublingProcessIteration{}})
+			partitions = append(partitions, Partition{Iteration: &paramMultProcessIteration{}})
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
+			}
 			storeWithGoroutines := make([][][]float64, 2)
 			implementations := &Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &EveryStepOutputCondition{},
 				OutputFunction:  &VariableStoreOutputFunction{Store: storeWithGoroutines},
 				TerminationCondition: &NumberOfStepsTerminationCondition{

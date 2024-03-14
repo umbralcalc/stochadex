@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"text/template"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -33,11 +32,16 @@ func WriteMainProgram(
 	}
 	fmt.Println("\nParsed implementations:")
 	fmt.Println(implementations)
-	iterations := "[][]simulator.Iteration{"
-	for _, serialIterations := range implementations.Simulator.Iterations {
-		iterations += "{" + strings.Join(serialIterations, ", ") + "}, "
+	partitions := "[]simulator.Partition{"
+	for _, partition := range implementations.Simulator.Partitions {
+		partitions += "{ Iteration: " + partition.Iteration
+		partitions += ", ParamsByUpstreamPartition: map[int]string{"
+		for upstream, params := range partition.ParamsByUpstreamPartition {
+			partitions += strconv.Itoa(upstream) + `: "` + params + `",`
+		}
+		partitions += "},}, "
 	}
-	iterations += "}"
+	partitions += "}"
 	extraPackages := ""
 	extraVariables := ""
 	for _, extraVarsByPackage := range implementations.ExtraVarsByPackage {
@@ -68,16 +72,12 @@ import (
 func main() {
 	{{.ExtraVars}}
 	settings := simulator.LoadSettingsFromYaml("{{.SettingsFile}}")
-	iterations := {{.Iterations}}
-	index := 0
-	for _, serialPartitions := range iterations {
-		for _, iteration := range serialPartitions {
-			iteration.Configure(index, settings)
-			index += 1
-		}
+	partitions := {{.Partitions}}
+	for index, partition := range partitions {
+		partition.Iteration.Configure(index, settings)
 	}
 	implementations := &simulator.Implementations{
-		Iterations:      iterations,
+		Partitions:      partitions,
 		OutputCondition: {{.OutputCondition}},
 		OutputFunction:  {{.OutputFunction}},
 		TerminationCondition: {{.TerminationCondition}},
@@ -129,7 +129,7 @@ func main() {
 			"Handle":               dashboard.Handle,
 			"ReactAppLocation":     dashboard.ReactAppLocation,
 			"MillisecondDelay":     strconv.Itoa(int(dashboard.MillisecondDelay)),
-			"Iterations":           iterations,
+			"Partitions":           partitions,
 			"ExtraVars":            extraVariables,
 			"ExtraPackages":        extraPackages,
 			"OutputCondition":      implementations.Simulator.OutputCondition,

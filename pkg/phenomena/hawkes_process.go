@@ -67,8 +67,7 @@ func NewHawkesProcessIntensityIteration(
 
 // HawkesProcessIteration defines an iteration for a Hawkes process.
 type HawkesProcessIteration struct {
-	unitUniformDist         *distuv.Uniform
-	intensityPartitionIndex int
+	unitUniformDist *distuv.Uniform
 }
 
 func (h *HawkesProcessIteration) Configure(
@@ -80,10 +79,6 @@ func (h *HawkesProcessIteration) Configure(
 		Max: 1.0,
 		Src: rand.NewSource(settings.Seeds[partitionIndex]),
 	}
-	h.intensityPartitionIndex = int(
-		settings.OtherParams[partitionIndex].
-			IntParams["intensity_partition_index"][0],
-	)
 }
 
 func (h *HawkesProcessIteration) Iterate(
@@ -93,7 +88,7 @@ func (h *HawkesProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	rates := stateHistories[h.intensityPartitionIndex].NextValues
+	rates := params.FloatParams["intensity"]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		if rates[i] > (rates[i]+

@@ -12,46 +12,60 @@ func TestActorIteration(t *testing.T) {
 		"test that the actor iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("iteration_config.yaml")
-			iterations := make([][]simulator.Iteration, 0)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&phenomena.WienerProcessIteration{},
-					&ActorIteration{
+			partitions := make([]simulator.Partition, 0)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &phenomena.WienerProcessIteration{},
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &ActorIteration{
 						Actor:        &AdditiveActor{},
 						ActionsInput: &phenomena.WienerProcessIteration{},
 					},
+					ParamsByUpstreamPartition: map[int]string{0: ""},
 				},
 			)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&phenomena.WienerProcessIteration{},
-					&ActorIteration{
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &phenomena.WienerProcessIteration{},
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &ActorIteration{
 						Actor:        &MultiplicativeActor{},
 						ActionsInput: &phenomena.WienerProcessIteration{},
 					},
+					ParamsByUpstreamPartition: map[int]string{2: ""},
 				},
 			)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&phenomena.WienerProcessIteration{},
-					&ActorIteration{
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &phenomena.WienerProcessIteration{},
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &ActorIteration{
 						Actor:        &ReplacementActor{},
 						ActionsInput: &phenomena.WienerProcessIteration{},
 					},
+					ParamsByUpstreamPartition: map[int]string{4: ""},
 				},
 			)
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

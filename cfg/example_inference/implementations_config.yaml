@@ -1,12 +1,13 @@
 simulator:
-  partitions:
-  - iteration: firstWienerProcess
-    params_by_upstream_partition: {}
-  - iteration: someAdditiveActor
-    params_by_upstream_partition:
-      0 : ""
-  - iteration: secondWienerProcess
-    params_by_upstream_partition: {}
+  iterations:
+  - - dataStream
+    - rollingMean
+    - rollingCovMat
+  - - lastObjectiveValues
+    - paramsPosteriorMeanProcess - create a new posterior iterator which Bayesian updates the mean 
+    - paramsPosteriorCovmatProcess - and covariance based on the most recent sample and the last mean/cov and a cumulative objective weighting
+    - paramsGeneratingProcess - extend the data generation to optionally take in dist params from serially-upstream partitions
+    - processReadingParams
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"

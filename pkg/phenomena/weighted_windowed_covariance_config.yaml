@@ -10,7 +10,6 @@ other_params:
     exponential_weighting_timescale: [1.1]
   int_params:
     data_values_partition: [0]
-    mean_partition: [1]
 init_state_values:
 - [0.0, 0.0, 0.0]
 - [0.0, 0.0, 0.0]

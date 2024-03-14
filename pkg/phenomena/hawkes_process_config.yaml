@@ -5,8 +5,7 @@ other_params:
   int_params:
     hawkes_partition_index: [1]
 - float_params: {}
-  int_params:
-    intensity_partition_index: [0]
+  int_params: {}
 init_state_values:
 - [0.0, 0.0, 0.0, 0.0, 0.0]
 - [0.0, 0.0, 0.0, 0.0, 0.0]

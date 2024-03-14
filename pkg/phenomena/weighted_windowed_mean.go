@@ -28,7 +28,7 @@ func (w *WeightedWindowedMeanIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	latestStateValues := stateHistories[w.valuesPartition].NextValues
+	latestStateValues := params.FloatParams["latest_data_values"]
 	stateHistory := stateHistories[w.valuesPartition]
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
 		return latestStateValues

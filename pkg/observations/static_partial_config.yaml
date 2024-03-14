@@ -3,7 +3,6 @@ other_params:
   int_params: {}
 - float_params: {}
   int_params:
-    partition_to_observe: [0]
     state_value_observation_indices: [0, 1]
 init_state_values:
 - [0.0, 0.0, 0.0]

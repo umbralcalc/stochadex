@@ -5,16 +5,14 @@ other_params:
     rates: [0.5, 1.0, 0.8, 1.0, 1.1]
   float_params_mask:
     rates: [false, true, true, false, true]
-  int_params:
-    params_partition: [0]
+  int_params: {}
 - float_params: {}
   int_params: {}
 - float_params:
     rates: [1.5, 0.2, 0.6]
   float_params_mask:
     rates: [true, true, true]
-  int_params:
-    params_partition: [2]
+  int_params: {}
 init_state_values:
 - [0.1, 1.7]
 - [0.0, 0.0, 0.0, 0.0, 0.0]

@@ -1,4 +1,4 @@
-package objectives
+package inference
 
 import (
 	"testing"
@@ -15,39 +15,57 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"normal_config.yaml",
 			)
-			iterations := make([][]simulator.Iteration, 0)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&DataGenerationIteration{
-						DataLinking: &NormalDataLinkingLogLikelihood{},
-					},
-					&phenomena.WeightedWindowedMeanIteration{
-						Kernel: &kernels.ExponentialIntegrationKernel{},
-					},
-					&phenomena.WeightedWindowedCovarianceIteration{
-						Kernel: &kernels.ExponentialIntegrationKernel{},
-					},
-				},
-			)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&LastObjectiveValueIteration{
+			partitions := make([]simulator.Partition, 0)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &DataGenerationIteration{
 						DataLinking: &NormalDataLinkingLogLikelihood{},
 					},
 				},
 			)
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &phenomena.WeightedWindowedMeanIteration{
+						Kernel: &kernels.ExponentialIntegrationKernel{},
+					},
+					ParamsByUpstreamPartition: map[int]string{
+						0: "latest_data_values",
+					},
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &phenomena.WeightedWindowedCovarianceIteration{
+						Kernel: &kernels.ExponentialIntegrationKernel{},
+					},
+					ParamsByUpstreamPartition: map[int]string{
+						0: "latest_data_values",
+						1: "mean",
+					},
+				},
+			)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &LastObjectiveValueIteration{
+						DataLinking: &NormalDataLinkingLogLikelihood{},
+					},
+					ParamsByUpstreamPartition: map[int]string{
+						0: "latest_data_values",
+						1: "mean",
+						2: "covariance_matrix",
+					},
+				},
+			)
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			store := make([][][]float64, len(settings.StateWidths))
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

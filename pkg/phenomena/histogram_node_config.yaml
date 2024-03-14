@@ -7,7 +7,6 @@ other_params:
     transitions_from_1: [0, 3]
     transitions_from_2: [1]
     transitions_from_3: [0]
-    transition_rates_partition_index: [0]
 - float_params: {}
   int_params: {}
 - float_params: {}
@@ -16,7 +15,6 @@ other_params:
     transitions_from_1: [0, 3]
     transitions_from_2: [1]
     transitions_from_3: [0]
-    transition_rates_partition_index: [2]
 - float_params: {}
   int_params:
     connected_partitions: [1, 3]

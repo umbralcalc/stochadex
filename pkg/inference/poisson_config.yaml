@@ -8,8 +8,7 @@ other_params:
     data_values_partition: [0]
 - float_params: {}
   int_params:
-    data_values_partition: [0]
-    mean_partition: [1]
+    burn_in_steps: [30]
 init_state_values:
 - [2.0, 1.0, 0.0]
 - [0.0, 0.0, 0.0]

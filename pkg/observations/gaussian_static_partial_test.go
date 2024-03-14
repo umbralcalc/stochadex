@@ -13,23 +13,25 @@ func TestGaussianStaticPartialStateObservationIteration(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"gaussian_static_partial_config.yaml",
 			)
-			iterations := make([][]simulator.Iteration, 0)
-			iterations = append(
-				iterations,
-				[]simulator.Iteration{
-					&simulator.ConstantValuesIteration{},
-					&GaussianStaticPartialStateObservationIteration{},
+			partitions := make([]simulator.Partition, 0)
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration: &simulator.ConstantValuesIteration{},
 				},
 			)
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			partitions = append(
+				partitions,
+				simulator.Partition{
+					Iteration:                 &GaussianStaticPartialStateObservationIteration{},
+					ParamsByUpstreamPartition: map[int]string{0: "values_to_observe"},
+				},
+			)
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

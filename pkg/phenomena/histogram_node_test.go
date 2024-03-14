@@ -12,28 +12,30 @@ func TestHistogramNodeIteration(t *testing.T) {
 		func(t *testing.T) {
 			settings :=
 				simulator.LoadSettingsFromYaml("./histogram_node_config.yaml")
-			iterations := [][]simulator.Iteration{
+			partitions := []simulator.Partition{
 				{
-					&simulator.ConstantValuesIteration{},
-					&StateTransitionIteration{},
+					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					&simulator.ConstantValuesIteration{},
-					&StateTransitionIteration{},
+					Iteration:                 &StateTransitionIteration{},
+					ParamsByUpstreamPartition: map[int]string{0: "transition_rates"},
 				},
 				{
-					&HistogramNodeIteration{},
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+				{
+					Iteration:                 &StateTransitionIteration{},
+					ParamsByUpstreamPartition: map[int]string{2: "transition_rates"},
+				},
+				{
+					Iteration: &HistogramNodeIteration{},
 				},
 			}
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

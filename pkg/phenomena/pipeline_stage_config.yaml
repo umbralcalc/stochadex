@@ -9,8 +9,6 @@ other_params:
     incoming_partition_state_values: []
     incoming_object_state_values: []
     downstream_partitions: [5]
-    downstream_flow_rates_partition_index: [0]
-    object_dispatch_probs_partition_index: [1]
 - float_params: {}
   int_params: {}
 - float_params: {}
@@ -21,8 +19,6 @@ other_params:
     incoming_partition_state_values: [6]
     incoming_object_state_values: [5]
     downstream_partitions: [8, 11]
-    downstream_flow_rates_partition_index: [3]
-    object_dispatch_probs_partition_index: [4]
 - float_params: {}
   int_params: {}
 - float_params: {}
@@ -33,8 +29,6 @@ other_params:
     incoming_partition_state_values: [6]
     incoming_object_state_values: [5]
     downstream_partitions: [11]
-    downstream_flow_rates_partition_index: [6]
-    object_dispatch_probs_partition_index: [7]
 - float_params: {}
   int_params: {}
 - float_params: {}
@@ -45,8 +39,6 @@ other_params:
     incoming_partition_state_values: [6, 6]
     incoming_object_state_values: [5, 5]
     downstream_partitions: [-1]
-    downstream_flow_rates_partition_index: [9]
-    object_dispatch_probs_partition_index: [10]
 init_state_values:
 - [1.0]
 - [0.2, 0.2, 0.2, 0.2, 0.2]

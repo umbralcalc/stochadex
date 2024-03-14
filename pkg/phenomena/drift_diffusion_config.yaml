@@ -4,17 +4,13 @@ other_params:
 - float_params: {}
   int_params: {}
 - float_params: {}
-  int_params:
-    drift_coefficients_partition: [0]
-    diffusion_coefficients_partition: [1]
-- float_params: {}
   int_params: {}
 - float_params: {}
   int_params: {}
 - float_params: {}
-  int_params:
-    drift_coefficients_partition: [3]
-    diffusion_coefficients_partition: [4]
+  int_params: {}
+- float_params: {}
+  int_params: {}
 init_state_values:
 - [0.45, 1.4, 0.01, -0.13, 0.7]
 - [2.0, 1.0, 3.0, 1.1, 7.0]

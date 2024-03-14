@@ -1,7 +1,7 @@
 other_params:
 - float_params:
     mean: [0.5, 1.0, 0.8]
-    upper_triangle_cholesky_of_cov_matrix: [1.0, 0.0, 0.0, 1.0, 0.0, 1.0]
+    upper_triangle_cholesky_of_cov_matrix: [5.0, 0.0, 0.0, 5.0, 0.0, 5.0]
   int_params: {}
 - float_params:
     exponential_weighting_timescale: [30.0]
@@ -11,14 +11,11 @@ other_params:
     exponential_weighting_timescale: [30.0]
   int_params:
     data_values_partition: [0]
-    mean_partition: [1]
 - float_params: {}
   int_params:
-    data_values_partition: [0]
-    mean_partition: [1]
-    cov_mat_partition: [2]
+    burn_in_steps: [30]
 init_state_values:
-- [2.0, 1.2, 0.5]
+- [2.0, 1.0, 0.0]
 - [0.0, 0.0, 0.0]
 - [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 - [0.0]

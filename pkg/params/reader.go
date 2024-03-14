@@ -6,11 +6,10 @@ import (
 
 // ParamsReaderIteration wraps any iteration and gives it the functionality to
 // read its masked float and int params from the next values in the state
-// history of another serially-upstream partition.
+// history of another typically-upstream partition.
 type ParamsReaderIteration struct {
-	Iteration       simulator.Iteration
-	paramsMappings  *ParamsMappings
-	paramsPartition int
+	Iteration      simulator.Iteration
+	paramsMappings *ParamsMappings
 }
 
 func (p *ParamsReaderIteration) Configure(
@@ -19,7 +18,6 @@ func (p *ParamsReaderIteration) Configure(
 ) {
 	p.Iteration.Configure(partitionIndex, settings)
 	p.paramsMappings = NewParamsMappings(settings.OtherParams[partitionIndex])
-	p.paramsPartition = int(settings.OtherParams[partitionIndex].IntParams["params_partition"][0])
 }
 
 func (p *ParamsReaderIteration) Iterate(
@@ -30,7 +28,7 @@ func (p *ParamsReaderIteration) Iterate(
 ) []float64 {
 	return p.Iteration.Iterate(
 		p.paramsMappings.UpdateParamsFromFlattened(
-			stateHistories[p.paramsPartition].NextValues,
+			params.FloatParams["param_values"],
 			params,
 		),
 		partitionIndex,

@@ -12,9 +12,16 @@ func TestRunWithParsedArgs(t *testing.T) {
 		func(t *testing.T) {
 			implementations := &ImplementationsConfigStrings{
 				Simulator: simulator.ImplementationStrings{
-					Iterations: [][]string{
-						{"firstWienerProcess", "someAdditiveActor"},
-						{"secondWienerProcess"},
+					Partitions: []simulator.PartitionStrings{
+						{
+							Iteration: "firstWienerProcess",
+						},
+						{
+							Iteration: "someAdditiveActor",
+						},
+						{
+							Iteration: "secondWienerProcess",
+						},
 					},
 					OutputCondition:      "&simulator.NilOutputCondition{}",
 					OutputFunction:       "&simulator.NilOutputFunction{}",

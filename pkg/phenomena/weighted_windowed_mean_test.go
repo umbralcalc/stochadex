@@ -13,23 +13,22 @@ func TestWeightedWindowedMeanIteration(t *testing.T) {
 		func(t *testing.T) {
 			settings :=
 				simulator.LoadSettingsFromYaml("./weighted_windowed_mean_config.yaml")
-			iterations := [][]simulator.Iteration{
+			partitions := []simulator.Partition{
 				{
-					&WienerProcessIteration{},
-					&WeightedWindowedMeanIteration{
+					Iteration: &WienerProcessIteration{},
+				},
+				{
+					Iteration: &WeightedWindowedMeanIteration{
 						Kernel: &kernels.ExponentialIntegrationKernel{},
 					},
+					ParamsByUpstreamPartition: map[int]string{0: "latest_data_values"},
 				},
 			}
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

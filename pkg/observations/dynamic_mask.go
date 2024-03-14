@@ -8,9 +8,7 @@ import (
 // only observe a masked subset of the state values, replacing masked values with
 // specified NaN value.
 type DynamicMaskStateObservationIteration struct {
-	nanValue           float64
-	partitionToObserve int
-	maskPartition      int
+	nanValue float64
 }
 
 func (d *DynamicMaskStateObservationIteration) Configure(
@@ -19,10 +17,6 @@ func (d *DynamicMaskStateObservationIteration) Configure(
 ) {
 	d.nanValue = settings.OtherParams[partitionIndex].
 		FloatParams["nan_value"][0]
-	d.maskPartition = int(settings.OtherParams[partitionIndex].
-		IntParams["mask_partition"][0])
-	d.partitionToObserve = int(settings.OtherParams[partitionIndex].
-		IntParams["partition_to_observe"][0])
 }
 
 func (d *DynamicMaskStateObservationIteration) Iterate(
@@ -32,8 +26,8 @@ func (d *DynamicMaskStateObservationIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	maskValues := stateHistories[d.maskPartition].NextValues
-	stateValues := stateHistories[d.partitionToObserve].NextValues
+	maskValues := params.FloatParams["mask_values"]
+	stateValues := params.FloatParams["values_to_observe"]
 	for i, maskValue := range maskValues {
 		if maskValue == 0 {
 			outputValues = append(outputValues, d.nanValue)

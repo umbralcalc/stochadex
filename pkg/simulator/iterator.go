@@ -40,11 +40,14 @@ func (c *ConstantValuesIteration) Iterate(
 // StateIterator handles iterations of a given state partition on a
 // separate goroutine and writing output data to somewhere.
 type StateIterator struct {
-	Iteration       Iteration
-	Params          *OtherParams
-	partitionIndex  int
-	outputCondition OutputCondition
-	outputFunction  OutputFunction
+	Iteration                    Iteration
+	Params                       *OtherParams
+	UpstreamValueChannelByParams map[string](chan []float64)
+	DownstreamValueChannel       chan []float64
+	DownstreamListeners          int
+	PartitionIndex               int
+	OutputCondition              OutputCondition
+	OutputFunction               OutputFunction
 }
 
 // Iterate takes the state and timesteps history and outputs an updated
@@ -55,15 +58,15 @@ func (s *StateIterator) Iterate(
 ) []float64 {
 	newState := s.Iteration.Iterate(
 		s.Params,
-		s.partitionIndex,
+		s.PartitionIndex,
 		stateHistories,
 		timestepsHistory,
 	)
 	// get the new time for output
 	time := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	// also apply the output function if this step requires it
-	if s.outputCondition.IsOutputStep(s.partitionIndex, newState, time) {
-		s.outputFunction.Output(s.partitionIndex, newState, time)
+	if s.OutputCondition.IsOutputStep(s.PartitionIndex, newState, time) {
+		s.OutputFunction.Output(s.PartitionIndex, newState, time)
 	}
 	return newState
 }
@@ -75,10 +78,19 @@ func (s *StateIterator) ReceiveAndIteratePending(
 	inputChannel <-chan *IteratorInputMessage,
 ) {
 	inputMessage := <-inputChannel
-	inputMessage.StateHistories[s.partitionIndex].NextValues = s.Iterate(
+	// listen to the upstream channels which may set new params
+	for params, upstreamChannel := range s.UpstreamValueChannelByParams {
+		s.Params.FloatParams[params] = <-upstreamChannel
+	}
+	newState := s.Iterate(
 		inputMessage.StateHistories,
 		inputMessage.TimestepsHistory,
 	)
+	inputMessage.StateHistories[s.PartitionIndex].NextValues = newState
+	// broadcast a reference to the new state values for all downstream listeners
+	for i := 0; i < s.DownstreamListeners; i++ {
+		s.DownstreamValueChannel <- newState
+	}
 }
 
 // UpdateHistory should always follow a call to ReceiveAndIteratePending as it
@@ -87,10 +99,10 @@ func (s *StateIterator) ReceiveAndIteratePending(
 func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage) {
 	inputMessage := <-inputChannel
 	// reference this partition
-	partition := inputMessage.StateHistories[s.partitionIndex]
+	partition := inputMessage.StateHistories[s.PartitionIndex]
 	// make a temporary copy of this partition's previous values
 	var partitionValuesCopy mat.Dense
-	partitionValuesCopy.CloneFrom(inputMessage.StateHistories[s.partitionIndex].Values)
+	partitionValuesCopy.CloneFrom(inputMessage.StateHistories[s.PartitionIndex].Values)
 	// iterate over the history (matrix columns) and shift them
 	// back one timestep
 	for i := 1; i < partition.StateHistoryDepth; i++ {

@@ -12,37 +12,65 @@ func TestPipelineStageIteration(t *testing.T) {
 		func(t *testing.T) {
 			settings :=
 				simulator.LoadSettingsFromYaml("./pipeline_stage_config.yaml")
-			iterations := [][]simulator.Iteration{
+			partitions := []simulator.Partition{
 				{
-					&simulator.ConstantValuesIteration{},
-					&simulator.ConstantValuesIteration{},
-					&PipelineStageIteration{},
+					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					&simulator.ConstantValuesIteration{},
-					&simulator.ConstantValuesIteration{},
-					&PipelineStageIteration{},
+					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					&simulator.ConstantValuesIteration{},
-					&simulator.ConstantValuesIteration{},
-					&PipelineStageIteration{},
+					Iteration: &PipelineStageIteration{},
+					ParamsByUpstreamPartition: map[int]string{
+						0: "downstream_flow_rates",
+						1: "object_dispatch_probs",
+					},
 				},
 				{
-					&simulator.ConstantValuesIteration{},
-					&simulator.ConstantValuesIteration{},
-					&PipelineStageIteration{},
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+				{
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+				{
+					Iteration: &PipelineStageIteration{},
+					ParamsByUpstreamPartition: map[int]string{
+						3: "downstream_flow_rates",
+						4: "object_dispatch_probs",
+					},
+				},
+				{
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+				{
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+				{
+					Iteration: &PipelineStageIteration{},
+					ParamsByUpstreamPartition: map[int]string{
+						6: "downstream_flow_rates",
+						7: "object_dispatch_probs",
+					},
+				},
+				{
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+				{
+					Iteration: &simulator.ConstantValuesIteration{},
+				},
+				{
+					Iteration: &PipelineStageIteration{},
+					ParamsByUpstreamPartition: map[int]string{
+						9:  "downstream_flow_rates",
+						10: "object_dispatch_probs",
+					},
 				},
 			}
-			index := 0
-			for _, serialIterations := range iterations {
-				for _, iteration := range serialIterations {
-					iteration.Configure(index, settings)
-					index += 1
-				}
+			for index, partition := range partitions {
+				partition.Iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Iterations:      iterations,
+				Partitions:      partitions,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

@@ -15,7 +15,6 @@ import (
 type WeightedWindowedCovarianceIteration struct {
 	Kernel          kernels.IntegrationKernel
 	valuesPartition int
-	meanPartition   int
 }
 
 func (w *WeightedWindowedCovarianceIteration) Configure(
@@ -24,7 +23,6 @@ func (w *WeightedWindowedCovarianceIteration) Configure(
 ) {
 	w.Kernel.Configure(partitionIndex, settings)
 	w.valuesPartition = int(settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
-	w.meanPartition = int(settings.OtherParams[partitionIndex].IntParams["mean_partition"][0])
 }
 
 func (w *WeightedWindowedCovarianceIteration) Iterate(
@@ -40,9 +38,9 @@ func (w *WeightedWindowedCovarianceIteration) Iterate(
 	w.Kernel.SetParams(params)
 	var valuesTrans mat.Dense
 	valuesTrans.CloneFrom(stateHistory.Values.T())
-	mean := stateHistories[w.meanPartition].NextValues
+	mean := params.FloatParams["mean"]
 	mostRecentDiffVec := mat.NewVecDense(stateHistory.StateWidth, nil)
-	latestStateValues := stateHistories[w.valuesPartition].NextValues
+	latestStateValues := params.FloatParams["latest_data_values"]
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	for j := 0; j < stateHistory.StateWidth; j++ {
 		v := valuesTrans.RawRowView(j)

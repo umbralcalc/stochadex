@@ -32,10 +32,8 @@ func (d *DriftDiffusionIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	driftCoefficients := stateHistories[int(
-		params.IntParams["drift_coefficients_partition"][0])].NextValues
-	diffusionCoefficients := stateHistories[int(
-		params.IntParams["diffusion_coefficients_partition"][0])].NextValues
+	driftCoefficients := params.FloatParams["drift_coefficients"]
+	diffusionCoefficients := params.FloatParams["diffusion_coefficients"]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +
