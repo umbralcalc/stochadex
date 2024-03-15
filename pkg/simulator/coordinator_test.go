@@ -77,6 +77,10 @@ func iterateHistory(c *PartitionCoordinator) {
 		}
 		// update the latest state in the history
 		stateHistory.Values.SetRow(0, state)
+		// hard-code in the upstream channel value sending to params downstream
+		if partitionIndex == 1 {
+			c.Iterators[2].Params.FloatParams["multipliers"] = state
+		}
 	}
 
 	// iterate over the history of timesteps and shift them back one
@@ -108,29 +112,40 @@ func TestPartitionCoordinator(t *testing.T) {
 		"test for the correct usage of goroutines in partition manager",
 		func(t *testing.T) {
 			params := make(map[string][]float64)
-			params["multipliers"] = []float64{2.4, 1.0, 4.3, 3.2, 1.1}
+			params["multipliers"] = []float64{2.4, 1.0, 4.3}
 			settings := &Settings{
 				OtherParams: []*OtherParams{
 					{FloatParams: make(map[string][]float64)},
 					{FloatParams: params},
+					{FloatParams: make(map[string][]float64)},
 				},
 				InitStateValues: [][]float64{
 					{7.0, 8.0, 3.0, 7.0, 1.0},
 					{1.0, 2.0, 3.0},
+					{3.0, 1.0, 3.5},
 				},
 				InitTimeValue:         0.0,
-				Seeds:                 []uint64{2365, 167},
-				StateWidths:           []int{5, 3},
-				StateHistoryDepths:    []int{2, 10},
+				Seeds:                 []uint64{2365, 167, 234},
+				StateWidths:           []int{5, 3, 3},
+				StateHistoryDepths:    []int{2, 10, 10},
 				TimestepsHistoryDepth: 10,
 			}
 			partitions := make([]Partition, 0)
 			partitions = append(partitions, Partition{Iteration: &doublingProcessIteration{}})
 			partitions = append(partitions, Partition{Iteration: &paramMultProcessIteration{}})
+			partitions = append(
+				partitions,
+				Partition{
+					Iteration: &paramMultProcessIteration{},
+					ParamsByUpstreamPartition: map[int]string{
+						1: "multipliers",
+					},
+				},
+			)
 			for index, partition := range partitions {
 				partition.Iteration.Configure(index, settings)
 			}
-			storeWithGoroutines := make([][][]float64, 2)
+			storeWithGoroutines := make([][][]float64, 3)
 			implementations := &Implementations{
 				Partitions:      partitions,
 				OutputCondition: &EveryStepOutputCondition{},
@@ -141,13 +156,13 @@ func TestPartitionCoordinator(t *testing.T) {
 				TimestepFunction: &ConstantTimestepFunction{Stepsize: 1.0},
 			}
 			coordWithGoroutines := NewPartitionCoordinator(settings, implementations)
-			storeWithoutGoroutines := make([][][]float64, 2)
+			coordWithGoroutines.Run()
+			storeWithoutGoroutines := make([][][]float64, 3)
 			outputWithoutGoroutines := &VariableStoreOutputFunction{
 				Store: storeWithoutGoroutines,
 			}
 			implementations.OutputFunction = outputWithoutGoroutines
 			coordWithoutGoroutines := NewPartitionCoordinator(settings, implementations)
-			coordWithGoroutines.Run()
 			run(coordWithoutGoroutines)
 			for tIndex, store := range storeWithoutGoroutines {
 				for pIndex, partitionStore := range store {

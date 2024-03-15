@@ -1,12 +1,14 @@
 package simulator
 
-import "gonum.org/v1/gonum/mat"
+import (
+	"gonum.org/v1/gonum/mat"
+)
 
 // Iteration is the interface that must be implemented for any stochastic
 // phenomenon within the stochadex. Its .Iterate method reads in an OtherParams
 // struct, a int partitionIndex, the full current history of the process defined
-// by a slice []*StateHistory and a TimestepsHistory reference and outputs an
-// updated state history row in the form of a float64 slice.
+// by a slice []*StateHistory and a CumulativeTimestepsHistory reference and
+// outputs an updated state history row in the form of a float64 slice.
 type Iteration interface {
 	Configure(partitionIndex int, settings *Settings)
 	Iterate(
@@ -37,17 +39,36 @@ func (c *ConstantValuesIteration) Iterate(
 	return stateHistories[partitionIndex].Values.RawRowView(0)
 }
 
+// StateValueChannels defines the methods by which separate StateIterators
+// can communicate with each other by sending the values of upstream
+// iterators to downstream parameters via channels.
+type StateValueChannels struct {
+	UpstreamByParams    map[string](chan []float64)
+	Downstream          chan []float64
+	NumberOfDownstreams int
+}
+
+func (s *StateValueChannels) UpdateUpstreamParams(params *OtherParams) {
+	for name, upstreamChannel := range s.UpstreamByParams {
+		params.FloatParams[name] = <-upstreamChannel
+	}
+}
+
+func (s *StateValueChannels) BroadcastDownstream(stateValues []float64) {
+	for i := 0; i < s.NumberOfDownstreams; i++ {
+		s.Downstream <- stateValues
+	}
+}
+
 // StateIterator handles iterations of a given state partition on a
-// separate goroutine and writing output data to somewhere.
+// separate goroutine and reads/writes data from/to the state history.
 type StateIterator struct {
-	Iteration                    Iteration
-	Params                       *OtherParams
-	UpstreamValueChannelByParams map[string](chan []float64)
-	DownstreamValueChannel       chan []float64
-	DownstreamListeners          int
-	PartitionIndex               int
-	OutputCondition              OutputCondition
-	OutputFunction               OutputFunction
+	Iteration       Iteration
+	Params          *OtherParams
+	PartitionIndex  int
+	ValueChannels   StateValueChannels
+	OutputCondition OutputCondition
+	OutputFunction  OutputFunction
 }
 
 // Iterate takes the state and timesteps history and outputs an updated
@@ -79,18 +100,15 @@ func (s *StateIterator) ReceiveAndIteratePending(
 ) {
 	inputMessage := <-inputChannel
 	// listen to the upstream channels which may set new params
-	for params, upstreamChannel := range s.UpstreamValueChannelByParams {
-		s.Params.FloatParams[params] = <-upstreamChannel
-	}
-	newState := s.Iterate(
+	s.ValueChannels.UpdateUpstreamParams(s.Params)
+	inputMessage.StateHistories[s.PartitionIndex].NextValues = s.Iterate(
 		inputMessage.StateHistories,
 		inputMessage.TimestepsHistory,
 	)
-	inputMessage.StateHistories[s.PartitionIndex].NextValues = newState
 	// broadcast a reference to the new state values for all downstream listeners
-	for i := 0; i < s.DownstreamListeners; i++ {
-		s.DownstreamValueChannel <- newState
-	}
+	s.ValueChannels.BroadcastDownstream(
+		inputMessage.StateHistories[s.PartitionIndex].NextValues,
+	)
 }
 
 // UpdateHistory should always follow a call to ReceiveAndIteratePending as it
