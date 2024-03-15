@@ -38,7 +38,7 @@ func TestPoissonLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &LastObjectiveValueIteration{
+					Iteration: &DataComparisonIteration{
 						DataLinking: &PoissonDataLinkingLogLikelihood{},
 					},
 					ParamsByUpstreamPartition: map[int]string{

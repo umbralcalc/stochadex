@@ -50,7 +50,7 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &LastObjectiveValueIteration{
+					Iteration: &DataComparisonIteration{
 						DataLinking: &GammaDataLinkingLogLikelihood{},
 					},
 					ParamsByUpstreamPartition: map[int]string{

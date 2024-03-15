@@ -50,7 +50,7 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &LastObjectiveValueIteration{
+					Iteration: &DataComparisonIteration{
 						DataLinking: &NegativeBinomialDataLinkingLogLikelihood{},
 					},
 					ParamsByUpstreamPartition: map[int]string{

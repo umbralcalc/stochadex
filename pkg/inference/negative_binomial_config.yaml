@@ -1,7 +1,7 @@
 other_params:
 - float_params:
     mean: [0.5, 1.0, 0.8]
-    upper_triangle_cholesky_of_cov_matrix: [5.0, 0.0, 0.0, 5.0, 0.0, 5.0]
+    covariance_matrix: [5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 5.0]
   int_params: {}
 - float_params:
     exponential_weighting_timescale: [30.0]

@@ -14,31 +14,31 @@ type DataLinkingLogLikelihood interface {
 	GenerateNewSamples(mean *mat.VecDense, covariance mat.Symmetric) []float64
 }
 
-// LastObjectiveValueIteration allows for any data linking log-likelihood to be used
-// as a comparison distribution between data values and a stream of means and
-// covariance matrices.
-type LastObjectiveValueIteration struct {
+// DataComparisonIteration allows for any data linking log-likelihood to be used
+// as a comparison distribution between data values, a mean vector and covariance
+// matrix.
+type DataComparisonIteration struct {
 	DataLinking DataLinkingLogLikelihood
 	burnInSteps int
 }
 
-func (l *LastObjectiveValueIteration) Configure(
+func (d *DataComparisonIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	l.burnInSteps = int(
+	d.burnInSteps = int(
 		settings.OtherParams[partitionIndex].IntParams["burn_in_steps"][0],
 	)
-	l.DataLinking.Configure(partitionIndex, settings)
+	d.DataLinking.Configure(partitionIndex, settings)
 }
 
-func (l *LastObjectiveValueIteration) Iterate(
+func (d *DataComparisonIteration) Iterate(
 	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	if timestepsHistory.CurrentStepNumber < l.burnInSteps {
+	if timestepsHistory.CurrentStepNumber < d.burnInSteps {
 		return []float64{0.0}
 	}
 	dims := len(params.FloatParams["mean"])
@@ -47,7 +47,7 @@ func (l *LastObjectiveValueIteration) Iterate(
 	if ok {
 		covMat = mat.NewSymDense(dims, cVals)
 	}
-	return []float64{l.DataLinking.Evaluate(
+	return []float64{d.DataLinking.Evaluate(
 		mat.NewVecDense(
 			dims,
 			params.FloatParams["mean"],
