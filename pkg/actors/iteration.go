@@ -10,11 +10,10 @@ import (
 )
 
 // ActorIteration implements an actor as an iteration in the stochadex
-// based on actions provided by another iteration.
+// based on actions set by parameter.
 type ActorIteration struct {
-	Actor            Actor
-	ActionsInput     simulator.Iteration
-	partitionToActOn int
+	Iteration simulator.Iteration
+	Actor     Actor
 }
 
 func (a *ActorIteration) Configure(
@@ -22,10 +21,8 @@ func (a *ActorIteration) Configure(
 	settings *simulator.Settings,
 ) {
 
-	a.ActionsInput.Configure(partitionIndex, settings)
+	a.Iteration.Configure(partitionIndex, settings)
 	a.Actor.Configure(partitionIndex, settings)
-	a.partitionToActOn = int(
-		settings.OtherParams[partitionIndex].IntParams["partition_to_act_on"][0])
 }
 
 func (a *ActorIteration) Iterate(
@@ -34,28 +31,26 @@ func (a *ActorIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	action := a.ActionsInput.Iterate(
-		params,
-		partitionIndex,
-		stateHistories,
-		timestepsHistory,
+	return a.Actor.Act(
+		a.Iteration.Iterate(
+			params,
+			partitionIndex,
+			stateHistories,
+			timestepsHistory,
+		),
+		params.FloatParams["action"],
 	)
-	stateHistories[a.partitionToActOn].NextValues = a.Actor.Act(
-		stateHistories[a.partitionToActOn].NextValues,
-		action,
-	)
-	return action
 }
 
 // UserInputActorIteration implements an actor iteration that uses
-// actions based on user keyboard input.
+// actions collected by user keyboard input.
 type UserInputActorIteration struct {
+	Iteration        simulator.Iteration
 	Actor            Actor
 	keystrokeMap     map[string]int64
 	keyEvents        <-chan keyboard.KeyEvent
 	waitMilliseconds uint64
 	skipScanning     bool
-	partitionToActOn int
 }
 
 func (u *UserInputActorIteration) Configure(
@@ -84,8 +79,6 @@ func (u *UserInputActorIteration) Configure(
 		"of partitionIndex = " + fmt.Sprintf("%d", partitionIndex) +
 		". Press ESC to stop.")
 	u.skipScanning = false // useful for graceful exits
-	u.partitionToActOn = int(
-		settings.OtherParams[partitionIndex].IntParams["partition_to_act_on"][0])
 }
 
 func (u *UserInputActorIteration) Iterate(
@@ -94,13 +87,16 @@ func (u *UserInputActorIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	action := stateHistories[partitionIndex].Values.RawRowView(0)
 	if u.skipScanning {
-		stateHistories[u.partitionToActOn].NextValues = u.Actor.Act(
-			stateHistories[u.partitionToActOn].NextValues,
-			action,
+		return u.Actor.Act(
+			u.Iteration.Iterate(
+				params,
+				partitionIndex,
+				stateHistories,
+				timestepsHistory,
+			),
+			params.FloatParams["action"],
 		)
-		return action
 	}
 	select {
 	case event := <-u.keyEvents:
@@ -109,7 +105,7 @@ func (u *UserInputActorIteration) Iterate(
 		fmt.Println("User input action: " + fmt.Sprintf("%d", act) +
 			" at timestep " + fmt.Sprintf("%f",
 			timestepsHistory.Values.AtVec(0)+timestepsHistory.NextIncrement))
-		action[0] = float64(act)
+		params.FloatParams["action"][0] = float64(act)
 
 		// allows for graceful exit
 		if event.Key == keyboard.KeyEsc {
@@ -119,9 +115,13 @@ func (u *UserInputActorIteration) Iterate(
 	case <-time.After(time.Duration(u.waitMilliseconds) * time.Millisecond):
 		break
 	}
-	stateHistories[u.partitionToActOn].NextValues = u.Actor.Act(
-		stateHistories[u.partitionToActOn].NextValues,
-		action,
+	return u.Actor.Act(
+		u.Iteration.Iterate(
+			params,
+			partitionIndex,
+			stateHistories,
+			timestepsHistory,
+		),
+		params.FloatParams["action"],
 	)
-	return action
 }

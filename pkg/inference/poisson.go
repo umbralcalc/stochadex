@@ -7,20 +7,20 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// PoissonDataLinkingLogLikelihood assumes the real data are well described
+// PoissonLikelihoodDistribution assumes the real data are well described
 // by a Poisson distribution, given the input mean and covariance matrix.
-type PoissonDataLinkingLogLikelihood struct {
+type PoissonLikelihoodDistribution struct {
 	Src rand.Source
 }
 
-func (p *PoissonDataLinkingLogLikelihood) Configure(
+func (p *PoissonLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 	p.Src = rand.NewSource(settings.Seeds[partitionIndex])
 }
 
-func (p *PoissonDataLinkingLogLikelihood) Evaluate(
+func (p *PoissonLikelihoodDistribution) EvaluateLogLike(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 	data []float64,
@@ -34,7 +34,7 @@ func (p *PoissonDataLinkingLogLikelihood) Evaluate(
 	return logLike
 }
 
-func (p *PoissonDataLinkingLogLikelihood) GenerateNewSamples(
+func (p *PoissonLikelihoodDistribution) GenerateNewSamples(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 ) []float64 {

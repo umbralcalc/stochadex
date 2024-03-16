@@ -1,13 +1,34 @@
 simulator:
-  iterations:
-  - - dataStream
-    - rollingMean
-    - rollingCovMat
-  - - lastObjectiveValues
-    - paramsPosteriorMeanProcess - create a new posterior iterator which Bayesian updates the mean 
-    - paramsPosteriorCovmatProcess - and covariance based on the most recent sample and the last mean/cov and a cumulative objective weighting
-    - paramsGeneratingProcess - extend the data generation to optionally take in dist params from serially-upstream partitions
-    - processReadingParams
+  partitions:
+  - iteration: dataStream
+    params_by_upstream_partition: {}
+  - iteration: dataRollingMean
+    params_by_upstream_partition:
+      0 : "latest_data_values"
+  - iteration: dataRollingCov
+    params_by_upstream_partition:
+      0 : "latest_data_values"
+      1 : "mean"
+  - iteration: dataComparisonToSimulationProcess
+    params_by_upstream_partition:
+      0 : ""
+      7 : ""
+  - iteration: paramsPosteriorMean
+    params_by_upstream_partition:
+      3 : ""
+      6 : ""
+  - iteration: paramsPosteriorCov
+    params_by_upstream_partition:
+      3 : ""
+      4 : "mean"
+      6 : ""
+  - iteration: paramsGeneratingProcess
+    params_by_upstream_partition:
+      4 : "mean"
+      5 : "covariance_matrix"
+  - iteration: simulationProcess
+    params_by_upstream_partition:
+      6 : ""
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"

@@ -9,21 +9,21 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// NegativeBinomialDataLinkingLogLikelihood assumes the real data are well
+// NegativeBinomialLikelihoodDistribution assumes the real data are well
 // described by a negative binomial distribution, given the input mean
 // and covariance matrix.
-type NegativeBinomialDataLinkingLogLikelihood struct {
+type NegativeBinomialLikelihoodDistribution struct {
 	Src rand.Source
 }
 
-func (n *NegativeBinomialDataLinkingLogLikelihood) Configure(
+func (n *NegativeBinomialLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 	n.Src = rand.NewSource(settings.Seeds[partitionIndex])
 }
 
-func (n *NegativeBinomialDataLinkingLogLikelihood) Evaluate(
+func (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLike(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 	data []float64,
@@ -42,7 +42,7 @@ func (n *NegativeBinomialDataLinkingLogLikelihood) Evaluate(
 	return logLike
 }
 
-func (n *NegativeBinomialDataLinkingLogLikelihood) GenerateNewSamples(
+func (n *NegativeBinomialLikelihoodDistribution) GenerateNewSamples(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 ) []float64 {

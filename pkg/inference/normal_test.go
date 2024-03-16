@@ -20,7 +20,7 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &DataGenerationIteration{
-						DataLinking: &NormalDataLinkingLogLikelihood{},
+						Likelihood: &NormalLikelihoodDistribution{},
 					},
 				},
 			)
@@ -51,7 +51,7 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &DataComparisonIteration{
-						DataLinking: &NormalDataLinkingLogLikelihood{},
+						Likelihood: &NormalLikelihoodDistribution{},
 					},
 					ParamsByUpstreamPartition: map[int]string{
 						0: "latest_data_values",

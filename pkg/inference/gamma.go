@@ -7,20 +7,20 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// GammaDataLinkingLogLikelihood assumes the real data are well described
+// GammaLikelihoodDistribution assumes the real data are well described
 // by a gamma distribution, given the input mean and covariance matrix.
-type GammaDataLinkingLogLikelihood struct {
+type GammaLikelihoodDistribution struct {
 	Src rand.Source
 }
 
-func (g *GammaDataLinkingLogLikelihood) Configure(
+func (g *GammaLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 	g.Src = rand.NewSource(settings.Seeds[partitionIndex])
 }
 
-func (g *GammaDataLinkingLogLikelihood) Evaluate(
+func (g *GammaLikelihoodDistribution) EvaluateLogLike(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 	data []float64,
@@ -36,7 +36,7 @@ func (g *GammaDataLinkingLogLikelihood) Evaluate(
 	return logLike
 }
 
-func (g *GammaDataLinkingLogLikelihood) GenerateNewSamples(
+func (g *GammaLikelihoodDistribution) GenerateNewSamples(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 ) []float64 {

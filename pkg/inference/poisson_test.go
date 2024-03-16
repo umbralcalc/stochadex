@@ -20,7 +20,7 @@ func TestPoissonLogLikelihood(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &DataGenerationIteration{
-						DataLinking: &PoissonDataLinkingLogLikelihood{},
+						Likelihood: &PoissonLikelihoodDistribution{},
 					},
 				},
 			)
@@ -39,7 +39,7 @@ func TestPoissonLogLikelihood(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &DataComparisonIteration{
-						DataLinking: &PoissonDataLinkingLogLikelihood{},
+						Likelihood: &PoissonLikelihoodDistribution{},
 					},
 					ParamsByUpstreamPartition: map[int]string{
 						0: "latest_data_values",

@@ -5,17 +5,17 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// DataGenerationIteration allows for any data linking log-likelihood to be used
+// DataGenerationIteration allows for any data-linking likelihood to be used
 // as a data generation distribution based on a mean and covariance matrix.
 type DataGenerationIteration struct {
-	DataLinking DataLinkingLogLikelihood
+	Likelihood LikelihoodDistribution
 }
 
 func (d *DataGenerationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	d.DataLinking.Configure(partitionIndex, settings)
+	d.Likelihood.Configure(partitionIndex, settings)
 }
 
 func (d *DataGenerationIteration) Iterate(
@@ -30,7 +30,7 @@ func (d *DataGenerationIteration) Iterate(
 	if ok {
 		covMat = mat.NewSymDense(dims, cVals)
 	}
-	return d.DataLinking.GenerateNewSamples(
+	return d.Likelihood.GenerateNewSamples(
 		mat.NewVecDense(
 			stateHistories[partitionIndex].StateWidth,
 			params.FloatParams["mean"],

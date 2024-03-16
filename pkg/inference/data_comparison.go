@@ -5,12 +5,12 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// DataLinkingLogLikelihood is the interface that must be implemented in
+// LikelihoodDistribution is the interface that must be implemented in
 // order to create a likelihood that connects derived statistics from the
 // probabilistic reweighting to observed actual data values.
-type DataLinkingLogLikelihood interface {
+type LikelihoodDistribution interface {
 	Configure(partitionIndex int, settings *simulator.Settings)
-	Evaluate(mean *mat.VecDense, covariance mat.Symmetric, data []float64) float64
+	EvaluateLogLike(mean *mat.VecDense, covariance mat.Symmetric, data []float64) float64
 	GenerateNewSamples(mean *mat.VecDense, covariance mat.Symmetric) []float64
 }
 
@@ -18,7 +18,7 @@ type DataLinkingLogLikelihood interface {
 // as a comparison distribution between data values, a mean vector and covariance
 // matrix.
 type DataComparisonIteration struct {
-	DataLinking DataLinkingLogLikelihood
+	Likelihood  LikelihoodDistribution
 	burnInSteps int
 }
 
@@ -29,7 +29,7 @@ func (d *DataComparisonIteration) Configure(
 	d.burnInSteps = int(
 		settings.OtherParams[partitionIndex].IntParams["burn_in_steps"][0],
 	)
-	d.DataLinking.Configure(partitionIndex, settings)
+	d.Likelihood.Configure(partitionIndex, settings)
 }
 
 func (d *DataComparisonIteration) Iterate(
@@ -47,7 +47,7 @@ func (d *DataComparisonIteration) Iterate(
 	if ok {
 		covMat = mat.NewSymDense(dims, cVals)
 	}
-	return []float64{d.DataLinking.Evaluate(
+	return []float64{d.Likelihood.EvaluateLogLike(
 		mat.NewVecDense(
 			dims,
 			params.FloatParams["mean"],

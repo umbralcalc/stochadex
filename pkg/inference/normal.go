@@ -9,20 +9,20 @@ import (
 	"gonum.org/v1/gonum/stat/distmv"
 )
 
-// NormalDataLinkingLogLikelihood assumes the real data are well described
+// NormalLikelihoodDistribution assumes the real data are well described
 // by a normal distribution, given the input mean and covariance matrix.
-type NormalDataLinkingLogLikelihood struct {
+type NormalLikelihoodDistribution struct {
 	Src rand.Source
 }
 
-func (n *NormalDataLinkingLogLikelihood) Configure(
+func (n *NormalLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 	n.Src = rand.NewSource(settings.Seeds[partitionIndex])
 }
 
-func (n *NormalDataLinkingLogLikelihood) Evaluate(
+func (n *NormalLikelihoodDistribution) EvaluateLogLike(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 	data []float64,
@@ -38,7 +38,7 @@ func (n *NormalDataLinkingLogLikelihood) Evaluate(
 	return dist.LogProb(data)
 }
 
-func (n *NormalDataLinkingLogLikelihood) GenerateNewSamples(
+func (n *NormalLikelihoodDistribution) GenerateNewSamples(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 ) []float64 {
