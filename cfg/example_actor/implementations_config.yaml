@@ -2,8 +2,11 @@ simulator:
   partitions:
   - iteration: firstWienerProcess
     params_by_upstream_partition: {}
-  - iteration: secondWienerProcess
+  - iteration: actions
     params_by_upstream_partition: {}
+  - iteration: someAdditiveActor
+    params_by_upstream_partition:
+      1 : "action"
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
@@ -12,3 +15,7 @@ extra_vars_by_package:
 - github.com/umbralcalc/stochadex/pkg/phenomena:
   - firstWienerProcess: "&phenomena.WienerProcessIteration{}"
   - secondWienerProcess: "&phenomena.WienerProcessIteration{}"
+  - actions: "&phenomena.WienerProcessIteration{}"
+- github.com/umbralcalc/stochadex/pkg/actors:
+  - actor: "&actors.AdditiveActor{}"
+  - someAdditiveActor: "&actors.ActorIteration{Iteration: secondWienerProcess, Actor: actor}"
