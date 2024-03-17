@@ -28,7 +28,7 @@ simulator:
       6 : "latest_data_values"
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
-  termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
+  termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1000}"
   timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
 extra_vars_by_package:
 - github.com/umbralcalc/stochadex/pkg/kernels:
