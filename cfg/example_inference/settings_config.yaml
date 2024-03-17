@@ -1,13 +1,32 @@
 other_params:
 - float_params:
-    variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+    mean: []
+    covariance_matrix: []
   int_params: {}
 - float_params:
-    variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-  int_params:
-    partition_to_act_on: [0]
+    exponential_weighting_timescale: []
+  int_params: {}
 - float_params:
-    variances: [1.0, 1.0, 1.0]
+    exponential_weighting_timescale: []
+  int_params: {}
+- float_params:
+    past_discounting_factor: []
+  int_params:
+    param_partitions: []
+    loglike_partitions: []
+- float_params:
+    past_discounting_factor: []
+  int_params:
+    param_partitions: []
+    loglike_partitions: []
+- float_params: {}
+  int_params: {}
+- float_params:
+    mus: []
+    sigmas: []
+    thetas: []
+  int_params: {}
+- float_params: {}
   int_params: {}
 init_state_values:
 - [0.45, 1.4, 0.01, -0.13, 0.7]
