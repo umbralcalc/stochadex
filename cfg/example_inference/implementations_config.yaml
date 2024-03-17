@@ -28,8 +28,7 @@ simulator:
       4 : "mean"
       5 : "covariance_matrix"
   - iteration: simulationReadingParams
-    params_by_upstream_partition:
-      6 : "param_values"
+    params_by_upstream_partition: {}
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
