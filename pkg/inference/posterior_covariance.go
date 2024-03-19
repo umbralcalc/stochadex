@@ -36,15 +36,15 @@ func (p *PosteriorCovarianceIteration) Iterate(
 	normalisation := floats.LogSumExp(logLikes)
 	dims := len(params.FloatParams["mean"])
 	covMat := mat.NewSymDense(dims, stateHistories[partitionIndex].Values.RawRowView(0))
-	covMat.ScaleSym(params.FloatParams["past_discounting_factor"][0], covMat)
+	discount := params.FloatParams["past_discounting_factor"][0]
+	covMat.ScaleSym(discount, covMat)
 	mean := mat.NewVecDense(dims, params.FloatParams["mean"])
 	diffs := mat.NewVecDense(dims, nil)
 	for i, paramsPartition := range params.IntParams["param_partitions"] {
 		diffs.SubVec(mean, stateHistories[paramsPartition].Values.RowView(0))
 		covMat.SymRankOne(
 			covMat,
-			(1.0-params.FloatParams["past_discounting_factor"][0])*
-				math.Exp(logLikes[i]-normalisation),
+			(1.0-discount)*math.Exp(logLikes[i]-normalisation),
 			diffs,
 		)
 	}
