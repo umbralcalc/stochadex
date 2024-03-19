@@ -1,8 +1,6 @@
 package inference
 
 import (
-	"math"
-
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/mat"
@@ -33,7 +31,7 @@ func (n *NormalLikelihoodDistribution) EvaluateLogLike(
 		n.Src,
 	)
 	if !ok {
-		return math.NaN()
+		panic("covariance matrix is not positive-definite")
 	}
 	return dist.LogProb(data)
 }
@@ -48,11 +46,7 @@ func (n *NormalLikelihoodDistribution) GenerateNewSamples(
 		n.Src,
 	)
 	if !ok {
-		values := make([]float64, 0)
-		for i := 0; i < mean.Len(); i++ {
-			values = append(values, math.NaN())
-		}
-		return values
+		panic("covariance matrix is not positive-definite")
 	}
 	return dist.Rand(nil)
 }

@@ -33,13 +33,13 @@ func (w *WeightedWindowedMeanIteration) Iterate(
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
 		return latestStateValues
 	}
-	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	w.Kernel.SetParams(params)
+	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	cumulativeWeightSum := w.Kernel.Evaluate(
 		latestStateValues,
-		stateHistory.Values.RawRowView(0),
+		latestStateValues,
 		latestTime,
-		timestepsHistory.Values.AtVec(0),
+		latestTime,
 	)
 	cumulativeWeightedValueSum := latestStateValues
 	floats.Scale(cumulativeWeightSum, cumulativeWeightedValueSum)

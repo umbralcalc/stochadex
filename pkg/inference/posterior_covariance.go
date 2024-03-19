@@ -43,7 +43,8 @@ func (p *PosteriorCovarianceIteration) Iterate(
 		diffs.SubVec(mean, stateHistories[paramsPartition].Values.RowView(0))
 		covMat.SymRankOne(
 			covMat,
-			math.Exp(logLikes[i]-normalisation),
+			(1.0-params.FloatParams["past_discounting_factor"][0])*
+				math.Exp(logLikes[i]-normalisation),
 			diffs,
 		)
 	}

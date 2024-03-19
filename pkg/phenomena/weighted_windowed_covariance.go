@@ -49,7 +49,16 @@ func (w *WeightedWindowedCovarianceIteration) Iterate(
 	}
 	covMat := mat.NewSymDense(stateHistory.StateWidth, nil)
 	sqrtWeights := make([]float64, 0)
-	cumulativeWeightSum := 0.0
+	cumulativeWeightSum := w.Kernel.Evaluate(
+		latestStateValues,
+		latestStateValues,
+		latestTime,
+		latestTime,
+	)
+	mostRecentDiffVec.ScaleVec(
+		math.Sqrt(cumulativeWeightSum),
+		mostRecentDiffVec,
+	)
 	var weight float64
 	for i := 0; i < stateHistory.StateHistoryDepth; i++ {
 		weight = w.Kernel.Evaluate(
@@ -61,27 +70,14 @@ func (w *WeightedWindowedCovarianceIteration) Iterate(
 		sqrtWeights = append(sqrtWeights, math.Sqrt(weight))
 		cumulativeWeightSum += weight
 	}
-	mostRecentDiffVec.ScaleVec(
-		math.Sqrt(
-			w.Kernel.Evaluate(
-				latestStateValues,
-				stateHistory.Values.RawRowView(0),
-				latestTime,
-				timestepsHistory.Values.AtVec(0),
-			),
-		),
-		mostRecentDiffVec,
-	)
 	for j := 0; j < stateHistory.StateWidth; j++ {
 		v := valuesTrans.RawRowView(j)
 		floats.Mul(v, sqrtWeights)
 	}
-	covMat.SymOuterK(
-		1.0/cumulativeWeightSum,
-		valuesTrans.Slice(0, stateHistory.StateWidth, 0, stateHistory.StateHistoryDepth),
-	)
+	covMat.SymOuterK(1.0/(cumulativeWeightSum-1), &valuesTrans)
+
 	// adding in the most recent weighted values here
-	covMat.SymRankOne(covMat, 1.0/cumulativeWeightSum, mostRecentDiffVec)
+	covMat.SymRankOne(covMat, 1.0/(cumulativeWeightSum-1), mostRecentDiffVec)
 
 	// returns the upper triangular part of the covariance matrix
 	return covMat.RawSymmetric().Data

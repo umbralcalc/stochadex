@@ -39,7 +39,8 @@ func (p *PosteriorMeanIteration) Iterate(
 	for i, paramsPartition := range params.IntParams["param_partitions"] {
 		mean.AddScaledVec(
 			mean,
-			math.Exp(logLikes[i]-normalisation),
+			(1.0-params.FloatParams["past_discounting_factor"][0])*
+				math.Exp(logLikes[i]-normalisation),
 			stateHistories[paramsPartition].Values.RowView(0),
 		)
 	}
