@@ -33,18 +33,19 @@ func (p *PosteriorCovarianceIteration) Iterate(
 			stateHistories[loglikePartition].Values.At(0, 0),
 		)
 	}
-	normalisation := floats.LogSumExp(logLikes)
+	logNormLatest := floats.LogSumExp(logLikes)
+	logNormPast := params.FloatParams["posterior_log_normalisation"][0]
+	logNormTotal := floats.LogSumExp([]float64{logNormLatest, logNormPast})
 	dims := len(params.FloatParams["mean"])
 	covMat := mat.NewSymDense(dims, stateHistories[partitionIndex].Values.RawRowView(0))
-	discount := params.FloatParams["past_discounting_factor"][0]
-	covMat.ScaleSym(discount, covMat)
+	covMat.ScaleSym(math.Exp(logNormPast-logNormTotal), covMat)
 	mean := mat.NewVecDense(dims, params.FloatParams["mean"])
 	diffs := mat.NewVecDense(dims, nil)
 	for i, paramsPartition := range params.IntParams["param_partitions"] {
 		diffs.SubVec(mean, stateHistories[paramsPartition].Values.RowView(0))
 		covMat.SymRankOne(
 			covMat,
-			(1.0-discount)*math.Exp(logLikes[i]-normalisation),
+			math.Exp(logLikes[i]-logNormTotal),
 			diffs,
 		)
 	}

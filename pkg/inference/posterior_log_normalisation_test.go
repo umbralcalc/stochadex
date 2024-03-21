@@ -6,12 +6,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestPosteriorMeanIteration(t *testing.T) {
+func TestPosteriorLogNormalisationIteration(t *testing.T) {
 	t.Run(
-		"test that the posterior mean iteration runs",
+		"test that the posterior log normalisation iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"posterior_mean_config.yaml",
+				"posterior_log_normalisation_config.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(
@@ -46,15 +46,6 @@ func TestPosteriorMeanIteration(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &PosteriorLogNormalisationIteration{},
-				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &PosteriorMeanIteration{},
-					ParamsByUpstreamPartition: map[int]string{
-						4: "posterior_log_normalisation",
-					},
 				},
 			)
 			for index, partition := range partitions {
