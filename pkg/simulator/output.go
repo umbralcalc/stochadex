@@ -1,7 +1,10 @@
 package simulator
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -48,6 +51,54 @@ func (f *VariableStoreOutputFunction) Output(
 	cumulativeTimesteps float64,
 ) {
 	f.Store[partitionIndex] = append(f.Store[partitionIndex], state)
+}
+
+// JsonLogEntry is the format in which the logs are serialised when using the
+// JsonLogOutputFunction.
+type JsonLogEntry struct {
+	PartitionIndex      int       `json:"partition_index"`
+	State               []float64 `json:"state"`
+	CumulativeTimesteps float64   `json:"time"`
+}
+
+// JsonLogOutputFunction outputs data to a log of json packets from
+// the simulation.
+type JsonLogOutputFunction struct {
+	file *os.File
+}
+
+func (j *JsonLogOutputFunction) Output(
+	partitionIndex int,
+	state []float64,
+	cumulativeTimesteps float64,
+) {
+	logEntry := JsonLogEntry{
+		PartitionIndex:      partitionIndex,
+		State:               state,
+		CumulativeTimesteps: cumulativeTimesteps,
+	}
+	jsonData, err := json.Marshal(logEntry)
+	if err != nil {
+		log.Printf("Error encoding JSON: %s\n", err)
+		panic(err)
+	}
+	jsonData = append(jsonData, []byte("\n")...)
+	_, err = j.file.Write(jsonData)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// NewJsonLogOutputFunction creates a new JsonLogOutputFunction.
+func NewJsonLogOutputFunction(
+	filePath string,
+) *JsonLogOutputFunction {
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Fatal("Error creating log file:", err)
+		panic(err)
+	}
+	return &JsonLogOutputFunction{file: file}
 }
 
 // WebsocketOutputFunction serialises the state of each partition of the simulation
