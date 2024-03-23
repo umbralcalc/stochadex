@@ -28,6 +28,30 @@ simulator:
       1 : "mean"
       2 : "covariance_matrix"
       7 : "latest_data_values"
+  - iteration: paramsGeneratingProcess2
+    params_by_upstream_partition:
+      4 : "mean"
+      5 : "covariance_matrix"
+  - iteration: simulationReadingParams2
+    params_by_upstream_partition:
+      9 : "param_values"
+  - iteration: dataComparisonToSimulation2
+    params_by_upstream_partition:
+      1 : "mean"
+      2 : "covariance_matrix"
+      10 : "latest_data_values"
+  - iteration: paramsGeneratingProcess3
+    params_by_upstream_partition:
+      4 : "mean"
+      5 : "covariance_matrix"
+  - iteration: simulationReadingParams3
+    params_by_upstream_partition:
+      12 : "param_values"
+  - iteration: dataComparisonToSimulation3
+    params_by_upstream_partition:
+      1 : "mean"
+      2 : "covariance_matrix"
+      13 : "latest_data_values"
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 5000}"
@@ -37,17 +61,29 @@ extra_vars_by_package:
   - expKernel: "&kernels.ExponentialIntegrationKernel{}"
 - github.com/umbralcalc/stochadex/pkg/phenomena:
   - simulationIteration: "&phenomena.OrnsteinUhlenbeckIteration{}"
+  - simulationIteration2: "&phenomena.OrnsteinUhlenbeckIteration{}"
+  - simulationIteration3: "&phenomena.OrnsteinUhlenbeckIteration{}"
   - dataRollingMean: "&phenomena.WeightedWindowedMeanIteration{Kernel: expKernel}"
   - dataRollingCov: "&phenomena.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
 - github.com/umbralcalc/stochadex/pkg/params:
   - simulationReadingParams: "&params.ParamsReaderIteration{Iteration: simulationIteration}"
+  - simulationReadingParams2: "&params.ParamsReaderIteration{Iteration: simulationIteration2}"
+  - simulationReadingParams3: "&params.ParamsReaderIteration{Iteration: simulationIteration3}"
 - github.com/umbralcalc/stochadex/pkg/inference:
   - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
   - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"
+  - likelihoodForComp2: "&inference.NormalLikelihoodDistribution{}"
+  - likelihoodForComp3: "&inference.NormalLikelihoodDistribution{}"
   - dataStream: "&inference.DataGenerationIteration{Likelihood: likelihoodForGen}"
   - dataComparisonToSimulation: "&inference.DataComparisonIteration{Likelihood: likelihoodForComp}"
+  - dataComparisonToSimulation2: "&inference.DataComparisonIteration{Likelihood: likelihoodForComp2}"
+  - dataComparisonToSimulation3: "&inference.DataComparisonIteration{Likelihood: likelihoodForComp3}"
   - paramsPosteriorLogNorm: "&inference.PosteriorLogNormalisationIteration{}"
   - paramsPosteriorMean: "&inference.PosteriorMeanIteration{}"
   - paramsGenerationCov: "&simulator.ConstantValuesIteration{}"
   - likelihoodForParamsGen: "&inference.NormalLikelihoodDistribution{}"
+  - likelihoodForParamsGen2: "&inference.NormalLikelihoodDistribution{}"
+  - likelihoodForParamsGen3: "&inference.NormalLikelihoodDistribution{}"
   - paramsGeneratingProcess: "&inference.DataGenerationIteration{Likelihood: likelihoodForParamsGen}"
+  - paramsGeneratingProcess2: "&inference.DataGenerationIteration{Likelihood: likelihoodForParamsGen2}"
+  - paramsGeneratingProcess3: "&inference.DataGenerationIteration{Likelihood: likelihoodForParamsGen3}"
