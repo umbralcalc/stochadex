@@ -6,10 +6,10 @@ The point, from a software engineering perspective, is to design something which
 
 ## Need more context and documentation?
 
-- Original simulation engine motivation and design article: [https://umbralcalc.github.io/posts/stochadexI.html](https://umbralcalc.github.io/posts/stochadexI.html).
-- Inference framework and online simulation learning article: [https://umbralcalc.github.io/posts/stochadexII.html](https://umbralcalc.github.io/posts/stochadexII.html).
-- Optimising system interactions with agents article: [https://umbralcalc.github.io/posts/stochadexIII.html](https://umbralcalc.github.io/posts/stochadexIII.html).
-- Applications to various simulation archetypes article: [https://umbralcalc.github.io/posts/stochadexIIII.html](https://umbralcalc.github.io/posts/stochadexIIII.html).
+- The original simulation engine motivation and design article: [https://umbralcalc.github.io/posts/stochadexI.html](https://umbralcalc.github.io/posts/stochadexI.html).
+- The inference framework and online simulation learning article: [https://umbralcalc.github.io/posts/stochadexII.html](https://umbralcalc.github.io/posts/stochadexII.html).
+- An article demonstrating how to optimise agent interactions with simulations: [https://umbralcalc.github.io/posts/stochadexIII.html](https://umbralcalc.github.io/posts/stochadexIII.html).
+- An article describing applications to various real-world simulation archetypes: [https://umbralcalc.github.io/posts/stochadexIIII.html](https://umbralcalc.github.io/posts/stochadexIIII.html).
 
 ## Building and running the binary
 
