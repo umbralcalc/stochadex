@@ -17,10 +17,13 @@ func TestRunWithParsedArgs(t *testing.T) {
 							Iteration: "firstWienerProcess",
 						},
 						{
-							Iteration: "someAdditiveActor",
+							Iteration: "actions",
 						},
 						{
-							Iteration: "secondWienerProcess",
+							Iteration: "someAdditiveActor",
+							ParamsByUpstreamPartition: map[int]string{
+								1: "action",
+							},
 						},
 					},
 					OutputCondition:      "&simulator.NilOutputCondition{}",
@@ -39,7 +42,8 @@ func TestRunWithParsedArgs(t *testing.T) {
 					{
 						"github.com/umbralcalc/stochadex/pkg/actors": {
 							{
-								"someAdditiveActor": "&actors.ActorIteration{Actor: &actors.AdditiveActor{}, ActionsInput: actions}",
+								"actor":             "&actors.AdditiveActor{}",
+								"someAdditiveActor": "&actors.ActorIteration{Iteration: secondWienerProcess, Actor: actor}",
 							},
 						},
 					},

@@ -20,10 +20,13 @@ other_params:
     param_partitions: [6, 9, 12]
     loglike_partitions: [8, 11, 14]
 - float_params: {}
-  int_params: {}
+  int_params:
+    param_partitions: [6, 9, 12]
+    loglike_partitions: [8, 11, 14]
 - float_params:
     correlation_with_previous: [0.5]
-  int_params:
+    default_covariance: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+  int_params: {}
 - float_params:
     mus: [1.0, 4.0, -6.0, 1.0]
     sigmas: [1.5, 3.0, 2.2, 4.1]
@@ -36,7 +39,8 @@ other_params:
     burn_in_steps: [500]
 - float_params:
     correlation_with_previous: [0.5]
-  int_params:
+    default_covariance: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+  int_params: {}
 - float_params:
     mus: [1.0, 4.0, -6.0, 1.0]
     sigmas: [1.5, 3.0, 2.2, 4.1]
@@ -49,6 +53,7 @@ other_params:
     burn_in_steps: [500]
 - float_params:
     correlation_with_previous: [0.5]
+    default_covariance: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
   int_params:
 - float_params:
     mus: [1.0, 4.0, -6.0, 1.0]

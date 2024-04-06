@@ -20,7 +20,6 @@ func (a *ActorIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-
 	a.Iteration.Configure(partitionIndex, settings)
 	a.Actor.Configure(partitionIndex, settings)
 }

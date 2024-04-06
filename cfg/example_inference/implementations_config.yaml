@@ -14,8 +14,10 @@ simulator:
   - iteration: paramsPosteriorMean
     params_by_upstream_partition:
       3 : "posterior_log_normalisation"
-  - iteration: paramsGenerationCov
-    params_by_upstream_partition: {}
+  - iteration: paramsPosteriorCov
+    params_by_upstream_partition:
+      3 : "posterior_log_normalisation"
+      4 : "mean"
   - iteration: paramsGeneratingProcess
     params_by_upstream_partition:
       4 : "mean"
@@ -80,7 +82,7 @@ extra_vars_by_package:
   - dataComparisonToSimulation3: "&inference.DataComparisonIteration{Likelihood: likelihoodForComp3}"
   - paramsPosteriorLogNorm: "&inference.PosteriorLogNormalisationIteration{}"
   - paramsPosteriorMean: "&inference.PosteriorMeanIteration{}"
-  - paramsGenerationCov: "&simulator.ConstantValuesIteration{}"
+  - paramsPosteriorCov: "&inference.PosteriorCovarianceIteration{}"
   - likelihoodForParamsGen: "&inference.NormalLikelihoodDistribution{}"
   - likelihoodForParamsGen2: "&inference.NormalLikelihoodDistribution{}"
   - likelihoodForParamsGen3: "&inference.NormalLikelihoodDistribution{}"

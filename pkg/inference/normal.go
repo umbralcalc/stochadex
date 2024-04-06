@@ -10,7 +10,9 @@ import (
 // NormalLikelihoodDistribution assumes the real data are well described
 // by a normal distribution, given the input mean and covariance matrix.
 type NormalLikelihoodDistribution struct {
-	Src rand.Source
+	Src          rand.Source
+	defaultCov   []float64
+	defaultCovOk bool
 }
 
 func (n *NormalLikelihoodDistribution) Configure(
@@ -18,6 +20,31 @@ func (n *NormalLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	n.Src = rand.NewSource(settings.Seeds[partitionIndex])
+	n.defaultCov, n.defaultCovOk = settings.
+		OtherParams[partitionIndex].FloatParams["default_covariance"]
+}
+
+func (n *NormalLikelihoodDistribution) getDist(
+	mean *mat.VecDense,
+	covariance mat.Symmetric,
+) *distmv.Normal {
+	dist, ok := distmv.NewNormal(
+		mean.RawVector().Data,
+		covariance,
+		n.Src,
+	)
+	if !ok {
+		if n.defaultCovOk {
+			dist, _ = distmv.NewNormal(
+				mean.RawVector().Data,
+				mat.NewSymDense(mean.Len(), n.defaultCov),
+				n.Src,
+			)
+		} else {
+			panic("covariance matrix is not positive-definite")
+		}
+	}
+	return dist
 }
 
 func (n *NormalLikelihoodDistribution) EvaluateLogLike(
@@ -25,14 +52,7 @@ func (n *NormalLikelihoodDistribution) EvaluateLogLike(
 	covariance mat.Symmetric,
 	data []float64,
 ) float64 {
-	dist, ok := distmv.NewNormal(
-		mean.RawVector().Data,
-		covariance,
-		n.Src,
-	)
-	if !ok {
-		panic("covariance matrix is not positive-definite")
-	}
+	dist := n.getDist(mean, covariance)
 	return dist.LogProb(data)
 }
 
@@ -40,13 +60,6 @@ func (n *NormalLikelihoodDistribution) GenerateNewSamples(
 	mean *mat.VecDense,
 	covariance mat.Symmetric,
 ) []float64 {
-	dist, ok := distmv.NewNormal(
-		mean.RawVector().Data,
-		covariance,
-		n.Src,
-	)
-	if !ok {
-		panic("covariance matrix is not positive-definite")
-	}
+	dist := n.getDist(mean, covariance)
 	return dist.Rand(nil)
 }
