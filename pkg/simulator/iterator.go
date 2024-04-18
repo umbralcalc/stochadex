@@ -44,13 +44,19 @@ func (c *ConstantValuesIteration) Iterate(
 // iterators to downstream parameters via channels.
 type StateValueChannels struct {
 	UpstreamByParams    map[string](chan []float64)
+	SliceByParams       map[string][]int
 	Downstream          chan []float64
 	NumberOfDownstreams int
 }
 
 func (s *StateValueChannels) UpdateUpstreamParams(params *OtherParams) {
 	for name, upstreamChannel := range s.UpstreamByParams {
-		params.FloatParams[name] = <-upstreamChannel
+		switch slice := s.SliceByParams[name]; slice {
+		case nil:
+			params.FloatParams[name] = <-upstreamChannel
+		default:
+			params.FloatParams[name] = (<-upstreamChannel)[slice[0]:slice[1]]
+		}
 	}
 }
 

@@ -152,8 +152,14 @@ func NewPartitionCoordinator(
 			},
 		)
 		upstreamChannelByParams := make(map[string](chan []float64))
+		sliceByParams := make(map[string][]int)
 		for params, upstream := range partition.ParamsFromUpstreamPartition {
 			upstreamChannelByParams[params] = valueChannels[upstream]
+			var slice []int
+			if partition.ParamsFromSlice != nil {
+				slice = partition.ParamsFromSlice[params]
+			}
+			sliceByParams[params] = slice
 		}
 		iterators = append(
 			iterators,
@@ -163,6 +169,7 @@ func NewPartitionCoordinator(
 				PartitionIndex: index,
 				ValueChannels: StateValueChannels{
 					UpstreamByParams:    upstreamChannelByParams,
+					SliceByParams:       sliceByParams,
 					Downstream:          valueChannels[index],
 					NumberOfDownstreams: listenersByPartition[index],
 				},

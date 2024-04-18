@@ -39,8 +39,8 @@ func WriteMainProgram(
 		for params, upstream := range partition.ParamsFromUpstreamPartition {
 			partitions += `"` + params + `": ` + strconv.Itoa(upstream) + `,`
 		}
-		partitions += "}, SliceFromUpstreamPartition: map[string][]int{"
-		for params, slice := range partition.SliceFromUpstreamPartition {
+		partitions += "}, ParamsFromSlice: map[string][]int{"
+		for params, slice := range partition.ParamsFromSlice {
 			partitions += `"` + params + `": []int{` + strconv.Itoa(slice[0]) +
 				`, ` + strconv.Itoa(slice[1]) + `},`
 		}

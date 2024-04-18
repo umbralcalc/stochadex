@@ -48,7 +48,7 @@ type IteratorInputMessage struct {
 type Partition struct {
 	Iteration                   Iteration
 	ParamsFromUpstreamPartition map[string]int
-	SliceFromUpstreamPartition  map[string][]int
+	ParamsFromSlice             map[string][]int
 }
 
 // Implementations defines all of the types that must be implemented in
@@ -65,7 +65,7 @@ type Implementations struct {
 type PartitionStrings struct {
 	Iteration                   string           `yaml:"iteration"`
 	ParamsFromUpstreamPartition map[string]int   `yaml:"params_from_upstream_partition,omitempty"`
-	SliceFromUpstreamPartition  map[string][]int `yaml:"slice_from_upstream_partition,omitempty"`
+	ParamsFromSlice             map[string][]int `yaml:"params_from_slice,omitempty"`
 }
 
 // ImplementationStrings is the yaml-loadable config which consists of string type
