@@ -25,8 +25,8 @@ func TestParamsReaderIteration(t *testing.T) {
 					Iteration: &ParamsReaderIteration{
 						Iteration: &phenomena.PoissonProcessIteration{},
 					},
-					ParamsByUpstreamPartition: map[int]string{
-						0: "param_values",
+					ParamsFromUpstreamPartition: map[string]int{
+						"param_values": 0,
 					},
 				},
 			)
@@ -42,8 +42,8 @@ func TestParamsReaderIteration(t *testing.T) {
 					Iteration: &ParamsReaderIteration{
 						Iteration: &phenomena.PoissonProcessIteration{},
 					},
-					ParamsByUpstreamPartition: map[int]string{
-						2: "param_values",
+					ParamsFromUpstreamPartition: map[string]int{
+						"param_values": 2,
 					},
 				},
 			)

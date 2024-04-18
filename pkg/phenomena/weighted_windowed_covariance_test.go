@@ -21,15 +21,15 @@ func TestWeightedWindowedCovarianceIteration(t *testing.T) {
 					Iteration: &WeightedWindowedMeanIteration{
 						Kernel: &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsByUpstreamPartition: map[int]string{0: "latest_data_values"},
+					ParamsFromUpstreamPartition: map[string]int{"latest_data_values": 0},
 				},
 				{
 					Iteration: &WeightedWindowedCovarianceIteration{
 						Kernel: &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsByUpstreamPartition: map[int]string{
-						0: "latest_data_values",
-						1: "mean",
+					ParamsFromUpstreamPartition: map[string]int{
+						"latest_data_values": 0,
+						"mean":               1,
 					},
 				},
 			}

@@ -21,8 +21,8 @@ func TestRunWithParsedArgs(t *testing.T) {
 						},
 						{
 							Iteration: "someAdditiveActor",
-							ParamsByUpstreamPartition: map[int]string{
-								1: "action",
+							ParamsFromUpstreamPartition: map[string]int{
+								"action": 1,
 							},
 						},
 					},

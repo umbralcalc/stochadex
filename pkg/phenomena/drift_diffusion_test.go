@@ -30,9 +30,9 @@ func TestDriftDiffusionProcess(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: iteration,
-					ParamsByUpstreamPartition: map[int]string{
-						0: "drift_coefficients",
-						1: "diffusion_coefficients",
+					ParamsFromUpstreamPartition: map[string]int{
+						"drift_coefficients":     0,
+						"diffusion_coefficients": 1,
 					},
 				},
 			)
@@ -54,9 +54,9 @@ func TestDriftDiffusionProcess(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: iterationTwo,
-					ParamsByUpstreamPartition: map[int]string{
-						3: "drift_coefficients",
-						4: "diffusion_coefficients",
+					ParamsFromUpstreamPartition: map[string]int{
+						"drift_coefficients":     3,
+						"diffusion_coefficients": 4,
 					},
 				},
 			)

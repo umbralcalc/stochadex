@@ -30,8 +30,8 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 					Iteration: &phenomena.WeightedWindowedMeanIteration{
 						Kernel: &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsByUpstreamPartition: map[int]string{
-						0: "latest_data_values",
+					ParamsFromUpstreamPartition: map[string]int{
+						"latest_data_values": 0,
 					},
 				},
 			)
@@ -41,9 +41,9 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 					Iteration: &phenomena.WeightedWindowedCovarianceIteration{
 						Kernel: &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsByUpstreamPartition: map[int]string{
-						0: "latest_data_values",
-						1: "mean",
+					ParamsFromUpstreamPartition: map[string]int{
+						"latest_data_values": 0,
+						"mean":               1,
 					},
 				},
 			)
@@ -53,10 +53,10 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 					Iteration: &DataComparisonIteration{
 						Likelihood: &NegativeBinomialLikelihoodDistribution{},
 					},
-					ParamsByUpstreamPartition: map[int]string{
-						0: "latest_data_values",
-						1: "mean",
-						2: "covariance_matrix",
+					ParamsFromUpstreamPartition: map[string]int{
+						"latest_data_values": 0,
+						"mean":               1,
+						"covariance_matrix":  2,
 					},
 				},
 			)

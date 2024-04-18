@@ -30,9 +30,9 @@ func TestFalseStaticPartialStateObservationIteration(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &FalseStaticPartialStateObservationIteration{},
-					ParamsByUpstreamPartition: map[int]string{
-						0: "values_to_observe",
-						1: "false_observation_probs",
+					ParamsFromUpstreamPartition: map[string]int{
+						"values_to_observe":       0,
+						"false_observation_probs": 1,
 					},
 				},
 			)

@@ -21,7 +21,7 @@ func TestWeightedWindowedMeanIteration(t *testing.T) {
 					Iteration: &WeightedWindowedMeanIteration{
 						Kernel: &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsByUpstreamPartition: map[int]string{0: "latest_data_values"},
+					ParamsFromUpstreamPartition: map[string]int{"latest_data_values": 0},
 				},
 			}
 			for index, partition := range partitions {

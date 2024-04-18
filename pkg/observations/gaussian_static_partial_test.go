@@ -23,8 +23,8 @@ func TestGaussianStaticPartialStateObservationIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration:                 &GaussianStaticPartialStateObservationIteration{},
-					ParamsByUpstreamPartition: map[int]string{0: "values_to_observe"},
+					Iteration:                   &GaussianStaticPartialStateObservationIteration{},
+					ParamsFromUpstreamPartition: map[string]int{"values_to_observe": 0},
 				},
 			)
 			for index, partition := range partitions {

@@ -26,7 +26,7 @@ func TestActorIteration(t *testing.T) {
 						Iteration: &phenomena.WienerProcessIteration{},
 						Actor:     &AdditiveActor{},
 					},
-					ParamsByUpstreamPartition: map[int]string{0: "action"},
+					ParamsFromUpstreamPartition: map[string]int{"action": 0},
 				},
 			)
 			partitions = append(
@@ -42,7 +42,7 @@ func TestActorIteration(t *testing.T) {
 						Iteration: &phenomena.WienerProcessIteration{},
 						Actor:     &MultiplicativeActor{},
 					},
-					ParamsByUpstreamPartition: map[int]string{2: "action"},
+					ParamsFromUpstreamPartition: map[string]int{"action": 2},
 				},
 			)
 			partitions = append(
@@ -58,7 +58,7 @@ func TestActorIteration(t *testing.T) {
 						Iteration: &phenomena.WienerProcessIteration{},
 						Actor:     &ReplacementActor{},
 					},
-					ParamsByUpstreamPartition: map[int]string{4: "action"},
+					ParamsFromUpstreamPartition: map[string]int{"action": 4},
 				},
 			)
 			for index, partition := range partitions {

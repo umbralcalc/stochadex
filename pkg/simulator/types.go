@@ -46,8 +46,9 @@ type IteratorInputMessage struct {
 // partition of the the global simulation state and its upstream partitions
 // which may provide params for it.
 type Partition struct {
-	Iteration                 Iteration
-	ParamsByUpstreamPartition map[int]string
+	Iteration                   Iteration
+	ParamsFromUpstreamPartition map[string]int
+	SliceFromUpstreamPartition  map[string][]int
 }
 
 // Implementations defines all of the types that must be implemented in
@@ -62,8 +63,9 @@ type Implementations struct {
 
 // PartitionStrings is the yaml-loadable config for a Partition.
 type PartitionStrings struct {
-	Iteration                 string         `yaml:"iteration"`
-	ParamsByUpstreamPartition map[int]string `yaml:"params_by_upstream_partition,omitempty"`
+	Iteration                   string           `yaml:"iteration"`
+	ParamsFromUpstreamPartition map[string]int   `yaml:"params_from_upstream_partition,omitempty"`
+	SliceFromUpstreamPartition  map[string][]int `yaml:"slice_from_upstream_partition,omitempty"`
 }
 
 // ImplementationStrings is the yaml-loadable config which consists of string type

@@ -21,9 +21,9 @@ func TestPipelineStageIteration(t *testing.T) {
 				},
 				{
 					Iteration: &PipelineStageIteration{},
-					ParamsByUpstreamPartition: map[int]string{
-						0: "downstream_flow_rates",
-						1: "object_dispatch_probs",
+					ParamsFromUpstreamPartition: map[string]int{
+						"downstream_flow_rates": 0,
+						"object_dispatch_probs": 1,
 					},
 				},
 				{
@@ -34,9 +34,9 @@ func TestPipelineStageIteration(t *testing.T) {
 				},
 				{
 					Iteration: &PipelineStageIteration{},
-					ParamsByUpstreamPartition: map[int]string{
-						3: "downstream_flow_rates",
-						4: "object_dispatch_probs",
+					ParamsFromUpstreamPartition: map[string]int{
+						"downstream_flow_rates": 3,
+						"object_dispatch_probs": 4,
 					},
 				},
 				{
@@ -47,9 +47,9 @@ func TestPipelineStageIteration(t *testing.T) {
 				},
 				{
 					Iteration: &PipelineStageIteration{},
-					ParamsByUpstreamPartition: map[int]string{
-						6: "downstream_flow_rates",
-						7: "object_dispatch_probs",
+					ParamsFromUpstreamPartition: map[string]int{
+						"downstream_flow_rates": 6,
+						"object_dispatch_probs": 7,
 					},
 				},
 				{
@@ -60,9 +60,9 @@ func TestPipelineStageIteration(t *testing.T) {
 				},
 				{
 					Iteration: &PipelineStageIteration{},
-					ParamsByUpstreamPartition: map[int]string{
-						9:  "downstream_flow_rates",
-						10: "object_dispatch_probs",
+					ParamsFromUpstreamPartition: map[string]int{
+						"downstream_flow_rates": 9,
+						"object_dispatch_probs": 10,
 					},
 				},
 			}

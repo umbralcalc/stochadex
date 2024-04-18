@@ -24,8 +24,8 @@ func TestBinomialStaticPartialStateObservationIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration:                 &BinomialStaticPartialStateObservationIteration{},
-					ParamsByUpstreamPartition: map[int]string{0: "observed_values"},
+					Iteration:                   &BinomialStaticPartialStateObservationIteration{},
+					ParamsFromUpstreamPartition: map[string]int{"observed_values": 0},
 				},
 			)
 			for index, partition := range partitions {

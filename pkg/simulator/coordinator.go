@@ -126,7 +126,7 @@ func NewPartitionCoordinator(
 	listenersByPartition := make(map[int]int)
 	for _, partition := range implementations.Partitions {
 		valueChannels = append(valueChannels, make(chan []float64))
-		for upstreamPartition := range partition.ParamsByUpstreamPartition {
+		for _, upstreamPartition := range partition.ParamsFromUpstreamPartition {
 			_, ok := listenersByPartition[upstreamPartition]
 			if !ok {
 				listenersByPartition[upstreamPartition] = 0
@@ -152,7 +152,7 @@ func NewPartitionCoordinator(
 			},
 		)
 		upstreamChannelByParams := make(map[string](chan []float64))
-		for upstream, params := range partition.ParamsByUpstreamPartition {
+		for params, upstream := range partition.ParamsFromUpstreamPartition {
 			upstreamChannelByParams[params] = valueChannels[upstream]
 		}
 		iterators = append(

@@ -1,12 +1,12 @@
 simulator:
   partitions:
   - iteration: firstWienerProcess
-    params_by_upstream_partition: {}
+    params_from_upstream_partition: {}
   - iteration: actions
-    params_by_upstream_partition: {}
+    params_from_upstream_partition: {}
   - iteration: someAdditiveActor
-    params_by_upstream_partition:
-      1 : "action"
+    params_from_upstream_partition:
+      "action": 1
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"

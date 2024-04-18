@@ -17,15 +17,15 @@ func TestHistogramNodeIteration(t *testing.T) {
 					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					Iteration:                 &StateTransitionIteration{},
-					ParamsByUpstreamPartition: map[int]string{0: "transition_rates"},
+					Iteration:                   &StateTransitionIteration{},
+					ParamsFromUpstreamPartition: map[string]int{"transition_rates": 0},
 				},
 				{
 					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					Iteration:                 &StateTransitionIteration{},
-					ParamsByUpstreamPartition: map[int]string{2: "transition_rates"},
+					Iteration:                   &StateTransitionIteration{},
+					ParamsFromUpstreamPartition: map[string]int{"transition_rates": 2},
 				},
 				{
 					Iteration: &HistogramNodeIteration{},

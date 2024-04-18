@@ -31,9 +31,9 @@ func TestDynamicMaskStateObservationIteration(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &DynamicMaskStateObservationIteration{},
-					ParamsByUpstreamPartition: map[int]string{
-						0: "values_to_observe",
-						1: "mask_values",
+					ParamsFromUpstreamPartition: map[string]int{
+						"values_to_observe": 0,
+						"mask_values":       1,
 					},
 				},
 			)

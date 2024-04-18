@@ -52,8 +52,8 @@ func TestPosteriorMeanIteration(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &PosteriorMeanIteration{},
-					ParamsByUpstreamPartition: map[int]string{
-						4: "posterior_log_normalisation",
+					ParamsFromUpstreamPartition: map[string]int{
+						"posterior_log_normalisation": 4,
 					},
 				},
 			)

@@ -1,59 +1,59 @@
 simulator:
   partitions:
   - iteration: dataStream
-    params_by_upstream_partition: {}
+    params_from_upstream_partition: {}
   - iteration: dataRollingMean
-    params_by_upstream_partition:
-      0 : "latest_data_values"
+    params_from_upstream_partition:
+      "latest_data_values": 0
   - iteration: dataRollingCov
-    params_by_upstream_partition:
-      0 : "latest_data_values"
-      1 : "mean"
+    params_from_upstream_partition:
+      "latest_data_values": 0
+      "mean": 1
   - iteration: paramsPosteriorLogNorm
-    params_by_upstream_partition: {}
+    params_from_upstream_partition: {}
   - iteration: paramsPosteriorMean
-    params_by_upstream_partition:
-      3 : "posterior_log_normalisation"
+    params_from_upstream_partition:
+      "posterior_log_normalisation": 3
   - iteration: paramsPosteriorCov
-    params_by_upstream_partition:
-      3 : "posterior_log_normalisation"
-      4 : "mean"
+    params_from_upstream_partition:
+      "posterior_log_normalisation": 3
+      "mean": 4
   - iteration: paramsGeneratingProcess
-    params_by_upstream_partition:
-      4 : "mean"
-      5 : "covariance_matrix"
+    params_from_upstream_partition:
+      "mean": 4
+      "covariance_matrix": 5
   - iteration: simulationReadingParams
-    params_by_upstream_partition:
-      6 : "param_values"
+    params_from_upstream_partition:
+      "param_values": 6
   - iteration: dataComparisonToSimulation
-    params_by_upstream_partition:
-      1 : "mean"
-      2 : "covariance_matrix"
-      7 : "latest_data_values"
+    params_from_upstream_partition:
+      "mean": 1
+      "covariance_matrix": 2
+      "latest_data_values": 7
   - iteration: paramsGeneratingProcess2
-    params_by_upstream_partition:
-      4 : "mean"
-      5 : "covariance_matrix"
+    params_from_upstream_partition:
+      "mean": 4
+      "covariance_matrix": 5
   - iteration: simulationReadingParams2
-    params_by_upstream_partition:
-      9 : "param_values"
+    params_from_upstream_partition:
+      "param_values": 9
   - iteration: dataComparisonToSimulation2
-    params_by_upstream_partition:
-      1 : "mean"
-      2 : "covariance_matrix"
-      10 : "latest_data_values"
+    params_from_upstream_partition:
+      "mean": 1
+      "covariance_matrix": 2
+      "latest_data_values": 10
   - iteration: paramsGeneratingProcess3
-    params_by_upstream_partition:
-      4 : "mean"
-      5 : "covariance_matrix"
+    params_from_upstream_partition:
+      "mean": 4
+      "covariance_matrix": 5
   - iteration: simulationReadingParams3
-    params_by_upstream_partition:
-      12 : "param_values"
+    params_from_upstream_partition:
+      "param_values": 12
   - iteration: dataComparisonToSimulation3
-    params_by_upstream_partition:
-      1 : "mean"
-      2 : "covariance_matrix"
-      13 : "latest_data_values"
+    params_from_upstream_partition:
+      "mean": 1
+      "covariance_matrix": 2
+      "latest_data_values": 13
   output_condition: "&simulator.EveryStepOutputCondition{}"
   output_function: "&simulator.StdoutOutputFunction{}"
   termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 5000}"

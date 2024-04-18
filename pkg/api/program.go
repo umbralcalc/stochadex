@@ -35,9 +35,14 @@ func WriteMainProgram(
 	partitions := "[]simulator.Partition{"
 	for _, partition := range implementations.Simulator.Partitions {
 		partitions += "{ Iteration: " + partition.Iteration
-		partitions += ", ParamsByUpstreamPartition: map[int]string{"
-		for upstream, params := range partition.ParamsByUpstreamPartition {
-			partitions += strconv.Itoa(upstream) + `: "` + params + `",`
+		partitions += ", ParamsFromUpstreamPartition: map[string]int{"
+		for params, upstream := range partition.ParamsFromUpstreamPartition {
+			partitions += `"` + params + `": ` + strconv.Itoa(upstream) + `,`
+		}
+		partitions += "}, SliceFromUpstreamPartition: map[string][]int{"
+		for params, slice := range partition.SliceFromUpstreamPartition {
+			partitions += `"` + params + `": []int{` + strconv.Itoa(slice[0]) +
+				`, ` + strconv.Itoa(slice[1]) + `},`
 		}
 		partitions += "},}, "
 	}
