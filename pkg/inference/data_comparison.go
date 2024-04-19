@@ -20,12 +20,18 @@ type LikelihoodDistribution interface {
 type DataComparisonIteration struct {
 	Likelihood  LikelihoodDistribution
 	burnInSteps int
+	cumulative  bool
 }
 
 func (d *DataComparisonIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	d.cumulative = false
+	c, ok := settings.OtherParams[partitionIndex].IntParams["cumulative"]
+	if ok {
+		d.cumulative = c[0] == 1
+	}
 	d.burnInSteps = int(
 		settings.OtherParams[partitionIndex].IntParams["burn_in_steps"][0],
 	)
@@ -47,12 +53,16 @@ func (d *DataComparisonIteration) Iterate(
 	if ok {
 		covMat = mat.NewSymDense(dims, cVals)
 	}
-	return []float64{d.Likelihood.EvaluateLogLike(
+	like := d.Likelihood.EvaluateLogLike(
 		mat.NewVecDense(
 			dims,
 			params.FloatParams["mean"],
 		),
 		covMat,
 		params.FloatParams["latest_data_values"],
-	)}
+	)
+	if d.cumulative {
+		like += stateHistories[partitionIndex].Values.At(0, 0)
+	}
+	return []float64{like}
 }
