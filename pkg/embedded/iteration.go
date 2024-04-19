@@ -21,6 +21,9 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	for index, partition := range e.implementations.Partitions {
+		partition.Iteration.Configure(index, e.settings)
+	}
 	e.stateMemoryPartitionMappings = make(map[int]int)
 	pattern := regexp.MustCompile(`(\d+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
