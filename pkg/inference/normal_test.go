@@ -13,7 +13,7 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 		"test that the Normal data linking log-likelihood runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"normal_config.yaml",
+				"normal_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

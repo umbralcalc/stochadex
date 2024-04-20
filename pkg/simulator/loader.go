@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// LoadSettingsFromYaml creates a new LoadSettings from a provided yaml path.
+// LoadSettingsFromYaml creates a new Settings struct from a provided yaml path.
 func LoadSettingsFromYaml(path string) *Settings {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {

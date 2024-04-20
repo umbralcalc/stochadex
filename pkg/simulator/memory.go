@@ -1,4 +1,4 @@
-package streamers
+package simulator
 
 import (
 	"encoding/csv"
@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/slices"
 	"gonum.org/v1/gonum/mat"
 )
@@ -15,20 +14,20 @@ import (
 // MemoryIteration provides a stream of data which is already know from a
 // separate data source and is held in memory.
 type MemoryIteration struct {
-	Data *simulator.StateHistory
+	Data *StateHistory
 }
 
 func (m *MemoryIteration) Configure(
 	partitionIndex int,
-	settings *simulator.Settings,
+	settings *Settings,
 ) {
 }
 
 func (m *MemoryIteration) Iterate(
-	params *simulator.OtherParams,
+	params *OtherParams,
 	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
+	stateHistories []*StateHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	data := m.Data.Values.RawRowView(m.Data.StateHistoryDepth -
 		timestepsHistory.CurrentStepNumber)
@@ -86,7 +85,7 @@ func NewMemoryIterationFromCsv(
 	// history so that row 0 is the last point
 	slices.Reverse(data)
 	return &MemoryIteration{
-		Data: &simulator.StateHistory{
+		Data: &StateHistory{
 			Values: mat.NewDense(
 				timeSeriesLength,
 				len(stateColumns),
@@ -101,12 +100,12 @@ func NewMemoryIterationFromCsv(
 // MemoryTimestepFunction provides a stream of timesteps which already known from
 // a separate data source and is held in memory.
 type MemoryTimestepFunction struct {
-	Data *simulator.CumulativeTimestepsHistory
+	Data *CumulativeTimestepsHistory
 }
 
 func (m *MemoryTimestepFunction) SetNextIncrement(
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) *simulator.CumulativeTimestepsHistory {
+	timestepsHistory *CumulativeTimestepsHistory,
+) *CumulativeTimestepsHistory {
 	i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber
 	timestepsHistory.NextIncrement =
 		m.Data.Values.AtVec(i-1) - m.Data.Values.AtVec(i)
@@ -148,7 +147,7 @@ func NewMemoryTimestepFunctionFromCsv(
 	// history so that row 0 is the last point
 	slices.Reverse(times)
 	return &MemoryTimestepFunction{
-		Data: &simulator.CumulativeTimestepsHistory{
+		Data: &CumulativeTimestepsHistory{
 			Values:            mat.NewVecDense(len(times), times),
 			StateHistoryDepth: len(times),
 		},

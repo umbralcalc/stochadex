@@ -10,7 +10,7 @@ func TestDriftDiffusionProcess(t *testing.T) {
 	t.Run(
 		"test that the general drift-diffusion process runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("drift_diffusion_config.yaml")
+			settings := simulator.LoadSettingsFromYaml("drift_diffusion_settings.yaml")
 			partitions := make([]simulator.Partition, 0)
 			driftsIteration := &simulator.ConstantValuesIteration{}
 			driftsIteration.Configure(0, settings)

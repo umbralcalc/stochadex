@@ -10,7 +10,7 @@ func TestWienerProcess(t *testing.T) {
 	t.Run(
 		"test that the Wiener process runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("wiener_process_config.yaml")
+			settings := simulator.LoadSettingsFromYaml("wiener_process_settings.yaml")
 			partitions := make([]simulator.Partition, 0)
 			for partitionIndex := range settings.StateWidths {
 				iteration := &WienerProcessIteration{}

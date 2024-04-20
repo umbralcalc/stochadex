@@ -11,7 +11,7 @@ func TestGeometricBrownianMotion(t *testing.T) {
 		"test that the geometric Brownian motion runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"geometric_brownian_motion_config.yaml",
+				"geometric_brownian_motion_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			for partitionIndex := range settings.StateWidths {

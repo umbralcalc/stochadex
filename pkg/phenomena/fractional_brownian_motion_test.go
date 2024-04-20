@@ -11,7 +11,7 @@ func TestFractionalBrownianMotion(t *testing.T) {
 		"test that the fractional Brownian motion runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"fractional_brownian_motion_config.yaml",
+				"fractional_brownian_motion_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			for partitionIndex := range settings.StateWidths {

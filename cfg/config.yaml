@@ -1,0 +1,31 @@
+simulation:
+  implementations:
+    partitions:
+    - iteration: firstWienerProcess
+      params_from_upstream_partition: {}
+    - iteration: secondWienerProcess
+      params_from_upstream_partition: {}
+    output_condition: "&simulator.EveryStepOutputCondition{}"
+    output_function: "&simulator.StdoutOutputFunction{}"
+    termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
+    timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
+  settings:
+    other_params:
+    - float_params:
+        variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+      int_params: {}
+    - float_params:
+        variances: [1.0, 1.0, 1.0]
+      int_params: {}
+    init_state_values:
+    - [0.45, 1.4, 0.01, -0.13, 0.7]
+    - [0.67, -0.01, 0.1]
+    init_time_value: 0.0
+    seeds: [7167, 2939]
+    state_widths: [5, 3]
+    state_history_depths: [2, 2]
+    timesteps_history_depth: 2
+extra_vars_by_package:
+- github.com/umbralcalc/stochadex/pkg/phenomena:
+  - firstWienerProcess: "&phenomena.WienerProcessIteration{}"
+  - secondWienerProcess: "&phenomena.WienerProcessIteration{}"

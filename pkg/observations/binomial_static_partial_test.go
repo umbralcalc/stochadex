@@ -12,7 +12,7 @@ func TestBinomialStaticPartialStateObservationIteration(t *testing.T) {
 		"test that the binomial static partial state observation works",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"binomial_static_partial_config.yaml",
+				"binomial_static_partial_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

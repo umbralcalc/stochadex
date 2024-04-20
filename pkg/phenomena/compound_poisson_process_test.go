@@ -28,7 +28,7 @@ func TestCompoundPoissonProcess(t *testing.T) {
 		"test that the Compound Poisson process runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"compound_poisson_process_config.yaml",
+				"compound_poisson_process_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			for partitionIndex := range settings.StateWidths {

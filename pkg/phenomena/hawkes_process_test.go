@@ -12,7 +12,7 @@ func TestHawkesProcess(t *testing.T) {
 		"test that the Hawkes process runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"hawkes_process_config.yaml",
+				"hawkes_process_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			intensityIteration := &HawkesProcessIntensityIteration{

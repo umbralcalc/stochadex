@@ -12,7 +12,7 @@ func TestDynamicMaskStateObservationIteration(t *testing.T) {
 		"test that the dynamic mask state observation works",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"dynamic_mask_config.yaml",
+				"dynamic_mask_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

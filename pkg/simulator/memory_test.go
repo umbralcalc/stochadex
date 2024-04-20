@@ -1,9 +1,8 @@
-package streamers
+package simulator
 
 import (
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -17,10 +16,10 @@ func TestCsvFileDataStreaming(t *testing.T) {
 				true,
 			)
 			_ = iteration.Iterate(
-				&simulator.OtherParams{},
+				&OtherParams{},
 				0,
-				[]*simulator.StateHistory{},
-				&simulator.CumulativeTimestepsHistory{
+				[]*StateHistory{},
+				&CumulativeTimestepsHistory{
 					NextIncrement:     1.0,
 					Values:            mat.NewVecDense(2, []float64{1.0, 0.0}),
 					CurrentStepNumber: 1,
@@ -33,7 +32,7 @@ func TestCsvFileDataStreaming(t *testing.T) {
 				true,
 			)
 			_ = timestepFunction.SetNextIncrement(
-				&simulator.CumulativeTimestepsHistory{
+				&CumulativeTimestepsHistory{
 					NextIncrement:     1.0,
 					Values:            mat.NewVecDense(2, []float64{1.0, 0.0}),
 					CurrentStepNumber: 1,

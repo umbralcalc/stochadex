@@ -13,7 +13,7 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 		"test that the Gamma data linking log-likelihood runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"gamma_config.yaml",
+				"gamma_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

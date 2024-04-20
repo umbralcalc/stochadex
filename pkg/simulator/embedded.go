@@ -1,25 +1,22 @@
-package embedded
+package simulator
 
 import (
 	"regexp"
 	"strconv"
-
-	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"github.com/umbralcalc/stochadex/pkg/streamers"
 )
 
 // EmbeddedSimulationRunIteration facilitates running an embedded
 // sub-simulation to termination inside of an iteration of another
 // simulation for each step of the latter simulation.
 type EmbeddedSimulationRunIteration struct {
-	settings                     *simulator.Settings
-	implementations              *simulator.Implementations
+	settings                     *Settings
+	implementations              *Implementations
 	stateMemoryPartitionMappings map[int]int
 }
 
 func (e *EmbeddedSimulationRunIteration) Configure(
 	partitionIndex int,
-	settings *simulator.Settings,
+	settings *Settings,
 ) {
 	for index, partition := range e.implementations.Partitions {
 		partition.Iteration.Configure(index, e.settings)
@@ -43,10 +40,10 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 }
 
 func (e *EmbeddedSimulationRunIteration) Iterate(
-	params *simulator.OtherParams,
+	params *OtherParams,
 	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
+	stateHistories []*StateHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	// set the initial conditions from params and the other params
 	// that may have been configured
@@ -71,7 +68,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	e.settings.InitTimeValue = params.FloatParams["init_time_value"][0]
 
 	// instantiate the embedded simulation
-	coordinator := simulator.NewPartitionCoordinator(
+	coordinator := NewPartitionCoordinator(
 		e.settings,
 		e.implementations,
 	)
@@ -83,11 +80,11 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	// future horizon
 	if len(e.stateMemoryPartitionMappings) > 0 {
 		e.implementations.TimestepFunction =
-			&streamers.MemoryTimestepFunction{Data: timestepsHistory}
+			&MemoryTimestepFunction{Data: timestepsHistory}
 	}
 	for outPartition, inPartition := range e.stateMemoryPartitionMappings {
 		iteration, ok := coordinator.Iterators[inPartition].
-			Iteration.(*streamers.MemoryIteration)
+			Iteration.(*MemoryIteration)
 		if ok {
 			iteration.Data = stateHistories[outPartition]
 		}
@@ -112,8 +109,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 // EmbeddedSimulationRunIteration from settings and implementations
 // configs.
 func NewEmbeddedSimulationRunIteration(
-	settings *simulator.Settings,
-	implementations *simulator.Implementations,
+	settings *Settings,
+	implementations *Implementations,
 ) *EmbeddedSimulationRunIteration {
 	return &EmbeddedSimulationRunIteration{
 		settings:        settings,

@@ -11,7 +11,7 @@ func TestGaussianStaticPartialStateObservationIteration(t *testing.T) {
 		"test that the Gaussian static partial state observation works",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"gaussian_static_partial_config.yaml",
+				"gaussian_static_partial_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

@@ -11,7 +11,7 @@ func TestHistogramNodeIteration(t *testing.T) {
 		"test that the histogram node iteration runs",
 		func(t *testing.T) {
 			settings :=
-				simulator.LoadSettingsFromYaml("./histogram_node_config.yaml")
+				simulator.LoadSettingsFromYaml("./histogram_node_settings.yaml")
 			partitions := []simulator.Partition{
 				{
 					Iteration: &simulator.ConstantValuesIteration{},

@@ -11,7 +11,7 @@ func TestActorIteration(t *testing.T) {
 	t.Run(
 		"test that the actor iteration runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("iteration_config.yaml")
+			settings := simulator.LoadSettingsFromYaml("iteration_settings.yaml")
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(
 				partitions,

@@ -13,7 +13,7 @@ func TestPoissonLogLikelihood(t *testing.T) {
 		"test that the Poisson data linking log-likelihood runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"poisson_config.yaml",
+				"poisson_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

@@ -11,7 +11,7 @@ func TestPosteriorLogNormalisationIteration(t *testing.T) {
 		"test that the posterior log normalisation iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"posterior_log_normalisation_config.yaml",
+				"posterior_log_normalisation_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

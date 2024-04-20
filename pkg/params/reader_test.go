@@ -11,7 +11,7 @@ func TestParamsReaderIteration(t *testing.T) {
 	t.Run(
 		"test that the params reader iteration runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("reader_config.yaml")
+			settings := simulator.LoadSettingsFromYaml("reader_settings.yaml")
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(
 				partitions,

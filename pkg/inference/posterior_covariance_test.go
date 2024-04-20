@@ -11,7 +11,7 @@ func TestPosteriorCovarianceIteration(t *testing.T) {
 		"test that the posterior covariance iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"posterior_covariance_config.yaml",
+				"posterior_covariance_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

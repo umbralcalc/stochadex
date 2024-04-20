@@ -11,7 +11,7 @@ func TestCoxProcess(t *testing.T) {
 		"test that the Cox process runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"cox_process_config.yaml",
+				"cox_process_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			// this implements a Neyman-Scott process

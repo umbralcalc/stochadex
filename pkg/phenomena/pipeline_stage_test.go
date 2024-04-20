@@ -11,7 +11,7 @@ func TestPipelineStageIteration(t *testing.T) {
 		"test that the pipeline stage iteration runs",
 		func(t *testing.T) {
 			settings :=
-				simulator.LoadSettingsFromYaml("./pipeline_stage_config.yaml")
+				simulator.LoadSettingsFromYaml("./pipeline_stage_settings.yaml")
 			partitions := []simulator.Partition{
 				{
 					Iteration: &simulator.ConstantValuesIteration{},

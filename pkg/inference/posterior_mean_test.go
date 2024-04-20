@@ -11,7 +11,7 @@ func TestPosteriorMeanIteration(t *testing.T) {
 		"test that the posterior mean iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"posterior_mean_config.yaml",
+				"posterior_mean_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

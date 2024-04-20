@@ -13,7 +13,7 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 		"test that the Negative Binomial data linking log-likelihood runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"negative_binomial_config.yaml",
+				"negative_binomial_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

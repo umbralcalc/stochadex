@@ -11,7 +11,7 @@ func TestFalseStaticPartialStateObservationIteration(t *testing.T) {
 		"test that the false static partial state observation works",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"false_observation_config.yaml",
+				"false_observation_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(

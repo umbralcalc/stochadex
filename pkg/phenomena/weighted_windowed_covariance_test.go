@@ -12,7 +12,7 @@ func TestWeightedWindowedCovarianceIteration(t *testing.T) {
 		"test that the weighted windowed covariance iteration runs",
 		func(t *testing.T) {
 			settings :=
-				simulator.LoadSettingsFromYaml("./weighted_windowed_covariance_config.yaml")
+				simulator.LoadSettingsFromYaml("./weighted_windowed_covariance_settings.yaml")
 			partitions := []simulator.Partition{
 				{
 					Iteration: &WienerProcessIteration{},

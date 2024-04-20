@@ -11,7 +11,7 @@ func TestWeightedMeanIteration(t *testing.T) {
 		"test that the weighted mean iteration runs",
 		func(t *testing.T) {
 			settings :=
-				simulator.LoadSettingsFromYaml("./weighted_mean_config.yaml")
+				simulator.LoadSettingsFromYaml("./weighted_mean_settings.yaml")
 			partitions := []simulator.Partition{
 				{Iteration: &WeightedMeanIteration{}},
 				{Iteration: &WienerProcessIteration{}},

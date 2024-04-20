@@ -12,28 +12,20 @@ import (
 // also retrieves other args.
 func ArgParse() (
 	string,
-	*ImplementationsConfigStrings,
+	*StochadexConfigImplementationsStrings,
 	*DashboardConfig,
 ) {
 	fmt.Println("\nReading in args...")
 	parser := argparse.NewParser(
 		"stochadex",
-		"a simulator of stochastic phenomena",
+		"A generalised simulation engine",
 	)
-	settingsFile := parser.String(
-		"s",
-		"settings",
+	configFile := parser.String(
+		"c",
+		"config",
 		&argparse.Options{
 			Required: true,
-			Help:     "yaml config path for settings",
-		},
-	)
-	implementationsFile := parser.String(
-		"i",
-		"implementations",
-		&argparse.Options{
-			Required: true,
-			Help:     "yaml config path for string implementations",
+			Help:     "yaml config path",
 		},
 	)
 	dashboardFile := parser.String(
@@ -48,17 +40,14 @@ func ArgParse() (
 	if err != nil {
 		fmt.Print(parser.Usage(err))
 	}
-	if *settingsFile == "" {
-		panic(fmt.Errorf("parsed no settings config file"))
+	if *configFile == "" {
+		panic(fmt.Errorf("parsed no config file"))
 	}
-	if *implementationsFile == "" {
-		panic(fmt.Errorf("parsed no implementations config file"))
-	}
-	yamlFile, err := os.ReadFile(*implementationsFile)
+	yamlFile, err := os.ReadFile(*configFile)
 	if err != nil {
 		panic(err)
 	}
-	var implementations ImplementationsConfigStrings
+	var implementations StochadexConfigImplementationsStrings
 	err = yaml.Unmarshal(yamlFile, &implementations)
 	if err != nil {
 		panic(err)
@@ -76,5 +65,5 @@ func ArgParse() (
 			panic(err)
 		}
 	}
-	return *settingsFile, &implementations, &dashboardConfig
+	return *configFile, &implementations, &dashboardConfig
 }

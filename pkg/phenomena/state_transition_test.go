@@ -11,7 +11,7 @@ func TestStateTransitionIteration(t *testing.T) {
 		"test that the state transition iteration runs",
 		func(t *testing.T) {
 			settings :=
-				simulator.LoadSettingsFromYaml("./state_transition_config.yaml")
+				simulator.LoadSettingsFromYaml("./state_transition_settings.yaml")
 			partitions := []simulator.Partition{
 				{
 					Iteration: &simulator.ConstantValuesIteration{},

@@ -20,9 +20,8 @@ go mod tidy
 # build the binary
 go build -o bin/ ./cmd/stochadex
 
-# run your configs with the dashboard off
-./bin/stochadex --settings ./cfg/settings_config.yaml \
---implementations ./cfg/implementations_config.yaml
+# run your config with the dashboard off
+./bin/stochadex --config ./cfg/config.yaml
 ```
 
 ## Building and running the real-time dashboard
@@ -32,8 +31,7 @@ go build -o bin/ ./cmd/stochadex
 cd ./app && npm install && npm run build && cd ..
 
 # run the stochadex with a dashboard config and checkout http://localhost:3000
-./bin/stochadex --settings ./cfg/settings_config.yaml \
---implementations ./cfg/implementations_config.yaml \
+./bin/stochadex --config ./cfg/config.yaml \
 --dashboard ./cfg/dashboard_config.yaml
 ```
 
@@ -46,8 +44,7 @@ cd ./app && npm install && npm run build && cd ..
 docker build --tag stochadex .
 
 # run the binary in the container with your configs
-docker run -p 2112:2112 stochadex --settings ./cfg/settings_config.yaml \
---implementations ./cfg/implementations_config.yaml \
+docker run -p 2112:2112 stochadex --config ./cfg/config.yaml \
 --dashboard ./cfg/dashboard_config.yaml
 ```
 
