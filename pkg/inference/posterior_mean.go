@@ -27,10 +27,16 @@ func (p *PosteriorMeanIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	logLikes := make([]float64, 0)
-	for _, loglikePartition := range params.IntParams["loglike_partitions"] {
+	for i, loglikePartition := range params.IntParams["loglike_partitions"] {
+		var valueIndex int
+		if v, ok := params.IntParams["loglike_indices"]; ok {
+			valueIndex = int(v[i])
+		} else {
+			valueIndex = 0
+		}
 		logLikes = append(
 			logLikes,
-			stateHistories[loglikePartition].Values.At(0, 0),
+			stateHistories[loglikePartition].Values.At(0, valueIndex),
 		)
 	}
 	logNormLatest := floats.LogSumExp(logLikes)

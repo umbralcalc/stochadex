@@ -45,7 +45,7 @@ func (d *DataComparisonIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	if timestepsHistory.CurrentStepNumber < d.burnInSteps {
-		return []float64{0.0}
+		return []float64{stateHistories[partitionIndex].Values.At(0, 0)}
 	}
 	dims := len(params.FloatParams["mean"])
 	var covMat *mat.SymDense

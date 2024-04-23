@@ -32,7 +32,13 @@ func (p *PosteriorLogNormalisationIteration) Iterate(
 	logNorms := make([]float64, stateHistoryDepth)
 	for i := 0; i < stateHistoryDepth; i++ {
 		for j, loglikePartition := range params.IntParams["loglike_partitions"] {
-			logLikes[j] = stateHistories[loglikePartition].Values.At(i, 0)
+			var valueIndex int
+			if v, ok := params.IntParams["loglike_indices"]; ok {
+				valueIndex = int(v[j])
+			} else {
+				valueIndex = 0
+			}
+			logLikes[j] = stateHistories[loglikePartition].Values.At(i, valueIndex)
 		}
 		logNorms[i] = floats.LogSumExp(logLikes) - (discount * float64(i))
 	}

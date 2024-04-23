@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 )
@@ -12,6 +13,7 @@ type EmbeddedSimulationRunIteration struct {
 	settings                     *Settings
 	implementations              *Implementations
 	stateMemoryPartitionMappings map[int]int
+	burnInSteps                  int
 }
 
 func (e *EmbeddedSimulationRunIteration) Configure(
@@ -37,6 +39,9 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 			e.stateMemoryPartitionMappings[int(paramsValues[0])] = inPartition
 		}
 	}
+	e.burnInSteps = int(
+		settings.OtherParams[partitionIndex].IntParams["burn_in_steps"][0],
+	)
 }
 
 func (e *EmbeddedSimulationRunIteration) Iterate(
@@ -45,6 +50,10 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
+	if timestepsHistory.CurrentStepNumber < e.burnInSteps {
+		return stateHistories[partitionIndex].Values.RawRowView(0)
+	}
+
 	// set the initial conditions from params and the other params
 	// that may have been configured
 	pattern := regexp.MustCompile(`(\d+)/(\w+)`)
@@ -65,13 +74,6 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 			}
 		}
 	}
-	e.settings.InitTimeValue = params.FloatParams["init_time_value"][0]
-
-	// instantiate the embedded simulation
-	coordinator := NewPartitionCoordinator(
-		e.settings,
-		e.implementations,
-	)
 
 	// set the data for the past timesteps and state memory partition
 	// iterations, if configured - the application/non-application of
@@ -81,16 +83,35 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	if len(e.stateMemoryPartitionMappings) > 0 {
 		e.implementations.TimestepFunction =
 			&MemoryTimestepFunction{Data: timestepsHistory}
+		params.FloatParams["init_time_value"] = []float64{
+			timestepsHistory.Values.AtVec(
+				timestepsHistory.StateHistoryDepth - 1,
+			),
+		}
 	}
 	for outPartition, inPartition := range e.stateMemoryPartitionMappings {
-		iteration, ok := coordinator.Iterators[inPartition].
+		iteration, ok := e.implementations.Partitions[inPartition].
 			Iteration.(*MemoryIteration)
 		if ok {
 			iteration.Data = stateHistories[outPartition]
+			e.settings.InitStateValues[inPartition] =
+				iteration.Data.Values.RawRowView(
+					iteration.Data.StateHistoryDepth - 1,
+				)
+		} else {
+			panic(fmt.Errorf(
+				"internal state partition %d is not a MemoryIteration",
+				inPartition,
+			))
 		}
 	}
+	e.settings.InitTimeValue = params.FloatParams["init_time_value"][0]
 
-	// run the embedded simulation to termination
+	// instantiate and run the embedded simulation to termination
+	coordinator := NewPartitionCoordinator(
+		e.settings,
+		e.implementations,
+	)
 	coordinator.Run()
 
 	// prepare the returned state slice as the concatenated
