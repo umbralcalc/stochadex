@@ -29,8 +29,17 @@ func (m *MemoryIteration) Iterate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
-	data := m.Data.Values.RawRowView(m.Data.StateHistoryDepth -
-		timestepsHistory.CurrentStepNumber)
+	var data []float64
+	// starts from one step into the window because it makes it possible to
+	// use the i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
+	// for the initial conditions
+	if i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
+		data = m.Data.Values.RawRowView(i)
+	} else if i == -1 {
+		data = params.FloatParams["latest_data_values"]
+	} else {
+		panic("timesteps have gone beyond the available data")
+	}
 	return data
 }
 
@@ -106,9 +115,17 @@ type MemoryTimestepFunction struct {
 func (m *MemoryTimestepFunction) SetNextIncrement(
 	timestepsHistory *CumulativeTimestepsHistory,
 ) *CumulativeTimestepsHistory {
-	i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber
-	timestepsHistory.NextIncrement =
-		m.Data.Values.AtVec(i-1) - m.Data.Values.AtVec(i)
+	// starts from one step into the window because it makes it possible to
+	// use the i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
+	// for the initial conditions
+	if i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
+		timestepsHistory.NextIncrement =
+			m.Data.Values.AtVec(i) - timestepsHistory.Values.AtVec(0)
+	} else if i == -1 {
+		timestepsHistory.NextIncrement = m.Data.NextIncrement
+	} else {
+		panic("timesteps have gone beyond the available data")
+	}
 	return timestepsHistory
 }
 

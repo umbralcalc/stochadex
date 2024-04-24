@@ -25,6 +25,8 @@ simulation:
         "covariance_matrix": 5
     - iteration: ornsteinUhlenbeckSimulation
       params_from_upstream_partition:
+        "0/latest_data_values": 1
+        "1/latest_data_values": 2
         "2/param_values": 6
     output_condition: "&simulator.EveryStepOutputCondition{}"
     output_function: "&simulator.StdoutOutputFunction{}"
@@ -98,7 +100,7 @@ embedded_simulations:
           "latest_data_values": 2
       output_condition: "&simulator.NilOutputCondition{}"
       output_function: "&simulator.NilOutputFunction{}"
-      termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 199}"
+      termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 200}"
       timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
     settings:
       other_params:
