@@ -6,12 +6,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestPipelineStageIteration(t *testing.T) {
+func TestHistogramPipelineStageIteration(t *testing.T) {
 	t.Run(
-		"test that the pipeline stage iteration runs",
+		"test that the histogram pipeline stage iteration runs",
 		func(t *testing.T) {
 			settings :=
-				simulator.LoadSettingsFromYaml("./pipeline_stage_settings.yaml")
+				simulator.LoadSettingsFromYaml("./histogram_pipeline_stage_settings.yaml")
 			partitions := []simulator.Partition{
 				{
 					Iteration: &simulator.ConstantValuesIteration{},
@@ -20,7 +20,7 @@ func TestPipelineStageIteration(t *testing.T) {
 					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					Iteration: &PipelineStageIteration{},
+					Iteration: &HistogramPipelineStageIteration{},
 					ParamsFromUpstreamPartition: map[string]int{
 						"downstream_flow_rates": 0,
 						"object_dispatch_probs": 1,
@@ -33,7 +33,7 @@ func TestPipelineStageIteration(t *testing.T) {
 					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					Iteration: &PipelineStageIteration{},
+					Iteration: &HistogramPipelineStageIteration{},
 					ParamsFromUpstreamPartition: map[string]int{
 						"downstream_flow_rates": 3,
 						"object_dispatch_probs": 4,
@@ -46,7 +46,7 @@ func TestPipelineStageIteration(t *testing.T) {
 					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					Iteration: &PipelineStageIteration{},
+					Iteration: &HistogramPipelineStageIteration{},
 					ParamsFromUpstreamPartition: map[string]int{
 						"downstream_flow_rates": 6,
 						"object_dispatch_probs": 7,
@@ -59,7 +59,7 @@ func TestPipelineStageIteration(t *testing.T) {
 					Iteration: &simulator.ConstantValuesIteration{},
 				},
 				{
-					Iteration: &PipelineStageIteration{},
+					Iteration: &HistogramPipelineStageIteration{},
 					ParamsFromUpstreamPartition: map[string]int{
 						"downstream_flow_rates": 9,
 						"object_dispatch_probs": 10,

@@ -6,28 +6,28 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// PipelineStageIteration evolves a table of object counts as its state as
-// well as both checking for objects entering and indicating that objects
-// are leaving this stage for another one of an overall pipeline.
-type PipelineStageIteration struct {
+// HistogramPipelineStageIteration evolves a table of object counts as its
+// state as well as both checking for objects entering and indicating that
+// objects are leaving this stage for another one.
+type HistogramPipelineStageIteration struct {
 	unitUniformDist *distuv.Uniform
 }
 
-func (p *PipelineStageIteration) Configure(
+func (h *HistogramPipelineStageIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 	seed := settings.Seeds[partitionIndex]
 	rand.Seed(seed)
 
-	p.unitUniformDist = &distuv.Uniform{
+	h.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,
 		Max: 1.0,
 		Src: rand.NewSource(seed),
 	}
 }
 
-func (p *PipelineStageIteration) Iterate(
+func (h *HistogramPipelineStageIteration) Iterate(
 	params *simulator.OtherParams,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -51,7 +51,7 @@ func (p *PipelineStageIteration) Iterate(
 		cumulative += 1.0 / rate
 		cumulatives = append(cumulatives, cumulative)
 	}
-	event := p.unitUniformDist.Rand()
+	event := h.unitUniformDist.Rand()
 	if event*cumulative < cumulatives[0] {
 		// minus number indicates nothing sent this step
 		state[len(state)-1] = -1.0
@@ -76,7 +76,7 @@ func (p *PipelineStageIteration) Iterate(
 		return state
 	}
 	whichObject := objects[len(objects)-1]
-	objectEvent := p.unitUniformDist.Rand()
+	objectEvent := h.unitUniformDist.Rand()
 	for i, c := range objectCumulatives {
 		if objectEvent*objectCumulative < c {
 			whichObject = objects[i]
