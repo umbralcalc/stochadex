@@ -101,8 +101,8 @@ func run(c *PartitionCoordinator) {
 		c.TimestepsHistory,
 	) {
 		c.TimestepsHistory.CurrentStepNumber += 1
-		c.TimestepsHistory =
-			c.TimestepFunction.SetNextIncrement(c.TimestepsHistory)
+		c.TimestepsHistory.NextIncrement =
+			c.TimestepFunction.NextIncrement(c.TimestepsHistory)
 		iterateHistory(c)
 	}
 }

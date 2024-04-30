@@ -112,21 +112,19 @@ type MemoryTimestepFunction struct {
 	Data *CumulativeTimestepsHistory
 }
 
-func (m *MemoryTimestepFunction) SetNextIncrement(
+func (m *MemoryTimestepFunction) NextIncrement(
 	timestepsHistory *CumulativeTimestepsHistory,
-) *CumulativeTimestepsHistory {
+) float64 {
 	// starts from one step into the window because it makes it possible to
 	// use the i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
 	// for the initial conditions
 	if i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
-		timestepsHistory.NextIncrement =
-			m.Data.Values.AtVec(i) - timestepsHistory.Values.AtVec(0)
+		return m.Data.Values.AtVec(i) - timestepsHistory.Values.AtVec(0)
 	} else if i == -1 {
-		timestepsHistory.NextIncrement = m.Data.NextIncrement
+		return m.Data.NextIncrement
 	} else {
 		panic("timesteps have gone beyond the available data")
 	}
-	return timestepsHistory
 }
 
 // NewMemoryTimestepFunctionFromCsv creates a new MemoryTimestepFunction

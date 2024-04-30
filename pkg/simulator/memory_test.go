@@ -31,7 +31,7 @@ func TestCsvFileDataStreaming(t *testing.T) {
 				0,
 				true,
 			)
-			_ = timestepFunction.SetNextIncrement(
+			_ = timestepFunction.NextIncrement(
 				&CumulativeTimestepsHistory{
 					NextIncrement:     1.0,
 					Values:            mat.NewVecDense(2, []float64{1.0, 0.0}),

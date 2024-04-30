@@ -77,7 +77,9 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// update the overall step count and get the next time increment
 	c.TimestepsHistory.CurrentStepNumber += 1
-	c.TimestepsHistory = c.TimestepFunction.SetNextIncrement(c.TimestepsHistory)
+	c.TimestepsHistory.NextIncrement = c.TimestepFunction.NextIncrement(
+		c.TimestepsHistory,
+	)
 
 	// begin by requesting iterations for the next step and waiting
 	c.RequestMoreIterations(wg)

@@ -6,11 +6,12 @@ import (
 )
 
 // TimestepFunction is the interface that must be implemented for a function
-// which gets the next increment to the time variable of the stochastic process.
+// which evaluates the next increment to the time variable of the stochastic
+// process being simulated.
 type TimestepFunction interface {
-	SetNextIncrement(
+	NextIncrement(
 		timestepsHistory *CumulativeTimestepsHistory,
-	) *CumulativeTimestepsHistory
+	) float64
 }
 
 // ConstantTimestepFunction iterates the timestep by a constant stepsize.
@@ -18,11 +19,10 @@ type ConstantTimestepFunction struct {
 	Stepsize float64
 }
 
-func (t *ConstantTimestepFunction) SetNextIncrement(
+func (t *ConstantTimestepFunction) NextIncrement(
 	timestepsHistory *CumulativeTimestepsHistory,
-) *CumulativeTimestepsHistory {
-	timestepsHistory.NextIncrement = t.Stepsize
-	return timestepsHistory
+) float64 {
+	return t.Stepsize
 }
 
 // ExponentialDistributionTimestepFunction iterates the timestep by a new sample
@@ -33,11 +33,10 @@ type ExponentialDistributionTimestepFunction struct {
 	distribution distuv.Exponential
 }
 
-func (t *ExponentialDistributionTimestepFunction) SetNextIncrement(
+func (t *ExponentialDistributionTimestepFunction) NextIncrement(
 	timestepsHistory *CumulativeTimestepsHistory,
-) *CumulativeTimestepsHistory {
-	timestepsHistory.NextIncrement = t.distribution.Rand()
-	return timestepsHistory
+) float64 {
+	return t.distribution.Rand()
 }
 
 // New ExponentialDistributionTimestepFunction creates a new
