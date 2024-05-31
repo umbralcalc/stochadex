@@ -12,7 +12,8 @@ simulation:
       int_params: {}
     - float_params:
         init_time_value: [0.0]
-      int_params: {}
+      int_params:
+        burn_in_steps: [0]
     init_state_values:
     - [0.45, 1.4, 0.01, -0.13, 0.7]
     - [0.0, 0.0, 0.0]

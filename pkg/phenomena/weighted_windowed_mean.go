@@ -57,7 +57,7 @@ func (w *WeightedWindowedMeanIteration) Iterate(
 			timestepsHistory.Values.AtVec(i),
 		)
 		if weight < 0 {
-			panic("negative covariance matrix weights")
+			panic("negative mean weights")
 		}
 		cumulativeWeightSum += weight
 		sumContributionVec.ScaleVec(
