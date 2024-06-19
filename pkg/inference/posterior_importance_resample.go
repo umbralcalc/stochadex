@@ -23,9 +23,11 @@ func (p *PosteriorImportanceResampleIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	loglikePartitions :=
+		settings.OtherParams[partitionIndex].IntParams["loglike_partitions"]
 	nilWeights := make(
 		[]float64,
-		len(settings.OtherParams[partitionIndex].IntParams["loglike_partitions"]),
+		len(loglikePartitions)*settings.StateHistoryDepths[loglikePartitions[0]],
 	)
 	nilWeights[0] = 1.0
 	p.catDist = distuv.NewCategorical(
@@ -41,25 +43,34 @@ func (p *PosteriorImportanceResampleIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
+	logDiscount := math.Log(params.FloatParams["past_discounting_factor"][0])
+	stateHistoryDepth :=
+		stateHistories[params.IntParams["loglike_partitions"][0]].StateHistoryDepth
 	logLikes := make([]float64, 0)
-	for i, loglikePartition := range params.IntParams["loglike_partitions"] {
-		var valueIndex int
-		if v, ok := params.IntParams["loglike_indices"]; ok {
-			valueIndex = int(v[i])
-		} else {
-			valueIndex = 0
+	indices := make([][]int, 0)
+	for i := 0; i < stateHistoryDepth; i++ {
+		for j, loglikePartition := range params.IntParams["loglike_partitions"] {
+			var valueIndex int
+			if v, ok := params.IntParams["loglike_indices"]; ok {
+				valueIndex = int(v[j])
+			} else {
+				valueIndex = 0
+			}
+			logLikes = append(
+				logLikes,
+				stateHistories[loglikePartition].Values.At(0, valueIndex)+
+					(logDiscount*float64(i)),
+			)
+			indices = append(indices, []int{i, j})
 		}
-		logLikes = append(
-			logLikes,
-			stateHistories[loglikePartition].Values.At(0, valueIndex),
-		)
 	}
 	logNorm := floats.LogSumExp(logLikes)
 	for i, logLike := range logLikes {
 		p.catDist.Reweight(i, math.Exp(logLike-logNorm))
 	}
-	sampleCentre := stateHistories[params.IntParams["param_partitions"][int(
-		p.catDist.Rand())]].Values.RawRowView(0)
+	indexPair := indices[int(p.catDist.Rand())]
+	paramPartition := params.IntParams["param_partitions"][indexPair[1]]
+	sampleCentre := stateHistories[paramPartition].Values.RawRowView(indexPair[0])
 	normDist, ok := distmv.NewNormal(
 		sampleCentre,
 		mat.NewSymDense(len(sampleCentre), params.FloatParams["sample_covariance"]),
