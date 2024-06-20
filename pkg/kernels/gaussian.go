@@ -19,31 +19,13 @@ func (g *GaussianIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.stateWidth = settings.StateWidths[partitionIndex]
 	g.SetParams(settings.OtherParams[partitionIndex])
 }
 
 func (g *GaussianIntegrationKernel) SetParams(params *simulator.OtherParams) {
-	row := 0
-	col := 0
-	covMatrix := mat.NewSymDense(g.stateWidth, nil)
-	upperTri := mat.NewTriDense(g.stateWidth, mat.Upper, nil)
-	for i, param := range params.FloatParams["upper_triangle_cholesky_of_cov_matrix"] {
-		// nonzero values along the diagonal are needed as a constraint
-		if col == row && param == 0.0 {
-			param = 1e-4
-			params.FloatParams["upper_triangle_cholesky_of_cov_matrix"][i] = param
-		}
-		upperTri.SetTri(row, col, param)
-		col += 1
-		if col == g.stateWidth {
-			row += 1
-			col = row
-		}
-	}
+	g.stateWidth = int(math.Sqrt(float64(len(params.FloatParams["covariance_matrix"]))))
+	covMatrix := mat.NewSymDense(g.stateWidth, params.FloatParams["covariance_matrix"])
 	var choleskyDecomp mat.Cholesky
-	choleskyDecomp.SetFromU(upperTri)
-	choleskyDecomp.ToSym(covMatrix)
 	ok := choleskyDecomp.Factorize(covMatrix)
 	if !ok {
 		panic("cholesky decomp for covariance matrix failed")

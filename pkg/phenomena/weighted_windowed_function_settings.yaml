@@ -10,6 +10,7 @@ other_params:
   int_params:
     data_values_partition: [0]
     function_values_partition: [1]
+    function_values_indices: [0, 1]
 init_state_values:
 - [0.0, 0.0, 0.0]
 - [0.0, 0.0]

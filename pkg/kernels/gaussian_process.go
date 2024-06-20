@@ -39,12 +39,12 @@ func (g *GaussianProcessIntegrationKernel) Configure(
 	settings *simulator.Settings,
 ) {
 	g.Covariance.Configure(partitionIndex, settings)
-	g.stateWidth = settings.StateWidths[partitionIndex]
 	g.SetParams(settings.OtherParams[partitionIndex])
 }
 
 func (g *GaussianProcessIntegrationKernel) SetParams(params *simulator.OtherParams) {
 	g.targetState = params.FloatParams["target_state"]
+	g.stateWidth = len(g.targetState)
 	g.currentCovarianceState = params.FloatParams["current_covariance_state"]
 	g.pastCovarianceState = params.FloatParams["past_covariance_state"]
 	g.Covariance.SetParams(params)

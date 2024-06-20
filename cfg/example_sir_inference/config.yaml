@@ -42,11 +42,11 @@ simulation:
       int_params:
         data_values_partition: [0]
     - float_params:
-        past_discounting_factor: [0.5]
+        past_discounting_factor: [0.8]
         sample_covariance: [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]
       int_params:
         param_partitions: [3]
-        loglike_partitions: [7]
+        loglike_partitions: [4]
         loglike_indices: [24]
     - float_params: {}
       int_params:
@@ -54,10 +54,12 @@ simulation:
         0/state_memory_partition: [1]
         1/state_memory_partition: [2]
     - float_params:
-        exponential_weighting_timescale: [100.0]
+        past_discounting_factor: [0.8]
+        covariance_matrix: [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]
       int_params:
         data_values_partition: [3]
         function_values_partition: [4]
+        function_values_indices: [24]
     init_state_values:
     - [1.3, 8.3, -4.9, 1.6]
     - [1.1, 4.0, -8.3, 2.0]
@@ -68,7 +70,7 @@ simulation:
     init_time_value: 0.0
     seeds: [291, 0, 0, 112322, 6785, 0]
     state_widths: [4, 4, 16, 4, 25, 1]
-    state_history_depths: [500, 200, 200, 2, 200, 200]
+    state_history_depths: [500, 200, 200, 200, 200, 200]
     timesteps_history_depth: 500
 embedded_simulations:
 - ornsteinUhlenbeckSimulation:
@@ -119,11 +121,12 @@ embedded_simulations:
 extra_vars_by_package:
 - github.com/umbralcalc/stochadex/pkg/kernels:
   - expKernel: "&kernels.ExponentialIntegrationKernel{}"
+  - gaussKernel: "&kernels.GaussianIntegrationKernel{}"
 - github.com/umbralcalc/stochadex/pkg/phenomena:
   - simulationIteration: "&phenomena.OrnsteinUhlenbeckIteration{}"
   - dataRollingMean: "&phenomena.WeightedWindowedMeanIteration{Kernel: expKernel}"
   - dataRollingCov: "&phenomena.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
-  - smoothedLikelihood: "&phenomena.WeightedWindowedFunctionIteration{Kernel: expKernel}"
+  - smoothedLikelihood: "&phenomena.WeightedWindowedFunctionIteration{Kernel: gaussKernel}"
 - github.com/umbralcalc/stochadex/pkg/params:
   - simulationReadingParams: "&params.ParamsReaderIteration{Iteration: simulationIteration}"
 - github.com/umbralcalc/stochadex/pkg/inference:

@@ -14,8 +14,9 @@ import (
 type WeightedWindowedFunctionIteration struct {
 	Kernel                  kernels.IntegrationKernel
 	discount                float64
-	functionValuesPartition int
 	valuesPartition         int
+	functionValuesPartition int
+	functionValuesIndices   []int64
 }
 
 func (w *WeightedWindowedFunctionIteration) Configure(
@@ -27,6 +28,8 @@ func (w *WeightedWindowedFunctionIteration) Configure(
 		settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
 	w.functionValuesPartition = int(
 		settings.OtherParams[partitionIndex].IntParams["function_values_partition"][0])
+	w.functionValuesIndices =
+		settings.OtherParams[partitionIndex].IntParams["function_values_indices"]
 	if d, ok := settings.OtherParams[partitionIndex].
 		FloatParams["past_discounting_factor"]; ok {
 		w.discount = d[0]
@@ -59,7 +62,7 @@ func (w *WeightedWindowedFunctionIteration) Iterate(
 	cumulativeWeightedFunctionValueSum := latestFunctionValues
 	floats.Scale(cumulativeWeightSum, cumulativeWeightedFunctionValueSum)
 	cumulativeWeightedFunctionValueSumVec := mat.NewVecDense(
-		functionHistory.StateWidth,
+		len(w.functionValuesIndices),
 		cumulativeWeightedFunctionValueSum,
 	)
 	var weight float64
@@ -77,10 +80,9 @@ func (w *WeightedWindowedFunctionIteration) Iterate(
 		}
 		weight *= math.Pow(w.discount, float64(i))
 		cumulativeWeightSum += weight
-		sumContributionVec.ScaleVec(
-			weight,
-			functionHistory.Values.RowView(i),
-		)
+		for j, index := range w.functionValuesIndices {
+			sumContributionVec.SetVec(j, weight*functionHistory.Values.At(i, int(index)))
+		}
 		cumulativeWeightedFunctionValueSumVec.AddVec(
 			cumulativeWeightedFunctionValueSumVec,
 			sumContributionVec,
