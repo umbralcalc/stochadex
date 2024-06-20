@@ -8,41 +8,47 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-const logTwoPi = 1.83788
-
-// GaussianCovarianceKernel is an interface that must be implemented
-// in order to create a covariance kernel that can be used in the
-// GaussianIntegrationKernel.
-type GaussianCovarianceKernel interface {
-	Configure(partitionIndex int, settings *simulator.Settings)
-	SetParams(params *simulator.OtherParams)
-	GetCovariance(
-		currentState []float64,
-		pastState []float64,
-		currentTime float64,
-		pastTime float64,
-	) *mat.SymDense
-}
-
-// GaussianIntegrationKernel applies a Gaussian kernel to get a vector of means.
+// GaussianIntegrationKernel applies a Gaussian kernel with constant
+// covariance matrix.
 type GaussianIntegrationKernel struct {
-	Kernel     GaussianCovarianceKernel
-	means      []float64
-	stateWidth int
+	choleskyDecomp mat.Cholesky
+	stateWidth     int
 }
 
 func (g *GaussianIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.Kernel.Configure(partitionIndex, settings)
 	g.stateWidth = settings.StateWidths[partitionIndex]
 	g.SetParams(settings.OtherParams[partitionIndex])
 }
 
 func (g *GaussianIntegrationKernel) SetParams(params *simulator.OtherParams) {
-	g.means = params.FloatParams["means"]
-	g.Kernel.SetParams(params)
+	row := 0
+	col := 0
+	covMatrix := mat.NewSymDense(g.stateWidth, nil)
+	upperTri := mat.NewTriDense(g.stateWidth, mat.Upper, nil)
+	for i, param := range params.FloatParams["upper_triangle_cholesky_of_cov_matrix"] {
+		// nonzero values along the diagonal are needed as a constraint
+		if col == row && param == 0.0 {
+			param = 1e-4
+			params.FloatParams["upper_triangle_cholesky_of_cov_matrix"][i] = param
+		}
+		upperTri.SetTri(row, col, param)
+		col += 1
+		if col == g.stateWidth {
+			row += 1
+			col = row
+		}
+	}
+	var choleskyDecomp mat.Cholesky
+	choleskyDecomp.SetFromU(upperTri)
+	choleskyDecomp.ToSym(covMatrix)
+	ok := choleskyDecomp.Factorize(covMatrix)
+	if !ok {
+		panic("cholesky decomp for covariance matrix failed")
+	}
+	g.choleskyDecomp = choleskyDecomp
 }
 
 func (g *GaussianIntegrationKernel) Evaluate(
@@ -51,30 +57,18 @@ func (g *GaussianIntegrationKernel) Evaluate(
 	currentTime float64,
 	pastTime float64,
 ) float64 {
-	currentDiff := make([]float64, g.stateWidth)
-	pastDiff := make([]float64, g.stateWidth)
-	currentStateDiffVector := mat.NewVecDense(
+	diff := make([]float64, g.stateWidth)
+	stateDiffVector := mat.NewVecDense(
 		g.stateWidth,
-		floats.SubTo(currentDiff, currentState, g.means),
+		floats.SubTo(diff, currentState, pastState),
 	)
-	pastStateDiffVector := mat.NewVecDense(
-		g.stateWidth,
-		floats.SubTo(pastDiff, pastState, g.means),
-	)
-	var choleskyDecomp mat.Cholesky
-	ok := choleskyDecomp.Factorize(
-		g.Kernel.GetCovariance(currentState, pastState, currentTime, pastTime),
-	)
-	if !ok {
-		return math.NaN()
-	}
 	var vectorInvMat mat.VecDense
-	err := choleskyDecomp.SolveVecTo(&vectorInvMat, currentStateDiffVector)
+	err := g.choleskyDecomp.SolveVecTo(&vectorInvMat, stateDiffVector)
 	if err != nil {
 		return math.NaN()
 	}
-	logResult := -0.5 * mat.Dot(&vectorInvMat, pastStateDiffVector)
+	logResult := -0.5 * mat.Dot(&vectorInvMat, stateDiffVector)
 	logResult -= 0.5 * float64(g.stateWidth) * logTwoPi
-	logResult -= 0.5 * choleskyDecomp.LogDet()
+	logResult -= 0.5 * g.choleskyDecomp.LogDet()
 	return math.Exp(logResult)
 }

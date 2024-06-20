@@ -1,0 +1,134 @@
+simulation:
+  implementations:
+    partitions:
+    - iteration: dataStream
+      params_from_upstream_partition: {}
+    - iteration: dataRollingMean
+      params_from_upstream_partition:
+        "latest_data_values": 0
+    - iteration: dataRollingCov
+      params_from_upstream_partition:
+        "latest_data_values": 0
+        "mean": 1
+    - iteration: paramsPosteriorResample
+      params_from_upstream_partition: {}
+    - iteration: ornsteinUhlenbeckSimulation
+      params_from_upstream_partition:
+        "0/latest_data_values": 1
+        "1/latest_data_values": 2
+        "2/param_values": 3
+    - iteration: smoothedLikelihood
+      params_from_upstream_partition:
+        "latest_data_values": 3
+        "latest_function_values": 4
+      params_from_slice:
+        "latest_function_values": [24, 25]
+    output_condition: "&simulator.EveryStepOutputCondition{}"
+    output_function: "&simulator.StdoutOutputFunction{}"
+    termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 2000}"
+    timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
+  settings:
+    other_params:
+    - float_params:
+        mean: [1.8, 5.0, -7.3, 2.2]
+        covariance_matrix: [2.5, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 4.4, 0.0, 0.0, 0.0, 0.0, 17.0]
+      int_params: {}
+    - float_params:
+        exponential_weighting_timescale: [100.0]
+      int_params:
+        data_values_partition: [0]
+    - float_params:
+        exponential_weighting_timescale: [100.0]
+      int_params:
+        data_values_partition: [0]
+    - float_params:
+        past_discounting_factor: [0.5]
+        sample_covariance: [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]
+      int_params:
+        param_partitions: [3]
+        loglike_partitions: [7]
+        loglike_indices: [24]
+    - float_params: {}
+      int_params:
+        burn_in_steps: [800]
+        0/state_memory_partition: [1]
+        1/state_memory_partition: [2]
+    - float_params:
+        exponential_weighting_timescale: [100.0]
+      int_params:
+        data_values_partition: [3]
+        function_values_partition: [4]
+    init_state_values:
+    - [1.3, 8.3, -4.9, 1.6]
+    - [1.1, 4.0, -8.3, 2.0]
+    - [4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0]
+    - [0.9, 3.5, -4.7, 1.0]
+    - [1.1, 4.0, -8.3, 2.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.3, 8.3, -4.9, 1.6, 0.0]
+    - [0.0]
+    init_time_value: 0.0
+    seeds: [291, 0, 0, 112322, 6785, 0]
+    state_widths: [4, 4, 16, 4, 25, 1]
+    state_history_depths: [500, 200, 200, 2, 200, 200]
+    timesteps_history_depth: 500
+embedded_simulations:
+- ornsteinUhlenbeckSimulation:
+    implementations:
+      partitions:
+      - iteration: "&simulator.MemoryIteration{}"
+        params_from_upstream_partition: {}
+      - iteration: "&simulator.MemoryIteration{}"
+        params_from_upstream_partition: {}
+      - iteration: simulationReadingParams
+        params_from_upstream_partition: {}
+      - iteration: dataComparisonToSimulation
+        params_from_upstream_partition:
+          "mean": 0
+          "covariance_matrix": 1
+          "latest_data_values": 2
+      output_condition: "&simulator.NilOutputCondition{}"
+      output_function: "&simulator.NilOutputFunction{}"
+      termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 200}"
+      timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
+    settings:
+      other_params:
+      - float_params: {}
+        int_params: {}
+      - float_params: {}
+        int_params: {}
+      - float_params:
+          mus: [1.0, 4.0, -6.0, 1.0]
+          sigmas: [1.5, 3.0, 2.2, 4.1]
+          thetas: [1.0, 1.0, 1.0, 1.0]
+        float_params_mask:
+          mus: [true, true, true, true]
+        int_params: {}
+      - float_params: {}
+        int_params:
+          cumulative: [1]
+          burn_in_steps: [50]
+      init_state_values:
+      - [1.1, 4.0, -8.3, 2.0]
+      - [4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0]
+      - [1.3, 8.3, -4.9, 1.6]
+      - [0.0]
+      init_time_value: 0.0
+      seeds: [0, 0, 6785, 0]
+      state_widths: [4, 16, 4, 1]
+      state_history_depths: [2, 2, 2, 2]
+      timesteps_history_depth: 2
+extra_vars_by_package:
+- github.com/umbralcalc/stochadex/pkg/kernels:
+  - expKernel: "&kernels.ExponentialIntegrationKernel{}"
+- github.com/umbralcalc/stochadex/pkg/phenomena:
+  - simulationIteration: "&phenomena.OrnsteinUhlenbeckIteration{}"
+  - dataRollingMean: "&phenomena.WeightedWindowedMeanIteration{Kernel: expKernel}"
+  - dataRollingCov: "&phenomena.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
+  - smoothedLikelihood: "&phenomena.WeightedWindowedFunctionIteration{Kernel: expKernel}"
+- github.com/umbralcalc/stochadex/pkg/params:
+  - simulationReadingParams: "&params.ParamsReaderIteration{Iteration: simulationIteration}"
+- github.com/umbralcalc/stochadex/pkg/inference:
+  - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
+  - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"
+  - dataStream: "&inference.DataGenerationIteration{Likelihood: likelihoodForGen}"
+  - dataComparisonToSimulation: "&inference.DataComparisonIteration{Likelihood: likelihoodForComp}"
+  - paramsPosteriorResample: "&inference.PosteriorImportanceResampleIteration{}"

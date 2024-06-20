@@ -1,6 +1,8 @@
 package phenomena
 
 import (
+	"math"
+
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
@@ -11,6 +13,7 @@ import (
 // specified by another partition.
 type WeightedWindowedMeanIteration struct {
 	Kernel          kernels.IntegrationKernel
+	discount        float64
 	valuesPartition int
 }
 
@@ -19,7 +22,14 @@ func (w *WeightedWindowedMeanIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	w.Kernel.Configure(partitionIndex, settings)
-	w.valuesPartition = int(settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
+	w.valuesPartition = int(
+		settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
+	if d, ok := settings.OtherParams[partitionIndex].
+		FloatParams["past_discounting_factor"]; ok {
+		w.discount = d[0]
+	} else {
+		w.discount = 1.0
+	}
 }
 
 func (w *WeightedWindowedMeanIteration) Iterate(
@@ -59,6 +69,7 @@ func (w *WeightedWindowedMeanIteration) Iterate(
 		if weight < 0 {
 			panic("negative mean weights")
 		}
+		weight *= math.Pow(w.discount, float64(i))
 		cumulativeWeightSum += weight
 		sumContributionVec.ScaleVec(
 			weight,

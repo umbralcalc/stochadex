@@ -5,8 +5,7 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// ConstantGaussianCovarianceKernel models a constant covariance applied
-// for all values in the GaussianConditionalProbability.
+// ConstantGaussianCovarianceKernel models a constant covariance.
 type ConstantGaussianCovarianceKernel struct {
 	covMatrix  *mat.SymDense
 	stateWidth int
