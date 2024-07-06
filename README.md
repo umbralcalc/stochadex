@@ -9,7 +9,6 @@ The point, from a software engineering perspective, is to design something which
 - The original simulation engine motivation and design article: [https://umbralcalc.github.io/posts/stochadexI.html](https://umbralcalc.github.io/posts/stochadexI.html).
 - The inference framework and online simulation learning article: [https://umbralcalc.github.io/posts/stochadexII.html](https://umbralcalc.github.io/posts/stochadexII.html).
 - An article demonstrating how to optimise agent interactions with simulations: [https://umbralcalc.github.io/posts/stochadexIII.html](https://umbralcalc.github.io/posts/stochadexIII.html).
-- An article describing applications to various real-world simulation archetypes: [https://umbralcalc.github.io/posts/stochadexIIII.html](https://umbralcalc.github.io/posts/stochadexIIII.html).
 
 ## Building and running the binary
 
