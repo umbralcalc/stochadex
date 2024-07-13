@@ -39,6 +39,26 @@ func (c *ConstantValuesIteration) Iterate(
 	return stateHistories[partitionIndex].Values.RawRowView(0)
 }
 
+// ParamValuesIteration writes the float param values in the
+// "param_values" key directly to the state.
+type ParamValuesIteration struct {
+}
+
+func (p *ParamValuesIteration) Configure(
+	partitionIndex int,
+	settings *Settings,
+) {
+}
+
+func (p *ParamValuesIteration) Iterate(
+	params *OtherParams,
+	partitionIndex int,
+	stateHistories []*StateHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
+) []float64 {
+	return params.FloatParams["param_values"]
+}
+
 // StateValueChannels defines the methods by which separate StateIterators
 // can communicate with each other by sending the values of upstream
 // iterators to downstream parameters via channels.
