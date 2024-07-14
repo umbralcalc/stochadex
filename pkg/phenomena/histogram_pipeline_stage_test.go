@@ -22,8 +22,12 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 				{
 					Iteration: &HistogramPipelineStageIteration{},
 					ParamsFromUpstreamPartition: map[string]int{
-						"downstream_flow_rates": 0,
-						"object_dispatch_probs": 1,
+						"downstream_flow_rates":    0,
+						"entity_dispatch_probs":    1,
+						"entity_from_partition_12": 12,
+					},
+					ParamsFromSlice: map[string][]int{
+						"entity_from_partition_12": {0, 1},
 					},
 				},
 				{
@@ -35,8 +39,12 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 				{
 					Iteration: &HistogramPipelineStageIteration{},
 					ParamsFromUpstreamPartition: map[string]int{
-						"downstream_flow_rates": 3,
-						"object_dispatch_probs": 4,
+						"downstream_flow_rates":   3,
+						"entity_dispatch_probs":   4,
+						"entity_from_partition_2": 2,
+					},
+					ParamsFromSlice: map[string][]int{
+						"entity_from_partition_2": {5, 6},
 					},
 				},
 				{
@@ -48,8 +56,12 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 				{
 					Iteration: &HistogramPipelineStageIteration{},
 					ParamsFromUpstreamPartition: map[string]int{
-						"downstream_flow_rates": 6,
-						"object_dispatch_probs": 7,
+						"downstream_flow_rates":   6,
+						"entity_dispatch_probs":   7,
+						"entity_from_partition_5": 5,
+					},
+					ParamsFromSlice: map[string][]int{
+						"entity_from_partition_5": {5, 6},
 					},
 				},
 				{
@@ -61,9 +73,18 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 				{
 					Iteration: &HistogramPipelineStageIteration{},
 					ParamsFromUpstreamPartition: map[string]int{
-						"downstream_flow_rates": 9,
-						"object_dispatch_probs": 10,
+						"downstream_flow_rates":   9,
+						"entity_dispatch_probs":   10,
+						"entity_from_partition_5": 5,
+						"entity_from_partition_8": 8,
 					},
+					ParamsFromSlice: map[string][]int{
+						"entity_from_partition_5": {6, 7},
+						"entity_from_partition_8": {5, 6},
+					},
+				},
+				{
+					Iteration: &simulator.CopyValuesIteration{},
 				},
 			}
 			for index, partition := range partitions {

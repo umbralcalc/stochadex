@@ -39,6 +39,36 @@ func (c *ConstantValuesIteration) Iterate(
 	return stateHistories[partitionIndex].Values.RawRowView(0)
 }
 
+// CopyValuesIteration writes a copy of the most recent state
+// history values from other partitions to its own state.
+type CopyValuesIteration struct {
+}
+
+func (c *CopyValuesIteration) Configure(
+	partitionIndex int,
+	settings *Settings,
+) {
+}
+
+func (c *CopyValuesIteration) Iterate(
+	params *OtherParams,
+	partitionIndex int,
+	stateHistories []*StateHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
+) []float64 {
+	state := make([]float64, 0)
+	for i, index := range params.IntParams["partition_indices"] {
+		state = append(
+			state,
+			stateHistories[index].Values.At(
+				0,
+				int(params.IntParams["partition_state_values"][i]),
+			),
+		)
+	}
+	return state
+}
+
 // ParamValuesIteration writes the float param values in the
 // "param_values" key directly to the state.
 type ParamValuesIteration struct {

@@ -5,9 +5,7 @@ other_params:
   int_params: {}
 - float_params: {}
   int_params:
-    upstream_partitions: []
-    incoming_partition_state_values: []
-    incoming_object_state_values: []
+    upstream_partitions: [12]
     downstream_partitions: [5]
 - float_params: {}
   int_params: {}
@@ -16,8 +14,6 @@ other_params:
 - float_params: {}
   int_params:
     upstream_partitions: [2]
-    incoming_partition_state_values: [6]
-    incoming_object_state_values: [5]
     downstream_partitions: [8, 11]
 - float_params: {}
   int_params: {}
@@ -26,8 +22,6 @@ other_params:
 - float_params: {}
   int_params:
     upstream_partitions: [5]
-    incoming_partition_state_values: [6]
-    incoming_object_state_values: [5]
     downstream_partitions: [11]
 - float_params: {}
   int_params: {}
@@ -36,23 +30,26 @@ other_params:
 - float_params: {}
   int_params:
     upstream_partitions: [5, 8]
-    incoming_partition_state_values: [6, 6]
-    incoming_object_state_values: [5, 5]
-    downstream_partitions: [-1]
+    downstream_partitions: [12]
+- float_params: {}
+  int_params:
+    partition_indices: [11]
+    partition_state_values: [5]
 init_state_values:
 - [1.0]
 - [0.2, 0.2, 0.2, 0.2, 0.2]
-- [1e8, 1e8, 1e8, 1e8, 1e8, -1, -1]
+- [5, 5, 5, 5, 5, -1]
 - [1.0, 1.0]
 - [0.2, 0.2, 0.2, 0.2, 0.2]
 - [0, 0, 0, 0, 0, -1, -1]
 - [1.0]
 - [0.2, 0.2, 0.2, 0.2, 0.2]
-- [0, 0, 0, 0, 0, -1, -1]
+- [0, 0, 0, 0, 0, -1]
 - [1.0]
 - [0.2, 0.2, 0.2, 0.2, 0.2]
-- [0, 0, 0, 0, 0, -1, -1]
-seeds: [0, 0, 123563, 0, 0, 352, 0, 0, 11231, 0, 0, 7641]
-state_widths: [1, 5, 7, 2, 5, 7, 1, 5, 7, 1, 5, 7]
-state_history_depths: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+- [0, 0, 0, 0, 0, -1]
+- [-1]
+seeds: [0, 0, 123563, 0, 0, 352, 0, 0, 11231, 0, 0, 7641, 0]
+state_widths: [1, 5, 6, 2, 5, 7, 1, 5, 6, 1, 5, 6, 1]
+state_history_depths: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
 timesteps_history_depth: 2

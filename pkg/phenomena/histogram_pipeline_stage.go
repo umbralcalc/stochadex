@@ -1,14 +1,16 @@
 package phenomena
 
 import (
+	"strconv"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// HistogramPipelineStageIteration evolves a table of object counts as its
-// state as well as both checking for objects entering and indicating that
-// objects are leaving this stage for another one.
+// HistogramPipelineStageIteration evolves a table of entity counts as its
+// state as well as both checking for entities entering and indicating that
+// entities are leaving this stage for another one.
 type HistogramPipelineStageIteration struct {
 	unitUniformDist *distuv.Uniform
 }
@@ -35,15 +37,16 @@ func (h *HistogramPipelineStageIteration) Iterate(
 ) []float64 {
 	state := make([]float64, 0)
 	state = append(state, stateHistories[partitionIndex].Values.RawRowView(0)...)
-	for i, index := range params.IntParams["upstream_partitions"] {
-		stateHistory := stateHistories[int(index)]
-		if int(stateHistory.Values.At(0,
-			int(params.IntParams["incoming_partition_state_values"][i]))) ==
-			partitionIndex {
-			state[int(stateHistory.Values.At(0,
-				int(params.IntParams["incoming_object_state_values"][i])))] += 1
+	for _, index := range params.IntParams["upstream_partitions"] {
+		if entity := params.FloatParams["entity_from_partition_"+
+			strconv.Itoa(int(index))][0]; entity >= 0.0 {
+			state[int(entity)] += 1
+			params.FloatParams["entity_from_partition_"+
+				strconv.Itoa(int(index))][0] = -1.0
 		}
 	}
+	downstreams := params.IntParams["downstream_partitions"]
+	numEntityTypes := len(params.FloatParams["entity_dispatch_probs"])
 	cumulative := timestepsHistory.NextIncrement
 	cumulatives := make([]float64, 0)
 	cumulatives = append(cumulatives, cumulative)
@@ -54,44 +57,42 @@ func (h *HistogramPipelineStageIteration) Iterate(
 	event := h.unitUniformDist.Rand()
 	if event*cumulative < cumulatives[0] {
 		// minus number indicates nothing sent this step
-		state[len(state)-1] = -1.0
+		for i := range downstreams {
+			state[numEntityTypes+i] = -1.0
+		}
 		return state
 	}
-	objectCumulative := 0.0
-	objects := make([]int, 0)
-	objectCumulatives := make([]float64, 0)
-	stateHistory := stateHistories[partitionIndex]
-	probs := params.FloatParams["object_dispatch_probs"]
-	for i := 0; i < stateHistory.StateWidth-2; i++ {
-		prob := stateHistory.Values.At(0, i)
+	entityCumulative := 0.0
+	entities := make([]int, 0)
+	entityCumulatives := make([]float64, 0)
+	probs := params.FloatParams["entity_dispatch_probs"]
+	for i := 0; i < numEntityTypes; i++ {
+		prob := state[i] * probs[i]
 		if prob == 0 {
 			continue
 		}
-		prob *= probs[i]
-		objectCumulative += prob
-		objects = append(objects, i)
-		objectCumulatives = append(objectCumulatives, objectCumulative)
+		entityCumulative += prob
+		entities = append(entities, i)
+		entityCumulatives = append(entityCumulatives, entityCumulative)
 	}
-	if len(objects) == 0 {
+	if len(entityCumulatives) == 0 {
 		return state
 	}
-	whichObject := objects[len(objects)-1]
-	objectEvent := h.unitUniformDist.Rand()
-	for i, c := range objectCumulatives {
-		if objectEvent*objectCumulative < c {
-			whichObject = objects[i]
+	whichEntity := entities[len(entities)-1]
+	entityEvent := h.unitUniformDist.Rand()
+	for i, c := range entityCumulatives {
+		if entityEvent*entityCumulative < c {
+			whichEntity = entities[i]
 			break
 		}
 	}
-	state[whichObject] -= 1
-	state[len(state)-2] = float64(whichObject)
-	downstreams := params.IntParams["downstream_partitions"]
+	state[whichEntity] -= 1
 	for i, c := range cumulatives {
 		if event*cumulative < c {
-			state[len(state)-1] = float64(downstreams[i-1])
+			state[numEntityTypes-1+i] = float64(whichEntity)
 			return state
 		}
 	}
-	state[len(state)-1] = float64(downstreams[len(downstreams)-1])
+	state[len(state)-1] = float64(whichEntity)
 	return state
 }
