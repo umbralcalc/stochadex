@@ -7,9 +7,9 @@ The point, from a software engineering perspective, is to design something which
 ## Need more context and documentation?
 
 - The original simulation engine motivation and design article: [https://umbralcalc.github.io/posts/stochadexI.html](https://umbralcalc.github.io/posts/stochadexI.html).
-- An article demonstrating how to implement probabilistic learning methods: [https://umbralcalc.github.io/posts/stochadexII.html](https://umbralcalc.github.io/posts/stochadexII.html).
-- An article demonstrating how to adaptively infer simulation parameters: [https://umbralcalc.github.io/posts/stochadexIII.html](https://umbralcalc.github.io/posts/stochadexIII.html).
-- An article demonstrating how to optimise agent interactions with simulations: [https://umbralcalc.github.io/posts/stochadexIV.html](https://umbralcalc.github.io/posts/stochadexIV.html).
+- An article demonstrating how to implement probabilistic learning methods with the stochadex: [https://umbralcalc.github.io/posts/stochadexII.html](https://umbralcalc.github.io/posts/stochadexII.html).
+- An article demonstrating how to adaptively infer simulation parameters with the stochadex: [https://umbralcalc.github.io/posts/stochadexIII.html](https://umbralcalc.github.io/posts/stochadexIII.html).
+- An article demonstrating how to optimise agent interactions with simulations with the stochadex: [https://umbralcalc.github.io/posts/stochadexIV.html](https://umbralcalc.github.io/posts/stochadexIV.html).
 
 ## Building and running the binary
 
