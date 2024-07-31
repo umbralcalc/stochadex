@@ -99,6 +99,8 @@ type StateValueChannels struct {
 	NumberOfDownstreams int
 }
 
+// UpdateUpstreamParams updates the provided params with the state values
+// which have been provided computationally upstream via channels.
 func (s *StateValueChannels) UpdateUpstreamParams(params *OtherParams) {
 	for name, upstreamChannel := range s.UpstreamByParams {
 		switch slice := s.SliceByParams[name]; slice {
@@ -110,6 +112,8 @@ func (s *StateValueChannels) UpdateUpstreamParams(params *OtherParams) {
 	}
 }
 
+// BroadcastDownstream broadcasts the computationally-upstream state values
+// to its configured number of downstreams on the relevant channel.
 func (s *StateValueChannels) BroadcastDownstream(stateValues []float64) {
 	for i := 0; i < s.NumberOfDownstreams; i++ {
 		s.Downstream <- stateValues
