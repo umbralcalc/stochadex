@@ -89,25 +89,37 @@ func (p *ParamValuesIteration) Iterate(
 	return params.FloatParams["param_values"]
 }
 
+// UpstreamStateValues contains the information needed to receive state
+// values from a computationally-upstream StateIterator.
+type UpstreamStateValues struct {
+	Channel chan []float64
+	Slice   []int
+}
+
+// DownstreamStateValues contains the information needed to send state
+// values to a computationally-downstream StateIterator.
+type DownstreamStateValues struct {
+	Channel chan []float64
+	Copies  int
+}
+
 // StateValueChannels defines the methods by which separate StateIterators
 // can communicate with each other by sending the values of upstream
 // iterators to downstream parameters via channels.
 type StateValueChannels struct {
-	UpstreamByParams    map[string](chan []float64)
-	SliceByParams       map[string][]int
-	Downstream          chan []float64
-	NumberOfDownstreams int
+	Upstreams  map[string]*UpstreamStateValues
+	Downstream *DownstreamStateValues
 }
 
 // UpdateUpstreamParams updates the provided params with the state values
 // which have been provided computationally upstream via channels.
 func (s *StateValueChannels) UpdateUpstreamParams(params *OtherParams) {
-	for name, upstreamChannel := range s.UpstreamByParams {
-		switch slice := s.SliceByParams[name]; slice {
+	for name, upstream := range s.Upstreams {
+		switch slice := upstream.Slice; slice {
 		case nil:
-			params.FloatParams[name] = <-upstreamChannel
+			params.FloatParams[name] = <-upstream.Channel
 		default:
-			params.FloatParams[name] = (<-upstreamChannel)[slice[0]:slice[1]]
+			params.FloatParams[name] = (<-upstream.Channel)[slice[0]:slice[1]]
 		}
 	}
 }
@@ -115,8 +127,8 @@ func (s *StateValueChannels) UpdateUpstreamParams(params *OtherParams) {
 // BroadcastDownstream broadcasts the computationally-upstream state values
 // to its configured number of downstreams on the relevant channel.
 func (s *StateValueChannels) BroadcastDownstream(stateValues []float64) {
-	for i := 0; i < s.NumberOfDownstreams; i++ {
-		s.Downstream <- stateValues
+	for i := 0; i < s.Downstream.Copies; i++ {
+		s.Downstream.Channel <- stateValues
 	}
 }
 
