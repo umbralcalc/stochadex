@@ -26,7 +26,7 @@ func (o *OrnsteinUhlenbeckIteration) Configure(
 }
 
 func (o *OrnsteinUhlenbeckIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -35,9 +35,9 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +
-			params.FloatParams["thetas"][i]*(params.FloatParams["mus"][i]-
+			params["thetas"][i]*(params["mus"][i]-
 				stateHistory.Values.At(0, i))*timestepsHistory.NextIncrement +
-			params.FloatParams["sigmas"][i]*math.Sqrt(
+			params["sigmas"][i]*math.Sqrt(
 				timestepsHistory.NextIncrement)*o.unitNormalDist.Rand()
 	}
 	return values

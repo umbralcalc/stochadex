@@ -16,7 +16,7 @@ func (d *doublingProcessIteration) Configure(
 }
 
 func (d *doublingProcessIteration) Iterate(
-	params *OtherParams,
+	params Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -31,7 +31,7 @@ func (d *doublingProcessIteration) Iterate(
 
 // paramMultProcessIteration defines an iteration which is only for
 // testing - the process multiplies the values of the previous timestep
-// by factors passed as a slice in otherParams.FloatParams["multipliers"].
+// by factors passed as a slice in params["multipliers"].
 type paramMultProcessIteration struct{}
 
 func (p *paramMultProcessIteration) Configure(
@@ -41,7 +41,7 @@ func (p *paramMultProcessIteration) Configure(
 }
 
 func (p *paramMultProcessIteration) Iterate(
-	params *OtherParams,
+	params Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -49,8 +49,7 @@ func (p *paramMultProcessIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := 0; i < stateHistory.StateWidth; i++ {
-		values[i] = stateHistory.Values.At(0, i) *
-			params.FloatParams["multipliers"][i]
+		values[i] = stateHistory.Values.At(0, i) * params["multipliers"][i]
 	}
 	return values
 }
@@ -79,7 +78,7 @@ func iterateHistory(c *PartitionCoordinator) {
 		stateHistory.Values.SetRow(0, state)
 		// hard-code in the upstream channel value sending to params downstream
 		if partitionIndex == 1 {
-			c.Iterators[2].Params.FloatParams["multipliers"] = state
+			c.Iterators[2].Params["multipliers"] = state
 		}
 	}
 
@@ -114,10 +113,10 @@ func TestPartitionCoordinator(t *testing.T) {
 			params := make(map[string][]float64)
 			params["multipliers"] = []float64{2.4, 1.0, 4.3}
 			settings := &Settings{
-				OtherParams: []*OtherParams{
-					{FloatParams: make(map[string][]float64)},
-					{FloatParams: params},
-					{FloatParams: make(map[string][]float64)},
+				Params: []Params{
+					{},
+					params,
+					{},
 				},
 				InitStateValues: [][]float64{
 					{7.0, 8.0, 3.0, 7.0, 1.0},

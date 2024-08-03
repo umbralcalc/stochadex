@@ -21,22 +21,22 @@ func (f *FalseStaticPartialStateObservationIteration) Configure(
 		P:   1.0,
 		Src: rand.NewSource(settings.Seeds[partitionIndex]),
 	}
-	f.falsePositives = float64(settings.OtherParams[partitionIndex].
-		IntParams["false_positives"][0])
+	f.falsePositives = settings.Params[partitionIndex]["false_positives"][0]
 }
 
 func (f *FalseStaticPartialStateObservationIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := params.FloatParams["values_to_observe"]
-	probs := params.FloatParams["false_observation_probs"]
-	for i, index := range params.IntParams["state_value_observation_indices"] {
+	stateValues := params["values_to_observe"]
+	probs := params["false_observation_probs"]
+	for i, index := range params["state_value_observation_indices"] {
 		f.bernoulliDist.P = probs[i]
-		value := stateValues[index] + (2.0 * (f.falsePositives - 0.5) * f.bernoulliDist.Rand())
+		value := stateValues[int(index)] +
+			(2.0 * (f.falsePositives - 0.5) * f.bernoulliDist.Rand())
 		if value < 0.0 {
 			value = 0.0
 		} else if value > 1.0 {

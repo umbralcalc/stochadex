@@ -23,11 +23,10 @@ func (p *PosteriorImportanceResampleIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	loglikePartitions :=
-		settings.OtherParams[partitionIndex].IntParams["loglike_partitions"]
+	loglikePartitions := settings.Params[partitionIndex]["loglike_partitions"]
 	nilWeights := make(
 		[]float64,
-		len(loglikePartitions)*settings.StateHistoryDepths[loglikePartitions[0]],
+		len(loglikePartitions)*settings.StateHistoryDepths[int(loglikePartitions[0])],
 	)
 	nilWeights[0] = 1.0
 	p.catDist = distuv.NewCategorical(
@@ -38,27 +37,27 @@ func (p *PosteriorImportanceResampleIteration) Configure(
 }
 
 func (p *PosteriorImportanceResampleIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	logDiscount := math.Log(params.FloatParams["past_discounting_factor"][0])
+	logDiscount := math.Log(params["past_discounting_factor"][0])
 	stateHistoryDepth :=
-		stateHistories[params.IntParams["loglike_partitions"][0]].StateHistoryDepth
+		stateHistories[int(params["loglike_partitions"][0])].StateHistoryDepth
 	logLikes := make([]float64, 0)
 	indices := make([][]int, 0)
 	for i := 0; i < stateHistoryDepth; i++ {
-		for j, loglikePartition := range params.IntParams["loglike_partitions"] {
+		for j, loglikePartition := range params["loglike_partitions"] {
 			var valueIndex int
-			if v, ok := params.IntParams["loglike_indices"]; ok {
+			if v, ok := params["loglike_indices"]; ok {
 				valueIndex = int(v[j])
 			} else {
 				valueIndex = 0
 			}
 			logLikes = append(
 				logLikes,
-				stateHistories[loglikePartition].Values.At(0, valueIndex)+
+				stateHistories[int(loglikePartition)].Values.At(0, valueIndex)+
 					(logDiscount*float64(i)),
 			)
 			indices = append(indices, []int{i, j})
@@ -69,11 +68,11 @@ func (p *PosteriorImportanceResampleIteration) Iterate(
 		p.catDist.Reweight(i, math.Exp(logLike-logNorm))
 	}
 	indexPair := indices[int(p.catDist.Rand())]
-	paramPartition := params.IntParams["param_partitions"][indexPair[1]]
-	sampleCentre := stateHistories[paramPartition].Values.RawRowView(indexPair[0])
+	paramPartition := params["param_partitions"][indexPair[1]]
+	sampleCentre := stateHistories[int(paramPartition)].Values.RawRowView(indexPair[0])
 	normDist, ok := distmv.NewNormal(
 		sampleCentre,
-		mat.NewSymDense(len(sampleCentre), params.FloatParams["sample_covariance"]),
+		mat.NewSymDense(len(sampleCentre), params["sample_covariance"]),
 		p.Src,
 	)
 	if !ok {

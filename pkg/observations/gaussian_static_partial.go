@@ -24,16 +24,19 @@ func (g *GaussianStaticPartialStateObservationIteration) Configure(
 }
 
 func (g *GaussianStaticPartialStateObservationIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := params.FloatParams["values_to_observe"]
-	for i, index := range params.IntParams["state_value_observation_indices"] {
-		g.unitNormalDist.Sigma = params.FloatParams["observation_noise_variances"][i]
-		outputValues = append(outputValues, stateValues[index]+g.unitNormalDist.Rand())
+	stateValues := params["values_to_observe"]
+	for i, index := range params["state_value_observation_indices"] {
+		g.unitNormalDist.Sigma = params["observation_noise_variances"][i]
+		outputValues = append(
+			outputValues,
+			stateValues[int(index)]+g.unitNormalDist.Rand(),
+		)
 	}
 	return outputValues
 }

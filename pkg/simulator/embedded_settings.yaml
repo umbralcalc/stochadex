@@ -1,14 +1,8 @@
-other_params:
-- float_params:
-    variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-  int_params: {}
-- float_params:
-    variances: [1.0, 1.0, 1.0]
-  int_params: {}
-- float_params:
-    init_time_value: [0.0]
-  int_params:
-    burn_in_steps: [0]
+params:
+- variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+- variances: [1.0, 1.0, 1.0]
+- init_time_value: [0.0]
+  burn_in_steps: [0]
 init_state_values:
 - [0.45, 1.4, 0.01, -0.13, 0.7]
 - [0.67, -0.01, 0.1]

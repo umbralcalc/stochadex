@@ -21,20 +21,19 @@ func (h *HawkesProcessIntensityIteration) Configure(
 ) {
 	h.excitingKernel.Configure(partitionIndex, settings)
 	h.hawkesPartitionIndex = int(
-		settings.OtherParams[partitionIndex].
-			IntParams["hawkes_partition_index"][0],
+		settings.Params[partitionIndex]["hawkes_partition_index"][0],
 	)
 }
 
 func (h *HawkesProcessIntensityIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	h.excitingKernel.SetParams(params)
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
-	values := params.FloatParams["background_rates"]
+	values := params["background_rates"]
 	for i := 1; i < hawkesHistory.StateHistoryDepth; i++ {
 		sumValues := hawkesHistory.Values.RawRowView(i - 1)
 		floats.Sub(sumValues, hawkesHistory.Values.RawRowView(i))
@@ -82,13 +81,13 @@ func (h *HawkesProcessIteration) Configure(
 }
 
 func (h *HawkesProcessIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	rates := params.FloatParams["intensity"]
+	rates := params["intensity"]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		if rates[i] > (rates[i]+

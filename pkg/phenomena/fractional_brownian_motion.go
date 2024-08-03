@@ -54,13 +54,12 @@ func (f *FractionalBrownianMotionIteration) Configure(
 		Src:   rand.NewSource(settings.Seeds[partitionIndex]),
 	}
 	f.numberOfIntegrationSteps = int(
-		settings.OtherParams[partitionIndex].
-			IntParams["number_of_integration_steps"][0],
+		settings.Params[partitionIndex]["number_of_integration_steps"][0],
 	)
 }
 
 func (f *FractionalBrownianMotionIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -69,13 +68,13 @@ func (f *FractionalBrownianMotionIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +
-			math.Sqrt(params.FloatParams["variances"][i]*
+			math.Sqrt(params["variances"][i]*
 				timestepsHistory.NextIncrement)*f.unitNormalDist.Rand()*
 				FractionalBrownianMotionIntegral(
 					timestepsHistory.Values.AtVec(0),
 					timestepsHistory.Values.AtVec(0)+
 						timestepsHistory.NextIncrement,
-					params.FloatParams["hurst_exponents"][i],
+					params["hurst_exponents"][i],
 					f.numberOfIntegrationSteps,
 				)/timestepsHistory.NextIncrement
 	}

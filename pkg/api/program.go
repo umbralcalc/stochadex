@@ -69,12 +69,20 @@ func ImplementationsConfigFromStrings(
 		for params, upstream := range partition.ParamsFromUpstreamPartition {
 			config += `"` + params + `": ` + strconv.Itoa(upstream) + `,`
 		}
-		config += "}, ParamsFromSlice: map[string][]int{"
-		for params, slice := range partition.ParamsFromSlice {
-			config += `"` + params + `": []int{` + strconv.Itoa(slice[0]) +
-				`, ` + strconv.Itoa(slice[1]) + `},`
+		switch partition.ParamsFromIndices {
+		case nil:
+			config += "},}, "
+		default:
+			config += "}, ParamsFromIndices: map[string][]int{"
+			for params, indices := range partition.ParamsFromIndices {
+				config += `"` + params + `": []int{`
+				for _, index := range indices {
+					config += strconv.Itoa(index) + `, `
+				}
+				config += `},`
+			}
+			config += "},}, "
 		}
-		config += "},}, "
 	}
 	config += "}, "
 	config += "OutputCondition: " +

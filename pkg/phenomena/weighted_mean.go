@@ -17,31 +17,31 @@ func (w *WeightedMeanIteration) Configure(
 }
 
 func (w *WeightedMeanIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	scaledVec := mat.NewVecDense(stateHistories[partitionIndex].StateWidth, nil)
 	scaledVec.ScaleVec(
-		params.FloatParams["neighbour_weightings"][0],
-		stateHistories[params.IntParams["neighbour_partitions"][0]].Values.RowView(0),
+		params["neighbour_weightings"][0],
+		stateHistories[int(params["neighbour_partitions"][0])].Values.RowView(0),
 	)
 	latestFieldValues := scaledVec
-	normalisation := params.FloatParams["neighbour_weightings"][0]
-	for i, index := range params.IntParams["neighbour_partitions"] {
+	normalisation := params["neighbour_weightings"][0]
+	for i, index := range params["neighbour_partitions"] {
 		if i == 0 {
 			continue
 		}
 		scaledVec.ScaleVec(
-			params.FloatParams["neighbour_weightings"][i],
-			stateHistories[index].Values.RowView(0),
+			params["neighbour_weightings"][i],
+			stateHistories[int(index)].Values.RowView(0),
 		)
 		latestFieldValues.AddVec(
 			latestFieldValues,
 			scaledVec,
 		)
-		normalisation += params.FloatParams["neighbour_weightings"][i]
+		normalisation += params["neighbour_weightings"][i]
 	}
 	latestFieldValues.ScaleVec(1.0/normalisation, latestFieldValues)
 	return latestFieldValues.RawVector().Data

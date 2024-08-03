@@ -5,14 +5,14 @@ import (
 )
 
 // Iteration is the interface that must be implemented for any stochastic
-// phenomenon within the stochadex. Its .Iterate method reads in an OtherParams
-// struct, a int partitionIndex, the full current history of the process defined
+// phenomenon within the stochadex. Its .Iterate method reads in the Params
+// map, a int partitionIndex, the full current history of the process defined
 // by a slice []*StateHistory and a CumulativeTimestepsHistory reference and
 // outputs an updated state history row in the form of a float64 slice.
 type Iteration interface {
 	Configure(partitionIndex int, settings *Settings)
 	Iterate(
-		params *OtherParams,
+		params Params,
 		partitionIndex int,
 		stateHistories []*StateHistory,
 		timestepsHistory *CumulativeTimestepsHistory,
@@ -31,7 +31,7 @@ func (c *ConstantValuesIteration) Configure(
 }
 
 func (c *ConstantValuesIteration) Iterate(
-	params *OtherParams,
+	params Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -51,18 +51,18 @@ func (c *CopyValuesIteration) Configure(
 }
 
 func (c *CopyValuesIteration) Iterate(
-	params *OtherParams,
+	params Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	state := make([]float64, 0)
-	for i, index := range params.IntParams["partition_indices"] {
+	for i, index := range params["partition_indices"] {
 		state = append(
 			state,
-			stateHistories[index].Values.At(
+			stateHistories[int(index)].Values.At(
 				0,
-				int(params.IntParams["partition_state_values"][i]),
+				int(params["partition_state_values"][i]),
 			),
 		)
 	}
@@ -81,19 +81,19 @@ func (p *ParamValuesIteration) Configure(
 }
 
 func (p *ParamValuesIteration) Iterate(
-	params *OtherParams,
+	params Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
-	return params.FloatParams["param_values"]
+	return params["param_values"]
 }
 
 // UpstreamStateValues contains the information needed to receive state
 // values from a computationally-upstream StateIterator.
 type UpstreamStateValues struct {
 	Channel chan []float64
-	Slice   []int
+	Indices []int
 }
 
 // DownstreamStateValues contains the information needed to send state
@@ -113,13 +113,17 @@ type StateValueChannels struct {
 
 // UpdateUpstreamParams updates the provided params with the state values
 // which have been provided computationally upstream via channels.
-func (s *StateValueChannels) UpdateUpstreamParams(params *OtherParams) {
+func (s *StateValueChannels) UpdateUpstreamParams(params Params) {
 	for name, upstream := range s.Upstreams {
-		switch slice := upstream.Slice; slice {
+		switch indices := upstream.Indices; indices {
 		case nil:
-			params.FloatParams[name] = <-upstream.Channel
+			params[name] = <-upstream.Channel
 		default:
-			params.FloatParams[name] = (<-upstream.Channel)[slice[0]:slice[1]]
+			values := <-upstream.Channel
+			for i, index := range indices {
+				values[i] = values[index]
+			}
+			params[name] = values[:len(indices)]
 		}
 	}
 }
@@ -136,7 +140,7 @@ func (s *StateValueChannels) BroadcastDownstream(stateValues []float64) {
 // separate goroutine and reads/writes data from/to the state history.
 type StateIterator struct {
 	Iteration       Iteration
-	Params          *OtherParams
+	Params          Params
 	PartitionIndex  int
 	ValueChannels   StateValueChannels
 	OutputCondition OutputCondition

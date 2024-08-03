@@ -29,21 +29,21 @@ func (s *StateTransitionIteration) Configure(
 	}
 	s.rateSlices = make([][]int, 0)
 	i := 0
-	ratesTotal := 0
+	transTotal := 0
 	for {
-		rates, ok :=
-			settings.OtherParams[partitionIndex].IntParams["transitions_from_"+strconv.Itoa(i)]
+		trans, ok :=
+			settings.Params[partitionIndex]["transitions_from_"+strconv.Itoa(i)]
 		if !ok {
 			break
 		}
-		s.rateSlices = append(s.rateSlices, []int{ratesTotal, ratesTotal + len(rates)})
+		s.rateSlices = append(s.rateSlices, []int{transTotal, transTotal + len(trans)})
 		i += 1
-		ratesTotal += len(rates)
+		transTotal += len(trans)
 	}
 }
 
 func (s *StateTransitionIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -54,13 +54,12 @@ func (s *StateTransitionIteration) Iterate(
 	cumulatives := make([]float64, 0)
 	cumulatives = append(cumulatives, cumulative)
 	slices := s.rateSlices[int(state[0])]
-	transitionRates := params.FloatParams["transition_rates"][slices[0]:slices[1]]
+	transitionRates := params["transition_rates"][slices[0]:slices[1]]
 	for _, rate := range transitionRates {
 		cumulative += 1.0 / rate
 		cumulatives = append(cumulatives, cumulative)
 	}
-	transitions :=
-		params.IntParams["transitions_from_"+strconv.Itoa(int(state[0]))]
+	transitions := params["transitions_from_"+strconv.Itoa(int(state[0]))]
 	event := s.unitUniformDist.Rand()
 	if event*cumulative < cumulatives[0] {
 		return state

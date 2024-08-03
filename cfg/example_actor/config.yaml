@@ -13,16 +13,10 @@ simulation:
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
     timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
   settings:
-    other_params:
-    - float_params:
-        variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-      int_params: {}
-    - float_params:
-        variances: [1.0, 1.0, 1.0]
-      int_params: {}
-    - float_params:
-        variances: [1.0, 1.0, 1.0]
-      int_params: {}
+    params:
+    - variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+    - variances: [1.0, 1.0, 1.0]
+    - variances: [1.0, 1.0, 1.0]
     init_state_values:
     - [0.45, 1.4, 0.01, -0.13, 0.7]
     - [0.0, 0.0, 0.0]

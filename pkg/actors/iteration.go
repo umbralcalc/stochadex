@@ -25,7 +25,7 @@ func (a *ActorIteration) Configure(
 }
 
 func (a *ActorIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -37,7 +37,7 @@ func (a *ActorIteration) Iterate(
 			stateHistories,
 			timestepsHistory,
 		),
-		params.FloatParams["action"],
+		params["action"],
 	)
 }
 
@@ -57,13 +57,13 @@ func (u *UserInputActorIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	u.keystrokeMap = make(map[string]int64)
-	for key, vals := range settings.OtherParams[partitionIndex].IntParams {
+	for key, vals := range settings.Params[partitionIndex] {
 		if strings.Contains(key, "user_input_keystroke_action_") {
 			_, keystroke, ok := strings.Cut(key, "user_input_keystroke_action_")
 			if !ok {
 				panic("configured keystroke not identified")
 			}
-			u.keystrokeMap[keystroke] = vals[0]
+			u.keystrokeMap[keystroke] = int64(vals[0])
 		}
 		if key == "wait_milliseconds" {
 			u.waitMilliseconds = uint64(vals[0])
@@ -81,7 +81,7 @@ func (u *UserInputActorIteration) Configure(
 }
 
 func (u *UserInputActorIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -94,7 +94,7 @@ func (u *UserInputActorIteration) Iterate(
 				stateHistories,
 				timestepsHistory,
 			),
-			params.FloatParams["action"],
+			params["action"],
 		)
 	}
 	select {
@@ -104,7 +104,7 @@ func (u *UserInputActorIteration) Iterate(
 		fmt.Println("User input action: " + fmt.Sprintf("%d", act) +
 			" at timestep " + fmt.Sprintf("%f",
 			timestepsHistory.Values.AtVec(0)+timestepsHistory.NextIncrement))
-		params.FloatParams["action"][0] = float64(act)
+		params["action"][0] = float64(act)
 
 		// allows for graceful exit
 		if event.Key == keyboard.KeyEsc {
@@ -121,6 +121,6 @@ func (u *UserInputActorIteration) Iterate(
 			stateHistories,
 			timestepsHistory,
 		),
-		params.FloatParams["action"],
+		params["action"],
 	)
 }

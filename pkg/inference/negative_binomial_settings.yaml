@@ -1,19 +1,11 @@
-other_params:
-- float_params:
-    mean: [0.5, 1.0, 0.8]
-    covariance_matrix: [5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 5.0]
-  int_params: {}
-- float_params:
-    exponential_weighting_timescale: [30.0]
-  int_params:
-    data_values_partition: [0]
-- float_params:
-    exponential_weighting_timescale: [30.0]
-  int_params:
-    data_values_partition: [0]
-- float_params: {}
-  int_params:
-    burn_in_steps: [30]
+params:
+- mean: [0.5, 1.0, 0.8]
+  covariance_matrix: [5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 5.0]
+- exponential_weighting_timescale: [30.0]
+  data_values_partition: [0]
+- exponential_weighting_timescale: [30.0]
+  data_values_partition: [0]
+- burn_in_steps: [30]
 init_state_values:
 - [2.0, 1.0, 0.0]
 - [0.0, 0.0, 0.0]

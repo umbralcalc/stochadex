@@ -21,34 +21,34 @@ func (p *PosteriorMeanIteration) Configure(
 }
 
 func (p *PosteriorMeanIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	logLikes := make([]float64, 0)
-	for i, loglikePartition := range params.IntParams["loglike_partitions"] {
+	for i, loglikePartition := range params["loglike_partitions"] {
 		var valueIndex int
-		if v, ok := params.IntParams["loglike_indices"]; ok {
+		if v, ok := params["loglike_indices"]; ok {
 			valueIndex = int(v[i])
 		} else {
 			valueIndex = 0
 		}
 		logLikes = append(
 			logLikes,
-			stateHistories[loglikePartition].Values.At(0, valueIndex),
+			stateHistories[int(loglikePartition)].Values.At(0, valueIndex),
 		)
 	}
 	logNormLatest := floats.LogSumExp(logLikes)
-	logNormPast := params.FloatParams["posterior_log_normalisation"][0]
+	logNormPast := params["posterior_log_normalisation"][0]
 	logNormTotal := floats.LogSumExp([]float64{logNormLatest, logNormPast})
 	mean := mat.VecDenseCopyOf(stateHistories[partitionIndex].Values.RowView(0))
 	mean.ScaleVec(math.Exp(logNormPast-logNormTotal), mean)
-	for i, paramsPartition := range params.IntParams["param_partitions"] {
+	for i, paramsPartition := range params["param_partitions"] {
 		mean.AddScaledVec(
 			mean,
 			math.Exp(logLikes[i]-logNormTotal),
-			stateHistories[paramsPartition].Values.RowView(0),
+			stateHistories[int(paramsPartition)].Values.RowView(0),
 		)
 	}
 	return mean.RawVector().Data

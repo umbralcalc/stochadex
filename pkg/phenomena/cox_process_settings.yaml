@@ -1,9 +1,6 @@
-other_params:
-- float_params:
-    rates: [1.5, 0.2, 0.6, 1.0, 3.0]
-  int_params: {}
-- float_params: {}
-  int_params: {}
+params:
+- rates: [1.5, 0.2, 0.6, 1.0, 3.0]
+- {}
 init_state_values:
 - [0.0, 0.0, 0.0, 0.0, 0.0]
 - [0.0, 0.0, 0.0, 0.0, 0.0]

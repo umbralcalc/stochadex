@@ -24,7 +24,7 @@ func (p *PoissonProcessIteration) Configure(
 }
 
 func (p *PoissonProcessIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -32,7 +32,7 @@ func (p *PoissonProcessIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
-		if params.FloatParams["rates"][i] > (params.FloatParams["rates"][i]+
+		if params["rates"][i] > (params["rates"][i]+
 			(1.0/timestepsHistory.NextIncrement))*p.unitUniformDist.Rand() {
 			values[i] = stateHistory.Values.At(0, i) + 1.0
 		} else {

@@ -28,18 +28,16 @@ func (d *DataComparisonIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	d.cumulative = false
-	c, ok := settings.OtherParams[partitionIndex].IntParams["cumulative"]
+	c, ok := settings.Params[partitionIndex]["cumulative"]
 	if ok {
 		d.cumulative = c[0] == 1
 	}
-	d.burnInSteps = int(
-		settings.OtherParams[partitionIndex].IntParams["burn_in_steps"][0],
-	)
+	d.burnInSteps = int(settings.Params[partitionIndex]["burn_in_steps"][0])
 	d.Likelihood.Configure(partitionIndex, settings)
 }
 
 func (d *DataComparisonIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -47,19 +45,16 @@ func (d *DataComparisonIteration) Iterate(
 	if timestepsHistory.CurrentStepNumber < d.burnInSteps {
 		return []float64{stateHistories[partitionIndex].Values.At(0, 0)}
 	}
-	dims := len(params.FloatParams["mean"])
+	dims := len(params["mean"])
 	var covMat *mat.SymDense
-	cVals, ok := params.FloatParams["covariance_matrix"]
+	cVals, ok := params["covariance_matrix"]
 	if ok {
 		covMat = mat.NewSymDense(dims, cVals)
 	}
 	like := d.Likelihood.EvaluateLogLike(
-		mat.NewVecDense(
-			dims,
-			params.FloatParams["mean"],
-		),
+		mat.NewVecDense(dims, params["mean"]),
 		covMat,
-		params.FloatParams["latest_data_values"],
+		params["latest_data_values"],
 	)
 	if d.cumulative {
 		like += stateHistories[partitionIndex].Values.At(0, 0)

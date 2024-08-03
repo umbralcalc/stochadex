@@ -16,7 +16,7 @@ type WeightedWindowedFunctionIteration struct {
 	discount                float64
 	valuesPartition         int
 	functionValuesPartition int
-	functionValuesIndices   []int64
+	functionValuesIndices   []int
 }
 
 func (w *WeightedWindowedFunctionIteration) Configure(
@@ -25,13 +25,14 @@ func (w *WeightedWindowedFunctionIteration) Configure(
 ) {
 	w.Kernel.Configure(partitionIndex, settings)
 	w.valuesPartition = int(
-		settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
+		settings.Params[partitionIndex]["data_values_partition"][0])
 	w.functionValuesPartition = int(
-		settings.OtherParams[partitionIndex].IntParams["function_values_partition"][0])
-	w.functionValuesIndices =
-		settings.OtherParams[partitionIndex].IntParams["function_values_indices"]
-	if d, ok := settings.OtherParams[partitionIndex].
-		FloatParams["past_discounting_factor"]; ok {
+		settings.Params[partitionIndex]["function_values_partition"][0])
+	w.functionValuesIndices = make([]int, 0)
+	for _, index := range settings.Params[partitionIndex]["function_values_indices"] {
+		w.functionValuesIndices = append(w.functionValuesIndices, int(index))
+	}
+	if d, ok := settings.Params[partitionIndex]["past_discounting_factor"]; ok {
 		w.discount = d[0]
 	} else {
 		w.discount = 1.0
@@ -39,13 +40,13 @@ func (w *WeightedWindowedFunctionIteration) Configure(
 }
 
 func (w *WeightedWindowedFunctionIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	latestStateValues := params.FloatParams["latest_data_values"]
-	latestFunctionValues := params.FloatParams["latest_function_values"]
+	latestStateValues := params["latest_data_values"]
+	latestFunctionValues := params["latest_function_values"]
 	stateHistory := stateHistories[w.valuesPartition]
 	functionHistory := stateHistories[w.functionValuesPartition]
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {

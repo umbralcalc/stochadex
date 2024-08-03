@@ -1,20 +1,12 @@
-other_params:
-- float_params:
-    mean: [1.5, -12.0, 4.1]
-    covariance_matrix: [5.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 10.0]
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params:
-    mean: [2.5, -9.0, 1.9]
-    covariance_matrix: [3.0, 0.0, 0.0, 0.0, 2.8, 0.0, 0.0, 0.0, 6.6]
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params:
-    past_discounting_factor: [0.98]
-  int_params:
-    loglike_partitions: [1, 3]
+params:
+- mean: [1.5, -12.0, 4.1]
+  covariance_matrix: [5.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 10.0]
+- {}
+- mean: [2.5, -9.0, 1.9]
+  covariance_matrix: [3.0, 0.0, 0.0, 0.0, 2.8, 0.0, 0.0, 0.0, 6.6]
+- {}
+- past_discounting_factor: [0.98]
+  loglike_partitions: [1, 3]
 init_state_values:
 - [1.0, -5.2, 0.2]
 - [-6293.021]

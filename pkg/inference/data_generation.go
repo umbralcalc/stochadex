@@ -18,7 +18,7 @@ func (d *DataGenerationIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	d.Likelihood.Configure(partitionIndex, settings)
-	s, ok := settings.OtherParams[partitionIndex].IntParams["steps_per_resample"]
+	s, ok := settings.Params[partitionIndex]["steps_per_resample"]
 	if ok {
 		d.stepsPerResample = int(s[0])
 	} else {
@@ -27,7 +27,7 @@ func (d *DataGenerationIteration) Configure(
 }
 
 func (d *DataGenerationIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -35,20 +35,20 @@ func (d *DataGenerationIteration) Iterate(
 	if timestepsHistory.CurrentStepNumber%d.stepsPerResample != 0 {
 		return stateHistories[partitionIndex].Values.RawRowView(0)
 	}
-	dims := len(params.FloatParams["mean"])
+	dims := len(params["mean"])
 	var covMat *mat.SymDense
-	cVals, ok := params.FloatParams["covariance_matrix"]
+	cVals, ok := params["covariance_matrix"]
 	if ok {
 		covMat = mat.NewSymDense(dims, cVals)
 	}
 	samples := d.Likelihood.GenerateNewSamples(
 		mat.NewVecDense(
 			stateHistories[partitionIndex].StateWidth,
-			params.FloatParams["mean"],
+			params["mean"],
 		),
 		covMat,
 	)
-	corr, ok := params.FloatParams["correlation_with_previous"]
+	corr, ok := params["correlation_with_previous"]
 	if ok {
 		pastSamples := mat.VecDenseCopyOf(
 			stateHistories[partitionIndex].Values.RowView(0),

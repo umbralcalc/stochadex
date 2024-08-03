@@ -30,27 +30,26 @@ func (h *HistogramPipelineStageIteration) Configure(
 }
 
 func (h *HistogramPipelineStageIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	state := make([]float64, 0)
 	state = append(state, stateHistories[partitionIndex].Values.RawRowView(0)...)
-	for _, index := range params.IntParams["upstream_partitions"] {
-		if entity := params.FloatParams["entity_from_partition_"+
+	for _, index := range params["upstream_partitions"] {
+		if entity := params["entity_from_partition_"+
 			strconv.Itoa(int(index))][0]; entity >= 0.0 {
 			state[int(entity)] += 1
-			params.FloatParams["entity_from_partition_"+
-				strconv.Itoa(int(index))][0] = -1.0
+			params["entity_from_partition_"+strconv.Itoa(int(index))][0] = -1.0
 		}
 	}
-	downstreams := params.IntParams["downstream_partitions"]
-	numEntityTypes := len(params.FloatParams["entity_dispatch_probs"])
+	downstreams := params["downstream_partitions"]
+	numEntityTypes := len(params["entity_dispatch_probs"])
 	cumulative := timestepsHistory.NextIncrement
 	cumulatives := make([]float64, 0)
 	cumulatives = append(cumulatives, cumulative)
-	for _, rate := range params.FloatParams["downstream_flow_rates"] {
+	for _, rate := range params["downstream_flow_rates"] {
 		cumulative += 1.0 / rate
 		cumulatives = append(cumulatives, cumulative)
 	}
@@ -65,7 +64,7 @@ func (h *HistogramPipelineStageIteration) Iterate(
 	entityCumulative := 0.0
 	entities := make([]int, 0)
 	entityCumulatives := make([]float64, 0)
-	probs := params.FloatParams["entity_dispatch_probs"]
+	probs := params["entity_dispatch_probs"]
 	for i := 0; i < numEntityTypes; i++ {
 		prob := state[i] * probs[i]
 		if prob == 0 {

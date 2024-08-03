@@ -24,16 +24,16 @@ func (b *BinomialStaticPartialStateObservationIteration) Configure(
 }
 
 func (b *BinomialStaticPartialStateObservationIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := params.FloatParams["observed_values"]
-	probs := params.FloatParams["state_value_observation_probs"]
-	for i, index := range params.IntParams["state_value_observation_indices"] {
-		b.binomialDist.N = stateValues[index]
+	stateValues := params["observed_values"]
+	probs := params["state_value_observation_probs"]
+	for i, index := range params["state_value_observation_indices"] {
+		b.binomialDist.N = stateValues[int(index)]
 		b.binomialDist.P = probs[i]
 		outputValues = append(outputValues, b.binomialDist.Rand())
 	}

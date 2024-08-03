@@ -1,12 +1,8 @@
-other_params:
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params:
-    false_positives: [1]
-    state_value_observation_indices: [0, 1, 2, 3]
+params:
+- {}
+- {}
+- false_positives: [1]
+  state_value_observation_indices: [0, 1, 2, 3]
 init_state_values:
 - [0.0, 1.0, 1.0, 0.0]
 - [0.2, 0.1, 0.4, 0.8]

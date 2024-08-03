@@ -10,7 +10,7 @@ import (
 // must be implemented to provide a distribution to generate new
 // 'jumps' from in the compound Poisson process.
 type CompoundPoissonProcessJumpDistribution interface {
-	NewJump(params *simulator.OtherParams, stateElement int) float64
+	NewJump(params simulator.Params, stateElement int) float64
 }
 
 // CompoundPoissonProcessIteration defines an iteration for a compound
@@ -32,7 +32,7 @@ func (c *CompoundPoissonProcessIteration) Configure(
 }
 
 func (c *CompoundPoissonProcessIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -40,7 +40,7 @@ func (c *CompoundPoissonProcessIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
-		if params.FloatParams["rates"][i] > (params.FloatParams["rates"][i]+
+		if params["rates"][i] > (params["rates"][i]+
 			(1.0/timestepsHistory.NextIncrement))*c.unitUniformDist.Rand() {
 			values[i] = stateHistory.Values.At(0, i) + c.JumpDist.NewJump(params, i)
 		} else {

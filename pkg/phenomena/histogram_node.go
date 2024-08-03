@@ -16,15 +16,15 @@ func (h *HistogramNodeIteration) Configure(
 }
 
 func (h *HistogramNodeIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	histogramValues := stateHistories[partitionIndex].Values.RawRowView(0)
-	for _, index := range params.IntParams["connected_partitions"] {
-		for _, valueIndex := range params.IntParams["connected_value_indices"] {
-			histogramValues[int(stateHistories[index].Values.At(0, int(valueIndex)))] += 1
+	for _, index := range params["connected_partitions"] {
+		for _, valueIndex := range params["connected_value_indices"] {
+			histogramValues[int(stateHistories[int(index)].Values.At(0, int(valueIndex)))] += 1
 		}
 	}
 	return histogramValues

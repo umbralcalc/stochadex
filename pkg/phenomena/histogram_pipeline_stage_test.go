@@ -26,8 +26,8 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 						"entity_dispatch_probs":    1,
 						"entity_from_partition_12": 12,
 					},
-					ParamsFromSlice: map[string][]int{
-						"entity_from_partition_12": {0, 1},
+					ParamsFromIndices: map[string][]int{
+						"entity_from_partition_12": {0},
 					},
 				},
 				{
@@ -43,8 +43,8 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 						"entity_dispatch_probs":   4,
 						"entity_from_partition_2": 2,
 					},
-					ParamsFromSlice: map[string][]int{
-						"entity_from_partition_2": {5, 6},
+					ParamsFromIndices: map[string][]int{
+						"entity_from_partition_2": {5},
 					},
 				},
 				{
@@ -60,8 +60,8 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 						"entity_dispatch_probs":   7,
 						"entity_from_partition_5": 5,
 					},
-					ParamsFromSlice: map[string][]int{
-						"entity_from_partition_5": {5, 6},
+					ParamsFromIndices: map[string][]int{
+						"entity_from_partition_5": {5},
 					},
 				},
 				{
@@ -78,9 +78,9 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 						"entity_from_partition_5": 5,
 						"entity_from_partition_8": 8,
 					},
-					ParamsFromSlice: map[string][]int{
-						"entity_from_partition_5": {6, 7},
-						"entity_from_partition_8": {5, 6},
+					ParamsFromIndices: map[string][]int{
+						"entity_from_partition_5": {6},
+						"entity_from_partition_8": {5},
 					},
 				},
 				{

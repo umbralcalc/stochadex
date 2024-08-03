@@ -23,9 +23,8 @@ func (w *WeightedWindowedMeanIteration) Configure(
 ) {
 	w.Kernel.Configure(partitionIndex, settings)
 	w.valuesPartition = int(
-		settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
-	if d, ok := settings.OtherParams[partitionIndex].
-		FloatParams["past_discounting_factor"]; ok {
+		settings.Params[partitionIndex]["data_values_partition"][0])
+	if d, ok := settings.Params[partitionIndex]["past_discounting_factor"]; ok {
 		w.discount = d[0]
 	} else {
 		w.discount = 1.0
@@ -33,12 +32,12 @@ func (w *WeightedWindowedMeanIteration) Configure(
 }
 
 func (w *WeightedWindowedMeanIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	latestStateValues := params.FloatParams["latest_data_values"]
+	latestStateValues := params["latest_data_values"]
 	stateHistory := stateHistories[w.valuesPartition]
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
 		return latestStateValues

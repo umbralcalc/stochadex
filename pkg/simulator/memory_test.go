@@ -16,7 +16,7 @@ func TestCsvFileDataStreaming(t *testing.T) {
 				true,
 			)
 			_ = iteration.Iterate(
-				&OtherParams{},
+				map[string][]float64{},
 				0,
 				[]*StateHistory{},
 				&CumulativeTimestepsHistory{

@@ -15,7 +15,7 @@ const logTwoPi = 1.83788
 // be used in the GaussianProcessIntegrationKernel.
 type GaussianProcessCovarianceKernel interface {
 	Configure(partitionIndex int, settings *simulator.Settings)
-	SetParams(params *simulator.OtherParams)
+	SetParams(params simulator.Params)
 	GetCovariance(
 		currentState []float64,
 		pastState []float64,
@@ -39,14 +39,14 @@ func (g *GaussianProcessIntegrationKernel) Configure(
 	settings *simulator.Settings,
 ) {
 	g.Covariance.Configure(partitionIndex, settings)
-	g.SetParams(settings.OtherParams[partitionIndex])
+	g.SetParams(settings.Params[partitionIndex])
 }
 
-func (g *GaussianProcessIntegrationKernel) SetParams(params *simulator.OtherParams) {
-	g.targetState = params.FloatParams["target_state"]
+func (g *GaussianProcessIntegrationKernel) SetParams(params simulator.Params) {
+	g.targetState = params["target_state"]
 	g.stateWidth = len(g.targetState)
-	g.currentCovarianceState = params.FloatParams["current_covariance_state"]
-	g.pastCovarianceState = params.FloatParams["past_covariance_state"]
+	g.currentCovarianceState = params["current_covariance_state"]
+	g.pastCovarianceState = params["past_covariance_state"]
 	g.Covariance.SetParams(params)
 }
 

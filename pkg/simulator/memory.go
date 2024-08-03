@@ -24,7 +24,7 @@ func (m *MemoryIteration) Configure(
 }
 
 func (m *MemoryIteration) Iterate(
-	params *OtherParams,
+	params Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -36,7 +36,7 @@ func (m *MemoryIteration) Iterate(
 	if i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
 		data = m.Data.Values.RawRowView(i)
 	} else if i == -1 {
-		data = params.FloatParams["latest_data_values"]
+		data = params["latest_data_values"]
 	} else {
 		panic("timesteps have gone beyond the available data")
 	}

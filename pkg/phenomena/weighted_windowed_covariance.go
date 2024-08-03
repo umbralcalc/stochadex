@@ -24,9 +24,8 @@ func (w *WeightedWindowedCovarianceIteration) Configure(
 ) {
 	w.Kernel.Configure(partitionIndex, settings)
 	w.valuesPartition = int(
-		settings.OtherParams[partitionIndex].IntParams["data_values_partition"][0])
-	if d, ok := settings.OtherParams[partitionIndex].
-		FloatParams["past_discounting_factor"]; ok {
+		settings.Params[partitionIndex]["data_values_partition"][0])
+	if d, ok := settings.Params[partitionIndex]["past_discounting_factor"]; ok {
 		w.discount = d[0]
 	} else {
 		w.discount = 1.0
@@ -34,7 +33,7 @@ func (w *WeightedWindowedCovarianceIteration) Configure(
 }
 
 func (w *WeightedWindowedCovarianceIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -46,9 +45,9 @@ func (w *WeightedWindowedCovarianceIteration) Iterate(
 	w.Kernel.SetParams(params)
 	var valuesTrans mat.Dense
 	valuesTrans.CloneFrom(stateHistory.Values.T())
-	mean := params.FloatParams["mean"]
+	mean := params["mean"]
 	mostRecentDiffVec := mat.NewVecDense(stateHistory.StateWidth, nil)
-	latestStateValues := params.FloatParams["latest_data_values"]
+	latestStateValues := params["latest_data_values"]
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	for j := 0; j < stateHistory.StateWidth; j++ {
 		v := valuesTrans.RawRowView(j)

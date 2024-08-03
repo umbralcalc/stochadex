@@ -1,16 +1,10 @@
-other_params:
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
+params:
+- {}
+- {}
+- {}
+- {}
+- {}
+- {}
 init_state_values:
 - [0.45, 1.4, 0.01, -0.13, 0.7]
 - [2.0, 1.0, 3.0, 1.1, 7.0]

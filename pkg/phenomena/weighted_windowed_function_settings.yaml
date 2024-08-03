@@ -1,16 +1,10 @@
-other_params:
-- float_params: 
-    variances: [1.0, 1.0, 1.0]
-  int_params: {}
-- float_params: 
-    variances: [1.0, 3.0]
-  int_params: {}
-- float_params: 
-    exponential_weighting_timescale: [1.1]
-  int_params:
-    data_values_partition: [0]
-    function_values_partition: [1]
-    function_values_indices: [0, 1]
+params:
+- variances: [1.0, 1.0, 1.0]
+- variances: [1.0, 3.0]
+- exponential_weighting_timescale: [1.1]
+  data_values_partition: [0]
+  function_values_partition: [1]
+  function_values_indices: [0, 1]
 init_state_values:
 - [0.0, 0.0, 0.0]
 - [0.0, 0.0]

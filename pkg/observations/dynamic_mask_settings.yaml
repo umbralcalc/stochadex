@@ -1,12 +1,7 @@
-other_params:
-- float_params:
-    variances: [0.3, 1.0, 1.1, 2.0, 6.0]
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params:
-    nan_value: [0.0]
-  int_params: {}
+params:
+- variances: [0.3, 1.0, 1.1, 2.0, 6.0]
+- {}
+- nan_value: [0.0]
 init_state_values:
 - [0.0, 0.0, 0.0, 0.0, 0.0]
 - [0.0, 1.0, 0.0, 1.0, 1.0]

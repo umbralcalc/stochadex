@@ -1,32 +1,16 @@
-package params
-
-import "github.com/umbralcalc/stochadex/pkg/simulator"
-
-// NewParamsCopy is a convenience function which copies the input
-// []*simulator.OtherParams to help ensure thread safety.
-func NewParamsCopy(params []*simulator.OtherParams) []*simulator.OtherParams {
-	paramsCopy := make([]*simulator.OtherParams, 0)
-	for i := range params {
-		p := *params[i]
-		paramsCopy = append(paramsCopy, &p)
-	}
-	return paramsCopy
-}
+package simulator
 
 // CopySettingsForPartitions copies the settings for only a specified
 // subset of state partition indices.
-func CopySettingsForPartitions(
-	partitionIndices []int,
-	settings *simulator.Settings,
-) *simulator.Settings {
-	settingsCopy := &simulator.Settings{}
+func CopySettingsForPartitions(partitionIndices []int, settings *Settings) *Settings {
+	settingsCopy := &Settings{}
 	settingsCopy.InitTimeValue = settings.InitTimeValue
 	settingsCopy.TimestepsHistoryDepth = settings.TimestepsHistoryDepth
 	for _, index := range partitionIndices {
-		paramsCopy := *settings.OtherParams[index]
-		settingsCopy.OtherParams = append(
-			settingsCopy.OtherParams,
-			&paramsCopy,
+		paramsCopy := settings.Params[index]
+		settingsCopy.Params = append(
+			settingsCopy.Params,
+			paramsCopy,
 		)
 		settingsCopy.InitStateValues = append(
 			settingsCopy.InitStateValues,

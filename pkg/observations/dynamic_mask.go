@@ -15,19 +15,18 @@ func (d *DynamicMaskStateObservationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	d.nanValue = settings.OtherParams[partitionIndex].
-		FloatParams["nan_value"][0]
+	d.nanValue = settings.Params[partitionIndex]["nan_value"][0]
 }
 
 func (d *DynamicMaskStateObservationIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	maskValues := params.FloatParams["mask_values"]
-	stateValues := params.FloatParams["values_to_observe"]
+	maskValues := params["mask_values"]
+	stateValues := params["values_to_observe"]
 	for i, maskValue := range maskValues {
 		if maskValue == 0 {
 			outputValues = append(outputValues, d.nanValue)

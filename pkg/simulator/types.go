@@ -4,14 +4,9 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// OtherParams is a yaml-loadable struct to put any additional
-// parameters needed to configure the stochastic process.
-type OtherParams struct {
-	FloatParams     map[string][]float64 `yaml:"float_params"`
-	IntParams       map[string][]int64   `yaml:"int_params"`
-	FloatParamsMask map[string][]bool    `yaml:"float_params_mask,omitempty"`
-	IntParamsMask   map[string][]bool    `yaml:"int_params_mask,omitempty"`
-}
+// Params is a type alias for the parameters needed to configure
+// the stochastic process.
+type Params map[string][]float64
 
 // StateHistory represents the information contained within a windowed
 // history of State structs.
@@ -48,7 +43,7 @@ type IteratorInputMessage struct {
 type Partition struct {
 	Iteration                   Iteration
 	ParamsFromUpstreamPartition map[string]int
-	ParamsFromSlice             map[string][]int
+	ParamsFromIndices           map[string][]int
 }
 
 // Implementations defines all of the types that must be implemented in
@@ -65,7 +60,7 @@ type Implementations struct {
 type PartitionStrings struct {
 	Iteration                   string           `yaml:"iteration"`
 	ParamsFromUpstreamPartition map[string]int   `yaml:"params_from_upstream_partition,omitempty"`
-	ParamsFromSlice             map[string][]int `yaml:"params_from_slice,omitempty"`
+	ParamsFromIndices           map[string][]int `yaml:"params_from_indices,omitempty"`
 }
 
 // ImplementationStrings is the yaml-loadable config which consists of string type
@@ -82,11 +77,11 @@ type ImplementationStrings struct {
 // settings that can be set for a stochastic process defined by the
 // stochadex.
 type Settings struct {
-	OtherParams           []*OtherParams `yaml:"other_params"`
-	InitStateValues       [][]float64    `yaml:"init_state_values"`
-	InitTimeValue         float64        `yaml:"init_time_value"`
-	Seeds                 []uint64       `yaml:"seeds"`
-	StateWidths           []int          `yaml:"state_widths"`
-	StateHistoryDepths    []int          `yaml:"state_history_depths"`
-	TimestepsHistoryDepth int            `yaml:"timesteps_history_depth"`
+	Params                []Params    `yaml:"params"`
+	InitStateValues       [][]float64 `yaml:"init_state_values"`
+	InitTimeValue         float64     `yaml:"init_time_value"`
+	Seeds                 []uint64    `yaml:"seeds"`
+	StateWidths           []int       `yaml:"state_widths"`
+	StateHistoryDepths    []int       `yaml:"state_history_depths"`
+	TimestepsHistoryDepth int         `yaml:"timesteps_history_depth"`
 }

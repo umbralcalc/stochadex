@@ -16,50 +16,38 @@ simulation:
       params_from_upstream_partition:
         "0/latest_data_values": 1
         "1/latest_data_values": 2
-        "2/param_values": 3
+        "2/mus": 3
     - iteration: smoothedLikelihood
       params_from_upstream_partition:
         "latest_data_values": 3
         "latest_function_values": 4
-      params_from_slice:
-        "latest_function_values": [24, 25]
+      params_from_indices:
+        "latest_function_values": [24]
     output_condition: "&simulator.EveryStepOutputCondition{}"
     output_function: "&simulator.StdoutOutputFunction{}"
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 2000}"
     timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
   settings:
-    other_params:
-    - float_params:
-        mean: [1.8, 5.0, -7.3, 2.2]
-        covariance_matrix: [2.5, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 4.4, 0.0, 0.0, 0.0, 0.0, 17.0]
-      int_params: {}
-    - float_params:
-        exponential_weighting_timescale: [100.0]
-      int_params:
-        data_values_partition: [0]
-    - float_params:
-        exponential_weighting_timescale: [100.0]
-      int_params:
-        data_values_partition: [0]
-    - float_params:
-        past_discounting_factor: [0.8]
-        sample_covariance: [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]
-      int_params:
-        param_partitions: [3]
-        loglike_partitions: [4]
-        loglike_indices: [24]
-    - float_params: {}
-      int_params:
-        burn_in_steps: [800]
-        0/state_memory_partition: [1]
-        1/state_memory_partition: [2]
-    - float_params:
-        past_discounting_factor: [0.8]
-        covariance_matrix: [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]
-      int_params:
-        data_values_partition: [3]
-        function_values_partition: [4]
-        function_values_indices: [24]
+    params:
+    - mean: [1.8, 5.0, -7.3, 2.2]
+      covariance_matrix: [2.5, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 4.4, 0.0, 0.0, 0.0, 0.0, 17.0]
+    - exponential_weighting_timescale: [100.0]
+      data_values_partition: [0]
+    - exponential_weighting_timescale: [100.0]
+      data_values_partition: [0]
+    - past_discounting_factor: [0.8]
+      sample_covariance: [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]
+      param_partitions: [3]
+      loglike_partitions: [4]
+      loglike_indices: [24]
+    - burn_in_steps: [800]
+      0/state_memory_partition: [1]
+      1/state_memory_partition: [2]
+    - past_discounting_factor: [0.8]
+      covariance_matrix: [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]
+      data_values_partition: [3]
+      function_values_partition: [4]
+      function_values_indices: [24]
     init_state_values:
     - [1.3, 8.3, -4.9, 1.6]
     - [1.1, 4.0, -8.3, 2.0]
@@ -80,7 +68,7 @@ embedded_simulations:
         params_from_upstream_partition: {}
       - iteration: "&simulator.MemoryIteration{}"
         params_from_upstream_partition: {}
-      - iteration: simulationReadingParams
+      - iteration: simulationIteration
         params_from_upstream_partition: {}
       - iteration: dataComparisonToSimulation
         params_from_upstream_partition:
@@ -92,22 +80,14 @@ embedded_simulations:
       termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 200}"
       timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
     settings:
-      other_params:
-      - float_params: {}
-        int_params: {}
-      - float_params: {}
-        int_params: {}
-      - float_params:
-          mus: [1.0, 4.0, -6.0, 1.0]
-          sigmas: [1.5, 3.0, 2.2, 4.1]
-          thetas: [1.0, 1.0, 1.0, 1.0]
-        float_params_mask:
-          mus: [true, true, true, true]
-        int_params: {}
-      - float_params: {}
-        int_params:
-          cumulative: [1]
-          burn_in_steps: [50]
+      params:
+      - {}
+      - {}
+      - mus: [1.0, 4.0, -6.0, 1.0]
+        sigmas: [1.5, 3.0, 2.2, 4.1]
+        thetas: [1.0, 1.0, 1.0, 1.0]
+      - cumulative: [1]
+        burn_in_steps: [50]
       init_state_values:
       - [1.1, 4.0, -8.3, 2.0]
       - [4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0]
@@ -127,8 +107,6 @@ extra_vars_by_package:
   - dataRollingMean: "&phenomena.WeightedWindowedMeanIteration{Kernel: expKernel}"
   - dataRollingCov: "&phenomena.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
   - smoothedLikelihood: "&phenomena.WeightedWindowedFunctionIteration{Kernel: gaussKernel}"
-- github.com/umbralcalc/stochadex/pkg/params:
-  - simulationReadingParams: "&params.ParamsReaderIteration{Iteration: simulationIteration}"
 - github.com/umbralcalc/stochadex/pkg/inference:
   - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
   - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"

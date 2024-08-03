@@ -16,15 +16,15 @@ func (p *StaticPartialStateObservationIteration) Configure(
 }
 
 func (p *StaticPartialStateObservationIteration) Iterate(
-	params *simulator.OtherParams,
+	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := params.FloatParams["values_to_observe"]
-	for _, index := range params.IntParams["state_value_observation_indices"] {
-		outputValues = append(outputValues, stateValues[index])
+	stateValues := params["values_to_observe"]
+	for _, index := range params["state_value_observation_indices"] {
+		outputValues = append(outputValues, stateValues[int(index)])
 	}
 	return outputValues
 }

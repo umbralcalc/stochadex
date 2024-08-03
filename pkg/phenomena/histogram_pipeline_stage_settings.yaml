@@ -1,40 +1,22 @@
-other_params:
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params:
-    upstream_partitions: [12]
-    downstream_partitions: [5]
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params:
-    upstream_partitions: [2]
-    downstream_partitions: [8, 11]
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params:
-    upstream_partitions: [5]
-    downstream_partitions: [11]
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params: {}
-- float_params: {}
-  int_params:
-    upstream_partitions: [5, 8]
-    downstream_partitions: [12]
-- float_params: {}
-  int_params:
-    partition_indices: [11]
-    partition_state_values: [5]
+params:
+- {}
+- {}
+- upstream_partitions: [12]
+  downstream_partitions: [5]
+- {}
+- {}
+- upstream_partitions: [2]
+  downstream_partitions: [8, 11]
+- {}
+- {}
+- upstream_partitions: [5]
+  downstream_partitions: [11]
+- {}
+- {}
+- upstream_partitions: [5, 8]
+  downstream_partitions: [12]
+- partition_indices: [11]
+  partition_state_values: [5]
 init_state_values:
 - [1.0]
 - [0.2, 0.2, 0.2, 0.2, 0.2]
