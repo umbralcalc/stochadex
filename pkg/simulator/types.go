@@ -9,7 +9,7 @@ import (
 type Params map[string][]float64
 
 // StateHistory represents the information contained within a windowed
-// history of State structs.
+// history of []float64 state values.
 type StateHistory struct {
 	// each row is a different state in the history, by convention,
 	// starting with the most recent at index = 0
