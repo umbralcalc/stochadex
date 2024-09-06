@@ -22,10 +22,12 @@ func (h *HistogramNodeIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	histogramValues := stateHistories[partitionIndex].Values.RawRowView(0)
-	for _, index := range params["connected_partitions"] {
-		for _, valueIndex := range params["connected_value_indices"] {
-			histogramValues[int(stateHistories[int(index)].Values.At(0, int(valueIndex)))] += 1
-		}
+	for i, index := range params["connected_partitions"] {
+		state := int(stateHistories[int(index)].Values.At(
+			0,
+			int(params["connected_state_value_indices"][i]),
+		))
+		histogramValues[state] += 1
 	}
 	return histogramValues
 }
