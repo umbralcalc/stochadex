@@ -1,0 +1,9 @@
+params:
+- state_value_observation_probs: [0.4, 0.8]
+init_state_values:
+- [0.0, 0.0]
+init_time_value: 0.0
+seeds: [563]
+state_widths: [2]
+state_history_depths: [1]
+timesteps_history_depth: 1
