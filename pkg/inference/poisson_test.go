@@ -3,8 +3,8 @@ package inference
 import (
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
-	"github.com/umbralcalc/stochadex/pkg/phenomena"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -27,7 +27,7 @@ func TestPoissonLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &phenomena.WeightedWindowedMeanIteration{
+					Iteration: &continuous.WeightedWindowedMeanIteration{
 						Kernel: &kernels.ExponentialIntegrationKernel{},
 					},
 					ParamsFromUpstreamPartition: map[string]int{

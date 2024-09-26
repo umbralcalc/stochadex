@@ -38,10 +38,10 @@ func TestRunWithParsedArgs(t *testing.T) {
 				},
 				ExtraVarsByPackage: []map[string][]map[string]string{
 					{
-						"github.com/umbralcalc/stochadex/pkg/phenomena": {
-							{"firstWienerProcess": "&phenomena.WienerProcessIteration{}"},
-							{"secondWienerProcess": "&phenomena.WienerProcessIteration{}"},
-							{"actions": "&phenomena.WienerProcessIteration{}"},
+						"github.com/umbralcalc/stochadex/pkg/continuous": {
+							{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},
+							{"secondWienerProcess": "&continuous.WienerProcessIteration{}"},
+							{"actions": "&continuous.WienerProcessIteration{}"},
 						},
 					},
 					{
@@ -114,13 +114,13 @@ func TestRunWithParsedArgs(t *testing.T) {
 				},
 				ExtraVarsByPackage: []map[string][]map[string]string{
 					{
-						"github.com/umbralcalc/stochadex/pkg/phenomena": {
-							{"firstWienerProcess": "&phenomena.WienerProcessIteration{}"},
-							{"secondWienerProcess": "&phenomena.WienerProcessIteration{}"},
-							{"actions": "&phenomena.WienerProcessIteration{}"},
-							{"firstWienerProcessEmbedSim": "&phenomena.WienerProcessIteration{}"},
-							{"secondWienerProcessEmbedSim": "&phenomena.WienerProcessIteration{}"},
-							{"actionsEmbedSim": "&phenomena.WienerProcessIteration{}"},
+						"github.com/umbralcalc/stochadex/pkg/continuous": {
+							{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},
+							{"secondWienerProcess": "&continuous.WienerProcessIteration{}"},
+							{"actions": "&continuous.WienerProcessIteration{}"},
+							{"firstWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
+							{"secondWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
+							{"actionsEmbedSim": "&continuous.WienerProcessIteration{}"},
 						},
 					},
 					{

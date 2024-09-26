@@ -102,11 +102,11 @@ extra_vars_by_package:
 - github.com/umbralcalc/stochadex/pkg/kernels:
   - expKernel: "&kernels.ExponentialIntegrationKernel{}"
   - gaussKernel: "&kernels.GaussianIntegrationKernel{}"
-- github.com/umbralcalc/stochadex/pkg/phenomena:
-  - simulationIteration: "&phenomena.OrnsteinUhlenbeckIteration{}"
-  - dataRollingMean: "&phenomena.WeightedWindowedMeanIteration{Kernel: expKernel}"
-  - dataRollingCov: "&phenomena.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
-  - smoothedLikelihood: "&phenomena.WeightedWindowedFunctionIteration{Kernel: gaussKernel}"
+- github.com/umbralcalc/stochadex/pkg/continuous:
+  - simulationIteration: "&continuous.OrnsteinUhlenbeckIteration{}"
+  - dataRollingMean: "&continuous.WeightedWindowedMeanIteration{Kernel: expKernel}"
+  - dataRollingCov: "&continuous.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
+  - smoothedLikelihood: "&continuous.WeightedWindowedFunctionIteration{Kernel: gaussKernel}"
 - github.com/umbralcalc/stochadex/pkg/inference:
   - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
   - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"

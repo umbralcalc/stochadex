@@ -3,7 +3,7 @@ package actors
 import (
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/phenomena"
+	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -16,14 +16,14 @@ func TestActorIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &phenomena.WienerProcessIteration{},
+					Iteration: &continuous.WienerProcessIteration{},
 				},
 			)
 			partitions = append(
 				partitions,
 				simulator.Partition{
 					Iteration: &ActorIteration{
-						Iteration: &phenomena.WienerProcessIteration{},
+						Iteration: &continuous.WienerProcessIteration{},
 						Actor:     &AdditiveActor{},
 					},
 					ParamsFromUpstreamPartition: map[string]int{"action": 0},
@@ -32,14 +32,14 @@ func TestActorIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &phenomena.WienerProcessIteration{},
+					Iteration: &continuous.WienerProcessIteration{},
 				},
 			)
 			partitions = append(
 				partitions,
 				simulator.Partition{
 					Iteration: &ActorIteration{
-						Iteration: &phenomena.WienerProcessIteration{},
+						Iteration: &continuous.WienerProcessIteration{},
 						Actor:     &MultiplicativeActor{},
 					},
 					ParamsFromUpstreamPartition: map[string]int{"action": 2},
@@ -48,14 +48,14 @@ func TestActorIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &phenomena.WienerProcessIteration{},
+					Iteration: &continuous.WienerProcessIteration{},
 				},
 			)
 			partitions = append(
 				partitions,
 				simulator.Partition{
 					Iteration: &ActorIteration{
-						Iteration: &phenomena.WienerProcessIteration{},
+						Iteration: &continuous.WienerProcessIteration{},
 						Actor:     &ReplacementActor{},
 					},
 					ParamsFromUpstreamPartition: map[string]int{"action": 4},

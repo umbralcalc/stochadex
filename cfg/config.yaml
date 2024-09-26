@@ -22,6 +22,6 @@ simulation:
     state_history_depths: [2, 2]
     timesteps_history_depth: 2
 extra_vars_by_package:
-- github.com/umbralcalc/stochadex/pkg/phenomena:
-  - firstWienerProcess: "&phenomena.WienerProcessIteration{}"
-  - secondWienerProcess: "&phenomena.WienerProcessIteration{}"
+- github.com/umbralcalc/stochadex/pkg/continuous:
+  - firstWienerProcess: "&continuous.WienerProcessIteration{}"
+  - secondWienerProcess: "&continuous.WienerProcessIteration{}"

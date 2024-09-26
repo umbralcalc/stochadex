@@ -108,10 +108,10 @@ embedded_simulations:
 extra_vars_by_package:
 - github.com/umbralcalc/stochadex/pkg/kernels:
   - expKernel: "&kernels.ExponentialIntegrationKernel{}"
-- github.com/umbralcalc/stochadex/pkg/phenomena:
-  - simulationIteration: "&phenomena.OrnsteinUhlenbeckIteration{}"
-  - dataRollingMean: "&phenomena.WeightedWindowedMeanIteration{Kernel: expKernel}"
-  - dataRollingCov: "&phenomena.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
+- github.com/umbralcalc/stochadex/pkg/continuous:
+  - simulationIteration: "&continuous.OrnsteinUhlenbeckIteration{}"
+  - dataRollingMean: "&continuous.WeightedWindowedMeanIteration{Kernel: expKernel}"
+  - dataRollingCov: "&continuous.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
 - github.com/umbralcalc/stochadex/pkg/inference:
   - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
   - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"
