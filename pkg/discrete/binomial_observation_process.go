@@ -6,13 +6,14 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// BinomialStaticPartialStateObservationIteration observes each count value in the
-// state with a binomial probability - emulating a sequence of Bernoulli trials.
-type BinomialStaticPartialStateObservationIteration struct {
+// BinomialObservationProcessIteration observes each count value provided
+// with a binomial probability distribution - emulating a sequence of
+// Bernoulli trials.
+type BinomialObservationProcessIteration struct {
 	binomialDist *distuv.Binomial
 }
 
-func (b *BinomialStaticPartialStateObservationIteration) Configure(
+func (b *BinomialObservationProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
@@ -23,7 +24,7 @@ func (b *BinomialStaticPartialStateObservationIteration) Configure(
 	}
 }
 
-func (b *BinomialStaticPartialStateObservationIteration) Iterate(
+func (b *BinomialObservationProcessIteration) Iterate(
 	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,

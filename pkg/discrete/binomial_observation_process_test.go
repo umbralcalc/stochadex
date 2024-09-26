@@ -6,12 +6,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestBinomialStaticPartialStateObservationIteration(t *testing.T) {
+func TestBinomialObservationProcessIteration(t *testing.T) {
 	t.Run(
-		"test that the binomial static partial state observation works",
+		"test that the binomial observation process works",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"binomial_static_partial_settings.yaml",
+				"binomial_observation_process_settings.yaml",
 			)
 			partitions := make([]simulator.Partition, 0)
 			partitions = append(
@@ -23,7 +23,7 @@ func TestBinomialStaticPartialStateObservationIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration:                   &BinomialStaticPartialStateObservationIteration{},
+					Iteration:                   &BinomialObservationProcessIteration{},
 					ParamsFromUpstreamPartition: map[string]int{"observed_values": 0},
 				},
 			)
