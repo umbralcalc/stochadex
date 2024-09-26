@@ -10,7 +10,7 @@ func TestOrnsteinUhlenbeckProcess(t *testing.T) {
 	t.Run(
 		"test that the Ornstein-Uhlenbeck process runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("ornstein_uhlenbeck_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./ornstein_uhlenbeck_settings.yaml")
 			partitions := make([]simulator.Partition, 0)
 			for partitionIndex := range settings.StateWidths {
 				iteration := &OrnsteinUhlenbeckIteration{}

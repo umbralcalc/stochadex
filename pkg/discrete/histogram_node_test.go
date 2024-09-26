@@ -3,6 +3,7 @@ package discrete
 import (
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -14,14 +15,14 @@ func TestHistogramNodeIteration(t *testing.T) {
 				simulator.LoadSettingsFromYaml("./histogram_node_settings.yaml")
 			partitions := []simulator.Partition{
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
 					Iteration:                   &CategoricalStateTransitionIteration{},
 					ParamsFromUpstreamPartition: map[string]int{"transition_rates": 0},
 				},
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
 					Iteration:                   &CategoricalStateTransitionIteration{},

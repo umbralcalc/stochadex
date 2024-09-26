@@ -3,6 +3,7 @@ package inference
 import (
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -25,7 +26,7 @@ func TestPosteriorLogNormalisationIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 			)
 			partitions = append(
@@ -39,7 +40,7 @@ func TestPosteriorLogNormalisationIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 			)
 			partitions = append(

@@ -1,4 +1,4 @@
-package continuous
+package general
 
 import (
 	"testing"
@@ -6,14 +6,16 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestCumulativeTime(t *testing.T) {
+func TestCopyValues(t *testing.T) {
 	t.Run(
-		"test that the cumulative time iteration runs",
+		"test that the copy values iteration runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./cumulative_time_settings.yaml")
-			iteration := &CumulativeTimeIteration{}
-			iteration.Configure(0, settings)
-			partitions := []simulator.Partition{{Iteration: iteration}}
+			settings := simulator.LoadSettingsFromYaml("./copy_values_settings.yaml")
+			iterationOne := &ConstantValuesIteration{}
+			iterationOne.Configure(0, settings)
+			iterationTwo := &CopyValuesIteration{}
+			iterationTwo.Configure(1, settings)
+			partitions := []simulator.Partition{{Iteration: iterationOne}, {Iteration: iterationTwo}}
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},

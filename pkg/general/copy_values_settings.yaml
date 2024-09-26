@@ -1,0 +1,12 @@
+params:
+- {}
+- partition_indices: [0]
+  partition_state_values: [0]
+init_state_values:
+- [15.0]
+- [0.0]
+init_time_value: 0.0
+seeds: [0, 0]
+state_widths: [1, 1]
+state_history_depths: [1, 1]
+timesteps_history_depth: 1

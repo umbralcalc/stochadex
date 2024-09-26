@@ -27,7 +27,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 								},
 							},
 							{
-								Iteration: "&simulator.ConstantValuesIteration{}",
+								Iteration: "constantValues",
 							},
 						},
 						OutputCondition:      "&simulator.NilOutputCondition{}",
@@ -37,6 +37,11 @@ func TestRunWithParsedArgs(t *testing.T) {
 					},
 				},
 				ExtraVarsByPackage: []map[string][]map[string]string{
+					{
+						"github.com/umbralcalc/stochadex/pkg/general": {
+							{"constantValues": "&general.ConstantValuesIteration{}"},
+						},
+					},
 					{
 						"github.com/umbralcalc/stochadex/pkg/continuous": {
 							{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},

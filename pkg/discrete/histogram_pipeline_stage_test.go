@@ -3,6 +3,7 @@ package discrete
 import (
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -14,10 +15,10 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 				simulator.LoadSettingsFromYaml("./histogram_pipeline_stage_settings.yaml")
 			partitions := []simulator.Partition{
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
 					Iteration: &HistogramPipelineStageIteration{},
@@ -31,10 +32,10 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 					},
 				},
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
 					Iteration: &HistogramPipelineStageIteration{},
@@ -48,10 +49,10 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 					},
 				},
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
 					Iteration: &HistogramPipelineStageIteration{},
@@ -65,10 +66,10 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 					},
 				},
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
 					Iteration: &HistogramPipelineStageIteration{},
@@ -84,7 +85,7 @@ func TestHistogramPipelineStageIteration(t *testing.T) {
 					},
 				},
 				{
-					Iteration: &simulator.CopyValuesIteration{},
+					Iteration: &general.CopyValuesIteration{},
 				},
 			}
 			for index, partition := range partitions {

@@ -1,4 +1,4 @@
-package continuous
+package general
 
 import (
 	"testing"
@@ -6,12 +6,21 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestCumulativeTime(t *testing.T) {
+func TestValueFunction(t *testing.T) {
 	t.Run(
-		"test that the cumulative time iteration runs",
+		"test that the value function iteration runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./cumulative_time_settings.yaml")
-			iteration := &CumulativeTimeIteration{}
+			settings := simulator.LoadSettingsFromYaml("./value_function_settings.yaml")
+			iteration := &ValueFunctionIteration{
+				Function: func(
+					params simulator.Params,
+					partitionIndex int,
+					stateHistories []*simulator.StateHistory,
+					timestepsHistory *simulator.CumulativeTimestepsHistory,
+				) []float64 {
+					return []float64{1345.0}
+				},
+			}
 			iteration.Configure(0, settings)
 			partitions := []simulator.Partition{{Iteration: iteration}}
 			implementations := &simulator.Implementations{

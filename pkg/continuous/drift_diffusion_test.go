@@ -3,6 +3,7 @@ package continuous
 import (
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -10,11 +11,11 @@ func TestDriftDiffusionProcess(t *testing.T) {
 	t.Run(
 		"test that the general drift-diffusion process runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("drift_diffusion_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./drift_diffusion_settings.yaml")
 			partitions := make([]simulator.Partition, 0)
-			driftsIteration := &simulator.ConstantValuesIteration{}
+			driftsIteration := &general.ConstantValuesIteration{}
 			driftsIteration.Configure(0, settings)
-			diffusionsIteration := &simulator.ConstantValuesIteration{}
+			diffusionsIteration := &general.ConstantValuesIteration{}
 			diffusionsIteration.Configure(1, settings)
 			iteration := &DriftDiffusionIteration{}
 			iteration.Configure(2, settings)
@@ -36,9 +37,9 @@ func TestDriftDiffusionProcess(t *testing.T) {
 					},
 				},
 			)
-			driftsIterationTwo := &simulator.ConstantValuesIteration{}
+			driftsIterationTwo := &general.ConstantValuesIteration{}
 			driftsIterationTwo.Configure(3, settings)
-			diffusionsIterationTwo := &simulator.ConstantValuesIteration{}
+			diffusionsIterationTwo := &general.ConstantValuesIteration{}
 			diffusionsIterationTwo.Configure(4, settings)
 			iterationTwo := &DriftDiffusionIteration{}
 			iterationTwo.Configure(5, settings)

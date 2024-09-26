@@ -3,6 +3,7 @@ package discrete
 import (
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -14,7 +15,7 @@ func TestCategoricalStateTransitionIteration(t *testing.T) {
 				simulator.LoadSettingsFromYaml("./categorical_state_transition_settings.yaml")
 			partitions := []simulator.Partition{
 				{
-					Iteration: &simulator.ConstantValuesIteration{},
+					Iteration: &general.ConstantValuesIteration{},
 				},
 				{
 					Iteration: &CategoricalStateTransitionIteration{},

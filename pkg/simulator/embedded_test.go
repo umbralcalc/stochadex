@@ -4,6 +4,26 @@ import (
 	"testing"
 )
 
+// constantValuesTestIteration leaves the values set by the initial conditions
+// unchanged for all time.
+type constantValuesTestIteration struct {
+}
+
+func (c *constantValuesTestIteration) Configure(
+	partitionIndex int,
+	settings *Settings,
+) {
+}
+
+func (c *constantValuesTestIteration) Iterate(
+	params Params,
+	partitionIndex int,
+	stateHistories []*StateHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
+) []float64 {
+	return stateHistories[partitionIndex].Values.RawRowView(0)
+}
+
 func TestEmbeddedSimulationRunIteration(t *testing.T) {
 	t.Run(
 		"test that the embedded simulation run iteration runs",
@@ -12,13 +32,13 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 			embeddedSimPartitions = append(
 				embeddedSimPartitions,
 				Partition{
-					Iteration: &ConstantValuesIteration{},
+					Iteration: &constantValuesTestIteration{},
 				},
 			)
 			embeddedSimPartitions = append(
 				embeddedSimPartitions,
 				Partition{
-					Iteration: &ConstantValuesIteration{},
+					Iteration: &constantValuesTestIteration{},
 				},
 			)
 			embeddedSettings := LoadSettingsFromYaml(
@@ -28,20 +48,20 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				Partition{
-					Iteration: &ConstantValuesIteration{},
+					Iteration: &constantValuesTestIteration{},
 				},
 			)
 			partitions = append(
 				partitions,
 				Partition{
-					Iteration: &ConstantValuesIteration{},
+					Iteration: &constantValuesTestIteration{},
 				},
 			)
 			partitions = append(
 				partitions,
 				Partition{
 					Iteration: NewEmbeddedSimulationRunIteration(
-						LoadSettingsFromYaml("test_settings.yaml"),
+						LoadSettingsFromYaml("./test_settings.yaml"),
 						&Implementations{
 							Partitions:      embeddedSimPartitions,
 							OutputCondition: &NilOutputCondition{},
