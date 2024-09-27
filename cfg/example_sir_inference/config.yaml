@@ -64,9 +64,9 @@ embedded_simulations:
 - ornsteinUhlenbeckSimulation:
     implementations:
       partitions:
-      - iteration: "&simulator.MemoryIteration{}"
+      - iteration: "&general.MemoryIteration{}"
         params_from_upstream_partition: {}
-      - iteration: "&simulator.MemoryIteration{}"
+      - iteration: "&general.MemoryIteration{}"
         params_from_upstream_partition: {}
       - iteration: simulationIteration
         params_from_upstream_partition: {}

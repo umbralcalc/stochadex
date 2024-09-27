@@ -115,12 +115,12 @@ func WriteMainProgram(
 	implementationsString := ImplementationsConfigFromStrings(
 		config.Simulation.Implementations,
 	)
-	extraPackages := ""
 	extraVariables := ""
+	extraPackagesSet := make(map[string]bool, 0)
 	for _, extraVarsByPackage := range config.ExtraVarsByPackage {
 		for extraPackage, extraVarsSlice := range extraVarsByPackage {
 			if extraPackage != "" {
-				extraPackages += "\"" + extraPackage + "\"" + "\n    "
+				extraPackagesSet[extraPackage] = true
 			}
 			for _, extraVars := range extraVarsSlice {
 				for varName, varValue := range extraVars {
@@ -130,17 +130,24 @@ func WriteMainProgram(
 		}
 	}
 	if config.EmbeddedSimulations != nil {
+		extraPackagesSet["github.com/umbralcalc/stochadex/pkg/general"] = true
 		for i, embeddedSimulations := range config.EmbeddedSimulations {
 			for varName, configStrings := range embeddedSimulations {
 				extraVariables += varName + "Settings := " +
 					"settingsConfig.EmbeddedSimulations[" + strconv.Itoa(i) + "]" +
 					`["` + varName + `"].Settings` + "\n    "
 				extraVariables += varName +
-					" := simulator.NewEmbeddedSimulationRunIteration(" +
+					" := general.NewEmbeddedSimulationRunIteration(" +
 					"&" + varName + "Settings, " +
 					ImplementationsConfigFromStrings(configStrings.Implementations) +
 					")" + "\n    "
 			}
+		}
+	}
+	extraPackages := ""
+	for extraPackage := range extraPackagesSet {
+		if extraPackage != "" {
+			extraPackages += "\"" + extraPackage + "\"" + "\n    "
 		}
 	}
 	codeTemplate := template.New("stochadexMain")

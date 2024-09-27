@@ -1,4 +1,4 @@
-package simulator
+package general
 
 import (
 	"encoding/csv"
@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/slices"
 	"gonum.org/v1/gonum/mat"
 )
@@ -14,20 +15,20 @@ import (
 // MemoryIteration provides a stream of data which is already know from a
 // separate data source and is held in memory.
 type MemoryIteration struct {
-	Data *StateHistory
+	Data *simulator.StateHistory
 }
 
 func (m *MemoryIteration) Configure(
 	partitionIndex int,
-	settings *Settings,
+	settings *simulator.Settings,
 ) {
 }
 
 func (m *MemoryIteration) Iterate(
-	params Params,
+	params simulator.Params,
 	partitionIndex int,
-	stateHistories []*StateHistory,
-	timestepsHistory *CumulativeTimestepsHistory,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	var data []float64
 	// starts from one step into the window because it makes it possible to
@@ -94,7 +95,7 @@ func NewMemoryIterationFromCsv(
 	// history so that row 0 is the last point
 	slices.Reverse(data)
 	return &MemoryIteration{
-		Data: &StateHistory{
+		Data: &simulator.StateHistory{
 			Values: mat.NewDense(
 				timeSeriesLength,
 				len(stateColumns),
@@ -109,11 +110,11 @@ func NewMemoryIterationFromCsv(
 // MemoryTimestepFunction provides a stream of timesteps which already known from
 // a separate data source and is held in memory.
 type MemoryTimestepFunction struct {
-	Data *CumulativeTimestepsHistory
+	Data *simulator.CumulativeTimestepsHistory
 }
 
 func (m *MemoryTimestepFunction) NextIncrement(
-	timestepsHistory *CumulativeTimestepsHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	// starts from one step into the window because it makes it possible to
 	// use the i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
@@ -162,7 +163,7 @@ func NewMemoryTimestepFunctionFromCsv(
 	// history so that row 0 is the last point
 	slices.Reverse(times)
 	return &MemoryTimestepFunction{
-		Data: &CumulativeTimestepsHistory{
+		Data: &simulator.CumulativeTimestepsHistory{
 			Values:            mat.NewVecDense(len(times), times),
 			StateHistoryDepth: len(times),
 		},

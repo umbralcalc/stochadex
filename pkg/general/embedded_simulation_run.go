@@ -1,24 +1,26 @@
-package simulator
+package general
 
 import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
 // EmbeddedSimulationRunIteration facilitates running an embedded
 // sub-simulation to termination inside of an iteration of another
 // simulation for each step of the latter simulation.
 type EmbeddedSimulationRunIteration struct {
-	settings                     *Settings
-	implementations              *Implementations
+	settings                     *simulator.Settings
+	implementations              *simulator.Implementations
 	stateMemoryPartitionMappings map[int]int
 	burnInSteps                  int
 }
 
 func (e *EmbeddedSimulationRunIteration) Configure(
 	partitionIndex int,
-	settings *Settings,
+	settings *simulator.Settings,
 ) {
 	for index, partition := range e.implementations.Partitions {
 		partition.Iteration.Configure(index, e.settings)
@@ -42,10 +44,10 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 }
 
 func (e *EmbeddedSimulationRunIteration) Iterate(
-	params Params,
+	params simulator.Params,
 	partitionIndex int,
-	stateHistories []*StateHistory,
-	timestepsHistory *CumulativeTimestepsHistory,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	if timestepsHistory.CurrentStepNumber < e.burnInSteps {
 		return stateHistories[partitionIndex].Values.RawRowView(0)
@@ -104,7 +106,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	e.settings.InitTimeValue = params["init_time_value"][0]
 
 	// instantiate and run the embedded simulation to termination
-	coordinator := NewPartitionCoordinator(
+	coordinator := simulator.NewPartitionCoordinator(
 		e.settings,
 		e.implementations,
 	)
@@ -126,8 +128,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 // EmbeddedSimulationRunIteration from settings and implementations
 // configs.
 func NewEmbeddedSimulationRunIteration(
-	settings *Settings,
-	implementations *Implementations,
+	settings *simulator.Settings,
+	implementations *simulator.Implementations,
 ) *EmbeddedSimulationRunIteration {
 	return &EmbeddedSimulationRunIteration{
 		settings:        settings,
