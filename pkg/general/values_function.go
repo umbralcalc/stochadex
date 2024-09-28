@@ -4,9 +4,9 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ValueFunctionIteration defines an iteration which wraps a
+// ValuesFunctionIteration defines an iteration which wraps a
 // user-specified function. This iteration is fully stateless.
-type ValueFunctionIteration struct {
+type ValuesFunctionIteration struct {
 	Function func(
 		params simulator.Params,
 		partitionIndex int,
@@ -15,13 +15,13 @@ type ValueFunctionIteration struct {
 	) []float64
 }
 
-func (v *ValueFunctionIteration) Configure(
+func (v *ValuesFunctionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
-func (v *ValueFunctionIteration) Iterate(
+func (v *ValuesFunctionIteration) Iterate(
 	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,

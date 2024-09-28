@@ -1,8 +1,8 @@
 params:
-- event_occurred: [1]
+- event: [1]
   default_values: [0]
-- event_occurred_partition_index: [0]
-  event_occurred_state_value_index: [0]
+- event_partition_index: [0]
+  event_state_value_index: [0]
   default_values: [0]
 init_state_values:
 - [0.0]

@@ -6,12 +6,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestValueFunction(t *testing.T) {
+func TestValuesFunction(t *testing.T) {
 	t.Run(
-		"test that the value function iteration runs",
+		"test that the values function iteration runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./value_function_settings.yaml")
-			iteration := &ValueFunctionIteration{
+			settings := simulator.LoadSettingsFromYaml("./values_function_settings.yaml")
+			iteration := &ValuesFunctionIteration{
 				Function: func(
 					params simulator.Params,
 					partitionIndex int,
