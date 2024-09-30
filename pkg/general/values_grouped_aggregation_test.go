@@ -6,21 +6,28 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestValuesHistogram(t *testing.T) {
+func TestValuesGroupedAggregationIteration(t *testing.T) {
 	t.Run(
-		"test that the values histogram iteration runs",
+		"test that the values grouped aggregation iteration runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./values_histogram_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./values_grouped_aggregation_settings.yaml")
 			iterationOne := &ConstantValuesIteration{}
 			iterationOne.Configure(0, settings)
-			iterationTwo := &ValuesHistogramIteration{}
+			iterationTwo := &ConstantValuesIteration{}
 			iterationTwo.Configure(1, settings)
-			iterationThree := &ValuesHistogramIteration{}
+			iterationThree := &ValuesGroupedAggregationIteration{
+				AggFunction: CountAggFunction,
+			}
 			iterationThree.Configure(2, settings)
+			iterationFour := &ValuesGroupedAggregationIteration{
+				AggFunction: MeanAggFunction,
+			}
+			iterationFour.Configure(3, settings)
 			partitions := []simulator.Partition{
 				{Iteration: iterationOne},
 				{Iteration: iterationTwo},
 				{Iteration: iterationThree},
+				{Iteration: iterationFour},
 			}
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,

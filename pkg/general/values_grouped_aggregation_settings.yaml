@@ -1,0 +1,23 @@
+params:
+- {}
+- {}
+- value_groups: [0.0, 1.0, 2.0]
+  grouping_partition_indices: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  grouping_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  state_partition_indices: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  state_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+- value_groups: [0.0, 1.0, 2.0]
+  grouping_partition_indices: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  grouping_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  state_partition_indices: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  state_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+init_state_values:
+- [0.0, 1.0, 2.0, 2.0, 2.0, 0.0, 1.0, 0.0, 1.0, 2.0]
+- [5.0, 2.0, 48.0, 11.0, 621.0, 1.0, 1.0, 2.0, 8.0, 245.0]
+- [0.0, 0.0, 0.0]
+- [0.0, 0.0, 0.0]
+init_time_value: 0.0
+seeds: [0, 0, 0, 0]
+state_widths: [10, 10, 3, 3]
+state_history_depths: [1, 1, 1, 1]
+timesteps_history_depth: 1
