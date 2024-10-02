@@ -1,12 +1,12 @@
 params:
 - {}
 - {}
-- value_groups: [0.0, 1.0, 2.0]
+- accepted_value_groups: [0.0, 1.0, 2.0]
   grouping_partition_indices: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   grouping_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
   state_partition_indices: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
   state_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-- value_groups: [0.0, 1.0, 2.0]
+- accepted_value_groups: [0.0, 1.0, 2.0]
   grouping_partition_indices: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   grouping_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
   state_partition_indices: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]

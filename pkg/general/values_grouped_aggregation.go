@@ -57,11 +57,123 @@ func MinAggFunction(
 	}
 }
 
+// GroupStateValue represents a grouping value and state value pair.
+type GroupStateValue struct {
+	Group float64
+	State float64
+}
+
+// GroupStateParamsValuesFunction generates group values and state values
+// based directly on input params from the user.
+func GroupStateParamsValuesFunction(
+	params simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []GroupStateValue {
+	values := make([]GroupStateValue, 0)
+	groupValues := params["group_values"]
+	for i, stateValue := range params["state_values"] {
+		values = append(
+			values,
+			GroupStateValue{
+				Group: groupValues[i],
+				State: stateValue,
+			},
+		)
+	}
+	return values
+}
+
+// ZeroGroupStateParamsValuesFunction generates state values based
+// directly on input params from the user. In addition, a group value
+// of 0.0 is always used.
+func ZeroGroupStateParamsValuesFunction(
+	params simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []GroupStateValue {
+	values := make([]GroupStateValue, 0)
+	for _, stateValue := range params["state_values"] {
+		values = append(
+			values,
+			GroupStateValue{
+				Group: 0.0,
+				State: stateValue,
+			},
+		)
+	}
+	return values
+}
+
+// PartitionRangesValuesFunction generates group values and state values
+// based on ranges of partition and value indices which are used to
+// retrieve the latest corresponding data from the state history of the
+// specified partitions.
+func PartitionRangesValuesFunction(
+	params simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []GroupStateValue {
+	values := make([]GroupStateValue, 0)
+	for i, statePartitionIndex := range params["state_partition_indices"] {
+		values = append(
+			values,
+			GroupStateValue{
+				Group: stateHistories[int(
+					params["grouping_partition_indices"][i])].Values.At(
+					0,
+					int(params["grouping_value_indices"][i]),
+				),
+				State: stateHistories[int(statePartitionIndex)].Values.At(
+					0,
+					int(params["state_value_indices"][i]),
+				),
+			},
+		)
+	}
+	return values
+}
+
+// ZeroGroupPartitionRangesValuesFunction generates state values
+// based on ranges of partition and value indices which are used to
+// retrieve the latest corresponding data from the state history of the
+// specified partitions. In addition, a group value of 0.0 is always used.
+func ZeroGroupPartitionRangesValuesFunction(
+	params simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []GroupStateValue {
+	values := make([]GroupStateValue, 0)
+	for i, statePartitionIndex := range params["state_partition_indices"] {
+		values = append(
+			values,
+			GroupStateValue{
+				Group: 0.0,
+				State: stateHistories[int(statePartitionIndex)].Values.At(
+					0,
+					int(params["state_value_indices"][i]),
+				),
+			},
+		)
+	}
+	return values
+}
+
 // ValuesGroupedAggregationIteration defines an iteration which applies
 // a user-defined aggregation function to the last input values from
 // other partitions and groups them into bins specified by the
 // "value_groups" params.
 type ValuesGroupedAggregationIteration struct {
+	ValuesFunction func(
+		params simulator.Params,
+		partitionIndex int,
+		stateHistories []*simulator.StateHistory,
+		timestepsHistory *simulator.CumulativeTimestepsHistory,
+	) []GroupStateValue
 	AggFunction func(
 		currentAggValue float64,
 		nextValueCount int,
@@ -75,7 +187,7 @@ func (v *ValuesGroupedAggregationIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	v.outputIndexByValueGroup = make(map[float64]int)
-	for i, value := range settings.Params[partitionIndex]["value_groups"] {
+	for i, value := range settings.Params[partitionIndex]["accepted_value_groups"] {
 		v.outputIndexByValueGroup[value] = i
 	}
 }
@@ -88,28 +200,24 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 ) []float64 {
 	countByValueGroup := make(map[float64]int)
 	aggValues := make([]float64, stateHistories[partitionIndex].StateWidth)
-	for i, statePartitionIndex := range params["state_partition_indices"] {
-		stateValue := stateHistories[int(statePartitionIndex)].Values.At(
-			0,
-			int(params["state_value_indices"][i]),
-		)
-		groupingValue := stateHistories[int(
-			params["grouping_partition_indices"][i])].Values.At(
-			0,
-			int(params["grouping_value_indices"][i]),
-		)
-		if outputIndex, ok := v.outputIndexByValueGroup[groupingValue]; ok {
-			count, ok := countByValueGroup[groupingValue]
+	for _, groupStateValue := range v.ValuesFunction(
+		params,
+		partitionIndex,
+		stateHistories,
+		timestepsHistory,
+	) {
+		if outputIndex, ok := v.outputIndexByValueGroup[groupStateValue.Group]; ok {
+			count, ok := countByValueGroup[groupStateValue.Group]
 			if !ok {
-				countByValueGroup[groupingValue] = 0
+				countByValueGroup[groupStateValue.Group] = 0
 				count = 0
 			}
 			count += 1
-			countByValueGroup[groupingValue] = count
+			countByValueGroup[groupStateValue.Group] = count
 			aggValues[outputIndex] = v.AggFunction(
 				aggValues[outputIndex],
 				count,
-				stateValue,
+				groupStateValue.State,
 			)
 		}
 	}
