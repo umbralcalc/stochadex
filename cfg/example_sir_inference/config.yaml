@@ -20,9 +20,9 @@ simulation:
     - iteration: smoothedLikelihood
       params_from_upstream_partition:
         "latest_data_values": 3
-        "latest_function_values": 4
+        "latest_other_values": 4
       params_from_indices:
-        "latest_function_values": [24]
+        "latest_other_values": [24]
     output_condition: "&simulator.EveryStepOutputCondition{}"
     output_function: "&simulator.StdoutOutputFunction{}"
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 2000}"
@@ -46,8 +46,8 @@ simulation:
     - past_discounting_factor: [0.8]
       covariance_matrix: [0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5]
       data_values_partition: [3]
-      function_values_partition: [4]
-      function_values_indices: [24]
+      other_values_partition: [4]
+      other_values_indices: [24]
     init_state_values:
     - [1.3, 8.3, -4.9, 1.6]
     - [1.1, 4.0, -8.3, 2.0]
@@ -104,9 +104,10 @@ extra_vars_by_package:
   - gaussKernel: "&kernels.GaussianIntegrationKernel{}"
 - github.com/umbralcalc/stochadex/pkg/continuous:
   - simulationIteration: "&continuous.OrnsteinUhlenbeckIteration{}"
-  - dataRollingMean: "&continuous.WeightedWindowedMeanIteration{Kernel: expKernel}"
-  - dataRollingCov: "&continuous.WeightedWindowedCovarianceIteration{Kernel: expKernel}"
-  - smoothedLikelihood: "&continuous.WeightedWindowedFunctionIteration{Kernel: gaussKernel}"
+- github.com/umbralcalc/stochadex/pkg/general:
+  - dataRollingMean: "&general.ValuesFunctionWindowedWeightedMeanIteration{Function: general.DataValuesFunction, Kernel: expKernel}"
+  - dataRollingCov: "&general.ValuesFunctionWindowedWeightedCovarianceIteration{Function: general.DataValuesFunction, Kernel: expKernel}"
+  - smoothedLikelihood: "&general.ValuesFunctionWindowedWeightedMeanIteration{Function: general.OtherValuesFunction, Kernel: gaussKernel}"
 - github.com/umbralcalc/stochadex/pkg/inference:
   - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
   - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"

@@ -40,6 +40,19 @@ func (d *DataGenerationIteration) Iterate(
 	cVals, ok := params["covariance_matrix"]
 	if ok {
 		covMat = mat.NewSymDense(dims, cVals)
+	} else if varVals, ok := params["variance"]; ok {
+		cVals = make([]float64, 0)
+		for i := 0; i < dims; i++ {
+			for j := 0; j < dims; j++ {
+				switch i {
+				case j:
+					cVals = append(cVals, varVals[i])
+				default:
+					cVals = append(cVals, 0.0)
+				}
+			}
+		}
+		covMat = mat.NewSymDense(dims, cVals)
 	}
 	samples := d.Likelihood.GenerateNewSamples(
 		mat.NewVecDense(

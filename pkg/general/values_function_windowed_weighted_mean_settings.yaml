@@ -4,6 +4,7 @@ params:
 - exponential_weighting_timescale: [1.1]
   data_values_partition: [0]
   other_values_partition: [1]
+  other_values_indices: [0, 1]
 - exponential_weighting_timescale: [1.1]
   data_values_partition: [0]
   partitions_to_weight: [1, 2]

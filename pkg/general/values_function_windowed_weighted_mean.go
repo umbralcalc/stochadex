@@ -45,8 +45,16 @@ func OtherValuesFunction(
 	if stateHistoryDepthIndex == -1 {
 		return params["latest_other_values"]
 	}
-	return stateHistories[int(
-		params["other_values_partition"][0])].Values.RawRowView(stateHistoryDepthIndex)
+	values := make([]float64, 0)
+	for _, index := range params["other_values_indices"] {
+		values = append(
+			values,
+			stateHistories[int(
+				params["other_values_partition"][0])].Values.At(
+				stateHistoryDepthIndex, int(index)),
+		)
+	}
+	return values
 }
 
 // WeightedMeanValuesFunction computes the weighted mean vector of values from other
@@ -76,6 +84,27 @@ func WeightedMeanValuesFunction(
 	}
 	floats.Scale(1.0/normalisation, cumulativeValue)
 	return cumulativeValue
+}
+
+// DataValuesVarianceFunction just returns the contribution to the value of the
+// variance of the "data_values_partition", resulting in calculating its rolling windowed
+// weighted variance.
+func DataValuesVarianceFunction(
+	params simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	stateHistoryDepthIndex int,
+) []float64 {
+	var varianceValue []float64
+	if stateHistoryDepthIndex == -1 {
+		varianceValue = params["latest_data_values"]
+	} else {
+		varianceValue = stateHistories[int(
+			params["data_values_partition"][0])].Values.RawRowView(stateHistoryDepthIndex)
+	}
+	floats.Sub(varianceValue, params["mean"])
+	floats.Mul(varianceValue, varianceValue)
+	return varianceValue
 }
 
 // DataValuesFunction just returns the value of the "data_values_partition", resulting

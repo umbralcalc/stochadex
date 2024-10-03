@@ -3,7 +3,7 @@ package inference
 import (
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/continuous"
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -27,8 +27,9 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &continuous.WeightedWindowedMeanIteration{
-						Kernel: &kernels.ExponentialIntegrationKernel{},
+					Iteration: &general.ValuesFunctionWindowedWeightedMeanIteration{
+						Function: general.DataValuesFunction,
+						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
 					ParamsFromUpstreamPartition: map[string]int{
 						"latest_data_values": 0,
@@ -38,8 +39,9 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &continuous.WeightedWindowedCovarianceIteration{
-						Kernel: &kernels.ExponentialIntegrationKernel{},
+					Iteration: &general.ValuesFunctionWindowedWeightedMeanIteration{
+						Function: general.DataValuesVarianceFunction,
+						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
 					ParamsFromUpstreamPartition: map[string]int{
 						"latest_data_values": 0,
@@ -56,7 +58,7 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 					ParamsFromUpstreamPartition: map[string]int{
 						"latest_data_values": 0,
 						"mean":               1,
-						"covariance_matrix":  2,
+						"variance":           2,
 					},
 				},
 			)
