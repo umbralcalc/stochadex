@@ -30,6 +30,16 @@ func TestValuesFunctionWindowedWeightedMeanIteration(t *testing.T) {
 						"latest_other_values": 1,
 					},
 				},
+				{
+					Iteration: &ValuesFunctionWindowedWeightedMeanIteration{
+						Function: WeightedMeanValuesFunction,
+						Kernel:   &kernels.ExponentialIntegrationKernel{},
+					},
+					ParamsFromUpstreamPartition: map[string]int{
+						"latest_data_values_partition_1": 1,
+						"latest_data_values_partition_2": 2,
+					},
+				},
 			}
 			for index, partition := range partitions {
 				partition.Iteration.Configure(index, settings)

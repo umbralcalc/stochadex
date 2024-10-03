@@ -2,6 +2,7 @@ package general
 
 import (
 	"math"
+	"strconv"
 
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -14,6 +15,7 @@ import (
 // calculating the past-discounted rolling windowed weighted mean.
 func PastDiscountedDataValuesFunction(
 	params simulator.Params,
+	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
@@ -36,6 +38,7 @@ func PastDiscountedDataValuesFunction(
 // in calculating its rolling windowed weighted mean.
 func OtherValuesFunction(
 	params simulator.Params,
+	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
@@ -46,10 +49,40 @@ func OtherValuesFunction(
 		params["other_values_partition"][0])].Values.RawRowView(stateHistoryDepthIndex)
 }
 
+// WeightedMeanValuesFunction computes the weighted mean vector of values from other
+// partitions for the specified partitions in params.
+func WeightedMeanValuesFunction(
+	params simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	stateHistoryDepthIndex int,
+) []float64 {
+	normalisation := 0.0
+	weights := params["partition_weights"]
+	cumulativeValue := make([]float64, stateHistories[partitionIndex].StateWidth)
+	var values []float64
+	for i, index := range params["partitions_to_weight"] {
+		switch stateHistoryDepthIndex {
+		case -1:
+			values = params["latest_data_values_partition_"+
+				strconv.Itoa(int(index))]
+		default:
+			values = stateHistories[int(index)].Values.RawRowView(
+				stateHistoryDepthIndex)
+		}
+		floats.Scale(weights[i], values)
+		floats.Add(cumulativeValue, values)
+		normalisation += weights[i]
+	}
+	floats.Scale(1.0/normalisation, cumulativeValue)
+	return cumulativeValue
+}
+
 // DataValuesFunction just returns the value of the "data_values_partition", resulting
 // in calculating its rolling windowed weighted mean.
 func DataValuesFunction(
 	params simulator.Params,
+	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
@@ -66,6 +99,7 @@ func DataValuesFunction(
 type ValuesFunctionWindowedWeightedMeanIteration struct {
 	Function func(
 		params simulator.Params,
+		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		stateHistoryDepthIndex int,
 	) []float64
@@ -89,7 +123,7 @@ func (v *ValuesFunctionWindowedWeightedMeanIteration) Iterate(
 	stateHistory := stateHistories[int(params["data_values_partition"][0])]
 	// convention is to use -1 here as the state history depth index of the
 	// very latest function value
-	latestFunctionValues := v.Function(params, stateHistories, -1)
+	latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
 		return latestFunctionValues
 	}
@@ -121,7 +155,8 @@ func (v *ValuesFunctionWindowedWeightedMeanIteration) Iterate(
 			panic("negative function weights")
 		}
 		cumulativeWeightSum += weight
-		for j, functionValue := range v.Function(params, stateHistories, i) {
+		for j, functionValue := range v.Function(
+			params, partitionIndex, stateHistories, i) {
 			sumContributionVec.SetVec(j, weight*functionValue)
 		}
 		cumulativeWeightedFunctionValueSumVec.AddVec(

@@ -16,6 +16,7 @@ import (
 type ValuesFunctionWindowedWeightedCovarianceIteration struct {
 	Function func(
 		params simulator.Params,
+		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		stateHistoryDepthIndex int,
 	) []float64
@@ -43,14 +44,15 @@ func (v *ValuesFunctionWindowedWeightedCovarianceIteration) Iterate(
 	latestStateValues := params["latest_data_values"]
 	// convention is to use -1 here as the state history depth index of the
 	// very latest function value
-	latestFunctionValues := v.Function(params, stateHistories, -1)
+	latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)
 	functionValuesTrans := mat.NewDense(
 		len(latestFunctionValues),
 		stateHistory.StateHistoryDepth,
 		nil,
 	)
 	for i := 0; i < stateHistory.StateHistoryDepth; i++ {
-		functionValuesTrans.SetCol(i, v.Function(params, stateHistories, i))
+		functionValuesTrans.SetCol(i, v.Function(
+			params, partitionIndex, stateHistories, i))
 	}
 	mean := params["mean"]
 	mostRecentDiffVec := mat.NewVecDense(stateHistory.StateWidth, nil)
