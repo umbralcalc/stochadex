@@ -107,7 +107,7 @@ extra_vars_by_package:
 - github.com/umbralcalc/stochadex/pkg/general:
   - dataRollingMean: "&general.ValuesFunctionWindowedWeightedMeanIteration{Function: general.DataValuesFunction, Kernel: expKernel}"
   - dataRollingCov: "&general.ValuesFunctionWindowedWeightedCovarianceIteration{Function: general.DataValuesFunction, Kernel: expKernel}"
-  - smoothedLikelihood: "&general.ValuesFunctionWindowedWeightedMeanIteration{Function: general.OtherValuesFunction, Kernel: gaussKernel}"
+  - smoothedLikelihood: "&general.ValuesFunctionWindowedWeightedMeanIteration{Function: general.PastDiscountedOtherValuesFunction, Kernel: gaussKernel}"
 - github.com/umbralcalc/stochadex/pkg/inference:
   - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
   - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"

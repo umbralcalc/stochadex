@@ -34,8 +34,41 @@ func PastDiscountedDataValuesFunction(
 	return functionValue
 }
 
-// OtherValuesFunction just returns the value of the "other_values_partition", resulting
-// in calculating its rolling windowed weighted mean.
+// PastDiscountedOtherValuesFunction just returns the value of the
+// "other_values_partition" discounted by some "past_discounting_factor"
+// in the params, resulting in calculating the past-discounted rolling
+// windowed weighted mean of the other partition values.
+func PastDiscountedOtherValuesFunction(
+	params simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	stateHistoryDepthIndex int,
+) []float64 {
+	if stateHistoryDepthIndex == -1 {
+		return params["latest_other_values"]
+	}
+	values := make([]float64, 0)
+	for _, index := range params["other_values_indices"] {
+		values = append(
+			values,
+			stateHistories[int(
+				params["other_values_partition"][0])].Values.At(
+				stateHistoryDepthIndex, int(index)),
+		)
+	}
+	floats.Scale(
+		math.Pow(
+			params["past_discounting_factor"][0],
+			float64(stateHistoryDepthIndex),
+		),
+		values,
+	)
+	return values
+}
+
+// OtherValuesFunction just returns the value of the "other_values_partition",
+// resulting in calculating the rolling windowed weighted mean of the other
+// partition values.
 func OtherValuesFunction(
 	params simulator.Params,
 	partitionIndex int,
