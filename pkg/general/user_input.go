@@ -1,4 +1,4 @@
-package actors
+package general
 
 import (
 	"fmt"
@@ -9,50 +9,39 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ActorIteration implements an actor as an iteration in the stochadex
-// based on actions set by parameter.
-type ActorIteration struct {
-	Iteration simulator.Iteration
-	Actor     Actor
+// KeystrokeChannel is an interface which must be implemented in order
+// to setup the channel of key stroke inputs from the user into the
+// UserInputIteration.
+type KeystrokeChannel interface {
+	Get(
+		partitionIndex int,
+		settings *simulator.Settings,
+	) (<-chan keyboard.KeyEvent, error)
 }
 
-func (a *ActorIteration) Configure(
+// StandardKeystrokeChannel is the standard method for retrieving key strokes
+// for the user input.
+type StandardKeystrokeChannel struct{}
+
+func (s *StandardKeystrokeChannel) Get(
 	partitionIndex int,
 	settings *simulator.Settings,
-) {
-	a.Iteration.Configure(partitionIndex, settings)
-	a.Actor.Configure(partitionIndex, settings)
+) (<-chan keyboard.KeyEvent, error) {
+	return keyboard.GetKeys(1)
 }
 
-func (a *ActorIteration) Iterate(
-	params simulator.Params,
-	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) []float64 {
-	return a.Actor.Act(
-		a.Iteration.Iterate(
-			params,
-			partitionIndex,
-			stateHistories,
-			timestepsHistory,
-		),
-		params["action"],
-	)
-}
-
-// UserInputActorIteration implements an actor iteration that uses
-// actions collected by user keyboard input.
-type UserInputActorIteration struct {
+// UserInputIteration implements an iteration that uses actions collected
+// by user keyboard input.
+type UserInputIteration struct {
 	Iteration        simulator.Iteration
-	Actor            Actor
+	Channel          KeystrokeChannel
 	keystrokeMap     map[string]int64
 	keyEvents        <-chan keyboard.KeyEvent
 	waitMilliseconds uint64
 	skipScanning     bool
 }
 
-func (u *UserInputActorIteration) Configure(
+func (u *UserInputIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
@@ -70,7 +59,7 @@ func (u *UserInputActorIteration) Configure(
 		}
 	}
 	var err error
-	u.keyEvents, err = keyboard.GetKeys(1)
+	u.keyEvents, err = u.Channel.Get(partitionIndex, settings)
 	if err != nil {
 		panic(err)
 	}
@@ -80,21 +69,18 @@ func (u *UserInputActorIteration) Configure(
 	u.skipScanning = false // useful for graceful exits
 }
 
-func (u *UserInputActorIteration) Iterate(
+func (u *UserInputIteration) Iterate(
 	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	if u.skipScanning {
-		return u.Actor.Act(
-			u.Iteration.Iterate(
-				params,
-				partitionIndex,
-				stateHistories,
-				timestepsHistory,
-			),
-			params["action"],
+		return u.Iteration.Iterate(
+			params,
+			partitionIndex,
+			stateHistories,
+			timestepsHistory,
 		)
 	}
 	select {
@@ -114,13 +100,10 @@ func (u *UserInputActorIteration) Iterate(
 	case <-time.After(time.Duration(u.waitMilliseconds) * time.Millisecond):
 		break
 	}
-	return u.Actor.Act(
-		u.Iteration.Iterate(
-			params,
-			partitionIndex,
-			stateHistories,
-			timestepsHistory,
-		),
-		params["action"],
+	return u.Iteration.Iterate(
+		params,
+		partitionIndex,
+		stateHistories,
+		timestepsHistory,
 	)
 }
