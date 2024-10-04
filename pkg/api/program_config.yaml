@@ -3,18 +3,16 @@ simulation:
     params:
     - variances: [1.0, 1.0, 1.0, 1.0, 1.0]
     - variances: [1.0, 1.0, 1.0]
-    - variances: [1.0, 1.0, 1.0]
     - init_time_value: [0.0]
       burn_in_steps: [0]
     init_state_values:
     - [0.45, 1.4, 0.01, -0.13, 0.7]
     - [0.0, 0.0, 0.0]
-    - [0.67, -0.01, 0.1]
     - [0.45, 1.4, 0.01, -0.13, 0.7, 0.0, 0.0, 0.0, 0.67, -0.01, 0.1]
     init_time_value: 0.0
-    seeds: [7167, 1024, 2939, 111]
-    state_widths: [5, 3, 3, 11]
-    state_history_depths: [2, 2, 2, 2]
+    seeds: [7167, 1024, 111]
+    state_widths: [5, 3, 11]
+    state_history_depths: [2, 2, 2]
     timesteps_history_depth: 2
 embedded_simulations:
 - embeddedSim:
@@ -22,7 +20,7 @@ embedded_simulations:
       params:
       - variances: [1.0, 1.0, 1.0, 1.0, 1.0]
       - variances: [1.0, 1.0, 1.0]
-      - variances: [1.0, 1.0, 1.0]
+      - {}
       init_state_values:
       - [0.45, 1.4, 0.01, -0.13, 0.7]
       - [0.0, 0.0, 0.0]
