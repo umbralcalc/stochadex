@@ -63,9 +63,9 @@ type GroupStateValue struct {
 	State float64
 }
 
-// GroupStateParamsValuesFunction generates group values and state values
+// GroupStateParamValuesFunction generates group values and state values
 // based directly on input params from the user.
-func GroupStateParamsValuesFunction(
+func GroupStateParamValuesFunction(
 	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -85,10 +85,10 @@ func GroupStateParamsValuesFunction(
 	return values
 }
 
-// ZeroGroupStateParamsValuesFunction generates state values based
+// ZeroGroupStateParamValuesFunction generates state values based
 // directly on input params from the user. In addition, a group value
 // of 0.0 is always used.
-func ZeroGroupStateParamsValuesFunction(
+func ZeroGroupStateParamValuesFunction(
 	params simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
