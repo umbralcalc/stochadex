@@ -4,10 +4,10 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// Iteration is the interface that must be implemented for any stochastic
-// phenomenon within the stochadex. Its .Iterate method reads in the Params
-// map, a int partitionIndex, the full current history of the process defined
-// by a slice []*StateHistory and a CumulativeTimestepsHistory reference and
+// Iteration is the interface that must be implemented for any partitioned
+// state iteration in the stochadex. Its .Iterate method reads in the Params
+// map, a int partitionIndex, the full current history of all partitions defined
+// by a slice []*StateHistory and a *CumulativeTimestepsHistory reference and
 // outputs an updated state history row in the form of a float64 slice.
 type Iteration interface {
 	Configure(partitionIndex int, settings *Settings)
