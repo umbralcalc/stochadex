@@ -199,11 +199,11 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	countByValueGroup := make(map[float64]int)
-	var aggValues []float64
+	aggValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if defaultValues, ok := params["default_values"]; ok {
-		aggValues = defaultValues
-	} else {
-		aggValues = make([]float64, stateHistories[partitionIndex].StateWidth)
+		for i, value := range defaultValues {
+			aggValues[i] = value
+		}
 	}
 	for _, groupStateValue := range v.ValuesFunction(
 		params,
