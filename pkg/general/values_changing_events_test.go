@@ -12,8 +12,10 @@ func TestValuesChangingEvents(t *testing.T) {
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("./values_changing_events_settings.yaml")
 			iterationOne := &ValuesChangingEventsIteration{
-				EventFunction: ParamsEventFunction,
-				IterationByEvent: map[int]simulator.Iteration{
+				EventIteration: &ValuesFunctionIteration{
+					Function: ParamsEventFunction,
+				},
+				IterationByEvent: map[float64]simulator.Iteration{
 					1: &ValuesFunctionIteration{
 						Function: func(
 							params simulator.Params,
@@ -28,8 +30,10 @@ func TestValuesChangingEvents(t *testing.T) {
 			}
 			iterationOne.Configure(0, settings)
 			iterationTwo := &ValuesChangingEventsIteration{
-				EventFunction: PartitionEventFunction,
-				IterationByEvent: map[int]simulator.Iteration{
+				EventIteration: &ValuesFunctionIteration{
+					Function: PartitionEventFunction,
+				},
+				IterationByEvent: map[float64]simulator.Iteration{
 					1: &ValuesFunctionIteration{
 						Function: func(
 							params simulator.Params,

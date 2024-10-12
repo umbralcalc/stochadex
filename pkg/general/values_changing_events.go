@@ -11,12 +11,12 @@ func PartitionEventFunction(
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) int {
-	return int(stateHistories[int(
+) []float64 {
+	return []float64{stateHistories[int(
 		params["event_partition_index"][0])].Values.At(
 		0,
 		int(params["event_state_value_index"][0]),
-	))
+	)}
 }
 
 // ParamsEventFunction provides the capability to set events using
@@ -26,8 +26,8 @@ func ParamsEventFunction(
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) int {
-	return int(params["event"][0])
+) []float64 {
+	return params["event"]
 }
 
 // ValuesChangingEventsIteration defines an iteration which calls and
@@ -36,19 +36,15 @@ func ParamsEventFunction(
 // the map) either the previous values or some optionally-specified
 // default values are used as the output.
 type ValuesChangingEventsIteration struct {
-	EventFunction func(
-		params simulator.Params,
-		partitionIndex int,
-		stateHistories []*simulator.StateHistory,
-		timestepsHistory *simulator.CumulativeTimestepsHistory,
-	) int
-	IterationByEvent map[int]simulator.Iteration
+	EventIteration   simulator.Iteration
+	IterationByEvent map[float64]simulator.Iteration
 }
 
 func (v *ValuesChangingEventsIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	v.EventIteration.Configure(partitionIndex, settings)
 	for _, iteration := range v.IterationByEvent {
 		iteration.Configure(partitionIndex, settings)
 	}
@@ -60,12 +56,12 @@ func (v *ValuesChangingEventsIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	if iteration, ok := v.IterationByEvent[v.EventFunction(
+	if iteration, ok := v.IterationByEvent[v.EventIteration.Iterate(
 		params,
 		partitionIndex,
 		stateHistories,
 		timestepsHistory,
-	)]; ok {
+	)[0]]; ok {
 		return iteration.Iterate(
 			params,
 			partitionIndex,
