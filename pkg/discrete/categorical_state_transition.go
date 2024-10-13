@@ -50,13 +50,13 @@ func (c *CategoricalStateTransitionIteration) Iterate(
 ) []float64 {
 	state := make([]float64, 0)
 	state = append(state, stateHistories[partitionIndex].Values.RawRowView(0)...)
-	cumulative := timestepsHistory.NextIncrement
+	cumulative := 1.0 / timestepsHistory.NextIncrement
 	cumulatives := make([]float64, 0)
 	cumulatives = append(cumulatives, cumulative)
 	slices := c.rateSlices[int(state[0])]
 	transitionRates := params["transition_rates"][slices[0]:slices[1]]
 	for _, rate := range transitionRates {
-		cumulative += 1.0 / rate
+		cumulative += rate
 		cumulatives = append(cumulatives, cumulative)
 	}
 	transitions := params["transitions_from_"+strconv.Itoa(int(state[0]))]
