@@ -6,7 +6,7 @@ import (
 
 // OtherPartitionPushFunction retrieves the next values to push from
 // the last values of another partition. If the first value is equal
-// to the "push_empty" param then nothing is pushed.
+// to the "empty_value" param then nothing is pushed.
 func OtherPartitionPushFunction(
 	params simulator.Params,
 	partitionIndex int,
@@ -17,7 +17,7 @@ func OtherPartitionPushFunction(
 	stateHistory := stateHistories[int(params["other_partition"][0])]
 	for _, index := range params["value_indices"] {
 		nextValues = append(nextValues, stateHistory.Values.At(0, int(index)))
-		if index == 0 && params["push_empty"][0] == nextValues[0] {
+		if index == 0 && params["empty_value"][0] == nextValues[0] {
 			return nil, false
 		}
 	}
@@ -27,7 +27,7 @@ func OtherPartitionPushFunction(
 // PopFromOtherCollectionPushFunction retrieves the next values to
 // push from the popped values of another partition which is hence
 // assumed to also be another value collection. If the first value
-// is equal to the "push_empty" param then nothing is pushed.
+// is equal to the "empty_value" param then nothing is pushed.
 func PopFromOtherCollectionPushFunction(
 	params simulator.Params,
 	partitionIndex int,
@@ -38,7 +38,7 @@ func PopFromOtherCollectionPushFunction(
 	stateHistory := stateHistories[int(params["other_partition"][0])]
 	for index := 0; index < int(params["values_state_width"][0]); index++ {
 		nextValues = append(nextValues, stateHistory.Values.At(0, int(index)))
-		if index == 0 && params["push_empty"][0] == nextValues[0] {
+		if index == 0 && params["empty_value"][0] == nextValues[0] {
 			return nil, false
 		}
 	}
@@ -47,7 +47,7 @@ func PopFromOtherCollectionPushFunction(
 
 // ParamValuesPushFunction retrieves the next values to push from
 // the "next_value_push" params and if the first value is equal
-// to the "push_empty" param then nothing is pushed.
+// to the "empty_value" param then nothing is pushed.
 func ParamValuesPushFunction(
 	params simulator.Params,
 	partitionIndex int,
@@ -55,7 +55,7 @@ func ParamValuesPushFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) ([]float64, bool) {
 	nextValues := params["next_values_push"]
-	if params["push_empty"][0] == nextValues[0] {
+	if params["empty_value"][0] == nextValues[0] {
 		return nil, false
 	}
 	return nextValues, true

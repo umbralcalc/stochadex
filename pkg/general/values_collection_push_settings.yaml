@@ -1,11 +1,9 @@
 params:
 - next_values_push: [1]
-  push_empty: [-1]
   empty_value: [-1]
   values_state_width: [1]
 - other_partition: [0]
   value_indices: [0]
-  push_empty: [-1]
   empty_value: [-1]
   values_state_width: [1]
 init_state_values:
