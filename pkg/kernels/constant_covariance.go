@@ -23,8 +23,8 @@ func (c *ConstantGaussianCovarianceKernel) Configure(
 func (c *ConstantGaussianCovarianceKernel) SetParams(
 	params simulator.Params,
 ) {
-	c.stateWidth = int(math.Sqrt(float64(len(params["covariance_matrix"]))))
-	c.covMatrix = mat.NewSymDense(c.stateWidth, params["covariance_matrix"])
+	c.stateWidth = int(math.Sqrt(float64(len(params.Get("covariance_matrix")))))
+	c.covMatrix = mat.NewSymDense(c.stateWidth, params.Get("covariance_matrix"))
 }
 
 func (c *ConstantGaussianCovarianceKernel) GetCovariance(

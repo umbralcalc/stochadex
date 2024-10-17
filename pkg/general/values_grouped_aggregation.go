@@ -72,8 +72,8 @@ func GroupStateParamValuesFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []GroupStateValue {
 	values := make([]GroupStateValue, 0)
-	groupValues := params["group_values"]
-	for i, stateValue := range params["state_values"] {
+	groupValues := params.Get("group_values")
+	for i, stateValue := range params.Get("state_values") {
 		values = append(
 			values,
 			GroupStateValue{
@@ -95,7 +95,7 @@ func ZeroGroupStateParamValuesFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []GroupStateValue {
 	values := make([]GroupStateValue, 0)
-	for _, stateValue := range params["state_values"] {
+	for _, stateValue := range params.Get("state_values") {
 		values = append(
 			values,
 			GroupStateValue{
@@ -118,18 +118,18 @@ func PartitionRangesValuesFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []GroupStateValue {
 	values := make([]GroupStateValue, 0)
-	for i, statePartitionIndex := range params["state_partition_indices"] {
+	for i, statePartitionIndex := range params.Get("state_partition_indices") {
 		values = append(
 			values,
 			GroupStateValue{
 				Group: stateHistories[int(
-					params["grouping_partition_indices"][i])].Values.At(
+					params.GetIndex("grouping_partition_indices", i))].Values.At(
 					0,
-					int(params["grouping_value_indices"][i]),
+					int(params.GetIndex("grouping_value_indices", i)),
 				),
 				State: stateHistories[int(statePartitionIndex)].Values.At(
 					0,
-					int(params["state_value_indices"][i]),
+					int(params.GetIndex("state_value_indices", i)),
 				),
 			},
 		)
@@ -148,14 +148,14 @@ func ZeroGroupPartitionRangesValuesFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []GroupStateValue {
 	values := make([]GroupStateValue, 0)
-	for i, statePartitionIndex := range params["state_partition_indices"] {
+	for i, statePartitionIndex := range params.Get("state_partition_indices") {
 		values = append(
 			values,
 			GroupStateValue{
 				Group: 0.0,
 				State: stateHistories[int(statePartitionIndex)].Values.At(
 					0,
-					int(params["state_value_indices"][i]),
+					int(params.GetIndex("state_value_indices", i)),
 				),
 			},
 		)
@@ -187,7 +187,7 @@ func (v *ValuesGroupedAggregationIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	v.outputIndexByValueGroup = make(map[float64]int)
-	for i, value := range settings.Params[partitionIndex]["accepted_value_groups"] {
+	for i, value := range settings.Params[partitionIndex].Get("accepted_value_groups") {
 		v.outputIndexByValueGroup[value] = i
 	}
 }
@@ -200,7 +200,7 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 ) []float64 {
 	countByValueGroup := make(map[float64]int)
 	aggValues := make([]float64, stateHistories[partitionIndex].StateWidth)
-	if defaultValues, ok := params["default_values"]; ok {
+	if defaultValues, ok := params.GetOk("default_values"); ok {
 		for i, value := range defaultValues {
 			aggValues[i] = value
 		}

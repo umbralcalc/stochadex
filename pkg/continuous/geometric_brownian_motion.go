@@ -35,7 +35,7 @@ func (g *GeometricBrownianMotionIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) * (1.0 +
-			math.Sqrt(params["variances"][i]*
+			math.Sqrt(params.GetIndex("variances", i)*
 				timestepsHistory.NextIncrement)*g.unitNormalDist.Rand())
 	}
 	return values

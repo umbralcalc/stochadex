@@ -27,9 +27,9 @@ func (p *PosteriorCovarianceIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	logLikes := make([]float64, 0)
-	for i, loglikePartition := range params["loglike_partitions"] {
+	for i, loglikePartition := range params.Get("loglike_partitions") {
 		var valueIndex int
-		if v, ok := params["loglike_indices"]; ok {
+		if v, ok := params.GetOk("loglike_indices"); ok {
 			valueIndex = int(v[i])
 		} else {
 			valueIndex = 0
@@ -40,14 +40,14 @@ func (p *PosteriorCovarianceIteration) Iterate(
 		)
 	}
 	logNormLatest := floats.LogSumExp(logLikes)
-	logNormPast := params["posterior_log_normalisation"][0]
+	logNormPast := params.GetIndex("posterior_log_normalisation", 0)
 	logNormTotal := floats.LogSumExp([]float64{logNormLatest, logNormPast})
-	dims := len(params["mean"])
+	dims := len(params.Get("mean"))
 	covMat := mat.NewSymDense(dims, stateHistories[partitionIndex].Values.RawRowView(0))
 	covMat.ScaleSym(math.Exp(logNormPast-logNormTotal), covMat)
-	mean := mat.NewVecDense(dims, params["mean"])
+	mean := mat.NewVecDense(dims, params.Get("mean"))
 	diffs := mat.NewVecDense(dims, nil)
-	for i, paramsPartition := range params["param_partitions"] {
+	for i, paramsPartition := range params.Get("param_partitions") {
 		diffs.SubVec(mean, stateHistories[int(paramsPartition)].Values.RowView(0))
 		covMat.SymRankOne(
 			covMat,

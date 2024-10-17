@@ -31,7 +31,7 @@ func (b *BernoulliProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := stateHistories[partitionIndex].Values.RawRowView(0)
-	probs := params["state_value_observation_probs"]
+	probs := params.Get("state_value_observation_probs")
 	for i := range outputValues {
 		if b.uniformDist.Rand() < probs[i] {
 			outputValues[i] = 1.0

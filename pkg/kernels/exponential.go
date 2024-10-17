@@ -21,7 +21,7 @@ func (e *ExponentialIntegrationKernel) Configure(
 func (e *ExponentialIntegrationKernel) SetParams(
 	params simulator.Params,
 ) {
-	e.timescale = params["exponential_weighting_timescale"][0]
+	e.timescale = params.GetIndex("exponential_weighting_timescale", 0)
 }
 
 func (e *ExponentialIntegrationKernel) Evaluate(

@@ -50,6 +50,16 @@ func LoadStochadexConfigSettingsFromYaml(path string) *StochadexConfigSettings {
 	}
 	var settings StochadexConfigSettings
 	err = yaml.Unmarshal(yamlFile, &settings)
+	settings.Simulation.Settings = simulator.InitEmptyParamsInSettings(
+		settings.Simulation.Settings,
+	)
+	for _, embeddedSims := range settings.EmbeddedSimulations {
+		for _, embeddedSim := range embeddedSims {
+			embeddedSim.Settings = simulator.InitEmptyParamsInSettings(
+				embeddedSim.Settings,
+			)
+		}
+	}
 	if err != nil {
 		panic(err)
 	}

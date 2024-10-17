@@ -23,7 +23,7 @@ func (p *PosteriorImportanceResampleIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	loglikePartitions := settings.Params[partitionIndex]["loglike_partitions"]
+	loglikePartitions := settings.Params[partitionIndex].Get("loglike_partitions")
 	nilWeights := make(
 		[]float64,
 		len(loglikePartitions)*settings.StateHistoryDepths[int(loglikePartitions[0])],
@@ -42,15 +42,15 @@ func (p *PosteriorImportanceResampleIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	logDiscount := math.Log(params["past_discounting_factor"][0])
+	logDiscount := math.Log(params.GetIndex("past_discounting_factor", 0))
 	stateHistoryDepth :=
-		stateHistories[int(params["loglike_partitions"][0])].StateHistoryDepth
+		stateHistories[int(params.GetIndex("loglike_partitions", 0))].StateHistoryDepth
 	logLikes := make([]float64, 0)
 	indices := make([][]int, 0)
 	for i := 0; i < stateHistoryDepth; i++ {
-		for j, loglikePartition := range params["loglike_partitions"] {
+		for j, loglikePartition := range params.Get("loglike_partitions") {
 			var valueIndex int
-			if v, ok := params["loglike_indices"]; ok {
+			if v, ok := params.GetOk("loglike_indices"); ok {
 				valueIndex = int(v[j])
 			} else {
 				valueIndex = 0
@@ -68,11 +68,11 @@ func (p *PosteriorImportanceResampleIteration) Iterate(
 		p.catDist.Reweight(i, math.Exp(logLike-logNorm))
 	}
 	indexPair := indices[int(p.catDist.Rand())]
-	paramPartition := params["param_partitions"][indexPair[1]]
+	paramPartition := params.GetIndex("param_partitions", indexPair[1])
 	sampleCentre := stateHistories[int(paramPartition)].Values.RawRowView(indexPair[0])
 	normDist, ok := distmv.NewNormal(
 		sampleCentre,
-		mat.NewSymDense(len(sampleCentre), params["sample_covariance"]),
+		mat.NewSymDense(len(sampleCentre), params.Get("sample_covariance")),
 		p.Src,
 	)
 	if !ok {

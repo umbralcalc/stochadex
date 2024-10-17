@@ -27,7 +27,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	}
 	e.stateMemoryPartitionMappings = make(map[int]int)
 	pattern := regexp.MustCompile(`(\d+)/(\w+)`)
-	for outParamsName, paramsValues := range settings.Params[partitionIndex] {
+	for outParamsName, paramsValues := range settings.Params[partitionIndex].Map {
 		matches := pattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
 			if matches[2] != "state_memory_partition" {
@@ -40,7 +40,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 			e.stateMemoryPartitionMappings[int(paramsValues[0])] = inPartition
 		}
 	}
-	e.burnInSteps = int(settings.Params[partitionIndex]["burn_in_steps"][0])
+	e.burnInSteps = int(settings.Params[partitionIndex].GetIndex("burn_in_steps", 0))
 }
 
 func (e *EmbeddedSimulationRunIteration) Iterate(
@@ -56,7 +56,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	// set the initial conditions from params and the other params
 	// that may have been configured
 	pattern := regexp.MustCompile(`(\d+)/(\w+)`)
-	for outParamsName, paramsValues := range params {
+	for outParamsName, paramsValues := range params.Map {
 		matches := pattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
 			inPartition, err := strconv.Atoi(matches[1])
@@ -68,7 +68,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 			case "init_state_values":
 				e.settings.InitStateValues[inPartition] = paramsValues
 			default:
-				e.settings.Params[inPartition][inParamsName] = paramsValues
+				e.settings.Params[inPartition].Set(inParamsName, paramsValues)
 			}
 		}
 	}
@@ -81,11 +81,11 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	if len(e.stateMemoryPartitionMappings) > 0 {
 		e.implementations.TimestepFunction =
 			&MemoryTimestepFunction{Data: timestepsHistory}
-		params["init_time_value"] = []float64{
+		params.Set("init_time_value", []float64{
 			timestepsHistory.Values.AtVec(
 				timestepsHistory.StateHistoryDepth - 1,
 			),
-		}
+		})
 	}
 	for outPartition, inPartition := range e.stateMemoryPartitionMappings {
 		iteration, ok := e.implementations.Partitions[inPartition].
@@ -103,7 +103,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 			))
 		}
 	}
-	e.settings.InitTimeValue = params["init_time_value"][0]
+	e.settings.InitTimeValue = params.GetIndex("init_time_value", 0)
 
 	// instantiate and run the embedded simulation to termination
 	coordinator := simulator.NewPartitionCoordinator(

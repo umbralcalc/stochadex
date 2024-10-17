@@ -21,5 +21,5 @@ func (p *ParamValuesIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	return params["param_values"]
+	return params.Get("param_values")
 }

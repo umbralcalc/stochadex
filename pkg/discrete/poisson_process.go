@@ -32,7 +32,7 @@ func (p *PoissonProcessIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
-		if params["rates"][i] > (params["rates"][i]+
+		if params.GetIndex("rates", i) > (params.GetIndex("rates", i)+
 			(1.0/timestepsHistory.NextIncrement))*p.unitUniformDist.Rand() {
 			values[i] = stateHistory.Values.At(0, i) + 1.0
 		} else {

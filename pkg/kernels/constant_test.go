@@ -14,7 +14,7 @@ func TestConstantIntegationKernel(t *testing.T) {
 		func(t *testing.T) {
 			kernel := &ConstantIntegrationKernel{}
 			kernel.Configure(0, &simulator.Settings{
-				Params: []simulator.Params{{}},
+				Params: []simulator.Params{simulator.NewParams(make(map[string][]float64))},
 			})
 			valueOne := kernel.Evaluate(
 				[]float64{0.3, 1.0, 0.0},
@@ -22,7 +22,7 @@ func TestConstantIntegationKernel(t *testing.T) {
 				1.0,
 				0.0,
 			)
-			kernel.SetParams(simulator.Params{})
+			kernel.SetParams(simulator.NewParams(make(map[string][]float64)))
 			valueTwo := kernel.Evaluate(
 				[]float64{0.3, 1.0, 0.0},
 				[]float64{0.5, 1.1, 1.0},

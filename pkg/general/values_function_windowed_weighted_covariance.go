@@ -36,12 +36,12 @@ func (v *ValuesFunctionWindowedWeightedCovarianceIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	stateHistory := stateHistories[int(params["data_values_partition"][0])]
+	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
 		return mat.NewSymDense(stateHistory.StateWidth, nil).RawSymmetric().Data
 	}
 	v.Kernel.SetParams(params)
-	latestStateValues := params["latest_data_values"]
+	latestStateValues := params.Get("latest_data_values")
 	// convention is to use -1 here as the state history depth index of the
 	// very latest function value
 	latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)
@@ -54,7 +54,7 @@ func (v *ValuesFunctionWindowedWeightedCovarianceIteration) Iterate(
 		functionValuesTrans.SetCol(i, v.Function(
 			params, partitionIndex, stateHistories, i))
 	}
-	mean := params["mean"]
+	mean := params.Get("mean")
 	mostRecentDiffVec := mat.NewVecDense(stateHistory.StateWidth, nil)
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	for j := 0; j < stateHistory.StateWidth; j++ {

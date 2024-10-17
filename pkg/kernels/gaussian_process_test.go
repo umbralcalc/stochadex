@@ -17,12 +17,12 @@ func TestGaussianProcessIntegationKernel(t *testing.T) {
 			}
 			kernel.Configure(0, &simulator.Settings{
 				Params: []simulator.Params{
-					{
+					simulator.NewParams(map[string][]float64{
 						"target_state":             {0.7, 1.2, 1.8},
 						"current_covariance_state": {0.7, 1.2, 1.8},
 						"past_covariance_state":    {0.7, 1.2, 1.8},
 						"covariance_matrix":        {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0},
-					},
+					}),
 				},
 			})
 			valueOne := kernel.Evaluate(
@@ -31,12 +31,12 @@ func TestGaussianProcessIntegationKernel(t *testing.T) {
 				1.0,
 				0.0,
 			)
-			kernel.SetParams(simulator.Params{
+			kernel.SetParams(simulator.NewParams(map[string][]float64{
 				"target_state":             {0.1, 0.6, 0.2},
 				"current_covariance_state": {0.7, 1.2, 1.8},
 				"past_covariance_state":    {0.7, 1.2, 1.8},
 				"covariance_matrix":        {2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0},
-			})
+			}))
 			valueTwo := kernel.Evaluate(
 				[]float64{0.3, 1.0, 0.0},
 				[]float64{0.5, 1.1, 1.0},

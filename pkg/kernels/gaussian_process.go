@@ -43,10 +43,10 @@ func (g *GaussianProcessIntegrationKernel) Configure(
 }
 
 func (g *GaussianProcessIntegrationKernel) SetParams(params simulator.Params) {
-	g.targetState = params["target_state"]
+	g.targetState = params.Get("target_state")
 	g.stateWidth = len(g.targetState)
-	g.currentCovarianceState = params["current_covariance_state"]
-	g.pastCovarianceState = params["past_covariance_state"]
+	g.currentCovarianceState = params.Get("current_covariance_state")
+	g.pastCovarianceState = params.Get("past_covariance_state")
 	g.Covariance.SetParams(params)
 }
 

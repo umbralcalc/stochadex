@@ -4,10 +4,6 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// Params is a type alias for the parameters needed to configure
-// the stochastic process.
-type Params map[string][]float64
-
 // StateHistory represents the information contained within a windowed
 // history of []float64 state values.
 type StateHistory struct {

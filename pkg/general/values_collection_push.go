@@ -14,10 +14,10 @@ func OtherPartitionPushFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) ([]float64, bool) {
 	nextValues := make([]float64, 0)
-	stateHistory := stateHistories[int(params["other_partition"][0])]
-	for _, index := range params["value_indices"] {
+	stateHistory := stateHistories[int(params.GetIndex("other_partition", 0))]
+	for _, index := range params.Get("value_indices") {
 		nextValues = append(nextValues, stateHistory.Values.At(0, int(index)))
-		if index == 0 && params["empty_value"][0] == nextValues[0] {
+		if index == 0 && params.GetIndex("empty_value", 0) == nextValues[0] {
 			return nil, false
 		}
 	}
@@ -35,10 +35,10 @@ func PopFromOtherCollectionPushFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) ([]float64, bool) {
 	nextValues := make([]float64, 0)
-	stateHistory := stateHistories[int(params["other_partition"][0])]
-	for index := 0; index < int(params["values_state_width"][0]); index++ {
+	stateHistory := stateHistories[int(params.GetIndex("other_partition", 0))]
+	for index := 0; index < int(params.GetIndex("values_state_width", 0)); index++ {
 		nextValues = append(nextValues, stateHistory.Values.At(0, int(index)))
-		if index == 0 && params["empty_value"][0] == nextValues[0] {
+		if index == 0 && params.GetIndex("empty_value", 0) == nextValues[0] {
 			return nil, false
 		}
 	}
@@ -54,8 +54,8 @@ func ParamValuesPushFunction(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) ([]float64, bool) {
-	nextValues := params["next_values_push"]
-	if params["empty_value"][0] == nextValues[0] {
+	nextValues := params.Get("next_values_push")
+	if params.GetIndex("empty_value", 0) == nextValues[0] {
 		return nil, false
 	}
 	return nextValues, true
@@ -93,8 +93,8 @@ func (v *ValuesCollectionPushIteration) Iterate(
 		stateHistories,
 		timestepsHistory,
 	); push {
-		emptyValue := params["empty_value"][0]
-		valuesWidth := int(params["values_state_width"][0])
+		emptyValue := params.GetIndex("empty_value", 0)
+		valuesWidth := int(params.GetIndex("values_state_width", 0))
 		collectionFull := true
 		// values at index 0 of the collection are ignored by convention
 		// since they are used to indicate a value pop

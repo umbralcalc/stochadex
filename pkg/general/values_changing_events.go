@@ -13,9 +13,9 @@ func PartitionEventFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	return []float64{stateHistories[int(
-		params["event_partition_index"][0])].Values.At(
+		params.GetIndex("event_partition_index", 0))].Values.At(
 		0,
-		int(params["event_state_value_index"][0]),
+		int(params.GetIndex("event_state_value_index", 0)),
 	)}
 }
 
@@ -27,7 +27,7 @@ func ParamsEventFunction(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	return params["event"]
+	return params.Get("event")
 }
 
 // ValuesChangingEventsIteration defines an iteration which calls and
@@ -69,7 +69,7 @@ func (v *ValuesChangingEventsIteration) Iterate(
 			timestepsHistory,
 		)
 	} else {
-		if defaults, ok := params["default_values"]; ok {
+		if defaults, ok := params.GetOk("default_values"); ok {
 			return defaults
 		} else {
 			return stateHistories[partitionIndex].Values.RawRowView(0)

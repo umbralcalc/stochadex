@@ -25,15 +25,15 @@ func (p *PosteriorLogNormalisationIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	logDiscount := math.Log(params["past_discounting_factor"][0])
-	logLikes := make([]float64, len(params["loglike_partitions"]))
+	logDiscount := math.Log(params.GetIndex("past_discounting_factor", 0))
+	logLikes := make([]float64, len(params.Get("loglike_partitions")))
 	stateHistoryDepth :=
-		stateHistories[int(params["loglike_partitions"][0])].StateHistoryDepth
+		stateHistories[int(params.GetIndex("loglike_partitions", 0))].StateHistoryDepth
 	logNorms := make([]float64, stateHistoryDepth)
 	for i := 0; i < stateHistoryDepth; i++ {
-		for j, loglikePartition := range params["loglike_partitions"] {
+		for j, loglikePartition := range params.Get("loglike_partitions") {
 			var valueIndex int
-			if v, ok := params["loglike_indices"]; ok {
+			if v, ok := params.GetOk("loglike_indices"); ok {
 				valueIndex = int(v[j])
 			} else {
 				valueIndex = 0

@@ -23,8 +23,8 @@ func (g *GaussianIntegrationKernel) Configure(
 }
 
 func (g *GaussianIntegrationKernel) SetParams(params simulator.Params) {
-	g.stateWidth = int(math.Sqrt(float64(len(params["covariance_matrix"]))))
-	covMatrix := mat.NewSymDense(g.stateWidth, params["covariance_matrix"])
+	g.stateWidth = int(math.Sqrt(float64(len(params.Get("covariance_matrix")))))
+	covMatrix := mat.NewSymDense(g.stateWidth, params.Get("covariance_matrix"))
 	var choleskyDecomp mat.Cholesky
 	ok := choleskyDecomp.Factorize(covMatrix)
 	if !ok {

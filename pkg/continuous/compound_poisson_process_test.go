@@ -18,8 +18,8 @@ func (g *gammaJumpDistribution) NewJump(
 	params simulator.Params,
 	stateElement int,
 ) float64 {
-	g.dist.Alpha = params["gamma_alphas"][stateElement]
-	g.dist.Beta = params["gamma_betas"][stateElement]
+	g.dist.Alpha = params.GetIndex("gamma_alphas", stateElement)
+	g.dist.Beta = params.GetIndex("gamma_betas", stateElement)
 	return g.dist.Rand()
 }
 

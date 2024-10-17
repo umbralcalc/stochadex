@@ -12,8 +12,8 @@ func NextNonEmptyPopIndexFunction(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) (int, bool) {
-	emptyValue := params["empty_value"][0]
-	valuesWidth := int(params["values_state_width"][0])
+	emptyValue := params.GetIndex("empty_value", 0)
+	valuesWidth := int(params.GetIndex("values_state_width", 0))
 	latestValues := stateHistories[partitionIndex].Values.RawRowView(0)
 	for i := 1; i < int(
 		stateHistories[partitionIndex].StateWidth/valuesWidth); i++ {
@@ -49,8 +49,8 @@ func (v *ValuesCollectionPopIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := stateHistories[partitionIndex].Values.RawRowView(0)
-	emptyValue := params["empty_value"][0]
-	valuesWidth := int(params["values_state_width"][0])
+	emptyValue := params.GetIndex("empty_value", 0)
+	valuesWidth := int(params.GetIndex("values_state_width", 0))
 	// clear the last popped values if they exist
 	for i := 0; i < valuesWidth; i++ {
 		outputValues[i] = emptyValue

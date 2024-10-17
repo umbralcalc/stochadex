@@ -30,7 +30,7 @@ func TestStateIterator(t *testing.T) {
 	t.Run(
 		"test the state value channels run",
 		func(t *testing.T) {
-			params := Params{}
+			params := NewParams(make(map[string][]float64))
 			values := []float64{0.0, 1.0, 2.0, 3.0}
 			downstream := &DownstreamStateValues{
 				Channel: make(chan []float64, 10),
@@ -44,7 +44,7 @@ func TestStateIterator(t *testing.T) {
 			}
 			stateValueChannels.BroadcastDownstream(values)
 			stateValueChannels.UpdateUpstreamParams(params)
-			for i, p := range params["test_params"] {
+			for i, p := range params.Get("test_params") {
 				if values[i] != p {
 					panic(fmt.Sprintf("params didn't match: %f %f", values[i], p))
 				}

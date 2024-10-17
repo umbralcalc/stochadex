@@ -49,7 +49,7 @@ func (p *paramMultProcessIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
 	for i := 0; i < stateHistory.StateWidth; i++ {
-		values[i] = stateHistory.Values.At(0, i) * params["multipliers"][i]
+		values[i] = stateHistory.Values.At(0, i) * params.GetIndex("multipliers", i)
 	}
 	return values
 }
@@ -78,7 +78,7 @@ func iterateHistory(c *PartitionCoordinator) {
 		stateHistory.Values.SetRow(0, state)
 		// hard-code in the upstream channel value sending to params downstream
 		if partitionIndex == 1 {
-			c.Iterators[2].Params["multipliers"] = state
+			c.Iterators[2].Params.Set("multipliers", state)
 		}
 	}
 
@@ -110,13 +110,13 @@ func TestPartitionCoordinator(t *testing.T) {
 	t.Run(
 		"test for the correct usage of goroutines in partition manager",
 		func(t *testing.T) {
-			params := make(map[string][]float64)
-			params["multipliers"] = []float64{2.4, 1.0, 4.3}
+			params := NewParams(make(map[string][]float64))
+			params.Set("multipliers", []float64{2.4, 1.0, 4.3})
 			settings := &Settings{
 				Params: []Params{
-					{},
+					NewParams(make(map[string][]float64)),
 					params,
-					{},
+					NewParams(make(map[string][]float64)),
 				},
 				InitStateValues: [][]float64{
 					{7.0, 8.0, 3.0, 7.0, 1.0},

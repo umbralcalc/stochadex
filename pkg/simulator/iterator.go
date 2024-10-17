@@ -47,13 +47,13 @@ func (s *StateValueChannels) UpdateUpstreamParams(params Params) {
 	for name, upstream := range s.Upstreams {
 		switch indices := upstream.Indices; indices {
 		case nil:
-			params[name] = <-upstream.Channel
+			params.Set(name, <-upstream.Channel)
 		default:
 			values := <-upstream.Channel
 			for i, index := range indices {
 				values[i] = values[index]
 			}
-			params[name] = values[:len(indices)]
+			params.Set(name, values[:len(indices)])
 		}
 	}
 }

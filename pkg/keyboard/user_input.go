@@ -46,7 +46,7 @@ func (u *UserInputIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	u.keystrokeMap = make(map[string]int64)
-	for key, vals := range settings.Params[partitionIndex] {
+	for key, vals := range settings.Params[partitionIndex].Map {
 		if strings.Contains(key, "user_input_keystroke_action_") {
 			_, keystroke, ok := strings.Cut(key, "user_input_keystroke_action_")
 			if !ok {
@@ -90,7 +90,7 @@ func (u *UserInputIteration) Iterate(
 		fmt.Println("User input action: " + fmt.Sprintf("%d", act) +
 			" at timestep " + fmt.Sprintf("%f",
 			timestepsHistory.Values.AtVec(0)+timestepsHistory.NextIncrement))
-		params["action"][0] = float64(act)
+		params.Set("action", []float64{float64(act)})
 
 		// allows for graceful exit
 		if event.Key == keyboard.KeyEsc {

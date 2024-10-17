@@ -35,7 +35,7 @@ func (w *WienerProcessIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +
-			math.Sqrt(params["variances"][i]*
+			math.Sqrt(params.GetIndex("variances", i)*
 				timestepsHistory.NextIncrement)*w.unitNormalDist.Rand()
 	}
 	return values

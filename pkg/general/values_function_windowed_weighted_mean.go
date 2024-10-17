@@ -20,13 +20,13 @@ func PastDiscountedDataValuesFunction(
 	stateHistoryDepthIndex int,
 ) []float64 {
 	if stateHistoryDepthIndex == -1 {
-		return params["latest_data_values"]
+		return params.Get("latest_data_values")
 	}
 	functionValue := stateHistories[int(
-		params["data_values_partition"][0])].Values.RawRowView(stateHistoryDepthIndex)
+		params.GetIndex("data_values_partition", 0))].Values.RawRowView(stateHistoryDepthIndex)
 	floats.Scale(
 		math.Pow(
-			params["past_discounting_factor"][0],
+			params.GetIndex("past_discounting_factor", 0),
 			float64(stateHistoryDepthIndex),
 		),
 		functionValue,
@@ -45,20 +45,20 @@ func PastDiscountedOtherValuesFunction(
 	stateHistoryDepthIndex int,
 ) []float64 {
 	if stateHistoryDepthIndex == -1 {
-		return params["latest_other_values"]
+		return params.Get("latest_other_values")
 	}
 	values := make([]float64, 0)
-	for _, index := range params["other_values_indices"] {
+	for _, index := range params.Get("other_values_indices") {
 		values = append(
 			values,
 			stateHistories[int(
-				params["other_values_partition"][0])].Values.At(
+				params.GetIndex("other_values_partition", 0))].Values.At(
 				stateHistoryDepthIndex, int(index)),
 		)
 	}
 	floats.Scale(
 		math.Pow(
-			params["past_discounting_factor"][0],
+			params.GetIndex("past_discounting_factor", 0),
 			float64(stateHistoryDepthIndex),
 		),
 		values,
@@ -76,14 +76,14 @@ func OtherValuesFunction(
 	stateHistoryDepthIndex int,
 ) []float64 {
 	if stateHistoryDepthIndex == -1 {
-		return params["latest_other_values"]
+		return params.Get("latest_other_values")
 	}
 	values := make([]float64, 0)
-	for _, index := range params["other_values_indices"] {
+	for _, index := range params.Get("other_values_indices") {
 		values = append(
 			values,
 			stateHistories[int(
-				params["other_values_partition"][0])].Values.At(
+				params.GetIndex("other_values_partition", 0))].Values.At(
 				stateHistoryDepthIndex, int(index)),
 		)
 	}
@@ -99,14 +99,14 @@ func WeightedMeanValuesFunction(
 	stateHistoryDepthIndex int,
 ) []float64 {
 	normalisation := 0.0
-	weights := params["partition_weights"]
+	weights := params.Get("partition_weights")
 	cumulativeValue := make([]float64, stateHistories[partitionIndex].StateWidth)
 	var values []float64
-	for i, index := range params["partitions_to_weight"] {
+	for i, index := range params.Get("partitions_to_weight") {
 		switch stateHistoryDepthIndex {
 		case -1:
-			values = params["latest_data_values_partition_"+
-				strconv.Itoa(int(index))]
+			values = params.Get("latest_data_values_partition_" +
+				strconv.Itoa(int(index)))
 		default:
 			values = stateHistories[int(index)].Values.RawRowView(
 				stateHistoryDepthIndex)
@@ -130,12 +130,12 @@ func DataValuesVarianceFunction(
 ) []float64 {
 	var varianceValue []float64
 	if stateHistoryDepthIndex == -1 {
-		varianceValue = params["latest_data_values"]
+		varianceValue = params.Get("latest_data_values")
 	} else {
 		varianceValue = stateHistories[int(
-			params["data_values_partition"][0])].Values.RawRowView(stateHistoryDepthIndex)
+			params.GetIndex("data_values_partition", 0))].Values.RawRowView(stateHistoryDepthIndex)
 	}
-	floats.Sub(varianceValue, params["mean"])
+	floats.Sub(varianceValue, params.Get("mean"))
 	floats.Mul(varianceValue, varianceValue)
 	return varianceValue
 }
@@ -149,10 +149,10 @@ func DataValuesFunction(
 	stateHistoryDepthIndex int,
 ) []float64 {
 	if stateHistoryDepthIndex == -1 {
-		return params["latest_data_values"]
+		return params.Get("latest_data_values")
 	}
 	return stateHistories[int(
-		params["data_values_partition"][0])].Values.RawRowView(stateHistoryDepthIndex)
+		params.GetIndex("data_values_partition", 0))].Values.RawRowView(stateHistoryDepthIndex)
 }
 
 // ValuesFunctionWindowedWeightedMeanIteration computes the rolling windowed weighted
@@ -181,8 +181,8 @@ func (v *ValuesFunctionWindowedWeightedMeanIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	latestStateValues := params["latest_data_values"]
-	stateHistory := stateHistories[int(params["data_values_partition"][0])]
+	latestStateValues := params.Get("latest_data_values")
+	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
 	// convention is to use -1 here as the state history depth index of the
 	// very latest function value
 	latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)

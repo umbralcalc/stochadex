@@ -31,9 +31,9 @@ func (b *BinomialObservationProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	outputValues := make([]float64, 0)
-	stateValues := params["observed_values"]
-	probs := params["state_value_observation_probs"]
-	for i, index := range params["state_value_observation_indices"] {
+	stateValues := params.Get("observed_values")
+	probs := params.Get("state_value_observation_probs")
+	for i, index := range params.Get("state_value_observation_indices") {
 		b.binomialDist.N = stateValues[int(index)]
 		b.binomialDist.P = probs[i]
 		outputValues = append(outputValues, b.binomialDist.Rand())

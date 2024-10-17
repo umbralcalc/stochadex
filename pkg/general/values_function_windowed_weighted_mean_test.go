@@ -36,6 +36,7 @@ func TestValuesFunctionWindowedWeightedMeanIteration(t *testing.T) {
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
 					ParamsFromUpstreamPartition: map[string]int{
+						"latest_data_values":             0,
 						"latest_data_values_partition_1": 1,
 						"latest_data_values_partition_2": 2,
 					},

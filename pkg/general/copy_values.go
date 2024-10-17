@@ -22,12 +22,12 @@ func (c *CopyValuesIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	state := make([]float64, 0)
-	for i, index := range params["partition_indices"] {
+	for i, index := range params.Get("partition_indices") {
 		state = append(
 			state,
 			stateHistories[int(index)].Values.At(
 				0,
-				int(params["partition_state_values"][i]),
+				int(params.GetIndex("partition_state_values", i)),
 			),
 		)
 	}

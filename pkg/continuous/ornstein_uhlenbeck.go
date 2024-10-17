@@ -35,9 +35,9 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) +
-			params["thetas"][i]*(params["mus"][i]-
+			params.GetIndex("thetas", i)*(params.GetIndex("mus", i)-
 				stateHistory.Values.At(0, i))*timestepsHistory.NextIncrement +
-			params["sigmas"][i]*math.Sqrt(
+			params.GetIndex("sigmas", i)*math.Sqrt(
 				timestepsHistory.NextIncrement)*o.unitNormalDist.Rand()
 	}
 	return values

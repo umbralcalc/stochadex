@@ -32,7 +32,7 @@ func (c *CategoricalStateTransitionIteration) Configure(
 	transTotal := 0
 	for {
 		trans, ok :=
-			settings.Params[partitionIndex]["transitions_from_"+strconv.Itoa(i)]
+			settings.Params[partitionIndex].GetOk("transitions_from_" + strconv.Itoa(i))
 		if !ok {
 			break
 		}
@@ -54,12 +54,12 @@ func (c *CategoricalStateTransitionIteration) Iterate(
 	cumulatives := make([]float64, 0)
 	cumulatives = append(cumulatives, cumulative)
 	slices := c.rateSlices[int(state[0])]
-	transitionRates := params["transition_rates"][slices[0]:slices[1]]
+	transitionRates := params.Get("transition_rates")[slices[0]:slices[1]]
 	for _, rate := range transitionRates {
 		cumulative += rate
 		cumulatives = append(cumulatives, cumulative)
 	}
-	transitions := params["transitions_from_"+strconv.Itoa(int(state[0]))]
+	transitions := params.Get("transitions_from_" + strconv.Itoa(int(state[0])))
 	event := c.unitUniformDist.Rand()
 	if event*cumulative < cumulatives[0] {
 		return state
