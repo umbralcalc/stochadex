@@ -237,6 +237,11 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 			config.StateHistoryDepth,
 		)
 	}
+	// configure each partition with settings now that we know its
+	// assigned partition index
+	for index, partition := range implementations.Partitions {
+		partition.Iteration.Configure(index, &settings)
+	}
 	return &settings, &implementations
 }
 

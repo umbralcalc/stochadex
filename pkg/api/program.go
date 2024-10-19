@@ -160,10 +160,6 @@ func WriteMainProgram(
 	template.Must(codeTemplate.Parse(`package main
 
 import (
-	"log"
-	"os"
-	"time"
-
 	"github.com/umbralcalc/stochadex/pkg/api"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	{{.ExtraPackages}}
@@ -176,33 +172,16 @@ func main() {
 	for index, partition := range implementations.Partitions {
 		partition.Iteration.Configure(index, &settingsConfig.Simulation.Settings)
 	}
-	if {{.Websocket}} {
-		var dashboardProcess *os.Process
-		if {{.Dashboard}} {
-		    dashboardProcess, err := api.StartReactApp("{{.ReactAppLocation}}")
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer dashboardProcess.Signal(os.Interrupt)
-		}
-        api.StepAndServeWebsocket(
-			&settingsConfig.Simulation.Settings,
-			implementations,
-			time.Duration({{.MillisecondDelay}}),
-			"{{.Handle}}",
-			"{{.Address}}",
-		)
-		if {{.Dashboard}} {
-			dashboardProcess.Signal(os.Interrupt)
-			dashboardProcess.Wait()
-		}
-	} else {
-		coordinator := simulator.NewPartitionCoordinator(
-			&settingsConfig.Simulation.Settings,
-			implementations,
-		)
-		coordinator.Run()
-	}
+    api.Run(
+	    &settingsConfig.Simulation.Settings,
+		implementations,
+	    {{.Websocket}},
+		{{.Dashboard}},
+		{{.MillisecondDelay}},
+		"{{.ReactAppLocation}}",
+		"{{.Handle}}",
+		"{{.Address}}",
+	)
 }`))
 	file, err := os.CreateTemp("/tmp", "*main.go")
 	if err != nil {

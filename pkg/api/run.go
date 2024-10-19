@@ -3,6 +3,7 @@ package api
 import (
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -50,4 +51,44 @@ func StepAndServeWebsocket(
 		},
 	)
 	log.Fatal(http.ListenAndServe(address, nil))
+}
+
+// Run the the main run routine for the API.
+func Run(
+	settings *simulator.Settings,
+	implementations *simulator.Implementations,
+	withWebsocket bool,
+	withDashboard bool,
+	millisecondDelay uint64,
+	reactAppLocation string,
+	handle string,
+	address string,
+) {
+	if withWebsocket {
+		var dashboardProcess *os.Process
+		if withDashboard {
+			dashboardProcess, err := StartReactApp(reactAppLocation)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer dashboardProcess.Signal(os.Interrupt)
+		}
+		StepAndServeWebsocket(
+			settings,
+			implementations,
+			time.Duration(millisecondDelay),
+			handle,
+			address,
+		)
+		if withDashboard {
+			dashboardProcess.Signal(os.Interrupt)
+			dashboardProcess.Wait()
+		}
+	} else {
+		coordinator := simulator.NewPartitionCoordinator(
+			settings,
+			implementations,
+		)
+		coordinator.Run()
+	}
 }
