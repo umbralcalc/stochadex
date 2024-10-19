@@ -103,6 +103,34 @@ func ImplementationsConfigFromStrings(
 	return config
 }
 
+// ApiCodeTemplate is a string representing the template for the API run code.
+var ApiCodeTemplate = `package main
+
+import (
+	"github.com/umbralcalc/stochadex/pkg/api"
+	"github.com/umbralcalc/stochadex/pkg/simulator"
+	{{.ExtraPackages}}
+)
+
+func main() {
+	settingsConfig := api.LoadStochadexConfigSettingsFromYaml("{{.SettingsFile}}")
+	{{.ExtraVars}}
+	implementations := {{.Implementations}}
+	for index, partition := range implementations.Partitions {
+		partition.Iteration.Configure(index, &settingsConfig.Simulation.Settings)
+	}
+    api.Run(
+	    &settingsConfig.Simulation.Settings,
+		implementations,
+	    {{.Websocket}},
+		{{.Dashboard}},
+		{{.MillisecondDelay}},
+		"{{.ReactAppLocation}}",
+		"{{.Handle}}",
+		"{{.Address}}",
+	)
+}`
+
 // WriteMainProgram writes string representations of various types of data
 // to a template /tmp/*main.go file ready for runtime execution in this *main.go.
 func WriteMainProgram(
@@ -157,32 +185,7 @@ func WriteMainProgram(
 		}
 	}
 	codeTemplate := template.New("stochadexMain")
-	template.Must(codeTemplate.Parse(`package main
-
-import (
-	"github.com/umbralcalc/stochadex/pkg/api"
-	"github.com/umbralcalc/stochadex/pkg/simulator"
-	{{.ExtraPackages}}
-)
-
-func main() {
-	settingsConfig := api.LoadStochadexConfigSettingsFromYaml("{{.SettingsFile}}")
-	{{.ExtraVars}}
-	implementations := {{.Implementations}}
-	for index, partition := range implementations.Partitions {
-		partition.Iteration.Configure(index, &settingsConfig.Simulation.Settings)
-	}
-    api.Run(
-	    &settingsConfig.Simulation.Settings,
-		implementations,
-	    {{.Websocket}},
-		{{.Dashboard}},
-		{{.MillisecondDelay}},
-		"{{.ReactAppLocation}}",
-		"{{.Handle}}",
-		"{{.Address}}",
-	)
-}`))
+	template.Must(codeTemplate.Parse(ApiCodeTemplate))
 	file, err := os.CreateTemp("/tmp", "*main.go")
 	if err != nil {
 		err := os.Mkdir("/tmp", 0755)
