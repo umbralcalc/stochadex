@@ -6,6 +6,55 @@ import (
 	"golang.org/x/exp/rand"
 )
 
+// Partition is the config which defines an iteration which acts on a
+// partition of the the global simulation state and its upstream partitions
+// which may provide params for it.
+type Partition struct {
+	Iteration                   Iteration
+	ParamsFromUpstreamPartition map[string]int
+	ParamsFromIndices           map[string][]int
+}
+
+// Implementations defines all of the types that must be implemented in
+// order to configure a stochastic process defined by the stochadex.
+type Implementations struct {
+	Partitions           []Partition
+	OutputCondition      OutputCondition
+	OutputFunction       OutputFunction
+	TerminationCondition TerminationCondition
+	TimestepFunction     TimestepFunction
+}
+
+// PartitionStrings is the yaml-loadable config for a Partition.
+type PartitionStrings struct {
+	Iteration                   string           `yaml:"iteration"`
+	ParamsFromUpstreamPartition map[string]int   `yaml:"params_from_upstream_partition,omitempty"`
+	ParamsFromIndices           map[string][]int `yaml:"params_from_indices,omitempty"`
+}
+
+// ImplementationStrings is the yaml-loadable config which consists of string type
+// names to insert into templating.
+type ImplementationStrings struct {
+	Partitions           []PartitionStrings `yaml:"partitions"`
+	OutputCondition      string             `yaml:"output_condition"`
+	OutputFunction       string             `yaml:"output_function"`
+	TerminationCondition string             `yaml:"termination_condition"`
+	TimestepFunction     string             `yaml:"timestep_function"`
+}
+
+// Settings is the yaml-loadable config which defines all of the
+// settings that can be set for a stochastic process defined by the
+// stochadex.
+type Settings struct {
+	Params                []Params    `yaml:"params"`
+	InitStateValues       [][]float64 `yaml:"init_state_values"`
+	InitTimeValue         float64     `yaml:"init_time_value"`
+	Seeds                 []uint64    `yaml:"seeds"`
+	StateWidths           []int       `yaml:"state_widths"`
+	StateHistoryDepths    []int       `yaml:"state_history_depths"`
+	TimestepsHistoryDepth int         `yaml:"timesteps_history_depth"`
+}
+
 // PartitionConfig defines all of the configuration needed in order to
 // add a partition to a stochadex simulation.
 type PartitionConfig struct {
@@ -19,6 +68,20 @@ type PartitionConfig struct {
 	Seed                        uint64
 	StateWidth                  int
 	StateHistoryDepth           int
+}
+
+// InitParamsInPartitionConfig checks to see if any of the param maps
+// have not been populated and instantiates them if not.
+func InitParamsInPartitionConfig(config *PartitionConfig) {
+	if config.ParamsAsPartitions == nil {
+		config.ParamsAsPartitions = make(map[string][]string)
+	}
+	if config.ParamsFromUpstreamPartition == nil {
+		config.ParamsFromUpstreamPartition = make(map[string]string)
+	}
+	if config.ParamsFromUpstreamIndices == nil {
+		config.ParamsFromUpstreamIndices = make(map[string][]int)
+	}
 }
 
 // SimulationConfig defines all of the additional configuration needed
@@ -46,7 +109,8 @@ type PartitionConfigOrdering struct {
 // computationally downstream partitions after their upstream dependencies.
 func (p *PartitionConfigOrdering) Insert(index int, config *PartitionConfig) {
 	if index < 0 || index > len(p.Names) {
-		panic("inserting out of bounds at index " + strconv.Itoa(index))
+		panic("inserting partition in generator is " +
+			"out of bounds at index " + strconv.Itoa(index))
 	}
 	_, ok := p.ConfigByName[config.Name]
 	if ok {
@@ -113,13 +177,14 @@ func (c *ConfigGenerator) SetPartition(config *PartitionConfig) {
 			}
 		}
 	}
-	c.partitionConfigOrdering.Insert(maxIndex+1, config)
+	InitParamsInPartitionConfig(config)
+	c.partitionConfigOrdering.Insert(maxIndex, config)
 }
 
 // GenerateConfigs generates the necessary Implementation and Settings configs
 // required to create a new PartitionCoordinator based on the currently configured
 // simulation that is represented by the generator.
-func (c *ConfigGenerator) GenerateConfigs() (Implementations, Settings) {
+func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 	implementations := Implementations{
 		Partitions:           make([]Partition, 0),
 		OutputCondition:      c.simulationConfig.OutputCondition,
@@ -172,7 +237,7 @@ func (c *ConfigGenerator) GenerateConfigs() (Implementations, Settings) {
 			config.StateHistoryDepth,
 		)
 	}
-	return implementations, settings
+	return &settings, &implementations
 }
 
 // NewConfigGenerator creates a new ConfigGenerator.
