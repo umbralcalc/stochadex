@@ -169,6 +169,7 @@ func NewPartitionCoordinator(
 			&StateIterator{
 				Iteration:      partition.Iteration,
 				Params:         settings.Params[index],
+				PartitionName:  partition.Name,
 				PartitionIndex: index,
 				ValueChannels: StateValueChannels{
 					Upstreams: upstreamByParams,

@@ -4,6 +4,6 @@ option go_package = "./pkg/simulator";
 
 message DashboardPartitionState {
   double cumulative_timesteps = 1;
-  int64 partition_index = 2;
+  string partition_name = 2;
   repeated double state = 3;
 }

@@ -1,0 +1,14 @@
+name: test
+params:
+  test_params: [0, 1, 2]
+  more_test_params: [3, 4, 5, 6]
+params_as_partitions:
+  some_partition_params: [other_partition, another_partition]
+params_from_upstream_partition:
+  other_test_params: from_this_partition
+params_from_indices:
+  other_test_params: [0, 1, 2, 3, 4, 5]
+init_state_values: [0, 0, 0, 0, 0, 0, 0]
+seed: 12345
+state_width: 7
+state_history_depth: 1

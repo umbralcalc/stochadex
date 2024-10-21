@@ -7,15 +7,15 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<{
     cumulativeTimesteps: number;
-    partitionIndex: number;
+    partitionName: string;
     state: number[];
   }[]>([]);
   const [chartUpdatesEnabled, setChartUpdatesEnabled] = useState(true);
-  const [selectedPartitionIndex, setSelectedPartitionIndex] = useState<string | null>(null);
+  const [selectedPartitionName, setSelectedPartitionName] = useState<string | null>(null);
   const chartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
   const [lineColours, setLineColours] = useState<{
-    [partitionIndexString: string]: { [index: number]: string }
+    [partitionName: string]: { [index: number]: string }
   }>({});
   Chart.register(zoomPlugin);
 
@@ -54,7 +54,7 @@ const Dashboard: React.FC = () => {
 
   // create a memoized version of a function that generates the datasets
   const datasets = useMemo(() => {
-    const result: { [partitionIndex: string]: {
+    const result: { [partitionName: string]: {
       label: string;
       data: {
         x: number;
@@ -67,45 +67,45 @@ const Dashboard: React.FC = () => {
 
     data.forEach((datum) => {
       for (let index = 0; index < datum.state.length; index++) {
-        const partitionIndexString = String(datum.partitionIndex);
+        const partitionName = datum.partitionName;
 
-        if (!(partitionIndexString in lineColours)) {
+        if (!(partitionName in lineColours)) {
           setLineColours((prevLineColours) => ({
             ...prevLineColours,
-            [partitionIndexString]: {},
+            [partitionName]: {},
           }));
-          lineColours[partitionIndexString] = {}
+          lineColours[partitionName] = {}
         }
 
-        if (!(index in lineColours[partitionIndexString])) {
+        if (!(index in lineColours[partitionName])) {
           const colour = getRandomColour()
           setLineColours((prevLineColours) => ({
             ...prevLineColours,
-            [partitionIndexString]: {
-              ...prevLineColours[partitionIndexString],
+            [partitionName]: {
+              ...prevLineColours[partitionName],
               [index]: colour,
             },
           }));
-          lineColours[partitionIndexString][index] = colour
+          lineColours[partitionName][index] = colour
         }
 
-        if (!(partitionIndexString in result)) {
-          result[partitionIndexString] = [];
+        if (!(partitionName in result)) {
+          result[partitionName] = [];
         }
 
-        if (!(index in result[partitionIndexString])) {
-          result[partitionIndexString].push({
+        if (!(index in result[partitionName])) {
+          result[partitionName].push({
             label: `Element ${index}`,
             data: [{
               x: datum.cumulativeTimesteps,
               y: datum.state[index],
             }],
-            borderColor: lineColours[partitionIndexString][index],
+            borderColor: lineColours[partitionName][index],
             borderWidth: 2,
             fill: false,
           });
         } else {
-          result[partitionIndexString][index].data.push({
+          result[partitionName][index].data.push({
             x: datum.cumulativeTimesteps,
             y: datum.state[index],
           })
@@ -129,7 +129,7 @@ const Dashboard: React.FC = () => {
       setData((prevData) => [
         ...prevData, {
           cumulativeTimesteps: decodedMessage.cumulative_timesteps, 
-          partitionIndex: decodedMessage.partition_index, 
+          partitionName: decodedMessage.partition_name, 
           state: decodedMessage.state
         },
       ]);
@@ -144,9 +144,9 @@ const Dashboard: React.FC = () => {
     };
   }, []);
 
-  // Implement a function to update the selected partitionIndex
-  const handlePartitionIndexChange = (partitionIndex: string) => {
-    setSelectedPartitionIndex(partitionIndex);
+  // Implement a function to update the selected partitionName
+  const handlePartitionNameChange = (partitionName: string) => {
+    setSelectedPartitionName(partitionName);
   };
 
   const resetZoom = () => {
@@ -171,16 +171,16 @@ const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!chartRef.current || selectedPartitionIndex === null) return;
+    if (!chartRef.current || selectedPartitionName === null) return;
 
-    if (!datasets[selectedPartitionIndex].length) return;
+    if (!datasets[selectedPartitionName].length) return;
 
     if (chartInstanceRef.current) {
       chartInstanceRef.current.destroy();
     }
 
     const chartData = {
-      datasets: datasets[selectedPartitionIndex],
+      datasets: datasets[selectedPartitionName],
     };
 
     const ctx = chartRef.current.getContext('2d');
@@ -259,7 +259,7 @@ const Dashboard: React.FC = () => {
         },
       });
     }
-  }, [selectedPartitionIndex, chartUpdatesEnabled && datasets]);
+  }, [selectedPartitionName, chartUpdatesEnabled && datasets]);
   
   const handleToggleChartUpdates = () => {
     setChartUpdatesEnabled((prev) => !prev); // Toggle the state between true and false
@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
           {Object.entries(datasets).map(([k, v]) => (
             <button
               key={k}
-              onClick={() => handlePartitionIndexChange(k)}
+              onClick={() => handlePartitionNameChange(k)}
             >
               Show Partition {k}
             </button>

@@ -71,6 +71,7 @@ func (s *StateValueChannels) BroadcastDownstream(stateValues []float64) {
 type StateIterator struct {
 	Iteration       Iteration
 	Params          Params
+	PartitionName   string
 	PartitionIndex  int
 	ValueChannels   StateValueChannels
 	OutputCondition OutputCondition
@@ -92,8 +93,8 @@ func (s *StateIterator) Iterate(
 	// get the new time for output
 	time := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	// also apply the output function if this step requires it
-	if s.OutputCondition.IsOutputStep(s.PartitionIndex, newState, time) {
-		s.OutputFunction.Output(s.PartitionIndex, newState, time)
+	if s.OutputCondition.IsOutputStep(s.PartitionName, newState, time) {
+		s.OutputFunction.Output(s.PartitionName, newState, time)
 	}
 	return newState
 }

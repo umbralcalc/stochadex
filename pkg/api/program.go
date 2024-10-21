@@ -7,100 +7,110 @@ import (
 	"strconv"
 	"text/template"
 
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gopkg.in/yaml.v2"
 )
 
-// SimulationConfigImplementationsStrings is the yaml-loadable config which
-// consists of all the necessary config to load a simulation's implementations
-// into templating.
-type SimulationConfigImplementationStrings struct {
-	Implementations simulator.ImplementationStrings `yaml:"implementations"`
+// PartitionConfigStrings holds the string Iteration implementations
+// and the potential to define extra variables in configuration.
+type PartitionConfigStrings struct {
+	Iteration          string                       `yaml:"iteration"`
+	ExtraVarsByPackage map[string]map[string]string `yaml:"extra_vars_by_package,omitempty"`
 }
 
-// SimulationConfigSettings is the yaml-loadable config which consists of
-// all the necessary config to load a simulation's settings into templating.
-type SimulationConfigSettings struct {
-	Settings simulator.Settings `yaml:"settings"`
+// RunConfig is the yaml-loadable config which consists of all the
+// necessary config data for a simulation run.
+type RunConfig struct {
+	Partitions []simulator.PartitionConfig `yaml:"partitions"`
+	Simulation simulator.SimulationConfig
 }
 
-// StochadexConfigImplementationsStrings is the yaml-loadable config which
-// consists of all the necessary implementations information to compile a
-// stochadex run binary with templating.
-type StochadexConfigImplementationsStrings struct {
-	Simulation          SimulationConfigImplementationStrings              `yaml:"simulation"`
-	EmbeddedSimulations []map[string]SimulationConfigImplementationStrings `yaml:"embedded_simulations,omitempty"`
-	ExtraVarsByPackage  []map[string][]map[string]string                   `yaml:"extra_vars_by_package,omitempty"`
+// GetConfigGenerator returns a config generator which has been configured
+// to produce the settings and implementations based on the configured fields
+// of the RunConfig.
+func (r *RunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
+	generator := simulator.NewConfigGenerator()
+	generator.SetSimulation(&r.Simulation)
+	for _, partition := range r.Partitions {
+		generator.SetPartition(&partition)
+	}
+	return generator
 }
 
-// StochadexConfigSettings is the yaml-loadable config which consists of
-// all the necessary settings information to compile a stochadex run binary
-// with templating.
-type StochadexConfigSettings struct {
-	Simulation          SimulationConfigSettings              `yaml:"simulation"`
-	EmbeddedSimulations []map[string]SimulationConfigSettings `yaml:"embedded_simulations,omitempty"`
+// RunConfigStrings is the yaml-loadable config which consists of
+// all the necessary templating inputs for a simulation run.
+type RunConfigStrings struct {
+	Partitions []PartitionConfigStrings          `yaml:"partitions"`
+	Simulation simulator.SimulationConfigStrings `yaml:"simulation"`
 }
 
-// LoadStochadexConfigSettingsFromYaml creates a new
-// StochadexConfigSettings from a provided yaml path.
-func LoadStochadexConfigSettingsFromYaml(path string) *StochadexConfigSettings {
+// ApiRunConfig is the yaml-loadable config which specifies the loadable
+// config data within the generated code for an API run.
+type ApiRunConfig struct {
+	Main     RunConfig            `yaml:"main_run"`
+	Embedded map[string]RunConfig `yaml:"embedded_runs,omitempty"`
+}
+
+// GetConfigGenerator returns a config generator which has been configured
+// to produce the settings and implementations based on the configured fields
+// of the main RunConfig. This method also takes into account the mappings of
+// embedded simulation runs into the main run.
+func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
+	generator := a.Main.GetConfigGenerator()
+	for name, embeddedRun := range a.Embedded {
+		partition := generator.GetPartition(name)
+		partition.Iteration = general.NewEmbeddedSimulationRunIteration(
+			embeddedRun.GetConfigGenerator().GenerateConfigs(),
+		)
+		generator.ResetPartition(name, partition)
+	}
+	return generator
+}
+
+// LoadApiRunConfigFromYaml creates a new ApiRunConfig from a provided
+// yaml path.
+func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
-	var settings StochadexConfigSettings
-	err = yaml.Unmarshal(yamlFile, &settings)
-	simulator.InitParamsInSettings(&settings.Simulation.Settings)
-	for _, embeddedSims := range settings.EmbeddedSimulations {
-		for _, embeddedSim := range embeddedSims {
-			simulator.InitParamsInSettings(&embeddedSim.Settings)
+	var config ApiRunConfig
+	err = yaml.Unmarshal(yamlFile, &config)
+	for index := range config.Main.Partitions {
+		config.Main.Partitions[index].Init()
+	}
+	for _, embeddedRun := range config.Embedded {
+		for index := range embeddedRun.Partitions {
+			embeddedRun.Partitions[index].Init()
 		}
 	}
 	if err != nil {
 		panic(err)
 	}
-	return &settings
+	return &config
 }
 
-// ImplementationsConfigFromStrings creates a single string representation of
-// the Implementations config struct out of the simulator.ImplementationStrings.
-func ImplementationsConfigFromStrings(
-	implementationStrings simulator.ImplementationStrings,
-) string {
-	config := "&simulator.Implementations{"
-	config += "Partitions: []simulator.Partition{"
-	for _, partition := range implementationStrings.Partitions {
-		config += "{Iteration: " + partition.Iteration
-		config += ", ParamsFromUpstreamPartition: map[string]int{"
-		for params, upstream := range partition.ParamsFromUpstreamPartition {
-			config += `"` + params + `": ` + strconv.Itoa(upstream) + `,`
-		}
-		switch partition.ParamsFromIndices {
-		case nil:
-			config += "},}, "
-		default:
-			config += "}, ParamsFromIndices: map[string][]int{"
-			for params, indices := range partition.ParamsFromIndices {
-				config += `"` + params + `": []int{`
-				for _, index := range indices {
-					config += strconv.Itoa(index) + `, `
-				}
-				config += `},`
-			}
-			config += "},}, "
-		}
+// ApiRunConfigStrings is the yaml-loadable config which specifies the
+// templating inputs for an API run.
+type ApiRunConfigStrings struct {
+	Main     RunConfigStrings            `yaml:"main_run"`
+	Embedded map[string]RunConfigStrings `yaml:"embedded_runs,omitempty"`
+}
+
+// LoadApiRunConfigStringsFromYaml creates a new ApiRunConfigStrings
+// from a provided yaml path.
+func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings {
+	yamlFile, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
 	}
-	config += "}, "
-	config += "OutputCondition: " +
-		implementationStrings.OutputCondition + ", "
-	config += "OutputFunction: " +
-		implementationStrings.OutputFunction + ", "
-	config += "TimestepFunction: " +
-		implementationStrings.TimestepFunction + ", "
-	config += "TerminationCondition: " +
-		implementationStrings.TerminationCondition + ","
-	config += "}"
-	return config
+	var config ApiRunConfigStrings
+	err = yaml.Unmarshal(yamlFile, &config)
+	if err != nil {
+		panic(err)
+	}
+	return &config
 }
 
 // ApiCodeTemplate is a string representing the template for the API run code.
@@ -116,9 +126,6 @@ func main() {
 	settingsConfig := api.LoadStochadexConfigSettingsFromYaml("{{.SettingsFile}}")
 	{{.ExtraVars}}
 	implementations := {{.Implementations}}
-	for index, partition := range implementations.Partitions {
-		partition.Iteration.Configure(index, &settingsConfig.Simulation.Settings)
-	}
     api.Run(
 	    &settingsConfig.Simulation.Settings,
 		implementations,
@@ -135,7 +142,7 @@ func main() {
 // to a template /tmp/*main.go file ready for runtime execution in this *main.go.
 func WriteMainProgram(
 	configFile string,
-	config *StochadexConfigImplementationsStrings,
+	config *ApiRunConfigStrings,
 	dashboard *DashboardConfig,
 ) string {
 	websocketOn := "true"
@@ -144,8 +151,8 @@ func WriteMainProgram(
 		dashboard.Address = "dummy"
 		dashboard.Handle = "dummy"
 	}
-	fmt.Println("\nParsed implementations:")
-	fmt.Println(config.Simulation.Implementations)
+	fmt.Println("\nParsed run config ...")
+	// simulationConfigRender :=
 	implementationsString := ImplementationsConfigFromStrings(
 		config.Simulation.Implementations,
 	)

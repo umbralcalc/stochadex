@@ -1,0 +1,6 @@
+output_condition: "&SomeOutputCondition{}"
+output_function: "&SomeOutputFunction{}"
+termination_condition: "&SomeTerminationCondition{}"
+timestep_function: "&SomeTimestepFunction{}"
+init_time_value: 0.0
+timesteps_history_depth: 1

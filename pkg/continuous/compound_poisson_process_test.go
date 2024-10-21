@@ -49,7 +49,7 @@ func TestCompoundPoissonProcess(t *testing.T) {
 					simulator.Partition{Iteration: iteration},
 				)
 			}
-			store := make([][][]float64, len(settings.StateWidths))
+			store := make(map[string][][]float64)
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},

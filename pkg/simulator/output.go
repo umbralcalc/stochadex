@@ -15,14 +15,14 @@ import (
 // which can be used to outputs data from the stochastic process when the provided
 // OutputCondition is met.
 type OutputFunction interface {
-	Output(partitionIndex int, state []float64, cumulativeTimesteps float64)
+	Output(partitionName string, state []float64, cumulativeTimesteps float64)
 }
 
 // NilOutputFunction outputs nothing from the stochastic process.
 type NilOutputFunction struct{}
 
 func (f *NilOutputFunction) Output(
-	partitionIndex int,
+	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
@@ -32,31 +32,35 @@ func (f *NilOutputFunction) Output(
 type StdoutOutputFunction struct{}
 
 func (s *StdoutOutputFunction) Output(
-	partitionIndex int,
+	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
-	fmt.Println(cumulativeTimesteps, partitionIndex, state)
+	fmt.Println(cumulativeTimesteps, partitionName, state)
 }
 
 // VariableStoreOutputFunction stores the data from the stochastic process in a provided
 // Store variable on the steps when the OutputCondition is met
 type VariableStoreOutputFunction struct {
-	Store [][][]float64
+	Store map[string][][]float64
 }
 
 func (f *VariableStoreOutputFunction) Output(
-	partitionIndex int,
+	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
-	f.Store[partitionIndex] = append(f.Store[partitionIndex], state)
+	if store, ok := f.Store[partitionName]; ok {
+		f.Store[partitionName] = append(store, state)
+	} else {
+		f.Store[partitionName] = [][]float64{state}
+	}
 }
 
 // JsonLogEntry is the format in which the logs are serialised when using the
 // JsonLogOutputFunction.
 type JsonLogEntry struct {
-	PartitionIndex      int       `json:"partition_index"`
+	PartitionName       string    `json:"partition_name"`
 	State               []float64 `json:"state"`
 	CumulativeTimesteps float64   `json:"time"`
 }
@@ -68,12 +72,12 @@ type JsonLogOutputFunction struct {
 }
 
 func (j *JsonLogOutputFunction) Output(
-	partitionIndex int,
+	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
 	logEntry := JsonLogEntry{
-		PartitionIndex:      partitionIndex,
+		PartitionName:       partitionName,
 		State:               state,
 		CumulativeTimesteps: cumulativeTimesteps,
 	}
@@ -109,14 +113,14 @@ type WebsocketOutputFunction struct {
 }
 
 func (w *WebsocketOutputFunction) Output(
-	partitionIndex int,
+	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
 	data, err := proto.Marshal(
 		&DashboardPartitionState{
 			CumulativeTimesteps: cumulativeTimesteps,
-			PartitionIndex:      int64(partitionIndex),
+			PartitionName:       partitionName,
 			State:               state,
 		},
 	)
@@ -157,14 +161,14 @@ func NewWebsocketOutputFunction(
 // OutputCondition is the interface that must be implemented to define when the
 // stochastic process calls the OutputFunction.
 type OutputCondition interface {
-	IsOutputStep(partitionIndex int, state []float64, cumulativeTimesteps float64) bool
+	IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
 }
 
 // NilOutputCondition never outputs.
 type NilOutputCondition struct{}
 
 func (c *NilOutputCondition) IsOutputStep(
-	partitionIndex int,
+	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) bool {
@@ -175,7 +179,7 @@ func (c *NilOutputCondition) IsOutputStep(
 type EveryStepOutputCondition struct{}
 
 func (c *EveryStepOutputCondition) IsOutputStep(
-	partitionIndex int,
+	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) bool {
@@ -190,7 +194,7 @@ type EveryNStepsOutputCondition struct {
 }
 
 func (c *EveryNStepsOutputCondition) IsOutputStep(
-	partitionIndex int,
+	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) bool {

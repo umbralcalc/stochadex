@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"fmt"
 	"strconv"
 
 	"golang.org/x/exp/rand"
@@ -10,6 +11,7 @@ import (
 // partition of the the global simulation state and its upstream partitions
 // which may provide params for it.
 type Partition struct {
+	Name                        string
 	Iteration                   Iteration
 	ParamsFromUpstreamPartition map[string]int
 	ParamsFromIndices           map[string][]int
@@ -23,23 +25,6 @@ type Implementations struct {
 	OutputFunction       OutputFunction
 	TerminationCondition TerminationCondition
 	TimestepFunction     TimestepFunction
-}
-
-// PartitionStrings is the yaml-loadable config for a Partition.
-type PartitionStrings struct {
-	Iteration                   string           `yaml:"iteration"`
-	ParamsFromUpstreamPartition map[string]int   `yaml:"params_from_upstream_partition,omitempty"`
-	ParamsFromIndices           map[string][]int `yaml:"params_from_indices,omitempty"`
-}
-
-// ImplementationStrings is the yaml-loadable config which consists of string type
-// names to insert into templating.
-type ImplementationStrings struct {
-	Partitions           []PartitionStrings `yaml:"partitions"`
-	OutputCondition      string             `yaml:"output_condition"`
-	OutputFunction       string             `yaml:"output_function"`
-	TerminationCondition string             `yaml:"termination_condition"`
-	TimestepFunction     string             `yaml:"timestep_function"`
 }
 
 // Settings is the yaml-loadable config which defines all of the
@@ -56,31 +41,32 @@ type Settings struct {
 }
 
 // PartitionConfig defines all of the configuration needed in order to
-// add a partition to a stochadex simulation.
+// add a partition to a stochadex simulation. This is mostly yaml-loadable,
+// however the Iteration implementation needs to be inserted via templating.
 type PartitionConfig struct {
-	Name                        string
+	Name                        string `yaml:"name"`
 	Iteration                   Iteration
-	Params                      Params
-	ParamsAsPartitions          map[string][]string
-	ParamsFromUpstreamPartition map[string]string
-	ParamsFromUpstreamIndices   map[string][]int
-	InitStateValues             []float64
-	Seed                        uint64
-	StateWidth                  int
-	StateHistoryDepth           int
+	Params                      Params              `yaml:"params"`
+	ParamsAsPartitions          map[string][]string `yaml:"params_as_partitions,omitempty"`
+	ParamsFromUpstreamPartition map[string]string   `yaml:"params_from_upstream_partition,omitempty"`
+	ParamsFromIndices           map[string][]int    `yaml:"params_from_indices,omitempty"`
+	InitStateValues             []float64           `yaml:"init_state_values"`
+	Seed                        uint64              `yaml:"seed"`
+	StateWidth                  int                 `yaml:"state_width"`
+	StateHistoryDepth           int                 `yaml:"state_history_depth"`
 }
 
-// InitParamsInPartitionConfig checks to see if any of the param maps
-// have not been populated and instantiates them if not.
-func InitParamsInPartitionConfig(config *PartitionConfig) {
-	if config.ParamsAsPartitions == nil {
-		config.ParamsAsPartitions = make(map[string][]string)
+// Init checks to see if any of the param maps have not
+// been populated and instantiates them if not.
+func (p *PartitionConfig) Init() {
+	if p.ParamsAsPartitions == nil {
+		p.ParamsAsPartitions = make(map[string][]string)
 	}
-	if config.ParamsFromUpstreamPartition == nil {
-		config.ParamsFromUpstreamPartition = make(map[string]string)
+	if p.ParamsFromUpstreamPartition == nil {
+		p.ParamsFromUpstreamPartition = make(map[string]string)
 	}
-	if config.ParamsFromUpstreamIndices == nil {
-		config.ParamsFromUpstreamIndices = make(map[string][]int)
+	if p.ParamsFromIndices == nil {
+		p.ParamsFromIndices = make(map[string][]int)
 	}
 }
 
@@ -93,6 +79,39 @@ type SimulationConfig struct {
 	TimestepFunction      TimestepFunction
 	InitTimeValue         float64
 	TimestepsHistoryDepth int
+}
+
+// SimulationConfigStrings defines all of the additional configuration
+// needed in order to setup a stochadex simulation run. This is the
+// yaml-loadable version of the config which includes string type names to
+// insert into templating.
+type SimulationConfigStrings struct {
+	OutputCondition       string  `yaml:"output_condition"`
+	OutputFunction        string  `yaml:"output_function"`
+	TerminationCondition  string  `yaml:"termination_condition"`
+	TimestepFunction      string  `yaml:"timestep_function"`
+	InitTimeValue         float64 `yaml:"init_time_value"`
+	TimestepsHistoryDepth int     `yaml:"timesteps_history_depth"`
+}
+
+// RenderTemplate generates a string representation of the corresponding
+// SimulationConfig for templating using the SimulationConfigStrings.
+func (s *SimulationConfigStrings) RenderTemplate() string {
+	return fmt.Sprintf(`SimulationConfig{
+    OutputCondition: %s,
+    OutputFunction: %s,
+	TerminationCondition: %s,
+	TimestepFunction: %s,
+	InitTimeValue: %f,
+	TimestepsHistoryDepth: %d,
+}`,
+		s.OutputCondition,
+		s.OutputFunction,
+		s.TerminationCondition,
+		s.TimestepFunction,
+		s.InitTimeValue,
+		s.TimestepsHistoryDepth,
+	)
 }
 
 // PartitionConfigOrdering is a structure which maintains various representations
@@ -177,8 +196,18 @@ func (c *ConfigGenerator) SetPartition(config *PartitionConfig) {
 			}
 		}
 	}
-	InitParamsInPartitionConfig(config)
+	config.Init()
 	c.partitionConfigOrdering.Insert(maxIndex, config)
+}
+
+// ResetPartition allows the user to reset the config for a partition by name.
+func (c *ConfigGenerator) ResetPartition(name string, config *PartitionConfig) {
+	config.Init()
+	_, ok := c.partitionConfigOrdering.ConfigByName[name]
+	if !ok {
+		panic("partition: " + name + " doesn't exist to reset")
+	}
+	c.partitionConfigOrdering.ConfigByName[name] = config
 }
 
 // GenerateConfigs generates the necessary Implementation and Settings configs
@@ -216,9 +245,10 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 			params.Set(paramName, partitionIndexValues)
 		}
 		partition := Partition{
+			Name:                        name,
 			Iteration:                   config.Iteration,
 			ParamsFromUpstreamPartition: make(map[string]int),
-			ParamsFromIndices:           config.ParamsFromUpstreamIndices,
+			ParamsFromIndices:           config.ParamsFromIndices,
 		}
 		for paramsName, partitionName := range config.ParamsFromUpstreamPartition {
 			partition.ParamsFromUpstreamPartition[paramsName] =

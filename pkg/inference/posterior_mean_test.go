@@ -61,7 +61,7 @@ func TestPosteriorMeanIteration(t *testing.T) {
 			for index, partition := range partitions {
 				partition.Iteration.Configure(index, settings)
 			}
-			store := make([][][]float64, len(settings.StateWidths))
+			store := make(map[string][][]float64)
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},

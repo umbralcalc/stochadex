@@ -61,7 +61,7 @@ func TestDriftDiffusionProcess(t *testing.T) {
 					},
 				},
 			)
-			store := make([][][]float64, len(settings.StateWidths))
+			store := make(map[string][][]float64)
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
