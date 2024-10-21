@@ -1,32 +1,47 @@
-simulation:
-  settings:
+main:
+  partitions:
+  - name: first_wiener_process
     params:
-    - variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-    - variances: [1.0, 1.0, 1.0]
-    - init_time_value: [0.0]
+      variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+    init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
+    seed: 7167
+    state_width: 5
+    state_history_depth: 2
+  - name: second_wiener_process
+    params:
+      variances: [1.0, 1.0, 1.0]
+    init_state_values: [0.0, 0.0, 0.0]
+    seed: 1024
+    state_width: 3
+    state_history_depth: 2
+  - name: embedded_sim
+    params:
+      init_time_value: [0.0]
       burn_in_steps: [0]
-    init_state_values:
-    - [0.45, 1.4, 0.01, -0.13, 0.7]
-    - [0.0, 0.0, 0.0]
-    - [0.45, 1.4, 0.01, -0.13, 0.7, 0.0, 0.0, 0.0, 0.67, -0.01, 0.1]
-    init_time_value: 0.0
-    seeds: [7167, 1024, 111]
-    state_widths: [5, 3, 11]
-    state_history_depths: [2, 2, 2]
-    timesteps_history_depth: 2
-embedded_simulations:
-- embeddedSim:
-    settings:
+    init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7, 0.0, 0.0, 0.0, 0.67, -0.01, 0.1]
+    seed: 111
+    state_width: 11
+    state_history_depth: 2
+embedded:
+  embedded_sim:
+    partitions:
+    - name: first_wiener_process_embed_sim
       params:
-      - variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-      - variances: [1.0, 1.0, 1.0]
-      - {}
-      init_state_values:
-      - [0.45, 1.4, 0.01, -0.13, 0.7]
-      - [0.0, 0.0, 0.0]
-      - [0.67, -0.01, 0.1]
-      init_time_value: 0.0
-      seeds: [7167, 1024, 2939]
-      state_widths: [5, 3, 3]
-      state_history_depths: [2, 2, 2]
-      timesteps_history_depth: 2
+        variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+      init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
+      seed: 7167
+      state_width: 5
+      state_history_depth: 2
+    - name: second_wiener_process_embed_sim
+      params:
+        variances: [1.0, 1.0, 1.0]
+      init_state_values: [0.0, 0.0, 0.0]
+      seed: 1024
+      state_width: 3
+      state_history_depth: 2
+    - name: constant_values_embed_sim
+      params: {}
+      init_state_values: [0.67, -0.01, 0.1]
+      seed: 14462
+      state_width: 3
+      state_history_depth: 2

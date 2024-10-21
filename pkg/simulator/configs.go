@@ -1,7 +1,6 @@
 package simulator
 
 import (
-	"fmt"
 	"strconv"
 
 	"golang.org/x/exp/rand"
@@ -92,26 +91,6 @@ type SimulationConfigStrings struct {
 	TimestepFunction      string  `yaml:"timestep_function"`
 	InitTimeValue         float64 `yaml:"init_time_value"`
 	TimestepsHistoryDepth int     `yaml:"timesteps_history_depth"`
-}
-
-// RenderTemplate generates a string representation of the corresponding
-// SimulationConfig for templating using the SimulationConfigStrings.
-func (s *SimulationConfigStrings) RenderTemplate() string {
-	return fmt.Sprintf(`SimulationConfig{
-    OutputCondition: %s,
-    OutputFunction: %s,
-	TerminationCondition: %s,
-	TimestepFunction: %s,
-	InitTimeValue: %f,
-	TimestepsHistoryDepth: %d,
-}`,
-		s.OutputCondition,
-		s.OutputFunction,
-		s.TerminationCondition,
-		s.TimestepFunction,
-		s.InitTimeValue,
-		s.TimestepsHistoryDepth,
-	)
 }
 
 // PartitionConfigOrdering is a structure which maintains various representations

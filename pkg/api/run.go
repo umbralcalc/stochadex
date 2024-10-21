@@ -14,8 +14,7 @@ import (
 // StepAndServeWebsocket runs a simulation while serving a websocket with
 // the simulator.WebsocketOutputFunction.
 func StepAndServeWebsocket(
-	settings *simulator.Settings,
-	implementations *simulator.Implementations,
+	generator *simulator.ConfigGenerator,
 	stepDelay time.Duration,
 	handle string,
 	address string,
@@ -35,11 +34,12 @@ func StepAndServeWebsocket(
 			defer connection.Close()
 
 			var mutex sync.Mutex
-			implementations.OutputFunction =
+			simulationConfig := generator.GetSimulation()
+			simulationConfig.OutputFunction =
 				simulator.NewWebsocketOutputFunction(connection, &mutex)
+			generator.SetSimulation(simulationConfig)
 			coordinator := simulator.NewPartitionCoordinator(
-				settings,
-				implementations,
+				generator.GenerateConfigs(),
 			)
 
 			var wg sync.WaitGroup
@@ -54,31 +54,23 @@ func StepAndServeWebsocket(
 }
 
 // Run the the main run routine for the API.
-func Run(
-	settings *simulator.Settings,
-	implementations *simulator.Implementations,
-	withWebsocket bool,
-	withDashboard bool,
-	millisecondDelay uint64,
-	reactAppLocation string,
-	handle string,
-	address string,
-) {
-	if withWebsocket {
+func Run(config *ApiRunConfig, dashboard *DashboardConfig) {
+	generator := config.GetConfigGenerator()
+	withDashboard := dashboard.Address != ""
+	if withDashboard {
 		var dashboardProcess *os.Process
 		if withDashboard {
-			dashboardProcess, err := StartReactApp(reactAppLocation)
+			dashboardProcess, err := StartReactApp(dashboard.ReactAppLocation)
 			if err != nil {
 				log.Fatal(err)
 			}
 			defer dashboardProcess.Signal(os.Interrupt)
 		}
 		StepAndServeWebsocket(
-			settings,
-			implementations,
-			time.Duration(millisecondDelay),
-			handle,
-			address,
+			generator,
+			time.Duration(dashboard.MillisecondDelay),
+			dashboard.Handle,
+			dashboard.Address,
 		)
 		if withDashboard {
 			dashboardProcess.Signal(os.Interrupt)
@@ -86,8 +78,7 @@ func Run(
 		}
 	} else {
 		coordinator := simulator.NewPartitionCoordinator(
-			settings,
-			implementations,
+			generator.GenerateConfigs(),
 		)
 		coordinator.Run()
 	}

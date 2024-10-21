@@ -5,6 +5,5 @@ import (
 )
 
 func main() {
-	settingsFile, implementations, dashboard := api.ArgParse()
-	api.RunWithParsedArgs(settingsFile, implementations, dashboard)
+	api.RunWithParsedArgs(api.ArgParse())
 }

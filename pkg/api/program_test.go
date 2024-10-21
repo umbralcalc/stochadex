@@ -10,111 +10,134 @@ func TestRunWithParsedArgs(t *testing.T) {
 	t.Run(
 		"test the program runner with parsed args",
 		func(t *testing.T) {
-			config := &StochadexConfigImplementationsStrings{
-				Simulation: SimulationConfigImplementationStrings{
-					Implementations: simulator.ImplementationStrings{
-						Partitions: []simulator.PartitionStrings{
-							{
-								Iteration: "firstWienerProcess",
-							},
-							{
-								Iteration: "secondWienerProcess",
-							},
-							{
-								Iteration: "constantValues",
+			config := &ApiRunConfigStrings{
+				Main: RunConfigStrings{
+					Partitions: []PartitionConfigStrings{
+						{
+							Name:          "first_wiener_process",
+							Iteration:     "firstWienerProcess",
+							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+							ExtraVars: []map[string]string{
+								{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},
 							},
 						},
-						OutputCondition:      "&simulator.NilOutputCondition{}",
-						OutputFunction:       "&simulator.NilOutputFunction{}",
-						TerminationCondition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
-						TimestepFunction:     "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
+						{
+							Name:          "second_wiener_process",
+							Iteration:     "secondWienerProcess",
+							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+							ExtraVars: []map[string]string{
+								{"secondWienerProcess": "&continuous.WienerProcessIteration{}"},
+							},
+						},
+						{
+							Name:          "embedded_sim",
+							Iteration:     "constantValues",
+							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/general"},
+							ExtraVars: []map[string]string{
+								{"constantValues": "&general.ConstantValuesIteration{}"},
+							},
+						},
 					},
-				},
-				ExtraVarsByPackage: []map[string][]map[string]string{
-					{
-						"github.com/umbralcalc/stochadex/pkg/general": {
-							{"constantValues": "&general.ConstantValuesIteration{}"},
-						},
-					},
-					{
-						"github.com/umbralcalc/stochadex/pkg/continuous": {
-							{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},
-							{"secondWienerProcess": "&continuous.WienerProcessIteration{}"},
-						},
+					Simulation: simulator.SimulationConfigStrings{
+						OutputCondition:       "&simulator.NilOutputCondition{}",
+						OutputFunction:        "&simulator.NilOutputFunction{}",
+						TerminationCondition:  "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
+						TimestepFunction:      "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
+						InitTimeValue:         0.0,
+						TimestepsHistoryDepth: 2,
 					},
 				},
 			}
 			RunWithParsedArgs(
-				"program_config.yaml",
-				config,
-				&DashboardConfig{},
+				ParsedArgs{
+					ConfigStrings: config,
+					ConfigFile:    "program_config.yaml",
+					DashboardFile: "",
+				},
 			)
 		},
 	)
 	t.Run(
 		"test the program runner with parsed args and embedded simulation",
 		func(t *testing.T) {
-			config := &StochadexConfigImplementationsStrings{
-				Simulation: SimulationConfigImplementationStrings{
-					Implementations: simulator.ImplementationStrings{
-						Partitions: []simulator.PartitionStrings{
-							{
-								Iteration: "firstWienerProcess",
-							},
-							{
-								Iteration: "secondWienerProcess",
-							},
-							{
-								Iteration: "embeddedSim",
+			config := &ApiRunConfigStrings{
+				Main: RunConfigStrings{
+					Partitions: []PartitionConfigStrings{
+						{
+							Name:          "first_wiener_process",
+							Iteration:     "firstWienerProcess",
+							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+							ExtraVars: []map[string]string{
+								{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},
 							},
 						},
-						OutputCondition:      "&simulator.NilOutputCondition{}",
-						OutputFunction:       "&simulator.NilOutputFunction{}",
-						TerminationCondition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
-						TimestepFunction:     "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
-					},
-				},
-				EmbeddedSimulations: []map[string]SimulationConfigImplementationStrings{
-					{"embeddedSim": {
-						Implementations: simulator.ImplementationStrings{
-							Partitions: []simulator.PartitionStrings{
-								{
-									Iteration: "firstWienerProcessEmbedSim",
-								},
-								{
-									Iteration: "secondWienerProcessEmbedSim",
-								},
-								{
-									Iteration: "constantValuesEmbedSim",
-								},
+						{
+							Name:          "second_wiener_process",
+							Iteration:     "secondWienerProcess",
+							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+							ExtraVars: []map[string]string{
+								{"secondWienerProcess": "&continuous.WienerProcessIteration{}"},
 							},
-							OutputCondition:      "&simulator.NilOutputCondition{}",
-							OutputFunction:       "&simulator.NilOutputFunction{}",
-							TerminationCondition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
-							TimestepFunction:     "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
 						},
-					}},
-				},
-				ExtraVarsByPackage: []map[string][]map[string]string{
-					{
-						"github.com/umbralcalc/stochadex/pkg/general": {
-							{"constantValuesEmbedSim": "&general.ConstantValuesIteration{}"},
+						{
+							Name:          "embedded_sim",
+							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/general"},
 						},
 					},
-					{
-						"github.com/umbralcalc/stochadex/pkg/continuous": {
-							{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},
-							{"secondWienerProcess": "&continuous.WienerProcessIteration{}"},
-							{"firstWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
-							{"secondWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
+					Simulation: simulator.SimulationConfigStrings{
+						OutputCondition:       "&simulator.NilOutputCondition{}",
+						OutputFunction:        "&simulator.NilOutputFunction{}",
+						TerminationCondition:  "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
+						TimestepFunction:      "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
+						InitTimeValue:         0.0,
+						TimestepsHistoryDepth: 2,
+					},
+				},
+				Embedded: map[string]RunConfigStrings{
+					"embedded_sim": {
+						Partitions: []PartitionConfigStrings{
+							{
+								Name:          "first_wiener_process_embed_sim",
+								Iteration:     "firstWienerProcessEmbedSim",
+								ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+								ExtraVars: []map[string]string{
+									{"firstWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
+								},
+							},
+							{
+								Name:          "second_wiener_process_embed_sim",
+								Iteration:     "secondWienerProcessEmbedSim",
+								ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+								ExtraVars: []map[string]string{
+									{"secondWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
+								},
+							},
+							{
+								Name:          "constant_values_embed_sim",
+								Iteration:     "constantValuesEmbedSim",
+								ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/general"},
+								ExtraVars: []map[string]string{
+									{"constantValuesEmbedSim": "&general.ConstantValuesIteration{}"},
+								},
+							},
+						},
+						Simulation: simulator.SimulationConfigStrings{
+							OutputCondition:       "&simulator.NilOutputCondition{}",
+							OutputFunction:        "&simulator.NilOutputFunction{}",
+							TerminationCondition:  "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
+							TimestepFunction:      "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
+							InitTimeValue:         0.0,
+							TimestepsHistoryDepth: 2,
 						},
 					},
 				},
 			}
 			RunWithParsedArgs(
-				"program_config.yaml",
-				config,
-				&DashboardConfig{},
+				ParsedArgs{
+					ConfigStrings: config,
+					ConfigFile:    "program_config.yaml",
+					DashboardFile: "",
+				},
 			)
 		},
 	)

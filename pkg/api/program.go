@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"text/template"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
@@ -13,10 +12,12 @@ import (
 )
 
 // PartitionConfigStrings holds the string Iteration implementations
-// and the potential to define extra variables in configuration.
+// and the potential to define extra packages and variables in configuration.
 type PartitionConfigStrings struct {
-	Iteration          string                       `yaml:"iteration"`
-	ExtraVarsByPackage map[string]map[string]string `yaml:"extra_vars_by_package,omitempty"`
+	Name          string              `yaml:"name"`
+	Iteration     string              `yaml:"iteration,omitempty"`
+	ExtraPackages []string            `yaml:"extra_packages,omitempty"`
+	ExtraVars     []map[string]string `yaml:"extra_vars,omitempty"`
 }
 
 // RunConfig is the yaml-loadable config which consists of all the
@@ -48,8 +49,8 @@ type RunConfigStrings struct {
 // ApiRunConfig is the yaml-loadable config which specifies the loadable
 // config data within the generated code for an API run.
 type ApiRunConfig struct {
-	Main     RunConfig            `yaml:"main_run"`
-	Embedded map[string]RunConfig `yaml:"embedded_runs,omitempty"`
+	Main     RunConfig            `yaml:"main"`
+	Embedded map[string]RunConfig `yaml:"embedded,omitempty"`
 }
 
 // GetConfigGenerator returns a config generator which has been configured
@@ -94,8 +95,23 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 // ApiRunConfigStrings is the yaml-loadable config which specifies the
 // templating inputs for an API run.
 type ApiRunConfigStrings struct {
-	Main     RunConfigStrings            `yaml:"main_run"`
-	Embedded map[string]RunConfigStrings `yaml:"embedded_runs,omitempty"`
+	Main     RunConfigStrings            `yaml:"main"`
+	Embedded map[string]RunConfigStrings `yaml:"embedded,omitempty"`
+}
+
+// validateApiRunConfigStrings checks the ApiRunConfigStrings for errors
+// and panics if there are any.
+func validateApiRunConfigStrings(config *ApiRunConfigStrings) {
+	for _, partition := range config.Main.Partitions {
+		if partition.Iteration == "" {
+			_, ok := config.Embedded[partition.Name]
+			if !ok {
+				panic("config omits iteration for partition name: " +
+					partition.Name +
+					" and no embedded simulation runs have this name")
+			}
+		}
+	}
 }
 
 // LoadApiRunConfigStringsFromYaml creates a new ApiRunConfigStrings
@@ -110,7 +126,126 @@ func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings {
 	if err != nil {
 		panic(err)
 	}
+	validateApiRunConfigStrings(&config)
 	return &config
+}
+
+// formatExtraCode takes the parsed args and returns the extra code formatted
+// to work with templating.
+func formatExtraCode(args ParsedArgs) string {
+	extraCode := ""
+	for i, partition := range args.ConfigStrings.Main.Partitions {
+		extraCode += fmt.Sprintf(
+			`config.Main.Partitions[%d].Iteration = %s\n    `,
+			i,
+			partition.Iteration,
+		)
+	}
+	extraCode += fmt.Sprintf(
+		`config.Main.Simulation = SimulationConfig{
+	OutputCondition: %s,
+	OutputFunction: %s,
+	TerminationCondition: %s,
+	TimestepFunction: %s,
+	InitTimeValue: %f,
+	TimestepsHistoryDepth: %d}\n    `,
+		args.ConfigStrings.Main.Simulation.OutputCondition,
+		args.ConfigStrings.Main.Simulation.OutputFunction,
+		args.ConfigStrings.Main.Simulation.TerminationCondition,
+		args.ConfigStrings.Main.Simulation.TimestepFunction,
+		args.ConfigStrings.Main.Simulation.InitTimeValue,
+		args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
+	)
+	for runName, embeddedRun := range args.ConfigStrings.Embedded {
+		for i, partition := range embeddedRun.Partitions {
+			extraCode += fmt.Sprintf(
+				`config.Embedded["%s"].Partitions[%d].Iteration = %s\n    `,
+				runName,
+				i,
+				partition.Iteration,
+			)
+			extraCode += fmt.Sprintf(
+				`config.Embedded["%s"].Simulation = SimulationConfig{
+			OutputCondition: %s,
+			OutputFunction: %s,
+			TerminationCondition: %s,
+			TimestepFunction: %s,
+			InitTimeValue: %f,
+			TimestepsHistoryDepth: %d}\n    `,
+				runName,
+				args.ConfigStrings.Main.Simulation.OutputCondition,
+				args.ConfigStrings.Main.Simulation.OutputFunction,
+				args.ConfigStrings.Main.Simulation.TerminationCondition,
+				args.ConfigStrings.Main.Simulation.TimestepFunction,
+				args.ConfigStrings.Main.Simulation.InitTimeValue,
+				args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
+			)
+		}
+	}
+	return extraCode
+}
+
+// formatExtraVariables takes the parsed args and returns the extra variable
+// declarations formatted to work with templating.
+func formatExtraVariables(args ParsedArgs) string {
+	extraVariables := ""
+	for _, partition := range args.ConfigStrings.Main.Partitions {
+		if partition.ExtraVars == nil {
+			continue
+		}
+		for _, extraVars := range partition.ExtraVars {
+			for varName, varValue := range extraVars {
+				extraVariables += varName + " := " + varValue + "\n    "
+			}
+		}
+	}
+	for _, embeddedRun := range args.ConfigStrings.Embedded {
+		for _, partition := range embeddedRun.Partitions {
+			if partition.ExtraVars == nil {
+				continue
+			}
+			for _, extraVars := range partition.ExtraVars {
+				for varName, varValue := range extraVars {
+					extraVariables += varName + " := " + varValue + "\n    "
+				}
+			}
+		}
+	}
+	return extraVariables
+}
+
+// formatExtraPackages takes the parsed args and returns the extra package
+// imports formatted to work with templating.
+func formatExtraPackages(args ParsedArgs) string {
+	extraPackages := ""
+	extraPackagesSet := make(map[string]bool)
+	if args.ConfigStrings.Embedded != nil {
+		extraPackagesSet["github.com/umbralcalc/stochadex/pkg/general"] = true
+	}
+	for _, partition := range args.ConfigStrings.Main.Partitions {
+		if partition.ExtraPackages == nil {
+			continue
+		}
+		for _, packageName := range partition.ExtraPackages {
+			extraPackagesSet[packageName] = true
+		}
+	}
+	for _, embeddedRun := range args.ConfigStrings.Embedded {
+		for _, partition := range embeddedRun.Partitions {
+			if partition.ExtraPackages == nil {
+				continue
+			}
+			for _, packageName := range partition.ExtraPackages {
+				extraPackagesSet[packageName] = true
+			}
+		}
+	}
+	for extraPackage := range extraPackagesSet {
+		if extraPackage != "" {
+			extraPackages += "\"" + extraPackage + "\"" + "\n    "
+		}
+	}
+	return extraPackages
 }
 
 // ApiCodeTemplate is a string representing the template for the API run code.
@@ -123,74 +258,17 @@ import (
 )
 
 func main() {
-	settingsConfig := api.LoadStochadexConfigSettingsFromYaml("{{.SettingsFile}}")
+	config := api.LoadApiRunConfigFromYaml("{{.ConfigFile}}")
+	dashboard := api.LoadDashboardConfigFromYaml("{{.DashboardFile}}")
 	{{.ExtraVars}}
-	implementations := {{.Implementations}}
-    api.Run(
-	    &settingsConfig.Simulation.Settings,
-		implementations,
-	    {{.Websocket}},
-		{{.Dashboard}},
-		{{.MillisecondDelay}},
-		"{{.ReactAppLocation}}",
-		"{{.Handle}}",
-		"{{.Address}}",
-	)
+	{{.ExtraCode}}
+    api.Run(config, dashboard)
 }`
 
 // WriteMainProgram writes string representations of various types of data
 // to a template /tmp/*main.go file ready for runtime execution in this *main.go.
-func WriteMainProgram(
-	configFile string,
-	config *ApiRunConfigStrings,
-	dashboard *DashboardConfig,
-) string {
-	websocketOn := "true"
-	if dashboard.Address == "" {
-		websocketOn = "false"
-		dashboard.Address = "dummy"
-		dashboard.Handle = "dummy"
-	}
+func WriteMainProgram(args ParsedArgs) string {
 	fmt.Println("\nParsed run config ...")
-	// simulationConfigRender :=
-	implementationsString := ImplementationsConfigFromStrings(
-		config.Simulation.Implementations,
-	)
-	extraVariables := ""
-	extraPackagesSet := make(map[string]bool, 0)
-	for _, extraVarsByPackage := range config.ExtraVarsByPackage {
-		for extraPackage, extraVarsSlice := range extraVarsByPackage {
-			if extraPackage != "" {
-				extraPackagesSet[extraPackage] = true
-			}
-			for _, extraVars := range extraVarsSlice {
-				for varName, varValue := range extraVars {
-					extraVariables += varName + " := " + varValue + "\n    "
-				}
-			}
-		}
-	}
-	if config.EmbeddedSimulations != nil {
-		extraPackagesSet["github.com/umbralcalc/stochadex/pkg/general"] = true
-		for i, embeddedSimulations := range config.EmbeddedSimulations {
-			for varName, configStrings := range embeddedSimulations {
-				extraVariables += varName + "Settings := " +
-					"settingsConfig.EmbeddedSimulations[" + strconv.Itoa(i) + "]" +
-					`["` + varName + `"].Settings` + "\n    "
-				extraVariables += varName +
-					" := general.NewEmbeddedSimulationRunIteration(" +
-					"&" + varName + "Settings, " +
-					ImplementationsConfigFromStrings(configStrings.Implementations) +
-					")" + "\n    "
-			}
-		}
-	}
-	extraPackages := ""
-	for extraPackage := range extraPackagesSet {
-		if extraPackage != "" {
-			extraPackages += "\"" + extraPackage + "\"" + "\n    "
-		}
-	}
 	codeTemplate := template.New("stochadexMain")
 	template.Must(codeTemplate.Parse(ApiCodeTemplate))
 	file, err := os.CreateTemp("/tmp", "*main.go")
@@ -204,16 +282,11 @@ func WriteMainProgram(
 	err = codeTemplate.Execute(
 		file,
 		map[string]string{
-			"SettingsFile":     configFile,
-			"Dashboard":        strconv.FormatBool(dashboard.LaunchDashboard),
-			"Websocket":        websocketOn,
-			"Address":          dashboard.Address,
-			"Handle":           dashboard.Handle,
-			"ReactAppLocation": dashboard.ReactAppLocation,
-			"MillisecondDelay": strconv.Itoa(int(dashboard.MillisecondDelay)),
-			"ExtraVars":        extraVariables,
-			"ExtraPackages":    extraPackages,
-			"Implementations":  implementationsString,
+			"ConfigFile":    args.ConfigFile,
+			"DashboardFile": args.DashboardFile,
+			"ExtraVars":     formatExtraVariables(args),
+			"ExtraPackages": formatExtraPackages(args),
+			"ExtraCode":     formatExtraCode(args),
 		},
 	)
 	if err != nil {
@@ -224,13 +297,9 @@ func WriteMainProgram(
 
 // RunWithParsedArgs takes in the outputs from ArgParse and runs the
 // stochadex with these configurations.
-func RunWithParsedArgs(
-	configFile string,
-	config *StochadexConfigImplementationsStrings,
-	dashboard *DashboardConfig,
-) {
+func RunWithParsedArgs(args ParsedArgs) {
 	// hydrate the template code and write it to a /tmp/*main.go
-	fileName := WriteMainProgram(configFile, config, dashboard)
+	fileName := WriteMainProgram(args)
 	defer os.Remove(fileName)
 
 	// execute the code

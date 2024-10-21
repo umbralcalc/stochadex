@@ -5,16 +5,19 @@ import (
 	"os"
 
 	"github.com/akamensky/argparse"
-	"gopkg.in/yaml.v2"
 )
+
+// ParsedArgs contains the information that needs to pass from the CLI to
+// the runner in order to run the API.
+type ParsedArgs struct {
+	ConfigStrings *ApiRunConfigStrings
+	ConfigFile    string
+	DashboardFile string
+}
 
 // ArgParse builds the configs parsed as args to the stochadex binary and
 // also retrieves other args.
-func ArgParse() (
-	string,
-	*StochadexConfigImplementationsStrings,
-	*DashboardConfig,
-) {
+func ArgParse() ParsedArgs {
 	fmt.Println("\nReading in args...")
 	parser := argparse.NewParser(
 		"stochadex",
@@ -40,30 +43,9 @@ func ArgParse() (
 	if err != nil {
 		fmt.Print(parser.Usage(err))
 	}
-	if *configFile == "" {
-		panic(fmt.Errorf("parsed no config file"))
+	return ParsedArgs{
+		ConfigStrings: LoadApiRunConfigStringsFromYaml(*configFile),
+		ConfigFile:    *configFile,
+		DashboardFile: *dashboardFile,
 	}
-	yamlFile, err := os.ReadFile(*configFile)
-	if err != nil {
-		panic(err)
-	}
-	var implementations StochadexConfigImplementationsStrings
-	err = yaml.Unmarshal(yamlFile, &implementations)
-	if err != nil {
-		panic(err)
-	}
-	dashboardConfig := DashboardConfig{}
-	if *dashboardFile == "" {
-		fmt.Printf("Parsed no dashboard config file: running without dashboard")
-	} else {
-		yamlFile, err := os.ReadFile(*dashboardFile)
-		if err != nil {
-			panic(err)
-		}
-		err = yaml.Unmarshal(yamlFile, &dashboardConfig)
-		if err != nil {
-			panic(err)
-		}
-	}
-	return *configFile, &implementations, &dashboardConfig
 }
