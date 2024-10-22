@@ -28,7 +28,7 @@ func (d *DashboardConfig) Active() bool {
 func LoadDashboardConfigFromYaml(path string) *DashboardConfig {
 	config := DashboardConfig{}
 	if path == "" {
-		fmt.Printf("Parsed no dashboard config file: running without dashboard ... \n")
+		fmt.Printf("\nParsed no dashboard config file: running without dashboard ...\n")
 	} else {
 		yamlFile, err := os.ReadFile(path)
 		if err != nil {

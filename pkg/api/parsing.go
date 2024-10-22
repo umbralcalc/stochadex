@@ -18,7 +18,7 @@ type ParsedArgs struct {
 // ArgParse builds the configs parsed as args to the stochadex binary and
 // also retrieves other args.
 func ArgParse() ParsedArgs {
-	fmt.Println("\nReading in args...")
+	fmt.Println("\nReading in args ...")
 	parser := argparse.NewParser(
 		"stochadex",
 		"A generalised simulation engine",

@@ -1,27 +1,33 @@
-simulation:
-  implementations:
-    partitions:
-    - iteration: firstWienerProcess
-      params_from_upstream_partition: {}
-    - iteration: secondWienerProcess
-      params_from_upstream_partition: {}
+main:
+  partitions:
+  - name: first_wiener_process
+    iteration: firstWienerProcess
+    params:
+      variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+    init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
+    seed: 7167
+    state_width: 5
+    state_history_depth: 1
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/continuous
+    extra_vars:
+    - firstWienerProcess: "&continuous.WienerProcessIteration{}"
+  - name: second_wiener_process
+    iteration: secondWienerProcess
+    params:
+      variances: [1.0, 1.0, 1.0]
+    init_state_values: [0.0, 0.0, 0.0]
+    seed: 2939
+    state_width: 3
+    state_history_depth: 1
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/continuous
+    extra_vars:
+    - secondWienerProcess: "&continuous.WienerProcessIteration{}"
+  simulation:
     output_condition: "&simulator.EveryStepOutputCondition{}"
     output_function: "&simulator.StdoutOutputFunction{}"
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
     timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
-  settings:
-    params:
-    - variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-    - variances: [1.0, 1.0, 1.0]
-    init_state_values:
-    - [0.45, 1.4, 0.01, -0.13, 0.7]
-    - [0.67, -0.01, 0.1]
     init_time_value: 0.0
-    seeds: [7167, 2939]
-    state_widths: [5, 3]
-    state_history_depths: [2, 2]
-    timesteps_history_depth: 2
-extra_vars_by_package:
-- github.com/umbralcalc/stochadex/pkg/continuous:
-  - firstWienerProcess: "&continuous.WienerProcessIteration{}"
-  - secondWienerProcess: "&continuous.WienerProcessIteration{}"
+    timesteps_history_depth: 1

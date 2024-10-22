@@ -24,7 +24,7 @@ type PartitionConfigStrings struct {
 // necessary config data for a simulation run.
 type RunConfig struct {
 	Partitions []simulator.PartitionConfig `yaml:"partitions"`
-	Simulation simulator.SimulationConfig
+	Simulation simulator.SimulationConfig  `yaml:"-"`
 }
 
 // GetConfigGenerator returns a config generator which has been configured
@@ -39,6 +39,13 @@ func (r *RunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	return generator
 }
 
+// EmbeddedRunConfig is the yaml-loadable config which consists of all the
+// necessary config data for an embedded simulation run.
+type EmbeddedRunConfig struct {
+	Name string    `yaml:"name"`
+	Run  RunConfig `yaml:",inline"`
+}
+
 // RunConfigStrings is the yaml-loadable config which consists of
 // all the necessary templating inputs for a simulation run.
 type RunConfigStrings struct {
@@ -46,11 +53,18 @@ type RunConfigStrings struct {
 	Simulation simulator.SimulationConfigStrings `yaml:"simulation"`
 }
 
+// EmbeddedRunConfigStrings is the yaml-loadable config which consists of
+// all the necessary templating inputs for an embedded simulation run.
+type EmbeddedRunConfigStrings struct {
+	Name string           `yaml:"name"`
+	Run  RunConfigStrings `yaml:",inline"`
+}
+
 // ApiRunConfig is the yaml-loadable config which specifies the loadable
 // config data within the generated code for an API run.
 type ApiRunConfig struct {
-	Main     RunConfig            `yaml:"main"`
-	Embedded map[string]RunConfig `yaml:"embedded,omitempty"`
+	Main     RunConfig           `yaml:"main"`
+	Embedded []EmbeddedRunConfig `yaml:"embedded,omitempty"`
 }
 
 // GetConfigGenerator returns a config generator which has been configured
@@ -59,12 +73,12 @@ type ApiRunConfig struct {
 // embedded simulation runs into the main run.
 func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	generator := a.Main.GetConfigGenerator()
-	for name, embeddedRun := range a.Embedded {
-		partition := generator.GetPartition(name)
+	for _, embedded := range a.Embedded {
+		partition := generator.GetPartition(embedded.Name)
 		partition.Iteration = general.NewEmbeddedSimulationRunIteration(
-			embeddedRun.GetConfigGenerator().GenerateConfigs(),
+			embedded.Run.GetConfigGenerator().GenerateConfigs(),
 		)
-		generator.ResetPartition(name, partition)
+		generator.ResetPartition(embedded.Name, partition)
 	}
 	return generator
 }
@@ -81,9 +95,9 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 	for index := range config.Main.Partitions {
 		config.Main.Partitions[index].Init()
 	}
-	for _, embeddedRun := range config.Embedded {
-		for index := range embeddedRun.Partitions {
-			embeddedRun.Partitions[index].Init()
+	for _, embedded := range config.Embedded {
+		for index := range embedded.Run.Partitions {
+			embedded.Run.Partitions[index].Init()
 		}
 	}
 	if err != nil {
@@ -95,16 +109,20 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 // ApiRunConfigStrings is the yaml-loadable config which specifies the
 // templating inputs for an API run.
 type ApiRunConfigStrings struct {
-	Main     RunConfigStrings            `yaml:"main"`
-	Embedded map[string]RunConfigStrings `yaml:"embedded,omitempty"`
+	Main     RunConfigStrings           `yaml:"main"`
+	Embedded []EmbeddedRunConfigStrings `yaml:"embedded,omitempty"`
 }
 
 // validateApiRunConfigStrings checks the ApiRunConfigStrings for errors
 // and panics if there are any.
 func validateApiRunConfigStrings(config *ApiRunConfigStrings) {
+	embeddedNames := make(map[string]bool)
+	for _, embedded := range config.Embedded {
+		embeddedNames[embedded.Name] = true
+	}
 	for _, partition := range config.Main.Partitions {
 		if partition.Iteration == "" {
-			_, ok := config.Embedded[partition.Name]
+			_, ok := embeddedNames[partition.Name]
 			if !ok {
 				panic("config omits iteration for partition name: " +
 					partition.Name +
@@ -139,11 +157,10 @@ func formatExtraCode(args ParsedArgs) string {
 			continue
 		}
 		extraCode += fmt.Sprintf(
-			`config.Main.Partitions[%d].Iteration = %s`,
+			`config.Main.Partitions[%d].Iteration = %s`+"\n    ",
 			i,
 			partition.Iteration,
 		)
-		extraCode += "\n    "
 	}
 	extraCode += fmt.Sprintf(
 		`config.Main.Simulation = simulator.SimulationConfig{
@@ -152,7 +169,7 @@ func formatExtraCode(args ParsedArgs) string {
 	    TerminationCondition: %s,
 	    TimestepFunction: %s,
 	    InitTimeValue: %f,
-	    TimestepsHistoryDepth: %d}`,
+	    TimestepsHistoryDepth: %d}`+"\n    ",
 		args.ConfigStrings.Main.Simulation.OutputCondition,
 		args.ConfigStrings.Main.Simulation.OutputFunction,
 		args.ConfigStrings.Main.Simulation.TerminationCondition,
@@ -160,32 +177,25 @@ func formatExtraCode(args ParsedArgs) string {
 		args.ConfigStrings.Main.Simulation.InitTimeValue,
 		args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
 	)
-	extraCode += "\n    "
-	for runName, embeddedRun := range args.ConfigStrings.Embedded {
-		extraCode += fmt.Sprintf(
-			`if embeddedSim, ok := config.Embedded["%s"]; ok {`,
-			runName,
-		)
-		extraCode += "\n        "
-		for i, partition := range embeddedRun.Partitions {
+	for i, embedded := range args.ConfigStrings.Embedded {
+		for j, partition := range embedded.Run.Partitions {
 			if partition.Iteration == "" {
 				continue
 			}
 			extraCode += fmt.Sprintf(
-				`embeddedSim.Partitions[%d].Iteration = %s`,
-				i,
-				partition.Iteration,
+				`config.Embedded[%d].Run.Partitions[%d].Iteration = %s`+"\n    ",
+				i, j, partition.Iteration,
 			)
-			extraCode += "\n        "
 		}
 		extraCode += fmt.Sprintf(
-			`embeddedSim.Simulation = simulator.SimulationConfig{
+			`config.Embedded[%d].Run.Simulation = simulator.SimulationConfig{
 		    OutputCondition: %s,
 		    OutputFunction: %s,
 		    TerminationCondition: %s,
 		    TimestepFunction: %s,
 		    InitTimeValue: %f,
-		    TimestepsHistoryDepth: %d}`,
+		    TimestepsHistoryDepth: %d}`+"\n    ",
+			i,
 			args.ConfigStrings.Main.Simulation.OutputCondition,
 			args.ConfigStrings.Main.Simulation.OutputFunction,
 			args.ConfigStrings.Main.Simulation.TerminationCondition,
@@ -193,12 +203,6 @@ func formatExtraCode(args ParsedArgs) string {
 			args.ConfigStrings.Main.Simulation.InitTimeValue,
 			args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
 		)
-		extraCode += "\n        "
-		extraCode += fmt.Sprintf(
-			`config.Embedded["%s"] = embeddedSim`,
-			runName,
-		)
-		extraCode += "\n    }"
 	}
 	return extraCode
 }
@@ -217,8 +221,8 @@ func formatExtraVariables(args ParsedArgs) string {
 			}
 		}
 	}
-	for _, embeddedRun := range args.ConfigStrings.Embedded {
-		for _, partition := range embeddedRun.Partitions {
+	for _, embedded := range args.ConfigStrings.Embedded {
+		for _, partition := range embedded.Run.Partitions {
 			if partition.ExtraVars == nil {
 				continue
 			}
@@ -248,8 +252,8 @@ func formatExtraPackages(args ParsedArgs) string {
 			extraPackagesSet[packageName] = true
 		}
 	}
-	for _, embeddedRun := range args.ConfigStrings.Embedded {
-		for _, partition := range embeddedRun.Partitions {
+	for _, embedded := range args.ConfigStrings.Embedded {
+		for _, partition := range embedded.Run.Partitions {
 			if partition.ExtraPackages == nil {
 				continue
 			}

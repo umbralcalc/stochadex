@@ -93,41 +93,44 @@ func TestRunWithParsedArgs(t *testing.T) {
 						TimestepsHistoryDepth: 2,
 					},
 				},
-				Embedded: map[string]RunConfigStrings{
-					"embedded_sim": {
-						Partitions: []PartitionConfigStrings{
-							{
-								Name:          "first_wiener_process_embed_sim",
-								Iteration:     "firstWienerProcessEmbedSim",
-								ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
-								ExtraVars: []map[string]string{
-									{"firstWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
+				Embedded: []EmbeddedRunConfigStrings{
+					{
+						Name: "embedded_sim",
+						Run: RunConfigStrings{
+							Partitions: []PartitionConfigStrings{
+								{
+									Name:          "first_wiener_process_embed_sim",
+									Iteration:     "firstWienerProcessEmbedSim",
+									ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+									ExtraVars: []map[string]string{
+										{"firstWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
+									},
+								},
+								{
+									Name:          "second_wiener_process_embed_sim",
+									Iteration:     "secondWienerProcessEmbedSim",
+									ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+									ExtraVars: []map[string]string{
+										{"secondWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
+									},
+								},
+								{
+									Name:          "constant_values_embed_sim",
+									Iteration:     "constantValuesEmbedSim",
+									ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/general"},
+									ExtraVars: []map[string]string{
+										{"constantValuesEmbedSim": "&general.ConstantValuesIteration{}"},
+									},
 								},
 							},
-							{
-								Name:          "second_wiener_process_embed_sim",
-								Iteration:     "secondWienerProcessEmbedSim",
-								ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
-								ExtraVars: []map[string]string{
-									{"secondWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
-								},
+							Simulation: simulator.SimulationConfigStrings{
+								OutputCondition:       "&simulator.NilOutputCondition{}",
+								OutputFunction:        "&simulator.NilOutputFunction{}",
+								TerminationCondition:  "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
+								TimestepFunction:      "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
+								InitTimeValue:         0.0,
+								TimestepsHistoryDepth: 2,
 							},
-							{
-								Name:          "constant_values_embed_sim",
-								Iteration:     "constantValuesEmbedSim",
-								ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/general"},
-								ExtraVars: []map[string]string{
-									{"constantValuesEmbedSim": "&general.ConstantValuesIteration{}"},
-								},
-							},
-						},
-						Simulation: simulator.SimulationConfigStrings{
-							OutputCondition:       "&simulator.NilOutputCondition{}",
-							OutputFunction:        "&simulator.NilOutputFunction{}",
-							TerminationCondition:  "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
-							TimestepFunction:      "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
-							InitTimeValue:         0.0,
-							TimestepsHistoryDepth: 2,
 						},
 					},
 				},

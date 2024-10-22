@@ -1,3 +1,184 @@
+main:
+  partitions:
+  - name: data_stream
+    iteration: dataStream
+    params:
+      mean: [1.8, 5.0, -7.3, 2.2]
+      covariance_matrix: [2.5, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 4.4, 0.0, 0.0, 0.0, 0.0, 17.0]
+    init_state_values: [1.3, 8.3, -4.9, 1.6]
+    seed: 291
+    state_width: 4
+    state_history_depth: 500
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/inference
+    extra_vars:
+    - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
+    - dataStream: "&inference.DataGenerationIteration{Likelihood: likelihoodForGen}"
+  - name: data_rolling_mean
+    iteration: dataRollingMean
+    params:
+      exponential_weighting_timescale: [100.0]
+    params_as_partitions:
+      data_values_partition: [data_stream]
+    params_from_upstream_partition:
+      "latest_data_values": data_stream
+    init_state_values: [1.1, 4.0, -8.3, 2.0]
+    seed: 0
+    state_width: 4
+    state_history_depth: 200
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/kernels
+    - github.com/umbralcalc/stochadex/pkg/general
+    extra_vars:
+    - expKernel: "&kernels.ExponentialIntegrationKernel{}"
+    - dataRollingMean: "&general.ValuesFunctionWindowedWeightedMeanIteration{Function: general.DataValuesFunction, Kernel: expKernel}"
+  - name: data_rolling_cov
+    iteration: dataRollingCov
+    params:
+      exponential_weighting_timescale: [100.0]
+    params_as_partitions:
+      data_values_partition: [data_stream]
+    params_from_upstream_partition:
+      "latest_data_values": data_stream
+      "mean": data_rolling_mean
+    init_state_values: [4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0]
+    seed: 0
+    state_width: 16
+    state_history_depth: 200
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/kernels
+    - github.com/umbralcalc/stochadex/pkg/general
+    extra_vars:
+    - expKernel: "&kernels.ExponentialIntegrationKernel{}"
+    - dataRollingCov: "&general.ValuesFunctionWindowedWeightedCovarianceIteration{Function: general.DataValuesFunction, Kernel: expKernel}"
+  - name: params_posterior_log_norm
+    iteration: paramsPosteriorLogNorm
+    # params: {}
+    # init_state_values: 
+    # seed: 
+    # state_width: 
+    # state_history_depth:
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/inference
+    extra_vars:
+    - paramsPosteriorLogNorm: "&inference.PosteriorLogNormalisationIteration{}"
+  - name: params_posterior_mean
+    iteration: paramsPosteriorMean
+    # params: {}
+    params_from_upstream_partition:
+      "posterior_log_normalisation": params_posterior_log_norm
+    # init_state_values: 
+    # seed: 
+    # state_width: 
+    # state_history_depth:
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/inference
+    extra_vars:
+    - paramsPosteriorMean: "&inference.PosteriorMeanIteration{}"
+  - name: params_posterior_cov
+    iteration: paramsPosteriorCov
+    # params: {}
+    params_from_upstream_partition:
+      "posterior_log_normalisation": params_posterior_log_norm
+      "mean": params_posterior_mean
+    # init_state_values: 
+    # seed: 
+    # state_width: 
+    # state_history_depth:
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/inference
+    extra_vars:
+    - paramsPosteriorCov: "&inference.PosteriorCovarianceIteration{}"
+  - name: params_generating_process
+    iteration: paramsGeneratingProcess
+    # params: {}
+    params_from_upstream_partition:
+      "mean": params_posterior_mean
+      "covariance_matrix": params_posterior_cov
+    # init_state_values: 
+    # seed: 
+    # state_width: 
+    # state_history_depth:
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/inference
+    extra_vars:
+    - likelihoodForParamsGen: "&inference.NormalLikelihoodDistribution{}"
+    - paramsGeneratingProcess: "&inference.DataGenerationIteration{Likelihood: likelihoodForParamsGen}"
+  - name: ornstein_uhlenbeck_simulation
+    # params: {}
+    params_from_upstream_partition:
+      "0/latest_data_values": data_rolling_mean
+      "1/latest_data_values": data_rolling_cov
+      "2/mus": params_generating_process
+    # init_state_values: 
+    # seed: 
+    # state_width: 
+    # state_history_depth:
+  simulation:
+    output_condition: "&simulator.EveryStepOutputCondition{}"
+    output_function: "&simulator.StdoutOutputFunction{}"
+    termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 2000}"
+    timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
+    init_time_value: 0.0
+    timesteps_history_depth: 500
+embedded:
+  ornstein_uhlenbeck_simulation:
+    partitions:
+    - name: data_rolling_mean_copy
+      iteration: "&general.MemoryIteration{}"
+      # params: {}
+      # init_state_values: 
+      # seed: 
+      # state_width: 
+      # state_history_depth:
+      extra_packages:
+      - github.com/umbralcalc/stochadex/pkg/general
+    - name: data_rolling_cov_copy
+      iteration: "&general.MemoryIteration{}"
+      # params: {}
+      # init_state_values: 
+      # seed: 
+      # state_width: 
+      # state_history_depth:
+      extra_packages:
+      - github.com/umbralcalc/stochadex/pkg/general
+    - name: simulation_iteration
+      iteration: simulationIteration
+      # params: {}
+      # init_state_values: 
+      # seed: 
+      # state_width: 
+      # state_history_depth:
+      extra_packages:
+      - github.com/umbralcalc/stochadex/pkg/continuous
+      extra_vars:
+      - simulationIteration: "&continuous.OrnsteinUhlenbeckIteration{}"
+    - name: data_comparison_to_simulation
+      iteration: dataComparisonToSimulation
+      # params: {}
+      params_from_upstream_partition:
+        "mean": data_rolling_mean_copy
+        "covariance_matrix": data_rolling_cov_copy
+        "latest_data_values": simulation_iteration
+      # init_state_values: 
+      # seed: 
+      # state_width: 
+      # state_history_depth:
+      extra_packages:
+      - github.com/umbralcalc/stochadex/pkg/inference
+      extra_vars:
+      - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"
+      - dataComparisonToSimulation: "&inference.DataComparisonIteration{Likelihood: likelihoodForComp}"
+    simulation:
+      output_condition: "&simulator.NilOutputCondition{}"
+      output_function: "&simulator.NilOutputFunction{}"
+      termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 200}"
+      timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
+      init_time_value: 0.0
+      timesteps_history_depth: 1
+
+
+
 simulation:
   implementations:
     partitions:

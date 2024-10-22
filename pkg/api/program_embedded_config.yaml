@@ -23,25 +23,25 @@ main:
     state_width: 11
     state_history_depth: 2
 embedded:
-  embedded_sim:
-    partitions:
-    - name: first_wiener_process_embed_sim
-      params:
-        variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-      init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
-      seed: 7167
-      state_width: 5
-      state_history_depth: 2
-    - name: second_wiener_process_embed_sim
-      params:
-        variances: [1.0, 1.0, 1.0]
-      init_state_values: [0.0, 0.0, 0.0]
-      seed: 1024
-      state_width: 3
-      state_history_depth: 2
-    - name: constant_values_embed_sim
-      params: {}
-      init_state_values: [0.67, -0.01, 0.1]
-      seed: 14462
-      state_width: 3
-      state_history_depth: 2
+- name: embedded_sim
+  partitions:
+  - name: first_wiener_process_embed_sim
+    params:
+      variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+    init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
+    seed: 7167
+    state_width: 5
+    state_history_depth: 2
+  - name: second_wiener_process_embed_sim
+    params:
+      variances: [1.0, 1.0, 1.0]
+    init_state_values: [0.0, 0.0, 0.0]
+    seed: 1024
+    state_width: 3
+    state_history_depth: 2
+  - name: constant_values_embed_sim
+    params: {}
+    init_state_values: [0.67, -0.01, 0.1]
+    seed: 14462
+    state_width: 3
+    state_history_depth: 2

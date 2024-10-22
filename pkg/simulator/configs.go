@@ -43,8 +43,8 @@ type Settings struct {
 // add a partition to a stochadex simulation. This is mostly yaml-loadable,
 // however the Iteration implementation needs to be inserted via templating.
 type PartitionConfig struct {
-	Name                        string `yaml:"name"`
-	Iteration                   Iteration
+	Name                        string              `yaml:"name"`
+	Iteration                   Iteration           `yaml:"-"`
 	Params                      Params              `yaml:"params"`
 	ParamsAsPartitions          map[string][]string `yaml:"params_as_partitions,omitempty"`
 	ParamsFromUpstreamPartition map[string]string   `yaml:"params_from_upstream_partition,omitempty"`
