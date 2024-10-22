@@ -8,7 +8,7 @@ import (
 // the last values of another partition. If the first value is equal
 // to the "empty_value" param then nothing is pushed.
 func OtherPartitionPushFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -29,7 +29,7 @@ func OtherPartitionPushFunction(
 // assumed to also be another value collection. If the first value
 // is equal to the "empty_value" param then nothing is pushed.
 func PopFromOtherCollectionPushFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -49,7 +49,7 @@ func PopFromOtherCollectionPushFunction(
 // the "next_value_push" params and if the first value is equal
 // to the "empty_value" param then nothing is pushed.
 func ParamValuesPushFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -66,7 +66,7 @@ func ParamValuesPushFunction(
 // output of a user-specified function.
 type ValuesCollectionPushIteration struct {
 	PushFunction func(
-		params simulator.Params,
+		params *simulator.Params,
 		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -80,7 +80,7 @@ func (v *ValuesCollectionPushIteration) Configure(
 }
 
 func (v *ValuesCollectionPushIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

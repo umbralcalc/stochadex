@@ -18,7 +18,7 @@ func (t *testIteration) Configure(
 }
 
 func (t *testIteration) Iterate(
-	params Params,
+	params *Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -43,7 +43,7 @@ func TestStateIterator(t *testing.T) {
 				Downstream: downstream,
 			}
 			stateValueChannels.BroadcastDownstream(values)
-			stateValueChannels.UpdateUpstreamParams(params)
+			stateValueChannels.UpdateUpstreamParams(&params)
 			for i, p := range params.Get("test_params") {
 				if values[i] != p {
 					panic(fmt.Sprintf("params didn't match: %f %f", values[i], p))

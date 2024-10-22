@@ -24,7 +24,7 @@ func (p *PoissonProcessIteration) Configure(
 }
 
 func (p *PoissonProcessIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

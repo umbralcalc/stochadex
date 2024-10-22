@@ -17,15 +17,18 @@ type DashboardConfig struct {
 	LaunchDashboard  bool   `yaml:"launch_dashboard"`
 }
 
+// Active determines whether or not the dashboard should be active.
+func (d *DashboardConfig) Active() bool {
+	return d.Address != ""
+}
+
 // LoadDashboardConfigFromYaml creates a new DashboardConfig from a
 // provided yaml path. If the path is an empty string this outputs a
-// DashboardConfig with empty and dummy fields.
+// DashboardConfig with empty fields.
 func LoadDashboardConfigFromYaml(path string) *DashboardConfig {
 	config := DashboardConfig{}
 	if path == "" {
-		fmt.Printf("Parsed no dashboard config file: running without dashboard")
-		config.Address = "dummy"
-		config.Handle = "dummy"
+		fmt.Printf("Parsed no dashboard config file: running without dashboard ... \n")
 	} else {
 		yamlFile, err := os.ReadFile(path)
 		if err != nil {

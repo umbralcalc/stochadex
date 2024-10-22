@@ -25,7 +25,7 @@ func (b *BernoulliProcessIteration) Configure(
 }
 
 func (b *BernoulliProcessIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

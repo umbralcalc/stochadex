@@ -7,7 +7,7 @@ import (
 // NextNonEmptyPopIndexFunction returns the index of the next non-
 // empty value found in the collection.
 func NextNonEmptyPopIndexFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -29,7 +29,7 @@ func NextNonEmptyPopIndexFunction(
 // depending on the output of a user-specified function.
 type ValuesCollectionPopIteration struct {
 	PopIndexFunction func(
-		params simulator.Params,
+		params *simulator.Params,
 		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -43,7 +43,7 @@ func (v *ValuesCollectionPopIteration) Configure(
 }
 
 func (v *ValuesCollectionPopIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

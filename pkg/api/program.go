@@ -135,20 +135,24 @@ func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings {
 func formatExtraCode(args ParsedArgs) string {
 	extraCode := ""
 	for i, partition := range args.ConfigStrings.Main.Partitions {
+		if partition.Iteration == "" {
+			continue
+		}
 		extraCode += fmt.Sprintf(
-			`config.Main.Partitions[%d].Iteration = %s\n    `,
+			`config.Main.Partitions[%d].Iteration = %s`,
 			i,
 			partition.Iteration,
 		)
+		extraCode += "\n    "
 	}
 	extraCode += fmt.Sprintf(
-		`config.Main.Simulation = SimulationConfig{
-	OutputCondition: %s,
-	OutputFunction: %s,
-	TerminationCondition: %s,
-	TimestepFunction: %s,
-	InitTimeValue: %f,
-	TimestepsHistoryDepth: %d}\n    `,
+		`config.Main.Simulation = simulator.SimulationConfig{
+	    OutputCondition: %s,
+	    OutputFunction: %s,
+	    TerminationCondition: %s,
+	    TimestepFunction: %s,
+	    InitTimeValue: %f,
+	    TimestepsHistoryDepth: %d}`,
 		args.ConfigStrings.Main.Simulation.OutputCondition,
 		args.ConfigStrings.Main.Simulation.OutputFunction,
 		args.ConfigStrings.Main.Simulation.TerminationCondition,
@@ -156,31 +160,45 @@ func formatExtraCode(args ParsedArgs) string {
 		args.ConfigStrings.Main.Simulation.InitTimeValue,
 		args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
 	)
+	extraCode += "\n    "
 	for runName, embeddedRun := range args.ConfigStrings.Embedded {
+		extraCode += fmt.Sprintf(
+			`if embeddedSim, ok := config.Embedded["%s"]; ok {`,
+			runName,
+		)
+		extraCode += "\n        "
 		for i, partition := range embeddedRun.Partitions {
+			if partition.Iteration == "" {
+				continue
+			}
 			extraCode += fmt.Sprintf(
-				`config.Embedded["%s"].Partitions[%d].Iteration = %s\n    `,
-				runName,
+				`embeddedSim.Partitions[%d].Iteration = %s`,
 				i,
 				partition.Iteration,
 			)
-			extraCode += fmt.Sprintf(
-				`config.Embedded["%s"].Simulation = SimulationConfig{
-			OutputCondition: %s,
-			OutputFunction: %s,
-			TerminationCondition: %s,
-			TimestepFunction: %s,
-			InitTimeValue: %f,
-			TimestepsHistoryDepth: %d}\n    `,
-				runName,
-				args.ConfigStrings.Main.Simulation.OutputCondition,
-				args.ConfigStrings.Main.Simulation.OutputFunction,
-				args.ConfigStrings.Main.Simulation.TerminationCondition,
-				args.ConfigStrings.Main.Simulation.TimestepFunction,
-				args.ConfigStrings.Main.Simulation.InitTimeValue,
-				args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
-			)
+			extraCode += "\n        "
 		}
+		extraCode += fmt.Sprintf(
+			`embeddedSim.Simulation = simulator.SimulationConfig{
+		    OutputCondition: %s,
+		    OutputFunction: %s,
+		    TerminationCondition: %s,
+		    TimestepFunction: %s,
+		    InitTimeValue: %f,
+		    TimestepsHistoryDepth: %d}`,
+			args.ConfigStrings.Main.Simulation.OutputCondition,
+			args.ConfigStrings.Main.Simulation.OutputFunction,
+			args.ConfigStrings.Main.Simulation.TerminationCondition,
+			args.ConfigStrings.Main.Simulation.TimestepFunction,
+			args.ConfigStrings.Main.Simulation.InitTimeValue,
+			args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
+		)
+		extraCode += "\n        "
+		extraCode += fmt.Sprintf(
+			`config.Embedded["%s"] = embeddedSim`,
+			runName,
+		)
+		extraCode += "\n    }"
 	}
 	return extraCode
 }

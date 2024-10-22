@@ -8,7 +8,7 @@ import (
 // user-specified function. This iteration is fully stateless.
 type ValuesFunctionIteration struct {
 	Function func(
-		params simulator.Params,
+		params *simulator.Params,
 		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -22,7 +22,7 @@ func (v *ValuesFunctionIteration) Configure(
 }
 
 func (v *ValuesFunctionIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

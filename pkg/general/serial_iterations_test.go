@@ -8,7 +8,7 @@ import (
 
 // addOneTestFunction is just for testing.
 func addOneTestFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

@@ -37,7 +37,7 @@ func (p *PosteriorImportanceResampleIteration) Configure(
 }
 
 func (p *PosteriorImportanceResampleIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

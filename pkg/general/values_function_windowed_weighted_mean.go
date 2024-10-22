@@ -14,7 +14,7 @@ import (
 // discounted by some "past_discounting_factor" in the params, resulting in
 // calculating the past-discounted rolling windowed weighted mean.
 func PastDiscountedDataValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
@@ -39,7 +39,7 @@ func PastDiscountedDataValuesFunction(
 // in the params, resulting in calculating the past-discounted rolling
 // windowed weighted mean of the other partition values.
 func PastDiscountedOtherValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
@@ -70,7 +70,7 @@ func PastDiscountedOtherValuesFunction(
 // resulting in calculating the rolling windowed weighted mean of the other
 // partition values.
 func OtherValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
@@ -93,7 +93,7 @@ func OtherValuesFunction(
 // WeightedMeanValuesFunction computes the weighted mean vector of values from other
 // partitions for the specified partitions in params.
 func WeightedMeanValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
@@ -123,7 +123,7 @@ func WeightedMeanValuesFunction(
 // variance of the "data_values_partition", resulting in calculating its rolling windowed
 // weighted variance.
 func DataValuesVarianceFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
@@ -143,7 +143,7 @@ func DataValuesVarianceFunction(
 // DataValuesFunction just returns the value of the "data_values_partition", resulting
 // in calculating its rolling windowed weighted mean.
 func DataValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
@@ -160,7 +160,7 @@ func DataValuesFunction(
 // and weights specified by an integration kernel.
 type ValuesFunctionWindowedWeightedMeanIteration struct {
 	Function func(
-		params simulator.Params,
+		params *simulator.Params,
 		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		stateHistoryDepthIndex int,
@@ -176,7 +176,7 @@ func (v *ValuesFunctionWindowedWeightedMeanIteration) Configure(
 }
 
 func (v *ValuesFunctionWindowedWeightedMeanIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

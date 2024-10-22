@@ -43,7 +43,7 @@ func (c *CategoricalStateTransitionIteration) Configure(
 }
 
 func (c *CategoricalStateTransitionIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

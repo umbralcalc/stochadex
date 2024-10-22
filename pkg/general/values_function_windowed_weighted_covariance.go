@@ -15,7 +15,7 @@ import (
 // requires a "mean" param vector.
 type ValuesFunctionWindowedWeightedCovarianceIteration struct {
 	Function func(
-		params simulator.Params,
+		params *simulator.Params,
 		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		stateHistoryDepthIndex int,
@@ -31,7 +31,7 @@ func (v *ValuesFunctionWindowedWeightedCovarianceIteration) Configure(
 }
 
 func (v *ValuesFunctionWindowedWeightedCovarianceIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

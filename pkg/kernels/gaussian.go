@@ -19,10 +19,10 @@ func (g *GaussianIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.SetParams(settings.Params[partitionIndex])
+	g.SetParams(&settings.Params[partitionIndex])
 }
 
-func (g *GaussianIntegrationKernel) SetParams(params simulator.Params) {
+func (g *GaussianIntegrationKernel) SetParams(params *simulator.Params) {
 	g.stateWidth = int(math.Sqrt(float64(len(params.Get("covariance_matrix")))))
 	covMatrix := mat.NewSymDense(g.stateWidth, params.Get("covariance_matrix"))
 	var choleskyDecomp mat.Cholesky

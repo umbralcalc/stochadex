@@ -135,7 +135,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 			RunWithParsedArgs(
 				ParsedArgs{
 					ConfigStrings: config,
-					ConfigFile:    "program_config.yaml",
+					ConfigFile:    "program_embedded_config.yaml",
 					DashboardFile: "",
 				},
 			)

@@ -18,7 +18,7 @@ func TestValuesChangingEvents(t *testing.T) {
 				IterationByEvent: map[float64]simulator.Iteration{
 					1: &ValuesFunctionIteration{
 						Function: func(
-							params simulator.Params,
+							params *simulator.Params,
 							partitionIndex int,
 							stateHistories []*simulator.StateHistory,
 							timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -36,7 +36,7 @@ func TestValuesChangingEvents(t *testing.T) {
 				IterationByEvent: map[float64]simulator.Iteration{
 					1: &ValuesFunctionIteration{
 						Function: func(
-							params simulator.Params,
+							params *simulator.Params,
 							partitionIndex int,
 							stateHistories []*simulator.StateHistory,
 							timestepsHistory *simulator.CumulativeTimestepsHistory,

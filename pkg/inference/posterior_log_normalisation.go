@@ -20,7 +20,7 @@ func (p *PosteriorLogNormalisationIteration) Configure(
 }
 
 func (p *PosteriorLogNormalisationIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

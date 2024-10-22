@@ -27,7 +27,7 @@ func (d *DataGenerationIteration) Configure(
 }
 
 func (d *DataGenerationIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

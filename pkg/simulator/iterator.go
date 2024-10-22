@@ -5,14 +5,14 @@ import (
 )
 
 // Iteration is the interface that must be implemented for any partitioned
-// state iteration in the stochadex. Its .Iterate method reads in the Params
-// map, a int partitionIndex, the full current history of all partitions defined
+// state iteration in the stochadex. Its .Iterate method reads in the *Params,
+// a int partitionIndex, the full current history of all partitions defined
 // by a slice []*StateHistory and a *CumulativeTimestepsHistory reference and
 // outputs an updated state history row in the form of a float64 slice.
 type Iteration interface {
 	Configure(partitionIndex int, settings *Settings)
 	Iterate(
-		params Params,
+		params *Params,
 		partitionIndex int,
 		stateHistories []*StateHistory,
 		timestepsHistory *CumulativeTimestepsHistory,
@@ -43,7 +43,7 @@ type StateValueChannels struct {
 
 // UpdateUpstreamParams updates the provided params with the state values
 // which have been provided computationally upstream via channels.
-func (s *StateValueChannels) UpdateUpstreamParams(params Params) {
+func (s *StateValueChannels) UpdateUpstreamParams(params *Params) {
 	for name, upstream := range s.Upstreams {
 		switch indices := upstream.Indices; indices {
 		case nil:
@@ -85,7 +85,7 @@ func (s *StateIterator) Iterate(
 	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
 	newState := s.Iteration.Iterate(
-		s.Params,
+		&s.Params,
 		s.PartitionIndex,
 		stateHistories,
 		timestepsHistory,
@@ -107,7 +107,7 @@ func (s *StateIterator) ReceiveAndIteratePending(
 ) {
 	inputMessage := <-inputChannel
 	// listen to the upstream channels which may set new params
-	s.ValueChannels.UpdateUpstreamParams(s.Params)
+	s.ValueChannels.UpdateUpstreamParams(&s.Params)
 	inputMessage.StateHistories[s.PartitionIndex].NextValues = s.Iterate(
 		inputMessage.StateHistories,
 		inputMessage.TimestepsHistory,

@@ -26,7 +26,7 @@ func (h *HawkesProcessIntensityIteration) Configure(
 }
 
 func (h *HawkesProcessIntensityIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -81,7 +81,7 @@ func (h *HawkesProcessIteration) Configure(
 }
 
 func (h *HawkesProcessIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

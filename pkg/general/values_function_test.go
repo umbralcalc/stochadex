@@ -13,7 +13,7 @@ func TestValuesFunction(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("./values_function_settings.yaml")
 			iteration := &ValuesFunctionIteration{
 				Function: func(
-					params simulator.Params,
+					params *simulator.Params,
 					partitionIndex int,
 					stateHistories []*simulator.StateHistory,
 					timestepsHistory *simulator.CumulativeTimestepsHistory,

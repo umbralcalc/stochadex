@@ -7,7 +7,7 @@ import (
 // PartitionEventFunction provides the capability to set events using
 // the most recent value from the state history of another partition.
 func PartitionEventFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -22,7 +22,7 @@ func PartitionEventFunction(
 // ParamsEventFunction provides the capability to set events using
 // the "event" params.
 func ParamsEventFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -51,7 +51,7 @@ func (v *ValuesChangingEventsIteration) Configure(
 }
 
 func (v *ValuesChangingEventsIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

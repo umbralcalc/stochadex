@@ -14,7 +14,7 @@ func (c *ConstantIntegrationKernel) Configure(
 }
 
 func (c *ConstantIntegrationKernel) SetParams(
-	params simulator.Params,
+	params *simulator.Params,
 ) {
 }
 

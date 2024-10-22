@@ -10,7 +10,7 @@ import (
 // must be implemented to provide a distribution to generate new
 // 'jumps' from in the compound Poisson process.
 type CompoundPoissonProcessJumpDistribution interface {
-	NewJump(params simulator.Params, stateElement int) float64
+	NewJump(params *simulator.Params, stateElement int) float64
 }
 
 // CompoundPoissonProcessIteration defines an iteration for a compound
@@ -32,7 +32,7 @@ func (c *CompoundPoissonProcessIteration) Configure(
 }
 
 func (c *CompoundPoissonProcessIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

@@ -17,11 +17,11 @@ func (c *ConstantGaussianCovarianceKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	c.SetParams(settings.Params[partitionIndex])
+	c.SetParams(&settings.Params[partitionIndex])
 }
 
 func (c *ConstantGaussianCovarianceKernel) SetParams(
-	params simulator.Params,
+	params *simulator.Params,
 ) {
 	c.stateWidth = int(math.Sqrt(float64(len(params.Get("covariance_matrix")))))
 	c.covMatrix = mat.NewSymDense(c.stateWidth, params.Get("covariance_matrix"))

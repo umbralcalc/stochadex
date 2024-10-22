@@ -16,7 +16,7 @@ func (d *doublingProcessIteration) Configure(
 }
 
 func (d *doublingProcessIteration) Iterate(
-	params Params,
+	params *Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -41,7 +41,7 @@ func (p *paramMultProcessIteration) Configure(
 }
 
 func (p *paramMultProcessIteration) Iterate(
-	params Params,
+	params *Params,
 	partitionIndex int,
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,

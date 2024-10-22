@@ -21,7 +21,7 @@ func (p *PosteriorCovarianceIteration) Configure(
 }
 
 func (p *PosteriorCovarianceIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

@@ -66,7 +66,7 @@ type GroupStateValue struct {
 // GroupStateParamValuesFunction generates group values and state values
 // based directly on input params from the user.
 func GroupStateParamValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -89,7 +89,7 @@ func GroupStateParamValuesFunction(
 // directly on input params from the user. In addition, a group value
 // of 0.0 is always used.
 func ZeroGroupStateParamValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -112,7 +112,7 @@ func ZeroGroupStateParamValuesFunction(
 // retrieve the latest corresponding data from the state history of the
 // specified partitions.
 func PartitionRangesValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -142,7 +142,7 @@ func PartitionRangesValuesFunction(
 // retrieve the latest corresponding data from the state history of the
 // specified partitions. In addition, a group value of 0.0 is always used.
 func ZeroGroupPartitionRangesValuesFunction(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -169,7 +169,7 @@ func ZeroGroupPartitionRangesValuesFunction(
 // "value_groups" params.
 type ValuesGroupedAggregationIteration struct {
 	ValuesFunction func(
-		params simulator.Params,
+		params *simulator.Params,
 		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -193,7 +193,7 @@ func (v *ValuesGroupedAggregationIteration) Configure(
 }
 
 func (v *ValuesGroupedAggregationIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

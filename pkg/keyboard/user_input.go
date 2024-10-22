@@ -70,7 +70,7 @@ func (u *UserInputIteration) Configure(
 }
 
 func (u *UserInputIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

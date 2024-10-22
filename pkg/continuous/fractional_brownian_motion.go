@@ -59,7 +59,7 @@ func (f *FractionalBrownianMotionIteration) Configure(
 }
 
 func (f *FractionalBrownianMotionIteration) Iterate(
-	params simulator.Params,
+	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,

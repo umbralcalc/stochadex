@@ -6,7 +6,7 @@ import "github.com/umbralcalc/stochadex/pkg/simulator"
 // for any integration kernel.
 type IntegrationKernel interface {
 	Configure(partitionIndex int, settings *simulator.Settings)
-	SetParams(params simulator.Params)
+	SetParams(params *simulator.Params)
 	Evaluate(
 		currentState []float64,
 		pastState []float64,

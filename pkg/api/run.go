@@ -56,10 +56,10 @@ func StepAndServeWebsocket(
 // Run the the main run routine for the API.
 func Run(config *ApiRunConfig, dashboard *DashboardConfig) {
 	generator := config.GetConfigGenerator()
-	withDashboard := dashboard.Address != ""
-	if withDashboard {
+	activeDashboard := dashboard.Active()
+	if activeDashboard {
 		var dashboardProcess *os.Process
-		if withDashboard {
+		if activeDashboard {
 			dashboardProcess, err := StartReactApp(dashboard.ReactAppLocation)
 			if err != nil {
 				log.Fatal(err)
@@ -72,7 +72,7 @@ func Run(config *ApiRunConfig, dashboard *DashboardConfig) {
 			dashboard.Handle,
 			dashboard.Address,
 		)
-		if withDashboard {
+		if activeDashboard {
 			dashboardProcess.Signal(os.Interrupt)
 			dashboardProcess.Wait()
 		}

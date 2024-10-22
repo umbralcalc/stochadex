@@ -15,7 +15,7 @@ type gammaJumpDistribution struct {
 }
 
 func (g *gammaJumpDistribution) NewJump(
-	params simulator.Params,
+	params *simulator.Params,
 	stateElement int,
 ) float64 {
 	g.dist.Alpha = params.GetIndex("gamma_alphas", stateElement)
