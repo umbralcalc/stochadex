@@ -27,7 +27,7 @@ func TestCoxProcess(t *testing.T) {
 					ParamsFromUpstreamPartition: map[string]int{"rates": 0},
 				},
 			)
-			store := make(map[string][][]float64)
+			store := simulator.NewVariableStore()
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},

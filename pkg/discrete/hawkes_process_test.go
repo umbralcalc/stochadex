@@ -29,7 +29,7 @@ func TestHawkesProcess(t *testing.T) {
 					ParamsFromUpstreamPartition: map[string]int{"intensity": 0},
 				},
 			)
-			store := make(map[string][][]float64)
+			store := simulator.NewVariableStore()
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},

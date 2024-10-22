@@ -61,7 +61,7 @@ func TestDriftDiffusionProcess(t *testing.T) {
 					},
 				},
 			)
-			store := make(map[string][][]float64)
+			store := simulator.NewVariableStore()
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},

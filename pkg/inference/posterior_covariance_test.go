@@ -71,7 +71,7 @@ func TestPosteriorCovarianceIteration(t *testing.T) {
 			for index, partition := range partitions {
 				partition.Iteration.Configure(index, settings)
 			}
-			store := make(map[string][][]float64)
+			store := simulator.NewVariableStore()
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},

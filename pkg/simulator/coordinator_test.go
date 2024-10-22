@@ -144,7 +144,7 @@ func TestPartitionCoordinator(t *testing.T) {
 			for index, partition := range partitions {
 				partition.Iteration.Configure(index, settings)
 			}
-			storeWithGoroutines := make(map[string][][]float64)
+			storeWithGoroutines := NewVariableStore()
 			implementations := &Implementations{
 				Partitions:      partitions,
 				OutputCondition: &EveryStepOutputCondition{},
@@ -156,17 +156,18 @@ func TestPartitionCoordinator(t *testing.T) {
 			}
 			coordWithGoroutines := NewPartitionCoordinator(settings, implementations)
 			coordWithGoroutines.Run()
-			storeWithoutGoroutines := make(map[string][][]float64)
+			storeWithoutGoroutines := NewVariableStore()
 			outputWithoutGoroutines := &VariableStoreOutputFunction{
 				Store: storeWithoutGoroutines,
 			}
 			implementations.OutputFunction = outputWithoutGoroutines
 			coordWithoutGoroutines := NewPartitionCoordinator(settings, implementations)
 			run(coordWithoutGoroutines)
-			for pName, partitionStore := range storeWithoutGoroutines {
-				for tIndex, store := range partitionStore {
-					for eIndex, element := range store {
-						if element != storeWithGoroutines[pName][tIndex][eIndex] {
+			for _, pName := range storeWithoutGoroutines.GetNames() {
+				valuesWithGoroutines := storeWithGoroutines.GetValues(pName)
+				for tIndex, state := range storeWithoutGoroutines.GetValues(pName) {
+					for eIndex, element := range state {
+						if element != valuesWithGoroutines[tIndex][eIndex] {
 							t.Error("outputs with and without goroutines don't match")
 						}
 					}

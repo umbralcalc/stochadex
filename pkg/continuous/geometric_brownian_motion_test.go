@@ -19,7 +19,7 @@ func TestGeometricBrownianMotion(t *testing.T) {
 				iteration.Configure(partitionIndex, settings)
 				partitions = append(partitions, simulator.Partition{Iteration: iteration})
 			}
-			store := make(map[string][][]float64)
+			store := simulator.NewVariableStore()
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
