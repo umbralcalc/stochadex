@@ -25,9 +25,9 @@ func TestValuesFunctionWindowedWeightedMeanIteration(t *testing.T) {
 						Function: OtherValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values":  0,
-						"latest_other_values": 1,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values":  {Upstream: 0},
+						"latest_other_values": {Upstream: 1},
 					},
 				},
 				{
@@ -35,10 +35,10 @@ func TestValuesFunctionWindowedWeightedMeanIteration(t *testing.T) {
 						Function: WeightedMeanValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values":             0,
-						"latest_data_values_partition_1": 1,
-						"latest_data_values_partition_2": 2,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values":             {Upstream: 0},
+						"latest_data_values_partition_1": {Upstream: 1},
+						"latest_data_values_partition_2": {Upstream: 2},
 					},
 				},
 			}

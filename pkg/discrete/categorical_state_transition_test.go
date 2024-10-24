@@ -19,8 +19,8 @@ func TestCategoricalStateTransitionIteration(t *testing.T) {
 				},
 				{
 					Iteration: &CategoricalStateTransitionIteration{},
-					ParamsFromUpstreamPartition: map[string]int{
-						"transition_rates": 0,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"transition_rates": {Upstream: 0},
 					},
 				},
 			}

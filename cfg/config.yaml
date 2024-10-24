@@ -5,9 +5,8 @@ main:
     params:
       variances: [1.0, 1.0, 1.0, 1.0, 1.0]
     init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
-    seed: 7167
-    state_width: 5
     state_history_depth: 1
+    seed: 7167
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/continuous
     extra_vars:
@@ -17,9 +16,8 @@ main:
     params:
       variances: [1.0, 1.0, 1.0]
     init_state_values: [0.0, 0.0, 0.0]
-    seed: 2939
-    state_width: 3
     state_history_depth: 1
+    seed: 2939
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/continuous
     extra_vars:
@@ -30,4 +28,3 @@ main:
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
     timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
     init_time_value: 0.0
-    timesteps_history_depth: 1

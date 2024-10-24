@@ -14,12 +14,14 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 			embeddedSimPartitions = append(
 				embeddedSimPartitions,
 				simulator.Partition{
+					Name:      "embedded_test_partition_1",
 					Iteration: &ConstantValuesIteration{},
 				},
 			)
 			embeddedSimPartitions = append(
 				embeddedSimPartitions,
 				simulator.Partition{
+					Name:      "embedded_test_partition_2",
 					Iteration: &ConstantValuesIteration{},
 				},
 			)
@@ -30,18 +32,21 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
+					Name:      "test_partition_1",
 					Iteration: &ConstantValuesIteration{},
 				},
 			)
 			partitions = append(
 				partitions,
 				simulator.Partition{
+					Name:      "test_partition_2",
 					Iteration: &ConstantValuesIteration{},
 				},
 			)
 			partitions = append(
 				partitions,
 				simulator.Partition{
+					Name: "embedded_test_simulation_run",
 					Iteration: NewEmbeddedSimulationRunIteration(
 						simulator.LoadSettingsFromYaml("./embedded_simulation_run_settings.yaml"),
 						&simulator.Implementations{
@@ -54,6 +59,9 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 							TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 						},
 					),
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"embedded_test_partition_1/test_params": {Upstream: 0},
+					},
 				},
 			)
 			for index, partition := range partitions {

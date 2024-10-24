@@ -19,8 +19,7 @@ func TestConfigGenerator(t *testing.T) {
 					TimestepFunction: &ConstantTimestepFunction{
 						Stepsize: 1.0,
 					},
-					InitTimeValue:         0.0,
-					TimestepsHistoryDepth: 1,
+					InitTimeValue: 0.0,
 				},
 			)
 			generator.SetPartition(
@@ -28,12 +27,11 @@ func TestConfigGenerator(t *testing.T) {
 					Name:      "testPartition1",
 					Iteration: &doublingProcessIteration{},
 					Params:    NewParams(make(map[string][]float64)),
-					ParamsFromUpstreamPartition: map[string]string{
-						"testParams": "testPartition2",
+					ParamsFromUpstream: map[string]NamedUpstreamConfig{
+						"testParams": {Upstream: "testPartition2"},
 					},
 					InitStateValues:   []float64{0.0, 1.0, 2.0},
 					Seed:              0,
-					StateWidth:        3,
 					StateHistoryDepth: 1,
 				},
 			)
@@ -44,13 +42,12 @@ func TestConfigGenerator(t *testing.T) {
 					Params:            NewParams(make(map[string][]float64)),
 					InitStateValues:   []float64{0.0, 1.0},
 					Seed:              0,
-					StateWidth:        2,
 					StateHistoryDepth: 1,
 				},
 			)
 			settings, _ := generator.GenerateConfigs()
-			if settings.Params[0].partitionName != "testPartition2" ||
-				settings.Params[1].partitionName != "testPartition1" {
+			if settings.Params[0].partitionName != "testPartition1" ||
+				settings.Params[1].partitionName != "testPartition2" {
 				panic("ordering of partitions is wrong")
 			}
 			coordinator := NewPartitionCoordinator(generator.GenerateConfigs())

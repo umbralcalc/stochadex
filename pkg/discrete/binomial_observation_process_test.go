@@ -23,8 +23,10 @@ func TestBinomialObservationProcessIteration(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration:                   &BinomialObservationProcessIteration{},
-					ParamsFromUpstreamPartition: map[string]int{"observed_values": 0},
+					Iteration: &BinomialObservationProcessIteration{},
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"observed_values": {Upstream: 0},
+					},
 				},
 			)
 			for index, partition := range partitions {

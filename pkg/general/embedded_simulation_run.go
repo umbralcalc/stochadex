@@ -3,7 +3,6 @@ package general
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -14,6 +13,7 @@ import (
 type EmbeddedSimulationRunIteration struct {
 	settings                     *simulator.Settings
 	implementations              *simulator.Implementations
+	partitionNameToIndex         map[string]int
 	stateMemoryPartitionMappings map[int]int
 	burnInSteps                  int
 }
@@ -25,17 +25,21 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	for index, partition := range e.implementations.Partitions {
 		partition.Iteration.Configure(index, e.settings)
 	}
+	e.partitionNameToIndex = make(map[string]int)
+	for index, partition := range e.implementations.Partitions {
+		e.partitionNameToIndex[partition.Name] = index
+	}
 	e.stateMemoryPartitionMappings = make(map[int]int)
-	pattern := regexp.MustCompile(`(\d+)/(\w+)`)
+	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.Params[partitionIndex].Map {
 		matches := pattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
 			if matches[2] != "state_memory_partition" {
 				continue
 			}
-			inPartition, err := strconv.Atoi(matches[1])
-			if err != nil {
-				panic(err)
+			inPartition, ok := e.partitionNameToIndex[matches[1]]
+			if !ok {
+				panic("input partition was not found in embedded sim")
 			}
 			e.stateMemoryPartitionMappings[int(paramsValues[0])] = inPartition
 		}
@@ -55,13 +59,13 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 
 	// set the initial conditions from params and the other params
 	// that may have been configured
-	pattern := regexp.MustCompile(`(\d+)/(\w+)`)
+	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range params.Map {
 		matches := pattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
-			inPartition, err := strconv.Atoi(matches[1])
-			if err != nil {
-				panic(err)
+			inPartition, ok := e.partitionNameToIndex[matches[1]]
+			if !ok {
+				panic("input partition was not found in embedded sim")
 			}
 			inParamsName := matches[2]
 			switch inParamsName {

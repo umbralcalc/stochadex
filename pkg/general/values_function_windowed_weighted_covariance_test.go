@@ -22,16 +22,18 @@ func TestValuesFunctionWindowedWeightedCovarianceIteration(t *testing.T) {
 						Function: DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{"latest_data_values": 0},
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
+					},
 				},
 				{
 					Iteration: &ValuesFunctionWindowedWeightedCovarianceIteration{
 						Function: DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
-						"mean":               1,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
+						"mean":               {Upstream: 1},
 					},
 				},
 			}

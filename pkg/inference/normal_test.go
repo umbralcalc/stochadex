@@ -31,8 +31,8 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 						Function: general.DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
 					},
 				},
 			)
@@ -43,9 +43,9 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 						Function: general.DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
-						"mean":               1,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
+						"mean":               {Upstream: 1},
 					},
 				},
 			)
@@ -55,10 +55,10 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 					Iteration: &DataComparisonIteration{
 						Likelihood: &NormalLikelihoodDistribution{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
-						"mean":               1,
-						"covariance_matrix":  2,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
+						"mean":               {Upstream: 1},
+						"covariance_matrix":  {Upstream: 2},
 					},
 				},
 			)

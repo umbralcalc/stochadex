@@ -158,24 +158,21 @@ func formatExtraCode(args ParsedArgs) string {
 		}
 		extraCode += fmt.Sprintf(
 			`config.Main.Partitions[%d].Iteration = %s`+"\n    ",
-			i,
-			partition.Iteration,
+			i, partition.Iteration,
 		)
 	}
 	extraCode += fmt.Sprintf(
 		`config.Main.Simulation = simulator.SimulationConfig{
-	    OutputCondition: %s,
-	    OutputFunction: %s,
-	    TerminationCondition: %s,
-	    TimestepFunction: %s,
-	    InitTimeValue: %f,
-	    TimestepsHistoryDepth: %d}`+"\n    ",
+	OutputCondition: %s,
+	OutputFunction: %s,
+	TerminationCondition: %s,
+	TimestepFunction: %s,
+	InitTimeValue: %f}`+"\n    ",
 		args.ConfigStrings.Main.Simulation.OutputCondition,
 		args.ConfigStrings.Main.Simulation.OutputFunction,
 		args.ConfigStrings.Main.Simulation.TerminationCondition,
 		args.ConfigStrings.Main.Simulation.TimestepFunction,
 		args.ConfigStrings.Main.Simulation.InitTimeValue,
-		args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
 	)
 	for i, embedded := range args.ConfigStrings.Embedded {
 		for j, partition := range embedded.Run.Partitions {
@@ -189,19 +186,17 @@ func formatExtraCode(args ParsedArgs) string {
 		}
 		extraCode += fmt.Sprintf(
 			`config.Embedded[%d].Run.Simulation = simulator.SimulationConfig{
-		    OutputCondition: %s,
-		    OutputFunction: %s,
-		    TerminationCondition: %s,
-		    TimestepFunction: %s,
-		    InitTimeValue: %f,
-		    TimestepsHistoryDepth: %d}`+"\n    ",
+		OutputCondition: %s,
+		OutputFunction: %s,
+		TerminationCondition: %s,
+		TimestepFunction: %s,
+		InitTimeValue: %f}`+"\n    ",
 			i,
-			args.ConfigStrings.Main.Simulation.OutputCondition,
-			args.ConfigStrings.Main.Simulation.OutputFunction,
-			args.ConfigStrings.Main.Simulation.TerminationCondition,
-			args.ConfigStrings.Main.Simulation.TimestepFunction,
-			args.ConfigStrings.Main.Simulation.InitTimeValue,
-			args.ConfigStrings.Main.Simulation.TimestepsHistoryDepth,
+			embedded.Run.Simulation.OutputCondition,
+			embedded.Run.Simulation.OutputFunction,
+			embedded.Run.Simulation.TerminationCondition,
+			embedded.Run.Simulation.TimestepFunction,
+			embedded.Run.Simulation.InitTimeValue,
 		)
 	}
 	return extraCode

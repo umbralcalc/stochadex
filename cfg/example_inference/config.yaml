@@ -6,9 +6,8 @@ main:
       mean: [1.8, 5.0, -7.3, 2.2]
       covariance_matrix: [2.5, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 4.4, 0.0, 0.0, 0.0, 0.0, 17.0]
     init_state_values: [1.3, 8.3, -4.9, 1.6]
-    seed: 291
-    state_width: 4
     state_history_depth: 500
+    seed: 291
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
@@ -20,12 +19,12 @@ main:
       exponential_weighting_timescale: [100.0]
     params_as_partitions:
       data_values_partition: [data_stream]
-    params_from_upstream_partition:
-      "latest_data_values": data_stream
+    params_from_upstream:
+      latest_data_values: 
+        upstream: data_stream
     init_state_values: [1.1, 4.0, -8.3, 2.0]
-    seed: 0
-    state_width: 4
     state_history_depth: 200
+    seed: 0
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/kernels
     - github.com/umbralcalc/stochadex/pkg/general
@@ -38,13 +37,14 @@ main:
       exponential_weighting_timescale: [100.0]
     params_as_partitions:
       data_values_partition: [data_stream]
-    params_from_upstream_partition:
-      "latest_data_values": data_stream
-      "mean": data_rolling_mean
+    params_from_upstream:
+      latest_data_values: 
+        upstream: data_stream
+      mean: 
+        upstream: data_rolling_mean
     init_state_values: [4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0]
-    seed: 0
-    state_width: 16
     state_history_depth: 200
+    seed: 0
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/kernels
     - github.com/umbralcalc/stochadex/pkg/general
@@ -59,9 +59,8 @@ main:
     params_as_partitions:
       loglike_partitions: [ornstein_uhlenbeck_simulation]
     init_state_values: [0.0]
-    seed: 0
-    state_width: 1
     state_history_depth: 1
+    seed: 0
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
@@ -73,12 +72,12 @@ main:
     params_as_partitions:
       param_partitions: [params_generating_process]
       loglike_partitions: [ornstein_uhlenbeck_simulation]
-    params_from_upstream_partition:
-      "posterior_log_normalisation": params_posterior_log_norm
+    params_from_upstream:
+      posterior_log_normalisation: 
+        upstream: params_posterior_log_norm
     init_state_values: [0.9, 3.5, -4.7, 1.0]
-    seed: 0
-    state_width: 4
     state_history_depth: 1
+    seed: 0
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
@@ -90,13 +89,14 @@ main:
     params_as_partitions:
       param_partitions: [params_generating_process]
       loglike_partitions: [ornstein_uhlenbeck_simulation]
-    params_from_upstream_partition:
-      "posterior_log_normalisation": params_posterior_log_norm
-      "mean": params_posterior_mean
+    params_from_upstream:
+      posterior_log_normalisation: 
+        upstream: params_posterior_log_norm
+      mean: 
+        upstream: params_posterior_mean
     init_state_values: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-    seed: 0
-    state_width: 16
     state_history_depth: 1
+    seed: 0
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
@@ -105,13 +105,14 @@ main:
     iteration: paramsGeneratingProcess
     params:
       default_covariance: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-    params_from_upstream_partition:
-      "mean": params_posterior_mean
-      "covariance_matrix": params_posterior_cov
+    params_from_upstream:
+      mean: 
+        upstream: params_posterior_mean
+      covariance_matrix: 
+        upstream: params_posterior_cov
     init_state_values: [0.9, 3.5, -4.7, 1.0]
-    seed: 112424
-    state_width: 4
     state_history_depth: 1
+    seed: 112424
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
@@ -121,23 +122,24 @@ main:
     params:
       burn_in_steps: [800]
     params_as_partitions:
-      0/state_memory_partition: [data_rolling_mean]
-      1/state_memory_partition: [data_rolling_cov]
-    params_from_upstream_partition:
-      "0/latest_data_values": data_rolling_mean
-      "1/latest_data_values": data_rolling_cov
-      "2/mus": params_generating_process
+      data_rolling_mean_copy/state_memory_partition: [data_rolling_mean]
+      data_rolling_cov_copy/state_memory_partition: [data_rolling_cov]
+    params_from_upstream:
+      data_rolling_mean_copy/latest_data_values: 
+        upstream: data_rolling_mean
+      data_rolling_cov_copy/latest_data_values: 
+        upstream: data_rolling_cov
+      simulation_iteration/mus: 
+        upstream: params_generating_process
     init_state_values: [1.1, 4.0, -8.3, 2.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.3, 8.3, -4.9, 1.6, 0.0]
-    seed: 6542
-    state_width: 25
     state_history_depth: 200
+    seed: 6542
   simulation:
     output_condition: "&simulator.EveryStepOutputCondition{}"
     output_function: "&simulator.StdoutOutputFunction{}"
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 2000}"
     timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
     init_time_value: 0.0
-    timesteps_history_depth: 500
 embedded:
 - name: ornstein_uhlenbeck_simulation
   partitions:
@@ -145,18 +147,16 @@ embedded:
     iteration: "&general.MemoryIteration{}"
     params: {}
     init_state_values: [1.1, 4.0, -8.3, 2.0]
-    seed: 0
-    state_width: 4
     state_history_depth: 1
+    seed: 0
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/general
   - name: data_rolling_cov_copy
     iteration: "&general.MemoryIteration{}"
     params: {}
     init_state_values: [4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0]
-    seed: 0
-    state_width: 16
     state_history_depth: 1
+    seed: 0
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/general
   - name: simulation_iteration
@@ -166,9 +166,8 @@ embedded:
       sigmas: [1.5, 3.0, 2.2, 4.1]
       thetas: [1.0, 1.0, 1.0, 1.0]
     init_state_values: [1.3, 8.3, -4.9, 1.6]
-    seed: 345122
-    state_width: 4
     state_history_depth: 1
+    seed: 345122
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/continuous
     extra_vars:
@@ -178,14 +177,16 @@ embedded:
     params:
       cumulative: [1]
       burn_in_steps: [50]
-    params_from_upstream_partition:
-      "mean": data_rolling_mean_copy
-      "covariance_matrix": data_rolling_cov_copy
-      "latest_data_values": simulation_iteration
+    params_from_upstream:
+      mean: 
+        upstream: data_rolling_mean_copy
+      covariance_matrix: 
+        upstream: data_rolling_cov_copy
+      latest_data_values: 
+        upstream: simulation_iteration
     init_state_values: [0.0]
-    seed: 0
-    state_width: 1
     state_history_depth: 1
+    seed: 0
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
@@ -197,4 +198,3 @@ embedded:
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 200}"
     timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
     init_time_value: 0.0
-    timesteps_history_depth: 1

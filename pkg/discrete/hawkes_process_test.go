@@ -25,8 +25,10 @@ func TestHawkesProcess(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration:                   hawkesIteration,
-					ParamsFromUpstreamPartition: map[string]int{"intensity": 0},
+					Iteration: hawkesIteration,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"intensity": {Upstream: 0},
+					},
 				},
 			)
 			store := simulator.NewVariableStore()

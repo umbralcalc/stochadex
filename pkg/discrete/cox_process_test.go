@@ -23,8 +23,10 @@ func TestCoxProcess(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration:                   coxIteration,
-					ParamsFromUpstreamPartition: map[string]int{"rates": 0},
+					Iteration: coxIteration,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"rates": {Upstream: 0},
+					},
 				},
 			)
 			store := simulator.NewVariableStore()

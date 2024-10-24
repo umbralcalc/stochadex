@@ -31,8 +31,8 @@ func TestPoissonLogLikelihood(t *testing.T) {
 						Function: general.DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
 					},
 				},
 			)
@@ -42,9 +42,9 @@ func TestPoissonLogLikelihood(t *testing.T) {
 					Iteration: &DataComparisonIteration{
 						Likelihood: &PoissonLikelihoodDistribution{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
-						"mean":               1,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
+						"mean":               {Upstream: 1},
 					},
 				},
 			)

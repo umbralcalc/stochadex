@@ -31,8 +31,8 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 						Function: general.DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
 					},
 				},
 			)
@@ -43,9 +43,9 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 						Function: general.DataValuesVarianceFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
-						"mean":               1,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
+						"mean":               {Upstream: 1},
 					},
 				},
 			)
@@ -55,10 +55,10 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 					Iteration: &DataComparisonIteration{
 						Likelihood: &GammaLikelihoodDistribution{},
 					},
-					ParamsFromUpstreamPartition: map[string]int{
-						"latest_data_values": 0,
-						"mean":               1,
-						"variance":           2,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_data_values": {Upstream: 0},
+						"mean":               {Upstream: 1},
+						"variance":           {Upstream: 2},
 					},
 				},
 			)

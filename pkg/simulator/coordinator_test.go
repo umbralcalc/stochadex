@@ -136,8 +136,8 @@ func TestPartitionCoordinator(t *testing.T) {
 				partitions,
 				Partition{
 					Iteration: &paramMultProcessIteration{},
-					ParamsFromUpstreamPartition: map[string]int{
-						"multipliers": 1,
+					ParamsFromUpstream: map[string]UpstreamConfig{
+						"multipliers": {Upstream: 1},
 					},
 				},
 			)

@@ -53,8 +53,8 @@ func TestPosteriorCovarianceIteration(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &PosteriorMeanIteration{},
-					ParamsFromUpstreamPartition: map[string]int{
-						"posterior_log_normalisation": 4,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"posterior_log_normalisation": {Upstream: 4},
 					},
 				},
 			)
@@ -62,9 +62,9 @@ func TestPosteriorCovarianceIteration(t *testing.T) {
 				partitions,
 				simulator.Partition{
 					Iteration: &PosteriorCovarianceIteration{},
-					ParamsFromUpstreamPartition: map[string]int{
-						"posterior_log_normalisation": 4,
-						"mean":                        5,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"posterior_log_normalisation": {Upstream: 4},
+						"mean":                        {Upstream: 5},
 					},
 				},
 			)
