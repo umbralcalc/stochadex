@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -81,5 +82,21 @@ func Run(config *ApiRunConfig, dashboard *DashboardConfig) {
 			generator.GenerateConfigs(),
 		)
 		coordinator.Run()
+	}
+}
+
+// RunWithParsedArgs takes in the outputs from ArgParse and runs the
+// stochadex with these configurations.
+func RunWithParsedArgs(args ParsedArgs) {
+	// hydrate the template code and write it to a /tmp/*main.go
+	fileName := WriteMainProgram(args)
+	defer os.Remove(fileName)
+
+	// execute the code
+	runCmd := exec.Command("go", "run", fileName)
+	runCmd.Stdout = os.Stdout
+	runCmd.Stderr = os.Stderr
+	if err := runCmd.Run(); err != nil {
+		panic(err)
 	}
 }

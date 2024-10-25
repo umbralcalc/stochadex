@@ -48,7 +48,7 @@ func TestConfigGenerator(t *testing.T) {
 			settings, _ := generator.GenerateConfigs()
 			if settings.Params[0].partitionName != "testPartition1" ||
 				settings.Params[1].partitionName != "testPartition2" {
-				panic("ordering of partitions is wrong")
+				t.Error("ordering of partitions is wrong")
 			}
 			coordinator := NewPartitionCoordinator(generator.GenerateConfigs())
 			coordinator.Run()

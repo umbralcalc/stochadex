@@ -1,0 +1,5 @@
+address: ":2112"
+handle: "/dashboard"
+millisecond_delay: 200
+react_app_location: "app/"
+launch_dashboard: true

@@ -46,7 +46,7 @@ func TestStateIterator(t *testing.T) {
 			stateValueChannels.UpdateUpstreamParams(&params)
 			for i, p := range params.Get("test_params") {
 				if values[i] != p {
-					panic(fmt.Sprintf("params didn't match: %f %f", values[i], p))
+					t.Errorf(fmt.Sprintf("params didn't match: %f %f", values[i], p))
 				}
 			}
 			iterator := &StateIterator{

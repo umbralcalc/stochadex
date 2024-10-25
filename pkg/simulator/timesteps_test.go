@@ -18,12 +18,12 @@ func TestTimestepFunctions(t *testing.T) {
 				StateHistoryDepth: 1,
 			}
 			timestepFunctionOne := &ConstantTimestepFunction{Stepsize: 1.0}
-			if t := timestepFunctionOne.NextIncrement(timestepsHistory); t != 1.0 {
-				panic(fmt.Sprintf("constant timestep failed: %f", t))
+			if time := timestepFunctionOne.NextIncrement(timestepsHistory); time != 1.0 {
+				t.Error(fmt.Sprintf("constant timestep failed: %f", time))
 			}
 			timestepFunctionTwo := NewExponentialDistributionTimestepFunction(1.0, 1234)
-			if t := timestepFunctionTwo.NextIncrement(timestepsHistory); t < 0.0 {
-				panic(fmt.Sprintf("exponential timestep failed: %f", t))
+			if time := timestepFunctionTwo.NextIncrement(timestepsHistory); time < 0.0 {
+				t.Error(fmt.Sprintf("exponential timestep failed: %f", time))
 			}
 		},
 	)

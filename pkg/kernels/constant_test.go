@@ -31,7 +31,7 @@ func TestConstantIntegationKernel(t *testing.T) {
 				0.0,
 			)
 			if floats.HasNaN([]float64{valueOne, valueTwo}) {
-				panic(fmt.Sprintf("NaN present in values: %f, %f", valueOne, valueTwo))
+				t.Errorf(fmt.Sprintf("NaN present in values: %f, %f", valueOne, valueTwo))
 			}
 		},
 	)

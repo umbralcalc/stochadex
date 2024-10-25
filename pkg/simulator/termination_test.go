@@ -26,19 +26,19 @@ func TestTerminationConditions(t *testing.T) {
 			}
 			terminationConditionOne := &NumberOfStepsTerminationCondition{MaxNumberOfSteps: 3}
 			if c := terminationConditionOne.Terminate(stateHistories, timestepsHistory); !(c == false) {
-				panic("number of steps termination condition failed: stops early")
+				t.Error("number of steps termination condition failed: stops early")
 			}
 			timestepsHistory.CurrentStepNumber = 3
 			if c := terminationConditionOne.Terminate(stateHistories, timestepsHistory); !(c == true) {
-				panic("number of steps termination condition failed: doesn't stop")
+				t.Error("number of steps termination condition failed: doesn't stop")
 			}
 			terminationConditionTwo := &TimeElapsedTerminationCondition{MaxTimeElapsed: 3.0}
 			if c := terminationConditionTwo.Terminate(stateHistories, timestepsHistory); !(c == false) {
-				panic("time elapsed termination condition failed: stops early")
+				t.Error("time elapsed termination condition failed: stops early")
 			}
 			timestepsHistory.Values.SetVec(0, 3.0)
 			if c := terminationConditionTwo.Terminate(stateHistories, timestepsHistory); !(c == true) {
-				panic("time elapsed termination condition failed: doesn't stop")
+				t.Error("time elapsed termination condition failed: doesn't stop")
 			}
 		},
 	)

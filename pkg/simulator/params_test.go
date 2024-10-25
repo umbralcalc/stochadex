@@ -22,11 +22,11 @@ func TestParams(t *testing.T) {
 			params := NewParams(make(map[string][]float64))
 			_, ok := params.GetOk("test")
 			if ok {
-				panic("test params appeared when they shouldn't exist")
+				t.Error("test params appeared when they shouldn't exist")
 			}
 			panicked := didPanic(func() { params.Get("test") }) // should panic
 			if !panicked {
-				panic("get method didn't panic when getting unset params")
+				t.Error("get method didn't panic when getting unset params")
 			}
 			params.Set("test", []float64{0.0, 1.0, 2.0, 3.0})
 			_ = params.Get("test")

@@ -1,5 +1,6 @@
 main:
   partitions:
+  
   - name: first_wiener_process
     iteration: firstWienerProcess
     params:
@@ -11,6 +12,7 @@ main:
     - github.com/umbralcalc/stochadex/pkg/continuous
     extra_vars:
     - firstWienerProcess: "&continuous.WienerProcessIteration{}"
+
   - name: second_wiener_process
     iteration: secondWienerProcess
     params:
@@ -22,7 +24,9 @@ main:
     - github.com/umbralcalc/stochadex/pkg/continuous
     extra_vars:
     - secondWienerProcess: "&continuous.WienerProcessIteration{}"
+
   simulation:
+
     output_condition: "&simulator.EveryStepOutputCondition{}"
     output_function: "&simulator.StdoutOutputFunction{}"
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
