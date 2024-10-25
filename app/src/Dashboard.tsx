@@ -280,7 +280,7 @@ const Dashboard: React.FC = () => {
               key={k}
               onClick={() => handlePartitionNameChange(k)}
             >
-              Show Partition {k}
+              Show {k}
             </button>
           ))}
         </div>
