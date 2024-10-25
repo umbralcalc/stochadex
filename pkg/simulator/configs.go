@@ -209,10 +209,15 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 		for paramName, partitionNames := range config.ParamsAsPartitions {
 			partitionIndexValues := make([]float64, 0)
 			for _, name := range partitionNames {
-				partitionIndexValues = append(
-					partitionIndexValues,
-					float64(c.partitionConfigOrdering.IndexByName[name]),
-				)
+				if index, ok := c.partitionConfigOrdering.IndexByName[name]; ok {
+					partitionIndexValues = append(
+						partitionIndexValues,
+						float64(index),
+					)
+				} else {
+					panic("error converting params name: " + name +
+						" into partition index - no partition by that name")
+				}
 			}
 			params.Set(paramName, partitionIndexValues)
 		}
@@ -222,9 +227,15 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 			ParamsFromUpstream: make(map[string]UpstreamConfig),
 		}
 		for paramsName, partitionValues := range config.ParamsFromUpstream {
-			partition.ParamsFromUpstream[paramsName] = UpstreamConfig{
-				Upstream: c.partitionConfigOrdering.IndexByName[partitionValues.Upstream],
-				Indices:  partitionValues.Indices,
+			if index, ok := c.partitionConfigOrdering.
+				IndexByName[partitionValues.Upstream]; ok {
+				partition.ParamsFromUpstream[paramsName] = UpstreamConfig{
+					Upstream: index,
+					Indices:  partitionValues.Indices,
+				}
+			} else {
+				panic("error converting upstream name: " + partitionValues.Upstream +
+					" into partition index - no partition by that name")
 			}
 		}
 		implementations.Partitions = append(implementations.Partitions, partition)

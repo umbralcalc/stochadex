@@ -84,7 +84,7 @@ main:
       data_rolling_cov_copy/latest_data_values: 
         upstream: data_rolling_cov
       simulation_iteration/mus: 
-        upstream: params_generating_process
+        upstream: params_posterior_resample
     init_state_values: [1.1, 4.0, -8.3, 2.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.3, 8.3, -4.9, 1.6, 0.0]
     state_history_depth: 200
     seed: 6785
