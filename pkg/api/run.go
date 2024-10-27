@@ -55,28 +55,16 @@ func StepAndServeWebsocket(
 }
 
 // Run the the main run routine for the API.
-func Run(config *ApiRunConfig, dashboard *DashboardConfig) {
+func Run(config *ApiRunConfig, socket *SocketConfig) {
 	generator := config.GetConfigGenerator()
-	activeDashboard := dashboard.Active()
-	if activeDashboard {
-		var dashboardProcess *os.Process
-		if activeDashboard {
-			dashboardProcess, err := StartReactApp(dashboard.ReactAppLocation)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer dashboardProcess.Signal(os.Interrupt)
-		}
+	activeSocket := socket.Active()
+	if activeSocket {
 		StepAndServeWebsocket(
 			generator,
-			time.Duration(dashboard.MillisecondDelay),
-			dashboard.Handle,
-			dashboard.Address,
+			time.Duration(socket.MillisecondDelay),
+			socket.Handle,
+			socket.Address,
 		)
-		if activeDashboard {
-			dashboardProcess.Signal(os.Interrupt)
-			dashboardProcess.Wait()
-		}
 	} else {
 		coordinator := simulator.NewPartitionCoordinator(
 			generator.GenerateConfigs(),

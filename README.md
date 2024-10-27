@@ -21,22 +21,17 @@ go mod tidy
 # build the binary
 go build -o bin/ ./cmd/stochadex
 
-# run your config with the dashboard off
+# run your config
 ./bin/stochadex --config ./cfg/config.yaml
 ```
 
-## Building and running the real-time dashboard
+## Running over websocket
 
 ```shell
-# install the dependencies of and build the app
-cd ./app && npm install && npm run build && cd ..
-
-# run the stochadex with a dashboard config and checkout http://localhost:3000
+# run the stochadex with a socket config
 ./bin/stochadex --config ./cfg/config.yaml \
---dashboard ./cfg/dashboard_config.yaml
+--socket ./cfg/socket_config.yaml
 ```
-
-![Using Dashboard](app/public/using-dashboard.gif)
 
 ## Building and running the Docker container (may need sudo)
 
@@ -46,11 +41,9 @@ docker build --tag stochadex .
 
 # run the binary in the container with your configs
 docker run -p 2112:2112 stochadex --config ./cfg/config.yaml \
---dashboard ./cfg/dashboard_config.yaml
+--socket ./cfg/socket_config.yaml
 ```
 
-## Developing the code and real-time dashboard
+## Developing the code
 
 You can add any new stochastic phenomena you like by following the patterns for other processes given, e.g., in the `pkg/continuous` package. The key step is to create a new struct for your process which implements the `simulator.Iteration` interface.
-
-To develop the real-time dashboard, you can start the development server by running `cd ./app && npm start && cd ..` and view the code in the `app/` directory. The dashboard is a React app which is served by the stochadex via a websocket connection.

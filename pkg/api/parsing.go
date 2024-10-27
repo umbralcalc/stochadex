@@ -12,7 +12,7 @@ import (
 type ParsedArgs struct {
 	ConfigStrings *ApiRunConfigStrings
 	ConfigFile    string
-	DashboardFile string
+	SocketFile    string
 }
 
 // ArgParse builds the configs parsed as args to the stochadex binary and
@@ -31,12 +31,12 @@ func ArgParse() ParsedArgs {
 			Help:     "yaml config path",
 		},
 	)
-	dashboardFile := parser.String(
-		"d",
-		"dashboard",
+	socketFile := parser.String(
+		"s",
+		"socket",
 		&argparse.Options{
 			Required: false,
-			Help:     "yaml config path for dashboard",
+			Help:     "yaml config path for socket",
 		},
 	)
 	err := parser.Parse(os.Args)
@@ -46,6 +46,6 @@ func ArgParse() ParsedArgs {
 	return ParsedArgs{
 		ConfigStrings: LoadApiRunConfigStringsFromYaml(*configFile),
 		ConfigFile:    *configFile,
-		DashboardFile: *dashboardFile,
+		SocketFile:    *socketFile,
 	}
 }

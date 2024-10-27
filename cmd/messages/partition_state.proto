@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option go_package = "./pkg/simulator";
 
-message DashboardPartitionState {
+message PartitionState {
   double cumulative_timesteps = 1;
   string partition_name = 2;
   repeated double state = 3;

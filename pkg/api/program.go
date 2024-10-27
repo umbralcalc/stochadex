@@ -275,10 +275,10 @@ import (
 
 func main() {
 	config := api.LoadApiRunConfigFromYaml("{{.ConfigFile}}")
-	dashboard := api.LoadDashboardConfigFromYaml("{{.DashboardFile}}")
+	socket := api.LoadSocketConfigFromYaml("{{.SocketFile}}")
 	{{.ExtraVars}}
 	{{.ExtraCode}}
-    api.Run(config, dashboard)
+    api.Run(config, socket)
 }`
 
 // WriteMainProgram writes string representations of various types of data
@@ -299,7 +299,7 @@ func WriteMainProgram(args ParsedArgs) string {
 		file,
 		map[string]string{
 			"ConfigFile":    args.ConfigFile,
-			"DashboardFile": args.DashboardFile,
+			"SocketFile":    args.SocketFile,
 			"ExtraVars":     formatExtraVariables(args),
 			"ExtraPackages": formatExtraPackages(args),
 			"ExtraCode":     formatExtraCode(args),

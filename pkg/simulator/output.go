@@ -163,7 +163,7 @@ func (w *WebsocketOutputFunction) Output(
 	cumulativeTimesteps float64,
 ) {
 	data, err := proto.Marshal(
-		&DashboardPartitionState{
+		&PartitionState{
 			CumulativeTimesteps: cumulativeTimesteps,
 			PartitionName:       partitionName,
 			State:               state,
