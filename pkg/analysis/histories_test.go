@@ -42,7 +42,7 @@ func TestStateTimeHistories(t *testing.T) {
 				t.Error("df creation failed. value was: " + fmt.Sprintf("%f", value))
 			}
 			df.Elem(1, 1).Set(12345678)
-			stateTimeHistories.SetPartitionFromDataFrame(df, "test", true)
+			stateTimeHistories.SetPartitionFromDataFrame("test", df, true)
 			df = stateTimeHistories.GetDataFrameFromPartition("test")
 			value = df.Elem(1, 1)
 			if value.Float() != 12345678 {

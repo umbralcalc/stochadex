@@ -46,8 +46,8 @@ func (s *StateTimeHistories) GetDataFrameFromPartition(
 // also be used to overwrite the timesteps history by setting the overwriteTime
 // boolean flag to true.
 func (s *StateTimeHistories) SetPartitionFromDataFrame(
-	df dataframe.DataFrame,
 	partitionName string,
+	df dataframe.DataFrame,
 	overwriteTime bool,
 ) {
 	nCols := df.Ncol() - 1
