@@ -28,18 +28,25 @@ func TestStateTimeHistories(t *testing.T) {
 					StateHistoryDepth: 3,
 				},
 			}
-			df := stateTimeHistories.GetDataFrame("test")
+			df := stateTimeHistories.GetDataFrameFromPartition("test")
 			value := df.Elem(0, 0)
 			if value.Float() != 236 {
-				t.Error("df conversion failed. value was: " + fmt.Sprintf("%f", value))
+				t.Error("df creation failed. value was: " + fmt.Sprintf("%f", value))
 			}
 			value = df.Elem(0, 1)
 			if value.Float() != 5 {
-				t.Error("df conversion failed. value was: " + fmt.Sprintf("%f", value))
+				t.Error("df creation failed. value was: " + fmt.Sprintf("%f", value))
 			}
 			value = df.Elem(0, 2)
 			if value.Float() != 4 {
-				t.Error("df conversion failed. value was: " + fmt.Sprintf("%f", value))
+				t.Error("df creation failed. value was: " + fmt.Sprintf("%f", value))
+			}
+			df.Elem(1, 1).Set(12345678)
+			stateTimeHistories.SetPartitionFromDataFrame(df, "test", true)
+			df = stateTimeHistories.GetDataFrameFromPartition("test")
+			value = df.Elem(1, 1)
+			if value.Float() != 12345678 {
+				t.Error("df setting failed. value was: " + fmt.Sprintf("%f", value))
 			}
 		},
 	)

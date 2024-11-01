@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-gota/gota/dataframe"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/mat"
 )
 
 // StateTimeHistories is a collection of simulator state histories for
@@ -16,9 +17,9 @@ type StateTimeHistories struct {
 	TimestepsHistory *simulator.CumulativeTimestepsHistory
 }
 
-// GetDataFrame constructs a dataframe from the state history of a given
-// partition. A "time" column is also provided.
-func (s *StateTimeHistories) GetDataFrame(
+// GetDataFrameFromPartition constructs a dataframe from the state history
+// of a given partition. A "time" column is also provided.
+func (s *StateTimeHistories) GetDataFrameFromPartition(
 	partitionName string,
 ) dataframe.DataFrame {
 	stateHistory, ok := s.StateHistories[partitionName]
@@ -38,4 +39,38 @@ func (s *StateTimeHistories) GetDataFrame(
 	}
 	df.SetNames(cols...)
 	return df
+}
+
+// SetPartitionFromDataFrame sets the values in the state history of a
+// given partition using a dataframe as input. This dataframe can optionally
+// also be used to overwrite the timesteps history by setting the overwriteTime
+// boolean flag to true.
+func (s *StateTimeHistories) SetPartitionFromDataFrame(
+	df dataframe.DataFrame,
+	partitionName string,
+	overwriteTime bool,
+) {
+	nCols := df.Ncol() - 1
+	nRows := df.Nrow()
+	data := make([]float64, 0)
+	for i := 0; i < nRows; i++ {
+		for j := 0; j < nCols; j++ {
+			data = append(data, df.Col(strconv.Itoa(j)).Elem(i).Float())
+		}
+	}
+	s.StateHistories[partitionName] = &simulator.StateHistory{
+		Values:            mat.NewDense(nRows, nCols, data),
+		StateWidth:        nCols,
+		StateHistoryDepth: nRows,
+	}
+	if overwriteTime {
+		timeData := make([]float64, 0)
+		for i := 0; i < nRows; i++ {
+			timeData = append(timeData, df.Col("time").Elem(i).Float())
+		}
+		s.TimestepsHistory = &simulator.CumulativeTimestepsHistory{
+			Values:            mat.NewVecDense(nRows, timeData),
+			StateHistoryDepth: nRows,
+		}
+	}
 }
