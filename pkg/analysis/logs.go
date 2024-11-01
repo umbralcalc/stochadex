@@ -5,69 +5,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
-	"github.com/go-gota/gota/dataframe"
-	dataseries "github.com/go-gota/gota/series"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/mat"
 )
 
-// QueryLogEntry is the output format from the logs scanner.
-type QueryLogEntry struct {
-	PartitionIterations int                    `json:"partition_iterations"`
-	Entry               simulator.JsonLogEntry `json:"entry"`
-}
-
-// QueryLogEntries maps each collection of QueryLogEntry structs to a partition.
-type QueryLogEntries struct {
-	EntriesByPartition map[string][]QueryLogEntry
-}
-
-// DataFrameFromPartition constructs a dataframe from the state values of
-// a given partition.
-func (q *QueryLogEntries) DataFrameFromPartition(
-	partitionName string,
-) dataframe.DataFrame {
-	series := make([]dataseries.Series, 0)
-	entries, ok := q.EntriesByPartition[partitionName]
-	if !ok {
-		partitions := make([]string, 0)
-		for name := range q.EntriesByPartition {
-			partitions = append(partitions, name)
-		}
-		panic("partition name: " + partitionName +
-			" not found, choices are: " + strings.Join(partitions, ", "))
-	}
-	for i := 0; i < len(entries[0].Entry.State); i++ {
-		series = append(
-			series,
-			dataseries.New([]float64{}, dataseries.Float, strconv.Itoa(i)),
-		)
-	}
-	for _, entry := range entries {
-		for i, value := range entry.Entry.State {
-			series[i].Append(value)
-		}
-	}
-	return dataframe.New(series...)
-}
-
-// ReadLogEntries reads a file up to a given number of iterations into
-// a collection which maps each entry to a partition.
-func ReadLogEntries(
+// NewStateTimeHistoriesFromJsonLogEntries reads a file up to a given number
+// of iterations into a StateTimeHistories struct.
+func NewStateTimeHistoriesFromJsonLogEntries(
 	filename string,
 	numIterations int,
-) (*QueryLogEntries, error) {
+) (*StateTimeHistories, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	// Loop through for the specified number of iterations
+	timeIteration := -1
 	partitionIterations := make(map[string]int)
-	entriesByPartition := make(map[string][]QueryLogEntry)
+	stateTimeHistories := &StateTimeHistories{
+		StateHistories: make(map[string]*simulator.StateHistory),
+		TimestepsHistory: &simulator.CumulativeTimestepsHistory{
+			Values:            mat.NewVecDense(numIterations, nil),
+			StateHistoryDepth: numIterations,
+		},
+	}
+	// Loop through for the specified number of iterations
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		var logEntry simulator.JsonLogEntry
@@ -75,40 +39,54 @@ func ReadLogEntries(
 
 		err := json.Unmarshal(line, &logEntry)
 		if err != nil {
-			fmt.Println("Error decoding JSON:", err)
-			continue
+			fmt.Println("Error decoding JSON")
+			return nil, err
 		}
 
-		// keep a track of how many iterations each partition has been through
+		// Keep a track of how many iterations each partition has been through
+		// and also do the same for the cumulative timesteps
 		if iters, ok := partitionIterations[logEntry.PartitionName]; ok {
-			partitionIterations[logEntry.PartitionName] = iters + 1
+			iters += 1
+			if iters == numIterations {
+				break
+			}
+			partitionIterations[logEntry.PartitionName] = iters
+			if iters > timeIteration {
+				timeIteration = iters
+				stateTimeHistories.TimestepsHistory.Values.SetVec(
+					numIterations-iters-1, logEntry.CumulativeTimesteps)
+			}
 		} else {
 			partitionIterations[logEntry.PartitionName] = 0
+			if 0 > timeIteration {
+				timeIteration = 0
+				stateTimeHistories.TimestepsHistory.Values.SetVec(
+					numIterations-1, logEntry.CumulativeTimesteps)
+			}
 		}
 
-		// Append the log entries
-		if entries, ok := entriesByPartition[logEntry.PartitionName]; ok {
-			entriesByPartition[logEntry.PartitionName] = append(
-				entries,
-				QueryLogEntry{
-					PartitionIterations: partitionIterations[logEntry.PartitionName],
-					Entry:               logEntry,
-				},
-			)
+		// Append the state time histories
+		iters := partitionIterations[logEntry.PartitionName]
+		if stateHistory, ok :=
+			stateTimeHistories.StateHistories[logEntry.PartitionName]; ok {
+			stateHistory.Values.SetRow(numIterations-iters-1, logEntry.State)
 		} else {
-			entriesByPartition[logEntry.PartitionName] = []QueryLogEntry{{
-				PartitionIterations: partitionIterations[logEntry.PartitionName],
-				Entry:               logEntry,
-			}}
-		}
-		if partitionIterations[logEntry.PartitionName] > numIterations {
-			break
+			stateWidth := len(logEntry.State)
+			matValues := mat.NewDense(numIterations, stateWidth, nil)
+			matValues.SetRow(numIterations-1, logEntry.State)
+			stateTimeHistories.StateHistories[logEntry.PartitionName] =
+				&simulator.StateHistory{
+					Values:            matValues,
+					StateWidth:        stateWidth,
+					StateHistoryDepth: numIterations,
+				}
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Println("Error reading file:", err)
+		fmt.Println("Error reading file")
+		return nil, err
 	}
 
-	return &QueryLogEntries{EntriesByPartition: entriesByPartition}, nil
+	return stateTimeHistories, nil
 }

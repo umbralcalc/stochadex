@@ -20,17 +20,19 @@ func NewStateTimeHistoriesFromCsv(
 	timeColumn int,
 	stateColumnsByPartition map[string][]int,
 	skipHeaderRow bool,
-) *StateTimeHistories {
+) (*StateTimeHistories, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		log.Fatal("Unable to read input file "+filePath, err)
+		log.Fatal("Unable to read input file " + filePath)
+		return nil, err
 	}
 	defer f.Close()
 
 	csvReader := csv.NewReader(f)
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		log.Fatal("Unable to parse file as CSV for "+filePath, err)
+		log.Fatal("Unable to parse file as CSV for " + filePath)
+		return nil, err
 	}
 	data := make(map[string][]float64, 0)
 	for partition := range stateColumnsByPartition {
@@ -56,7 +58,8 @@ func NewStateTimeHistoriesFromCsv(
 				dataPoint, err := strconv.ParseFloat(
 					row[columns[numberOfColumns-i-1]], 64)
 				if err != nil {
-					fmt.Printf("Error converting string: %v", err)
+					fmt.Printf("Error converting string")
+					return nil, err
 				}
 				data[partition] = append(data[partition], dataPoint)
 			}
@@ -88,5 +91,5 @@ func NewStateTimeHistoriesFromCsv(
 			Values:            mat.NewVecDense(len(times), times),
 			StateHistoryDepth: len(times),
 		},
-	}
+	}, nil
 }

@@ -9,7 +9,7 @@ func TestCsvLoading(t *testing.T) {
 	t.Run(
 		"test that the loading from csv file works",
 		func(t *testing.T) {
-			stateTimeHistories := NewStateTimeHistoriesFromCsv(
+			stateTimeHistories, _ := NewStateTimeHistoriesFromCsv(
 				"./test_file.csv",
 				0,
 				map[string][]int{

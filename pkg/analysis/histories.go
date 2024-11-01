@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/go-gota/gota/dataframe"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -20,7 +21,15 @@ type StateTimeHistories struct {
 func (s *StateTimeHistories) GetDataFrame(
 	partitionName string,
 ) dataframe.DataFrame {
-	stateHistory := s.StateHistories[partitionName]
+	stateHistory, ok := s.StateHistories[partitionName]
+	if !ok {
+		partitions := make([]string, 0)
+		for name := range s.StateHistories {
+			partitions = append(partitions, name)
+		}
+		panic("partition name: " + partitionName +
+			" not found, choices are: " + strings.Join(partitions, ", "))
+	}
 	df := dataframe.LoadMatrix(stateHistory.Values)
 	df = dataframe.LoadMatrix(s.TimestepsHistory.Values).CBind(df)
 	cols := []string{"time"}
