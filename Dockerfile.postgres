@@ -1,0 +1,7 @@
+FROM postgres:latest
+
+ENV POSTGRES_DB=stochadexdb
+ENV POSTGRES_USER=stochadexuser
+ENV POSTGRES_PASSWORD=stochadexpassword
+
+EXPOSE 5432

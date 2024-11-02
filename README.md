@@ -33,11 +33,11 @@ go build -o bin/ ./cmd/stochadex
 --socket ./cfg/socket_config.yaml
 ```
 
-## Building and running the Docker container (may need sudo)
+## Building and running the containerised version (may need sudo)
 
 ```shell
 # build the stochadex container
-docker build --tag stochadex .
+docker build -t stochadex -f Dockerfile.stochadex .
 
 # run the binary in the container with your configs
 docker run -p 2112:2112 stochadex --config ./cfg/config.yaml \
