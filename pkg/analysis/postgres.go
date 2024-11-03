@@ -12,15 +12,9 @@ import (
 
 // openTableConnection connects to PostgreSQL database or creates it
 // if it doesn't exist.
-func openTableConnection(
-	user string,
-	password string,
-	dbname string,
-	tableName string,
-	stateTimeHistories *StateTimeHistories,
-) (*sql.DB, error) {
+func openTableConnection(config *PostgresDbConfig) (*sql.DB, error) {
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		user, password, dbname)
+		config.User, config.Password, config.Dbname)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
@@ -28,8 +22,8 @@ func openTableConnection(
 
 	// Generate column declarations based on StateTimeHistories
 	colDeclarations := ""
-	for partition, stateHistory := range stateTimeHistories.StateHistories {
-		for i := 0; i < stateHistory.StateWidth; i++ {
+	for partition, rowSize := range config.RowSizeByPartitionName {
+		for i := 0; i < rowSize; i++ {
 			colDeclarations += fmt.Sprintf("%s%d DOUBLE PRECISION NOT NULL, ",
 				partition, i)
 		}
@@ -41,7 +35,7 @@ func openTableConnection(
 		id SERIAL PRIMARY KEY,
 		time DOUBLE PRECISION NOT NULL,
 		%s
-	);`, tableName, colDeclarations)
+	);`, config.TableName, colDeclarations)
 	_, err = db.Exec(createTableQuery)
 	if err != nil {
 		return nil, err
@@ -52,48 +46,76 @@ func openTableConnection(
 
 // insertEmptyRow inserts a new empty row and returns the
 // ID of the created row.
-func insertEmptyRow(db *sql.DB, tableName string) (int64, error) {
-	var id int64
+func insertEmptyRowQuery(db *sql.DB, tableName string) (int64, error) {
+	var rowId int64
 	err := db.QueryRow(fmt.Sprintf(
 		"INSERT INTO %s DEFAULT VALUES RETURNING id",
 		tableName,
-	)).Scan(&id)
-	return id, err
+	)).Scan(&rowId)
+	return rowId, err
 }
 
 // updateColumnGroup updates a specific group of columns
 // for a given row ID.
-func updateColumnGroup(
+func updateColumnGroupQuery(
 	ctx context.Context,
 	db *sql.DB,
 	tableName string,
-	id int64,
+	rowId int64,
 	columnValues map[string]interface{},
 ) error {
-	// Build column update statements
 	setClauses := ""
-	args := []interface{}{id}
+	args := []interface{}{rowId}
 	i := 2
 	for column, value := range columnValues {
 		setClauses += fmt.Sprintf("%s = $%d, ", column, i)
 		args = append(args, value)
 		i++
 	}
-
-	// Remove the trailing comma and space
 	setClauses = setClauses[:len(setClauses)-2]
-
-	// Build and execute the SQL UPDATE statement
 	query := fmt.Sprintf("UPDATE %s SET %s WHERE id = $1;",
 		tableName, setClauses)
 	_, err := db.ExecContext(ctx, query, args...)
 	return err
 }
 
+// PostgresDbConfig
+type PostgresDbConfig struct {
+	User                   string
+	Password               string
+	Dbname                 string
+	TableName              string
+	RowSizeByPartitionName map[string]int
+}
+
+// PostgresDbOutputFunction
+type PostgresDbOutputFunction struct {
+	db *sql.DB
+}
+
+func (p *PostgresDbOutputFunction) Output(
+	partitionName string,
+	state []float64,
+	cumulativeTimesteps float64,
+) {
+
+}
+
+// NewPostgresDbOutputFunction creates a new PostgresDbOutputFunction.
+func NewPostgresDbOutputFunction(
+	config *PostgresDbConfig,
+) *PostgresDbOutputFunction {
+	db, err := openTableConnection(config)
+	if err != nil {
+		panic(err)
+	}
+	return &PostgresDbOutputFunction{db: db}
+}
+
 // asyncWriteColumnGroups performs concurrent column group updates
 func asyncWriteColumnGroups(db *sql.DB, tableName string, columnGroups []map[string]interface{}) error {
 	// Insert an empty row and get the new row ID
-	rowID, err := insertEmptyRow(db, tableName)
+	rowId, err := insertEmptyRowQuery(db, tableName)
 	if err != nil {
 		return fmt.Errorf("failed to insert empty row: %v", err)
 	}
@@ -107,7 +129,7 @@ func asyncWriteColumnGroups(db *sql.DB, tableName string, columnGroups []map[str
 		wg.Add(1)
 		go func(colGroup map[string]interface{}) {
 			defer wg.Done()
-			if err := updateColumnGroup(ctx, db, tableName, rowID, colGroup); err != nil {
+			if err := updateColumnGroupQuery(ctx, db, tableName, rowId, colGroup); err != nil {
 				log.Printf("failed to update column group: %v", err)
 			}
 		}(columnGroup)
@@ -121,28 +143,14 @@ func asyncWriteColumnGroups(db *sql.DB, tableName string, columnGroups []map[str
 // WriteStateTimeHistoriesToPostgres writes all of the data
 // in the state time histories to a PostgreSQL database.
 func WriteStateTimeHistoriesToPostgres(
-	user string,
-	password string,
-	dbname string,
-	tableName string,
+	config *PostgresDbConfig,
 	stateTimeHistories *StateTimeHistories,
-) error {
-	db, err := openTableConnection(
-		user,
-		password,
-		dbname,
-		tableName,
-		stateTimeHistories,
-	)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
+) {
+	// outputFunction := NewPostgresDbOutputFunction(config)
+	_ = NewPostgresDbOutputFunction(config)
 	_ = []float64{
 		stateTimeHistories.TimestepsHistory.Values.AtVec(
 			stateTimeHistories.TimestepsHistory.StateHistoryDepth - 1,
 		),
 	}
-
-	return nil
 }

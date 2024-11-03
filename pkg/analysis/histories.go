@@ -34,8 +34,10 @@ func (s *StateTimeHistories) GetDataFrameFromPartition(
 	df := dataframe.LoadMatrix(stateHistory.Values)
 	df = dataframe.LoadMatrix(s.TimestepsHistory.Values).CBind(df)
 	cols := []string{"time"}
-	for i := 0; i < stateHistory.StateWidth; i++ {
-		cols = append(cols, strconv.Itoa(i))
+	for name, stateHistory := range s.StateHistories {
+		for i := 0; i < stateHistory.StateWidth; i++ {
+			cols = append(cols, name+strconv.Itoa(i))
+		}
 	}
 	df.SetNames(cols...)
 	return df
@@ -55,7 +57,10 @@ func (s *StateTimeHistories) SetPartitionFromDataFrame(
 	data := make([]float64, 0)
 	for i := 0; i < nRows; i++ {
 		for j := 0; j < nCols; j++ {
-			data = append(data, df.Col(strconv.Itoa(j)).Elem(i).Float())
+			data = append(
+				data,
+				df.Col(partitionName+strconv.Itoa(j)).Elem(i).Float(),
+			)
 		}
 	}
 	s.StateHistories[partitionName] = &simulator.StateHistory{
