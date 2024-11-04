@@ -8,8 +8,8 @@ import (
 )
 
 // StateTimeStorage dynamically adapts its structure to support incoming time series
-// data from the simulation output. This is done in a way to minimise write blocking
-// for better concurrent performance.
+// data from the simulation output in a thread-safe manner. This is done in a way to
+// minimise write blocking for better concurrent performance.
 type StateTimeStorage struct {
 	indexByName map[string]int
 	store       [][][]float64
@@ -47,22 +47,30 @@ func (s *StateTimeStorage) Append(
 	var index int
 	var exists bool
 
-	// Lock to update indexByName, store, and times if necessary
-	s.mutex.Lock()
-	if index, exists = s.indexByName[name]; !exists {
-		// Add new name and initialize its storage
-		index = len(s.indexByName)
-		s.indexByName[name] = index
-		s.store = append(s.store, [][]float64{})
+	// Double-check locking to safely update indexByName and store
+	if _, exists = s.indexByName[name]; !exists {
+		s.mutex.Lock()
+		// Re-check to ensure the index has not been added by another partition
+		if index, exists = s.indexByName[name]; !exists {
+			index = len(s.indexByName)
+			s.indexByName[name] = index
+			s.store = append(s.store, [][]float64{})
+		}
+		s.mutex.Unlock()
 	}
-	// Append time if it's the latest timestamp
-	if len(s.times) == 0 || time > s.times[len(s.times)-1] {
-		s.times = append(s.times, time)
-	}
-	s.mutex.Unlock()
 
-	// Append values to the pre-existing slice without holding the lock
+	// Append values without holding the lock
 	s.store[index] = append(s.store[index], values)
+
+	// Safely update times once per unique timestamp
+	if len(s.times) == 0 || time > s.times[len(s.times)-1] {
+		s.mutex.Lock()
+		// Re-check to ensure another partition hasn’t updated the times
+		if len(s.times) == 0 || time > s.times[len(s.times)-1] {
+			s.times = append(s.times, time)
+		}
+		s.mutex.Unlock()
+	}
 }
 
 // NewStateTimeStorage creates a new StateTimeStorage.
@@ -77,7 +85,7 @@ func NewStateTimeStorage() *StateTimeStorage {
 }
 
 // NewStateTimeHistoriesFromStateTimeStorage creates a new StateTimeHistories
-// from the data in the StateTimeStorage.
+// from all of the data held in the StateTimeStorage.
 func NewStateTimeHistoriesFromStateTimeStorage(
 	store StateTimeStorage,
 ) *StateTimeHistories {
