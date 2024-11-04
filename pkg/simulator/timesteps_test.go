@@ -1,7 +1,6 @@
 package simulator
 
 import (
-	"fmt"
 	"testing"
 
 	"gonum.org/v1/gonum/mat"
@@ -19,11 +18,11 @@ func TestTimestepFunctions(t *testing.T) {
 			}
 			timestepFunctionOne := &ConstantTimestepFunction{Stepsize: 1.0}
 			if time := timestepFunctionOne.NextIncrement(timestepsHistory); time != 1.0 {
-				t.Error(fmt.Sprintf("constant timestep failed: %f", time))
+				t.Errorf("constant timestep failed: %f", time)
 			}
 			timestepFunctionTwo := NewExponentialDistributionTimestepFunction(1.0, 1234)
 			if time := timestepFunctionTwo.NextIncrement(timestepsHistory); time < 0.0 {
-				t.Error(fmt.Sprintf("exponential timestep failed: %f", time))
+				t.Errorf("exponential timestep failed: %f", time)
 			}
 		},
 	)

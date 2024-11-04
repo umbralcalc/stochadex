@@ -4,19 +4,19 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// MemoryIteration provides a stream of data which is already know from a
-// separate data source and is held in memory.
-type MemoryIteration struct {
+// FromHistoryIteration provides a stream of data which is already known from a
+// separate data source and is held in memory as a simulator.StateHistory.
+type FromHistoryIteration struct {
 	Data *simulator.StateHistory
 }
 
-func (m *MemoryIteration) Configure(
+func (f *FromHistoryIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
-func (m *MemoryIteration) Iterate(
+func (f *FromHistoryIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -26,8 +26,8 @@ func (m *MemoryIteration) Iterate(
 	// starts from one step into the window because it makes it possible to
 	// use the i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
 	// for the initial conditions
-	if i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
-		data = m.Data.Values.RawRowView(i)
+	if i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
+		data = f.Data.Values.RawRowView(i)
 	} else if i == -1 {
 		data = params.Get("latest_data_values")
 	} else {
@@ -36,22 +36,22 @@ func (m *MemoryIteration) Iterate(
 	return data
 }
 
-// MemoryTimestepFunction provides a stream of timesteps which already known from
-// a separate data source and is held in memory.
-type MemoryTimestepFunction struct {
+// FromHistoryTimestepFunction provides a stream of timesteps which already known from
+// a separate data source and is held in memory as a simulator.CumulativeTimestepsHistory.
+type FromHistoryTimestepFunction struct {
 	Data *simulator.CumulativeTimestepsHistory
 }
 
-func (m *MemoryTimestepFunction) NextIncrement(
+func (f *FromHistoryTimestepFunction) NextIncrement(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	// starts from one step into the window because it makes it possible to
 	// use the i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
 	// for the initial conditions
-	if i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
-		return m.Data.Values.AtVec(i) - timestepsHistory.Values.AtVec(0)
+	if i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
+		return f.Data.Values.AtVec(i) - timestepsHistory.Values.AtVec(0)
 	} else if i == -1 {
-		return m.Data.NextIncrement
+		return f.Data.NextIncrement
 	} else {
 		panic("timesteps have gone beyond the available data")
 	}

@@ -1,7 +1,6 @@
 package simulator
 
 import (
-	"fmt"
 	"testing"
 
 	"gonum.org/v1/gonum/mat"
@@ -46,7 +45,7 @@ func TestStateIterator(t *testing.T) {
 			stateValueChannels.UpdateUpstreamParams(&params)
 			for i, p := range params.Get("test_params") {
 				if values[i] != p {
-					t.Errorf(fmt.Sprintf("params didn't match: %f %f", values[i], p))
+					t.Errorf("params didn't match: %f %f", values[i], p)
 				}
 			}
 			iterator := &StateIterator{

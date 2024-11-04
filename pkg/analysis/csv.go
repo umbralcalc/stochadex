@@ -20,7 +20,7 @@ func NewStateTimeHistoriesFromCsv(
 	timeColumn int,
 	stateColumnsByPartition map[string][]int,
 	skipHeaderRow bool,
-) (*StateTimeHistories, error) {
+) (*simulator.StateTimeHistories, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal("Unable to read input file " + filePath)
@@ -85,7 +85,7 @@ func NewStateTimeHistoriesFromCsv(
 	}
 	// default also applies here
 	slices.Reverse(times)
-	return &StateTimeHistories{
+	return &simulator.StateTimeHistories{
 		StateHistories: stateHistories,
 		TimestepsHistory: &simulator.CumulativeTimestepsHistory{
 			Values:            mat.NewVecDense(len(times), times),

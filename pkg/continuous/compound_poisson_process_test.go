@@ -49,11 +49,11 @@ func TestCompoundPoissonProcess(t *testing.T) {
 					simulator.Partition{Iteration: iteration},
 				)
 			}
-			store := simulator.NewVariableStore()
+			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
-				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
+				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},

@@ -84,7 +84,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	// future horizon
 	if len(e.stateMemoryPartitionMappings) > 0 {
 		e.implementations.TimestepFunction =
-			&MemoryTimestepFunction{Data: timestepsHistory}
+			&FromHistoryTimestepFunction{Data: timestepsHistory}
 		params.Set("init_time_value", []float64{
 			timestepsHistory.Values.AtVec(
 				timestepsHistory.StateHistoryDepth - 1,
@@ -93,7 +93,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	}
 	for outPartition, inPartition := range e.stateMemoryPartitionMappings {
 		iteration, ok := e.implementations.Partitions[inPartition].
-			Iteration.(*MemoryIteration)
+			Iteration.(*FromHistoryIteration)
 		if ok {
 			iteration.Data = stateHistories[outPartition]
 			e.settings.InitStateValues[inPartition] =

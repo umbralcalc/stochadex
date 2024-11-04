@@ -144,11 +144,11 @@ func TestPartitionCoordinator(t *testing.T) {
 			for index, partition := range partitions {
 				partition.Iteration.Configure(index, settings)
 			}
-			storeWithGoroutines := NewVariableStore()
+			storeWithGoroutines := NewStateTimeStorage()
 			implementations := &Implementations{
 				Partitions:      partitions,
 				OutputCondition: &EveryStepOutputCondition{},
-				OutputFunction:  &VariableStoreOutputFunction{Store: storeWithGoroutines},
+				OutputFunction:  &StateTimeStorageOutputFunction{Store: storeWithGoroutines},
 				TerminationCondition: &NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 10,
 				},
@@ -156,8 +156,8 @@ func TestPartitionCoordinator(t *testing.T) {
 			}
 			coordWithGoroutines := NewPartitionCoordinator(settings, implementations)
 			coordWithGoroutines.Run()
-			storeWithoutGoroutines := NewVariableStore()
-			outputWithoutGoroutines := &VariableStoreOutputFunction{
+			storeWithoutGoroutines := NewStateTimeStorage()
+			outputWithoutGoroutines := &StateTimeStorageOutputFunction{
 				Store: storeWithoutGoroutines,
 			}
 			implementations.OutputFunction = outputWithoutGoroutines

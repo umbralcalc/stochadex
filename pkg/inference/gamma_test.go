@@ -65,11 +65,11 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 			for index, partition := range partitions {
 				partition.Iteration.Configure(index, settings)
 			}
-			store := simulator.NewVariableStore()
+			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
-				OutputFunction:  &simulator.VariableStoreOutputFunction{Store: store},
+				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},

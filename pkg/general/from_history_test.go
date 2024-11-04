@@ -7,11 +7,11 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-func TestMemory(t *testing.T) {
+func TestFromHistory(t *testing.T) {
 	t.Run(
-		"test that the memory iteration works",
+		"test that the from history iteration works",
 		func(t *testing.T) {
-			iteration := &MemoryIteration{Data: &simulator.StateHistory{
+			iteration := &FromHistoryIteration{Data: &simulator.StateHistory{
 				Values:            mat.NewDense(3, 2, []float64{1.0, 2.0, 3.0, 4.0, 5.0, 6.0}),
 				NextValues:        []float64{1.0, 2.0, 3.0},
 				StateWidth:        3,
@@ -32,9 +32,9 @@ func TestMemory(t *testing.T) {
 		},
 	)
 	t.Run(
-		"test that the memory timestep function works",
+		"test that the from history timestep function works",
 		func(t *testing.T) {
-			timestepFunction := &MemoryTimestepFunction{
+			timestepFunction := &FromHistoryTimestepFunction{
 				Data: &simulator.CumulativeTimestepsHistory{
 					NextIncrement:     1.0,
 					Values:            mat.NewVecDense(2, []float64{1.0, 0.0}),

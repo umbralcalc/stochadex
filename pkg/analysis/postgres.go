@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	_ "github.com/lib/pq"
+	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
 // openTableConnection connects to PostgreSQL database or creates it
@@ -144,7 +145,7 @@ func asyncWriteColumnGroups(db *sql.DB, tableName string, columnGroups []map[str
 // in the state time histories to a PostgreSQL database.
 func WriteStateTimeHistoriesToPostgres(
 	config *PostgresDbConfig,
-	stateTimeHistories *StateTimeHistories,
+	stateTimeHistories *simulator.StateTimeHistories,
 ) {
 	// outputFunction := NewPostgresDbOutputFunction(config)
 	_ = NewPostgresDbOutputFunction(config)

@@ -39,66 +39,19 @@ func (s *StdoutOutputFunction) Output(
 	fmt.Println(cumulativeTimesteps, partitionName, state)
 }
 
-// VariableStore dynamically adapts its structure to support incoming time series
-// data from the simulation output. This is done in a way to minimise write blocking
-// for better concurrent performance.
-type VariableStore struct {
-	indexByName map[string]int
-	store       [][][]float64
-	mutex       *sync.Mutex
+// StateTimeStorageOutputFunction stores the data from the stochastic
+// process in the provided StateTimeStorage on the steps when the
+// OutputCondition is met.
+type StateTimeStorageOutputFunction struct {
+	Store *StateTimeStorage
 }
 
-// GetNames retrieves all the names in the store to key each time series.
-func (v *VariableStore) GetNames() []string {
-	names := make([]string, 0)
-	for name := range v.indexByName {
-		names = append(names, name)
-	}
-	return names
-}
-
-// GetValues retrieves all the time series values keyed by the name.
-func (v *VariableStore) GetValues(name string) [][]float64 {
-	return v.store[v.indexByName[name]]
-}
-
-// Append adds another set of values to the time series data keyed
-// by the provided name. This method also handles dynamic extension
-// of the size of the store in response to the inputs.
-func (v *VariableStore) Append(name string, values []float64) {
-	if index, ok := v.indexByName[name]; ok {
-		v.store[index] = append(v.store[index], values)
-	} else {
-		v.mutex.Lock()
-		v.indexByName[name] = len(v.indexByName)
-		v.mutex.Unlock()
-		v.store = append(v.store, [][]float64{values})
-	}
-}
-
-// NewVariableStore creates a new VariableStore.
-func NewVariableStore() *VariableStore {
-	var mutex sync.Mutex
-	return &VariableStore{
-		indexByName: make(map[string]int),
-		store:       make([][][]float64, 0),
-		mutex:       &mutex,
-	}
-}
-
-// VariableStoreOutputFunction stores the data from the stochastic
-// process in the provided VariableStore variable on the steps when
-// the OutputCondition is met.
-type VariableStoreOutputFunction struct {
-	Store *VariableStore
-}
-
-func (f *VariableStoreOutputFunction) Output(
+func (f *StateTimeStorageOutputFunction) Output(
 	partitionName string,
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
-	f.Store.Append(partitionName, state)
+	f.Store.Append(partitionName, cumulativeTimesteps, state)
 }
 
 // JsonLogEntry is the format in which the logs are serialised when using the

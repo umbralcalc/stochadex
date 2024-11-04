@@ -201,9 +201,7 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	countByValueGroup := make(map[float64]int)
 	aggValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if defaultValues, ok := params.GetOk("default_values"); ok {
-		for i, value := range defaultValues {
-			aggValues[i] = value
-		}
+		copy(aggValues, defaultValues)
 	}
 	for _, groupStateValue := range v.ValuesFunction(
 		params,

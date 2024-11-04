@@ -15,7 +15,7 @@ import (
 func NewStateTimeHistoriesFromJsonLogEntries(
 	filename string,
 	numIterations int,
-) (*StateTimeHistories, error) {
+) (*simulator.StateTimeHistories, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func NewStateTimeHistoriesFromJsonLogEntries(
 
 	timeIteration := -1
 	partitionIterations := make(map[string]int)
-	stateTimeHistories := &StateTimeHistories{
+	stateTimeHistories := &simulator.StateTimeHistories{
 		StateHistories: make(map[string]*simulator.StateHistory),
 		TimestepsHistory: &simulator.CumulativeTimestepsHistory{
 			Values:            mat.NewVecDense(numIterations, nil),
