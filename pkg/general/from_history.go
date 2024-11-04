@@ -24,7 +24,7 @@ func (f *FromHistoryIteration) Iterate(
 ) []float64 {
 	var data []float64
 	// starts from one step into the window because it makes it possible to
-	// use the i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
+	// use the i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
 	// for the initial conditions
 	if i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
 		data = f.Data.Values.RawRowView(i)
@@ -46,7 +46,7 @@ func (f *FromHistoryTimestepFunction) NextIncrement(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {
 	// starts from one step into the window because it makes it possible to
-	// use the i := m.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
+	// use the i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
 	// for the initial conditions
 	if i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
 		return f.Data.Values.AtVec(i) - timestepsHistory.Values.AtVec(0)
