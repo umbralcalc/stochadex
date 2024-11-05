@@ -78,6 +78,26 @@ func (p *PostgresDb) WriteState(
 	return nil
 }
 
+// ReadStateInRange retrieves all entries between a specified
+// start and end time range for a given partition.
+func (p *PostgresDb) ReadStateInRange(
+	partitionName string,
+	startTime float64,
+	endTime float64,
+) (*sql.Rows, error) {
+	query := fmt.Sprintf(`
+        SELECT time, state
+        FROM %s
+        WHERE partition_name = $1 AND time BETWEEN $2 AND $3
+        ORDER BY time ASC
+    `, p.TableName)
+	rows, err := p.db.Query(query, partitionName, startTime, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query data: %v", err)
+	}
+	return rows, nil
+}
+
 // PostgresDbOutputFunction writes the data from the simulation to
 // a PostgresSQL database when the simulator.OutputCondition is met.
 type PostgresDbOutputFunction struct {
@@ -101,6 +121,44 @@ func NewPostgresDbOutputFunction(
 		panic(err)
 	}
 	return &PostgresDbOutputFunction{db: db}
+}
+
+// NewStateTimeStorageFromPostgresDb reads from a PostgreSQL database over
+// a pre-defined time interval into a simulator.StateTimeStorage struct.
+func NewStateTimeStorageFromPostgresDb(
+	db *PostgresDb,
+	partitionNames []string,
+	startTime float64,
+	endTime float64,
+) (*simulator.StateTimeStorage, error) {
+	err := db.OpenTableConnection()
+	if err != nil {
+		return nil, err
+	}
+	storage := simulator.NewStateTimeStorage()
+	for _, partitionName := range partitionNames {
+		rows, err := db.ReadStateInRange(
+			partitionName,
+			startTime,
+			endTime,
+		)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var time float64
+			var state []float64
+			if err := rows.Scan(&time, pq.Array(&state)); err != nil {
+				return nil, fmt.Errorf("failed to scan row: %v", err)
+			}
+			storage.ConcurrentAppend(partitionName, time, state)
+		}
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating rows: %v", err)
+		}
+	}
+	return storage, nil
 }
 
 // WriteStateTimeStorageToPostgresDb writes all of the data
