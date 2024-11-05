@@ -21,7 +21,7 @@ func openTableConnection(config *PostgresDbConfig) (*sql.DB, error) {
 		return nil, err
 	}
 
-	// Generate column declarations based on StateTimeHistories
+	// Generate column declarations based on storage
 	colDeclarations := ""
 	for partition, rowSize := range config.RowSizeByPartitionName {
 		for i := 0; i < rowSize; i++ {
@@ -143,7 +143,7 @@ func asyncWriteColumnGroups(db *sql.DB, tableName string, columnGroups []map[str
 
 // WriteStateTimeStorageToPostgres writes all of the data
 // in the state time storage to a PostgreSQL database.
-func WriteStateTimeHistoriesToPostgres(
+func WriteStateTimeStorageToPostgres(
 	config *PostgresDbConfig,
 	storage *simulator.StateTimeStorage,
 ) {
