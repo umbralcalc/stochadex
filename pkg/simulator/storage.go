@@ -1,10 +1,7 @@
 package simulator
 
 import (
-	"slices"
 	"sync"
-
-	"gonum.org/v1/gonum/mat"
 )
 
 // StateTimeStorage dynamically adapts its structure to support incoming time series
@@ -48,7 +45,7 @@ func (s *StateTimeStorage) Append(
 	var exists bool
 
 	// Double-check locking to safely update indexByName and store
-	if _, exists = s.indexByName[name]; !exists {
+	if index, exists = s.indexByName[name]; !exists {
 		s.mutex.Lock()
 		// Re-check to ensure the index has not been added by another partition
 		if index, exists = s.indexByName[name]; !exists {
@@ -81,47 +78,5 @@ func NewStateTimeStorage() *StateTimeStorage {
 		store:       make([][][]float64, 0),
 		times:       make([]float64, 0),
 		mutex:       &mutex,
-	}
-}
-
-// NewStateTimeHistoriesFromStateTimeStorage creates a new StateTimeHistories
-// from all of the data held in the StateTimeStorage.
-func NewStateTimeHistoriesFromStateTimeStorage(
-	store StateTimeStorage,
-) *StateTimeHistories {
-	stateHistories := make(map[string]*StateHistory)
-	for _, name := range store.GetNames() {
-		stateHistoryValues := make([]float64, 0)
-		var stateWidth int
-		for _, stateValues := range store.GetValues(name) {
-			stateWidth = len(stateValues)
-			for i := 0; i < stateWidth; i++ {
-				stateHistoryValues = append(
-					stateHistoryValues,
-					stateValues[stateWidth-i-1],
-				)
-			}
-		}
-		slices.Reverse(stateHistoryValues)
-		stateHistoryDepth := int(len(stateHistoryValues) / stateWidth)
-		stateHistories[name] = &StateHistory{
-			Values: mat.NewDense(
-				stateHistoryDepth,
-				stateWidth,
-				stateHistoryValues,
-			),
-			StateWidth:        stateWidth,
-			StateHistoryDepth: stateHistoryDepth,
-		}
-	}
-	times := store.GetTimes()
-	slices.Reverse(times)
-	stateHistoryDepth := len(times)
-	return &StateTimeHistories{
-		StateHistories: stateHistories,
-		TimestepsHistory: &CumulativeTimestepsHistory{
-			Values:            mat.NewVecDense(stateHistoryDepth, times),
-			StateHistoryDepth: stateHistoryDepth,
-		},
 	}
 }
