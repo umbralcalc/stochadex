@@ -65,7 +65,8 @@ type JsonLogEntry struct {
 // JsonLogOutputFunction outputs data to a log of json packets from
 // the simulation on the steps where the OutputCondition is met.
 type JsonLogOutputFunction struct {
-	file *os.File
+	file  *os.File
+	mutex *sync.Mutex
 }
 
 func (j *JsonLogOutputFunction) Output(
@@ -83,7 +84,10 @@ func (j *JsonLogOutputFunction) Output(
 		log.Printf("Error encoding JSON: %s\n", err)
 		panic(err)
 	}
-	jsonData = append(jsonData, []byte("\n")...)
+	jsonData = append(jsonData, '\n')
+
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
 	_, err = j.file.Write(jsonData)
 	if err != nil {
 		panic(err)
@@ -94,12 +98,75 @@ func (j *JsonLogOutputFunction) Output(
 func NewJsonLogOutputFunction(
 	filePath string,
 ) *JsonLogOutputFunction {
+	var mutex sync.Mutex
 	file, err := os.Create(filePath)
 	if err != nil {
 		log.Fatal("Error creating log file:", err)
 		panic(err)
 	}
-	return &JsonLogOutputFunction{file: file}
+	return &JsonLogOutputFunction{file: file, mutex: &mutex}
+}
+
+// JsonLogChannelOutputFunction outputs data to a log of json packets from
+// the simulation on the steps where the OutputCondition is met. This is
+// functionally the same as the JsonLogOutputFunction but runs in its own
+// thread and receives logs via channel for improved performance.
+type JsonLogChannelOutputFunction struct {
+	logChannel chan JsonLogEntry
+}
+
+func (j *JsonLogChannelOutputFunction) Output(
+	partitionName string,
+	state []float64,
+	cumulativeTimesteps float64,
+) {
+	logEntry := JsonLogEntry{
+		PartitionName:       partitionName,
+		State:               state,
+		CumulativeTimesteps: cumulativeTimesteps,
+	}
+	j.logChannel <- logEntry
+}
+
+// Close ensures that the log channel flushes at the end of a run.
+func (j *JsonLogChannelOutputFunction) Close() {
+	close(j.logChannel)
+}
+
+// NewJsonLogChannelOutputFunction creates a new JsonLogChannelOutputFunction.
+// This creates a new channel which can be deferred to close so that flushing
+// at the end of a run is ensured like this:
+// f = NewJsonLogChannelOutputFunction("file.log"); defer f.Close()
+func NewJsonLogChannelOutputFunction(
+	filePath string,
+) *JsonLogChannelOutputFunction {
+	logChannel := make(chan JsonLogEntry)
+	file, err := os.Create(filePath)
+	if err != nil {
+		log.Fatal("Error creating log file:", err)
+		panic(err)
+	}
+	go func() {
+		for {
+			select {
+			case logEntry := <-logChannel:
+				jsonData, err := json.Marshal(logEntry)
+				if err != nil {
+					log.Printf("Error encoding JSON: %s\n", err)
+					panic(err)
+				}
+				jsonData = append(jsonData, '\n')
+
+				_, err = file.Write(jsonData)
+				if err != nil {
+					panic(err)
+				}
+			default:
+				continue
+			}
+		}
+	}()
+	return &JsonLogChannelOutputFunction{logChannel: logChannel}
 }
 
 // WebsocketOutputFunction serialises the state of each partition of the
@@ -128,6 +195,7 @@ func (w *WebsocketOutputFunction) Output(
 
 	// lock the mutex to prevent concurrent writing to the websocket connection
 	w.mutex.Lock()
+	defer w.mutex.Unlock()
 	if w.connection != nil {
 		err := w.connection.WriteMessage(websocket.BinaryMessage, data)
 		if err != nil {
@@ -144,7 +212,6 @@ func (w *WebsocketOutputFunction) Output(
 	} else {
 		fmt.Println("WebSocket connection is closed or not ready.")
 	}
-	w.mutex.Unlock()
 }
 
 // NewWebsocketOutputFunction creates a new WebsocketOutputFunction given a
