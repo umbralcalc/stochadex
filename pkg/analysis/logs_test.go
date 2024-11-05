@@ -9,20 +9,20 @@ func TestJsonLogsLoading(t *testing.T) {
 	t.Run(
 		"test that the loading from json logs file works",
 		func(t *testing.T) {
-			stateTimeHistories, _ := NewStateTimeHistoriesFromJsonLogEntries(
+			storage, _ := NewStateTimeStorageFromJsonLogEntries(
 				"./test_file.log",
 				50,
 			)
-			value := stateTimeHistories.StateHistories["first_wiener_process"].Values.At(16, 0)
-			if value != 1.4413432494888023 {
+			value := storage.GetValues("first_wiener_process")[16][0]
+			if value != -0.6861592904514444 {
 				t.Error("json logs parsing failed. value was: " + fmt.Sprintf("%f", value))
 			}
-			value = stateTimeHistories.StateHistories["second_wiener_process"].Values.At(37, 1)
-			if value != -2.2900800045813647 {
+			value = storage.GetValues("second_wiener_process")[37][1]
+			if value != 1.6770557129529018 {
 				t.Error("json logs parsing failed. value was: " + fmt.Sprintf("%f", value))
 			}
-			value = stateTimeHistories.TimestepsHistory.Values.AtVec(9)
-			if value != 41.0 {
+			value = storage.GetTimes()[9]
+			if value != 10.0 {
 				t.Error("json logs parsing failed. value was: " + fmt.Sprintf("%f", value))
 			}
 		},

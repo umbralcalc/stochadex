@@ -141,17 +141,12 @@ func asyncWriteColumnGroups(db *sql.DB, tableName string, columnGroups []map[str
 	return nil
 }
 
-// WriteStateTimeHistoriesToPostgres writes all of the data
-// in the state time histories to a PostgreSQL database.
+// WriteStateTimeStorageToPostgres writes all of the data
+// in the state time storage to a PostgreSQL database.
 func WriteStateTimeHistoriesToPostgres(
 	config *PostgresDbConfig,
-	stateTimeHistories *simulator.StateTimeHistories,
+	storage *simulator.StateTimeStorage,
 ) {
 	// outputFunction := NewPostgresDbOutputFunction(config)
 	_ = NewPostgresDbOutputFunction(config)
-	_ = []float64{
-		stateTimeHistories.TimestepsHistory.Values.AtVec(
-			stateTimeHistories.TimestepsHistory.StateHistoryDepth - 1,
-		),
-	}
 }

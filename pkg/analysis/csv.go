@@ -5,22 +5,20 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"slices"
 	"strconv"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/mat"
 )
 
-// NewStateTimeHistoriesFromCsv creates a new StateTimeHistories based on
+// NewStateTimeStorageFromCsv creates a new StateTimeStorage based on
 // data that is read in from the provided csv file and some specified
 // columns for time and state.
-func NewStateTimeHistoriesFromCsv(
+func NewStateTimeStorageFromCsv(
 	filePath string,
 	timeColumn int,
 	stateColumnsByPartition map[string][]int,
 	skipHeaderRow bool,
-) (*simulator.StateTimeHistories, error) {
+) (*simulator.StateTimeStorage, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal("Unable to read input file " + filePath)
@@ -28,18 +26,13 @@ func NewStateTimeHistoriesFromCsv(
 	}
 	defer f.Close()
 
+	storage := simulator.NewStateTimeStorage()
 	csvReader := csv.NewReader(f)
 	records, err := csvReader.ReadAll()
 	if err != nil {
 		log.Fatal("Unable to parse file as CSV for " + filePath)
 		return nil, err
 	}
-	data := make(map[string][]float64, 0)
-	for partition := range stateColumnsByPartition {
-		data[partition] = make([]float64, 0)
-	}
-	times := make([]float64, 0)
-	timeSeriesLength := 0
 	for _, row := range records {
 		if skipHeaderRow {
 			skipHeaderRow = false
@@ -49,47 +42,18 @@ func NewStateTimeHistoriesFromCsv(
 		if err != nil {
 			fmt.Printf("Error converting string: %v", err)
 		}
-		times = append(times, time)
 		for partition, columns := range stateColumnsByPartition {
-			numberOfColumns := len(columns)
-			for i := 0; i < numberOfColumns; i++ {
-				// work backwards along the column indices so that
-				// the slices.Reverse operation is consistent later
-				dataPoint, err := strconv.ParseFloat(
-					row[columns[numberOfColumns-i-1]], 64)
+			data := make([]float64, 0)
+			for _, column := range columns {
+				dataPoint, err := strconv.ParseFloat(row[column], 64)
 				if err != nil {
 					fmt.Printf("Error converting string")
 					return nil, err
 				}
-				data[partition] = append(data[partition], dataPoint)
+				data = append(data, dataPoint)
 			}
+			storage.ConcurrentAppend(partition, time, data)
 		}
-		timeSeriesLength += 1
 	}
-	stateHistories := make(map[string]*simulator.StateHistory)
-	for partition, partitionData := range data {
-		// default is to have the same index ordering as for a windowed
-		// history so that row 0 is the last point
-		slices.Reverse(partitionData)
-		stateWidth := len(stateColumnsByPartition[partition])
-		stateHistories[partition] = &simulator.StateHistory{
-			Values: mat.NewDense(
-				timeSeriesLength,
-				stateWidth,
-				partitionData,
-			),
-			StateWidth:        stateWidth,
-			StateHistoryDepth: timeSeriesLength,
-		}
-
-	}
-	// default also applies here
-	slices.Reverse(times)
-	return &simulator.StateTimeHistories{
-		StateHistories: stateHistories,
-		TimestepsHistory: &simulator.CumulativeTimestepsHistory{
-			Values:            mat.NewVecDense(len(times), times),
-			StateHistoryDepth: len(times),
-		},
-	}, nil
+	return storage, nil
 }

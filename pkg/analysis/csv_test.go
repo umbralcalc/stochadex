@@ -9,7 +9,7 @@ func TestCsvLoading(t *testing.T) {
 	t.Run(
 		"test that the loading from csv file works",
 		func(t *testing.T) {
-			stateTimeHistories, _ := NewStateTimeHistoriesFromCsv(
+			storage, _ := NewStateTimeStorageFromCsv(
 				"./test_file.csv",
 				0,
 				map[string][]int{
@@ -18,20 +18,20 @@ func TestCsvLoading(t *testing.T) {
 				},
 				true,
 			)
-			value := stateTimeHistories.StateHistories["partition_1"].Values.At(0, 0)
-			if value != -6.073382023924816 {
+			value := storage.GetValues("partition_1")[0][0]
+			if value != -3.26631460993812 {
 				t.Error("csv parsing failed. value was: " + fmt.Sprintf("%f", value))
 			}
-			value = stateTimeHistories.StateHistories["partition_1"].Values.At(0, 1)
-			if value != 0.11058618396321374 {
+			value = storage.GetValues("partition_1")[0][1]
+			if value != 0.6080753792907385 {
 				t.Error("csv parsing failed. value was: " + fmt.Sprintf("%f", value))
 			}
-			value = stateTimeHistories.TimestepsHistory.Values.AtVec(0)
-			if value != 99.0 {
-				t.Error("csv parsing failed. value was: " + fmt.Sprintf("%f", value))
-			}
-			value = stateTimeHistories.TimestepsHistory.Values.AtVec(99)
+			value = storage.GetTimes()[0]
 			if value != 0.0 {
+				t.Error("csv parsing failed. value was: " + fmt.Sprintf("%f", value))
+			}
+			value = storage.GetTimes()[99]
+			if value != 99.0 {
 				t.Error("csv parsing failed. value was: " + fmt.Sprintf("%f", value))
 			}
 		},

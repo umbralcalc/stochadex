@@ -21,7 +21,7 @@ func TestStateTimeStorage(t *testing.T) {
 						values = append(values, inc)
 						inc += 1.0
 					}
-					storage.Append("test_1", float64(i), values)
+					storage.ConcurrentAppend("test_1", float64(i), values)
 				}
 			}()
 			wg.Add(1)
@@ -34,7 +34,7 @@ func TestStateTimeStorage(t *testing.T) {
 						values = append(values, inc)
 						inc += 1.0
 					}
-					storage.Append("test_2", float64(i), values)
+					storage.ConcurrentAppend("test_2", float64(i), values)
 				}
 			}()
 			wg.Wait()

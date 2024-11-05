@@ -51,7 +51,7 @@ func (f *StateTimeStorageOutputFunction) Output(
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
-	f.Store.Append(partitionName, cumulativeTimesteps, state)
+	f.Store.ConcurrentAppend(partitionName, cumulativeTimesteps, state)
 }
 
 // JsonLogEntry is the format in which the logs are serialised when using the
