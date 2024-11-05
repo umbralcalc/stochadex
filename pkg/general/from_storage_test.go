@@ -7,20 +7,13 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-func TestFromHistory(t *testing.T) {
+func TestFromStorage(t *testing.T) {
 	t.Run(
-		"test that the from history iteration works",
+		"test that the from storage iteration works",
 		func(t *testing.T) {
-			iteration := &FromHistoryIteration{Data: &simulator.StateHistory{
-				Values: mat.NewDense(
-					4,
-					2,
-					[]float64{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0},
-				),
-				NextValues:        []float64{1.0, 2.0},
-				StateWidth:        2,
-				StateHistoryDepth: 4,
-			}}
+			iteration := &FromStorageIteration{
+				Data: [][]float64{{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}},
+			}
 			params := simulator.NewParams(make(map[string][]float64))
 			out := iteration.Iterate(
 				&params,
@@ -33,19 +26,16 @@ func TestFromHistory(t *testing.T) {
 					StateHistoryDepth: 2,
 				},
 			)
-			if !(out[0] == 5.0 && out[1] == 6.0) {
+			if !(out[0] == 3.0 && out[1] == 4.0) {
 				t.Errorf("outputs were not as expected: %f, %f", out[0], out[1])
 			}
 		},
 	)
 	t.Run(
-		"test that the from history timestep function works",
+		"test that the from storage timestep function works",
 		func(t *testing.T) {
-			timestepFunction := &FromHistoryTimestepFunction{
-				Data: &simulator.CumulativeTimestepsHistory{
-					Values:            mat.NewVecDense(3, []float64{2.0, 1.0, 0.0}),
-					StateHistoryDepth: 3,
-				},
+			timestepFunction := &FromStorageTimestepFunction{
+				Data: []float64{0.0, 1.0, 2.0},
 			}
 			out := timestepFunction.NextIncrement(
 				&simulator.CumulativeTimestepsHistory{
