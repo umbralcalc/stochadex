@@ -157,7 +157,7 @@ embedded:
   partitions:
 
   - name: data_rolling_mean_copy
-    iteration: "&general.MemoryIteration{}"
+    iteration: "&general.FromHistoryIteration{}"
     params: {}
     init_state_values: [1.1, 4.0, -8.3, 2.0]
     state_history_depth: 1
@@ -166,7 +166,7 @@ embedded:
     - github.com/umbralcalc/stochadex/pkg/general
 
   - name: data_rolling_cov_copy
-    iteration: "&general.MemoryIteration{}"
+    iteration: "&general.FromHistoryIteration{}"
     params: {}
     init_state_values: [4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 4.0]
     state_history_depth: 1
