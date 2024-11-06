@@ -28,7 +28,7 @@ func GetDataFrameFromPartition(
 		mat.NewVecDense(len(storedTimes), storedTimes)).CBind(df)
 	cols := []string{"time"}
 	for i := 0; i < len(storedValues[0]); i++ {
-		cols = append(cols, partitionName+strconv.Itoa(i))
+		cols = append(cols, strconv.Itoa(i))
 	}
 	df.SetNames(cols...)
 	return df
@@ -50,7 +50,7 @@ func SetPartitionFromDataFrame(
 		for j := 0; j < df.Ncol()-1; j++ {
 			row = append(
 				row,
-				df.Col(partitionName+strconv.Itoa(j)).Elem(i).Float(),
+				df.Col(strconv.Itoa(j)).Elem(i).Float(),
 			)
 		}
 		data = append(data, row)

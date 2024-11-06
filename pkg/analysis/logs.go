@@ -13,7 +13,6 @@ import (
 // of iterations into a simulator.StateTimeStorage struct.
 func NewStateTimeStorageFromJsonLogEntries(
 	filename string,
-	numIterations int,
 ) (*simulator.StateTimeStorage, error) {
 	file, err := os.Open(filename)
 	if err != nil {
