@@ -169,10 +169,11 @@ func WriteStateTimeStorageToPostgresDb(
 ) {
 	generator := simulator.NewConfigGenerator()
 	times := storage.GetTimes()
+	outputFunction := NewPostgresDbOutputFunction(db)
 	generator.SetSimulation(
 		&simulator.SimulationConfig{
 			OutputCondition: &simulator.EveryStepOutputCondition{},
-			OutputFunction:  NewPostgresDbOutputFunction(db),
+			OutputFunction:  outputFunction,
 			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 				MaxNumberOfSteps: len(times) - 1,
 			},
@@ -196,6 +197,9 @@ func WriteStateTimeStorageToPostgresDb(
 				Seed:              0,
 			},
 		)
+		// instantiate the DB with the first values in the storage since
+		// these would not be written otherwise
+		outputFunction.Output(name, data[0], times[0])
 	}
 	coordinator := simulator.NewPartitionCoordinator(generator.GenerateConfigs())
 	coordinator.Run()
