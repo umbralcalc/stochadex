@@ -21,6 +21,7 @@ require (
 require golang.org/x/net v0.30.0 // indirect
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-gota/gota v0.12.0
 	github.com/lib/pq v1.10.9
 	golang.org/x/sys v0.26.0 // indirect
