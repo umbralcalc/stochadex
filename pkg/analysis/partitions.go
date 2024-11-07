@@ -4,10 +4,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// NewStateTimeStorageFromPartition generates a new simulator.StateTimeStorage
-// by running a simulation with the specified partition configured.
-func NewStateTimeStorageFromPartition(
-	partition *simulator.PartitionConfig,
+// NewStateTimeStorageFromPartitions generates a new simulator.StateTimeStorage
+// by running a simulation with the specified partitions configured.
+func NewStateTimeStorageFromPartitions(
+	partitions []*simulator.PartitionConfig,
 	termination simulator.TerminationCondition,
 	timestep simulator.TimestepFunction,
 	initTime float64,
@@ -23,7 +23,9 @@ func NewStateTimeStorageFromPartition(
 		TimestepFunction:     timestep,
 		InitTimeValue:        initTime,
 	})
-	generator.SetPartition(partition)
+	for _, partition := range partitions {
+		generator.SetPartition(partition)
+	}
 	coordinator := simulator.NewPartitionCoordinator(generator.GenerateConfigs())
 	coordinator.Run()
 	return storage

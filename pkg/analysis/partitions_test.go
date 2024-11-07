@@ -7,19 +7,19 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestStorageFromPartition(t *testing.T) {
+func TestStorageFromPartitions(t *testing.T) {
 	t.Run(
-		"test that creating a new storage from partition works",
+		"test that creating a new storage from partitions works",
 		func(t *testing.T) {
-			storage := NewStateTimeStorageFromPartition(
-				&simulator.PartitionConfig{
+			storage := NewStateTimeStorageFromPartitions(
+				[]*simulator.PartitionConfig{{
 					Name:              "test",
 					Iteration:         &general.ConstantValuesIteration{},
 					Params:            simulator.NewParams(make(map[string][]float64)),
 					InitStateValues:   []float64{1.0, 2.0, 3.0},
 					StateHistoryDepth: 1,
 					Seed:              0,
-				},
+				}},
 				&simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},
