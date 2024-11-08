@@ -1,6 +1,6 @@
 module github.com/umbralcalc/stochadex
 
-go 1.22.0
+go 1.23
 
 toolchain go1.23.2
 
@@ -18,11 +18,22 @@ require (
 	github.com/gorilla/websocket v1.5.3
 )
 
-require golang.org/x/net v0.30.0 // indirect
+require (
+	github.com/PuerkitoBio/goquery v1.9.1 // indirect
+	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/gofrs/uuid v4.4.0+incompatible // indirect
+	github.com/janpfeifer/gonb v0.10.6 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	golang.org/x/net v0.30.0 // indirect
+	k8s.io/klog/v2 v2.130.1 // indirect
+)
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/go-echarts/go-echarts/v2 v2.4.4
 	github.com/go-gota/gota v0.12.0
+	github.com/janpfeifer/gonb-echarts v0.1.0
 	github.com/lib/pq v1.10.9
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
