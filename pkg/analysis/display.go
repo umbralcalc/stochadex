@@ -8,19 +8,24 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// PlotDataRef
+// PlotDataRef is a reference to some subset of the stored data
+// for plotting purposes.
 type PlotDataRef struct {
 	PartitionName string
 	ValueIndex    int
 	IsTime        bool
 }
 
-// GetSeriesName
+// GetSeriesName retrieves a unique name for labelling plots.
 func (p *PlotDataRef) GetSeriesName() string {
+	if p.IsTime {
+		return "time"
+	}
 	return p.PartitionName + " " + strconv.Itoa(p.ValueIndex)
 }
 
-// GetFromStorage
+// GetFromStorage retrieves the relevant data from storage that
+// the reference is pointing to.
 func (p *PlotDataRef) GetFromStorage(
 	storage *simulator.StateTimeStorage,
 ) []float64 {
@@ -37,26 +42,18 @@ func (p *PlotDataRef) GetFromStorage(
 	return plotValues
 }
 
-// ScatterPlotConfig
-type ScatterPlotConfig struct {
-	XRefs []PlotDataRef
-	YRefs []PlotDataRef
-}
-
-// NewScatterPlotFromPartition
+// NewScatterPlotFromPartition creates a new scatter plot from
+// the storage data given the axes references to subsets of it.
 func NewScatterPlotFromPartition(
 	storage *simulator.StateTimeStorage,
-	config *ScatterPlotConfig,
+	XRef PlotDataRef,
+	YRefs []PlotDataRef,
 ) *charts.Scatter {
-	if len(config.XRefs) != 1 {
-		panic(strconv.Itoa(len(config.XRefs)) +
-			" X-axes have been been provided")
-	}
-	if len(config.YRefs) == 0 {
+	if len(YRefs) == 0 {
 		panic("0 Y-axes have been been provided")
 	}
 	yPartitions := make(map[string][][]float64, 0)
-	for _, yData := range config.YRefs {
+	for _, yData := range YRefs {
 		_, ok := yPartitions[yData.PartitionName]
 		if !ok {
 			yPartitions[yData.PartitionName] =
@@ -64,8 +61,11 @@ func NewScatterPlotFromPartition(
 		}
 	}
 	scatter := charts.NewScatter()
-	xValues := config.XRefs[0].GetFromStorage(storage)
-	for _, yData := range config.YRefs {
+	scatter.SetGlobalOptions(charts.WithXAxisOpts(opts.XAxis{
+		Name: XRef.GetSeriesName(),
+	}))
+	xValues := XRef.GetFromStorage(storage)
+	for _, yData := range YRefs {
 		plotData := make([]opts.ScatterData, 0)
 		for i, yYalue := range yData.GetFromStorage(storage) {
 			plotData = append(plotData, opts.ScatterData{
