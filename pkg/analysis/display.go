@@ -61,9 +61,15 @@ func NewScatterPlotFromPartition(
 		}
 	}
 	scatter := charts.NewScatter()
-	scatter.SetGlobalOptions(charts.WithXAxisOpts(opts.XAxis{
-		Name: XRef.GetSeriesName(),
-	}))
+	scatter.SetGlobalOptions(
+		charts.WithXAxisOpts(opts.XAxis{
+			Name: XRef.GetSeriesName(),
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Trigger:   "item",
+			Formatter: "({c})",
+		}),
+	)
 	xValues := XRef.GetFromStorage(storage)
 	for _, yData := range YRefs {
 		plotData := make([]opts.ScatterData, 0)
