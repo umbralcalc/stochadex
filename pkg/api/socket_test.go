@@ -6,7 +6,7 @@ func TestLoadSocketConfig(t *testing.T) {
 	t.Run(
 		"test the socket config successfully loads from yaml",
 		func(t *testing.T) {
-			_ = LoadSocketConfigFromYaml("./socket_config.yaml")
+			_ = LoadSocketConfigFromYaml("./test_socket.yaml")
 		},
 	)
 	t.Run(

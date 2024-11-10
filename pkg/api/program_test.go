@@ -50,7 +50,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 			RunWithParsedArgs(
 				ParsedArgs{
 					ConfigStrings: config,
-					ConfigFile:    "program_config.yaml",
+					ConfigFile:    "test_program_config.yaml",
 					SocketFile:    "",
 				},
 			)
@@ -135,7 +135,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 			RunWithParsedArgs(
 				ParsedArgs{
 					ConfigStrings: config,
-					ConfigFile:    "program_embedded_config.yaml",
+					ConfigFile:    "test_program_embedded_config.yaml",
 					SocketFile:    "",
 				},
 			)

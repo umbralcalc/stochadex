@@ -22,15 +22,15 @@ go mod tidy
 go build -o bin/ ./cmd/stochadex
 
 # run your config
-./bin/stochadex --config ./cfg/config.yaml
+./bin/stochadex --config ./cfg/example_config.yaml
 ```
 
 ## Running over websocket
 
 ```shell
 # run the stochadex with a socket config
-./bin/stochadex --config ./cfg/config.yaml \
---socket ./cfg/socket_config.yaml
+./bin/stochadex --config ./cfg/example_config.yaml \
+--socket ./cfg/socket.yaml
 ```
 
 ## Building and running the containerised version (may need sudo)
@@ -40,8 +40,8 @@ go build -o bin/ ./cmd/stochadex
 docker build -t stochadex -f Dockerfile.stochadex .
 
 # run the binary in the container with your configs
-docker run -p 2112:2112 stochadex --config ./cfg/config.yaml \
---socket ./cfg/socket_config.yaml
+docker run -p 2112:2112 stochadex --config ./cfg/example_config.yaml \
+--socket ./cfg/socket.yaml
 ```
 
 ## Developing the code
