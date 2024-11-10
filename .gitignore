@@ -6,5 +6,5 @@ __pycache__/
 bin/
 tmp/
 .vscode/
-nbs/log/*
+nbs/data/*
 log/*

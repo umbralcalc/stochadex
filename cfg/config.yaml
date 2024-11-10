@@ -28,7 +28,7 @@ main:
   simulation:
 
     output_condition: "&simulator.EveryStepOutputCondition{}"
-    output_function: 'simulator.NewJsonLogOutputFunction("./nbs/log/test.log")'
+    output_function: 'simulator.NewJsonLogOutputFunction("./nbs/data/test.log")'
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
     timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
     init_time_value: 0.0
