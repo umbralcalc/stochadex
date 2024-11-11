@@ -60,14 +60,14 @@ func iteratePartition(
 ) []float64 {
 	// iterate this partition by one step within the same thread
 	return c.Iterators[partitionIndex].Iterate(
-		c.StateHistories,
-		c.TimestepsHistory,
+		c.Shared.StateHistories,
+		c.Shared.TimestepsHistory,
 	)
 }
 
 func iterateHistory(c *PartitionCoordinator) {
 	// update the state history for each job in turn within the same thread
-	for partitionIndex, stateHistory := range c.StateHistories {
+	for partitionIndex, stateHistory := range c.Shared.StateHistories {
 		state := iteratePartition(c, partitionIndex)
 		// iterate over the history (matrix columns) and shift them
 		// back one timestep
@@ -83,25 +83,27 @@ func iterateHistory(c *PartitionCoordinator) {
 	}
 
 	// iterate over the history of timesteps and shift them back one
-	for i := 1; i < c.TimestepsHistory.StateHistoryDepth; i++ {
-		c.TimestepsHistory.Values.SetVec(i, c.TimestepsHistory.Values.AtVec(i-1))
+	for i := 1; i < c.Shared.TimestepsHistory.StateHistoryDepth; i++ {
+		c.Shared.TimestepsHistory.Values.SetVec(
+			i, c.Shared.TimestepsHistory.Values.AtVec(i-1))
 	}
 	// now update the history with the next time increment
-	c.TimestepsHistory.Values.SetVec(
+	c.Shared.TimestepsHistory.Values.SetVec(
 		0,
-		c.TimestepsHistory.Values.AtVec(0)+c.TimestepsHistory.NextIncrement,
+		c.Shared.TimestepsHistory.Values.AtVec(0)+
+			c.Shared.TimestepsHistory.NextIncrement,
 	)
 }
 
 func run(c *PartitionCoordinator) {
 	// terminate without iterating again if the condition has not been met
 	for !c.TerminationCondition.Terminate(
-		c.StateHistories,
-		c.TimestepsHistory,
+		c.Shared.StateHistories,
+		c.Shared.TimestepsHistory,
 	) {
-		c.TimestepsHistory.CurrentStepNumber += 1
-		c.TimestepsHistory.NextIncrement =
-			c.TimestepFunction.NextIncrement(c.TimestepsHistory)
+		c.Shared.TimestepsHistory.CurrentStepNumber += 1
+		c.Shared.TimestepsHistory.NextIncrement =
+			c.TimestepFunction.NextIncrement(c.Shared.TimestepsHistory)
 		iterateHistory(c)
 	}
 }

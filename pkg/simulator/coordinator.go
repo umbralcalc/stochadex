@@ -11,8 +11,7 @@ import (
 // these updates on the state history.
 type PartitionCoordinator struct {
 	Iterators            []*StateIterator
-	StateHistories       []*StateHistory
-	TimestepsHistory     *CumulativeTimestepsHistory
+	Shared               *IteratorInputMessage
 	TimestepFunction     TimestepFunction
 	TerminationCondition TerminationCondition
 	newWorkChannels      [](chan *IteratorInputMessage)
@@ -32,10 +31,7 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 	// send messages on the new work channels to ask for the next iteration
 	// in the case of each partition
 	for _, channel := range c.newWorkChannels {
-		channel <- &IteratorInputMessage{
-			StateHistories:   c.StateHistories,
-			TimestepsHistory: c.TimestepsHistory,
-		}
+		channel <- c.Shared
 	}
 }
 
@@ -53,22 +49,19 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	// send messages on the new work channels to ask for the next iteration
 	// in the case of each partition
 	for _, channel := range c.newWorkChannels {
-		channel <- &IteratorInputMessage{
-			StateHistories:   c.StateHistories,
-			TimestepsHistory: c.TimestepsHistory,
-		}
+		channel <- c.Shared
 	}
 
 	// iterate over the history of timesteps and shift them back one
 	var timestepsHistoryValuesCopy mat.VecDense
-	timestepsHistoryValuesCopy.CloneFromVec(c.TimestepsHistory.Values)
-	for i := 1; i < c.TimestepsHistory.StateHistoryDepth; i++ {
-		c.TimestepsHistory.Values.SetVec(i, timestepsHistoryValuesCopy.AtVec(i-1))
+	timestepsHistoryValuesCopy.CloneFromVec(c.Shared.TimestepsHistory.Values)
+	for i := 1; i < c.Shared.TimestepsHistory.StateHistoryDepth; i++ {
+		c.Shared.TimestepsHistory.Values.SetVec(i, timestepsHistoryValuesCopy.AtVec(i-1))
 	}
 	// now update the history with the next time increment
-	c.TimestepsHistory.Values.SetVec(
+	c.Shared.TimestepsHistory.Values.SetVec(
 		0,
-		timestepsHistoryValuesCopy.AtVec(0)+c.TimestepsHistory.NextIncrement,
+		timestepsHistoryValuesCopy.AtVec(0)+c.Shared.TimestepsHistory.NextIncrement,
 	)
 }
 
@@ -76,9 +69,9 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 // a new configuration of the latter to run the desired process for a single step.
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// update the overall step count and get the next time increment
-	c.TimestepsHistory.CurrentStepNumber += 1
-	c.TimestepsHistory.NextIncrement = c.TimestepFunction.NextIncrement(
-		c.TimestepsHistory,
+	c.Shared.TimestepsHistory.CurrentStepNumber += 1
+	c.Shared.TimestepsHistory.NextIncrement = c.TimestepFunction.NextIncrement(
+		c.Shared.TimestepsHistory,
 	)
 
 	// begin by requesting iterations for the next step and waiting
@@ -93,8 +86,8 @@ func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 // ReadyToTerminate returns whether or not the process has met the TerminationCondition.
 func (c *PartitionCoordinator) ReadyToTerminate() bool {
 	return c.TerminationCondition.Terminate(
-		c.StateHistories,
-		c.TimestepsHistory,
+		c.Shared.StateHistories,
+		c.Shared.TimestepsHistory,
 	)
 }
 
@@ -185,9 +178,11 @@ func NewPartitionCoordinator(
 		index += 1
 	}
 	return &PartitionCoordinator{
-		Iterators:            iterators,
-		StateHistories:       stateHistories,
-		TimestepsHistory:     timestepsHistory,
+		Iterators: iterators,
+		Shared: &IteratorInputMessage{
+			StateHistories:   stateHistories,
+			TimestepsHistory: timestepsHistory,
+		},
 		TimestepFunction:     implementations.TimestepFunction,
 		TerminationCondition: implementations.TerminationCondition,
 		newWorkChannels:      newWorkChannels,

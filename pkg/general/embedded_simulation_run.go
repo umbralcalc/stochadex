@@ -119,7 +119,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	// prepare the returned state slice as the concatenated
 	// final states of all partitions
 	concatFinalStates := make([]float64, 0)
-	for _, stateHistory := range coordinator.StateHistories {
+	for _, stateHistory := range coordinator.Shared.StateHistories {
 		concatFinalStates = append(
 			concatFinalStates,
 			stateHistory.Values.RawRowView(0)...,
