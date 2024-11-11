@@ -173,7 +173,7 @@ func NewPartitionCoordinator(
 		)
 		newWorkChannels = append(
 			newWorkChannels,
-			make(chan *IteratorInputMessage),
+			make(chan *IteratorInputMessage, listenersByPartition[index]),
 		)
 		index += 1
 	}
