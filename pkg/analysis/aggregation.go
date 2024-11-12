@@ -55,5 +55,8 @@ func (a *AggregationConfig) Iteration() simulator.Iteration {
 func NewAggregationPartition(
 	config *AggregationConfig,
 ) *simulator.PartitionConfig {
-	return &simulator.PartitionConfig{}
+	return &simulator.PartitionConfig{
+		Name:      config.Name,
+		Iteration: config.Iteration(),
+	}
 }
