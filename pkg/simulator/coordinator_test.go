@@ -71,7 +71,7 @@ func iterateHistory(c *PartitionCoordinator) {
 		state := iteratePartition(c, partitionIndex)
 		// iterate over the history (matrix columns) and shift them
 		// back one timestep
-		for i := 1; i < stateHistory.StateHistoryDepth; i++ {
+		for i := stateHistory.StateHistoryDepth - 1; i > 0; i-- {
 			stateHistory.Values.SetRow(i, stateHistory.Values.RawRowView(i-1))
 		}
 		// update the latest state in the history
@@ -83,16 +83,14 @@ func iterateHistory(c *PartitionCoordinator) {
 	}
 
 	// iterate over the history of timesteps and shift them back one
-	for i := 1; i < c.Shared.TimestepsHistory.StateHistoryDepth; i++ {
-		c.Shared.TimestepsHistory.Values.SetVec(
-			i, c.Shared.TimestepsHistory.Values.AtVec(i-1))
+	for i := c.Shared.TimestepsHistory.StateHistoryDepth - 1; i > 0; i-- {
+		c.Shared.TimestepsHistory.Values.SetVec(i,
+			c.Shared.TimestepsHistory.Values.AtVec(i-1))
 	}
 	// now update the history with the next time increment
-	c.Shared.TimestepsHistory.Values.SetVec(
-		0,
+	c.Shared.TimestepsHistory.Values.SetVec(0,
 		c.Shared.TimestepsHistory.Values.AtVec(0)+
-			c.Shared.TimestepsHistory.NextIncrement,
-	)
+			c.Shared.TimestepsHistory.NextIncrement)
 }
 
 func run(c *PartitionCoordinator) {

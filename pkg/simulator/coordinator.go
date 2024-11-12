@@ -53,16 +53,14 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	}
 
 	// iterate over the history of timesteps and shift them back one
-	var timestepsHistoryValuesCopy mat.VecDense
-	timestepsHistoryValuesCopy.CloneFromVec(c.Shared.TimestepsHistory.Values)
-	for i := 1; i < c.Shared.TimestepsHistory.StateHistoryDepth; i++ {
-		c.Shared.TimestepsHistory.Values.SetVec(i, timestepsHistoryValuesCopy.AtVec(i-1))
+	for i := c.Shared.TimestepsHistory.StateHistoryDepth - 1; i > 0; i-- {
+		c.Shared.TimestepsHistory.Values.SetVec(i,
+			c.Shared.TimestepsHistory.Values.AtVec(i-1))
 	}
 	// now update the history with the next time increment
-	c.Shared.TimestepsHistory.Values.SetVec(
-		0,
-		timestepsHistoryValuesCopy.AtVec(0)+c.Shared.TimestepsHistory.NextIncrement,
-	)
+	c.Shared.TimestepsHistory.Values.SetVec(0,
+		c.Shared.TimestepsHistory.Values.AtVec(0)+
+			c.Shared.TimestepsHistory.NextIncrement)
 }
 
 // Step is the main method call of PartitionCoordinator - call this proceeding
