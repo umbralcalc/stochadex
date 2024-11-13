@@ -76,10 +76,7 @@ func GroupStateParamValuesFunction(
 	for i, stateValue := range params.Get("state_values") {
 		values = append(
 			values,
-			GroupStateValue{
-				Group: groupValues[i],
-				State: stateValue,
-			},
+			GroupStateValue{Group: groupValues[i], State: stateValue},
 		)
 	}
 	return values
@@ -98,10 +95,7 @@ func ZeroGroupStateParamValuesFunction(
 	for _, stateValue := range params.Get("state_values") {
 		values = append(
 			values,
-			GroupStateValue{
-				Group: 0.0,
-				State: stateValue,
-			},
+			GroupStateValue{Group: 0.0, State: stateValue},
 		)
 	}
 	return values
@@ -118,18 +112,16 @@ func PartitionRangesValuesFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []GroupStateValue {
 	values := make([]GroupStateValue, 0)
-	for i, statePartitionIndex := range params.Get("state_partition_indices") {
+	for i, statePartitionIndex := range params.Get("state_partitions") {
 		values = append(
 			values,
 			GroupStateValue{
 				Group: stateHistories[int(
-					params.GetIndex("grouping_partition_indices", i))].Values.At(
-					0,
-					int(params.GetIndex("grouping_value_indices", i)),
+					params.GetIndex("grouping_partitions", i))].Values.At(
+					0, int(params.GetIndex("grouping_value_indices", i)),
 				),
 				State: stateHistories[int(statePartitionIndex)].Values.At(
-					0,
-					int(params.GetIndex("state_value_indices", i)),
+					0, int(params.GetIndex("state_value_indices", i)),
 				),
 			},
 		)
@@ -148,14 +140,13 @@ func ZeroGroupPartitionRangesValuesFunction(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []GroupStateValue {
 	values := make([]GroupStateValue, 0)
-	for i, statePartitionIndex := range params.Get("state_partition_indices") {
+	for i, statePartitionIndex := range params.Get("state_partitions") {
 		values = append(
 			values,
 			GroupStateValue{
 				Group: 0.0,
 				State: stateHistories[int(statePartitionIndex)].Values.At(
-					0,
-					int(params.GetIndex("state_value_indices", i)),
+					0, int(params.GetIndex("state_value_indices", i)),
 				),
 			},
 		)

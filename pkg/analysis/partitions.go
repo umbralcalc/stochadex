@@ -37,6 +37,7 @@ func NewStateTimeStorageFromPartitions(
 func AddPartitionToStateTimeStorage(
 	storage *simulator.StateTimeStorage,
 	partition *simulator.PartitionConfig,
+	windowSizeByPartition map[string]int,
 ) *simulator.StateTimeStorage {
 	generator := simulator.NewConfigGenerator()
 	times := storage.GetTimes()
@@ -53,7 +54,14 @@ func AddPartitionToStateTimeStorage(
 		},
 		InitTimeValue: times[0],
 	})
+	if windowSizeByPartition == nil {
+		windowSizeByPartition = make(map[string]int)
+	}
 	for _, name := range storage.GetNames() {
+		windowSize, ok := windowSizeByPartition[name]
+		if !ok {
+			windowSize = 1
+		}
 		data := storage.GetValues(name)
 		generator.SetPartition(&simulator.PartitionConfig{
 			Name: name,
@@ -62,7 +70,7 @@ func AddPartitionToStateTimeStorage(
 			},
 			Params:            simulator.NewParams(make(map[string][]float64)),
 			InitStateValues:   data[0],
-			StateHistoryDepth: 1,
+			StateHistoryDepth: windowSize,
 			Seed:              0,
 		})
 	}

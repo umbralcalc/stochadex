@@ -68,7 +68,7 @@ func TestPartitions(t *testing.T) {
 				InitStateValues:   []float64{1.0, 2.0, 3.0},
 				StateHistoryDepth: 1,
 				Seed:              0,
-			})
+			}, nil)
 			times := storage.GetTimes()
 			for i, values := range storage.GetValues("test_2") {
 				if values[0] != 1.0 ||

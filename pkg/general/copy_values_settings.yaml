@@ -1,6 +1,6 @@
 params:
 - {}
-- partition_indices: [0]
+- partitions: [0]
   partition_state_values: [0]
 init_state_values:
 - [15.0]
