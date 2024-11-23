@@ -29,16 +29,16 @@ func TestCreatingPlot(t *testing.T) {
 				},
 				0.0,
 			)
-			yRefs := make([]PlotDataRef, 0)
+			yRefs := make([]DataRef, 0)
 			for i := 0; i < 3; i++ {
-				yRefs = append(yRefs, PlotDataRef{
+				yRefs = append(yRefs, DataRef{
 					PartitionName: "test",
 					ValueIndex:    i,
 				})
 			}
 			scatter := NewScatterPlotFromPartition(
 				storage,
-				PlotDataRef{
+				DataRef{
 					PartitionName: "test",
 					IsTime:        true,
 				},

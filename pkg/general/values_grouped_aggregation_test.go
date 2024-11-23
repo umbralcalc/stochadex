@@ -16,13 +16,13 @@ func TestValuesGroupedAggregationIteration(t *testing.T) {
 			iterationTwo := &ConstantValuesIteration{}
 			iterationTwo.Configure(1, settings)
 			iterationThree := &ValuesGroupedAggregationIteration{
-				ValuesFunction: PartitionRangesValuesFunction,
-				AggFunction:    CountAggFunction,
+				Grouping:    PartitionRangesGrouping,
+				Aggregation: CountAggregation,
 			}
 			iterationThree.Configure(2, settings)
 			iterationFour := &ValuesGroupedAggregationIteration{
-				ValuesFunction: PartitionRangesValuesFunction,
-				AggFunction:    MeanAggFunction,
+				Grouping:    PartitionRangesGrouping,
+				Aggregation: MeanAggregation,
 			}
 			iterationFour.Configure(3, settings)
 			partitions := []simulator.Partition{

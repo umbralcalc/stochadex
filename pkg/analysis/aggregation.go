@@ -5,67 +5,39 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// AggDataRef
-type AggDataRef struct {
-	PartitionName string
-	ValueIndex    int
-}
-
-// GroupedAggregationConfig
-type GroupedAggregationConfig struct {
-	Name         string
-	Data         AggDataRef
-	GroupBy      []AggDataRef
-	AcceptGroups []float64
-	Defaults     []float64 // optional
-	AggFunction  func(
-		currentAggValue float64,
-		nextValueCount int,
-		nextValue float64,
-	) float64
-}
-
-// ValuesFunction
-func (g *GroupedAggregationConfig) ValuesFunction() func(
-	params *simulator.Params,
-	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) []general.GroupStateValue {
-	return func(
-		params *simulator.Params,
-		partitionIndex int,
-		stateHistories []*simulator.StateHistory,
-		timestepsHistory *simulator.CumulativeTimestepsHistory,
-	) []general.GroupStateValue {
-		return []general.GroupStateValue{}
-	}
-}
-
-// NewGroupedAggregationPartition
+// NewGroupedAggregationPartition creates a new PartitionConfig for a
+// grouped aggregation.
 func NewGroupedAggregationPartition(
-	config *GroupedAggregationConfig,
+	name string,
+	aggregation func(
+		groupings general.Groupings,
+		outputIndexByGroup map[float64]int,
+		output []float64,
+	),
+	storage *GroupedStateTimeStorage,
 ) *simulator.PartitionConfig {
+	defaults := storage.GetDefaults()
+	acceptGroups := storage.GetAcceptedValueGroups()
 	params := simulator.NewParams(map[string][]float64{
 		"state_value_indices":    {},
 		"grouping_value_indices": {},
-		"accepted_value_groups":  config.AcceptGroups,
+		"accepted_value_groups":  acceptGroups,
 	})
 	var initStateValues []float64
-	if config.Defaults != nil {
-		params.Set("default_values", config.Defaults)
-		initStateValues = config.Defaults
+	if defaults != nil {
+		params.Set("default_values", defaults)
+		initStateValues = defaults
 	} else {
 		initStateValues = make([]float64, 0)
-		for range config.AcceptGroups {
+		for range acceptGroups {
 			initStateValues = append(initStateValues, 0.0)
 		}
 	}
 	return &simulator.PartitionConfig{
-		Name: config.Name,
+		Name: name,
 		Iteration: &general.ValuesGroupedAggregationIteration{
-			ValuesFunction: config.ValuesFunction(),
-			AggFunction:    config.AggFunction,
+			Grouping:    storage.GetGrouping(),
+			Aggregation: aggregation,
 		},
 		Params: params,
 		ParamsAsPartitions: map[string][]string{
@@ -79,8 +51,11 @@ func NewGroupedAggregationPartition(
 	}
 }
 
-// WeightedWindowedAggregationConfig
-type WeightedWindowedAggregationConfig struct {
-	Name string
-	Data []AggDataRef
+// NewAggregationPartition creates a creates a new PartitionConfig for a
+// instantaneous, weighted and/or windowed aggregation.
+func NewAggregationPartition(
+	name string,
+	storage *GroupedStateTimeStorage,
+) *simulator.PartitionConfig {
+	return &simulator.PartitionConfig{}
 }

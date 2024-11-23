@@ -2,156 +2,137 @@ package general
 
 import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/floats"
 )
 
-// CountAggFunction returns the count of values in the group.
-func CountAggFunction(
-	currentAggValue float64,
-	nextValueCount int,
-	nextValue float64,
-) float64 {
-	return float64(nextValueCount)
-}
-
-// SumAggFunction returns the sum of values in the group.
-func SumAggFunction(
-	currentAggValue float64,
-	nextValueCount int,
-	nextValue float64,
-) float64 {
-	return currentAggValue + nextValue
-}
-
-// MeanAggFunction returns the mean of values in the group.
-func MeanAggFunction(
-	currentAggValue float64,
-	nextValueCount int,
-	nextValue float64,
-) float64 {
-	return currentAggValue + ((nextValue - currentAggValue) / float64(nextValueCount))
-}
-
-// MaxAggFunction returns the maximum of values in the group.
-func MaxAggFunction(
-	currentAggValue float64,
-	nextValueCount int,
-	nextValue float64,
-) float64 {
-	if currentAggValue < nextValue {
-		return nextValue
-	} else {
-		return currentAggValue
+// CountAggregation returns the count of values in the group.
+func CountAggregation(
+	groupings Groupings,
+	outputIndexByGroup map[float64]int,
+	output []float64,
+) {
+	for group, values := range groupings {
+		index, ok := outputIndexByGroup[group]
+		if !ok {
+			continue
+		}
+		output[index] = float64(len(values))
 	}
 }
 
-// MinAggFunction returns the minimum of values in the group.
-func MinAggFunction(
-	currentAggValue float64,
-	nextValueCount int,
-	nextValue float64,
-) float64 {
-	if currentAggValue > nextValue {
-		return nextValue
-	} else {
-		return currentAggValue
+// SumAggregation returns the sum of values in the group.
+func SumAggregation(
+	groupings Groupings,
+	outputIndexByGroup map[float64]int,
+	output []float64,
+) {
+	for group, values := range groupings {
+		index, ok := outputIndexByGroup[group]
+		if !ok {
+			continue
+		}
+		output[index] = floats.Sum(values)
 	}
 }
 
-// GroupStateValue represents a grouping value and state value pair.
-type GroupStateValue struct {
-	Group float64
-	State float64
+// MeanAggregation returns the mean of values in the group.
+func MeanAggregation(
+	groupings Groupings,
+	outputIndexByGroup map[float64]int,
+	output []float64,
+) {
+	for group, values := range groupings {
+		index, ok := outputIndexByGroup[group]
+		if !ok {
+			continue
+		}
+		output[index] = floats.Sum(values) / float64(len(values))
+	}
 }
 
-// GroupStateParamValuesFunction generates group values and state values
-// based directly on input params from the user.
-func GroupStateParamValuesFunction(
+// MaxAggregation returns the maximum of values in the group.
+func MaxAggregation(
+	groupings Groupings,
+	outputIndexByGroup map[float64]int,
+	output []float64,
+) {
+	for group, values := range groupings {
+		index, ok := outputIndexByGroup[group]
+		if !ok {
+			continue
+		}
+		output[index] = floats.Max(values)
+	}
+}
+
+// MinAggregation returns the minimum of values in the group.
+func MinAggregation(
+	groupings Groupings,
+	outputIndexByGroup map[float64]int,
+	output []float64,
+) {
+	for group, values := range groupings {
+		index, ok := outputIndexByGroup[group]
+		if !ok {
+			continue
+		}
+		output[index] = floats.Min(values)
+	}
+}
+
+// Groupings represents the groups of values for grouped aggregations.
+type Groupings map[float64][]float64
+
+// ParamValuesGrouping generates group values and state values based
+// directly on input params from the user.
+func ParamValuesGrouping(
 	params *simulator.Params,
-	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) []GroupStateValue {
-	values := make([]GroupStateValue, 0)
+) Groupings {
+	groupings := make(Groupings)
 	groupValues := params.Get("group_values")
+	var values []float64
+	var ok bool
 	for i, stateValue := range params.Get("state_values") {
-		values = append(
-			values,
-			GroupStateValue{Group: groupValues[i], State: stateValue},
-		)
+		values, ok = groupings[groupValues[i]]
+		if !ok {
+			groupings[groupValues[i]] = []float64{stateValue}
+			continue
+		}
+		values = append(values, stateValue)
+		groupings[groupValues[i]] = values
 	}
-	return values
+	return groupings
 }
 
-// ZeroGroupStateParamValuesFunction generates state values based
-// directly on input params from the user. In addition, a group value
-// of 0.0 is always used.
-func ZeroGroupStateParamValuesFunction(
+// PartitionRangesGrouping generates group values and state values based
+// on ranges of partition and value indices which are used to retrieve
+// the latest corresponding data from the state history of the specified
+// partitions.
+func PartitionRangesGrouping(
 	params *simulator.Params,
-	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) []GroupStateValue {
-	values := make([]GroupStateValue, 0)
-	for _, stateValue := range params.Get("state_values") {
-		values = append(
-			values,
-			GroupStateValue{Group: 0.0, State: stateValue},
-		)
-	}
-	return values
-}
-
-// PartitionRangesValuesFunction generates group values and state values
-// based on ranges of partition and value indices which are used to
-// retrieve the latest corresponding data from the state history of the
-// specified partitions.
-func PartitionRangesValuesFunction(
-	params *simulator.Params,
-	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) []GroupStateValue {
-	values := make([]GroupStateValue, 0)
+) Groupings {
+	groupings := make(Groupings)
+	var values []float64
+	var ok bool
 	for i, statePartitionIndex := range params.Get("state_partitions") {
-		values = append(
-			values,
-			GroupStateValue{
-				Group: stateHistories[int(
-					params.GetIndex("grouping_partitions", i))].Values.At(
-					0, int(params.GetIndex("grouping_value_indices", i)),
-				),
-				State: stateHistories[int(statePartitionIndex)].Values.At(
-					0, int(params.GetIndex("state_value_indices", i)),
-				),
-			},
+		groupValue := stateHistories[int(
+			params.GetIndex("grouping_partitions", i))].Values.At(
+			0, int(params.GetIndex("grouping_value_indices", i)),
 		)
-	}
-	return values
-}
-
-// ZeroGroupPartitionRangesValuesFunction generates state values
-// based on ranges of partition and value indices which are used to
-// retrieve the latest corresponding data from the state history of the
-// specified partitions. In addition, a group value of 0.0 is always used.
-func ZeroGroupPartitionRangesValuesFunction(
-	params *simulator.Params,
-	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) []GroupStateValue {
-	values := make([]GroupStateValue, 0)
-	for i, statePartitionIndex := range params.Get("state_partitions") {
-		values = append(
-			values,
-			GroupStateValue{
-				Group: 0.0,
-				State: stateHistories[int(statePartitionIndex)].Values.At(
-					0, int(params.GetIndex("state_value_indices", i)),
-				),
-			},
+		stateValue := stateHistories[int(statePartitionIndex)].Values.At(
+			0, int(params.GetIndex("state_value_indices", i)),
 		)
+		values, ok = groupings[groupValue]
+		if !ok {
+			groupings[groupValue] = []float64{stateValue}
+			continue
+		}
+		values = append(values, stateValue)
+		groupings[groupValue] = values
 	}
-	return values
+	return groupings
 }
 
 // ValuesGroupedAggregationIteration defines an iteration which applies
@@ -159,27 +140,26 @@ func ZeroGroupPartitionRangesValuesFunction(
 // other partitions and groups them into bins specified by the
 // "value_groups" params.
 type ValuesGroupedAggregationIteration struct {
-	ValuesFunction func(
+	Grouping func(
 		params *simulator.Params,
-		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
-		timestepsHistory *simulator.CumulativeTimestepsHistory,
-	) []GroupStateValue
-	AggFunction func(
-		currentAggValue float64,
-		nextValueCount int,
-		nextValue float64,
-	) float64
-	outputIndexByValueGroup map[float64]int
+	) Groupings
+	Aggregation func(
+		groupings Groupings,
+		outputIndexByGroup map[float64]int,
+		output []float64,
+	)
+	outputIndexByGroup map[float64]int
 }
 
 func (v *ValuesGroupedAggregationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	v.outputIndexByValueGroup = make(map[float64]int)
-	for i, value := range settings.Params[partitionIndex].Get("accepted_value_groups") {
-		v.outputIndexByValueGroup[value] = i
+	v.outputIndexByGroup = make(map[float64]int)
+	for i, value := range settings.Params[partitionIndex].Get(
+		"accepted_value_groups") {
+		v.outputIndexByGroup[value] = i
 	}
 }
 
@@ -189,31 +169,14 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	countByValueGroup := make(map[float64]int)
 	aggValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if defaultValues, ok := params.GetOk("default_values"); ok {
 		copy(aggValues, defaultValues)
 	}
-	for _, groupStateValue := range v.ValuesFunction(
-		params,
-		partitionIndex,
-		stateHistories,
-		timestepsHistory,
-	) {
-		if outputIndex, ok := v.outputIndexByValueGroup[groupStateValue.Group]; ok {
-			count, ok := countByValueGroup[groupStateValue.Group]
-			if !ok {
-				countByValueGroup[groupStateValue.Group] = 0
-				count = 0
-			}
-			count += 1
-			countByValueGroup[groupStateValue.Group] = count
-			aggValues[outputIndex] = v.AggFunction(
-				aggValues[outputIndex],
-				count,
-				groupStateValue.State,
-			)
-		}
-	}
+	v.Aggregation(
+		v.Grouping(params, stateHistories),
+		v.outputIndexByGroup,
+		aggValues,
+	)
 	return aggValues
 }
