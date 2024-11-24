@@ -9,32 +9,39 @@ import (
 // DataRef is a reference to some subset of the stored data.
 type DataRef struct {
 	PartitionName string
-	ValueIndex    int
+	ValueIndices  []int
 	IsTime        bool
 }
 
-// GetSeriesName retrieves a unique name for labelling plots.
-func (d *DataRef) GetSeriesName() string {
+// GetSeriesName retrieves a unique names for labelling plots.
+func (d *DataRef) GetSeriesNames() []string {
 	if d.IsTime {
-		return "time"
+		return []string{"time"}
 	}
-	return d.PartitionName + " " + strconv.Itoa(d.ValueIndex)
+	names := make([]string, 0)
+	for _, index := range d.ValueIndices {
+		names = append(names, d.PartitionName+" "+strconv.Itoa(index))
+	}
+	return names
 }
 
 // GetFromStorage retrieves the relevant data from storage that
 // the reference is pointing to.
 func (d *DataRef) GetFromStorage(
 	storage *simulator.StateTimeStorage,
-) []float64 {
-	var plotValues []float64
+) [][]float64 {
+	var plotValues [][]float64
 	if d.IsTime {
-		plotValues = storage.GetTimes()
+		plotValues = [][]float64{storage.GetTimes()}
 	} else {
-		values := make([]float64, 0)
-		for _, vs := range storage.GetValues(d.PartitionName) {
-			values = append(values, vs[d.ValueIndex])
+		plotValues = make([][]float64, 0)
+		for _, index := range d.ValueIndices {
+			values := make([]float64, 0)
+			for _, vs := range storage.GetValues(d.PartitionName) {
+				values = append(values, vs[index])
+			}
+			plotValues = append(plotValues, values)
 		}
-		plotValues = values
 	}
 	return plotValues
 }

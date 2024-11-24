@@ -33,7 +33,7 @@ func TestCreatingPlot(t *testing.T) {
 			for i := 0; i < 3; i++ {
 				yRefs = append(yRefs, DataRef{
 					PartitionName: "test",
-					ValueIndex:    i,
+					ValueIndices:  []int{i},
 				})
 			}
 			scatter := NewScatterPlotFromPartition(

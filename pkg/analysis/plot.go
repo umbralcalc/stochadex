@@ -27,22 +27,25 @@ func NewScatterPlotFromPartition(
 	scatter := charts.NewScatter()
 	scatter.SetGlobalOptions(
 		charts.WithXAxisOpts(opts.XAxis{
-			Name: XRef.GetSeriesName(),
+			Name: XRef.GetSeriesNames()[0],
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
 			Trigger:   "item",
 			Formatter: "({c})",
 		}),
 	)
-	xValues := XRef.GetFromStorage(storage)
+	xValues := XRef.GetFromStorage(storage)[0]
 	for _, yData := range YRefs {
-		plotData := make([]opts.ScatterData, 0)
-		for i, yYalue := range yData.GetFromStorage(storage) {
-			plotData = append(plotData, opts.ScatterData{
-				Value: []interface{}{xValues[i], yYalue},
-			})
+		yNames := yData.GetSeriesNames()
+		for i, yValues := range yData.GetFromStorage(storage) {
+			plotData := make([]opts.ScatterData, 0)
+			for j, yYalue := range yValues {
+				plotData = append(plotData, opts.ScatterData{
+					Value: []interface{}{xValues[j], yYalue},
+				})
+			}
+			scatter.AddSeries(yNames[i], plotData)
 		}
-		scatter.AddSeries(yData.GetSeriesName(), plotData)
 	}
 	return scatter
 }
