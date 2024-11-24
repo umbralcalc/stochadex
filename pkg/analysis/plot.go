@@ -27,7 +27,7 @@ func NewScatterPlotFromPartition(
 	scatter := charts.NewScatter()
 	scatter.SetGlobalOptions(
 		charts.WithXAxisOpts(opts.XAxis{
-			Name: XRef.GetSeriesNames()[0],
+			Name: XRef.GetSeriesNames(storage)[0],
 		}),
 		charts.WithTooltipOpts(opts.Tooltip{
 			Trigger:   "item",
@@ -36,7 +36,7 @@ func NewScatterPlotFromPartition(
 	)
 	xValues := XRef.GetFromStorage(storage)[0]
 	for _, yData := range YRefs {
-		yNames := yData.GetSeriesNames()
+		yNames := yData.GetSeriesNames(storage)
 		for i, yValues := range yData.GetFromStorage(storage) {
 			plotData := make([]opts.ScatterData, 0)
 			for j, yYalue := range yValues {

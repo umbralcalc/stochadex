@@ -13,13 +13,30 @@ type DataRef struct {
 	IsTime        bool
 }
 
+// GetValueIndices populates the value indices slice with all
+// of the indices found in the referenced partition if set
+// initially to nil.
+func (d *DataRef) GetValueIndices(
+	storage *simulator.StateTimeStorage,
+) []int {
+	if d.ValueIndices == nil {
+		d.ValueIndices = make([]int, 0)
+		for i := range storage.GetValues(d.PartitionName)[0] {
+			d.ValueIndices = append(d.ValueIndices, i)
+		}
+	}
+	return d.ValueIndices
+}
+
 // GetSeriesName retrieves a unique names for labelling plots.
-func (d *DataRef) GetSeriesNames() []string {
+func (d *DataRef) GetSeriesNames(
+	storage *simulator.StateTimeStorage,
+) []string {
 	if d.IsTime {
 		return []string{"time"}
 	}
 	names := make([]string, 0)
-	for _, index := range d.ValueIndices {
+	for _, index := range d.GetValueIndices(storage) {
 		names = append(names, d.PartitionName+" "+strconv.Itoa(index))
 	}
 	return names
@@ -35,7 +52,7 @@ func (d *DataRef) GetFromStorage(
 		plotValues = [][]float64{storage.GetTimes()}
 	} else {
 		plotValues = make([][]float64, 0)
-		for _, index := range d.ValueIndices {
+		for _, index := range d.GetValueIndices(storage) {
 			values := make([]float64, 0)
 			for _, vs := range storage.GetValues(d.PartitionName) {
 				values = append(values, vs[index])
