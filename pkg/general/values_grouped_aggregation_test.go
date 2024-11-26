@@ -16,12 +16,10 @@ func TestValuesGroupedAggregationIteration(t *testing.T) {
 			iterationTwo := &ConstantValuesIteration{}
 			iterationTwo.Configure(1, settings)
 			iterationThree := &ValuesGroupedAggregationIteration{
-				Grouping:    PartitionRangesGrouping,
 				Aggregation: CountAggregation,
 			}
 			iterationThree.Configure(2, settings)
 			iterationFour := &ValuesGroupedAggregationIteration{
-				Grouping:    PartitionRangesGrouping,
 				Aggregation: MeanAggregation,
 			}
 			iterationFour.Configure(3, settings)

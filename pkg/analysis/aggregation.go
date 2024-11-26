@@ -11,7 +11,7 @@ func NewGroupedAggregationPartition(
 	name string,
 	aggregation func(
 		groupings general.Groupings,
-		outputIndexByGroup map[float64]int,
+		outputIndexByGroup map[string]int,
 		output []float64,
 	),
 	storage *GroupedStateTimeStorage,
@@ -36,7 +36,6 @@ func NewGroupedAggregationPartition(
 	return &simulator.PartitionConfig{
 		Name: name,
 		Iteration: &general.ValuesGroupedAggregationIteration{
-			Grouping:    storage.GetGrouping(),
 			Aggregation: aggregation,
 		},
 		Params: params,

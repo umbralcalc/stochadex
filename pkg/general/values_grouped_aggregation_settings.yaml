@@ -1,17 +1,19 @@
 params:
 - {}
 - {}
-- accepted_value_groups: [0.0, 1.0, 2.0]
-  grouping_partitions: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  grouping_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+- accepted_value_group_index_0: [0.0, 1.0, 2.0]
+  grouping_partitions_index_0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  grouping_value_indices_index_0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
   state_partitions: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
   state_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  float_precision: [2]
 - default_values: [5.0, 5.0, 5.0]
-  accepted_value_groups: [0.0, 1.0, 2.0]
-  grouping_partitions: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-  grouping_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  accepted_value_group_index_0: [0.0, 1.0, 2.0]
+  grouping_partitions_index_0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  grouping_value_indices_index_0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
   state_partitions: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
   state_value_indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  float_precision: [2]
 init_state_values:
 - [0.0, 1.0, 2.0, 2.0, 2.0, 0.0, 1.0, 0.0, 1.0, 2.0]
 - [5.0, 2.0, 48.0, 11.0, 621.0, 1.0, 1.0, 2.0, 8.0, 245.0]
