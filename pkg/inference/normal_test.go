@@ -27,7 +27,7 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &general.ValuesFunctionWindowedWeightedMeanIteration{
+					Iteration: &general.ValuesFunctionVectorMeanIteration{
 						Function: general.DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},
@@ -39,7 +39,7 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &general.ValuesFunctionWindowedWeightedCovarianceIteration{
+					Iteration: &general.ValuesFunctionVectorCovarianceIteration{
 						Function: general.DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},

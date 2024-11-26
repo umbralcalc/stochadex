@@ -155,10 +155,10 @@ func DataValuesFunction(
 		params.GetIndex("data_values_partition", 0))].Values.RawRowView(stateHistoryDepthIndex)
 }
 
-// ValuesFunctionWindowedWeightedMeanIteration computes the rolling windowed weighted
+// ValuesFunctionVectorMeanIteration computes the rolling windowed weighted
 // mean value of a function using inputs into the latter specified by another partition
 // and weights specified by an integration kernel.
-type ValuesFunctionWindowedWeightedMeanIteration struct {
+type ValuesFunctionVectorMeanIteration struct {
 	Function func(
 		params *simulator.Params,
 		partitionIndex int,
@@ -168,14 +168,14 @@ type ValuesFunctionWindowedWeightedMeanIteration struct {
 	Kernel kernels.IntegrationKernel
 }
 
-func (v *ValuesFunctionWindowedWeightedMeanIteration) Configure(
+func (v *ValuesFunctionVectorMeanIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 	v.Kernel.Configure(partitionIndex, settings)
 }
 
-func (v *ValuesFunctionWindowedWeightedMeanIteration) Iterate(
+func (v *ValuesFunctionVectorMeanIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,

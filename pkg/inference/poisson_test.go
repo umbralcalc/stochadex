@@ -27,7 +27,7 @@ func TestPoissonLogLikelihood(t *testing.T) {
 			partitions = append(
 				partitions,
 				simulator.Partition{
-					Iteration: &general.ValuesFunctionWindowedWeightedMeanIteration{
+					Iteration: &general.ValuesFunctionVectorMeanIteration{
 						Function: general.DataValuesFunction,
 						Kernel:   &kernels.ExponentialIntegrationKernel{},
 					},

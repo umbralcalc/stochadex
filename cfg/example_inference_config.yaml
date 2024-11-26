@@ -32,7 +32,7 @@ main:
     - github.com/umbralcalc/stochadex/pkg/general
     extra_vars:
     - expKernel: "&kernels.ExponentialIntegrationKernel{}"
-    - dataRollingMean: "&general.ValuesFunctionWindowedWeightedMeanIteration{Function: general.DataValuesFunction, Kernel: expKernel}"
+    - dataRollingMean: "&general.ValuesFunctionVectorMeanIteration{Function: general.DataValuesFunction, Kernel: expKernel}"
 
   - name: data_rolling_cov
     iteration: dataRollingCov
@@ -53,7 +53,7 @@ main:
     - github.com/umbralcalc/stochadex/pkg/general
     extra_vars:
     - expKernelForCov: "&kernels.ExponentialIntegrationKernel{}"
-    - dataRollingCov: "&general.ValuesFunctionWindowedWeightedCovarianceIteration{Function: general.DataValuesFunction, Kernel: expKernelForCov}"
+    - dataRollingCov: "&general.ValuesFunctionVectorCovarianceIteration{Function: general.DataValuesFunction, Kernel: expKernelForCov}"
 
   - name: params_posterior_log_norm
     iteration: paramsPosteriorLogNorm

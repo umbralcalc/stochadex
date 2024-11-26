@@ -9,11 +9,11 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// ValuesFunctionWindowedWeightedCovarianceIteration computes the rolling windowed
+// ValuesFunctionVectorCovarianceIteration computes the rolling windowed
 // weighted covariance value of a function using inputs into the latter specified
 // by another partition and weights specified by an integration kernel. It also
 // requires a "mean" param vector.
-type ValuesFunctionWindowedWeightedCovarianceIteration struct {
+type ValuesFunctionVectorCovarianceIteration struct {
 	Function func(
 		params *simulator.Params,
 		partitionIndex int,
@@ -23,14 +23,14 @@ type ValuesFunctionWindowedWeightedCovarianceIteration struct {
 	Kernel kernels.IntegrationKernel
 }
 
-func (v *ValuesFunctionWindowedWeightedCovarianceIteration) Configure(
+func (v *ValuesFunctionVectorCovarianceIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 	v.Kernel.Configure(partitionIndex, settings)
 }
 
-func (v *ValuesFunctionWindowedWeightedCovarianceIteration) Iterate(
+func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
