@@ -10,10 +10,11 @@ import (
 func NewGroupedAggregationPartition(
 	name string,
 	aggregation func(
-		groupings general.Groupings,
+		defaultValues []float64,
 		outputIndexByGroup map[string]int,
-		output []float64,
-	),
+		groupings map[string][]float64,
+		weightings map[string][]float64,
+	) []float64,
 	storage *GroupedStateTimeStorage,
 ) *simulator.PartitionConfig {
 	defaults := storage.GetDefaults()

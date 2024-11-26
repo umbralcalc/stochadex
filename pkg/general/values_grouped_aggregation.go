@@ -10,77 +10,106 @@ import (
 
 // CountAggregation returns the count of values in the group.
 func CountAggregation(
-	groupings Groupings,
+	defaultValues []float64,
 	outputIndexByGroup map[string]int,
-	output []float64,
-) {
+	groupings map[string][]float64,
+	weightings map[string][]float64,
+) []float64 {
 	for group, values := range groupings {
 		index, ok := outputIndexByGroup[group]
 		if !ok {
 			continue
 		}
-		output[index] = float64(len(values))
+		defaultValues[index] = float64(len(values))
 	}
+	return defaultValues
 }
 
 // SumAggregation returns the sum of values in the group.
 func SumAggregation(
-	groupings Groupings,
+	defaultValues []float64,
 	outputIndexByGroup map[string]int,
-	output []float64,
-) {
+	groupings map[string][]float64,
+	weightings map[string][]float64,
+) []float64 {
 	for group, values := range groupings {
 		index, ok := outputIndexByGroup[group]
 		if !ok {
 			continue
 		}
-		output[index] = floats.Sum(values)
+		if weightings != nil {
+			defaultValues[index] = floats.Dot(weightings[group], values)
+		} else {
+			defaultValues[index] = floats.Sum(values)
+		}
 	}
+	return defaultValues
 }
 
 // MeanAggregation returns the mean of values in the group.
 func MeanAggregation(
-	groupings Groupings,
+	defaultValues []float64,
 	outputIndexByGroup map[string]int,
-	output []float64,
-) {
+	groupings map[string][]float64,
+	weightings map[string][]float64,
+) []float64 {
 	for group, values := range groupings {
 		index, ok := outputIndexByGroup[group]
 		if !ok {
 			continue
 		}
-		output[index] = floats.Sum(values) / float64(len(values))
+		if weightings != nil {
+			w := weightings[group]
+			defaultValues[index] = floats.Dot(w, values) / floats.Sum(w)
+		} else {
+			defaultValues[index] = floats.Sum(values) / float64(len(values))
+		}
 	}
+	return defaultValues
 }
 
 // MaxAggregation returns the maximum of values in the group.
 func MaxAggregation(
-	groupings Groupings,
+	defaultValues []float64,
 	outputIndexByGroup map[string]int,
-	output []float64,
-) {
+	groupings map[string][]float64,
+	weightings map[string][]float64,
+) []float64 {
 	for group, values := range groupings {
 		index, ok := outputIndexByGroup[group]
 		if !ok {
 			continue
 		}
-		output[index] = floats.Max(values)
+		if weightings != nil {
+			floats.Mul(values, weightings[group])
+			defaultValues[index] = floats.Max(values)
+		} else {
+			defaultValues[index] = floats.Max(values)
+		}
 	}
+	return defaultValues
 }
 
 // MinAggregation returns the minimum of values in the group.
 func MinAggregation(
-	groupings Groupings,
+	defaultValues []float64,
 	outputIndexByGroup map[string]int,
-	output []float64,
-) {
+	groupings map[string][]float64,
+	weightings map[string][]float64,
+) []float64 {
 	for group, values := range groupings {
 		index, ok := outputIndexByGroup[group]
 		if !ok {
 			continue
 		}
-		output[index] = floats.Min(values)
+		if weightings != nil {
+			floats.Mul(values, weightings[group])
+			defaultValues[index] = floats.Min(values)
+		} else {
+			defaultValues[index] = floats.Min(values)
+		}
 	}
+	return defaultValues
 }
 
 // RoundToPrecision rounds floats to n decimal places.
@@ -101,18 +130,16 @@ func FloatTupleToKey(tuple []float64, precision int) string {
 	return key
 }
 
-// Groupings represents the groups of values for grouped aggregations.
-type Groupings map[string][]float64
-
 // ValuesGroupedAggregationIteration defines an iteration which applies
 // a user-defined aggregation function to the last input values from
 // other partitions and groups them into bins.
 type ValuesGroupedAggregationIteration struct {
 	Aggregation func(
-		groupings Groupings,
+		defaultValues []float64,
 		outputIndexByGroup map[string]int,
-		output []float64,
-	)
+		groupings map[string][]float64,
+		weightings map[string][]float64,
+	) []float64
 	outputIndexByGroup map[string]int
 	tupleLength        int
 	precision          int
@@ -155,7 +182,11 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	if defaultValues, ok := params.GetOk("default_values"); ok {
 		copy(aggValues, defaultValues)
 	}
-	groupings := make(Groupings)
+	var weightings map[string][]float64
+	if _, ok := params.GetOk("weightings"); ok {
+		weightings = make(map[string][]float64)
+	}
+	groupings := make(map[string][]float64)
 	var values []float64
 	var ok bool
 	for i, statePartitionIndex := range params.Get("state_partitions") {
@@ -180,10 +211,10 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 		values = append(values, stateValue)
 		groupings[groupKey] = values
 	}
-	v.Aggregation(
-		groupings,
-		v.outputIndexByGroup,
+	return v.Aggregation(
 		aggValues,
+		v.outputIndexByGroup,
+		groupings,
+		weightings,
 	)
-	return aggValues
 }
