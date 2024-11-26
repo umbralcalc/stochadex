@@ -1,7 +1,6 @@
 package kernels
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -40,7 +39,7 @@ func TestGaussianProcessIntegationKernel(t *testing.T) {
 				0.0,
 			)
 			if floats.HasNaN([]float64{valueOne, valueTwo}) {
-				t.Errorf(fmt.Sprintf("NaN present in values: %f, %f", valueOne, valueTwo))
+				t.Errorf("NaN present in values: %f, %f", valueOne, valueTwo)
 			}
 		},
 	)

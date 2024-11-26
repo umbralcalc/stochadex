@@ -3,6 +3,7 @@ package general
 import (
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -17,22 +18,36 @@ func TestValuesGroupedAggregationIteration(t *testing.T) {
 			iterationTwo.Configure(1, settings)
 			iterationThree := &ValuesGroupedAggregationIteration{
 				Aggregation: CountAggregation,
+				Kernel:      &kernels.InstantaneousIntegrationKernel{},
 			}
 			iterationThree.Configure(2, settings)
 			iterationFour := &ValuesGroupedAggregationIteration{
 				Aggregation: MeanAggregation,
+				Kernel:      &kernels.InstantaneousIntegrationKernel{},
 			}
 			iterationFour.Configure(3, settings)
 			partitions := []simulator.Partition{
 				{Iteration: iterationOne},
 				{Iteration: iterationTwo},
-				{Iteration: iterationThree},
-				{Iteration: iterationFour},
+				{
+					Iteration: iterationThree,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_grouping_partition_0": {Upstream: 0},
+						"latest_states_partition_1":   {Upstream: 1},
+					},
+				},
+				{
+					Iteration: iterationFour,
+					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
+						"latest_grouping_partition_0": {Upstream: 0},
+						"latest_states_partition_1":   {Upstream: 1},
+					},
+				},
 			}
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
-				OutputFunction:  &simulator.NilOutputFunction{},
+				OutputFunction:  &simulator.StdoutOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
 )
@@ -15,12 +16,12 @@ func CountAggregation(
 	groupings map[string][]float64,
 	weightings map[string][]float64,
 ) []float64 {
-	for group, values := range groupings {
+	for group, weights := range weightings {
 		index, ok := outputIndexByGroup[group]
 		if !ok {
 			continue
 		}
-		defaultValues[index] = float64(len(values))
+		defaultValues[index] = floats.Sum(weights)
 	}
 	return defaultValues
 }
@@ -37,11 +38,7 @@ func SumAggregation(
 		if !ok {
 			continue
 		}
-		if weightings != nil {
-			defaultValues[index] = floats.Dot(weightings[group], values)
-		} else {
-			defaultValues[index] = floats.Sum(values)
-		}
+		defaultValues[index] = floats.Dot(weightings[group], values)
 	}
 	return defaultValues
 }
@@ -58,12 +55,8 @@ func MeanAggregation(
 		if !ok {
 			continue
 		}
-		if weightings != nil {
-			w := weightings[group]
-			defaultValues[index] = floats.Dot(w, values) / floats.Sum(w)
-		} else {
-			defaultValues[index] = floats.Sum(values) / float64(len(values))
-		}
+		w := weightings[group]
+		defaultValues[index] = floats.Dot(w, values) / floats.Sum(w)
 	}
 	return defaultValues
 }
@@ -80,12 +73,8 @@ func MaxAggregation(
 		if !ok {
 			continue
 		}
-		if weightings != nil {
-			floats.Mul(values, weightings[group])
-			defaultValues[index] = floats.Max(values)
-		} else {
-			defaultValues[index] = floats.Max(values)
-		}
+		floats.Mul(values, weightings[group])
+		defaultValues[index] = floats.Max(values)
 	}
 	return defaultValues
 }
@@ -102,36 +91,33 @@ func MinAggregation(
 		if !ok {
 			continue
 		}
-		if weightings != nil {
-			floats.Mul(values, weightings[group])
-			defaultValues[index] = floats.Min(values)
-		} else {
-			defaultValues[index] = floats.Min(values)
-		}
+		floats.Mul(values, weightings[group])
+		defaultValues[index] = floats.Min(values)
 	}
 	return defaultValues
 }
 
-// RoundToPrecision rounds floats to n decimal places.
-func RoundToPrecision(value float64, precision int) float64 {
+// AppendFloatToKey appends the provided string key with another
+// formatted float value up to the required precision.
+func AppendFloatToKey(key string, value float64, precision int) string {
 	format := "%." + strconv.Itoa(precision) + "f"
-	roundedValue, _ := strconv.ParseFloat(fmt.Sprintf(format, value), 64)
-	return roundedValue
+	rounded, _ := strconv.ParseFloat(fmt.Sprintf(format, value), 64)
+	key += strconv.FormatFloat(rounded, 'f', precision, 64) + ","
+	return key
 }
 
 // FloatTupleToKey converts a slice of floats to a string key with
 // fixed precision for float values.
 func FloatTupleToKey(tuple []float64, precision int) string {
 	key := ""
-	for _, v := range tuple {
-		rounded := RoundToPrecision(v, precision)
-		key += strconv.FormatFloat(rounded, 'f', precision, 64) + ","
+	for _, value := range tuple {
+		key = AppendFloatToKey(key, value, precision)
 	}
 	return key
 }
 
 // ValuesGroupedAggregationIteration defines an iteration which applies
-// a user-defined aggregation function to the last input values from
+// a user-defined aggregation function to the histories of values from
 // other partitions and groups them into bins.
 type ValuesGroupedAggregationIteration struct {
 	Aggregation func(
@@ -140,6 +126,7 @@ type ValuesGroupedAggregationIteration struct {
 		groupings map[string][]float64,
 		weightings map[string][]float64,
 	) []float64
+	Kernel             kernels.IntegrationKernel
 	outputIndexByGroup map[string]int
 	tupleLength        int
 	precision          int
@@ -149,12 +136,13 @@ func (v *ValuesGroupedAggregationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	v.Kernel.Configure(partitionIndex, settings)
 	v.outputIndexByGroup = make(map[string]int)
 	var valueGroupTuples [][]float64
 	v.tupleLength = 0
 	for {
 		groupValues, ok := settings.Params[partitionIndex].GetOk(
-			"accepted_value_group_index_" + strconv.Itoa(v.tupleLength))
+			"accepted_value_group_tupindex_" + strconv.Itoa(v.tupleLength))
 		if !ok {
 			break
 		} else if v.tupleLength == 0 {
@@ -182,34 +170,65 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	if defaultValues, ok := params.GetOk("default_values"); ok {
 		copy(aggValues, defaultValues)
 	}
-	var weightings map[string][]float64
-	if _, ok := params.GetOk("weightings"); ok {
-		weightings = make(map[string][]float64)
-	}
+	weightings := make(map[string][]float64)
 	groupings := make(map[string][]float64)
 	var values []float64
+	var weight float64
 	var ok bool
-	for i, statePartitionIndex := range params.Get("state_partitions") {
-		tuple := make([]float64, 0)
-		for j := 0; j < v.tupleLength; j++ {
-			tupleIndex := strconv.Itoa(j)
-			tuple = append(tuple, stateHistories[int(
-				params.GetIndex("grouping_partitions_index_"+
-					tupleIndex, i))].Values.At(0, int(params.GetIndex(
-				"grouping_value_indices_index_"+tupleIndex, i)),
-			))
-		}
-		groupKey := FloatTupleToKey(tuple, v.precision)
-		stateValue := stateHistories[int(statePartitionIndex)].Values.At(
-			0, int(params.GetIndex("state_value_indices", i)),
+	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
+	for i, index := range params.Get("state_partitions") {
+		statePartitionIndex := int(index)
+		stateValueIndex := int(params.GetIndex("state_value_indices", i))
+		stateHistory := stateHistories[statePartitionIndex]
+		latestStateValueSlice := []float64{params.Get("latest_states_partition_" +
+			strconv.Itoa(statePartitionIndex))[stateValueIndex]}
+		weight = v.Kernel.Evaluate(
+			latestStateValueSlice,
+			latestStateValueSlice,
+			latestTime,
+			latestTime,
 		)
-		values, ok = groupings[groupKey]
-		if !ok {
-			groupings[groupKey] = []float64{stateValue}
-			continue
+		groupKey := ""
+		for k := 0; k < v.tupleLength; k++ {
+			groupPartitionIndex := int(params.GetIndex(
+				"grouping_partitions_tupindex_"+strconv.Itoa(k), i))
+			groupValueIndex := int(
+				params.GetIndex("grouping_value_indices_tupindex_"+strconv.Itoa(k), i))
+			groupKey = AppendFloatToKey(groupKey, params.Get("latest_grouping_partition_" +
+				strconv.Itoa(groupPartitionIndex))[groupValueIndex], v.precision)
 		}
-		values = append(values, stateValue)
-		groupings[groupKey] = values
+		if values, ok = groupings[groupKey]; ok {
+			groupings[groupKey] = append(values, latestStateValueSlice[0])
+			weightings[groupKey] = append(weightings[groupKey], weight)
+		} else {
+			groupings[groupKey] = latestStateValueSlice
+			weightings[groupKey] = []float64{weight}
+		}
+		for j := 0; j < stateHistory.StateHistoryDepth; j++ {
+			groupKey := ""
+			for k := 0; k < v.tupleLength; k++ {
+				groupKey = AppendFloatToKey(groupKey, stateHistories[int(params.GetIndex(
+					"grouping_partitions_tupindex_"+strconv.Itoa(k), i))].Values.At(j,
+					int(params.GetIndex("grouping_value_indices_tupindex_"+
+						strconv.Itoa(k), i))), v.precision)
+			}
+			stateValueSlice := []float64{stateHistory.Values.At(
+				j, int(params.GetIndex("state_value_indices", i)),
+			)}
+			weight = v.Kernel.Evaluate(
+				latestStateValueSlice,
+				stateValueSlice,
+				latestTime,
+				timestepsHistory.Values.AtVec(j),
+			)
+			if values, ok = groupings[groupKey]; ok {
+				groupings[groupKey] = append(values, stateValueSlice[0])
+				weightings[groupKey] = append(weightings[groupKey], weight)
+			} else {
+				groupings[groupKey] = stateValueSlice
+				weightings[groupKey] = []float64{weight}
+			}
+		}
 	}
 	return v.Aggregation(
 		aggValues,
