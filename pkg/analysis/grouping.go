@@ -24,13 +24,47 @@ type GroupedStateTimeStorage struct {
 	defaults []float64
 }
 
-// GetAcceptedValueGroups
-func (g *GroupedStateTimeStorage) GetAcceptedValueGroups() []float64 {
+// GetStatePartitions
+func (g *GroupedStateTimeStorage) GetStatePartitions() []string {
+	return []string{}
+}
+
+// GetStateValueIndices
+func (g *GroupedStateTimeStorage) GetStateValueIndices() []float64 {
 	return []float64{}
+}
+
+// GetGroupingPartitions
+func (g *GroupedStateTimeStorage) GetGroupingPartitions(tupIndex int) []string {
+	return []string{}
+}
+
+// GetGroupingValueIndices
+func (g *GroupedStateTimeStorage) GetGroupingValueIndices(tupIndex int) []float64 {
+	return []float64{}
+}
+
+// GetAcceptedValueGroups
+func (g *GroupedStateTimeStorage) GetAcceptedValueGroups(tupIndex int) []float64 {
+	return []float64{}
+}
+
+// GetGroupTupleLength
+func (g *GroupedStateTimeStorage) GetGroupTupleLength() int {
+	return 1
+}
+
+// GetPrecision
+func (g *GroupedStateTimeStorage) GetPrecision() int {
+	return 1
 }
 
 // GetDefaults
 func (g *GroupedStateTimeStorage) GetDefaults() []float64 {
+	if g.defaults == nil {
+		// fill this with zeros as default
+		return []float64{}
+	}
 	return g.defaults
 }
 
