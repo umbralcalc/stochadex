@@ -173,6 +173,7 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	weightings := make(map[string][]float64)
 	groupings := make(map[string][]float64)
 	var values []float64
+	var groupKey string
 	var weight float64
 	var ok bool
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
@@ -188,14 +189,12 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 			latestTime,
 			latestTime,
 		)
-		groupKey := ""
+		groupKey = ""
 		for k := 0; k < v.tupleLength; k++ {
-			groupPartitionIndex := int(params.GetIndex(
-				"grouping_partitions_tupindex_"+strconv.Itoa(k), i))
-			groupValueIndex := int(
-				params.GetIndex("grouping_value_indices_tupindex_"+strconv.Itoa(k), i))
-			groupKey = AppendFloatToKey(groupKey, params.Get("latest_grouping_partition_" +
-				strconv.Itoa(groupPartitionIndex))[groupValueIndex], v.precision)
+			groupKey = AppendFloatToKey(groupKey, params.Get(
+				"latest_grouping_partition_" + strconv.Itoa(int(params.GetIndex(
+					"grouping_partitions_tupindex_"+strconv.Itoa(k), i))))[int(params.GetIndex(
+				"grouping_value_indices_tupindex_"+strconv.Itoa(k), i))], v.precision)
 		}
 		if values, ok = groupings[groupKey]; ok {
 			groupings[groupKey] = append(values, latestStateValueSlice[0])
@@ -205,16 +204,14 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 			weightings[groupKey] = []float64{weight}
 		}
 		for j := 0; j < stateHistory.StateHistoryDepth; j++ {
-			groupKey := ""
+			groupKey = ""
 			for k := 0; k < v.tupleLength; k++ {
 				groupKey = AppendFloatToKey(groupKey, stateHistories[int(params.GetIndex(
-					"grouping_partitions_tupindex_"+strconv.Itoa(k), i))].Values.At(j,
-					int(params.GetIndex("grouping_value_indices_tupindex_"+
+					"grouping_partitions_tupindex_"+strconv.Itoa(k), i))].Values.At(
+					j, int(params.GetIndex("grouping_value_indices_tupindex_"+
 						strconv.Itoa(k), i))), v.precision)
 			}
-			stateValueSlice := []float64{stateHistory.Values.At(
-				j, int(params.GetIndex("state_value_indices", i)),
-			)}
+			stateValueSlice := []float64{stateHistory.Values.At(j, stateValueIndex)}
 			weight = v.Kernel.Evaluate(
 				latestStateValueSlice,
 				stateValueSlice,

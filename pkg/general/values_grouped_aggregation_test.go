@@ -47,7 +47,7 @@ func TestValuesGroupedAggregationIteration(t *testing.T) {
 			implementations := &simulator.Implementations{
 				Partitions:      partitions,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
-				OutputFunction:  &simulator.StdoutOutputFunction{},
+				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},
