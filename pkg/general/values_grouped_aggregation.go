@@ -153,8 +153,8 @@ func (v *ValuesGroupedAggregationIteration) Configure(
 		}
 		v.tupleLength += 1
 	}
-	v.precision = int(settings.Params[partitionIndex].Get(
-		"float_precision")[0])
+	v.precision = int(settings.Params[partitionIndex].GetIndex(
+		"float_precision", 0))
 	for i, tuple := range valueGroupTuples {
 		v.outputIndexByGroup[FloatTupleToKey(tuple, v.precision)] = i
 	}
@@ -181,8 +181,8 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 		statePartitionIndex := int(index)
 		stateValueIndex := int(params.GetIndex("state_value_indices", i))
 		stateHistory := stateHistories[statePartitionIndex]
-		latestStateValueSlice := []float64{params.Get("latest_states_partition_" +
-			strconv.Itoa(statePartitionIndex))[stateValueIndex]}
+		latestStateValueSlice := []float64{params.GetIndex("latest_states_partition_"+
+			strconv.Itoa(statePartitionIndex), stateValueIndex)}
 		weight = v.Kernel.Evaluate(
 			latestStateValueSlice,
 			latestStateValueSlice,
@@ -191,10 +191,10 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 		)
 		groupKey = ""
 		for k := 0; k < v.tupleLength; k++ {
-			groupKey = AppendFloatToKey(groupKey, params.Get(
-				"latest_grouping_partition_" + strconv.Itoa(int(params.GetIndex(
-					"grouping_partitions_tupindex_"+strconv.Itoa(k), i))))[int(params.GetIndex(
-				"grouping_value_indices_tupindex_"+strconv.Itoa(k), i))], v.precision)
+			groupKey = AppendFloatToKey(groupKey, params.GetIndex(
+				"latest_grouping_partition_"+strconv.Itoa(int(params.GetIndex(
+					"grouping_partitions_tupindex_"+strconv.Itoa(k), i))), int(params.GetIndex(
+					"grouping_value_indices_tupindex_"+strconv.Itoa(k), i))), v.precision)
 		}
 		if values, ok = groupings[groupKey]; ok {
 			groupings[groupKey] = append(values, latestStateValueSlice[0])
