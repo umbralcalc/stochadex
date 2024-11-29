@@ -27,6 +27,9 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 					Function: general.DataValuesVarianceFunction,
 					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
+				&DataComparisonIteration{
+					Likelihood: &GammaLikelihoodDistribution{},
+				},
 			}
 			for index, iteration := range iterations {
 				iteration.Configure(index, settings)
