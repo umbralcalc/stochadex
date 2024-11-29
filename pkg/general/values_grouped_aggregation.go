@@ -141,7 +141,7 @@ func (v *ValuesGroupedAggregationIteration) Configure(
 	var valueGroupTuples [][]float64
 	v.tupleLength = 0
 	for {
-		groupValues, ok := settings.Params[partitionIndex].GetOk(
+		groupValues, ok := settings.Iterations[partitionIndex].Params.GetOk(
 			"accepted_value_group_tupindex_" + strconv.Itoa(v.tupleLength))
 		if !ok {
 			break
@@ -153,7 +153,7 @@ func (v *ValuesGroupedAggregationIteration) Configure(
 		}
 		v.tupleLength += 1
 	}
-	v.precision = int(settings.Params[partitionIndex].GetIndex(
+	v.precision = int(settings.Iterations[partitionIndex].Params.GetIndex(
 		"float_precision", 0))
 	for i, tuple := range valueGroupTuples {
 		v.outputIndexByGroup[FloatTupleToKey(tuple, v.precision)] = i

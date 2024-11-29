@@ -13,35 +13,22 @@ func TestValuesFunctionVectorCovarianceIteration(t *testing.T) {
 		func(t *testing.T) {
 			settings :=
 				simulator.LoadSettingsFromYaml("./values_function_vector_covariance_settings.yaml")
-			partitions := []simulator.Partition{
-				{
-					Iteration: &ConstantValuesIteration{},
+			iterations := []simulator.Iteration{
+				&ConstantValuesIteration{},
+				&ValuesFunctionVectorMeanIteration{
+					Function: DataValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-				{
-					Iteration: &ValuesFunctionVectorMeanIteration{
-						Function: DataValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-					},
-				},
-				{
-					Iteration: &ValuesFunctionVectorCovarianceIteration{
-						Function: DataValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-						"mean":               {Upstream: 1},
-					},
+				&ValuesFunctionVectorCovarianceIteration{
+					Function: DataValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
 			}
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

@@ -13,40 +13,23 @@ func TestValuesFunctionVectorMeanIteration(t *testing.T) {
 		func(t *testing.T) {
 			settings :=
 				simulator.LoadSettingsFromYaml("./values_function_vector_mean_settings.yaml")
-			partitions := []simulator.Partition{
-				{
-					Iteration: &ConstantValuesIteration{},
+			iterations := []simulator.Iteration{
+				&ConstantValuesIteration{},
+				&ParamValuesIteration{},
+				&ValuesFunctionVectorMeanIteration{
+					Function: OtherValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-				{
-					Iteration: &ParamValuesIteration{},
-				},
-				{
-					Iteration: &ValuesFunctionVectorMeanIteration{
-						Function: OtherValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values":  {Upstream: 0},
-						"latest_other_values": {Upstream: 1},
-					},
-				},
-				{
-					Iteration: &ValuesFunctionVectorMeanIteration{
-						Function: WeightedMeanValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values":             {Upstream: 0},
-						"latest_data_values_partition_1": {Upstream: 1},
-						"latest_data_values_partition_2": {Upstream: 2},
-					},
+				&ValuesFunctionVectorMeanIteration{
+					Function: WeightedMeanValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
 			}
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

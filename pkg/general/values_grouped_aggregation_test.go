@@ -26,26 +26,14 @@ func TestValuesGroupedAggregationIteration(t *testing.T) {
 				Kernel:      &kernels.InstantaneousIntegrationKernel{},
 			}
 			iterationFour.Configure(3, settings)
-			partitions := []simulator.Partition{
-				{Iteration: iterationOne},
-				{Iteration: iterationTwo},
-				{
-					Iteration: iterationThree,
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_grouping_partition_0": {Upstream: 0},
-						"latest_states_partition_1":   {Upstream: 1},
-					},
-				},
-				{
-					Iteration: iterationFour,
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_grouping_partition_0": {Upstream: 0},
-						"latest_states_partition_1":   {Upstream: 1},
-					},
-				},
+			iterations := []simulator.Iteration{
+				iterationOne,
+				iterationTwo,
+				iterationThree,
+				iterationFour,
 			}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

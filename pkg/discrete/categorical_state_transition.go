@@ -19,7 +19,7 @@ func (c *CategoricalStateTransitionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	seed := settings.Seeds[partitionIndex]
+	seed := settings.Iterations[partitionIndex].Seed
 	rand.Seed(seed)
 
 	c.unitUniformDist = &distuv.Uniform{
@@ -31,12 +31,15 @@ func (c *CategoricalStateTransitionIteration) Configure(
 	i := 0
 	transTotal := 0
 	for {
-		trans, ok :=
-			settings.Params[partitionIndex].GetOk("transitions_from_" + strconv.Itoa(i))
+		trans, ok := settings.Iterations[partitionIndex].Params.GetOk(
+			"transitions_from_" + strconv.Itoa(i))
 		if !ok {
 			break
 		}
-		c.rateSlices = append(c.rateSlices, []int{transTotal, transTotal + len(trans)})
+		c.rateSlices = append(
+			c.rateSlices,
+			[]int{transTotal, transTotal + len(trans)},
+		)
 		i += 1
 		transTotal += len(trans)
 	}

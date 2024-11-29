@@ -1,12 +1,19 @@
-params:
-- rates: [0.8, 1.0, 1.1]
-- state_value_observation_probs: [0.4, 0.8]
-  state_value_observation_indices: [1, 2]
-init_state_values:
-- [0.0, 0.0, 0.0]
-- [0.0, 0.0]
+iterations:
+- params:
+    rates: [0.8, 1.0, 1.1]
+  init_state_values: [0.0, 0.0, 0.0]
+  seed: 563
+  state_width: 3
+  state_history_depth: 2
+- params:
+    state_value_observation_probs: [0.4, 0.8]
+    state_value_observation_indices: [1, 2]
+  params_from_upstream:
+    observed_values:
+      upstream: 0
+  init_state_values: [0.0, 0.0]
+  seed: 228
+  state_width: 2
+  state_history_depth: 2
 init_time_value: 0.0
-seeds: [563, 228]
-state_widths: [3, 2]
-state_history_depths: [2, 2]
 timesteps_history_depth: 2

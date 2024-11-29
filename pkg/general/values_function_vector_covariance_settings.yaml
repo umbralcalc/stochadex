@@ -1,14 +1,30 @@
-params:
-- {}
-- exponential_weighting_timescale: [1.1]
-  data_values_partition: [0]
-- exponential_weighting_timescale: [1.1]
-  data_values_partition: [0]
-init_state_values:
-- [1.0, 4.2, 1.1]
-- [2.8, 1.0, 7.21]
-- [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-seeds: [4252, 0, 0]
-state_widths: [3, 3, 9]
-state_history_depths: [30, 2, 2]
+iterations:
+- params: {}
+  init_state_values: [1.0, 4.2, 1.1]
+  seed: 4252
+  state_width: 3
+  state_history_depth: 30
+- params:
+    exponential_weighting_timescale: [1.1]
+    data_values_partition: [0]
+  params_from_upstream:
+    latest_data_values:
+      upstream: 0
+  init_state_values: [2.8, 1.0, 7.21]
+  seed: 0
+  state_width: 3
+  state_history_depth: 2
+- params:
+    exponential_weighting_timescale: [1.1]
+    data_values_partition: [0]
+  params_from_upstream:
+    latest_data_values:
+      upstream: 0
+    mean:
+      upstream: 1
+  init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  seed: 0
+  state_width: 9
+  state_history_depth: 2
+init_time_value: 0.0
 timesteps_history_depth: 30

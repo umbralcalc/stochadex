@@ -13,18 +13,14 @@ func TestBernoulliProcessIteration(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"bernoulli_process_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &BernoulliProcessIteration{},
-				},
-			)
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			iterations := []simulator.Iteration{
+				&BernoulliProcessIteration{},
+			}
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

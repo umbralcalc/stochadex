@@ -20,7 +20,7 @@ func (b *BinomialObservationProcessIteration) Configure(
 	b.binomialDist = &distuv.Binomial{
 		N:   0,
 		P:   1.0,
-		Src: rand.NewSource(settings.Seeds[partitionIndex]),
+		Src: rand.NewSource(settings.Iterations[partitionIndex].Seed),
 	}
 }
 

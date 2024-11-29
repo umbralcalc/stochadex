@@ -13,27 +13,15 @@ func TestBinomialObservationProcessIteration(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"binomial_observation_process_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &PoissonProcessIteration{},
-				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &BinomialObservationProcessIteration{},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"observed_values": {Upstream: 0},
-					},
-				},
-			)
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			iterations := []simulator.Iteration{
+				&PoissonProcessIteration{},
+				&BinomialObservationProcessIteration{},
+			}
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

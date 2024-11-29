@@ -13,29 +13,23 @@ func TestCategoricalStateTransitionIteration(t *testing.T) {
 		func(t *testing.T) {
 			settings :=
 				simulator.LoadSettingsFromYaml("./categorical_state_transition_settings.yaml")
-			partitions := []simulator.Partition{
-				{
-					Iteration: &general.ConstantValuesIteration{},
-				},
-				{
-					Iteration: &CategoricalStateTransitionIteration{},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"transition_rates": {Upstream: 0},
-					},
-				},
+
+			iterations := []simulator.Iteration{
+				&general.ConstantValuesIteration{},
+				&CategoricalStateTransitionIteration{},
 			}
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},
 				TimestepFunction: simulator.NewExponentialDistributionTimestepFunction(
-					2.0, settings.Seeds[0],
+					2.0, settings.Iterations[0].Seed,
 				),
 			}
 			coordinator := simulator.NewPartitionCoordinator(
