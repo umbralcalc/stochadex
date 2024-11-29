@@ -51,10 +51,11 @@ func (f *FractionalBrownianMotionIteration) Configure(
 	f.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,
 		Sigma: 1.0,
-		Src:   rand.NewSource(settings.Seeds[partitionIndex]),
+		Src:   rand.NewSource(settings.Iterations[partitionIndex].Seed),
 	}
 	f.numberOfIntegrationSteps = int(
-		settings.Params[partitionIndex].GetIndex("number_of_integration_steps", 0),
+		settings.Iterations[partitionIndex].Params.GetIndex(
+			"number_of_integration_steps", 0),
 	)
 }
 

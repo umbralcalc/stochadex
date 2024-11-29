@@ -14,26 +14,18 @@ func TestHawkesProcess(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"hawkes_process_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
 			intensityIteration := &HawkesProcessIntensityIteration{
 				excitingKernel: &kernels.ExponentialIntegrationKernel{},
 			}
 			intensityIteration.Configure(0, settings)
-			partitions = append(partitions, simulator.Partition{Iteration: intensityIteration})
 			hawkesIteration := &HawkesProcessIteration{}
 			hawkesIteration.Configure(1, settings)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: hawkesIteration,
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"intensity": {Upstream: 0},
-					},
-				},
-			)
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations: []simulator.Iteration{
+					intensityIteration,
+					hawkesIteration,
+				},
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

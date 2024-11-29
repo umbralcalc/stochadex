@@ -21,7 +21,8 @@ func (h *HawkesProcessIntensityIteration) Configure(
 ) {
 	h.excitingKernel.Configure(partitionIndex, settings)
 	h.hawkesPartitionIndex = int(
-		settings.Params[partitionIndex].GetIndex("hawkes_partition_index", 0),
+		settings.Iterations[partitionIndex].Params.GetIndex(
+			"hawkes_partition_index", 0),
 	)
 }
 
@@ -76,7 +77,7 @@ func (h *HawkesProcessIteration) Configure(
 	h.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,
 		Max: 1.0,
-		Src: rand.NewSource(settings.Seeds[partitionIndex]),
+		Src: rand.NewSource(settings.Iterations[partitionIndex].Seed),
 	}
 }
 

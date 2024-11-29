@@ -13,9 +13,8 @@ func TestCumulativeTime(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("./cumulative_time_settings.yaml")
 			iteration := &CumulativeTimeIteration{}
 			iteration.Configure(0, settings)
-			partitions := []simulator.Partition{{Iteration: iteration}}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      []simulator.Iteration{iteration},
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

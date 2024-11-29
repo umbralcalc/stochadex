@@ -21,7 +21,7 @@ func (d *DriftDiffusionIteration) Configure(
 	d.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,
 		Sigma: 1.0,
-		Src:   rand.NewSource(settings.Seeds[partitionIndex]),
+		Src:   rand.NewSource(settings.Iterations[partitionIndex].Seed),
 	}
 }
 

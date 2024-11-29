@@ -30,28 +30,25 @@ func TestCompoundPoissonProcess(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"compound_poisson_process_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			for partitionIndex := range settings.StateWidths {
+			iterations := make([]simulator.Iteration, 0)
+			for partitionIndex := range settings.Iterations {
 				iteration := &CompoundPoissonProcessIteration{
 					JumpDist: &gammaJumpDistribution{
 						dist: &distuv.Gamma{
 							Alpha: 1.0,
 							Beta:  1.0,
 							Src: rand.NewSource(
-								settings.Seeds[partitionIndex],
+								settings.Iterations[partitionIndex].Seed,
 							),
 						},
 					},
 				}
 				iteration.Configure(partitionIndex, settings)
-				partitions = append(
-					partitions,
-					simulator.Partition{Iteration: iteration},
-				)
+				iterations = append(iterations, iteration)
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

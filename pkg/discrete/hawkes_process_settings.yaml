@@ -1,13 +1,19 @@
-params:
-- background_rates: [1.4, 1.2, 0.2, 1.1, 5.0]
-  exponential_weighting_timescale: [1.1]
-  hawkes_partition_index: [1]
-- {}
-init_state_values:
-- [0.0, 0.0, 0.0, 0.0, 0.0]
-- [0.0, 0.0, 0.0, 0.0, 0.0]
+iterations:
+- params:
+    background_rates: [1.4, 1.2, 0.2, 1.1, 5.0]
+    exponential_weighting_timescale: [1.1]
+    hawkes_partition_index: [1]
+  init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0]
+  seed: 253
+  state_width: 5
+  state_history_depth: 50
+- params: {}
+  params_from_upstream:
+    intensity:
+      upstream: 0
+  init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0]
+  seed: 1112
+  state_width: 5
+  state_history_depth: 50
 init_time_value: 0.0
-seeds: [253, 1112]
-state_widths: [5, 5]
-state_history_depths: [50, 50]
 timesteps_history_depth: 50

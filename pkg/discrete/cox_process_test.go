@@ -13,25 +13,17 @@ func TestCoxProcess(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"cox_process_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
 			// this implements a Neyman-Scott process
 			rateIteration := &PoissonProcessIteration{}
 			rateIteration.Configure(0, settings)
-			partitions = append(partitions, simulator.Partition{Iteration: rateIteration})
 			coxIteration := &CoxProcessIteration{}
 			coxIteration.Configure(1, settings)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: coxIteration,
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"rates": {Upstream: 0},
-					},
-				},
-			)
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations: []simulator.Iteration{
+					rateIteration,
+					coxIteration,
+				},
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

@@ -13,15 +13,15 @@ func TestFractionalBrownianMotion(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"fractional_brownian_motion_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			for partitionIndex := range settings.StateWidths {
+			iterations := make([]simulator.Iteration, 0)
+			for partitionIndex := range settings.Iterations {
 				iteration := &FractionalBrownianMotionIteration{}
 				iteration.Configure(partitionIndex, settings)
-				partitions = append(partitions, simulator.Partition{Iteration: iteration})
+				iterations = append(iterations, iteration)
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

@@ -27,7 +27,7 @@ func (c *CompoundPoissonProcessIteration) Configure(
 	c.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,
 		Max: 1.0,
-		Src: rand.NewSource(settings.Seeds[partitionIndex]),
+		Src: rand.NewSource(settings.Iterations[partitionIndex].Seed),
 	}
 }
 
