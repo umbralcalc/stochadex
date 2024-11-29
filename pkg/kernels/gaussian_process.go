@@ -39,7 +39,7 @@ func (g *GaussianProcessIntegrationKernel) Configure(
 	settings *simulator.Settings,
 ) {
 	g.Covariance.Configure(partitionIndex, settings)
-	g.SetParams(&settings.Params[partitionIndex])
+	g.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (g *GaussianProcessIntegrationKernel) SetParams(params *simulator.Params) {

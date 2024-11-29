@@ -14,47 +14,23 @@ func TestPosteriorLogNormalisationIteration(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"posterior_log_normalisation_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataGenerationIteration{
-						Likelihood: &NormalLikelihoodDistribution{},
-					},
+			iterations := []simulator.Iteration{
+				&DataGenerationIteration{
+					Likelihood: &NormalLikelihoodDistribution{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ConstantValuesIteration{},
+				&general.ConstantValuesIteration{},
+				&DataGenerationIteration{
+					Likelihood: &NormalLikelihoodDistribution{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataGenerationIteration{
-						Likelihood: &NormalLikelihoodDistribution{},
-					},
-				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ConstantValuesIteration{},
-				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &PosteriorLogNormalisationIteration{},
-				},
-			)
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+				&general.ConstantValuesIteration{},
+				&PosteriorLogNormalisationIteration{},
+			}
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

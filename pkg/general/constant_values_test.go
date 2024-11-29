@@ -13,9 +13,8 @@ func TestConstantValues(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("./constant_values_settings.yaml")
 			iteration := &ConstantValuesIteration{}
 			iteration.Configure(0, settings)
-			partitions := []simulator.Partition{{Iteration: iteration}}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      []simulator.Iteration{iteration},
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

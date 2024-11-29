@@ -17,7 +17,7 @@ func (p *PoissonLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	p.Src = rand.NewSource(settings.Seeds[partitionIndex])
+	p.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
 }
 
 func (p *PoissonLikelihoodDistribution) EvaluateLogLike(

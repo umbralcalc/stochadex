@@ -113,40 +113,45 @@ func TestPartitionCoordinator(t *testing.T) {
 			params := NewParams(make(map[string][]float64))
 			params.Set("multipliers", []float64{2.4, 1.0, 4.3})
 			settings := &Settings{
-				Params: []Params{
-					NewParams(make(map[string][]float64)),
-					params,
-					NewParams(make(map[string][]float64)),
-				},
-				InitStateValues: [][]float64{
-					{7.0, 8.0, 3.0, 7.0, 1.0},
-					{1.0, 2.0, 3.0},
-					{3.0, 1.0, 3.5},
-				},
-				InitTimeValue:         0.0,
-				Seeds:                 []uint64{2365, 167, 234},
-				StateWidths:           []int{5, 3, 3},
-				StateHistoryDepths:    []int{2, 10, 10},
-				TimestepsHistoryDepth: 10,
-			}
-			partitions := make([]Partition, 0)
-			partitions = append(partitions, Partition{Iteration: &doublingProcessIteration{}})
-			partitions = append(partitions, Partition{Iteration: &paramMultProcessIteration{}})
-			partitions = append(
-				partitions,
-				Partition{
-					Iteration: &paramMultProcessIteration{},
-					ParamsFromUpstream: map[string]UpstreamConfig{
-						"multipliers": {Upstream: 1},
+				Iterations: []IterationSettings{
+					{
+						Params:            NewParams(make(map[string][]float64)),
+						InitStateValues:   []float64{7.0, 8.0, 3.0, 7.0, 1.0},
+						Seed:              2365,
+						StateWidth:        5,
+						StateHistoryDepth: 2,
+					},
+					{
+						Params:            params,
+						InitStateValues:   []float64{1.0, 2.0, 3.0},
+						Seed:              167,
+						StateWidth:        3,
+						StateHistoryDepth: 10,
+					},
+					{
+						Params: NewParams(make(map[string][]float64)),
+						ParamsFromUpstream: map[string]UpstreamConfig{
+							"multipliers": {Upstream: 1},
+						},
+						InitStateValues:   []float64{3.0, 1.0, 3.5},
+						Seed:              234,
+						StateWidth:        3,
+						StateHistoryDepth: 10,
 					},
 				},
-			)
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+				InitTimeValue:         0.0,
+				TimestepsHistoryDepth: 10,
+			}
+			iterations := make([]Iteration, 0)
+			iterations = append(iterations, &doublingProcessIteration{})
+			iterations = append(iterations, &paramMultProcessIteration{})
+			iterations = append(iterations, &paramMultProcessIteration{})
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			storeWithGoroutines := NewStateTimeStorage()
 			implementations := &Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &EveryStepOutputCondition{},
 				OutputFunction:  &StateTimeStorageOutputFunction{Store: storeWithGoroutines},
 				TerminationCondition: &NumberOfStepsTerminationCondition{

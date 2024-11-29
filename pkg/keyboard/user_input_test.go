@@ -29,9 +29,8 @@ func TestUserInput(t *testing.T) {
 				Channel:   &MockKeystrokeChannel{},
 			}
 			iteration.Configure(0, settings)
-			partitions := []simulator.Partition{{Iteration: iteration}}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      []simulator.Iteration{iteration},
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

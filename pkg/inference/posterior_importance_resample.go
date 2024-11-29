@@ -23,17 +23,16 @@ func (p *PosteriorImportanceResampleIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	loglikePartitions := settings.Params[partitionIndex].Get("loglike_partitions")
+	loglikePartitions :=
+		settings.Iterations[partitionIndex].Params.Get("loglike_partitions")
 	nilWeights := make(
 		[]float64,
-		len(loglikePartitions)*settings.StateHistoryDepths[int(loglikePartitions[0])],
+		len(loglikePartitions)*
+			settings.Iterations[int(loglikePartitions[0])].StateHistoryDepth,
 	)
 	nilWeights[0] = 1.0
-	p.catDist = distuv.NewCategorical(
-		nilWeights,
-		rand.NewSource(settings.Seeds[partitionIndex]),
-	)
-	p.Src = rand.NewSource(settings.Seeds[partitionIndex])
+	p.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	p.catDist = distuv.NewCategorical(nilWeights, p.Src)
 }
 
 func (p *PosteriorImportanceResampleIteration) Iterate(

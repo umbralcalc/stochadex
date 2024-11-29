@@ -15,45 +15,24 @@ func TestPoissonLogLikelihood(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"poisson_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataGenerationIteration{
-						Likelihood: &PoissonLikelihoodDistribution{},
-					},
+			iterations := []simulator.Iteration{
+				&DataGenerationIteration{
+					Likelihood: &PoissonLikelihoodDistribution{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ValuesFunctionVectorMeanIteration{
-						Function: general.DataValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-					},
+				&general.ValuesFunctionVectorMeanIteration{
+					Function: general.DataValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataComparisonIteration{
-						Likelihood: &PoissonLikelihoodDistribution{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-						"mean":               {Upstream: 1},
-					},
+				&DataComparisonIteration{
+					Likelihood: &PoissonLikelihoodDistribution{},
 				},
-			)
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			}
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

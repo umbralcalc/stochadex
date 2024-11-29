@@ -17,7 +17,7 @@ func (g *GammaLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.Src = rand.NewSource(settings.Seeds[partitionIndex])
+	g.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
 }
 
 func (g *GammaLikelihoodDistribution) EvaluateLogLike(

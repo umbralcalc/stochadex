@@ -16,7 +16,9 @@ func TestGaussianIntegationKernel(t *testing.T) {
 				"covariance_matrix": {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0},
 			})
 			kernel.Configure(0, &simulator.Settings{
-				Params: []simulator.Params{params},
+				Iterations: []simulator.IterationSettings{
+					{Params: params},
+				},
 			})
 			valueOne := kernel.Evaluate(
 				[]float64{0.3, 1.0, 0.0},

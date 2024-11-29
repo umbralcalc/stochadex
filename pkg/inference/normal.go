@@ -19,9 +19,9 @@ func (n *NormalLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	n.Src = rand.NewSource(settings.Seeds[partitionIndex])
-	n.defaultCov, n.defaultCovOk = settings.
-		Params[partitionIndex].GetOk("default_covariance")
+	n.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	n.defaultCov, n.defaultCovOk =
+		settings.Iterations[partitionIndex].Params.GetOk("default_covariance")
 }
 
 func (n *NormalLikelihoodDistribution) getDist(

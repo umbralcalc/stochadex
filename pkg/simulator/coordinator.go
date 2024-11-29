@@ -117,9 +117,9 @@ func NewPartitionCoordinator(
 	newWorkChannels := make([](chan *IteratorInputMessage), 0)
 	valueChannels := make([](chan []float64), 0)
 	listenersByPartition := make(map[int]int)
-	for _, partition := range implementations.Partitions {
+	for _, iteration := range settings.Iterations {
 		valueChannels = append(valueChannels, make(chan []float64))
-		for _, values := range partition.ParamsFromUpstream {
+		for _, values := range iteration.ParamsFromUpstream {
 			_, ok := listenersByPartition[values.Upstream]
 			if !ok {
 				listenersByPartition[values.Upstream] = 0
@@ -127,25 +127,25 @@ func NewPartitionCoordinator(
 			listenersByPartition[values.Upstream] += 1
 		}
 	}
-	for index, partition := range implementations.Partitions {
+	for index, iteration := range settings.Iterations {
 		stateHistoryValues := mat.NewDense(
-			settings.StateHistoryDepths[index],
-			settings.StateWidths[index],
+			iteration.StateHistoryDepth,
+			iteration.StateWidth,
 			nil,
 		)
-		for elementIndex, element := range settings.InitStateValues[index] {
+		for elementIndex, element := range iteration.InitStateValues {
 			stateHistoryValues.Set(0, elementIndex, element)
 		}
 		stateHistories = append(
 			stateHistories,
 			&StateHistory{
 				Values:            stateHistoryValues,
-				StateWidth:        settings.StateWidths[index],
-				StateHistoryDepth: settings.StateHistoryDepths[index],
+				StateWidth:        iteration.StateWidth,
+				StateHistoryDepth: iteration.StateHistoryDepth,
 			},
 		)
 		upstreamByParams := make(map[string]*UpstreamStateValues)
-		for params, values := range partition.ParamsFromUpstream {
+		for params, values := range iteration.ParamsFromUpstream {
 			upstreamByParams[params] = &UpstreamStateValues{
 				Channel: valueChannels[values.Upstream],
 				Indices: values.Indices,
@@ -154,9 +154,9 @@ func NewPartitionCoordinator(
 		iterators = append(
 			iterators,
 			&StateIterator{
-				Iteration:      partition.Iteration,
-				Params:         settings.Params[index],
-				PartitionName:  partition.Name,
+				Iteration:      implementations.Iterations[index],
+				Params:         iteration.Params,
+				PartitionName:  iteration.Name,
 				PartitionIndex: index,
 				ValueChannels: StateValueChannels{
 					Upstreams: upstreamByParams,

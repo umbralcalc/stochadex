@@ -20,7 +20,7 @@ func (n *NegativeBinomialLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	n.Src = rand.NewSource(settings.Seeds[partitionIndex])
+	n.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
 }
 
 func (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLike(

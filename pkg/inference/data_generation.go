@@ -18,7 +18,7 @@ func (d *DataGenerationIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	d.Likelihood.Configure(partitionIndex, settings)
-	s, ok := settings.Params[partitionIndex].GetOk("steps_per_resample")
+	s, ok := settings.Iterations[partitionIndex].Params.GetOk("steps_per_resample")
 	if ok {
 		d.stepsPerResample = int(s[0])
 	} else {

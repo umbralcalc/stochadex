@@ -15,59 +15,28 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"negative_binomial_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataGenerationIteration{
-						Likelihood: &NegativeBinomialLikelihoodDistribution{},
-					},
+			iterations := []simulator.Iteration{
+				&DataGenerationIteration{
+					Likelihood: &NegativeBinomialLikelihoodDistribution{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ValuesFunctionVectorMeanIteration{
-						Function: general.DataValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-					},
+				&general.ValuesFunctionVectorMeanIteration{
+					Function: general.DataValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ValuesFunctionVectorMeanIteration{
-						Function: general.DataValuesVarianceFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-						"mean":               {Upstream: 1},
-					},
+				&general.ValuesFunctionVectorMeanIteration{
+					Function: general.DataValuesVarianceFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataComparisonIteration{
-						Likelihood: &NegativeBinomialLikelihoodDistribution{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-						"mean":               {Upstream: 1},
-						"variance":           {Upstream: 2},
-					},
+				&DataComparisonIteration{
+					Likelihood: &NegativeBinomialLikelihoodDistribution{},
 				},
-			)
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			}
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

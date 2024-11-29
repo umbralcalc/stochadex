@@ -4,48 +4,48 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-// UpstreamConfig holds a representation of a slice of data from the output
-// of a partitiion which is computationally upstream.
+// UpstreamConfig is the yaml-loadable representation of a slice of data
+// from the output of a partitiion which is computationally upstream.
 type UpstreamConfig struct {
 	Upstream int   `yaml:"upstream"`
 	Indices  []int `yaml:"indices,omitempty"`
 }
 
-// Partition is the config which defines an iteration which acts on a
-// partition of the the global simulation state and its upstream partitions
-// which may provide params for it.
-type Partition struct {
-	Name               string
-	Iteration          Iteration
-	ParamsFromUpstream map[string]UpstreamConfig
-}
-
-// Implementations defines all of the types that must be implemented in
-// order to configure a stochastic process defined by the stochadex.
-type Implementations struct {
-	Partitions           []Partition
-	OutputCondition      OutputCondition
-	OutputFunction       OutputFunction
-	TerminationCondition TerminationCondition
-	TimestepFunction     TimestepFunction
+// IterationSettings is the yaml-loadable config which defines the settings
+// for an iteration which acts on a partition of the the global simulation
+// state and its upstream partitions which may provide params for it.
+type IterationSettings struct {
+	Name               string                    `yaml:"name"`
+	Params             Params                    `yaml:"params"`
+	ParamsFromUpstream map[string]UpstreamConfig `yaml:"params_from_upstream,omitempty"`
+	InitStateValues    []float64                 `yaml:"init_state_values"`
+	Seed               uint64                    `yaml:"seed"`
+	StateWidth         int                       `yaml:"state_width"`
+	StateHistoryDepth  int                       `yaml:"state_history_depth"`
 }
 
 // Settings is the yaml-loadable config which defines all of the
 // settings that can be set for a stochastic process defined by the
 // stochadex.
 type Settings struct {
-	Params                []Params    `yaml:"params"`
-	InitStateValues       [][]float64 `yaml:"init_state_values"`
-	InitTimeValue         float64     `yaml:"init_time_value"`
-	Seeds                 []uint64    `yaml:"seeds"`
-	StateWidths           []int       `yaml:"state_widths"`
-	StateHistoryDepths    []int       `yaml:"state_history_depths"`
-	TimestepsHistoryDepth int         `yaml:"timesteps_history_depth"`
+	Iterations            []IterationSettings `yaml:"iterations"`
+	InitTimeValue         float64             `yaml:"init_time_value"`
+	TimestepsHistoryDepth int                 `yaml:"timesteps_history_depth"`
 }
 
-// NamedUpstreamConfig holds a representation of a slice of data from the
-// output of a partitiion which is computationally upstream. This version
-// uses a string name for this partition.
+// Implementations defines all of the interfaces that must be implemented in
+// order to configure a stochastic process defined by the stochadex.
+type Implementations struct {
+	Iterations           []Iteration
+	OutputCondition      OutputCondition
+	OutputFunction       OutputFunction
+	TerminationCondition TerminationCondition
+	TimestepFunction     TimestepFunction
+}
+
+// NamedUpstreamConfig is the yaml-loadable representation of a slice of data
+// from the output of a partitiion which is computationally upstream. This
+// version uses a string name for this partition.
 type NamedUpstreamConfig struct {
 	Upstream string `yaml:"upstream"`
 	Indices  []int  `yaml:"indices,omitempty"`
@@ -187,19 +187,15 @@ func (c *ConfigGenerator) ResetPartition(name string, config *PartitionConfig) {
 // simulation that is represented by the generator.
 func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 	implementations := Implementations{
-		Partitions:           make([]Partition, 0),
+		Iterations:           make([]Iteration, 0),
 		OutputCondition:      c.simulationConfig.OutputCondition,
 		OutputFunction:       c.simulationConfig.OutputFunction,
 		TerminationCondition: c.simulationConfig.TerminationCondition,
 		TimestepFunction:     c.simulationConfig.TimestepFunction,
 	}
 	settings := Settings{
-		Params:             make([]Params, 0),
-		InitStateValues:    make([][]float64, 0),
-		InitTimeValue:      c.simulationConfig.InitTimeValue,
-		Seeds:              make([]uint64, 0),
-		StateWidths:        make([]int, 0),
-		StateHistoryDepths: make([]int, 0),
+		Iterations:    make([]IterationSettings, 0),
+		InitTimeValue: c.simulationConfig.InitTimeValue,
 	}
 	maxHistoryDepth := 0
 	for _, name := range c.partitionConfigOrdering.Names {
@@ -221,15 +217,11 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 			}
 			params.Set(paramName, partitionIndexValues)
 		}
-		partition := Partition{
-			Name:               name,
-			Iteration:          config.Iteration,
-			ParamsFromUpstream: make(map[string]UpstreamConfig),
-		}
+		paramsFromUpstream := make(map[string]UpstreamConfig)
 		for paramsName, partitionValues := range config.ParamsFromUpstream {
 			if index, ok := c.partitionConfigOrdering.
 				IndexByName[partitionValues.Upstream]; ok {
-				partition.ParamsFromUpstream[paramsName] = UpstreamConfig{
+				paramsFromUpstream[paramsName] = UpstreamConfig{
 					Upstream: index,
 					Indices:  partitionValues.Indices,
 				}
@@ -238,30 +230,26 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 					" into partition index - no partition by that name")
 			}
 		}
-		implementations.Partitions = append(implementations.Partitions, partition)
-		settings.Params = append(settings.Params, params)
-		settings.InitStateValues = append(
-			settings.InitStateValues,
-			config.InitStateValues,
-		)
-		settings.Seeds = append(settings.Seeds, config.Seed)
-		settings.StateWidths = append(
-			settings.StateWidths,
-			len(config.InitStateValues),
-		)
-		settings.StateHistoryDepths = append(
-			settings.StateHistoryDepths,
-			config.StateHistoryDepth,
-		)
+		implementations.Iterations = append(implementations.Iterations, config.Iteration)
+		iterationSettings := IterationSettings{
+			Name:               name,
+			Params:             params,
+			ParamsFromUpstream: paramsFromUpstream,
+			InitStateValues:    config.InitStateValues,
+			Seed:               config.Seed,
+			StateWidth:         len(config.InitStateValues),
+			StateHistoryDepth:  config.StateHistoryDepth,
+		}
+		settings.Iterations = append(settings.Iterations, iterationSettings)
 		if config.StateHistoryDepth > maxHistoryDepth {
 			maxHistoryDepth = config.StateHistoryDepth
 		}
 	}
 	settings.TimestepsHistoryDepth = maxHistoryDepth
-	// configure each partition with settings now that we know its
+	// configure each iteration with settings now that we know its
 	// assigned partition index
-	for index, partition := range implementations.Partitions {
-		partition.Iteration.Configure(index, &settings)
+	for index, iteration := range implementations.Iterations {
+		iteration.Configure(index, &settings)
 	}
 	return &settings, &implementations
 }

@@ -28,11 +28,12 @@ func (d *DataComparisonIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	d.cumulative = false
-	c, ok := settings.Params[partitionIndex].GetOk("cumulative")
+	c, ok := settings.Iterations[partitionIndex].Params.GetOk("cumulative")
 	if ok {
 		d.cumulative = c[0] == 1
 	}
-	d.burnInSteps = int(settings.Params[partitionIndex].GetIndex("burn_in_steps", 0))
+	d.burnInSteps = int(
+		settings.Iterations[partitionIndex].Params.GetIndex("burn_in_steps", 0))
 	d.Likelihood.Configure(partitionIndex, settings)
 }
 

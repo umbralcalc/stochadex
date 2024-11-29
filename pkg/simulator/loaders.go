@@ -11,11 +11,11 @@ import (
 // a Settings config. This is typically used immediately after unmarshalling
 // from a yaml config.
 func InitParamsInSettings(settings *Settings) {
-	for index, params := range settings.Params {
-		settings.Params[index].SetPartitionName(strconv.Itoa(index))
+	for index, iteration := range settings.Iterations {
+		iteration.Params.SetPartitionName(strconv.Itoa(index))
 		// ensures the default map is correctly instantiated from empty config
-		if params.Map == nil {
-			settings.Params[index].Map = make(map[string][]float64)
+		if iteration.Params.Map == nil {
+			iteration.Params.Map = make(map[string][]float64)
 		}
 	}
 }

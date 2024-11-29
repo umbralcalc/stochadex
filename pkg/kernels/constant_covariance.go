@@ -17,7 +17,7 @@ func (c *ConstantGaussianCovarianceKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	c.SetParams(&settings.Params[partitionIndex])
+	c.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (c *ConstantGaussianCovarianceKernel) SetParams(

@@ -15,59 +15,28 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"normal_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataGenerationIteration{
-						Likelihood: &NormalLikelihoodDistribution{},
-					},
+			iterations := []simulator.Iteration{
+				&DataGenerationIteration{
+					Likelihood: &NormalLikelihoodDistribution{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ValuesFunctionVectorMeanIteration{
-						Function: general.DataValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-					},
+				&general.ValuesFunctionVectorMeanIteration{
+					Function: general.DataValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ValuesFunctionVectorCovarianceIteration{
-						Function: general.DataValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-						"mean":               {Upstream: 1},
-					},
+				&general.ValuesFunctionVectorCovarianceIteration{
+					Function: general.DataValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataComparisonIteration{
-						Likelihood: &NormalLikelihoodDistribution{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-						"mean":               {Upstream: 1},
-						"covariance_matrix":  {Upstream: 2},
-					},
+				&DataComparisonIteration{
+					Likelihood: &NormalLikelihoodDistribution{},
 				},
-			)
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			}
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

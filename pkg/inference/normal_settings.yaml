@@ -1,18 +1,45 @@
-params:
-- mean: [0.5, -1.0, 0.8]
-  covariance_matrix: [3.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 3.0]
-- exponential_weighting_timescale: [30.0]
-  data_values_partition: [0]
-- exponential_weighting_timescale: [30.0]
-  data_values_partition: [0]
-- burn_in_steps: [30]
-init_state_values:
-- [2.0, -1.2, 0.5]
-- [0.0, 0.0, 0.0]
-- [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-- [0.0]
+iterations:
+- params:
+    mean: [0.5, -1.0, 0.8]
+    covariance_matrix: [3.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 3.0]
+  init_state_values: [2.0, -1.2, 0.5]
+  seed: 621
+  state_width: 3
+  state_history_depth: 30
+- params:
+    exponential_weighting_timescale: [30.0]
+    data_values_partition: [0]
+  params_from_upstream:
+    latest_data_values:
+      upstream: 0
+  init_state_values: [0.0, 0.0, 0.0]
+  seed: 0
+  state_width: 3
+  state_history_depth: 2
+- params:
+    exponential_weighting_timescale: [30.0]
+    data_values_partition: [0]
+  params_from_upstream:
+    latest_data_values:
+      upstream: 0
+    mean:
+      upstream: 1
+  init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  seed: 0
+  state_width: 9
+  state_history_depth: 2
+- params:
+    burn_in_steps: [30]
+  params_from_upstream:
+    latest_data_values:
+      upstream: 0
+    mean:
+      upstream: 1
+    covariance_matrix:
+      upstream: 2
+  init_state_values: [0.0]
+  seed: 0
+  state_width: 1
+  state_history_depth: 2
 init_time_value: 0.0
-seeds: [621, 0, 0, 0]
-state_widths: [3, 3, 9, 1]
-state_history_depths: [30, 2, 2, 2]
 timesteps_history_depth: 30

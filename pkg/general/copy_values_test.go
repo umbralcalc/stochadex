@@ -15,9 +15,11 @@ func TestCopyValues(t *testing.T) {
 			iterationOne.Configure(0, settings)
 			iterationTwo := &CopyValuesIteration{}
 			iterationTwo.Configure(1, settings)
-			partitions := []simulator.Partition{{Iteration: iterationOne}, {Iteration: iterationTwo}}
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations: []simulator.Iteration{
+					iterationOne,
+					iterationTwo,
+				},
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

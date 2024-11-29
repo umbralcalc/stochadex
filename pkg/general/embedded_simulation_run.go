@@ -22,16 +22,17 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	for index, partition := range e.implementations.Partitions {
-		partition.Iteration.Configure(index, e.settings)
+	for index, iteration := range e.implementations.Iterations {
+		iteration.Configure(index, e.settings)
 	}
 	e.partitionNameToIndex = make(map[string]int)
-	for index, partition := range e.implementations.Partitions {
-		e.partitionNameToIndex[partition.Name] = index
+	for index, iteration := range e.settings.Iterations {
+		e.partitionNameToIndex[iteration.Name] = index
 	}
 	e.stateMemoryPartitionMappings = make(map[int]int)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
-	for outParamsName, paramsValues := range settings.Params[partitionIndex].Map {
+	for outParamsName, paramsValues := range settings.
+		Iterations[partitionIndex].Params.Map {
 		matches := pattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
 			if matches[2] != "state_memory_partition" {
@@ -44,7 +45,8 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 			e.stateMemoryPartitionMappings[int(paramsValues[0])] = inPartition
 		}
 	}
-	e.burnInSteps = int(settings.Params[partitionIndex].GetIndex("burn_in_steps", 0))
+	e.burnInSteps = int(
+		settings.Iterations[partitionIndex].Params.GetIndex("burn_in_steps", 0))
 }
 
 func (e *EmbeddedSimulationRunIteration) Iterate(
@@ -70,9 +72,10 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 			inParamsName := matches[2]
 			switch inParamsName {
 			case "init_state_values":
-				e.settings.InitStateValues[inPartition] = paramsValues
+				e.settings.Iterations[inPartition].InitStateValues = paramsValues
 			default:
-				e.settings.Params[inPartition].Set(inParamsName, paramsValues)
+				e.settings.Iterations[inPartition].Params.Set(
+					inParamsName, paramsValues)
 			}
 		}
 	}
@@ -92,11 +95,11 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		})
 	}
 	for outPartition, inPartition := range e.stateMemoryPartitionMappings {
-		iteration, ok := e.implementations.Partitions[inPartition].
-			Iteration.(*FromHistoryIteration)
+		iteration, ok :=
+			e.implementations.Iterations[inPartition].(*FromHistoryIteration)
 		if ok {
 			iteration.Data = stateHistories[outPartition]
-			e.settings.InitStateValues[inPartition] =
+			e.settings.Iterations[inPartition].InitStateValues =
 				iteration.Data.Values.RawRowView(
 					iteration.Data.StateHistoryDepth - 1,
 				)

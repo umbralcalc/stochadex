@@ -46,7 +46,7 @@ func (u *UserInputIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	u.keystrokeMap = make(map[string]int64)
-	for key, vals := range settings.Params[partitionIndex].Map {
+	for key, vals := range settings.Iterations[partitionIndex].Params.Map {
 		if strings.Contains(key, "user_input_keystroke_action_") {
 			_, keystroke, ok := strings.Cut(key, "user_input_keystroke_action_")
 			if !ok {

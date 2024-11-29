@@ -15,59 +15,25 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"gamma_settings.yaml",
 			)
-			partitions := make([]simulator.Partition, 0)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataGenerationIteration{
-						Likelihood: &GammaLikelihoodDistribution{},
-					},
+			iterations := []simulator.Iteration{
+				&DataGenerationIteration{
+					Likelihood: &GammaLikelihoodDistribution{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ValuesFunctionVectorMeanIteration{
-						Function: general.DataValuesFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-					},
+				&general.ValuesFunctionVectorMeanIteration{
+					Function: general.DataValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &general.ValuesFunctionVectorMeanIteration{
-						Function: general.DataValuesVarianceFunction,
-						Kernel:   &kernels.ExponentialIntegrationKernel{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-						"mean":               {Upstream: 1},
-					},
+				&general.ValuesFunctionVectorMeanIteration{
+					Function: general.DataValuesVarianceFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
-			)
-			partitions = append(
-				partitions,
-				simulator.Partition{
-					Iteration: &DataComparisonIteration{
-						Likelihood: &GammaLikelihoodDistribution{},
-					},
-					ParamsFromUpstream: map[string]simulator.UpstreamConfig{
-						"latest_data_values": {Upstream: 0},
-						"mean":               {Upstream: 1},
-						"variance":           {Upstream: 2},
-					},
-				},
-			)
-			for index, partition := range partitions {
-				partition.Iteration.Configure(index, settings)
+			}
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
-				Partitions:      partitions,
+				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
