@@ -1,6 +1,8 @@
 package simulator
 
 import (
+	"strconv"
+
 	"golang.org/x/exp/rand"
 )
 
@@ -31,6 +33,27 @@ type Settings struct {
 	Iterations            []IterationSettings `yaml:"iterations"`
 	InitTimeValue         float64             `yaml:"init_time_value"`
 	TimestepsHistoryDepth int                 `yaml:"timesteps_history_depth"`
+}
+
+// Init checks to see if any of the param maps and iteration names have not
+// not been populated and instantiates them if not. This is typically used
+// immediately after unmarshalling from a yaml config.
+func (s *Settings) Init() {
+	for index, iteration := range s.Iterations {
+		// ensures that a name is always given to the iteration
+		if iteration.Name == "" {
+			iteration.Name = strconv.Itoa(index)
+		}
+		iteration.Params.SetPartitionName(iteration.Name)
+		// ensures the default maps are correctly instantiated from empty config
+		if iteration.Params.Map == nil {
+			iteration.Params.Map = make(map[string][]float64)
+		}
+		if iteration.ParamsFromUpstream == nil {
+			iteration.ParamsFromUpstream = make(map[string]UpstreamConfig)
+		}
+		s.Iterations[index] = iteration
+	}
 }
 
 // Implementations defines all of the interfaces that must be implemented in
@@ -65,8 +88,9 @@ type PartitionConfig struct {
 	Seed               uint64                         `yaml:"seed"`
 }
 
-// Init checks to see if any of the param maps have not
-// been populated and instantiates them if not.
+// Init checks to see if any of the param maps have not been populated
+// and instantiates them if not. This is typically used immediately after
+// unmarshalling from a yaml config.
 func (p *PartitionConfig) Init() {
 	if p.Params.Map == nil {
 		p.Params.Map = make(map[string][]float64)
