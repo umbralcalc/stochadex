@@ -1,11 +1,13 @@
 iterations:
-- params:
+- name: partition_0
+  params:
     rates: [0.8, 1.0, 1.1]
   init_state_values: [0.0, 0.0, 0.0]
   seed: 563
   state_width: 3
   state_history_depth: 2
-- params:
+- name: partition_1
+  params:
     state_value_observation_probs: [0.4, 0.8]
     state_value_observation_indices: [1, 2]
   params_from_upstream:

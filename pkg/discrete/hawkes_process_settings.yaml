@@ -1,5 +1,6 @@
 iterations:
-- params:
+- name: partition_0
+  params:
     background_rates: [1.4, 1.2, 0.2, 1.1, 5.0]
     exponential_weighting_timescale: [1.1]
     hawkes_partition_index: [1]
@@ -7,7 +8,8 @@ iterations:
   seed: 253
   state_width: 5
   state_history_depth: 50
-- params: {}
+- name: partition_1
+  params: {}
   params_from_upstream:
     intensity:
       upstream: 0

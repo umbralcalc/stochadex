@@ -1,11 +1,13 @@
 iterations:
-- params:
+- name: partition_0
+  params:
     variances: [1.0, 1.0, 1.0, 1.0, 1.0]
   init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
   seed: 4673
   state_width: 5
   state_history_depth: 2
-- params:
+- name: partition_1
+  params:
     variances: [1.0, 1.0, 1.0]
   init_state_values: [0.67, -0.01, 0.1]
   seed: 2783

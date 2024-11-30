@@ -1,5 +1,6 @@
 iterations:
-- params:
+- name: partition_0
+  params:
     state_value_observation_probs: [0.4, 0.8]
   init_state_values: [0.0, 0.0]
   seed: 563

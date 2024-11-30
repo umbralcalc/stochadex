@@ -1,5 +1,6 @@
 iterations:
-- params: {}
+- name: partition_0
+  params: {}
   init_state_values: [15.0]
   seed: 0
   state_width: 1

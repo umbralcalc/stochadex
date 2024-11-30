@@ -22,7 +22,7 @@ func TestGaussianProcessIntegationKernel(t *testing.T) {
 			})
 			kernel.Configure(0, &simulator.Settings{
 				Iterations: []simulator.IterationSettings{
-					{Params: params},
+					{Name: "test", Params: params},
 				},
 			})
 			valueOne := kernel.Evaluate(

@@ -1,12 +1,14 @@
 iterations:
-- params:
+- name: partition_0
+  params:
     event: [1]
     default_values: [0]
   init_state_values: [0.0]
   seed: 0
   state_width: 1
   state_history_depth: 1
-- params:
+- name: partition_1
+  params:
     event_partition_index: [0]
     event_state_value_index: [0]
     default_values: [0]

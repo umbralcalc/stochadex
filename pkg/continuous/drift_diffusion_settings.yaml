@@ -1,15 +1,18 @@
 iterations:
-- params: {}
+- name: partition_0
+  params: {}
   init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
   seed: 0
   state_width: 5
   state_history_depth: 2
-- params: {}
+- name: partition_1
+  params: {}
   init_state_values: [2.0, 1.0, 3.0, 1.1, 7.0]
   seed: 0
   state_width: 5
   state_history_depth: 2
-- params: {}
+- name: partition_2
+  params: {}
   params_from_upstream:
     drift_coefficients:
       upstream: 0
@@ -19,17 +22,20 @@ iterations:
   seed: 4673
   state_width: 5
   state_history_depth: 2
-- params: {}
+- name: partition_3
+  params: {}
   init_state_values: [0.67, -0.01, 0.1]
   seed: 0
   state_width: 3
   state_history_depth: 2
-- params: {}
+- name: partition_4
+  params: {}
   init_state_values: [1.0, 2.0, 1.1]
   seed: 0
   state_width: 3
   state_history_depth: 2
-- params: {}
+- name: partition_5
+  params: {}
   params_from_upstream:
     drift_coefficients:
       upstream: 3

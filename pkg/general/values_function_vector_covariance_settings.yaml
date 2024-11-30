@@ -1,10 +1,12 @@
 iterations:
-- params: {}
+- name: partition_0
+  params: {}
   init_state_values: [1.0, 4.2, 1.1]
   seed: 4252
   state_width: 3
   state_history_depth: 30
-- params:
+- name: partition_1
+  params:
     exponential_weighting_timescale: [1.1]
     data_values_partition: [0]
   params_from_upstream:
@@ -14,7 +16,8 @@ iterations:
   seed: 0
   state_width: 3
   state_history_depth: 2
-- params:
+- name: partition_2
+  params:
     exponential_weighting_timescale: [1.1]
     data_values_partition: [0]
   params_from_upstream:

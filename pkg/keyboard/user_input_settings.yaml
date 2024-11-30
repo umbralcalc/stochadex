@@ -1,5 +1,6 @@
 iterations:
-- params:
+- name: partition_0
+  params:
     param_values: [123456]
     user_input_keystroke_action_k: [54321]
     wait_milliseconds: [1]

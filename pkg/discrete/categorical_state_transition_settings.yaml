@@ -1,10 +1,12 @@
 iterations:
-- params: {}
+- name: partition_0
+  params: {}
   init_state_values: [1.0, 2.0, 1.0, 1.0, 0.3, 1.2, 0.1, 1.0, 1.0, 1.0, 2.0, 0.5]
   seed: 0
   state_width: 12
   state_history_depth: 2
-- params:
+- name: partition_1
+  params:
     transitions_from_0: [1, 2, 3, 4]
     transitions_from_1: [3, 4, 5]
     transitions_from_2: [5]

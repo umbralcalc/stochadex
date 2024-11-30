@@ -1,29 +1,34 @@
 iterations:
-- params:
+- name: partition_0
+  params:
     mean: [1.5, -12.0, 4.1]
     covariance_matrix: [5.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 10.0]
   init_state_values: [1.0, -5.2, 0.2]
   seed: 621
   state_width: 3
   state_history_depth: 2
-- params: {}
+- name: partition_1
+  params: {}
   init_state_values: [-6293.021]
   seed: 0
   state_width: 1
   state_history_depth: 10
-- params:
+- name: partition_2
+  params:
     mean: [2.5, -9.0, 1.9]
     covariance_matrix: [3.0, 0.0, 0.0, 0.0, 2.8, 0.0, 0.0, 0.0, 6.6]
   init_state_values: [2.8, -4.4, 1.5]
   seed: 89912
   state_width: 3
   state_history_depth: 2
-- params: {}
+- name: partition_3
+  params: {}
   init_state_values: [-7923.113]
   seed: 0
   state_width: 1
   state_history_depth: 10
-- params:
+- name: partition_4
+  params:
     past_discounting_factor: [0.98]
     loglike_partitions: [1, 3]
   init_state_values: [0.0]

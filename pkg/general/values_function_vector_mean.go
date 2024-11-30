@@ -2,7 +2,6 @@ package general
 
 import (
 	"math"
-	"strconv"
 
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -88,35 +87,6 @@ func OtherValuesFunction(
 		)
 	}
 	return values
-}
-
-// WeightedMeanValuesFunction computes the weighted mean vector of values from other
-// partitions for the specified partitions in params.
-func WeightedMeanValuesFunction(
-	params *simulator.Params,
-	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	stateHistoryDepthIndex int,
-) []float64 {
-	normalisation := 0.0
-	weights := params.Get("partition_weights")
-	cumulativeValue := make([]float64, stateHistories[partitionIndex].StateWidth)
-	var values []float64
-	for i, index := range params.Get("partitions_to_weight") {
-		switch stateHistoryDepthIndex {
-		case -1:
-			values = params.Get("latest_data_values_partition_" +
-				strconv.Itoa(int(index)))
-		default:
-			values = stateHistories[int(index)].Values.RawRowView(
-				stateHistoryDepthIndex)
-		}
-		floats.Scale(weights[i], values)
-		floats.Add(cumulativeValue, values)
-		normalisation += weights[i]
-	}
-	floats.Scale(1.0/normalisation, cumulativeValue)
-	return cumulativeValue
 }
 
 // DataValuesVarianceFunction just returns the contribution to the value of the

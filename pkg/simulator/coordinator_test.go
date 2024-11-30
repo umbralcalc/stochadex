@@ -115,6 +115,7 @@ func TestPartitionCoordinator(t *testing.T) {
 			settings := &Settings{
 				Iterations: []IterationSettings{
 					{
+						Name:              "partition_0",
 						Params:            NewParams(make(map[string][]float64)),
 						InitStateValues:   []float64{7.0, 8.0, 3.0, 7.0, 1.0},
 						Seed:              2365,
@@ -122,6 +123,7 @@ func TestPartitionCoordinator(t *testing.T) {
 						StateHistoryDepth: 2,
 					},
 					{
+						Name:              "partition_1",
 						Params:            params,
 						InitStateValues:   []float64{1.0, 2.0, 3.0},
 						Seed:              167,
@@ -129,6 +131,7 @@ func TestPartitionCoordinator(t *testing.T) {
 						StateHistoryDepth: 10,
 					},
 					{
+						Name:   "partition_2",
 						Params: NewParams(make(map[string][]float64)),
 						ParamsFromUpstream: map[string]UpstreamConfig{
 							"multipliers": {Upstream: 1},

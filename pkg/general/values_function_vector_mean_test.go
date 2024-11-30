@@ -21,7 +21,7 @@ func TestValuesFunctionVectorMeanIteration(t *testing.T) {
 					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
 				&ValuesFunctionVectorMeanIteration{
-					Function: WeightedMeanValuesFunction,
+					Function: DataValuesFunction,
 					Kernel:   &kernels.ExponentialIntegrationKernel{},
 				},
 			}
