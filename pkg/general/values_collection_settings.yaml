@@ -18,5 +18,22 @@ iterations:
   seed: 0
   state_width: 11
   state_history_depth: 1
+- name: partition_2
+  params:
+    empty_value: [-1]
+    values_state_width: [1]
+  init_state_values: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  seed: 0
+  state_width: 11
+  state_history_depth: 1
+- name: partition_3
+  params:
+    next_values_push: [1]
+    empty_value: [-1]
+    values_state_width: [1]
+  init_state_values: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+  seed: 0
+  state_width: 11
+  state_history_depth: 1
 init_time_value: 0.0
 timesteps_history_depth: 1
