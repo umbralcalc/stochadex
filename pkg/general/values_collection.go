@@ -86,13 +86,13 @@ func ParamValuesPushFunction(
 // output of a user-specified function or pop an indexed value set
 // from this collection depending on the output of another function.
 type ValuesCollectionIteration struct {
-	PopIndexFunction func(
+	PopIndex func(
 		params *simulator.Params,
 		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
 		timestepsHistory *simulator.CumulativeTimestepsHistory,
 	) (int, bool)
-	PushFunction func(
+	Push func(
 		params *simulator.Params,
 		partitionIndex int,
 		stateHistories []*simulator.StateHistory,
@@ -116,8 +116,8 @@ func (v *ValuesCollectionIteration) Iterate(
 	outputValues := stateHistory.Values.RawRowView(0)
 	emptyValue := params.GetIndex("empty_value", 0)
 	valuesWidth := int(params.GetIndex("values_state_width", 0))
-	if v.PushFunction != nil {
-		if values, push := v.PushFunction(
+	if v.Push != nil {
+		if values, push := v.Push(
 			params,
 			partitionIndex,
 			stateHistories,
@@ -141,12 +141,12 @@ func (v *ValuesCollectionIteration) Iterate(
 			}
 		}
 	}
-	if v.PopIndexFunction != nil {
+	if v.PopIndex != nil {
 		// clear the last popped values if they exist
 		for i := 0; i < valuesWidth; i++ {
 			outputValues[i] = emptyValue
 		}
-		if index, pop := v.PopIndexFunction(
+		if index, pop := v.PopIndex(
 			params,
 			partitionIndex,
 			stateHistories,

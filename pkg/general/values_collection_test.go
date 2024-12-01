@@ -12,20 +12,20 @@ func TestValuesCollection(t *testing.T) {
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("./values_collection_settings.yaml")
 			iterationOne := &ValuesCollectionIteration{
-				PushFunction: ParamValuesPushFunction,
+				Push: ParamValuesPushFunction,
 			}
 			iterationOne.Configure(0, settings)
 			iterationTwo := &ValuesCollectionIteration{
-				PushFunction: OtherPartitionPushFunction,
+				Push: OtherPartitionPushFunction,
 			}
 			iterationTwo.Configure(1, settings)
 			iterationThree := &ValuesCollectionIteration{
-				PopIndexFunction: NextNonEmptyPopIndexFunction,
+				PopIndex: NextNonEmptyPopIndexFunction,
 			}
 			iterationThree.Configure(2, settings)
 			iterationFour := &ValuesCollectionIteration{
-				PushFunction:     ParamValuesPushFunction,
-				PopIndexFunction: NextNonEmptyPopIndexFunction,
+				Push:     ParamValuesPushFunction,
+				PopIndex: NextNonEmptyPopIndexFunction,
 			}
 			iterationFour.Configure(3, settings)
 			implementations := &simulator.Implementations{
