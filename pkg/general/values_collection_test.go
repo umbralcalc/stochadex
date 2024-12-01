@@ -6,7 +6,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestValuesCollectionPush(t *testing.T) {
+func TestValuesCollection(t *testing.T) {
 	t.Run(
 		"test that the values collection iteration runs",
 		func(t *testing.T) {
