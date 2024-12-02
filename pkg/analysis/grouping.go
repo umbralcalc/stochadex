@@ -12,7 +12,6 @@ type KeyedGroup struct {
 
 // AppliedGrouping
 type AppliedGrouping struct {
-	ToData    DataRef
 	GroupBy   []DataRef
 	Default   float64
 	Precision int
@@ -24,19 +23,9 @@ type GroupedStateTimeStorage struct {
 	defaults []float64
 }
 
-// GetStatePartitions
-func (g *GroupedStateTimeStorage) GetStatePartitions() []string {
-	return []string{}
-}
-
-// GetStateValueIndices
-func (g *GroupedStateTimeStorage) GetStateValueIndices() []float64 {
-	return []float64{}
-}
-
 // GetGroupingPartitions
-func (g *GroupedStateTimeStorage) GetGroupingPartitions(tupIndex int) []string {
-	return []string{}
+func (g *GroupedStateTimeStorage) GetGroupingPartition(tupIndex int) string {
+	return ""
 }
 
 // GetGroupingValueIndices
