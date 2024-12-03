@@ -28,7 +28,8 @@ func (d *DataRef) GetValueIndices(
 	return d.ValueIndices
 }
 
-// GetSeriesName retrieves a unique names for labelling plots.
+// GetSeriesName retrieves unique names for each dimension in the
+// time series data that is typically used for labelling plots.
 func (d *DataRef) GetSeriesNames(
 	storage *simulator.StateTimeStorage,
 ) []string {
@@ -47,18 +48,18 @@ func (d *DataRef) GetSeriesNames(
 func (d *DataRef) GetFromStorage(
 	storage *simulator.StateTimeStorage,
 ) [][]float64 {
-	var plotValues [][]float64
+	var outValues [][]float64
 	if d.IsTime {
-		plotValues = [][]float64{storage.GetTimes()}
+		outValues = [][]float64{storage.GetTimes()}
 	} else {
-		plotValues = make([][]float64, 0)
+		outValues = make([][]float64, 0)
 		for _, index := range d.GetValueIndices(storage) {
 			values := make([]float64, 0)
 			for _, vs := range storage.GetValues(d.PartitionName) {
 				values = append(values, vs[index])
 			}
-			plotValues = append(plotValues, values)
+			outValues = append(outValues, values)
 		}
 	}
-	return plotValues
+	return outValues
 }

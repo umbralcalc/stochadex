@@ -1,60 +1,73 @@
 package analysis
 
 import (
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// KeyedGroup
-type KeyedGroup struct {
-	Key   string
-	Group []float64
-}
-
-// AppliedGrouping
+// AppliedGrouping configures a grouping transformation on data.
 type AppliedGrouping struct {
 	GroupBy   []DataRef
 	Default   float64
 	Precision int
 }
 
-// GroupedStateTimeStorage
+// GroupedStateTimeStorage is a representation of simulator.StateTimeStorage
+// which has already had a grouping transformation applied to it.
 type GroupedStateTimeStorage struct {
-	storage  *simulator.StateTimeStorage
-	defaults []float64
+	storage        *simulator.StateTimeStorage
+	applied        AppliedGrouping
+	acceptedGroups [][]float64
+	groupLabels    []string
 }
 
-// GetGroupingPartitions
+// GetGroupingPartitions returns the partition used in the data for grouping.
 func (g *GroupedStateTimeStorage) GetGroupingPartition(tupIndex int) string {
-	return ""
+	return g.applied.GroupBy[tupIndex].PartitionName
 }
 
-// GetGroupingValueIndices
+// GetGroupingValueIndices returns the value indices used in the data for grouping.
 func (g *GroupedStateTimeStorage) GetGroupingValueIndices(tupIndex int) []float64 {
-	return []float64{}
-}
-
-// GetAcceptedValueGroups
-func (g *GroupedStateTimeStorage) GetAcceptedValueGroups(tupIndex int) []float64 {
-	return []float64{}
-}
-
-// GetGroupTupleLength
-func (g *GroupedStateTimeStorage) GetGroupTupleLength() int {
-	return 1
-}
-
-// GetPrecision
-func (g *GroupedStateTimeStorage) GetPrecision() int {
-	return 1
-}
-
-// GetDefaults
-func (g *GroupedStateTimeStorage) GetDefaults() []float64 {
-	if g.defaults == nil {
-		// fill this with zeros as default
-		return []float64{}
+	valueIndices := make([]float64, 0)
+	for _, index := range g.applied.GroupBy[tupIndex].ValueIndices {
+		valueIndices = append(valueIndices, float64(index))
 	}
-	return g.defaults
+	return valueIndices
+}
+
+// GetAcceptedValueGroups returns the unique groups that were found in the data
+// which are typically used to configure group aggregation partitions.
+func (g *GroupedStateTimeStorage) GetAcceptedValueGroups(tupIndex int) []float64 {
+	groupAtIndex := make([]float64, 0)
+	for _, group := range g.acceptedGroups {
+		groupAtIndex = append(groupAtIndex, group[tupIndex])
+	}
+	return groupAtIndex
+}
+
+// GetAcceptedValueGroupLabels returns the unique group labels that were found in
+// the data which are typically used for labelling plots.
+func (g *GroupedStateTimeStorage) GetAcceptedValueGroupLabels() []string {
+	return g.groupLabels
+}
+
+// GetGroupTupleLength returns the length of tuple in the grouping index construction.
+func (g *GroupedStateTimeStorage) GetGroupTupleLength() int {
+	return len(g.applied.GroupBy)
+}
+
+// GetPrecision returns the requested float precision for grouping.
+func (g *GroupedStateTimeStorage) GetPrecision() int {
+	return g.applied.Precision
+}
+
+// GetDefaults returns a slice of default values, one for each accepted value group.
+func (g *GroupedStateTimeStorage) GetDefaults() []float64 {
+	defaults := make([]float64, 0)
+	for i := 0; i < len(g.acceptedGroups[0]); i++ {
+		defaults = append(defaults, g.applied.Default)
+	}
+	return defaults
 }
 
 // NewGroupedStateTimeStorage creates a new GroupedStateTimeStorage given
@@ -63,9 +76,37 @@ func NewGroupedStateTimeStorage(
 	applied AppliedGrouping,
 	storage *simulator.StateTimeStorage,
 ) *GroupedStateTimeStorage {
-	var defaults []float64
+	valuesByGroup := make([][][]float64, 0)
+	for _, ref := range applied.GroupBy {
+		valuesByGroup = append(valuesByGroup, ref.GetFromStorage(storage))
+	}
+	uniqueGroups := make(map[string]bool)
+	groupLabels := make([]string, 0)
+	acceptedGroups := make([][]float64, 0)
+	var ok bool
+	var key string
+	var groupTuple []float64
+	precision := applied.Precision
+	for i, values := range valuesByGroup[0] {
+		for j := range values {
+			key = ""
+			groupTuple = make([]float64, 0)
+			for _, groupValue := range valuesByGroup {
+				val := groupValue[i][j]
+				groupTuple = append(groupTuple, val)
+				key = general.AppendFloatToKey(key, val, precision)
+			}
+			if _, ok = uniqueGroups[key]; !ok {
+				groupLabels = append(groupLabels, key)
+				acceptedGroups = append(acceptedGroups, groupTuple)
+				uniqueGroups[key] = true
+			}
+		}
+	}
 	return &GroupedStateTimeStorage{
-		storage:  storage,
-		defaults: defaults,
+		storage:        storage,
+		applied:        applied,
+		acceptedGroups: acceptedGroups,
+		groupLabels:    groupLabels,
 	}
 }
