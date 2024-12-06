@@ -5,5 +5,16 @@ iterations:
   seed: 0
   state_width: 1
   state_history_depth: 1
+- name: partition_1
+  params:
+    value_1: [1.0]
+    value_2: [1.0]
+    value_3: [1.0]
+    value_4: [1.0]
+    value_5: [1.0]
+  init_state_values: [1.0]
+  seed: 0
+  state_width: 1
+  state_history_depth: 1
 init_time_value: 0.0
 timesteps_history_depth: 1

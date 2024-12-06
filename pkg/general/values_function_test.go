@@ -11,7 +11,7 @@ func TestValuesFunction(t *testing.T) {
 		"test that the values function iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("./values_function_settings.yaml")
-			iteration := &ValuesFunctionIteration{
+			iterationOne := &ValuesFunctionIteration{
 				Function: func(
 					params *simulator.Params,
 					partitionIndex int,
@@ -21,9 +21,13 @@ func TestValuesFunction(t *testing.T) {
 					return []float64{1345.0}
 				},
 			}
-			iteration.Configure(0, settings)
+			iterationOne.Configure(0, settings)
+			iterationTwo := &ValuesFunctionIteration{
+				Function: NewTransformReduceFunction(ParamsTransform, SumReduce),
+			}
+			iterationTwo.Configure(1, settings)
 			implementations := &simulator.Implementations{
-				Iterations:      []simulator.Iteration{iteration},
+				Iterations:      []simulator.Iteration{iterationOne, iterationTwo},
 				OutputCondition: &simulator.EveryStepOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
