@@ -15,7 +15,7 @@ type AppliedGrouping struct {
 // GroupedStateTimeStorage is a representation of simulator.StateTimeStorage
 // which has already had a grouping transformation applied to it.
 type GroupedStateTimeStorage struct {
-	storage        *simulator.StateTimeStorage
+	Storage        *simulator.StateTimeStorage
 	applied        AppliedGrouping
 	acceptedGroups [][]float64
 	groupLabels    []string
@@ -29,7 +29,7 @@ func (g *GroupedStateTimeStorage) GetGroupingPartition(tupIndex int) string {
 // GetGroupingValueIndices returns the value indices used in the data for grouping.
 func (g *GroupedStateTimeStorage) GetGroupingValueIndices(tupIndex int) []float64 {
 	valueIndices := make([]float64, 0)
-	for _, index := range g.applied.GroupBy[tupIndex].ValueIndices {
+	for _, index := range g.applied.GroupBy[tupIndex].GetValueIndices(g.Storage) {
 		valueIndices = append(valueIndices, float64(index))
 	}
 	return valueIndices
@@ -64,7 +64,7 @@ func (g *GroupedStateTimeStorage) GetPrecision() int {
 // GetDefaults returns a slice of default values, one for each accepted value group.
 func (g *GroupedStateTimeStorage) GetDefaults() []float64 {
 	defaults := make([]float64, 0)
-	for i := 0; i < len(g.acceptedGroups[0]); i++ {
+	for i := 0; i < len(g.GetAcceptedValueGroups(0)); i++ {
 		defaults = append(defaults, g.applied.Default)
 	}
 	return defaults
@@ -104,7 +104,7 @@ func NewGroupedStateTimeStorage(
 		}
 	}
 	return &GroupedStateTimeStorage{
-		storage:        storage,
+		Storage:        storage,
 		applied:        applied,
 		acceptedGroups: acceptedGroups,
 		groupLabels:    groupLabels,

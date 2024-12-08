@@ -29,7 +29,7 @@ func NewGroupedAggregationPartition(
 	storage *GroupedStateTimeStorage,
 ) *simulator.PartitionConfig {
 	stateValueIndices := make([]float64, 0)
-	for _, index := range applied.Data.ValueIndices {
+	for _, index := range applied.Data.GetValueIndices(storage.Storage) {
 		stateValueIndices = append(stateValueIndices, float64(index))
 	}
 	params := simulator.NewParams(map[string][]float64{
@@ -39,7 +39,9 @@ func NewGroupedAggregationPartition(
 	paramsAsPartitions := map[string][]string{
 		"state_partition": {applied.Data.PartitionName},
 	}
-	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{}
+	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
+		"latest_states": {Upstream: applied.Data.PartitionName},
+	}
 	defaults := storage.GetDefaults()
 	params.Set("default_values", defaults)
 	for tupIndex := 0; tupIndex < storage.GetGroupTupleLength(); tupIndex++ {
@@ -52,8 +54,11 @@ func NewGroupedAggregationPartition(
 			"accepted_value_group_tupindex_"+strTupIndex,
 			storage.GetAcceptedValueGroups(tupIndex),
 		)
+		groupingPartition := storage.GetGroupingPartition(tupIndex)
 		paramsAsPartitions["grouping_partition_tupindex_"+strTupIndex] =
-			[]string{storage.GetGroupingPartition(tupIndex)}
+			[]string{groupingPartition}
+		paramsFromUpstream["latest_groupings_tupindex_"+strTupIndex] =
+			simulator.NamedUpstreamConfig{Upstream: groupingPartition}
 	}
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
