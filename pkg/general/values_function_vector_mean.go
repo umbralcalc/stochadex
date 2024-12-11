@@ -90,8 +90,8 @@ func OtherValuesFunction(
 }
 
 // DataValuesVarianceFunction just returns the contribution to the value of the
-// variance of the "data_values_partition", resulting in calculating its rolling windowed
-// weighted variance.
+// variance of the "data_values_partition", resulting in calculating its rolling
+// windowed weighted variance.
 func DataValuesVarianceFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -103,7 +103,15 @@ func DataValuesVarianceFunction(
 		varianceValue = params.Get("latest_data_values")
 	} else {
 		varianceValue = stateHistories[int(
-			params.GetIndex("data_values_partition", 0))].Values.RawRowView(stateHistoryDepthIndex)
+			params.GetIndex("data_values_partition", 0))].Values.RawRowView(
+			stateHistoryDepthIndex)
+		if indices, ok := params.GetOk("data_values_indices"); ok {
+			values := make([]float64, 0)
+			for _, index := range indices {
+				values = append(values, varianceValue[int(index)])
+			}
+			varianceValue = values
+		}
 	}
 	floats.Sub(varianceValue, params.Get("mean"))
 	floats.Mul(varianceValue, varianceValue)
@@ -121,8 +129,16 @@ func DataValuesFunction(
 	if stateHistoryDepthIndex == -1 {
 		return params.Get("latest_data_values")
 	}
-	return stateHistories[int(
+	dataValues := stateHistories[int(
 		params.GetIndex("data_values_partition", 0))].Values.RawRowView(stateHistoryDepthIndex)
+	if indices, ok := params.GetOk("data_values_indices"); ok {
+		values := make([]float64, 0)
+		for _, index := range indices {
+			values = append(values, dataValues[int(index)])
+		}
+		dataValues = values
+	}
+	return dataValues
 }
 
 // ValuesFunctionVectorMeanIteration computes the rolling windowed weighted

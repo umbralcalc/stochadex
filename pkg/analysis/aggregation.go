@@ -81,16 +81,87 @@ func NewVectorMeanPartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	return &simulator.PartitionConfig{}
+	initStateValues := make([]float64, 0)
+	appliedValueIndices := applied.Data.GetValueIndices(storage)
+	for range appliedValueIndices {
+		initStateValues = append(initStateValues, 0.0)
+	}
+	dataValuesIndices := make([]float64, 0)
+	for _, index := range appliedValueIndices {
+		dataValuesIndices = append(dataValuesIndices, float64(index))
+	}
+	params := simulator.NewParams(map[string][]float64{
+		"data_values_indices": dataValuesIndices,
+	})
+	paramsAsPartitions := map[string][]string{
+		"data_values_partition": {applied.Data.PartitionName},
+	}
+	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
+		"latest_data_values": {
+			Upstream: applied.Data.PartitionName,
+			Indices:  appliedValueIndices,
+		},
+	}
+	return &simulator.PartitionConfig{
+		Name: applied.Name,
+		Iteration: &general.ValuesFunctionVectorMeanIteration{
+			Function: general.DataValuesFunction,
+			Kernel:   applied.Kernel,
+		},
+		Params:             params,
+		ParamsAsPartitions: paramsAsPartitions,
+		ParamsFromUpstream: paramsFromUpstream,
+		InitStateValues:    initStateValues,
+		StateHistoryDepth:  1,
+		Seed:               0,
+	}
 }
 
 // NewVectorVariancePartition creates a creates a new PartitionConfig to
 // compute the vector variance of the referenced data partition.
 func NewVectorVariancePartition(
+	mean DataRef,
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	return &simulator.PartitionConfig{}
+	initStateValues := make([]float64, 0)
+	appliedValueIndices := applied.Data.GetValueIndices(storage)
+	for range appliedValueIndices {
+		initStateValues = append(initStateValues, 0.0)
+	}
+	dataValuesIndices := make([]float64, 0)
+	for _, index := range appliedValueIndices {
+		dataValuesIndices = append(dataValuesIndices, float64(index))
+	}
+	params := simulator.NewParams(map[string][]float64{
+		"data_values_indices": dataValuesIndices,
+	})
+	paramsAsPartitions := map[string][]string{
+		"data_values_partition": {applied.Data.PartitionName},
+	}
+	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
+		"mean": {
+			Upstream: mean.PartitionName,
+			Indices:  mean.GetValueIndices(storage),
+		},
+		"latest_data_values": {
+			Upstream: applied.Data.PartitionName,
+			Indices:  appliedValueIndices,
+		},
+	}
+	return &simulator.PartitionConfig{
+		Name: applied.Name,
+		Iteration: &general.ValuesFunctionVectorMeanIteration{
+			Function: general.DataValuesVarianceFunction,
+			Kernel:   applied.Kernel,
+		},
+		Params:             params,
+		ParamsAsPartitions: paramsAsPartitions,
+		ParamsFromUpstream: paramsFromUpstream,
+		InitStateValues:    initStateValues,
+		StateHistoryDepth:  1,
+		Seed:               0,
+	}
 }
 
 // NewVectorCovariancePartition creates a creates a new PartitionConfig to
@@ -100,5 +171,43 @@ func NewVectorCovariancePartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	return &simulator.PartitionConfig{}
+	initStateValues := make([]float64, 0)
+	appliedValueIndices := applied.Data.GetValueIndices(storage)
+	num := len(appliedValueIndices)
+	for i := 0; i < num*num; i++ {
+		initStateValues = append(initStateValues, 0.0)
+	}
+	dataValuesIndices := make([]float64, 0)
+	for _, index := range appliedValueIndices {
+		dataValuesIndices = append(dataValuesIndices, float64(index))
+	}
+	params := simulator.NewParams(map[string][]float64{
+		"data_values_indices": dataValuesIndices,
+	})
+	paramsAsPartitions := map[string][]string{
+		"data_values_partition": {applied.Data.PartitionName},
+	}
+	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
+		"mean": {
+			Upstream: mean.PartitionName,
+			Indices:  mean.GetValueIndices(storage),
+		},
+		"latest_data_values": {
+			Upstream: applied.Data.PartitionName,
+			Indices:  appliedValueIndices,
+		},
+	}
+	return &simulator.PartitionConfig{
+		Name: applied.Name,
+		Iteration: &general.ValuesFunctionVectorCovarianceIteration{
+			Function: general.DataValuesFunction,
+			Kernel:   applied.Kernel,
+		},
+		Params:             params,
+		ParamsAsPartitions: paramsAsPartitions,
+		ParamsFromUpstream: paramsFromUpstream,
+		InitStateValues:    initStateValues,
+		StateHistoryDepth:  1,
+		Seed:               0,
+	}
 }
