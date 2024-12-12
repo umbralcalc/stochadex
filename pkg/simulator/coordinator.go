@@ -153,21 +153,23 @@ func NewPartitionCoordinator(
 		}
 		iterators = append(
 			iterators,
-			&StateIterator{
-				Iteration:      implementations.Iterations[index],
-				Params:         iteration.Params,
-				PartitionName:  iteration.Name,
-				PartitionIndex: index,
-				ValueChannels: StateValueChannels{
+			NewStateIterator(
+				implementations.Iterations[index],
+				iteration.Params,
+				iteration.Name,
+				index,
+				StateValueChannels{
 					Upstreams: upstreamByParams,
 					Downstream: &DownstreamStateValues{
 						Channel: valueChannels[index],
 						Copies:  listenersByPartition[index],
 					},
 				},
-				OutputCondition: implementations.OutputCondition,
-				OutputFunction:  implementations.OutputFunction,
-			},
+				implementations.OutputCondition,
+				implementations.OutputFunction,
+				iteration.InitStateValues,
+				settings.InitTimeValue,
+			),
 		)
 		newWorkChannels = append(
 			newWorkChannels,

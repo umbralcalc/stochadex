@@ -22,7 +22,7 @@ func TestGroupedStateTimeStorage(t *testing.T) {
 				{1.1, 2.03, 4.0},
 				{2.01, 3.1, 4.1},
 			})
-			storage.SetTimes([]float64{1234, 1235, 1236, 1237})
+			storage.SetTimes([]float64{1234, 1235, 1236})
 			groupedStorage := NewGroupedStateTimeStorage(
 				AppliedGrouping{
 					GroupBy: []DataRef{

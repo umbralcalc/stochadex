@@ -129,3 +129,31 @@ func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage)
 	// update the latest state in the history
 	partition.Values.SetRow(0, partition.NextValues)
 }
+
+// NewStateIterator creates a new StateIterator, potentially also calling
+// the output function if the condition is met by the initial state and time.
+func NewStateIterator(
+	iteration Iteration,
+	params Params,
+	partitionName string,
+	partitionIndex int,
+	valueChannels StateValueChannels,
+	outputCondition OutputCondition,
+	outputFunction OutputFunction,
+	initState []float64,
+	initTime float64,
+) *StateIterator {
+	// allows for the initial state values to potentially be output as well
+	if outputCondition.IsOutputStep(partitionName, initState, initTime) {
+		outputFunction.Output(partitionName, initState, initTime)
+	}
+	return &StateIterator{
+		Iteration:       iteration,
+		Params:          params,
+		PartitionName:   partitionName,
+		PartitionIndex:  partitionIndex,
+		ValueChannels:   valueChannels,
+		OutputCondition: outputCondition,
+		OutputFunction:  outputFunction,
+	}
+}

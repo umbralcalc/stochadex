@@ -35,7 +35,7 @@ func TestPartitions(t *testing.T) {
 					values[2] != 3.0 {
 					t.Errorf("values not expected")
 				}
-				if times[i] != float64(i+1) {
+				if times[i] != float64(i) {
 					t.Errorf("time not expected")
 				}
 			}
@@ -76,7 +76,7 @@ func TestPartitions(t *testing.T) {
 					values[2] != 3.0 {
 					t.Errorf("values not expected")
 				}
-				if times[i] != float64(i+1) {
+				if times[i] != float64(i) {
 					t.Errorf("time not expected")
 				}
 			}

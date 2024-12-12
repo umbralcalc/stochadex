@@ -18,7 +18,7 @@ func TestDataRef(t *testing.T) {
 				{2, 5, 8},
 				{3, 6, 9},
 			})
-			storage.SetTimes([]float64{1234, 1235, 1236, 1237})
+			storage.SetTimes([]float64{1234, 1235, 1236})
 			dataRef := &DataRef{
 				PartitionName: "test",
 				IsTime:        true,
