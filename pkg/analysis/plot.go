@@ -50,21 +50,75 @@ func NewScatterPlotFromPartition(
 	return scatter
 }
 
-// SymFillLineRef
-type SymFillLineRef struct {
-	Variance DataRef
-}
-
-// AsymFillLineRef
-type AsymFillLineRef struct {
+// FillLineRef holds the data required to construct a filled
+// region in the line plot.
+type FillLineRef struct {
 	Upper DataRef
 	Lower DataRef
 }
 
-// FillLineRef
-type FillLineRef struct {
-	Sym  SymFillLineRef
-	Asym AsymFillLineRef
+// echartsColours matches the ECharts default colour palette.
+var echartsColours = []string{
+	"#5470C6", // Blue
+	"#91CC75", // Green
+	"#FAC858", // Yellow
+	"#EE6666", // Red
+	"#73C0DE", // Light Blue
+	"#3BA272", // Dark Green
+	"#FC8452", // Orange
+	"#9A60B4", // Purple
+	"#EA7CCC", // Pink
+}
+
+// ColourGenerator keeps track of the current colour index.
+type ColourGenerator struct {
+	index int
+}
+
+// Next returns the next colour in the ECharts palette,
+// cycling back if needed.
+func (cg *ColourGenerator) Next() string {
+	colour := echartsColours[cg.index]
+	cg.index = (cg.index + 1) % len(echartsColours)
+	return colour
+}
+
+// appendFilledRegionToLinePlot uses the fillYRef data references
+// to create filled a region in the referenced line plot.
+func appendFilledRegionToLinePlot(
+	storage *simulator.StateTimeStorage,
+	fillYRef FillLineRef,
+	xValues []float64,
+	line *charts.Line,
+	names []string,
+	colours []string,
+) {
+	lowerValuesArr := fillYRef.Lower.GetFromStorage(storage)
+	for i, upperValues := range fillYRef.Upper.GetFromStorage(storage) {
+		confLowerData := make([]opts.LineData, 0)
+		confUpperData := make([]opts.LineData, 0)
+		lowerValues := lowerValuesArr[i]
+		for j, upperValue := range upperValues {
+			confLowerData = append(confLowerData, opts.LineData{
+				Value: []interface{}{xValues[j], upperValue},
+			})
+			confUpperData = append(confUpperData, opts.LineData{
+				Value: []interface{}{xValues[j], lowerValues[j]},
+			})
+		}
+		line.AddSeries(names[i], confUpperData,
+			charts.WithItemStyleOpts(opts.ItemStyle{Color: colours[i]}),
+			charts.WithSeriesOpts(func(s *charts.SingleSeries) {
+				s.ShowSymbol = opts.Bool(false)
+			}),
+		)
+		line.AddSeries(names[i], confLowerData,
+			charts.WithItemStyleOpts(opts.ItemStyle{Color: colours[i]}),
+			charts.WithSeriesOpts(func(s *charts.SingleSeries) {
+				s.ShowSymbol = opts.Bool(false)
+			}),
+		)
+	}
 }
 
 // NewLinePlotFromPartition creates a new line plot from
@@ -97,16 +151,32 @@ func NewLinePlotFromPartition(
 		}),
 	)
 	xValues := xRef.GetFromStorage(storage)[0]
-	for _, yData := range yRefs {
+	colourGen := &ColourGenerator{}
+	for refIndex, yData := range yRefs {
 		yNames := yData.GetSeriesNames(storage)
+		colours := make([]string, 0)
 		for i, yValues := range yData.GetFromStorage(storage) {
+			colour := colourGen.Next()
+			colours = append(colours, colour)
 			plotData := make([]opts.LineData, 0)
 			for j, yYalue := range yValues {
 				plotData = append(plotData, opts.LineData{
 					Value: []interface{}{xValues[j], yYalue},
 				})
 			}
-			line.AddSeries(yNames[i], plotData)
+			line.AddSeries(yNames[i], plotData,
+				charts.WithItemStyleOpts(opts.ItemStyle{Color: colour}),
+			)
+		}
+		if fillYRefs != nil {
+			appendFilledRegionToLinePlot(
+				storage,
+				fillYRefs[refIndex],
+				xValues,
+				line,
+				yNames,
+				colours,
+			)
 		}
 	}
 	return line

@@ -11,7 +11,7 @@ type DataRef struct {
 	PartitionName string
 	ValueIndices  []int
 	IsTime        bool
-	Transform     func([]float64) []float64
+	Transform     func(values []float64) []float64
 }
 
 // GetValueIndices populates the value indices slice with all
