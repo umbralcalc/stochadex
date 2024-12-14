@@ -86,6 +86,29 @@ func TestDataRef(t *testing.T) {
 				}
 				compVs += 3
 			}
+			dataRef = &DataRef{
+				PartitionName: "test",
+				ValueIndices:  []int{0, 2},
+				Transform:     func(f []float64) []float64 { return []float64{3.0, 3.0} },
+			}
+			names = dataRef.GetSeriesNames(storage)
+			if len(names) != 2 || names[0] != "test 0" || names[1] != "test 2" {
+				t.Error("data ref naming failed. values were: " + strings.Join(names, ","))
+			}
+			values = dataRef.GetFromStorage(storage)
+			if len(values) != 2 {
+				t.Error("data ref failed. values have length: " + fmt.Sprintf("%d", len(values)))
+			}
+			for _, vss := range values {
+				for _, vs := range vss {
+					if vs != 3.0 {
+						t.Error("data ref failed. value was: " +
+							fmt.Sprintf("%f", vs) +
+							" and expected: " +
+							fmt.Sprintf("%f", 3.0))
+					}
+				}
+			}
 		},
 	)
 }

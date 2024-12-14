@@ -11,6 +11,7 @@ type DataRef struct {
 	PartitionName string
 	ValueIndices  []int
 	IsTime        bool
+	Transform     func([]float64) []float64
 }
 
 // GetValueIndices populates the value indices slice with all
@@ -59,6 +60,11 @@ func (d *DataRef) GetFromStorage(
 				values = append(values, vs[index])
 			}
 			outValues = append(outValues, values)
+		}
+	}
+	if d.Transform != nil {
+		for i, values := range outValues {
+			outValues[i] = d.Transform(values)
 		}
 	}
 	return outValues
