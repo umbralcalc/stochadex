@@ -10,7 +10,6 @@ require (
 	gonum.org/v1/gonum v0.15.1
 	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v2 v2.4.0
-	scientificgo.org/special v0.0.0
 )
 
 require (

@@ -161,7 +161,10 @@ func TestAggregation(t *testing.T) {
 				t.Error("data variance failed. values were: " +
 					fmt.Sprint(varianceValues[1]))
 			}
-			if !floats.EqualApprox(varianceValues[2], []float64{0.33, 5.33, 16.33}, 0.1) {
+			// 0.66... here because the sample size correction isn't applied in the
+			// variance function calculation here, whereas it is in the covariance
+			// calculation below, hence the 1.0 values along the diagonal
+			if !floats.EqualApprox(varianceValues[2], []float64{0.66, 0.66, 0.66}, 0.1) {
 				t.Error("data variance failed. values were: " +
 					fmt.Sprint(varianceValues[2]))
 			}
@@ -222,7 +225,7 @@ func TestAggregation(t *testing.T) {
 				t.Error("data covariance failed. values were: " +
 					fmt.Sprint(covarianceValues[1]))
 			}
-			if !floats.Equal(covarianceValues[2], []float64{0.5, 0.5, 0.5, 0.0, 0.5, 0.5, 0, 0, 0.5}) {
+			if !floats.Equal(covarianceValues[2], []float64{1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0}) {
 				t.Error("data covariance failed. values were: " +
 					fmt.Sprint(covarianceValues[2]))
 			}
