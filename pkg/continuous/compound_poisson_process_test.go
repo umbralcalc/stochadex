@@ -63,4 +63,40 @@ func TestCompoundPoissonProcess(t *testing.T) {
 			coordinator.Run()
 		},
 	)
+	t.Run(
+		"test that the Compound Poisson process runs with harnesses",
+		func(t *testing.T) {
+			settings := simulator.LoadSettingsFromYaml(
+				"compound_poisson_process_settings.yaml",
+			)
+			iterations := make([]simulator.Iteration, 0)
+			for partitionIndex := range settings.Iterations {
+				iteration := &CompoundPoissonProcessIteration{
+					JumpDist: &gammaJumpDistribution{
+						dist: &distuv.Gamma{
+							Alpha: 1.0,
+							Beta:  1.0,
+							Src: rand.NewSource(
+								settings.Iterations[partitionIndex].Seed,
+							),
+						},
+					},
+				}
+				iterations = append(iterations, iteration)
+			}
+			store := simulator.NewStateTimeStorage()
+			implementations := &simulator.Implementations{
+				Iterations:      iterations,
+				OutputCondition: &simulator.EveryStepOutputCondition{},
+				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
+				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
+					MaxNumberOfSteps: 100,
+				},
+				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+			}
+			if err := simulator.RunWithHarnesses(settings, implementations); err != nil {
+				t.Errorf("test harness failed: %v", err)
+			}
+		},
+	)
 }

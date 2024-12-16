@@ -49,4 +49,40 @@ func TestValuesCollection(t *testing.T) {
 			coordinator.Run()
 		},
 	)
+	t.Run(
+		"test that the values collection iteration runs with harnesses",
+		func(t *testing.T) {
+			settings := simulator.LoadSettingsFromYaml("./values_collection_settings.yaml")
+			iterationOne := &ValuesCollectionIteration{
+				Push: ParamValuesPushFunction,
+			}
+			iterationTwo := &ValuesCollectionIteration{
+				Push: OtherPartitionPushFunction,
+			}
+			iterationThree := &ValuesCollectionIteration{
+				PopIndex: NextNonEmptyPopIndexFunction,
+			}
+			iterationFour := &ValuesCollectionIteration{
+				Push:     ParamValuesPushFunction,
+				PopIndex: NextNonEmptyPopIndexFunction,
+			}
+			implementations := &simulator.Implementations{
+				Iterations: []simulator.Iteration{
+					iterationOne,
+					iterationTwo,
+					iterationThree,
+					iterationFour,
+				},
+				OutputCondition: &simulator.EveryStepOutputCondition{},
+				OutputFunction:  &simulator.NilOutputFunction{},
+				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
+					MaxNumberOfSteps: 10,
+				},
+				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+			}
+			if err := simulator.RunWithHarnesses(settings, implementations); err != nil {
+				t.Errorf("test harness failed: %v", err)
+			}
+		},
+	)
 }

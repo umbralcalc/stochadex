@@ -34,10 +34,15 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 ) []float64 {
 	h.excitingKernel.SetParams(params)
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
-	values := params.Get("background_rates")
+	values := make([]float64, stateHistories[partitionIndex].StateWidth)
+	copy(values, params.Get("background_rates"))
 	for i := 1; i < hawkesHistory.StateHistoryDepth; i++ {
-		sumValues := hawkesHistory.Values.RawRowView(i - 1)
-		floats.Sub(sumValues, hawkesHistory.Values.RawRowView(i))
+		sumValues := make([]float64, stateHistories[partitionIndex].StateWidth)
+		floats.SubTo(
+			sumValues,
+			hawkesHistory.Values.RawRowView(i-1),
+			hawkesHistory.Values.RawRowView(i),
+		)
 		floats.Scale(
 			h.excitingKernel.Evaluate(
 				hawkesHistory.Values.RawRowView(0),

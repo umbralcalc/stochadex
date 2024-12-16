@@ -18,7 +18,8 @@ func PastDiscountedDataValuesFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
-	functionValues := make([]float64, stateHistories[partitionIndex].StateWidth)
+	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
+	functionValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
 		copy(functionValues, params.Get("latest_data_values"))
 		return functionValues
@@ -29,9 +30,7 @@ func PastDiscountedDataValuesFunction(
 			params.GetIndex("past_discounting_factor", 0),
 			float64(stateHistoryDepthIndex),
 		),
-		stateHistories[int(
-			params.GetIndex("data_values_partition", 0))].Values.RawRowView(
-			stateHistoryDepthIndex),
+		stateHistory.Values.RawRowView(stateHistoryDepthIndex),
 	)
 	return functionValues
 }
@@ -46,15 +45,14 @@ func PastDiscountedOtherValuesFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
-	functionValues := make([]float64, stateHistories[partitionIndex].StateWidth)
+	stateHistory := stateHistories[int(params.GetIndex("other_values_partition", 0))]
+	functionValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
 		copy(functionValues, params.Get("latest_other_values"))
 		return functionValues
 	}
 	for i, index := range params.Get("other_values_indices") {
-		functionValues[i] = stateHistories[int(
-			params.GetIndex("other_values_partition", 0))].Values.At(
-			stateHistoryDepthIndex, int(index))
+		functionValues[i] = stateHistory.Values.At(stateHistoryDepthIndex, int(index))
 	}
 	floats.Scale(
 		math.Pow(
@@ -75,15 +73,14 @@ func OtherValuesFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
-	functionValues := make([]float64, stateHistories[partitionIndex].StateWidth)
+	stateHistory := stateHistories[int(params.GetIndex("other_values_partition", 0))]
+	functionValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
 		copy(functionValues, params.Get("latest_other_values"))
 		return functionValues
 	}
 	for i, index := range params.Get("other_values_indices") {
-		functionValues[i] = stateHistories[int(
-			params.GetIndex("other_values_partition", 0))].Values.At(
-			stateHistoryDepthIndex, int(index))
+		functionValues[i] = stateHistory.Values.At(stateHistoryDepthIndex, int(index))
 	}
 	return functionValues
 }
@@ -97,13 +94,12 @@ func DataValuesVarianceFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
-	varianceValues := make([]float64, stateHistories[partitionIndex].StateWidth)
+	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
+	varianceValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
 		copy(varianceValues, params.Get("latest_data_values"))
 	} else {
-		copy(varianceValues, stateHistories[int(
-			params.GetIndex("data_values_partition", 0))].Values.RawRowView(
-			stateHistoryDepthIndex))
+		copy(varianceValues, stateHistory.Values.RawRowView(stateHistoryDepthIndex))
 		if indices, ok := params.GetOk("data_values_indices"); ok {
 			values := make([]float64, 0)
 			for _, index := range indices {
@@ -125,14 +121,13 @@ func DataValuesFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
-	functionValues := make([]float64, stateHistories[partitionIndex].StateWidth)
+	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
+	functionValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
 		copy(functionValues, params.Get("latest_data_values"))
 		return functionValues
 	}
-	copy(functionValues, stateHistories[int(
-		params.GetIndex("data_values_partition", 0))].Values.RawRowView(
-		stateHistoryDepthIndex))
+	copy(functionValues, stateHistory.Values.RawRowView(stateHistoryDepthIndex))
 	if indices, ok := params.GetOk("data_values_indices"); ok {
 		values := make([]float64, 0)
 		for _, index := range indices {

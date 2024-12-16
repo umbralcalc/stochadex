@@ -66,4 +66,59 @@ func TestValuesChangingEvents(t *testing.T) {
 			coordinator.Run()
 		},
 	)
+	t.Run(
+		"test that the values changing events iteration runs with harnesses",
+		func(t *testing.T) {
+			settings := simulator.LoadSettingsFromYaml("./values_changing_events_settings.yaml")
+			iterationOne := &ValuesChangingEventsIteration{
+				EventIteration: &ValuesFunctionIteration{
+					Function: ParamsEventFunction,
+				},
+				IterationByEvent: map[float64]simulator.Iteration{
+					1: &ValuesFunctionIteration{
+						Function: func(
+							params *simulator.Params,
+							partitionIndex int,
+							stateHistories []*simulator.StateHistory,
+							timestepsHistory *simulator.CumulativeTimestepsHistory,
+						) []float64 {
+							return []float64{1.0}
+						},
+					},
+				},
+			}
+			iterationTwo := &ValuesChangingEventsIteration{
+				EventIteration: &ValuesFunctionIteration{
+					Function: PartitionEventFunction,
+				},
+				IterationByEvent: map[float64]simulator.Iteration{
+					1: &ValuesFunctionIteration{
+						Function: func(
+							params *simulator.Params,
+							partitionIndex int,
+							stateHistories []*simulator.StateHistory,
+							timestepsHistory *simulator.CumulativeTimestepsHistory,
+						) []float64 {
+							return []float64{321.0}
+						},
+					},
+				},
+			}
+			implementations := &simulator.Implementations{
+				Iterations: []simulator.Iteration{
+					iterationOne,
+					iterationTwo,
+				},
+				OutputCondition: &simulator.EveryStepOutputCondition{},
+				OutputFunction:  &simulator.NilOutputFunction{},
+				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
+					MaxNumberOfSteps: 100,
+				},
+				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+			}
+			if err := simulator.RunWithHarnesses(settings, implementations); err != nil {
+				t.Errorf("test harness failed: %v", err)
+			}
+		},
+	)
 }
