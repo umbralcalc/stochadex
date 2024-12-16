@@ -18,19 +18,22 @@ func PastDiscountedDataValuesFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
+	functionValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		return params.Get("latest_data_values")
+		copy(functionValues, params.Get("latest_data_values"))
+		return functionValues
 	}
-	functionValue := stateHistories[int(
-		params.GetIndex("data_values_partition", 0))].Values.RawRowView(stateHistoryDepthIndex)
-	floats.Scale(
+	floats.ScaleTo(
+		functionValues,
 		math.Pow(
 			params.GetIndex("past_discounting_factor", 0),
 			float64(stateHistoryDepthIndex),
 		),
-		functionValue,
+		stateHistories[int(
+			params.GetIndex("data_values_partition", 0))].Values.RawRowView(
+			stateHistoryDepthIndex),
 	)
-	return functionValue
+	return functionValues
 }
 
 // PastDiscountedOtherValuesFunction just returns the value of the
@@ -43,26 +46,24 @@ func PastDiscountedOtherValuesFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
+	functionValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		return params.Get("latest_other_values")
+		copy(functionValues, params.Get("latest_other_values"))
+		return functionValues
 	}
-	values := make([]float64, 0)
-	for _, index := range params.Get("other_values_indices") {
-		values = append(
-			values,
-			stateHistories[int(
-				params.GetIndex("other_values_partition", 0))].Values.At(
-				stateHistoryDepthIndex, int(index)),
-		)
+	for i, index := range params.Get("other_values_indices") {
+		functionValues[i] = stateHistories[int(
+			params.GetIndex("other_values_partition", 0))].Values.At(
+			stateHistoryDepthIndex, int(index))
 	}
 	floats.Scale(
 		math.Pow(
 			params.GetIndex("past_discounting_factor", 0),
 			float64(stateHistoryDepthIndex),
 		),
-		values,
+		functionValues,
 	)
-	return values
+	return functionValues
 }
 
 // OtherValuesFunction just returns the value of the "other_values_partition",
@@ -74,19 +75,17 @@ func OtherValuesFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
+	functionValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		return params.Get("latest_other_values")
+		copy(functionValues, params.Get("latest_other_values"))
+		return functionValues
 	}
-	values := make([]float64, 0)
-	for _, index := range params.Get("other_values_indices") {
-		values = append(
-			values,
-			stateHistories[int(
-				params.GetIndex("other_values_partition", 0))].Values.At(
-				stateHistoryDepthIndex, int(index)),
-		)
+	for i, index := range params.Get("other_values_indices") {
+		functionValues[i] = stateHistories[int(
+			params.GetIndex("other_values_partition", 0))].Values.At(
+			stateHistoryDepthIndex, int(index))
 	}
-	return values
+	return functionValues
 }
 
 // DataValuesVarianceFunction just returns the contribution to the value of the
@@ -98,24 +97,24 @@ func DataValuesVarianceFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
-	var varianceValue []float64
+	varianceValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		varianceValue = params.Get("latest_data_values")
+		copy(varianceValues, params.Get("latest_data_values"))
 	} else {
-		varianceValue = stateHistories[int(
+		copy(varianceValues, stateHistories[int(
 			params.GetIndex("data_values_partition", 0))].Values.RawRowView(
-			stateHistoryDepthIndex)
+			stateHistoryDepthIndex))
 		if indices, ok := params.GetOk("data_values_indices"); ok {
 			values := make([]float64, 0)
 			for _, index := range indices {
-				values = append(values, varianceValue[int(index)])
+				values = append(values, varianceValues[int(index)])
 			}
-			varianceValue = values
+			varianceValues = values
 		}
 	}
-	floats.Sub(varianceValue, params.Get("mean"))
-	floats.Mul(varianceValue, varianceValue)
-	return varianceValue
+	floats.Sub(varianceValues, params.Get("mean"))
+	floats.Mul(varianceValues, varianceValues)
+	return varianceValues
 }
 
 // DataValuesFunction just returns the value of the "data_values_partition", resulting
@@ -126,19 +125,22 @@ func DataValuesFunction(
 	stateHistories []*simulator.StateHistory,
 	stateHistoryDepthIndex int,
 ) []float64 {
+	functionValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		return params.Get("latest_data_values")
+		copy(functionValues, params.Get("latest_data_values"))
+		return functionValues
 	}
-	dataValues := stateHistories[int(
-		params.GetIndex("data_values_partition", 0))].Values.RawRowView(stateHistoryDepthIndex)
+	copy(functionValues, stateHistories[int(
+		params.GetIndex("data_values_partition", 0))].Values.RawRowView(
+		stateHistoryDepthIndex))
 	if indices, ok := params.GetOk("data_values_indices"); ok {
 		values := make([]float64, 0)
 		for _, index := range indices {
-			values = append(values, dataValues[int(index)])
+			values = append(values, functionValues[int(index)])
 		}
-		dataValues = values
+		functionValues = values
 	}
-	return dataValues
+	return functionValues
 }
 
 // ValuesFunctionVectorMeanIteration computes the rolling windowed weighted

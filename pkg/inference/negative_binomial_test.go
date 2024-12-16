@@ -51,4 +51,41 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 			coordinator.Run()
 		},
 	)
+	t.Run(
+		"test that the Negative Binomial data linking log-likelihood runs with harnesses",
+		func(t *testing.T) {
+			settings := simulator.LoadSettingsFromYaml(
+				"negative_binomial_settings.yaml",
+			)
+			iterations := []simulator.Iteration{
+				&DataGenerationIteration{
+					Likelihood: &NegativeBinomialLikelihoodDistribution{},
+				},
+				&general.ValuesFunctionVectorMeanIteration{
+					Function: general.DataValuesFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
+				},
+				&general.ValuesFunctionVectorMeanIteration{
+					Function: general.DataValuesVarianceFunction,
+					Kernel:   &kernels.ExponentialIntegrationKernel{},
+				},
+				&DataComparisonIteration{
+					Likelihood: &NegativeBinomialLikelihoodDistribution{},
+				},
+			}
+			store := simulator.NewStateTimeStorage()
+			implementations := &simulator.Implementations{
+				Iterations:      iterations,
+				OutputCondition: &simulator.EveryStepOutputCondition{},
+				OutputFunction:  &simulator.StateTimeStorageOutputFunction{Store: store},
+				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
+					MaxNumberOfSteps: 100,
+				},
+				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+			}
+			if err := simulator.RunWithHarnesses(settings, implementations); err != nil {
+				t.Errorf("test harness failed: %v", err)
+			}
+		},
+	)
 }

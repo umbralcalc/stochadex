@@ -4,7 +4,7 @@ iterations:
     param_values: [123456]
     user_input_keystroke_action_k: [54321]
     wait_milliseconds: [1]
-    init_state_values:
+  init_state_values: [0.0]
   seed: 0
   state_width: 1
   state_history_depth: 1

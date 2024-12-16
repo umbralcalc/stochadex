@@ -32,8 +32,11 @@ func (d *DataGenerationIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
+	stateHistory := stateHistories[partitionIndex]
 	if timestepsHistory.CurrentStepNumber%d.stepsPerResample != 0 {
-		return stateHistories[partitionIndex].Values.RawRowView(0)
+		values := make([]float64, stateHistory.StateWidth)
+		copy(values, stateHistory.Values.RawRowView(0))
+		return values
 	}
 	dims := len(params.Get("mean"))
 	var covMat *mat.SymDense
@@ -56,7 +59,7 @@ func (d *DataGenerationIteration) Iterate(
 	}
 	samples := d.Likelihood.GenerateNewSamples(
 		mat.NewVecDense(
-			stateHistories[partitionIndex].StateWidth,
+			stateHistory.StateWidth,
 			params.Get("mean"),
 		),
 		covMat,
@@ -64,7 +67,7 @@ func (d *DataGenerationIteration) Iterate(
 	corr, ok := params.GetOk("correlation_with_previous")
 	if ok {
 		pastSamples := mat.VecDenseCopyOf(
-			stateHistories[partitionIndex].Values.RowView(0),
+			stateHistory.Values.RowView(0),
 		)
 		pastSamples.ScaleVec(corr[0], pastSamples)
 		floats.Scale(1.0-corr[0], samples)
