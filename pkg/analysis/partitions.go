@@ -42,7 +42,9 @@ func AddPartitionToStateTimeStorage(
 	generator := simulator.NewConfigGenerator()
 	times := storage.GetTimes()
 	generator.SetSimulation(&simulator.SimulationConfig{
-		OutputCondition: &simulator.EveryStepOutputCondition{},
+		OutputCondition: &simulator.OnlyGivenPartitionsOutputCondition{
+			Partitions: map[string]bool{partition.Name: true},
+		},
 		OutputFunction: &simulator.StateTimeStorageOutputFunction{
 			Store: storage,
 		},

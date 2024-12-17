@@ -251,7 +251,7 @@ func (c *EveryStepOutputCondition) IsOutputStep(
 	return true
 }
 
-// EveryStepOutputCondition calls the OutputFunction once for every N
+// EveryNStepsOutputCondition calls the OutputFunction once for every N
 // steps that occur.
 type EveryNStepsOutputCondition struct {
 	N      int
@@ -266,6 +266,23 @@ func (c *EveryNStepsOutputCondition) IsOutputStep(
 	c.ticker += 1
 	if c.ticker == c.N {
 		c.ticker = 0
+		return true
+	}
+	return false
+}
+
+// OnlyGivenPartitionsOutputCondition calls the OutputFunction for only
+// the given partition names.
+type OnlyGivenPartitionsOutputCondition struct {
+	Partitions map[string]bool
+}
+
+func (o *OnlyGivenPartitionsOutputCondition) IsOutputStep(
+	partitionName string,
+	state []float64,
+	cumulativeTimesteps float64,
+) bool {
+	if v, ok := o.Partitions[partitionName]; ok && v {
 		return true
 	}
 	return false
