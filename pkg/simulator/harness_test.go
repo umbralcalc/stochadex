@@ -2,6 +2,8 @@ package simulator
 
 import (
 	"testing"
+
+	"golang.org/x/exp/rand"
 )
 
 // harnessSuccessTestIteration is a basic iteration for testing the harness.
@@ -49,6 +51,31 @@ func (h *harnessFailTestIteration) Iterate(
 	newValues := stateHistory.Values.RawRowView(0)
 	for i, value := range newValues {
 		newValues[i] = value + 1
+	}
+	return newValues
+}
+
+// harnessFailStatefulTestIteration is a basic iteration for testing the harness.
+type harnessFailStatefulTestIteration struct {
+}
+
+func (h *harnessFailStatefulTestIteration) Configure(
+	partitionIndex int,
+	settings *Settings,
+) {
+}
+
+func (h *harnessFailStatefulTestIteration) Iterate(
+	params *Params,
+	partitionIndex int,
+	stateHistories []*StateHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
+) []float64 {
+	stateHistory := stateHistories[partitionIndex]
+	newValues := make([]float64, stateHistory.StateWidth)
+	copy(newValues, stateHistory.Values.RawRowView(0))
+	for i, value := range newValues {
+		newValues[i] = value + float64(rand.Intn(100))
 	}
 	return newValues
 }
@@ -102,4 +129,24 @@ func TestIterationHarness(t *testing.T) {
 			t.Errorf("Expected the harness to fail, but it succeeded.")
 		}
 	})
+
+	t.Run("test that the test harness run fails as expected due to a statefulness residue",
+		func(t *testing.T) {
+			implementations := &Implementations{
+				Iterations:      []Iteration{&harnessFailStatefulTestIteration{}},
+				OutputCondition: &EveryStepOutputCondition{},
+				OutputFunction:  &NilOutputFunction{},
+				TerminationCondition: &NumberOfStepsTerminationCondition{
+					MaxNumberOfSteps: 100,
+				},
+				TimestepFunction: &ConstantTimestepFunction{Stepsize: 1.0},
+			}
+			err := RunWithHarnesses(settings, implementations)
+			if err != nil {
+				t.Log("Test harness failed as expected.")
+			} else {
+				t.Errorf("Expected the harness to fail, but it succeeded.")
+			}
+		},
+	)
 }

@@ -96,8 +96,13 @@ func (h *IterationTestHarness) Iterate(
 }
 
 // RunWithHarnesses runs all iterations, each wrapped in a test harness and
-// returns any errors if found.
+// returns any errors if found. The simulation is also run twice to check
+// for statefulness residues.
 func RunWithHarnesses(settings *Settings, implementations *Implementations) error {
+	initRunStore := NewStateTimeStorage()
+	implementations.OutputFunction = &StateTimeStorageOutputFunction{
+		Store: initRunStore,
+	}
 	harnesses := make([]*IterationTestHarness, 0)
 	for index, iteration := range implementations.Iterations {
 		harness := &IterationTestHarness{
@@ -115,6 +120,33 @@ func RunWithHarnesses(settings *Settings, implementations *Implementations) erro
 		for _, harness := range harnesses {
 			if harness.Err != nil {
 				return harness.Err
+			}
+		}
+	}
+	resetRunStore := NewStateTimeStorage()
+	implementations.OutputFunction = &StateTimeStorageOutputFunction{
+		Store: resetRunStore,
+	}
+	for index, iteration := range implementations.Iterations {
+		iteration.Configure(index, settings)
+	}
+	coordinator = NewPartitionCoordinator(settings, implementations)
+	for !coordinator.ReadyToTerminate() {
+		coordinator.Step(&wg)
+		for _, harness := range harnesses {
+			if harness.Err != nil {
+				return harness.Err
+			}
+		}
+	}
+	for _, pName := range initRunStore.GetNames() {
+		valuesAfterReset := resetRunStore.GetValues(pName)
+		for tIndex, state := range initRunStore.GetValues(pName) {
+			for eIndex, element := range state {
+				if element != valuesAfterReset[tIndex][eIndex] {
+					return fmt.Errorf("outputs pre- and post-reset don't match..." +
+						" this typically happens if there is a statefulness residue")
+				}
 			}
 		}
 	}
