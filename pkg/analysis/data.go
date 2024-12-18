@@ -6,11 +6,19 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
+// IndexRange holds upper and lower index values for a range
+// of indices selected to be used.
+type IndexRange struct {
+	Lower int
+	Upper int
+}
+
 // DataRef is a reference to some subset of the stored data.
 type DataRef struct {
 	PartitionName string
 	ValueIndices  []int
 	IsTime        bool
+	TimeRange     *IndexRange
 	Transform     func(values []float64) []float64
 }
 
@@ -60,6 +68,11 @@ func (d *DataRef) GetFromStorage(
 				values = append(values, vs[index])
 			}
 			outValues = append(outValues, values)
+		}
+	}
+	if d.TimeRange != nil {
+		for i, values := range outValues {
+			outValues[i] = values[d.TimeRange.Lower:d.TimeRange.Upper]
 		}
 	}
 	if d.Transform != nil {
