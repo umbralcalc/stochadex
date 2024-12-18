@@ -133,9 +133,7 @@ func NewPartitionCoordinator(
 			iteration.StateWidth,
 			nil,
 		)
-		for elementIndex, element := range iteration.InitStateValues {
-			stateHistoryValues.Set(0, elementIndex, element)
-		}
+		stateHistoryValues.SetRow(0, iteration.InitStateValues)
 		stateHistories = append(
 			stateHistories,
 			&StateHistory{

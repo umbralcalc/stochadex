@@ -11,7 +11,7 @@ import (
 // is used in compound Poisson processes and drift-jump-diffusions.
 type JumpDistribution interface {
 	Configure(partitionIndex int, settings *simulator.Settings)
-	NewJump(params *simulator.Params, stateElement int) float64
+	NewJump(params *simulator.Params, valueIndex int) float64
 }
 
 // GammaJumpDistribution jumps with samples drawn from a gamma distribution.
@@ -34,10 +34,10 @@ func (g *GammaJumpDistribution) Configure(
 
 func (g *GammaJumpDistribution) NewJump(
 	params *simulator.Params,
-	stateElement int,
+	valueIndex int,
 ) float64 {
-	g.dist.Alpha = params.GetIndex("gamma_alphas", stateElement)
-	g.dist.Beta = params.GetIndex("gamma_betas", stateElement)
+	g.dist.Alpha = params.GetIndex("gamma_alphas", valueIndex)
+	g.dist.Beta = params.GetIndex("gamma_betas", valueIndex)
 	return g.dist.Rand()
 }
 

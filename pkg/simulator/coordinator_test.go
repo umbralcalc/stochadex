@@ -174,8 +174,8 @@ func TestPartitionCoordinator(t *testing.T) {
 			for _, pName := range storeWithoutGoroutines.GetNames() {
 				valuesWithGoroutines := storeWithGoroutines.GetValues(pName)
 				for tIndex, state := range storeWithoutGoroutines.GetValues(pName) {
-					for eIndex, element := range state {
-						if element != valuesWithGoroutines[tIndex][eIndex] {
+					for valueIndex, value := range state {
+						if value != valuesWithGoroutines[tIndex][valueIndex] {
 							t.Error("outputs with and without goroutines don't match")
 						}
 					}

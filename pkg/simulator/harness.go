@@ -142,8 +142,8 @@ func RunWithHarnesses(settings *Settings, implementations *Implementations) erro
 	for _, pName := range initRunStore.GetNames() {
 		valuesAfterReset := resetRunStore.GetValues(pName)
 		for tIndex, state := range initRunStore.GetValues(pName) {
-			for eIndex, element := range state {
-				if element != valuesAfterReset[tIndex][eIndex] {
+			for valueIndex, value := range state {
+				if value != valuesAfterReset[tIndex][valueIndex] {
 					return fmt.Errorf("outputs pre- and post-reset don't match..." +
 						" this typically happens if there is a statefulness residue")
 				}
