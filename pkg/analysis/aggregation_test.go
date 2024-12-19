@@ -43,7 +43,6 @@ func TestAggregation(t *testing.T) {
 					Data: DataRef{
 						PartitionName: "test",
 					},
-					Kernel: &kernels.InstantaneousIntegrationKernel{},
 				},
 				groupedStorage,
 			)

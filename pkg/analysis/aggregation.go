@@ -16,6 +16,15 @@ type AppliedAggregation struct {
 	Kernel kernels.IntegrationKernel
 }
 
+// GetKernel retrieves the integration kernel used, returning the
+// default of instantaneous (no window) if initially unset.
+func (a *AppliedAggregation) GetKernel() kernels.IntegrationKernel {
+	if a.Kernel == nil {
+		return &kernels.InstantaneousIntegrationKernel{}
+	}
+	return a.Kernel
+}
+
 // NewGroupedAggregationPartition creates a new PartitionConfig for a
 // grouped aggregation.
 func NewGroupedAggregationPartition(
@@ -64,7 +73,7 @@ func NewGroupedAggregationPartition(
 		Name: applied.Name,
 		Iteration: &general.ValuesGroupedAggregationIteration{
 			Aggregation: aggregation,
-			Kernel:      applied.Kernel,
+			Kernel:      applied.GetKernel(),
 		},
 		Params:             params,
 		ParamsAsPartitions: paramsAsPartitions,
@@ -106,7 +115,7 @@ func NewVectorMeanPartition(
 		Name: applied.Name,
 		Iteration: &general.ValuesFunctionVectorMeanIteration{
 			Function: general.DataValuesFunction,
-			Kernel:   applied.Kernel,
+			Kernel:   applied.GetKernel(),
 		},
 		Params:             params,
 		ParamsAsPartitions: paramsAsPartitions,
@@ -153,7 +162,7 @@ func NewVectorVariancePartition(
 		Name: applied.Name,
 		Iteration: &general.ValuesFunctionVectorMeanIteration{
 			Function: general.DataValuesVarianceFunction,
-			Kernel:   applied.Kernel,
+			Kernel:   applied.GetKernel(),
 		},
 		Params:             params,
 		ParamsAsPartitions: paramsAsPartitions,
@@ -201,7 +210,7 @@ func NewVectorCovariancePartition(
 		Name: applied.Name,
 		Iteration: &general.ValuesFunctionVectorCovarianceIteration{
 			Function: general.DataValuesFunction,
-			Kernel:   applied.Kernel,
+			Kernel:   applied.GetKernel(),
 		},
 		Params:             params,
 		ParamsAsPartitions: paramsAsPartitions,
