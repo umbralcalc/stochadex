@@ -177,29 +177,22 @@ func WriteStateTimeStorageToPostgresDb(
 			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 				MaxNumberOfSteps: len(times) - 1,
 			},
-			TimestepFunction: &general.FromStorageTimestepFunction{
-				Data: times,
-			},
-			InitTimeValue: times[0],
+			TimestepFunction: &general.FromStorageTimestepFunction{Data: times},
+			InitTimeValue:    times[0],
 		},
 	)
 	for _, name := range storage.GetNames() {
 		data := storage.GetValues(name)
 		generator.SetPartition(
 			&simulator.PartitionConfig{
-				Name: name,
-				Iteration: &general.FromStorageIteration{
-					Data: data,
-				},
+				Name:              name,
+				Iteration:         &general.FromStorageIteration{Data: data},
 				Params:            simulator.NewParams(make(map[string][]float64)),
 				InitStateValues:   data[0],
 				StateHistoryDepth: 1,
 				Seed:              0,
 			},
 		)
-		// instantiate the DB with the first values in the storage since
-		// these would not be written otherwise
-		outputFunction.Output(name, data[0], times[0])
 	}
 	coordinator := simulator.NewPartitionCoordinator(generator.GenerateConfigs())
 	coordinator.Run()

@@ -51,10 +51,8 @@ func AddPartitionToStateTimeStorage(
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: len(times) - 1,
 		},
-		TimestepFunction: &general.FromStorageTimestepFunction{
-			Data: times,
-		},
-		InitTimeValue: times[0],
+		TimestepFunction: &general.FromStorageTimestepFunction{Data: times},
+		InitTimeValue:    times[0],
 	})
 	if windowSizeByPartition == nil {
 		windowSizeByPartition = make(map[string]int)
@@ -66,10 +64,8 @@ func AddPartitionToStateTimeStorage(
 		}
 		data := storage.GetValues(name)
 		generator.SetPartition(&simulator.PartitionConfig{
-			Name: name,
-			Iteration: &general.FromStorageIteration{
-				Data: data,
-			},
+			Name:              name,
+			Iteration:         &general.FromStorageIteration{Data: data},
 			Params:            simulator.NewParams(make(map[string][]float64)),
 			InitStateValues:   data[0],
 			StateHistoryDepth: windowSize,
