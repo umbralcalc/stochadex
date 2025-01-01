@@ -1,8 +1,8 @@
 # So what is the 'stochadex'?
 
-A generalised simulation engine to generate samples from and statistically infer a 'Pokédex' of possible stochastic processes. A 'Pokédex' here is just a fanciful description for a very general class of multidimensional stochastic processes that pop up everywhere in taming the mathematical wilds of real-world phenomena, and which also leads to a name for the software: the _stochadex_. With such a thing pre-built and self-contained, it can become the basis upon which to build generalised software solutions for a lot of different interesting problems - happy days!
+It's a simulation engine which can be used to generate samples from and statistically infer a whole 'Pokédex' of possible systems. 'Pokédex' here is just a fanciful metaphor for the large range of simulations that might come in useful when taming the complex descriptions of real world systems... and kind-of gives us the name _stochadex_. The hope for this project is that it can become the basis upon which to build generalised software solutions for a whole lot of different and interesting problems!
 
-The point, from a software engineering perspective, is to design something which abstracts away many of the common features that sampling algorithms have for performing these computations behind a highly-configurable interface. This isn't particularly new as a concept (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), however the design provides a mathematical formalism to reference in future projects, and, to be honest, writing the code from scratch has just been a lot of fun in Go!
+From a software engineering perspective, the stochadex simulation framework abstracts away many of the common features that sampling algorithms have for performing these computations behind a highly-configurable interface. This isn't particularly new as a concept (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), however the software can be leveraged in future projects, and, to be honest, writing the code from scratch has just been a lot of fun in Go!
 
 ## Need more context and documentation?
 
@@ -46,4 +46,7 @@ docker run -p 2112:2112 stochadex --config ./cfg/example_config.yaml \
 
 ## Developing the code
 
-You can add any new stochastic phenomena you like by following the patterns for other processes given, e.g., in the `pkg/continuous` package. The key step is to create a new struct for your process which implements the `simulator.Iteration` interface.
+You can add any new simulation partition you like by following the patterns for other processes given, e.g., in the `pkg/continuous` package.
+
+- The main step is to create a new struct for your partition iterator which implements the `simulator.Iteration` interface.
+- It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls the `simulator.RunWithHarnesses`.

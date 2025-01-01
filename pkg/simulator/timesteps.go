@@ -6,8 +6,7 @@ import (
 )
 
 // TimestepFunction is the interface that must be implemented for a function
-// which evaluates the next increment to the time variable of the stochastic
-// process being simulated.
+// which evaluates the next increment to the time variable of the simulation.
 type TimestepFunction interface {
 	NextIncrement(
 		timestepsHistory *CumulativeTimestepsHistory,

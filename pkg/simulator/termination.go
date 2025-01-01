@@ -1,7 +1,7 @@
 package simulator
 
 // TerminationCondition is the interface that must be implemented in
-// order to create a new condition for ending the stochastic process.
+// order to create a new condition for ending the simulation.
 type TerminationCondition interface {
 	Terminate(
 		stateHistories []*StateHistory,

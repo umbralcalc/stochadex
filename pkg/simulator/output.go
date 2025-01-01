@@ -12,13 +12,13 @@ import (
 )
 
 // OutputFunction is the interface that must be implemented for any function
-// which can be used to outputs data from the stochastic process when the provided
+// which can be used to outputs data from the simulation when the provided
 // OutputCondition is met.
 type OutputFunction interface {
 	Output(partitionName string, state []float64, cumulativeTimesteps float64)
 }
 
-// NilOutputFunction outputs nothing from the stochastic process.
+// NilOutputFunction outputs nothing from the simulation.
 type NilOutputFunction struct{}
 
 func (f *NilOutputFunction) Output(
@@ -39,9 +39,9 @@ func (s *StdoutOutputFunction) Output(
 	fmt.Println(cumulativeTimesteps, partitionName, state)
 }
 
-// StateTimeStorageOutputFunction stores the data from the stochastic
-// process in the provided StateTimeStorage on the steps when the
-// OutputCondition is met.
+// StateTimeStorageOutputFunction stores the data from the simulation
+// in the provided StateTimeStorage on the steps when the OutputCondition
+// is met.
 type StateTimeStorageOutputFunction struct {
 	Store *StateTimeStorage
 }
@@ -224,7 +224,7 @@ func NewWebsocketOutputFunction(
 }
 
 // OutputCondition is the interface that must be implemented to define when the
-// stochastic process calls the OutputFunction.
+// simulation calls the OutputFunction.
 type OutputCondition interface {
 	IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
 }

@@ -3,7 +3,7 @@ package simulator
 import "fmt"
 
 // Params is a type alias for the parameters needed to configure
-// the stochastic process.
+// the simulation.
 type Params struct {
 	Map           map[string][]float64 `yaml:",inline"`
 	partitionName string               `yaml:"-"`

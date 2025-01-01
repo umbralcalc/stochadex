@@ -27,8 +27,7 @@ type IterationSettings struct {
 }
 
 // Settings is the yaml-loadable config which defines all of the
-// settings that can be set for a stochastic process defined by the
-// stochadex.
+// settings that can be set for a simulation defined by the stochadex.
 type Settings struct {
 	Iterations            []IterationSettings `yaml:"iterations"`
 	InitTimeValue         float64             `yaml:"init_time_value"`
@@ -57,7 +56,7 @@ func (s *Settings) Init() {
 }
 
 // Implementations defines all of the interfaces that must be implemented in
-// order to configure a stochastic process defined by the stochadex.
+// order to configure a simulation defined by the stochadex.
 type Implementations struct {
 	Iterations           []Iteration
 	OutputCondition      OutputCondition
