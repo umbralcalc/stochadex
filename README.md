@@ -1,3 +1,5 @@
+![](./logo.png)
+
 # So what is the 'stochadex' project?
 
 It's a simulation engine which can be used to generate samples from and statistically infer a whole 'Pokédex' of possible systems. 'Pokédex' here is just a fanciful metaphor for the large range of simulations that might come in useful when taming the complex descriptions of real world systems... and _kind of_ gives us the name 'stochadex'. The hope for this project is that it can become the basis upon which to build generalised software solutions for a whole lot of different and interesting problems!
