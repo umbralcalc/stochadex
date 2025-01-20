@@ -28,9 +28,9 @@ func NewLikelihoodComparisonPartition(
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: applied.WindowSize,
 		},
-		// TODO: Find a way to pass in the correct times from the data!
-		// TimestepFunction: &simulator.ConstantTimestepFunction{},
-		// InitTimeValue: 0.0,
+		// These will be overwritten with the times in the data...
+		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:    0.0,
 	})
 	params := simulator.NewParams(map[string][]float64{
 		"cumulative":    {1},
@@ -46,11 +46,18 @@ func NewLikelihoodComparisonPartition(
 		StateHistoryDepth: 1,
 		Seed:              0,
 	})
+	simParams := simulator.NewParams(map[string][]float64{
+		"burn_in_steps": {float64(applied.WindowSize)},
+	})
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(
 			generator.GenerateConfigs(),
 		),
+		Params:            simParams,
+		InitStateValues:   []float64{},
+		StateHistoryDepth: 1,
+		Seed:              0,
 	}
 }
 
