@@ -68,6 +68,7 @@ type AppliedSimulationInference struct {
 	Name       string
 	Data       DataRef
 	Simulation []*simulator.PartitionConfig
+	WindowSize int
 }
 
 // NewSimulationInferencePartition creates a new PartitionConfig for
@@ -77,14 +78,39 @@ func NewSimulationInferencePartition(
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
 	generator := simulator.NewConfigGenerator()
+	generator.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition: &simulator.NilOutputCondition{},
+		OutputFunction:  &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
+			MaxNumberOfSteps: applied.WindowSize,
+		},
+		// These will be overwritten with the times in the data...
+		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:    0.0,
+	})
+	params := simulator.NewParams(map[string][]float64{
+		"cumulative":    {1},
+		"burn_in_steps": {float64(applied.WindowSize)},
+	})
 	generator.SetPartition(&simulator.PartitionConfig{
-		Name:      "",
-		Iteration: &inference.DataComparisonIteration{},
+		Name:              "comparison",
+		Iteration:         &inference.DataComparisonIteration{},
+		Params:            params,
+		InitStateValues:   []float64{0.0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	simParams := simulator.NewParams(map[string][]float64{
+		"burn_in_steps": {float64(applied.WindowSize)},
 	})
 	return &simulator.PartitionConfig{
-		Name: "",
+		Name: applied.Name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(
 			generator.GenerateConfigs(),
 		),
+		Params:            simParams,
+		InitStateValues:   []float64{},
+		StateHistoryDepth: 1,
+		Seed:              0,
 	}
 }
