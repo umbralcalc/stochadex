@@ -21,7 +21,7 @@ func TestDataRef(t *testing.T) {
 			storage.SetTimes([]float64{1234, 1235, 1236})
 			dataRef := &DataRef{
 				PartitionName: "test",
-				IsTime:        true,
+				Plotting:      &DataPlotting{IsTime: true},
 			}
 			names := dataRef.GetSeriesNames(storage)
 			if len(names) != 1 || names[0] != "time" {
@@ -89,7 +89,9 @@ func TestDataRef(t *testing.T) {
 			dataRef = &DataRef{
 				PartitionName: "test",
 				ValueIndices:  []int{0, 2},
-				Transform:     func(f []float64) []float64 { return []float64{3.0, 3.0} },
+				Plotting: &DataPlotting{
+					Transform: func(f []float64) []float64 { return []float64{3.0, 3.0} },
+				},
 			}
 			names = dataRef.GetSeriesNames(storage)
 			if len(names) != 2 || names[0] != "test 0" || names[1] != "test 2" {

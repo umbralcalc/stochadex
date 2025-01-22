@@ -40,7 +40,7 @@ func TestCreatingPlot(t *testing.T) {
 				storage,
 				DataRef{
 					PartitionName: "test",
-					IsTime:        true,
+					Plotting:      &DataPlotting{IsTime: true},
 				},
 				yRefs,
 			)
@@ -86,7 +86,7 @@ func TestCreatingPlot(t *testing.T) {
 				storage,
 				DataRef{
 					PartitionName: "test",
-					IsTime:        true,
+					Plotting:      &DataPlotting{IsTime: true},
 				},
 				yRefs,
 				nil,

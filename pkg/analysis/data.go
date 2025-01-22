@@ -13,13 +13,53 @@ type IndexRange struct {
 	Upper int
 }
 
+// DataPlotting configures the changes to the data which can
+// be applied before plotting.
+type DataPlotting struct {
+	IsTime    bool
+	TimeRange *IndexRange
+	Transform func(values []float64) []float64
+}
+
 // DataRef is a reference to some subset of the stored data.
 type DataRef struct {
 	PartitionName string
 	ValueIndices  []int
-	IsTime        bool
-	TimeRange     *IndexRange
-	Transform     func(values []float64) []float64
+	Plotting      *DataPlotting
+}
+
+// isTime is a convenience method for finding if the data has
+// been configured to the time variable or not.
+func (d *DataRef) isTime() bool {
+	if d.Plotting != nil {
+		return d.Plotting.IsTime
+	}
+	return false
+}
+
+// applyTimeRange applies a time range restriction to the data
+// if it has been configured.
+func (d *DataRef) applyTimeRange(outValues [][]float64) {
+	if d.Plotting != nil {
+		if d.Plotting.TimeRange != nil {
+			for i, values := range outValues {
+				outValues[i] =
+					values[d.Plotting.TimeRange.Lower:d.Plotting.TimeRange.Upper]
+			}
+		}
+	}
+}
+
+// applyTransform applies a transformation to the data if it
+// has been configured.
+func (d *DataRef) applyTransform(outValues [][]float64) {
+	if d.Plotting != nil {
+		if d.Plotting.Transform != nil {
+			for i, values := range outValues {
+				outValues[i] = d.Plotting.Transform(values)
+			}
+		}
+	}
 }
 
 // GetValueIndices populates the value indices slice with all
@@ -42,7 +82,7 @@ func (d *DataRef) GetValueIndices(
 func (d *DataRef) GetSeriesNames(
 	storage *simulator.StateTimeStorage,
 ) []string {
-	if d.IsTime {
+	if d.isTime() {
 		return []string{"time"}
 	}
 	names := make([]string, 0)
@@ -58,7 +98,7 @@ func (d *DataRef) GetFromStorage(
 	storage *simulator.StateTimeStorage,
 ) [][]float64 {
 	var outValues [][]float64
-	if d.IsTime {
+	if d.isTime() {
 		outValues = [][]float64{storage.GetTimes()}
 	} else {
 		outValues = make([][]float64, 0)
@@ -70,15 +110,7 @@ func (d *DataRef) GetFromStorage(
 			outValues = append(outValues, values)
 		}
 	}
-	if d.TimeRange != nil {
-		for i, values := range outValues {
-			outValues[i] = values[d.TimeRange.Lower:d.TimeRange.Upper]
-		}
-	}
-	if d.Transform != nil {
-		for i, values := range outValues {
-			outValues[i] = d.Transform(values)
-		}
-	}
+	d.applyTimeRange(outValues)
+	d.applyTransform(outValues)
 	return outValues
 }

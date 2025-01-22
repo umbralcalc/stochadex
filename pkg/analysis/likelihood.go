@@ -6,13 +6,18 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
+// DataWindow defines a windowed history of data in storage.
+type DataWindow struct {
+	Data  []DataRef
+	Depth int
+}
+
 // AppliedLikelihoodComparison is the base configuration for a rolling
 // comparison between a referenced dataset and referenced likelihood model.
 type AppliedLikelihoodComparison struct {
-	Name       string
-	Data       DataRef
-	Model      inference.LikelihoodDistribution
-	WindowSize int
+	Name  string
+	Data  DataWindow
+	Model inference.LikelihoodDistribution
 }
 
 // NewLikelihoodComparisonPartition creates a new PartitionConfig for
@@ -26,7 +31,7 @@ func NewLikelihoodComparisonPartition(
 		OutputCondition: &simulator.NilOutputCondition{},
 		OutputFunction:  &simulator.NilOutputFunction{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
-			MaxNumberOfSteps: applied.WindowSize,
+			MaxNumberOfSteps: applied.Data.Depth,
 		},
 		// These will be overwritten with the times in the data...
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
@@ -34,7 +39,7 @@ func NewLikelihoodComparisonPartition(
 	})
 	params := simulator.NewParams(map[string][]float64{
 		"cumulative":    {1},
-		"burn_in_steps": {float64(applied.WindowSize)},
+		"burn_in_steps": {float64(applied.Data.Depth)},
 	})
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "comparison",
@@ -47,7 +52,7 @@ func NewLikelihoodComparisonPartition(
 		Seed:              0,
 	})
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(applied.WindowSize)},
+		"burn_in_steps": {float64(applied.Data.Depth)},
 	})
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
@@ -66,9 +71,8 @@ func NewLikelihoodComparisonPartition(
 // referenced dataset.
 type AppliedSimulationInference struct {
 	Name       string
-	Data       DataRef
+	Data       DataWindow
 	Simulation []*simulator.PartitionConfig
-	WindowSize int
 }
 
 // NewSimulationInferencePartition creates a new PartitionConfig for
@@ -82,7 +86,7 @@ func NewSimulationInferencePartition(
 		OutputCondition: &simulator.NilOutputCondition{},
 		OutputFunction:  &simulator.NilOutputFunction{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
-			MaxNumberOfSteps: applied.WindowSize,
+			MaxNumberOfSteps: applied.Data.Depth,
 		},
 		// These will be overwritten with the times in the data...
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
@@ -90,7 +94,7 @@ func NewSimulationInferencePartition(
 	})
 	params := simulator.NewParams(map[string][]float64{
 		"cumulative":    {1},
-		"burn_in_steps": {float64(applied.WindowSize)},
+		"burn_in_steps": {float64(applied.Data.Depth)},
 	})
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name:              "comparison",
@@ -101,7 +105,7 @@ func NewSimulationInferencePartition(
 		Seed:              0,
 	})
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(applied.WindowSize)},
+		"burn_in_steps": {float64(applied.Data.Depth)},
 	})
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
