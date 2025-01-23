@@ -6,17 +6,18 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// DataWindow defines a windowed history of data in storage.
-type DataWindow struct {
-	Data  []DataRef
-	Depth int
+// WindowedPartitionsData defines a windowed history of data from
+// partitions in storage.
+type WindowedPartitionsData struct {
+	Partitions []DataRef
+	Depth      int
 }
 
 // AppliedLikelihoodComparison is the base configuration for a rolling
 // comparison between a referenced dataset and referenced likelihood model.
 type AppliedLikelihoodComparison struct {
 	Name  string
-	Data  DataWindow
+	Data  WindowedPartitionsData
 	Model inference.LikelihoodDistribution
 }
 
@@ -37,6 +38,19 @@ func NewLikelihoodComparisonPartition(
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 		InitTimeValue:    0.0,
 	})
+	simParamsAsPartitions := make(map[string][]string)
+	for _, ref := range applied.Data.Partitions {
+		generator.SetPartition(&simulator.PartitionConfig{
+			Name:              ref.PartitionName,
+			Iteration:         &general.FromHistoryIteration{},
+			Params:            simulator.NewParams(make(map[string][]float64)),
+			InitStateValues:   ref.GetFromStorage(storage)[0],
+			StateHistoryDepth: 1,
+			Seed:              0,
+		})
+		simParamsAsPartitions[ref.PartitionName+"/state_memory_partition"] =
+			[]string{ref.PartitionName}
+	}
 	params := simulator.NewParams(map[string][]float64{
 		"cumulative":    {1},
 		"burn_in_steps": {float64(applied.Data.Depth)},
@@ -59,10 +73,11 @@ func NewLikelihoodComparisonPartition(
 		Iteration: general.NewEmbeddedSimulationRunIteration(
 			generator.GenerateConfigs(),
 		),
-		Params:            simParams,
-		InitStateValues:   []float64{},
-		StateHistoryDepth: 1,
-		Seed:              0,
+		Params:             simParams,
+		ParamsAsPartitions: simParamsAsPartitions,
+		InitStateValues:    []float64{},
+		StateHistoryDepth:  1,
+		Seed:               0,
 	}
 }
 
@@ -71,7 +86,7 @@ func NewLikelihoodComparisonPartition(
 // referenced dataset.
 type AppliedSimulationInference struct {
 	Name       string
-	Data       DataWindow
+	Data       WindowedPartitionsData
 	Simulation []*simulator.PartitionConfig
 }
 
