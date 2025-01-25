@@ -38,18 +38,24 @@ func NewLikelihoodComparisonPartition(
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 		InitTimeValue:    0.0,
 	})
+	simInitStateValues := make([]float64, 0)
 	simParamsAsPartitions := make(map[string][]string)
+	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
 	for _, ref := range applied.Data.Partitions {
+		initStateValues := ref.GetFromStorage(storage)[0]
 		generator.SetPartition(&simulator.PartitionConfig{
 			Name:              ref.PartitionName,
 			Iteration:         &general.FromHistoryIteration{},
 			Params:            simulator.NewParams(make(map[string][]float64)),
-			InitStateValues:   ref.GetFromStorage(storage)[0],
+			InitStateValues:   initStateValues,
 			StateHistoryDepth: 1,
 			Seed:              0,
 		})
+		simInitStateValues = append(simInitStateValues, initStateValues...)
 		simParamsAsPartitions[ref.PartitionName+"/state_memory_partition"] =
 			[]string{ref.PartitionName}
+		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
+			simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 	}
 	params := simulator.NewParams(map[string][]float64{
 		"cumulative":    {1},
@@ -75,7 +81,8 @@ func NewLikelihoodComparisonPartition(
 		),
 		Params:             simParams,
 		ParamsAsPartitions: simParamsAsPartitions,
-		InitStateValues:    []float64{},
+		ParamsFromUpstream: simParamsFromUpstream,
+		InitStateValues:    simInitStateValues,
 		StateHistoryDepth:  1,
 		Seed:               0,
 	}
