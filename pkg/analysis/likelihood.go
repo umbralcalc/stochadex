@@ -16,9 +16,10 @@ type WindowedPartitionsData struct {
 // AppliedLikelihoodComparison is the base configuration for a rolling
 // comparison between a referenced dataset and referenced likelihood model.
 type AppliedLikelihoodComparison struct {
-	Name  string
-	Data  WindowedPartitionsData
-	Model inference.LikelihoodDistribution
+	Name   string
+	Model  inference.LikelihoodDistribution
+	Data   DataRef
+	Window WindowedPartitionsData
 }
 
 // NewLikelihoodComparisonPartition creates a new PartitionConfig for
@@ -32,7 +33,7 @@ func NewLikelihoodComparisonPartition(
 		OutputCondition: &simulator.NilOutputCondition{},
 		OutputFunction:  &simulator.NilOutputFunction{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
-			MaxNumberOfSteps: applied.Data.Depth,
+			MaxNumberOfSteps: applied.Window.Depth,
 		},
 		// These will be overwritten with the times in the data...
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
@@ -41,8 +42,8 @@ func NewLikelihoodComparisonPartition(
 	simInitStateValues := make([]float64, 0)
 	simParamsAsPartitions := make(map[string][]string)
 	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
-	for _, ref := range applied.Data.Partitions {
-		initStateValues := ref.GetFromStorage(storage)[0]
+	for _, ref := range applied.Window.Partitions {
+		initStateValues := ref.GetIndexFromStorage(storage, 0)
 		generator.SetPartition(&simulator.PartitionConfig{
 			Name:              ref.PartitionName,
 			Iteration:         &general.FromHistoryIteration{},
@@ -59,20 +60,25 @@ func NewLikelihoodComparisonPartition(
 	}
 	params := simulator.NewParams(map[string][]float64{
 		"cumulative":    {1},
-		"burn_in_steps": {float64(applied.Data.Depth)},
+		"burn_in_steps": {0},
 	})
+	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
+		"latest_data_values": {Upstream: applied.Data.PartitionName},
+	}
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "comparison",
 		Iteration: &inference.DataComparisonIteration{
 			Likelihood: applied.Model,
 		},
-		Params:            params,
-		InitStateValues:   []float64{0.0},
-		StateHistoryDepth: 1,
-		Seed:              0,
+		Params:             params,
+		ParamsFromUpstream: paramsFromUpstream,
+		InitStateValues:    []float64{0.0},
+		StateHistoryDepth:  1,
+		Seed:               0,
 	})
+	simInitStateValues = append(simInitStateValues, 0.0)
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(applied.Data.Depth)},
+		"burn_in_steps": {float64(applied.Window.Depth)},
 	})
 	return &simulator.PartitionConfig{
 		Name: applied.Name,

@@ -37,6 +37,20 @@ func (d *DataRef) isTime() bool {
 	return false
 }
 
+// isOutsideTimeRange checks to see if the specified index in time
+// is outside the time range, if it has been configured.
+func (d *DataRef) isOutsideTimeRange(index int) bool {
+	if d.Plotting != nil {
+		if d.Plotting.TimeRange != nil {
+			if index < d.Plotting.TimeRange.Lower ||
+				index < d.Plotting.TimeRange.Upper {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // applyTimeRange applies a time range restriction to the data
 // if it has been configured.
 func (d *DataRef) applyTimeRange(outValues [][]float64) {
@@ -53,13 +67,20 @@ func (d *DataRef) applyTimeRange(outValues [][]float64) {
 // applyTransform applies a transformation to the data if it
 // has been configured.
 func (d *DataRef) applyTransform(outValues [][]float64) {
+	for i, values := range outValues {
+		outValues[i] = d.applyTransformAtIndex(values)
+	}
+}
+
+// applyTransformAtIndex applies a transformation to the data at the
+// specified index in time if it has been configured.
+func (d *DataRef) applyTransformAtIndex(outValues []float64) []float64 {
 	if d.Plotting != nil {
 		if d.Plotting.Transform != nil {
-			for i, values := range outValues {
-				outValues[i] = d.Plotting.Transform(values)
-			}
+			return d.Plotting.Transform(outValues)
 		}
 	}
+	return outValues
 }
 
 // GetValueIndices populates the value indices slice with all
@@ -90,6 +111,26 @@ func (d *DataRef) GetSeriesNames(
 		names = append(names, d.PartitionName+" "+strconv.Itoa(index))
 	}
 	return names
+}
+
+// GetIndexFromStorage retrieves the relevant data from storage that
+// the reference is pointing to for a given index in time.
+func (d *DataRef) GetIndexFromStorage(
+	storage *simulator.StateTimeStorage,
+	index int,
+) []float64 {
+	var outValues []float64
+	if d.isTime() {
+		outValues = []float64{storage.GetTimes()[index]}
+	} else {
+		outValues = storage.GetValues(d.PartitionName)[index]
+	}
+	if d.isOutsideTimeRange(index) {
+		panic("requested index " + strconv.Itoa(index) +
+			" is outside of configured time range")
+	}
+	outValues = d.applyTransformAtIndex(outValues)
+	return outValues
 }
 
 // GetFromStorage retrieves the relevant data from storage that
