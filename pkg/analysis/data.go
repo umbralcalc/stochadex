@@ -43,7 +43,7 @@ func (d *DataRef) isOutsideTimeRange(index int) bool {
 	if d.Plotting != nil {
 		if d.Plotting.TimeRange != nil {
 			if index < d.Plotting.TimeRange.Lower ||
-				index < d.Plotting.TimeRange.Upper {
+				index >= d.Plotting.TimeRange.Upper {
 				return true
 			}
 		}
