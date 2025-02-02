@@ -16,14 +16,6 @@ func NewScatterPlotFromPartition(
 	if len(yRefs) == 0 {
 		panic("0 Y-axes have been been provided")
 	}
-	yPartitions := make(map[string][][]float64, 0)
-	for _, yData := range yRefs {
-		_, ok := yPartitions[yData.PartitionName]
-		if !ok {
-			yPartitions[yData.PartitionName] =
-				storage.GetValues(yData.PartitionName)
-		}
-	}
 	scatter := charts.NewScatter()
 	scatter.SetGlobalOptions(
 		charts.WithXAxisOpts(opts.XAxis{
@@ -131,14 +123,6 @@ func NewLinePlotFromPartition(
 ) *charts.Line {
 	if len(yRefs) == 0 {
 		panic("0 Y-axes have been been provided")
-	}
-	yPartitions := make(map[string][][]float64, 0)
-	for _, yData := range yRefs {
-		_, ok := yPartitions[yData.PartitionName]
-		if !ok {
-			yPartitions[yData.PartitionName] =
-				storage.GetValues(yData.PartitionName)
-		}
 	}
 	line := charts.NewLine()
 	line.SetGlobalOptions(
