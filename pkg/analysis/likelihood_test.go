@@ -32,25 +32,23 @@ func TestLikelihood(t *testing.T) {
 				&simulator.ConstantTimestepFunction{Stepsize: 1.0},
 				0.0,
 			)
+			params := simulator.NewParams(make(map[string][]float64))
+			params.Set("mean", []float64{1.8, 5.0})
+			params.Set("covariance_matrix", []float64{2.5, 0.0, 0.0, 9.0})
 			likePartition := NewLikelihoodComparisonPartition(
 				AppliedLikelihoodComparison{
-					Name:  "test_likelihood",
-					Model: &inference.NormalLikelihoodDistribution{},
-					Data:  DataRef{PartitionName: "test_data"},
+					Name: "test_likelihood",
+					Model: ParameterisedModel{
+						Likelihood: &inference.NormalLikelihoodDistribution{},
+						Params:     params,
+					},
+					Data: DataRef{PartitionName: "test_data"},
 					Window: WindowedPartitionsData{
 						Partitions: []DataRef{{PartitionName: "test_data"}},
 						Depth:      10,
 					},
 				},
 				storage,
-			)
-			likePartition.Params.Set(
-				"comparison/mean",
-				[]float64{1.8, 5.0},
-			)
-			likePartition.Params.Set(
-				"comparison/covariance_matrix",
-				[]float64{2.5, 0.0, 0.0, 9.0},
 			)
 			storage = AddPartitionToStateTimeStorage(
 				storage,

@@ -11,9 +11,10 @@ import (
 // AppliedAggregation is the base configuration for an aggregation
 // over a referenced dataset.
 type AppliedAggregation struct {
-	Name   string
-	Data   DataRef
-	Kernel kernels.IntegrationKernel
+	Name         string
+	Data         DataRef
+	Kernel       kernels.IntegrationKernel
+	DefaultValue float64
 }
 
 // GetKernel retrieves the integration kernel used, returning the
@@ -51,7 +52,10 @@ func NewGroupedAggregationPartition(
 	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
 		"latest_states": {Upstream: applied.Data.PartitionName},
 	}
-	defaults := storage.GetDefaults()
+	defaults := make([]float64, storage.GetAcceptedValueGroupsLength())
+	for i := 0; i < len(defaults); i++ {
+		defaults[i] = applied.DefaultValue
+	}
 	params.Set("default_values", defaults)
 	for tupIndex := 0; tupIndex < storage.GetGroupTupleLength(); tupIndex++ {
 		strTupIndex := strconv.Itoa(tupIndex)
@@ -90,10 +94,10 @@ func NewVectorMeanPartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	initStateValues := make([]float64, 0)
 	appliedValueIndices := applied.Data.GetValueIndices(storage)
-	for range appliedValueIndices {
-		initStateValues = append(initStateValues, 0.0)
+	initStateValues := make([]float64, len(appliedValueIndices))
+	for i := 0; i < len(initStateValues); i++ {
+		initStateValues[i] = applied.DefaultValue
 	}
 	dataValuesIndices := make([]float64, 0)
 	for _, index := range appliedValueIndices {
@@ -133,10 +137,10 @@ func NewVectorVariancePartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	initStateValues := make([]float64, 0)
 	appliedValueIndices := applied.Data.GetValueIndices(storage)
-	for range appliedValueIndices {
-		initStateValues = append(initStateValues, 0.0)
+	initStateValues := make([]float64, len(appliedValueIndices))
+	for i := 0; i < len(initStateValues); i++ {
+		initStateValues[i] = applied.DefaultValue
 	}
 	dataValuesIndices := make([]float64, 0)
 	for _, index := range appliedValueIndices {
@@ -180,11 +184,18 @@ func NewVectorCovariancePartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	initStateValues := make([]float64, 0)
 	appliedValueIndices := applied.Data.GetValueIndices(storage)
 	num := len(appliedValueIndices)
-	for i := 0; i < num*num; i++ {
-		initStateValues = append(initStateValues, 0.0)
+	initStateValues := make([]float64, num*num)
+	for i := 0; i < num; i++ {
+		for j := 0; j < num; j++ {
+			switch i {
+			case j:
+				initStateValues[i+j] = applied.DefaultValue
+			default:
+				initStateValues[i+j] = 0.0
+			}
+		}
 	}
 	dataValuesIndices := make([]float64, 0)
 	for _, index := range appliedValueIndices {

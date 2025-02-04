@@ -28,7 +28,6 @@ func TestGroupedStateTimeStorage(t *testing.T) {
 					GroupBy: []DataRef{
 						{PartitionName: "test_group"},
 					},
-					Default:   0.0,
 					Precision: 1,
 				},
 				storage,
@@ -42,7 +41,6 @@ func TestGroupedStateTimeStorage(t *testing.T) {
 					GroupBy: []DataRef{
 						{PartitionName: "test_group"},
 					},
-					Default:   0.0,
 					Precision: 2,
 				},
 				storage,

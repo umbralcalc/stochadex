@@ -13,11 +13,31 @@ type WindowedPartitionsData struct {
 	Depth      int
 }
 
+// ParameterisedModel defines a likelihood model for the data with its
+// corresponding parameters to set.
+type ParameterisedModel struct {
+	Likelihood         inference.LikelihoodDistribution
+	Params             simulator.Params
+	ParamsAsPartitions map[string][]string
+	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
+}
+
+// Init populates the model parameter fields if they have not been set.
+func (p *ParameterisedModel) Init() {
+	if p.ParamsAsPartitions == nil {
+		p.ParamsAsPartitions = make(map[string][]string)
+	}
+	if p.ParamsFromUpstream == nil {
+		p.ParamsFromUpstream =
+			make(map[string]simulator.NamedUpstreamConfig)
+	}
+}
+
 // AppliedLikelihoodComparison is the base configuration for a rolling
 // comparison between a referenced dataset and referenced likelihood model.
 type AppliedLikelihoodComparison struct {
 	Name   string
-	Model  inference.LikelihoodDistribution
+	Model  ParameterisedModel
 	Data   DataRef
 	Window WindowedPartitionsData
 }
@@ -58,20 +78,19 @@ func NewLikelihoodComparisonPartition(
 		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
 			simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 	}
-	params := simulator.NewParams(map[string][]float64{
-		"cumulative":    {1},
-		"burn_in_steps": {0},
-	})
-	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
-		"latest_data_values": {Upstream: applied.Data.PartitionName},
-	}
+	applied.Model.Init()
+	applied.Model.Params.Set("cumulative", []float64{1})
+	applied.Model.Params.Set("burn_in_steps", []float64{0})
+	applied.Model.ParamsFromUpstream["latest_data_values"] =
+		simulator.NamedUpstreamConfig{Upstream: applied.Data.PartitionName}
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "comparison",
 		Iteration: &inference.DataComparisonIteration{
-			Likelihood: applied.Model,
+			Likelihood: applied.Model.Likelihood,
 		},
-		Params:             params,
-		ParamsFromUpstream: paramsFromUpstream,
+		Params:             applied.Model.Params,
+		ParamsAsPartitions: applied.Model.ParamsAsPartitions,
+		ParamsFromUpstream: applied.Model.ParamsFromUpstream,
 		InitStateValues:    []float64{0.0},
 		StateHistoryDepth:  1,
 		Seed:               0,

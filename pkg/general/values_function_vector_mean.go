@@ -166,13 +166,13 @@ func (v *ValuesFunctionVectorMeanIteration) Iterate(
 ) []float64 {
 	latestStateValues := params.Get("latest_data_values")
 	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
+	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
+		return stateHistories[partitionIndex].Values.RawRowView(0)
+	}
+	v.Kernel.SetParams(params)
 	// convention is to use -1 here as the state history depth index of the
 	// very latest function value
 	latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)
-	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
-		return latestFunctionValues
-	}
-	v.Kernel.SetParams(params)
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	cumulativeWeightSum := v.Kernel.Evaluate(
 		latestStateValues,

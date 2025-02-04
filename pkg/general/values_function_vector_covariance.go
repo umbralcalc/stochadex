@@ -38,7 +38,7 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
 	if timestepsHistory.CurrentStepNumber < stateHistory.StateHistoryDepth {
-		return mat.NewSymDense(stateHistory.StateWidth, nil).RawSymmetric().Data
+		return stateHistories[partitionIndex].Values.RawRowView(0)
 	}
 	v.Kernel.SetParams(params)
 	latestStateValues := params.Get("latest_data_values")

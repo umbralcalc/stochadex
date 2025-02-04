@@ -8,7 +8,6 @@ import (
 // AppliedGrouping configures a grouping transformation on data.
 type AppliedGrouping struct {
 	GroupBy   []DataRef
-	Default   float64
 	Precision int
 }
 
@@ -51,6 +50,12 @@ func (g *GroupedStateTimeStorage) GetAcceptedValueGroupLabels() []string {
 	return g.groupLabels
 }
 
+// GetAcceptedValueGroupsLength returns the number of accepted value groups (equivalent
+// to the length of the state vector in simulation partition).
+func (g *GroupedStateTimeStorage) GetAcceptedValueGroupsLength() int {
+	return len(g.acceptedGroups)
+}
+
 // GetGroupTupleLength returns the length of tuple in the grouping index construction.
 func (g *GroupedStateTimeStorage) GetGroupTupleLength() int {
 	return len(g.applied.GroupBy)
@@ -59,15 +64,6 @@ func (g *GroupedStateTimeStorage) GetGroupTupleLength() int {
 // GetPrecision returns the requested float precision for grouping.
 func (g *GroupedStateTimeStorage) GetPrecision() int {
 	return g.applied.Precision
-}
-
-// GetDefaults returns a slice of default values, one for each accepted value group.
-func (g *GroupedStateTimeStorage) GetDefaults() []float64 {
-	defaults := make([]float64, 0)
-	for i := 0; i < len(g.GetAcceptedValueGroups(0)); i++ {
-		defaults = append(defaults, g.applied.Default)
-	}
-	return defaults
 }
 
 // NewGroupedStateTimeStorage creates a new GroupedStateTimeStorage given

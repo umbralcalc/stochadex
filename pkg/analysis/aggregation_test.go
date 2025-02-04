@@ -31,7 +31,6 @@ func TestAggregation(t *testing.T) {
 					GroupBy: []DataRef{
 						{PartitionName: "test_group"},
 					},
-					Default:   0.0,
 					Precision: 1,
 				},
 				storage,
@@ -43,6 +42,7 @@ func TestAggregation(t *testing.T) {
 					Data: DataRef{
 						PartitionName: "test",
 					},
+					DefaultValue: 0.0,
 				},
 				groupedStorage,
 			)
@@ -156,13 +156,13 @@ func TestAggregation(t *testing.T) {
 				},
 			)
 			varianceValues := storage.GetValues("test_variance")
-			if !floats.Equal(varianceValues[1], []float64{0.0, 0.0, 0.0}) {
-				t.Error("data variance failed. values were: " +
-					fmt.Sprint(varianceValues[1]))
-			}
 			// 0.66... here because the sample size correction isn't applied in the
 			// variance function calculation here, whereas it is in the covariance
 			// calculation below, hence the 1.0 values along the diagonal
+			if !floats.EqualApprox(varianceValues[1], []float64{0.66, 0.66, 0.66}, 0.1) {
+				t.Error("data variance failed. values were: " +
+					fmt.Sprint(varianceValues[1]))
+			}
 			if !floats.EqualApprox(varianceValues[2], []float64{0.66, 0.66, 0.66}, 0.1) {
 				t.Error("data variance failed. values were: " +
 					fmt.Sprint(varianceValues[2]))
@@ -220,7 +220,7 @@ func TestAggregation(t *testing.T) {
 				},
 			)
 			covarianceValues := storage.GetValues("test_covariance")
-			if !floats.Equal(covarianceValues[1], []float64{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}) {
+			if !floats.Equal(covarianceValues[1], []float64{1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0}) {
 				t.Error("data covariance failed. values were: " +
 					fmt.Sprint(covarianceValues[1]))
 			}
