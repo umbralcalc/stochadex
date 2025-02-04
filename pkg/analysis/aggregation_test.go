@@ -56,6 +56,10 @@ func TestAggregation(t *testing.T) {
 				},
 			)
 			groupValues := storage.GetValues("test_grouped_agg")
+			if !floats.Equal(groupValues[0], []float64{0, 0, 0, 0}) {
+				t.Error("data grouped aggregation defaults failed. values were: " +
+					fmt.Sprint(groupValues[0]))
+			}
 			if !floats.Equal(groupValues[1], []float64{2, 5, 0, 8}) {
 				t.Error("data grouped aggregation failed. values were: " +
 					fmt.Sprint(groupValues[1]))
@@ -95,6 +99,10 @@ func TestAggregation(t *testing.T) {
 				},
 			)
 			meanValues := storage.GetValues("test_mean")
+			if !floats.Equal(meanValues[0], []float64{0, 0, 0}) {
+				t.Error("data mean defaults failed. values were: " +
+					fmt.Sprint(meanValues[0]))
+			}
 			if !floats.Equal(meanValues[1], []float64{2, 5, 8}) {
 				t.Error("data mean failed. values were: " +
 					fmt.Sprint(meanValues[1]))
@@ -156,6 +164,10 @@ func TestAggregation(t *testing.T) {
 				},
 			)
 			varianceValues := storage.GetValues("test_variance")
+			if !floats.EqualApprox(varianceValues[0], []float64{0.0, 0.0, 0.0}, 0.1) {
+				t.Error("data variance defaults failed. values were: " +
+					fmt.Sprint(varianceValues[0]))
+			}
 			// 0.66... here because the sample size correction isn't applied in the
 			// variance function calculation here, whereas it is in the covariance
 			// calculation below, hence the 1.0 values along the diagonal
@@ -220,6 +232,10 @@ func TestAggregation(t *testing.T) {
 				},
 			)
 			covarianceValues := storage.GetValues("test_covariance")
+			if !floats.Equal(covarianceValues[0], []float64{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}) {
+				t.Error("data covariance defaults failed. values were: " +
+					fmt.Sprint(covarianceValues[0]))
+			}
 			if !floats.Equal(covarianceValues[1], []float64{1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0}) {
 				t.Error("data covariance failed. values were: " +
 					fmt.Sprint(covarianceValues[1]))
