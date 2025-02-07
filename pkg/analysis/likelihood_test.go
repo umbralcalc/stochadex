@@ -43,9 +43,9 @@ func TestLikelihood(t *testing.T) {
 						Params:     params,
 					},
 					Data: DataRef{PartitionName: "test_data"},
-					Window: WindowedPartitionsData{
-						Partitions: []DataRef{{PartitionName: "test_data"}},
-						Depth:      10,
+					Window: WindowedPartitions{
+						Data:  []DataRef{{PartitionName: "test_data"}},
+						Depth: 10,
 					},
 				},
 				storage,

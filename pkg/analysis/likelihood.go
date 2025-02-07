@@ -6,10 +6,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// WindowedPartitionsData defines a windowed history of data from
-// partitions in storage.
-type WindowedPartitionsData struct {
-	Partitions []DataRef
+// WindowedPartitions defines a windowed history of data from
+// partitions in storage and possible additional partitions to include
+// when simulating the window duration.
+type WindowedPartitions struct {
+	Partitions []*simulator.PartitionConfig
+	Data       []DataRef
 	Depth      int
 }
 
@@ -39,15 +41,15 @@ type AppliedLikelihoodComparison struct {
 	Name   string
 	Model  ParameterisedModel
 	Data   DataRef
-	Window WindowedPartitionsData
+	Window WindowedPartitions
 }
 
-// NewLikelihoodComparisonPartition creates a new PartitionConfig for
+// newLikelihoodComparisonGenerator creates a new config generator for
 // a rolling likelihood comparison.
-func NewLikelihoodComparisonPartition(
+func newLikelihoodComparisonGenerator(
 	applied AppliedLikelihoodComparison,
 	storage *simulator.StateTimeStorage,
-) *simulator.PartitionConfig {
+) *simulator.ConfigGenerator {
 	generator := simulator.NewConfigGenerator()
 	generator.SetSimulation(&simulator.SimulationConfig{
 		OutputCondition: &simulator.NilOutputCondition{},
@@ -59,10 +61,7 @@ func NewLikelihoodComparisonPartition(
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 		InitTimeValue:    0.0,
 	})
-	simInitStateValues := make([]float64, 0)
-	simParamsAsPartitions := make(map[string][]string)
-	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
-	for _, ref := range applied.Window.Partitions {
+	for _, ref := range applied.Window.Data {
 		initStateValues := ref.GetIndexFromStorage(storage, 0)
 		generator.SetPartition(&simulator.PartitionConfig{
 			Name:              ref.PartitionName,
@@ -72,17 +71,20 @@ func NewLikelihoodComparisonPartition(
 			StateHistoryDepth: 1,
 			Seed:              0,
 		})
-		simInitStateValues = append(simInitStateValues, initStateValues...)
-		simParamsAsPartitions[ref.PartitionName+"/state_memory_partition"] =
-			[]string{ref.PartitionName}
-		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
-			simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
+	}
+	if applied.Window.Partitions != nil {
+		for _, partition := range applied.Window.Partitions {
+			generator.SetPartition(partition)
+		}
 	}
 	applied.Model.Init()
 	applied.Model.Params.Set("cumulative", []float64{1})
 	applied.Model.Params.Set("burn_in_steps", []float64{0})
 	applied.Model.ParamsFromUpstream["latest_data_values"] =
-		simulator.NamedUpstreamConfig{Upstream: applied.Data.PartitionName}
+		simulator.NamedUpstreamConfig{
+			Upstream: applied.Data.PartitionName,
+			Indices:  applied.Data.ValueIndices,
+		}
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "comparison",
 		Iteration: &inference.DataComparisonIteration{
@@ -95,6 +97,30 @@ func NewLikelihoodComparisonPartition(
 		StateHistoryDepth:  1,
 		Seed:               0,
 	})
+	return generator
+}
+
+// NewLikelihoodComparisonPartition creates a new PartitionConfig for
+// a rolling likelihood comparison.
+func NewLikelihoodComparisonPartition(
+	applied AppliedLikelihoodComparison,
+	storage *simulator.StateTimeStorage,
+) *simulator.PartitionConfig {
+	generator := newLikelihoodComparisonGenerator(applied, storage)
+	simInitStateValues := make([]float64, 0)
+	simParamsAsPartitions := make(map[string][]string)
+	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
+	for _, ref := range applied.Window.Data {
+		initStateValues := ref.GetIndexFromStorage(storage, 0)
+		simInitStateValues = append(simInitStateValues, initStateValues...)
+		simParamsAsPartitions[ref.PartitionName+"/state_memory_partition"] =
+			[]string{ref.PartitionName}
+		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
+			simulator.NamedUpstreamConfig{
+				Upstream: ref.PartitionName,
+				Indices:  ref.ValueIndices,
+			}
+	}
 	simInitStateValues = append(simInitStateValues, 0.0)
 	simParams := simulator.NewParams(map[string][]float64{
 		"burn_in_steps": {float64(applied.Window.Depth)},
@@ -113,55 +139,49 @@ func NewLikelihoodComparisonPartition(
 	}
 }
 
-// AppliedSimulationInference is the base configuration for an online
+// AppliedInference is the base configuration for an online
 // inference of a simulation (specified by partition configs) from a
 // referenced dataset.
-type AppliedSimulationInference struct {
-	Name       string
-	Data       WindowedPartitionsData
-	Simulation []*simulator.PartitionConfig
+type AppliedInference struct {
+	Name string
 }
 
 // NewSimulationInferencePartition creates a new PartitionConfig for
 // an online simulation inference.
 func NewSimulationInferencePartition(
-	applied AppliedSimulationInference,
+	comparison AppliedLikelihoodComparison,
+	inference AppliedInference,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	generator := simulator.NewConfigGenerator()
-	generator.SetSimulation(&simulator.SimulationConfig{
-		OutputCondition: &simulator.NilOutputCondition{},
-		OutputFunction:  &simulator.NilOutputFunction{},
-		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
-			MaxNumberOfSteps: applied.Data.Depth,
-		},
-		// These will be overwritten with the times in the data...
-		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
-		InitTimeValue:    0.0,
-	})
-	params := simulator.NewParams(map[string][]float64{
-		"cumulative":    {1},
-		"burn_in_steps": {float64(applied.Data.Depth)},
-	})
-	generator.SetPartition(&simulator.PartitionConfig{
-		Name:              "comparison",
-		Iteration:         &inference.DataComparisonIteration{},
-		Params:            params,
-		InitStateValues:   []float64{0.0},
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
+	generator := newLikelihoodComparisonGenerator(comparison, storage)
+	simInitStateValues := make([]float64, 0)
+	simParamsAsPartitions := make(map[string][]string)
+	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
+	for _, ref := range comparison.Window.Data {
+		initStateValues := ref.GetIndexFromStorage(storage, 0)
+		simInitStateValues = append(simInitStateValues, initStateValues...)
+		simParamsAsPartitions[ref.PartitionName+"/state_memory_partition"] =
+			[]string{ref.PartitionName}
+		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
+			simulator.NamedUpstreamConfig{
+				Upstream: ref.PartitionName,
+				Indices:  ref.ValueIndices,
+			}
+	}
+	simInitStateValues = append(simInitStateValues, 0.0)
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(applied.Data.Depth)},
+		"burn_in_steps": {float64(comparison.Window.Depth)},
 	})
 	return &simulator.PartitionConfig{
-		Name: applied.Name,
+		Name: inference.Name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(
 			generator.GenerateConfigs(),
 		),
-		Params:            simParams,
-		InitStateValues:   []float64{},
-		StateHistoryDepth: 1,
-		Seed:              0,
+		Params:             simParams,
+		ParamsAsPartitions: simParamsAsPartitions,
+		ParamsFromUpstream: simParamsFromUpstream,
+		InitStateValues:    simInitStateValues,
+		StateHistoryDepth:  1,
+		Seed:               0,
 	}
 }
