@@ -61,14 +61,14 @@ func TestPartitions(t *testing.T) {
 				},
 				0.0,
 			)
-			storage = AddPartitionToStateTimeStorage(storage, &simulator.PartitionConfig{
+			storage = AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{{
 				Name:              "test_2",
 				Iteration:         &general.ConstantValuesIteration{},
 				Params:            simulator.NewParams(make(map[string][]float64)),
 				InitStateValues:   []float64{1.0, 2.0, 3.0},
 				StateHistoryDepth: 1,
 				Seed:              0,
-			}, nil)
+			}}, nil)
 			times := storage.GetTimes()
 			for i, values := range storage.GetValues("test_2") {
 				if values[0] != 1.0 ||

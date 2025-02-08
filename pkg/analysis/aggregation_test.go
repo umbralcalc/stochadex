@@ -46,9 +46,9 @@ func TestAggregation(t *testing.T) {
 				},
 				groupedStorage,
 			)
-			storage = AddPartitionToStateTimeStorage(
+			storage = AddPartitionsToStateTimeStorage(
 				storage,
-				aggPartition,
+				[]*simulator.PartitionConfig{aggPartition},
 				map[string]int{
 					"test":             2,
 					"test_group":       2,
@@ -90,9 +90,9 @@ func TestAggregation(t *testing.T) {
 				},
 				storage,
 			)
-			storage = AddPartitionToStateTimeStorage(
+			storage = AddPartitionsToStateTimeStorage(
 				storage,
-				meanPartition,
+				[]*simulator.PartitionConfig{meanPartition},
 				map[string]int{
 					"test":      2,
 					"test_mean": 1,
@@ -133,9 +133,9 @@ func TestAggregation(t *testing.T) {
 				},
 				storage,
 			)
-			storage = AddPartitionToStateTimeStorage(
+			storage = AddPartitionsToStateTimeStorage(
 				storage,
-				meanPartition,
+				[]*simulator.PartitionConfig{meanPartition},
 				map[string]int{
 					"test":      2,
 					"test_mean": 1,
@@ -154,9 +154,9 @@ func TestAggregation(t *testing.T) {
 				},
 				storage,
 			)
-			storage = AddPartitionToStateTimeStorage(
+			storage = AddPartitionsToStateTimeStorage(
 				storage,
-				variancePartition,
+				[]*simulator.PartitionConfig{variancePartition},
 				map[string]int{
 					"test":          2,
 					"test_mean":     2,
@@ -201,9 +201,9 @@ func TestAggregation(t *testing.T) {
 				},
 				storage,
 			)
-			storage = AddPartitionToStateTimeStorage(
+			storage = AddPartitionsToStateTimeStorage(
 				storage,
-				meanPartition,
+				[]*simulator.PartitionConfig{meanPartition},
 				map[string]int{
 					"test":      2,
 					"test_mean": 1,
@@ -222,9 +222,9 @@ func TestAggregation(t *testing.T) {
 				},
 				storage,
 			)
-			storage = AddPartitionToStateTimeStorage(
+			storage = AddPartitionsToStateTimeStorage(
 				storage,
-				covariancePartition,
+				[]*simulator.PartitionConfig{covariancePartition},
 				map[string]int{
 					"test":            2,
 					"test_mean":       2,

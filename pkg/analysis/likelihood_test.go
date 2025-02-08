@@ -50,9 +50,9 @@ func TestLikelihood(t *testing.T) {
 				},
 				storage,
 			)
-			storage = AddPartitionToStateTimeStorage(
+			storage = AddPartitionsToStateTimeStorage(
 				storage,
-				likePartition,
+				[]*simulator.PartitionConfig{likePartition},
 				map[string]int{"test_data": 10},
 			)
 			for _, name := range storage.GetNames() {

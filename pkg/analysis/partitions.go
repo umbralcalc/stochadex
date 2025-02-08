@@ -32,18 +32,22 @@ func NewStateTimeStorageFromPartitions(
 	return storage
 }
 
-// AddPartitionToStateTimeStorage extends the state time storage with newly
-// generated values from a specified partition.
-func AddPartitionToStateTimeStorage(
+// AddPartitionsToStateTimeStorage extends the state time storage with newly
+// generated values from the specified partitions.
+func AddPartitionsToStateTimeStorage(
 	storage *simulator.StateTimeStorage,
-	partition *simulator.PartitionConfig,
+	partitions []*simulator.PartitionConfig,
 	windowSizeByPartition map[string]int,
 ) *simulator.StateTimeStorage {
 	generator := simulator.NewConfigGenerator()
 	times := storage.GetTimes()
+	outputPartitions := make(map[string]bool)
+	for _, partition := range partitions {
+		outputPartitions[partition.Name] = true
+	}
 	generator.SetSimulation(&simulator.SimulationConfig{
 		OutputCondition: &simulator.OnlyGivenPartitionsOutputCondition{
-			Partitions: map[string]bool{partition.Name: true},
+			Partitions: outputPartitions,
 		},
 		OutputFunction: &simulator.StateTimeStorageOutputFunction{
 			Store: storage,
@@ -72,7 +76,9 @@ func AddPartitionToStateTimeStorage(
 			Seed:              0,
 		})
 	}
-	generator.SetPartition(partition)
+	for _, partition := range partitions {
+		generator.SetPartition(partition)
+	}
 	coordinator := simulator.NewPartitionCoordinator(generator.GenerateConfigs())
 	coordinator.Run()
 	return storage
