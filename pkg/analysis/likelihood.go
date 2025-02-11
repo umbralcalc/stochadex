@@ -152,6 +152,7 @@ type AppliedPosteriorEstimation struct {
 	Defaults      PosteriorDefaults
 	LikelihoodRef DataRef
 	PastDiscount  float64
+	BurnInSteps   int
 	Seed          uint64
 }
 
@@ -232,6 +233,10 @@ func NewPosteriorEstimationPartitions(
 	})
 	samplerParams := simulator.NewParams(make(map[string][]float64))
 	samplerParams.Set("default_covariance", applied.Defaults.Covariance)
+	samplerParams.Set(
+		"cov_burn_in_steps",
+		[]float64{float64(applied.BurnInSteps)},
+	)
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name: applied.Names.Sampler,
 		Iteration: &inference.DataGenerationIteration{

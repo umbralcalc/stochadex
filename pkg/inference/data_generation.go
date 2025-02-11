@@ -10,7 +10,9 @@ import (
 // as a data generation distribution based on a mean and covariance matrix.
 type DataGenerationIteration struct {
 	Likelihood       LikelihoodDistribution
+	defaultCovMat    *mat.SymDense
 	stepsPerResample int
+	covBurnInSteps   int
 }
 
 func (d *DataGenerationIteration) Configure(
@@ -18,6 +20,16 @@ func (d *DataGenerationIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	d.Likelihood.Configure(partitionIndex, settings)
+	b, ok := settings.Iterations[partitionIndex].Params.GetOk("cov_burn_in_steps")
+	if ok {
+		d.covBurnInSteps = int(b[0])
+		d.defaultCovMat = mat.NewSymDense(len(
+			settings.Iterations[partitionIndex].InitStateValues),
+			settings.Iterations[partitionIndex].Params.Get("default_covariance"),
+		)
+	} else {
+		d.covBurnInSteps = 0
+	}
 	s, ok := settings.Iterations[partitionIndex].Params.GetOk("steps_per_resample")
 	if ok {
 		d.stepsPerResample = int(s[0])
@@ -40,8 +52,9 @@ func (d *DataGenerationIteration) Iterate(
 	}
 	dims := len(params.Get("mean"))
 	var covMat *mat.SymDense
-	cVals, ok := params.GetOk("covariance_matrix")
-	if ok {
+	if timestepsHistory.CurrentStepNumber < d.covBurnInSteps {
+		covMat = d.defaultCovMat
+	} else if cVals, ok := params.GetOk("covariance_matrix"); ok {
 		covMat = mat.NewSymDense(dims, cVals)
 	} else if varVals, ok := params.GetOk("variance"); ok {
 		cVals = make([]float64, 0)
