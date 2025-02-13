@@ -6,11 +6,18 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
+// WindowedPartition configures a partition to simulate within a
+// windowed duration.
+type WindowedPartition struct {
+	Partition        *simulator.PartitionConfig
+	OutsideUpstreams map[string]simulator.NamedUpstreamConfig
+}
+
 // WindowedPartitions defines a windowed history of data from
 // partitions in storage and possible additional partitions to include
 // when simulating the window duration.
 type WindowedPartitions struct {
-	Partitions []*simulator.PartitionConfig
+	Partitions []WindowedPartition
 	Data       []DataRef
 	Depth      int
 }
@@ -61,14 +68,25 @@ func NewLikelihoodComparisonPartition(
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 		InitTimeValue:    0.0,
 	})
+	simInitStateValues := make([]float64, 0)
+	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
 	if applied.Window.Partitions != nil {
 		for _, partition := range applied.Window.Partitions {
-			generator.SetPartition(partition)
+			generator.SetPartition(partition.Partition)
+			simInitStateValues = append(
+				simInitStateValues,
+				partition.Partition.InitStateValues...,
+			)
+			if partition.OutsideUpstreams == nil {
+				continue
+			}
+			for paramsName, upstream := range partition.OutsideUpstreams {
+				simParamsFromUpstream[partition.Partition.Name+
+					"/"+paramsName] = upstream
+			}
 		}
 	}
-	simInitStateValues := make([]float64, 0)
 	simParamsAsPartitions := make(map[string][]string)
-	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
 	for _, ref := range applied.Window.Data {
 		initStateValues := ref.GetIndexFromStorage(storage, 0)
 		generator.SetPartition(&simulator.PartitionConfig{
