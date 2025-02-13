@@ -52,3 +52,9 @@ You can add any new simulation partition you like by following the patterns for 
 
 - The main step is to create a new struct for your partition iterator which implements the `simulator.Iteration` interface.
 - It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls the `simulator.RunWithHarnesses`.
+
+## Using the analysis package
+
+The `pkg/analysis` package provides tools for analysing simulation outputs and building new simulations on top of them. The plots work well within GoNB notebooks (notebooks with a Go-friendly Jupyter Kernel) and there are some simple examples of what you can do provided the `nbs/` folder. So take a look!
+
+> In order to use the GoNB Jupyter Kernel, please install GoNB from here: [https://github.com/janpfeifer/gonb](https://github.com/janpfeifer/gonb).
