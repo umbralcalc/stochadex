@@ -1,7 +1,6 @@
 package simulator
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 )
@@ -44,9 +43,9 @@ func (s *StateTimeStorage) GetNames() []string {
 func (s *StateTimeStorage) GetValues(name string) [][]float64 {
 	index, ok := s.indexByName[name]
 	if !ok {
-		panic(fmt.Errorf("name: " + name +
+		panic("name: " + name +
 			" not found in storage, choices are: " +
-			strings.Join(s.GetNames(), ", ")))
+			strings.Join(s.GetNames(), ", "))
 	}
 	return s.store[index]
 }

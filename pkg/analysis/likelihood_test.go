@@ -90,21 +90,6 @@ func TestLikelihood(t *testing.T) {
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("mean", []float64{1.8, 5.0})
 			params.Set("covariance_matrix", []float64{2.5, 0.0, 0.0, 9.0})
-			likePartition := NewLikelihoodComparisonPartition(
-				AppliedLikelihoodComparison{
-					Name: "test_likelihood",
-					Model: ParameterisedModel{
-						Likelihood: &inference.NormalLikelihoodDistribution{},
-						Params:     params,
-					},
-					Data: DataRef{PartitionName: "test_data"},
-					Window: WindowedPartitions{
-						Data:  []DataRef{{PartitionName: "test_data"}},
-						Depth: 200,
-					},
-				},
-				storage,
-			)
 			partitions := NewPosteriorEstimationPartitions(
 				AppliedPosteriorEstimation{
 					Names: PosteriorEstimationNames{
@@ -113,23 +98,29 @@ func TestLikelihood(t *testing.T) {
 						Covariance: "test_post_cov",
 						Sampler:    "test_post_sampler",
 					},
+					Comparison: AppliedLikelihoodComparison{
+						Name: "test_likelihood",
+						Model: ParameterisedModel{
+							Likelihood: &inference.NormalLikelihoodDistribution{},
+							Params:     params,
+						},
+						Data: DataRef{PartitionName: "test_data"},
+						Window: WindowedPartitions{
+							Data:  []DataRef{{PartitionName: "test_data"}},
+							Depth: 200,
+						},
+					},
 					Defaults: PosteriorDefaults{
 						LogNorm:    0.0,
 						Mean:       []float64{1.8, 5.0},
 						Covariance: []float64{2.5, 0.0, 0.0, 9.0},
 						Sampler:    []float64{1.8, 5.0},
 					},
-					LikelihoodRef: DataRef{
-						PartitionName: "test_likelihood",
-						ValueIndices:  []int{2},
-					},
 					PastDiscount: 1.0,
+					MemoryDepth:  200,
 					Seed:         1234,
 				},
-			)
-			partitions = append(
-				[]*simulator.PartitionConfig{likePartition},
-				partitions...,
+				storage,
 			)
 			storage = AddPartitionsToStateTimeStorage(
 				storage,

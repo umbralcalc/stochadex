@@ -166,36 +166,29 @@ type PosteriorDefaults struct {
 // inference of a simulation (specified by partition configs) from a
 // referenced dataset.
 type AppliedPosteriorEstimation struct {
-	Names         PosteriorEstimationNames
-	Defaults      PosteriorDefaults
-	LikelihoodRef DataRef
-	PastDiscount  float64
-	BurnInSteps   int
-	Seed          uint64
+	Names        PosteriorEstimationNames
+	Comparison   AppliedLikelihoodComparison
+	Defaults     PosteriorDefaults
+	PastDiscount float64
+	MemoryDepth  int
+	Seed         uint64
 }
 
 // NewPosteriorEstimationPartitions creates a set of PartitionConfigs for
 // an online posterior estimation process using rolling statistics.
 func NewPosteriorEstimationPartitions(
 	applied AppliedPosteriorEstimation,
+	storage *simulator.StateTimeStorage,
 ) []*simulator.PartitionConfig {
-	loglikeIndices := make([]float64, 0)
-	loglikePartitions := make([]string, 0)
-	paramPartitions := make([]string, 0)
-	if applied.LikelihoodRef.ValueIndices == nil {
-		panic("must set LikelihoodRef.ValueIndices to use posterior estimation")
-	}
-	for _, index := range applied.LikelihoodRef.ValueIndices {
-		loglikeIndices = append(loglikeIndices, float64(index))
-		loglikePartitions = append(
-			loglikePartitions,
-			applied.LikelihoodRef.PartitionName,
-		)
-		paramPartitions = append(
-			paramPartitions,
-			applied.Names.Sampler,
-		)
-	}
+	compPartition := NewLikelihoodComparisonPartition(
+		applied.Comparison,
+		storage,
+	)
+	compPartition.StateHistoryDepth = applied.MemoryDepth
+	loglikePartitions := []string{applied.Comparison.Name}
+	paramPartitions := []string{applied.Names.Sampler}
+	loglikeIndices := []float64{
+		float64(len(compPartition.InitStateValues) - 1)}
 	partitions := make([]*simulator.PartitionConfig, 0)
 	logNormParams := simulator.NewParams(make(map[string][]float64))
 	logNormParams.Set("loglike_indices", loglikeIndices)
@@ -253,7 +246,7 @@ func NewPosteriorEstimationPartitions(
 	samplerParams.Set("default_covariance", applied.Defaults.Covariance)
 	samplerParams.Set(
 		"cov_burn_in_steps",
-		[]float64{float64(applied.BurnInSteps)},
+		[]float64{float64(applied.MemoryDepth)},
 	)
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name: applied.Names.Sampler,
@@ -269,5 +262,6 @@ func NewPosteriorEstimationPartitions(
 		StateHistoryDepth: 1,
 		Seed:              applied.Seed,
 	})
+	partitions = append(partitions, compPartition)
 	return partitions
 }

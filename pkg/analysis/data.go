@@ -18,7 +18,6 @@ type IndexRange struct {
 type DataPlotting struct {
 	IsTime    bool
 	TimeRange *IndexRange
-	Transform func(values []float64) []float64
 }
 
 // DataRef is a reference to some subset of the stored data.
@@ -62,25 +61,6 @@ func (d *DataRef) applyTimeRange(outValues [][]float64) {
 			}
 		}
 	}
-}
-
-// applyTransform applies a transformation to the data if it
-// has been configured.
-func (d *DataRef) applyTransform(outValues [][]float64) {
-	for i, values := range outValues {
-		outValues[i] = d.applyTransformAtIndex(values)
-	}
-}
-
-// applyTransformAtIndex applies a transformation to the data at the
-// specified index in time if it has been configured.
-func (d *DataRef) applyTransformAtIndex(outValues []float64) []float64 {
-	if d.Plotting != nil {
-		if d.Plotting.Transform != nil {
-			return d.Plotting.Transform(outValues)
-		}
-	}
-	return outValues
 }
 
 // GetValueIndices populates the value indices slice with all
@@ -129,7 +109,6 @@ func (d *DataRef) GetIndexFromStorage(
 		panic("requested index " + strconv.Itoa(index) +
 			" is outside of configured time range")
 	}
-	outValues = d.applyTransformAtIndex(outValues)
 	return outValues
 }
 
@@ -152,6 +131,5 @@ func (d *DataRef) GetFromStorage(
 		}
 	}
 	d.applyTimeRange(outValues)
-	d.applyTransform(outValues)
 	return outValues
 }
