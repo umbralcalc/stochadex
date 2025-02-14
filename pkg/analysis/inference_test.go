@@ -8,9 +8,9 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-func TestLikelihood(t *testing.T) {
+func TestInference(t *testing.T) {
 	t.Run(
-		"test that the likelihood comparison works",
+		"test that the posterior estimation works",
 		func(t *testing.T) {
 			storage := NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
@@ -28,32 +28,49 @@ func TestLikelihood(t *testing.T) {
 						Seed:              123,
 					},
 				},
-				&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100},
+				&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 500},
 				&simulator.ConstantTimestepFunction{Stepsize: 1.0},
 				0.0,
 			)
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("mean", []float64{1.8, 5.0})
 			params.Set("covariance_matrix", []float64{2.5, 0.0, 0.0, 9.0})
-			likePartition := NewLikelihoodComparisonPartition(
-				AppliedLikelihoodComparison{
-					Name: "test_likelihood",
-					Model: ParameterisedModel{
-						Likelihood: &inference.NormalLikelihoodDistribution{},
-						Params:     params,
+			partitions := NewPosteriorEstimationPartitions(
+				AppliedPosteriorEstimation{
+					Names: PosteriorEstimationNames{
+						LogNorm:    "test_post_log_norm",
+						Mean:       "test_post_mean",
+						Covariance: "test_post_cov",
+						Sampler:    "test_post_sampler",
 					},
-					Data: DataRef{PartitionName: "test_data"},
-					Window: WindowedPartitions{
-						Data:  []DataRef{{PartitionName: "test_data"}},
-						Depth: 10,
+					Comparison: AppliedLikelihoodComparison{
+						Name: "test_likelihood",
+						Model: ParameterisedModel{
+							Likelihood: &inference.NormalLikelihoodDistribution{},
+							Params:     params,
+						},
+						Data: DataRef{PartitionName: "test_data"},
+						Window: WindowedPartitions{
+							Data:  []DataRef{{PartitionName: "test_data"}},
+							Depth: 200,
+						},
 					},
+					Defaults: PosteriorDefaults{
+						LogNorm:    0.0,
+						Mean:       []float64{1.8, 5.0},
+						Covariance: []float64{2.5, 0.0, 0.0, 9.0},
+						Sampler:    []float64{1.8, 5.0},
+					},
+					PastDiscount: 1.0,
+					MemoryDepth:  200,
+					Seed:         1234,
 				},
 				storage,
 			)
 			storage = AddPartitionsToStateTimeStorage(
 				storage,
-				[]*simulator.PartitionConfig{likePartition},
-				map[string]int{"test_data": 10},
+				partitions,
+				map[string]int{"test_data": 200},
 			)
 			for _, name := range storage.GetNames() {
 				for _, values := range storage.GetValues(name) {

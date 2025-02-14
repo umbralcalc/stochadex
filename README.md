@@ -51,7 +51,7 @@ docker run -p 2112:2112 stochadex --config ./cfg/example_config.yaml \
 You can add any new simulation partition you like by following the patterns for other processes given, e.g., in the `pkg/continuous` package.
 
 - The main step is to create a new struct for your partition iterator which implements the `simulator.Iteration` interface.
-- It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls the `simulator.RunWithHarnesses`.
+- It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls `simulator.RunWithHarnesses`.
 
 ## Using the analysis package
 
