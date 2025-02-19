@@ -1,0 +1,11 @@
+iterations:
+- name: partition_0
+  params:
+    learning_rate: [0.01]
+    gradient: [0.02, -0.04, 0.001]
+  init_state_values: [0.01, -0.13, 0.7]
+  seed: 0
+  state_width: 3
+  state_history_depth: 1
+init_time_value: 1.0
+timesteps_history_depth: 1
