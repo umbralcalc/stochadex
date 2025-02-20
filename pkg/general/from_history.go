@@ -36,6 +36,10 @@ func (f *FromHistoryIteration) Iterate(
 	return data
 }
 
+func (f *FromHistoryIteration) UpdateMemory(stateHistory *simulator.StateHistory) {
+	f.Data = stateHistory
+}
+
 // FromHistoryTimestepFunction provides a stream of timesteps which already known from
 // a separate data source and is held in memory as a simulator.CumulativeTimestepsHistory.
 type FromHistoryTimestepFunction struct {

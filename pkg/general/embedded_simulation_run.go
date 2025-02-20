@@ -7,6 +7,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
+// StateMemoryIteration defines the interface that must be implemented
+// in order to be update-able with a state history.
+type StateMemoryIteration interface {
+	UpdateMemory(stateHistory *simulator.StateHistory)
+}
+
 // EmbeddedSimulationRunIteration facilitates running an embedded
 // sub-simulation to termination inside of an iteration of another
 // simulation for each step of the latter simulation.
@@ -96,16 +102,17 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	}
 	for outPartition, inPartition := range e.stateMemoryPartitionMappings {
 		iteration, ok :=
-			e.implementations.Iterations[inPartition].(*FromHistoryIteration)
+			e.implementations.Iterations[inPartition].(StateMemoryIteration)
 		if ok {
-			iteration.Data = stateHistories[outPartition]
+			outPartitionStateHistory := stateHistories[outPartition]
+			iteration.UpdateMemory(outPartitionStateHistory)
 			e.settings.Iterations[inPartition].InitStateValues =
-				iteration.Data.Values.RawRowView(
-					iteration.Data.StateHistoryDepth - 1,
+				outPartitionStateHistory.Values.RawRowView(
+					outPartitionStateHistory.StateHistoryDepth - 1,
 				)
 		} else {
 			panic(fmt.Errorf(
-				"internal state partition %d is not a MemoryIteration",
+				"internal state partition %d is not a StateMemoryIteration",
 				inPartition,
 			))
 		}
