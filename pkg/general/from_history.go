@@ -36,8 +36,12 @@ func (f *FromHistoryIteration) Iterate(
 	return data
 }
 
-func (f *FromHistoryIteration) UpdateMemory(stateHistory *simulator.StateHistory) {
-	f.Data = stateHistory
+func (f *FromHistoryIteration) UpdateMemory(
+	params *simulator.Params,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) {
+	f.Data = stateHistories[int(params.GetIndex("data_partition", 0))]
 }
 
 // FromHistoryTimestepFunction provides a stream of timesteps which already known from

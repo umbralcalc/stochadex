@@ -8,20 +8,25 @@ import (
 )
 
 // StateMemoryIteration defines the interface that must be implemented
-// in order to be update-able with a state history.
+// in order to configure an updateable memory of params, states and times
+// which come from another simulation.
 type StateMemoryIteration interface {
-	UpdateMemory(stateHistory *simulator.StateHistory)
+	UpdateMemory(
+		params *simulator.Params,
+		stateHistories []*simulator.StateHistory,
+		timestepsHistory *simulator.CumulativeTimestepsHistory,
+	)
 }
 
 // EmbeddedSimulationRunIteration facilitates running an embedded
 // sub-simulation to termination inside of an iteration of another
 // simulation for each step of the latter simulation.
 type EmbeddedSimulationRunIteration struct {
-	settings                     *simulator.Settings
-	implementations              *simulator.Implementations
-	partitionNameToIndex         map[string]int
-	stateMemoryPartitionMappings map[int]int
-	burnInSteps                  int
+	settings              *simulator.Settings
+	implementations       *simulator.Implementations
+	partitionNameToIndex  map[string]int
+	initStatesFromHistory map[int]int
+	burnInSteps           int
 }
 
 func (e *EmbeddedSimulationRunIteration) Configure(
@@ -35,20 +40,20 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	for index, iteration := range e.settings.Iterations {
 		e.partitionNameToIndex[iteration.Name] = index
 	}
-	e.stateMemoryPartitionMappings = make(map[int]int)
+	e.initStatesFromHistory = make(map[int]int)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
 		Iterations[partitionIndex].Params.Map {
 		matches := pattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
-			if matches[2] != "state_memory_partition" {
+			if matches[2] != "initial_state_from_history" {
 				continue
 			}
 			inPartition, ok := e.partitionNameToIndex[matches[1]]
 			if !ok {
 				panic("input partition was not found in embedded sim")
 			}
-			e.stateMemoryPartitionMappings[int(paramsValues[0])] = inPartition
+			e.initStatesFromHistory[inPartition] = int(paramsValues[0])
 		}
 	}
 	e.burnInSteps = int(
@@ -91,7 +96,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	// this logic basically determines whether or not the simulation
 	// is being run over the past window of timesteps or up to some
 	// future horizon
-	if len(e.stateMemoryPartitionMappings) > 0 {
+	if stateMemoryPartitions, ok := params.GetOk("state_memory_partitions"); ok {
 		e.implementations.TimestepFunction =
 			&FromHistoryTimestepFunction{Data: timestepsHistory}
 		params.Set("init_time_value", []float64{
@@ -99,22 +104,28 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 				timestepsHistory.StateHistoryDepth - 1,
 			),
 		})
-	}
-	for outPartition, inPartition := range e.stateMemoryPartitionMappings {
-		iteration, ok :=
-			e.implementations.Iterations[inPartition].(StateMemoryIteration)
-		if ok {
-			outPartitionStateHistory := stateHistories[outPartition]
-			iteration.UpdateMemory(outPartitionStateHistory)
-			e.settings.Iterations[inPartition].InitStateValues =
-				outPartitionStateHistory.Values.RawRowView(
-					outPartitionStateHistory.StateHistoryDepth - 1,
+		for _, inPartition := range stateMemoryPartitions {
+			inIndex := int(inPartition)
+			iteration, ok :=
+				e.implementations.Iterations[inIndex].(StateMemoryIteration)
+			if ok {
+				iteration.UpdateMemory(
+					&e.settings.Iterations[inIndex].Params,
+					stateHistories,
+					timestepsHistory,
 				)
-		} else {
-			panic(fmt.Errorf(
-				"internal state partition %d is not a StateMemoryIteration",
-				inPartition,
-			))
+				if outIndex, ok := e.initStatesFromHistory[inIndex]; ok {
+					e.settings.Iterations[inIndex].InitStateValues =
+						stateHistories[outIndex].Values.RawRowView(
+							stateHistories[outIndex].StateHistoryDepth - 1,
+						)
+				}
+			} else {
+				panic(fmt.Errorf(
+					"internal state partition %d is not a StateMemoryIteration",
+					int(inPartition),
+				))
+			}
 		}
 	}
 	e.settings.InitTimeValue = params.GetIndex("init_time_value", 0)
