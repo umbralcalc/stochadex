@@ -11,7 +11,7 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 		"test that the embedded simulation run iteration runs",
 		func(t *testing.T) {
 			embeddedSimIterations := []simulator.Iteration{
-				&ConstantValuesIteration{},
+				&FromHistoryIteration{},
 				&ConstantValuesIteration{},
 			}
 			embeddedSettings := simulator.LoadSettingsFromYaml(
@@ -44,7 +44,7 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
-					MaxNumberOfSteps: 100,
+					MaxNumberOfSteps: 300,
 				},
 				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 			}
@@ -59,7 +59,7 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 		"test that the embedded simulation run iteration runs with harnesses",
 		func(t *testing.T) {
 			embeddedSimIterations := []simulator.Iteration{
-				&ConstantValuesIteration{},
+				&FromHistoryIteration{},
 				&ConstantValuesIteration{},
 			}
 			embeddedSettings := simulator.LoadSettingsFromYaml(
@@ -89,7 +89,7 @@ func TestEmbeddedSimulationRunIteration(t *testing.T) {
 				OutputCondition: &simulator.NilOutputCondition{},
 				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
-					MaxNumberOfSteps: 100,
+					MaxNumberOfSteps: 300,
 				},
 				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 			}

@@ -5,7 +5,7 @@ iterations:
   init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
   seed: 4673
   state_width: 5
-  state_history_depth: 2
+  state_history_depth: 100
 - name: test_partition_2
   params:
     variances: [1.0, 1.0, 1.0]
@@ -17,12 +17,16 @@ iterations:
   params:
     init_time_value: [0.0]
     burn_in_steps: [0]
+    state_memory_partitions: [0]
+    embedded_test_partition_1/initial_state_from_history_of_partition: [0]
   params_from_upstream:
-    embedded_test_partition_1/test_params:
+    embedded_test_partition_1/latest_data_values:
+      upstream: 0
+    embedded_test_partition_2/test_params:
       upstream: 0
   init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7, 0.67, -0.01, 0.1]
   seed: 1111
   state_width: 8
   state_history_depth: 2
 init_time_value: 0.0
-timesteps_history_depth: 2
+timesteps_history_depth: 100

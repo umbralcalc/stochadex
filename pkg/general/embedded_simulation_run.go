@@ -46,7 +46,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		Iterations[partitionIndex].Params.Map {
 		matches := pattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
-			if matches[2] != "initial_state_from_history" {
+			if matches[2] != "initial_state_from_history_of_partition" {
 				continue
 			}
 			inPartition, ok := e.partitionNameToIndex[matches[1]]

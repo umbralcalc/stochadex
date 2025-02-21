@@ -1,6 +1,7 @@
 iterations:
 - name: embedded_test_partition_1
-  params: {}
+  params:
+    data_partition: [0]
   init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
   seed: 0
   state_width: 5
