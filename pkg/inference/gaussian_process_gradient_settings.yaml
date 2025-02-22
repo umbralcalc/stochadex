@@ -1,9 +1,20 @@
 iterations:
 - name: partition_0
-  params: {}
-  init_state_values: [2.0, 1.2, 0.5]
-  seed: 1162
-  state_width: 3
+  params:
+    function_values_partition: [1]
+  init_state_values: [0.0]
+  seed: 0
+  state_width: 1
+  state_history_depth: 1
+- name: partition_1
+  params:
+    learning_rate: [0.8]
+  params_from_upstream:
+    gradient:
+      upstream: 0
+  init_state_values: [0.0]
+  seed: 0
+  state_width: 1
   state_history_depth: 1
 init_time_value: 0.0
 timesteps_history_depth: 1

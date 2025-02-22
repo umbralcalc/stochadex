@@ -36,7 +36,8 @@ func (g *GaussianProcessGradientIteration) Iterate(
 ) []float64 {
 	gradient := 0.0
 	g.Kernel.SetParams(params)
-	currentFunction := params.Get("latest_function_value")[0]
+	currentFunction := stateHistories[int(
+		params.Get("function_values_partition")[0])].Values.At(0, 0)
 	var kernelValue float64
 	for i, ti := range g.BatchTimes.Values.RawVector().Data {
 		for j, tj := range g.BatchTimes.Values.RawVector().Data[i:] {
