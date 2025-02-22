@@ -22,7 +22,6 @@ func TestFromHistory(t *testing.T) {
 				StateHistoryDepth: 4,
 			}}
 			params := simulator.NewParams(make(map[string][]float64))
-			params.Set("data_partition", []float64{0})
 			out := iteration.Iterate(
 				&params,
 				0,
@@ -39,8 +38,10 @@ func TestFromHistory(t *testing.T) {
 			}
 			iteration.UpdateMemory(
 				&params,
-				[]*simulator.StateHistory{
-					{
+				&StateMemoryUpdate{
+					Name: "test",
+					StateHistory: &simulator.StateHistory{
+
 						Values: mat.NewDense(
 							4,
 							2,
@@ -50,12 +51,12 @@ func TestFromHistory(t *testing.T) {
 						StateWidth:        2,
 						StateHistoryDepth: 4,
 					},
-				},
-				&simulator.CumulativeTimestepsHistory{
-					NextIncrement:     1.0,
-					Values:            mat.NewVecDense(2, []float64{1.0, 0.0}),
-					CurrentStepNumber: 1,
-					StateHistoryDepth: 2,
+					TimestepsHistory: &simulator.CumulativeTimestepsHistory{
+						NextIncrement:     1.0,
+						Values:            mat.NewVecDense(2, []float64{1.0, 0.0}),
+						CurrentStepNumber: 1,
+						StateHistoryDepth: 2,
+					},
 				},
 			)
 			out = iteration.Iterate(

@@ -7,15 +7,19 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
+// StateMemoryUpdate packages a memory update with a name which is the
+// partition name in the other simulation that it came from.
+type StateMemoryUpdate struct {
+	Name             string
+	StateHistory     *simulator.StateHistory
+	TimestepsHistory *simulator.CumulativeTimestepsHistory
+}
+
 // StateMemoryIteration defines the interface that must be implemented
 // in order to configure an updateable memory of params, states and times
 // which come from another simulation.
 type StateMemoryIteration interface {
-	UpdateMemory(
-		params *simulator.Params,
-		stateHistories []*simulator.StateHistory,
-		timestepsHistory *simulator.CumulativeTimestepsHistory,
-	)
+	UpdateMemory(params *simulator.Params, update *StateMemoryUpdate)
 }
 
 // EmbeddedSimulationRunIteration facilitates running an embedded
@@ -24,7 +28,9 @@ type StateMemoryIteration interface {
 type EmbeddedSimulationRunIteration struct {
 	settings              *simulator.Settings
 	implementations       *simulator.Implementations
+	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
+	updateFromHistory     map[int]string
 	initStatesFromHistory map[int]int
 	burnInSteps           int
 }
@@ -40,22 +46,33 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	for index, iteration := range e.settings.Iterations {
 		e.partitionNameToIndex[iteration.Name] = index
 	}
+	e.updateFromHistory = make(map[int]string)
 	e.initStatesFromHistory = make(map[int]int)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
 		Iterations[partitionIndex].Params.Map {
 		matches := pattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
-			if matches[2] != "initial_state_from_history_of_partition" {
+			switch matches[2] {
+			case "initial_state_from_partition_history":
+				inPartition, ok := e.partitionNameToIndex[matches[1]]
+				if !ok {
+					panic("input partition was not found in embedded sim")
+				}
+				e.initStatesFromHistory[inPartition] = int(paramsValues[0])
+			case "update_from_partition_history":
+				inPartition, ok := e.partitionNameToIndex[matches[1]]
+				if !ok {
+					panic("input partition was not found in embedded sim")
+				}
+				e.updateFromHistory[inPartition] =
+					e.settings.Iterations[int(paramsValues[0])].Name
+			default:
 				continue
 			}
-			inPartition, ok := e.partitionNameToIndex[matches[1]]
-			if !ok {
-				panic("input partition was not found in embedded sim")
-			}
-			e.initStatesFromHistory[inPartition] = int(paramsValues[0])
 		}
 	}
+	e.stateMemoryUpdate = &StateMemoryUpdate{}
 	e.burnInSteps = int(
 		settings.Iterations[partitionIndex].Params.GetIndex("burn_in_steps", 0))
 }
@@ -96,7 +113,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	// this logic basically determines whether or not the simulation
 	// is being run over the past window of timesteps or up to some
 	// future horizon
-	if stateMemoryPartitions, ok := params.GetOk("state_memory_partitions"); ok {
+	if len(e.updateFromHistory) > 0 {
 		e.implementations.TimestepFunction =
 			&FromHistoryTimestepFunction{Data: timestepsHistory}
 		params.Set("init_time_value", []float64{
@@ -104,29 +121,31 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 				timestepsHistory.StateHistoryDepth - 1,
 			),
 		})
-		for _, inPartition := range stateMemoryPartitions {
-			inIndex := int(inPartition)
-			iteration, ok :=
-				e.implementations.Iterations[inIndex].(StateMemoryIteration)
-			if ok {
-				iteration.UpdateMemory(
-					&e.settings.Iterations[inIndex].Params,
-					stateHistories,
-					timestepsHistory,
-				)
-				if outIndex, ok := e.initStatesFromHistory[inIndex]; ok {
-					e.settings.Iterations[inIndex].InitStateValues =
-						stateHistories[outIndex].Values.RawRowView(
-							stateHistories[outIndex].StateHistoryDepth - 1,
-						)
-				}
-			} else {
-				panic(fmt.Errorf(
-					"internal state partition %d is not a StateMemoryIteration",
-					int(inPartition),
-				))
-			}
+	}
+	e.stateMemoryUpdate.TimestepsHistory = timestepsHistory
+	for inIndex, outName := range e.updateFromHistory {
+		iteration, ok :=
+			e.implementations.Iterations[inIndex].(StateMemoryIteration)
+		if ok {
+			e.stateMemoryUpdate.Name = outName
+			e.stateMemoryUpdate.StateHistory =
+				stateHistories[e.partitionNameToIndex[outName]]
+			iteration.UpdateMemory(
+				&e.settings.Iterations[inIndex].Params,
+				e.stateMemoryUpdate,
+			)
+		} else {
+			panic(fmt.Errorf(
+				"internal state partition %d is not a StateMemoryIteration",
+				int(inIndex),
+			))
 		}
+	}
+	for inIndex, outIndex := range e.initStatesFromHistory {
+		e.settings.Iterations[inIndex].InitStateValues =
+			stateHistories[outIndex].Values.RawRowView(
+				stateHistories[outIndex].StateHistoryDepth - 1,
+			)
 	}
 	e.settings.InitTimeValue = params.GetIndex("init_time_value", 0)
 

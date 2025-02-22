@@ -17,8 +17,8 @@ iterations:
   params:
     init_time_value: [0.0]
     burn_in_steps: [0]
-    state_memory_partitions: [0]
-    embedded_test_partition_1/initial_state_from_history_of_partition: [0]
+    embedded_test_partition_1/update_from_partition_history: [0]
+    embedded_test_partition_1/initial_state_from_partition_history: [0]
   params_from_upstream:
     embedded_test_partition_1/latest_data_values:
       upstream: 0

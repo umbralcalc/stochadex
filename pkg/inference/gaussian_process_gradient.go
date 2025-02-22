@@ -1,6 +1,7 @@
 package inference
 
 import (
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -22,7 +23,7 @@ func (g *GaussianProcessGradientIteration) Configure(
 ) {
 	g.Kernel.Configure(partitionIndex, settings)
 	if index, ok := settings.Iterations[partitionIndex].Params.GetOk(
-		"function_state_values_index"); ok {
+		"function_values_data_index"); ok {
 		g.functionValuesIndex = int(index[0])
 	}
 }
@@ -58,13 +59,15 @@ func (g *GaussianProcessGradientIteration) Iterate(
 
 func (g *GaussianProcessGradientIteration) UpdateMemory(
 	params *simulator.Params,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
+	update *general.StateMemoryUpdate,
 ) {
-	if functionPartition, ok := params.GetOk(
-		"function_values_data_partition"); ok {
-		g.BatchFunction = stateHistories[int(functionPartition[0])]
+	if _, ok := params.GetOk(update.Name + "/data"); ok {
+		g.Batch = update.StateHistory
+		g.BatchTimes = update.TimestepsHistory
+	} else if _, ok := params.GetOk(update.Name + "/function_values_data"); ok {
+		g.BatchFunction = update.StateHistory
+	} else {
+		panic("gaussian process gradient: memory update from partition: " +
+			update.Name + " has no configured path")
 	}
-	g.Batch = stateHistories[int(params.GetIndex("data_partition", 0))]
-	g.BatchTimes = timestepsHistory
 }

@@ -130,8 +130,10 @@ main:
     params:
       burn_in_steps: [800]
     params_as_partitions:
-      data_rolling_mean_copy/state_memory_partition: [data_rolling_mean]
-      data_rolling_cov_copy/state_memory_partition: [data_rolling_cov]
+      data_rolling_mean_copy/update_from_partition_history: [data_rolling_mean]
+      data_rolling_cov_copy/update_from_partition_history: [data_rolling_cov]
+      data_rolling_mean_copy/initial_state_from_partition_history: [data_rolling_mean]
+      data_rolling_cov_copy/initial_state_from_partition_history: [data_rolling_cov]
     params_from_upstream:
       data_rolling_mean_copy/latest_data_values: 
         upstream: data_rolling_mean

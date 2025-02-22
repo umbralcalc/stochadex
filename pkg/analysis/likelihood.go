@@ -88,6 +88,9 @@ func NewLikelihoodComparisonPartition(
 	}
 	simParamsAsPartitions := make(map[string][]string)
 	for _, ref := range applied.Window.Data {
+		if ref.ValueIndices != nil {
+			panic("value indices are not supported in window data")
+		}
 		initStateValues := ref.GetIndexFromStorage(storage, 0)
 		generator.SetPartition(&simulator.PartitionConfig{
 			Name:              ref.PartitionName,
@@ -98,13 +101,12 @@ func NewLikelihoodComparisonPartition(
 			Seed:              0,
 		})
 		simInitStateValues = append(simInitStateValues, initStateValues...)
-		simParamsAsPartitions[ref.PartitionName+"/state_memory_partition"] =
-			[]string{ref.PartitionName}
+		simParamsAsPartitions[ref.PartitionName+
+			"/update_from_partition_history"] = []string{ref.PartitionName}
+		simParamsAsPartitions[ref.PartitionName+
+			"/initial_state_from_partition_history"] = []string{ref.PartitionName}
 		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
-			simulator.NamedUpstreamConfig{
-				Upstream: ref.PartitionName,
-				Indices:  ref.ValueIndices,
-			}
+			simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 	}
 	applied.Model.Init()
 	applied.Model.Params.Set("cumulative", []float64{1})
