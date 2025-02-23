@@ -62,13 +62,13 @@ func (g *GaussianProcessGradientIteration) UpdateMemory(
 	params *simulator.Params,
 	update *general.StateMemoryUpdate,
 ) {
-	if _, ok := params.GetOk(update.Name + "/data"); ok {
+	if _, ok := params.GetOk(update.Name + "->data"); ok {
 		g.Batch = update.StateHistory
 		g.BatchTimes = update.TimestepsHistory
-	} else if _, ok := params.GetOk(update.Name + "/function_values_data"); ok {
+	} else if _, ok := params.GetOk(update.Name + "->function_values_data"); ok {
 		g.BatchFunction = update.StateHistory
 	} else {
 		panic("gaussian process gradient: memory update from partition: " +
-			update.Name + " has no configured path")
+			update.Name + " has no configured use")
 	}
 }
