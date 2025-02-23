@@ -30,7 +30,7 @@ type EmbeddedSimulationRunIteration struct {
 	implementations       *simulator.Implementations
 	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
-	updateFromHistory     map[int]string
+	updateFromHistories   map[int][]string
 	initStatesFromHistory map[int]int
 	burnInSteps           int
 }
@@ -46,7 +46,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	for index, iteration := range e.settings.Iterations {
 		e.partitionNameToIndex[iteration.Name] = index
 	}
-	e.updateFromHistory = make(map[int]string)
+	e.updateFromHistories = make(map[int][]string)
 	e.initStatesFromHistory = make(map[int]int)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
@@ -65,8 +65,14 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				e.updateFromHistory[inPartition] =
-					e.settings.Iterations[int(paramsValues[0])].Name
+				partitionNames := make([]string, 0)
+				for _, paramsValue := range paramsValues {
+					partitionNames = append(
+						partitionNames,
+						e.settings.Iterations[int(paramsValue)].Name,
+					)
+				}
+				e.updateFromHistories[inPartition] = partitionNames
 			default:
 				continue
 			}
@@ -113,7 +119,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	// this logic basically determines whether or not the simulation
 	// is being run over the past window of timesteps or up to some
 	// future horizon
-	if len(e.updateFromHistory) > 0 {
+	if len(e.updateFromHistories) > 0 {
 		e.implementations.TimestepFunction =
 			&FromHistoryTimestepFunction{Data: timestepsHistory}
 		params.Set("init_time_value", []float64{
@@ -123,17 +129,19 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		})
 	}
 	e.stateMemoryUpdate.TimestepsHistory = timestepsHistory
-	for inIndex, outName := range e.updateFromHistory {
+	for inIndex, outNames := range e.updateFromHistories {
 		iteration, ok :=
 			e.implementations.Iterations[inIndex].(StateMemoryIteration)
 		if ok {
-			e.stateMemoryUpdate.Name = outName
-			e.stateMemoryUpdate.StateHistory =
-				stateHistories[e.partitionNameToIndex[outName]]
-			iteration.UpdateMemory(
-				&e.settings.Iterations[inIndex].Params,
-				e.stateMemoryUpdate,
-			)
+			for _, outName := range outNames {
+				e.stateMemoryUpdate.Name = outName
+				e.stateMemoryUpdate.StateHistory =
+					stateHistories[e.partitionNameToIndex[outName]]
+				iteration.UpdateMemory(
+					&e.settings.Iterations[inIndex].Params,
+					e.stateMemoryUpdate,
+				)
+			}
 		} else {
 			panic(fmt.Errorf(
 				"internal state partition %d is not a StateMemoryIteration",
