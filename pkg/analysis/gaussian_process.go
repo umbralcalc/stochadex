@@ -1,38 +1,24 @@
 package analysis
 
 import (
+	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
+	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// WindowedPartition configures a partition to simulate within a
-// windowed duration.
-type WindowedPartition struct {
-	Partition        *simulator.PartitionConfig
-	OutsideUpstreams map[string]simulator.NamedUpstreamConfig
-}
-
-// WindowedPartitions defines a windowed history of data from
-// partitions in storage and possible additional partitions to include
-// when simulating the window duration.
-type WindowedPartitions struct {
-	Partitions []WindowedPartition
-	Data       []DataRef
-	Depth      int
-}
-
-// ParameterisedModel defines a likelihood model for the data with its
-// corresponding parameters to set.
-type ParameterisedModel struct {
-	Likelihood         inference.LikelihoodDistribution
+// ParameterisedKernel defines an integration kernel over the data with
+// its corresponding parameters to set.
+type ParameterisedKernel struct {
+	Kernel             kernels.IntegrationKernel
 	Params             simulator.Params
 	ParamsAsPartitions map[string][]string
 	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
 }
 
-// Init populates the model parameter fields if they have not been set.
-func (p *ParameterisedModel) Init() {
+// Init populates the kernel parameter fields if they have not been set.
+func (p *ParameterisedKernel) Init() {
 	if p.ParamsAsPartitions == nil {
 		p.ParamsAsPartitions = make(map[string][]string)
 	}
@@ -42,19 +28,22 @@ func (p *ParameterisedModel) Init() {
 	}
 }
 
-// AppliedLikelihoodComparison is the base configuration for a rolling
-// comparison between a referenced dataset and referenced likelihood model.
-type AppliedLikelihoodComparison struct {
-	Name   string
-	Model  ParameterisedModel
-	Data   DataRef
-	Window WindowedPartitions
+// AppliedGaussianProcessDistributionFit is the base configuration for
+// fitting a Gaussian Process to the probability distribution over values
+// in the specified data.
+type AppliedGaussianProcessDistributionFit struct {
+	Name         string
+	Kernel       ParameterisedKernel
+	Data         DataRef
+	Window       WindowedPartitions
+	LearningRate float64
 }
 
-// NewLikelihoodComparisonPartition creates a new PartitionConfig for
-// a rolling likelihood comparison.
-func NewLikelihoodComparisonPartition(
-	applied AppliedLikelihoodComparison,
+// NewGaussianProcessDistributionFitPartition creates a new PartitionConfig
+// for fitting a Gaussian Process to the probability distribution over values
+// in the specified data.
+func NewGaussianProcessDistributionFitPartition(
+	applied AppliedGaussianProcessDistributionFit,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
 	generator := simulator.NewConfigGenerator()
@@ -108,30 +97,46 @@ func NewLikelihoodComparisonPartition(
 		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
 			simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 	}
-	applied.Model.Init()
-	applied.Model.Params.Set("cumulative", []float64{1})
-	applied.Model.Params.Set("burn_in_steps", []float64{0})
-	applied.Model.ParamsFromUpstream["latest_data_values"] =
-		simulator.NamedUpstreamConfig{
-			Upstream: applied.Data.PartitionName,
-			Indices:  applied.Data.ValueIndices,
-		}
+	applied.Kernel.Init()
+	applied.Kernel.Params.Set(applied.Data.PartitionName+"->data", []float64{})
+	applied.Kernel.Params.Set(applied.Name+"->function_values_data", []float64{})
+	gradInitStateValues := make([]float64, len(applied.Data.GetValueIndices(storage)))
 	generator.SetPartition(&simulator.PartitionConfig{
-		Name: "comparison",
-		Iteration: &inference.DataComparisonIteration{
-			Likelihood: applied.Model.Likelihood,
+		Name: "gradient",
+		Iteration: &inference.GaussianProcessGradientIteration{
+			Kernel: applied.Kernel.Kernel,
 		},
-		Params:             applied.Model.Params,
-		ParamsAsPartitions: applied.Model.ParamsAsPartitions,
-		ParamsFromUpstream: applied.Model.ParamsFromUpstream,
-		InitStateValues:    []float64{0.0},
+		Params:             applied.Kernel.Params,
+		ParamsAsPartitions: applied.Kernel.ParamsAsPartitions,
+		ParamsFromUpstream: applied.Kernel.ParamsFromUpstream,
+		InitStateValues:    gradInitStateValues,
 		StateHistoryDepth:  1,
 		Seed:               0,
+	})
+	simParamsAsPartitions["gradient/update_from_partition_history"] =
+		[]string{applied.Data.PartitionName, applied.Name}
+	simInitStateValues = append(simInitStateValues, gradInitStateValues...)
+	gradientDescentParams := simulator.NewParams(make(map[string][]float64))
+	gradientDescentParams.Set("learning_rate", []float64{applied.LearningRate})
+	generator.SetPartition(&simulator.PartitionConfig{
+		Name:      "gradient_descent",
+		Iteration: &continuous.GradientDescentIteration{},
+		Params:    gradientDescentParams,
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"gradient": {Upstream: "gradient"},
+		},
+		InitStateValues:   []float64{0.0},
+		StateHistoryDepth: 1,
+		Seed:              0,
 	})
 	simInitStateValues = append(simInitStateValues, 0.0)
 	simParams := simulator.NewParams(map[string][]float64{
 		"burn_in_steps": {float64(applied.Window.Depth)},
 	})
+	generator.GetPartition("gradient").Params.Set(
+		"function_values_data_index",
+		[]float64{float64(len(simInitStateValues) - 1)},
+	)
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(

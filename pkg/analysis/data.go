@@ -93,20 +93,20 @@ func (d *DataRef) GetSeriesNames(
 	return names
 }
 
-// GetIndexFromStorage retrieves the relevant data from storage that
+// GetTimeIndexFromStorage retrieves the relevant data from storage that
 // the reference is pointing to for a given index in time.
-func (d *DataRef) GetIndexFromStorage(
+func (d *DataRef) GetTimeIndexFromStorage(
 	storage *simulator.StateTimeStorage,
-	index int,
+	timeIndex int,
 ) []float64 {
 	var outValues []float64
 	if d.isTime() {
-		outValues = []float64{storage.GetTimes()[index]}
+		outValues = []float64{storage.GetTimes()[timeIndex]}
 	} else {
-		outValues = storage.GetValues(d.PartitionName)[index]
+		outValues = storage.GetValues(d.PartitionName)[timeIndex]
 	}
-	if d.isOutsideTimeRange(index) {
-		panic("requested index " + strconv.Itoa(index) +
+	if d.isOutsideTimeRange(timeIndex) {
+		panic("requested index " + strconv.Itoa(timeIndex) +
 			" is outside of configured time range")
 	}
 	return outValues
