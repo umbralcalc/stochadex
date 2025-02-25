@@ -6,8 +6,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ExponentialIntegrationKernel is a simple exponentially-weighted
-// historical average value.
+// ExponentialIntegrationKernel is a simple exponential weighting in time.
 type ExponentialIntegrationKernel struct {
 	timescale float64
 }

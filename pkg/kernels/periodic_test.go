@@ -7,13 +7,13 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-func TestGaussianIntegationKernel(t *testing.T) {
+func TestPeriodicIntegationKernel(t *testing.T) {
 	t.Run(
-		"test that the Gaussian integration kernel runs",
+		"test that the periodic integration kernel runs",
 		func(t *testing.T) {
-			kernel := &GaussianIntegrationKernel{}
+			kernel := &PeriodicIntegrationKernel{}
 			params := simulator.NewParams(map[string][]float64{
-				"covariance_matrix": {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0},
+				"periodic_weighting_timescale": {1.0},
 			})
 			kernel.Configure(0, &simulator.Settings{
 				Iterations: []simulator.IterationSettings{
@@ -26,7 +26,7 @@ func TestGaussianIntegationKernel(t *testing.T) {
 				1.0,
 				0.0,
 			)
-			params.Set("covariance_matrix", []float64{2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0})
+			params.SetIndex("periodic_weighting_timescale", 0, 2.0)
 			kernel.SetParams(&params)
 			valueTwo := kernel.Evaluate(
 				[]float64{0.3, 1.0, 0.0},
