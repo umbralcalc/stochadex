@@ -24,9 +24,12 @@ func (s *SquaredExponentialStateIntegrationKernel) Configure(
 }
 
 func (s *SquaredExponentialStateIntegrationKernel) SetParams(params *simulator.Params) {
-	s.targetState = params.Get("target_state")
+	if target, ok := params.GetOk("target_state"); ok {
+		s.targetState = target
+	}
 	s.stateWidth = len(s.targetState)
-	covMatrix := mat.NewSymDense(s.stateWidth, params.Get("covariance_matrix"))
+	covParams := params.Get("covariance_matrix")
+	covMatrix := mat.NewSymDense(int(math.Sqrt(float64(len(covParams)))), covParams)
 	var choleskyDecomp mat.Cholesky
 	ok := choleskyDecomp.Factorize(covMatrix)
 	if !ok {
@@ -41,6 +44,9 @@ func (s *SquaredExponentialStateIntegrationKernel) Evaluate(
 	currentTime float64,
 	pastTime float64,
 ) float64 {
+	if s.targetState == nil {
+		panic("squared exponential kernel: missing target_state params")
+	}
 	currentDiff := make([]float64, s.stateWidth)
 	pastDiff := make([]float64, s.stateWidth)
 	currentStateDiffVector := mat.NewVecDense(
@@ -54,7 +60,7 @@ func (s *SquaredExponentialStateIntegrationKernel) Evaluate(
 	var vectorInvMat mat.VecDense
 	err := s.choleskyDecomp.SolveVecTo(&vectorInvMat, currentStateDiffVector)
 	if err != nil {
-		return math.NaN()
+		panic(err)
 	}
 	return math.Exp(-0.5 * mat.Dot(&vectorInvMat, pastStateDiffVector))
 }

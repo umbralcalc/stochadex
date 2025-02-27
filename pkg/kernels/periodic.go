@@ -15,6 +15,7 @@ func (p *PeriodicIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	p.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (p *PeriodicIntegrationKernel) SetParams(

@@ -22,6 +22,13 @@ type StateMemoryIteration interface {
 	UpdateMemory(params *simulator.Params, update *StateMemoryUpdate)
 }
 
+// NamedPartitionIndex pairs the name of a partition with the partition
+// index assigned to it by the PartitionCoordinator.
+type NamedPartitionIndex struct {
+	Name  string
+	Index int
+}
+
 // EmbeddedSimulationRunIteration facilitates running an embedded
 // sub-simulation to termination inside of an iteration of another
 // simulation for each step of the latter simulation.
@@ -30,7 +37,7 @@ type EmbeddedSimulationRunIteration struct {
 	implementations       *simulator.Implementations
 	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
-	updateFromHistories   map[int][]string
+	updateFromHistories   map[int][]NamedPartitionIndex
 	initStatesFromHistory map[int]int
 	burnInSteps           int
 }
@@ -46,7 +53,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	for index, iteration := range e.settings.Iterations {
 		e.partitionNameToIndex[iteration.Name] = index
 	}
-	e.updateFromHistories = make(map[int][]string)
+	e.updateFromHistories = make(map[int][]NamedPartitionIndex)
 	e.initStatesFromHistory = make(map[int]int)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
@@ -65,11 +72,14 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				partitionNames := make([]string, 0)
+				partitionNames := make([]NamedPartitionIndex, 0)
 				for _, paramsValue := range paramsValues {
 					partitionNames = append(
 						partitionNames,
-						e.settings.Iterations[int(paramsValue)].Name,
+						NamedPartitionIndex{
+							Name:  settings.Iterations[int(paramsValue)].Name,
+							Index: int(paramsValue),
+						},
 					)
 				}
 				e.updateFromHistories[inPartition] = partitionNames
@@ -129,14 +139,14 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		})
 	}
 	e.stateMemoryUpdate.TimestepsHistory = timestepsHistory
-	for inIndex, outNames := range e.updateFromHistories {
+	for inIndex, outPartitions := range e.updateFromHistories {
 		iteration, ok :=
 			e.implementations.Iterations[inIndex].(StateMemoryIteration)
 		if ok {
-			for _, outName := range outNames {
-				e.stateMemoryUpdate.Name = outName
+			for _, outPartition := range outPartitions {
+				e.stateMemoryUpdate.Name = outPartition.Name
 				e.stateMemoryUpdate.StateHistory =
-					stateHistories[e.partitionNameToIndex[outName]]
+					stateHistories[outPartition.Index]
 				iteration.UpdateMemory(
 					&e.settings.Iterations[inIndex].Params,
 					e.stateMemoryUpdate,

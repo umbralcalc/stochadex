@@ -8,35 +8,18 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ParameterisedKernel defines an integration kernel over the data with
-// its corresponding parameters to set.
-type ParameterisedKernel struct {
-	Kernel             kernels.IntegrationKernel
-	Params             simulator.Params
-	ParamsAsPartitions map[string][]string
-	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
-}
-
-// Init populates the kernel parameter fields if they have not been set.
-func (p *ParameterisedKernel) Init() {
-	if p.ParamsAsPartitions == nil {
-		p.ParamsAsPartitions = make(map[string][]string)
-	}
-	if p.ParamsFromUpstream == nil {
-		p.ParamsFromUpstream =
-			make(map[string]simulator.NamedUpstreamConfig)
-	}
-}
-
 // AppliedGaussianProcessDistributionFit is the base configuration for
 // fitting a Gaussian Process to the probability distribution over values
 // in the specified data.
 type AppliedGaussianProcessDistributionFit struct {
-	Name         string
-	Kernel       ParameterisedKernel
-	Data         DataRef
-	Window       WindowedPartitions
-	LearningRate float64
+	Name              string
+	Data              DataRef
+	Window            WindowedPartitions
+	KernelCovariance  []float64
+	BaseVariance      float64
+	PastDiscount      float64
+	LearningRate      float64
+	DescentIterations int
 }
 
 // NewGaussianProcessDistributionFitPartition creates a new PartitionConfig
@@ -51,7 +34,7 @@ func NewGaussianProcessDistributionFitPartition(
 		OutputCondition: &simulator.NilOutputCondition{},
 		OutputFunction:  &simulator.NilOutputFunction{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
-			MaxNumberOfSteps: applied.Window.Depth,
+			MaxNumberOfSteps: applied.DescentIterations,
 		},
 		// These will be overwritten with the times in the data...
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
@@ -97,21 +80,28 @@ func NewGaussianProcessDistributionFitPartition(
 		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
 			simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 	}
-	applied.Kernel.Init()
-	applied.Kernel.Params.Set(applied.Data.PartitionName+"->data", []float64{})
-	applied.Kernel.Params.Set(applied.Name+"->function_values_data", []float64{})
+	gradParams := simulator.NewParams(make(map[string][]float64))
+	gradParams.Set(applied.Data.PartitionName+"->data", []float64{})
+	gradParams.Set(applied.Name+"->function_values_data", []float64{})
+	gradParams.Set("covariance_matrix", applied.KernelCovariance)
+	gradParams.Set("base_variance", []float64{applied.BaseVariance})
+	gradParams.Set("past_discounting_factor", []float64{applied.PastDiscount})
 	gradInitStateValues := make([]float64, len(applied.Data.GetValueIndices(storage)))
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "gradient",
 		Iteration: &inference.GaussianProcessGradientIteration{
-			Kernel: applied.Kernel.Kernel,
+			Kernel: &kernels.SquaredExponentialStateIntegrationKernel{},
 		},
-		Params:             applied.Kernel.Params,
-		ParamsAsPartitions: applied.Kernel.ParamsAsPartitions,
-		ParamsFromUpstream: applied.Kernel.ParamsFromUpstream,
-		InitStateValues:    gradInitStateValues,
-		StateHistoryDepth:  1,
-		Seed:               0,
+		Params: gradParams,
+		ParamsAsPartitions: map[string][]string{
+			"function_values_partition": {"gradient_descent"},
+		},
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"target_state": {Upstream: applied.Data.PartitionName},
+		},
+		InitStateValues:   gradInitStateValues,
+		StateHistoryDepth: 1,
+		Seed:              0,
 	})
 	simParamsAsPartitions["gradient/update_from_partition_history"] =
 		[]string{applied.Data.PartitionName, applied.Name}
@@ -146,7 +136,7 @@ func NewGaussianProcessDistributionFitPartition(
 		ParamsAsPartitions: simParamsAsPartitions,
 		ParamsFromUpstream: simParamsFromUpstream,
 		InitStateValues:    simInitStateValues,
-		StateHistoryDepth:  1,
+		StateHistoryDepth:  applied.Window.Depth,
 		Seed:               0,
 	}
 }

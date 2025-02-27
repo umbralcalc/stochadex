@@ -15,6 +15,7 @@ func (e *ExponentialIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	e.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (e *ExponentialIntegrationKernel) SetParams(

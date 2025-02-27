@@ -35,13 +35,20 @@ func (g *GaussianProcessGradientIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	gradient := 0.0
+	discount := 1.0
 	g.Kernel.SetParams(params)
+	if d, ok := params.GetOk("past_discounting_factor"); ok {
+		discount = d[0]
+	}
+	baseVariance := params.Get("base_variance")[0]
 	currentFunction := stateHistories[int(
 		params.Get("function_values_partition")[0])].Values.At(0, 0)
 	var kernelValue float64
+	var discountProd float64
 	for i, ti := range g.BatchTimes.Values.RawVector().Data {
+		discountProd = 1.0
 		for j, tj := range g.BatchTimes.Values.RawVector().Data[i:] {
-			kernelValue = g.Kernel.Evaluate(
+			kernelValue = baseVariance * discountProd * g.Kernel.Evaluate(
 				g.Batch.Values.RawRowView(i),
 				g.Batch.Values.RawRowView(j),
 				ti,
@@ -51,8 +58,9 @@ func (g *GaussianProcessGradientIteration) Iterate(
 			if g.BatchFunction != nil {
 				gradient += 0.5 * (g.BatchFunction.Values.At(
 					i, g.functionValuesIndex) + g.BatchFunction.Values.At(
-					j, g.functionValuesIndex)) / kernelValue
+					i+j, g.functionValuesIndex)) / kernelValue
 			}
+			discountProd *= discount
 		}
 	}
 	return []float64{gradient}

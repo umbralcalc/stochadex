@@ -1,7 +1,6 @@
 package kernels
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -17,6 +16,7 @@ func (b *BinnedIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	b.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (b *BinnedIntegrationKernel) SetParams(
@@ -32,6 +32,5 @@ func (b *BinnedIntegrationKernel) Evaluate(
 	currentTime float64,
 	pastTime float64,
 ) float64 {
-	fmt.Println(math.Floor((currentTime - pastTime) / b.binStepsize))
 	return b.binValues[int(math.Floor((currentTime-pastTime)/b.binStepsize))]
 }
