@@ -39,6 +39,7 @@ type EmbeddedSimulationRunIteration struct {
 	partitionNameToIndex  map[string]int
 	updateFromHistories   map[int][]NamedPartitionIndex
 	initStatesFromHistory map[int]int
+	useTimestepHistory    bool
 	burnInSteps           int
 }
 
@@ -52,6 +53,11 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	e.partitionNameToIndex = make(map[string]int)
 	for index, iteration := range e.settings.Iterations {
 		e.partitionNameToIndex[iteration.Name] = index
+	}
+	e.useTimestepHistory = true
+	if ignore, ok := settings.Iterations[partitionIndex].Params.GetOk(
+		"ignore_timestep_history"); ok {
+		e.useTimestepHistory = int(ignore[0]) != 1
 	}
 	e.updateFromHistories = make(map[int][]NamedPartitionIndex)
 	e.initStatesFromHistory = make(map[int]int)
@@ -125,11 +131,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	}
 
 	// set the data for the past timesteps and state memory partition
-	// iterations, if configured - the application/non-application of
-	// this logic basically determines whether or not the simulation
-	// is being run over the past window of timesteps or up to some
-	// future horizon
-	if len(e.updateFromHistories) > 0 {
+	// iterations, if configured
+	if e.useTimestepHistory {
 		e.implementations.TimestepFunction =
 			&FromHistoryTimestepFunction{Data: timestepsHistory}
 		params.Set("init_time_value", []float64{

@@ -37,12 +37,9 @@ func TestGaussianProcessDistributionFit(t *testing.T) {
 			params.Set("covariance_matrix", []float64{2.5, 0.0, 0.0, 9.0})
 			likePartition := NewGaussianProcessDistributionFitPartition(
 				AppliedGaussianProcessDistributionFit{
-					Name: "test_gaussian_process",
-					Data: DataRef{PartitionName: "test_data"},
-					Window: WindowedPartitions{
-						Data:  []DataRef{{PartitionName: "test_data"}},
-						Depth: 10,
-					},
+					Name:              "test_gaussian_process",
+					Data:              DataRef{PartitionName: "test_data"},
+					Window:            WindowedPartitions{Depth: 10},
 					KernelCovariance:  []float64{1.0, 0.0, 0.0, 1.0},
 					BaseVariance:      1.0,
 					PastDiscount:      0.9,

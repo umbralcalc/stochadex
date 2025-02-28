@@ -87,26 +87,28 @@ func NewLikelihoodComparisonPartition(
 		}
 	}
 	simParamsAsPartitions := make(map[string][]string)
-	for _, ref := range applied.Window.Data {
-		if ref.ValueIndices != nil {
-			panic("value indices are not supported in window data")
+	if applied.Window.Data != nil {
+		for _, ref := range applied.Window.Data {
+			if ref.ValueIndices != nil {
+				panic("value indices are not supported in window data")
+			}
+			initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
+			generator.SetPartition(&simulator.PartitionConfig{
+				Name:              ref.PartitionName,
+				Iteration:         &general.FromHistoryIteration{},
+				Params:            simulator.NewParams(make(map[string][]float64)),
+				InitStateValues:   initStateValues,
+				StateHistoryDepth: 1,
+				Seed:              0,
+			})
+			simInitStateValues = append(simInitStateValues, initStateValues...)
+			simParamsAsPartitions[ref.PartitionName+
+				"/update_from_partition_history"] = []string{ref.PartitionName}
+			simParamsAsPartitions[ref.PartitionName+
+				"/initial_state_from_partition_history"] = []string{ref.PartitionName}
+			simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
+				simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 		}
-		initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
-		generator.SetPartition(&simulator.PartitionConfig{
-			Name:              ref.PartitionName,
-			Iteration:         &general.FromHistoryIteration{},
-			Params:            simulator.NewParams(make(map[string][]float64)),
-			InitStateValues:   initStateValues,
-			StateHistoryDepth: 1,
-			Seed:              0,
-		})
-		simInitStateValues = append(simInitStateValues, initStateValues...)
-		simParamsAsPartitions[ref.PartitionName+
-			"/update_from_partition_history"] = []string{ref.PartitionName}
-		simParamsAsPartitions[ref.PartitionName+
-			"/initial_state_from_partition_history"] = []string{ref.PartitionName}
-		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
-			simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 	}
 	applied.Model.Init()
 	applied.Model.Params.Set("cumulative", []float64{1})

@@ -37,12 +37,30 @@ func (h *IterationTestHarness) Iterate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
+	paramsMapCopy := make(map[string][]float64)
+	for paramsName, paramsValues := range params.Map {
+		paramsValuesCopy := make([]float64, len(paramsValues))
+		copy(paramsValuesCopy, paramsValues)
+		paramsMapCopy[paramsName] = paramsValuesCopy
+	}
 	output := h.Iteration.Iterate(
 		params,
 		partitionIndex,
 		stateHistories,
 		timestepsHistory,
 	)
+	for paramsName, paramsValues := range params.Map {
+		for i, paramsValue := range paramsValues {
+			if paramsMapCopy[paramsName][i] != paramsValue {
+				h.Err = fmt.Errorf(
+					"partition: %s, time: %f params values were mutated by iteration",
+					h.name,
+					timestepsHistory.Values.AtVec(0)+timestepsHistory.NextIncrement,
+				)
+				return output
+			}
+		}
+	}
 	if floats.HasNaN(output) {
 		h.Err = fmt.Errorf("partition: %s, time: %f output state has NaN... %f",
 			h.name,

@@ -36,7 +36,6 @@ func NewGaussianProcessDistributionFitPartition(
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: applied.DescentIterations,
 		},
-		// These will be overwritten with the times in the data...
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 		InitTimeValue:    0.0,
 	})
@@ -59,26 +58,28 @@ func NewGaussianProcessDistributionFitPartition(
 		}
 	}
 	simParamsAsPartitions := make(map[string][]string)
-	for _, ref := range applied.Window.Data {
-		if ref.ValueIndices != nil {
-			panic("value indices are not supported in window data")
+	if applied.Window.Data != nil {
+		for _, ref := range applied.Window.Data {
+			if ref.ValueIndices != nil {
+				panic("value indices are not supported in window data")
+			}
+			initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
+			generator.SetPartition(&simulator.PartitionConfig{
+				Name:              ref.PartitionName,
+				Iteration:         &general.FromHistoryIteration{},
+				Params:            simulator.NewParams(make(map[string][]float64)),
+				InitStateValues:   initStateValues,
+				StateHistoryDepth: 1,
+				Seed:              0,
+			})
+			simInitStateValues = append(simInitStateValues, initStateValues...)
+			simParamsAsPartitions[ref.PartitionName+
+				"/update_from_partition_history"] = []string{ref.PartitionName}
+			simParamsAsPartitions[ref.PartitionName+
+				"/initial_state_from_partition_history"] = []string{ref.PartitionName}
+			simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
+				simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 		}
-		initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
-		generator.SetPartition(&simulator.PartitionConfig{
-			Name:              ref.PartitionName,
-			Iteration:         &general.FromHistoryIteration{},
-			Params:            simulator.NewParams(make(map[string][]float64)),
-			InitStateValues:   initStateValues,
-			StateHistoryDepth: 1,
-			Seed:              0,
-		})
-		simInitStateValues = append(simInitStateValues, initStateValues...)
-		simParamsAsPartitions[ref.PartitionName+
-			"/update_from_partition_history"] = []string{ref.PartitionName}
-		simParamsAsPartitions[ref.PartitionName+
-			"/initial_state_from_partition_history"] = []string{ref.PartitionName}
-		simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
-			simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 	}
 	gradParams := simulator.NewParams(make(map[string][]float64))
 	gradParams.Set(applied.Data.PartitionName+"->data", []float64{})
@@ -86,7 +87,6 @@ func NewGaussianProcessDistributionFitPartition(
 	gradParams.Set("covariance_matrix", applied.KernelCovariance)
 	gradParams.Set("base_variance", []float64{applied.BaseVariance})
 	gradParams.Set("past_discounting_factor", []float64{applied.PastDiscount})
-	gradInitStateValues := make([]float64, len(applied.Data.GetValueIndices(storage)))
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "gradient",
 		Iteration: &inference.GaussianProcessGradientIteration{
@@ -96,16 +96,15 @@ func NewGaussianProcessDistributionFitPartition(
 		ParamsAsPartitions: map[string][]string{
 			"function_values_partition": {"gradient_descent"},
 		},
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"target_state": {Upstream: applied.Data.PartitionName},
-		},
-		InitStateValues:   gradInitStateValues,
+		InitStateValues:   []float64{0.0},
 		StateHistoryDepth: 1,
 		Seed:              0,
 	})
 	simParamsAsPartitions["gradient/update_from_partition_history"] =
 		[]string{applied.Data.PartitionName, applied.Name}
-	simInitStateValues = append(simInitStateValues, gradInitStateValues...)
+	simParamsFromUpstream["gradient/target_state"] =
+		simulator.NamedUpstreamConfig{Upstream: applied.Data.PartitionName}
+	simInitStateValues = append(simInitStateValues, 0.0)
 	gradientDescentParams := simulator.NewParams(make(map[string][]float64))
 	gradientDescentParams.Set("learning_rate", []float64{applied.LearningRate})
 	generator.SetPartition(&simulator.PartitionConfig{
@@ -121,7 +120,8 @@ func NewGaussianProcessDistributionFitPartition(
 	})
 	simInitStateValues = append(simInitStateValues, 0.0)
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(applied.Window.Depth)},
+		"burn_in_steps":           {float64(applied.DescentIterations)},
+		"ignore_timestep_history": {1},
 	})
 	generator.GetPartition("gradient").Params.Set(
 		"function_values_data_index",
