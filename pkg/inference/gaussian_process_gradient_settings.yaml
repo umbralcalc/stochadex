@@ -1,6 +1,7 @@
 iterations:
 - name: partition_0
   params:
+    base_variance: [1.0]
     function_values_partition: [1]
   init_state_values: [0.0]
   seed: 0
