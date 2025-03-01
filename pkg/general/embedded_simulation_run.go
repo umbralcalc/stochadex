@@ -132,14 +132,13 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 
 	// set the data for the past timesteps and state memory partition
 	// iterations, if configured
+	initTimeValue := 0.0
 	if e.useTimestepHistory {
 		e.implementations.TimestepFunction =
 			&FromHistoryTimestepFunction{Data: timestepsHistory}
-		params.Set("init_time_value", []float64{
-			timestepsHistory.Values.AtVec(
-				timestepsHistory.StateHistoryDepth - 1,
-			),
-		})
+		initTimeValue = timestepsHistory.Values.AtVec(
+			timestepsHistory.StateHistoryDepth - 1,
+		)
 	}
 	e.stateMemoryUpdate.TimestepsHistory = timestepsHistory
 	for inIndex, outPartitions := range e.updateFromHistories {
@@ -168,7 +167,10 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 				stateHistories[outIndex].StateHistoryDepth - 1,
 			)
 	}
-	e.settings.InitTimeValue = params.GetIndex("init_time_value", 0)
+	if t, ok := params.GetOk("init_time_value"); ok {
+		initTimeValue = t[0]
+	}
+	e.settings.InitTimeValue = initTimeValue
 
 	// instantiate and run the embedded simulation to termination
 	coordinator := simulator.NewPartitionCoordinator(
