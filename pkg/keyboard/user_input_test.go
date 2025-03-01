@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/eiannone/keyboard"
-	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -25,8 +24,7 @@ func TestUserInput(t *testing.T) {
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("./user_input_settings.yaml")
 			iteration := &UserInputIteration{
-				Iteration: &general.ParamValuesIteration{},
-				Channel:   &MockKeystrokeChannel{},
+				Channel: &MockKeystrokeChannel{},
 			}
 			iteration.Configure(0, settings)
 			implementations := &simulator.Implementations{
@@ -50,8 +48,7 @@ func TestUserInput(t *testing.T) {
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml("./user_input_settings.yaml")
 			iteration := &UserInputIteration{
-				Iteration: &general.ParamValuesIteration{},
-				Channel:   &MockKeystrokeChannel{},
+				Channel: &MockKeystrokeChannel{},
 			}
 			implementations := &simulator.Implementations{
 				Iterations:      []simulator.Iteration{iteration},

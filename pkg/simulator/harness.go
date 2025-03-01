@@ -49,6 +49,14 @@ func (h *IterationTestHarness) Iterate(
 		stateHistories,
 		timestepsHistory,
 	)
+	if len(params.Map) != len(paramsMapCopy) {
+		h.Err = fmt.Errorf(
+			"partition: %s, time: %f params values were mutated by iteration",
+			h.name,
+			timestepsHistory.Values.AtVec(0)+timestepsHistory.NextIncrement,
+		)
+		return output
+	}
 	for paramsName, paramsValues := range params.Map {
 		for i, paramsValue := range paramsValues {
 			if paramsMapCopy[paramsName][i] != paramsValue {

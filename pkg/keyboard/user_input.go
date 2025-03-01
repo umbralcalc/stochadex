@@ -31,9 +31,8 @@ func (s *StandardKeystrokeChannel) Get(
 }
 
 // UserInputIteration implements an iteration that uses actions collected
-// by user keyboard input.
+// from user keyboard input.
 type UserInputIteration struct {
-	Iteration        simulator.Iteration
 	Channel          KeystrokeChannel
 	keystrokeMap     map[string]int64
 	keyEvents        <-chan keyboard.KeyEvent
@@ -76,12 +75,7 @@ func (u *UserInputIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	if u.skipScanning {
-		return u.Iteration.Iterate(
-			params,
-			partitionIndex,
-			stateHistories,
-			timestepsHistory,
-		)
+		return params.Get("default_value")
 	}
 	select {
 	case event := <-u.keyEvents:
@@ -90,20 +84,15 @@ func (u *UserInputIteration) Iterate(
 		fmt.Println("User input action: " + fmt.Sprintf("%d", act) +
 			" at timestep " + fmt.Sprintf("%f",
 			timestepsHistory.Values.AtVec(0)+timestepsHistory.NextIncrement))
-		params.Set("action", []float64{float64(act)})
 
 		// allows for graceful exit
 		if event.Key == keyboard.KeyEsc {
 			_ = keyboard.Close()
 			u.skipScanning = true
 		}
+		return []float64{float64(act)}
 	case <-time.After(time.Duration(u.waitMilliseconds) * time.Millisecond):
 		break
 	}
-	return u.Iteration.Iterate(
-		params,
-		partitionIndex,
-		stateHistories,
-		timestepsHistory,
-	)
+	return params.Get("default_value")
 }
