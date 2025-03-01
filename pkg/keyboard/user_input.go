@@ -79,11 +79,7 @@ func (u *UserInputIteration) Iterate(
 	}
 	select {
 	case event := <-u.keyEvents:
-		// main action-setting code
 		act := u.keystrokeMap[string(event.Rune)]
-		fmt.Println("User input action: " + fmt.Sprintf("%d", act) +
-			" at timestep " + fmt.Sprintf("%f",
-			timestepsHistory.Values.AtVec(0)+timestepsHistory.NextIncrement))
 
 		// allows for graceful exit
 		if event.Key == keyboard.KeyEsc {
