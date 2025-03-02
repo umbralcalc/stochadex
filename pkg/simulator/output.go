@@ -150,6 +150,10 @@ func NewJsonLogChannelOutputFunction(
 		for {
 			select {
 			case logEntry := <-logChannel:
+				if logEntry.State == nil {
+					// covers the case with initialisation nil input
+					continue
+				}
 				jsonData, err := json.Marshal(logEntry)
 				if err != nil {
 					log.Printf("Error encoding JSON: %s\n", err)

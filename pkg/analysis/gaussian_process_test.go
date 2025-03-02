@@ -32,9 +32,6 @@ func TestGaussianProcessDistributionFit(t *testing.T) {
 				&simulator.ConstantTimestepFunction{Stepsize: 1.0},
 				0.0,
 			)
-			params := simulator.NewParams(make(map[string][]float64))
-			params.Set("mean", []float64{1.8, 5.0})
-			params.Set("covariance_matrix", []float64{2.5, 0.0, 0.0, 9.0})
 			likePartition := NewGaussianProcessDistributionFitPartition(
 				AppliedGaussianProcessDistributionFit{
 					Name:              "test_gaussian_process",

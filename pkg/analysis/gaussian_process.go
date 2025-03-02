@@ -120,7 +120,7 @@ func NewGaussianProcessDistributionFitPartition(
 	})
 	simInitStateValues = append(simInitStateValues, 0.0)
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps":           {float64(applied.DescentIterations)},
+		"burn_in_steps":           {float64(applied.Window.Depth)},
 		"ignore_timestep_history": {1},
 	})
 	generator.GetPartition("gradient").Params.Set(
