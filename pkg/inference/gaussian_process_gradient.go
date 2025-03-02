@@ -43,11 +43,12 @@ func (g *GaussianProcessGradientIteration) Iterate(
 	baseVariance := params.Get("base_variance")[0]
 	currentFunction := stateHistories[int(
 		params.Get("function_values_partition")[0])].Values.At(0, 0)
+	batchTimes := g.BatchTimes.Values.RawVector().Data
 	var kernelValue float64
 	var discountProd float64
-	for i, ti := range g.BatchTimes.Values.RawVector().Data {
+	for i, ti := range batchTimes {
 		discountProd = 1.0
-		for j, tj := range g.BatchTimes.Values.RawVector().Data[i:] {
+		for j, tj := range batchTimes[i:] {
 			kernelValue = baseVariance * discountProd * g.Kernel.Evaluate(
 				g.Batch.Values.RawRowView(i),
 				g.Batch.Values.RawRowView(j),
