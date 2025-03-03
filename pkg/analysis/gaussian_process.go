@@ -8,12 +8,13 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// AppliedGaussianProcessDistributionFit is the base configuration for
-// fitting a Gaussian Process to the probability distribution over values
-// in the specified data.
-type AppliedGaussianProcessDistributionFit struct {
+// AppliedGaussianProcessFunctionFit is the base configuration for
+// fitting a Gaussian Process to some function over values specified
+// in the data.
+type AppliedGaussianProcessFunctionFit struct {
 	Name              string
 	Data              DataRef
+	FunctionData      DataRef
 	Window            WindowedPartitions
 	KernelCovariance  []float64
 	BaseVariance      float64
@@ -22,11 +23,11 @@ type AppliedGaussianProcessDistributionFit struct {
 	DescentIterations int
 }
 
-// NewGaussianProcessDistributionFitPartition creates a new PartitionConfig
-// for fitting a Gaussian Process to the probability distribution over values
-// in the specified data.
-func NewGaussianProcessDistributionFitPartition(
-	applied AppliedGaussianProcessDistributionFit,
+// NewGaussianProcessFunctionFitPartition creates a new PartitionConfig
+// for fitting a Gaussian Process to some function over values specified
+// in the data.
+func NewGaussianProcessFunctionFitPartition(
+	applied AppliedGaussianProcessFunctionFit,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
 	generator := simulator.NewConfigGenerator()
@@ -83,10 +84,15 @@ func NewGaussianProcessDistributionFitPartition(
 	}
 	gradParams := simulator.NewParams(make(map[string][]float64))
 	gradParams.Set(applied.Data.PartitionName+"->data", []float64{})
-	gradParams.Set(applied.Name+"->function_values_data", []float64{})
+	gradParams.Set(
+		applied.FunctionData.PartitionName+"->function_values_data", []float64{})
 	gradParams.Set("covariance_matrix", applied.KernelCovariance)
 	gradParams.Set("base_variance", []float64{applied.BaseVariance})
 	gradParams.Set("past_discounting_factor", []float64{applied.PastDiscount})
+	gradParams.Set(
+		"function_values_data_index",
+		[]float64{float64(applied.FunctionData.ValueIndices[0])},
+	)
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "gradient",
 		Iteration: &inference.GaussianProcessGradientIteration{
@@ -101,7 +107,7 @@ func NewGaussianProcessDistributionFitPartition(
 		Seed:              0,
 	})
 	simParamsAsPartitions["gradient/update_from_partition_history"] =
-		[]string{applied.Data.PartitionName, applied.Name}
+		[]string{applied.Data.PartitionName, applied.FunctionData.PartitionName}
 	simParamsFromUpstream["gradient/target_state"] =
 		simulator.NamedUpstreamConfig{Upstream: applied.Data.PartitionName}
 	simInitStateValues = append(simInitStateValues, 0.0)
@@ -123,10 +129,6 @@ func NewGaussianProcessDistributionFitPartition(
 		"burn_in_steps":           {float64(applied.Window.Depth)},
 		"ignore_timestep_history": {1},
 	})
-	generator.GetPartition("gradient").Params.Set(
-		"function_values_data_index",
-		[]float64{float64(len(simInitStateValues) - 1)},
-	)
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(

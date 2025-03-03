@@ -8,9 +8,9 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-func TestGaussianProcessDistributionFit(t *testing.T) {
+func TestGaussianProcessFunctionFit(t *testing.T) {
 	t.Run(
-		"test that the Gaussian Process distribution fit works",
+		"test that the Gaussian Process function fit works",
 		func(t *testing.T) {
 			storage := NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
@@ -32,10 +32,14 @@ func TestGaussianProcessDistributionFit(t *testing.T) {
 				&simulator.ConstantTimestepFunction{Stepsize: 1.0},
 				0.0,
 			)
-			likePartition := NewGaussianProcessDistributionFitPartition(
-				AppliedGaussianProcessDistributionFit{
-					Name:              "test_gaussian_process",
-					Data:              DataRef{PartitionName: "test_data"},
+			likePartition := NewGaussianProcessFunctionFitPartition(
+				AppliedGaussianProcessFunctionFit{
+					Name: "test_gaussian_process",
+					Data: DataRef{PartitionName: "test_data"},
+					FunctionData: DataRef{
+						PartitionName: "test_data",
+						ValueIndices:  []int{0},
+					},
 					Window:            WindowedPartitions{Depth: 10},
 					KernelCovariance:  []float64{1.0, 0.0, 0.0, 1.0},
 					BaseVariance:      1.0,
