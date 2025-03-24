@@ -138,6 +138,17 @@ func DataValuesFunction(
 	return functionValues
 }
 
+// UnitValueFunction just returns a slice of length 1 with a value of 1. This can be
+// used in the ValuesFunctionVectorMeanIteration to compute the kernel density directly.
+func UnitValueFunction(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	stateHistoryDepthIndex int,
+) []float64 {
+	return []float64{1.0}
+}
+
 // ValuesFunctionVectorMeanIteration computes the rolling windowed weighted
 // mean value of a function using inputs into the latter specified by another partition
 // and weights specified by an integration kernel.
