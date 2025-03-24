@@ -49,22 +49,23 @@ func (g *GaussianProcessGradientIteration) Iterate(
 	for i, ti := range batchTimes {
 		discountProd = 1.0
 		for j, tj := range batchTimes[i:] {
-			kernelValue = baseVariance * discountProd * g.Kernel.Evaluate(
+			kernelValue = discountProd * g.Kernel.Evaluate(
 				g.Batch.Values.RawRowView(i),
 				g.Batch.Values.RawRowView(j),
 				ti,
 				tj,
-			)
-			gradient -= currentFunction / kernelValue
+			) / baseVariance
+			gradient -= currentFunction * kernelValue
 			if g.BatchFunction != nil {
 				gradient += 0.5 * (g.BatchFunction.Values.At(
 					i, g.functionValuesIndex) + g.BatchFunction.Values.At(
-					i+j, g.functionValuesIndex)) / kernelValue
+					i+j, g.functionValuesIndex)) * kernelValue
 			}
 			discountProd *= discount
 		}
 	}
-	return []float64{gradient}
+	norm := float64(len(batchTimes) * (len(batchTimes) / 2))
+	return []float64{gradient / norm}
 }
 
 func (g *GaussianProcessGradientIteration) UpdateMemory(
