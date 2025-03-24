@@ -28,7 +28,7 @@ func TestTDistributionStateIntegrationKernel(t *testing.T) {
 				0.0,
 			)
 			params.Set("degrees_of_freedom", []float64{3.4})
-			params.Set("covariance_matrix", []float64{2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0})
+			params.Set("scale_matrix", []float64{2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0})
 			kernel.SetParams(&params)
 			valueTwo := kernel.Evaluate(
 				[]float64{0.3, 1.0, 0.0},
