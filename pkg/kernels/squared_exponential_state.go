@@ -13,6 +13,7 @@ import (
 type SquaredExponentialStateIntegrationKernel struct {
 	choleskyDecomp mat.Cholesky
 	targetState    []float64
+	determinant    float64
 	stateWidth     int
 }
 
@@ -36,6 +37,7 @@ func (s *SquaredExponentialStateIntegrationKernel) SetParams(params *simulator.P
 		panic("cholesky decomp for covariance matrix failed")
 	}
 	s.choleskyDecomp = choleskyDecomp
+	s.determinant = s.choleskyDecomp.Det()
 }
 
 func (s *SquaredExponentialStateIntegrationKernel) Evaluate(
@@ -62,5 +64,5 @@ func (s *SquaredExponentialStateIntegrationKernel) Evaluate(
 	if err != nil {
 		panic(err)
 	}
-	return math.Exp(-0.5 * mat.Dot(&vectorInvMat, pastStateDiffVector))
+	return math.Exp(-0.5*mat.Dot(&vectorInvMat, pastStateDiffVector)) / s.determinant
 }
