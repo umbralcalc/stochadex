@@ -149,6 +149,12 @@ func UnitValueFunction(
 	return []float64{1.0}
 }
 
+// ValuesFunctionTimeDeltaRange defines a past time interval over which to compute the mean.
+type ValuesFunctionTimeDeltaRange struct {
+	LowerDelta float64
+	UpperDelta float64
+}
+
 // ValuesFunctionVectorMeanIteration computes the rolling windowed weighted
 // mean value of a function using inputs into the latter specified by another partition
 // and weights specified by an integration kernel.
@@ -159,13 +165,21 @@ type ValuesFunctionVectorMeanIteration struct {
 		stateHistories []*simulator.StateHistory,
 		stateHistoryDepthIndex int,
 	) []float64
-	Kernel kernels.IntegrationKernel
+	Kernel    kernels.IntegrationKernel
+	timeRange *ValuesFunctionTimeDeltaRange
 }
 
 func (v *ValuesFunctionVectorMeanIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	if lowerUpper, ok := settings.Iterations[partitionIndex].Params.GetOk(
+		"delta_time_range"); ok {
+		v.timeRange = &ValuesFunctionTimeDeltaRange{
+			LowerDelta: lowerUpper[0],
+			UpperDelta: lowerUpper[1],
+		}
+	}
 	v.Kernel.Configure(partitionIndex, settings)
 }
 
@@ -181,31 +195,48 @@ func (v *ValuesFunctionVectorMeanIteration) Iterate(
 		return stateHistories[partitionIndex].Values.RawRowView(0)
 	}
 	v.Kernel.SetParams(params)
-	// convention is to use -1 here as the state history depth index of the
-	// very latest function value
-	latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
-	cumulativeWeightSum := v.Kernel.Evaluate(
-		latestStateValues,
-		latestStateValues,
-		latestTime,
-		latestTime,
-	)
-	cumulativeWeightedFunctionValueSum := latestFunctionValues
-	floats.Scale(cumulativeWeightSum, cumulativeWeightedFunctionValueSum)
-	cumulativeWeightedFunctionValueSumVec := mat.NewVecDense(
-		stateHistories[partitionIndex].StateWidth,
-		cumulativeWeightedFunctionValueSum,
-	)
-	var weight float64
+	cumulativeWeightSum := 0.0
+	var cumulativeWeightedFunctionValueSumVec *mat.VecDense
+	if v.timeRange != nil {
+		// convention is to use -1 here as the state history depth index of the
+		// very latest function value
+		latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)
+		cumulativeWeightSum = v.Kernel.Evaluate(
+			latestStateValues,
+			latestStateValues,
+			latestTime,
+			latestTime,
+		)
+		cumulativeWeightedFunctionValueSum := latestFunctionValues
+		floats.Scale(cumulativeWeightSum, cumulativeWeightedFunctionValueSum)
+		cumulativeWeightedFunctionValueSumVec = mat.NewVecDense(
+			stateHistories[partitionIndex].StateWidth,
+			cumulativeWeightedFunctionValueSum,
+		)
+	} else {
+		cumulativeWeightedFunctionValueSumVec = mat.NewVecDense(
+			stateHistories[partitionIndex].StateWidth,
+			nil,
+		)
+	}
+	var weight, timeDelta, pastTime float64
 	sumContributionVec := mat.NewVecDense(
 		cumulativeWeightedFunctionValueSumVec.Len(), nil)
 	for i := 0; i < stateHistory.StateHistoryDepth; i++ {
+		pastTime = timestepsHistory.Values.AtVec(i)
+		if v.timeRange != nil {
+			timeDelta = latestTime - pastTime
+			if v.timeRange.LowerDelta > timeDelta ||
+				timeDelta >= v.timeRange.UpperDelta {
+				continue
+			}
+		}
 		weight = v.Kernel.Evaluate(
 			latestStateValues,
 			stateHistory.Values.RawRowView(i),
 			latestTime,
-			timestepsHistory.Values.AtVec(i),
+			pastTime,
 		)
 		if weight < 0 {
 			panic("negative function weights")
