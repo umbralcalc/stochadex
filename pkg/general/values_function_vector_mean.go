@@ -150,6 +150,7 @@ func UnitValueFunction(
 }
 
 // ValuesFunctionTimeDeltaRange defines a past time interval over which to compute the mean.
+// Lower limit inclusive, upper limit exclusive.
 type ValuesFunctionTimeDeltaRange struct {
 	LowerDelta float64
 	UpperDelta float64
