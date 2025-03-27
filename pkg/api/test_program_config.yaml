@@ -14,7 +14,7 @@ main:
     seed: 1024
     state_width: 3
     state_history_depth: 2
-  - name: embedded_sim
+  - name: other_thing
     params:
       init_time_value: [0.0]
       burn_in_steps: [0]
