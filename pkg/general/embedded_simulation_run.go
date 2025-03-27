@@ -14,7 +14,7 @@ import (
 // This stateful loading of histories will support two use cases at once:
 // 1. The posterior kernel history loading
 // 2. Future reward calculations from current state
-// How do we blend this with IterateFromHistory approach?
+// TODO: How do we blend this with IterateFromHistory approach?
 
 // StateMemoryUpdate packages a memory update with a name which is the
 // partition name in the other simulation that it came from.
