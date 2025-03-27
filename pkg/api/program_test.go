@@ -30,7 +30,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 							},
 						},
 						{
-							Name:          "embedded_sim",
+							Name:          "other_thing",
 							Iteration:     "constantValues",
 							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/general"},
 							ExtraVars: []map[string]string{
