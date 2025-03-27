@@ -7,6 +7,13 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
+// TODO: 'embedded_partition_name/set_state_from_partition_history' feature
+// (uses relative state history depths ot figure out what data to fill in)
+// and 'set_timestep_history' feature as well doing the same thing.
+// This stateful loading of histories will support two use cases at once:
+// 1. The posterior kernel history loading
+// 2. Future reward calculations from current state
+
 // StateMemoryUpdate packages a memory update with a name which is the
 // partition name in the other simulation that it came from.
 type StateMemoryUpdate struct {
