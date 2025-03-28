@@ -24,9 +24,12 @@ func TestGaussianProcessGradient(t *testing.T) {
 				rand.NewSource(14265),
 			)
 			batchData := make([]float64, 0)
+			batchFuncData := make([]float64, 0)
 			batchTimesData := make([]float64, 0)
 			for i := 0; i < 100; i++ {
-				batchData = append(batchData, dist.Rand(nil)...)
+				values := dist.Rand(nil)
+				batchData = append(batchData, values...)
+				batchFuncData = append(batchFuncData, values[0])
 				batchTimesData = append(batchTimesData, float64(i))
 			}
 			iterations := []simulator.Iteration{
@@ -35,6 +38,11 @@ func TestGaussianProcessGradient(t *testing.T) {
 					Batch: &simulator.StateHistory{
 						Values:            mat.NewDense(100, 2, batchData),
 						StateWidth:        2,
+						StateHistoryDepth: 100,
+					},
+					BatchFunction: &simulator.StateHistory{
+						Values:            mat.NewDense(100, 1, batchFuncData),
+						StateWidth:        1,
 						StateHistoryDepth: 100,
 					},
 					BatchTimes: &simulator.CumulativeTimestepsHistory{
@@ -76,9 +84,12 @@ func TestGaussianProcessGradient(t *testing.T) {
 				rand.NewSource(14265),
 			)
 			batchData := make([]float64, 0)
+			batchFuncData := make([]float64, 0)
 			batchTimesData := make([]float64, 0)
 			for i := 0; i < 100; i++ {
-				batchData = append(batchData, dist.Rand(nil)...)
+				values := dist.Rand(nil)
+				batchData = append(batchData, values...)
+				batchFuncData = append(batchFuncData, values[0])
 				batchTimesData = append(batchTimesData, float64(i))
 			}
 			iterations := []simulator.Iteration{
@@ -87,6 +98,11 @@ func TestGaussianProcessGradient(t *testing.T) {
 					Batch: &simulator.StateHistory{
 						Values:            mat.NewDense(100, 2, batchData),
 						StateWidth:        2,
+						StateHistoryDepth: 100,
+					},
+					BatchFunction: &simulator.StateHistory{
+						Values:            mat.NewDense(100, 1, batchFuncData),
+						StateWidth:        1,
 						StateHistoryDepth: 100,
 					},
 					BatchTimes: &simulator.CumulativeTimestepsHistory{

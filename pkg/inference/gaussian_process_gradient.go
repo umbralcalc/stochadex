@@ -46,38 +46,41 @@ func (g *GaussianProcessGradientIteration) Iterate(
 	batchTimes := g.BatchTimes.Values.RawVector().Data
 	var kernelValue float64
 	var discountProd float64
+	cumulativeKernelValue := 0.0
 	for i, ti := range batchTimes {
 		discountProd = 1.0
 		for j, tj := range batchTimes[i:] {
 			kernelValue = discountProd * g.Kernel.Evaluate(
 				g.Batch.Values.RawRowView(i),
-				g.Batch.Values.RawRowView(j),
+				g.Batch.Values.RawRowView(i+j),
 				ti,
 				tj,
 			) / baseVariance
-			gradient -= currentFunction * kernelValue
-			if g.BatchFunction != nil {
-				gradient += 0.5 * (g.BatchFunction.Values.At(
-					i, g.functionValuesIndex) + g.BatchFunction.Values.At(
-					i+j, g.functionValuesIndex)) * kernelValue
-			}
+			gradient -= (currentFunction * kernelValue) -
+				0.5*(g.BatchFunction.Values.At(i, g.functionValuesIndex)+
+					g.BatchFunction.Values.At(i+j, g.functionValuesIndex))*kernelValue
 			discountProd *= discount
+			cumulativeKernelValue += kernelValue
 		}
 	}
-	norm := float64(len(batchTimes) * (len(batchTimes) / 2))
-	return []float64{gradient / norm}
+	return []float64{gradient / cumulativeKernelValue}
 }
 
 func (g *GaussianProcessGradientIteration) UpdateMemory(
 	params *simulator.Params,
 	update *general.StateMemoryUpdate,
 ) {
+	updateOccured := false
 	if _, ok := params.GetOk(update.Name + "->data"); ok {
 		g.Batch = update.StateHistory
 		g.BatchTimes = update.TimestepsHistory
-	} else if _, ok := params.GetOk(update.Name + "->function_values_data"); ok {
+		updateOccured = true
+	}
+	if _, ok := params.GetOk(update.Name + "->function_values_data"); ok {
 		g.BatchFunction = update.StateHistory
-	} else {
+		updateOccured = true
+	}
+	if !updateOccured {
 		panic("gaussian process gradient: memory update from partition: " +
 			update.Name + " has no configured use")
 	}
