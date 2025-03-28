@@ -6,9 +6,6 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// TODO: This needs to be removed and become the PosteriorKernelUpdateIteration
-// that always has a specific historical time range associated to it.
-
 // GaussianProcessGradientIteration computes the gradient for a
 // Gaussian process model defined over some function values over
 // a batch of data.

@@ -7,7 +7,6 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// TODO: Probably need to rethink StateMemoryUpdate to support this too...
 // TODO: 'embedded_partition_name/set_state_from_partition_history' feature
 // (uses relative state history depths ot figure out what data to fill in)
 // and 'set_timestep_history' feature as well doing the same thing.
