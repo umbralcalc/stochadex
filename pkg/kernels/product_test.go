@@ -7,15 +7,15 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-func TestSquaredExponentialStateIntegrationKernel(t *testing.T) {
+func TestProductIntegationKernel(t *testing.T) {
 	t.Run(
-		"test that the squared exponential state integration kernel runs",
+		"test that the product integration kernel runs",
 		func(t *testing.T) {
-			kernel := &SquaredExponentialStateIntegrationKernel{}
-			params := simulator.NewParams(map[string][]float64{
-				"target_state":      {0.7, 1.2, 1.8},
-				"covariance_matrix": {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0},
-			})
+			params := simulator.NewParams(make(map[string][]float64))
+			kernel := &ProductIntegrationKernel{
+				KernelA: &ConstantIntegrationKernel{},
+				KernelB: &ConstantIntegrationKernel{},
+			}
 			kernel.Configure(0, &simulator.Settings{
 				Iterations: []simulator.IterationSettings{
 					{Name: "test", Params: params},
@@ -27,8 +27,6 @@ func TestSquaredExponentialStateIntegrationKernel(t *testing.T) {
 				1.0,
 				0.0,
 			)
-			params.Set("target_state", []float64{0.1, 0.6, 0.2})
-			params.Set("covariance_matrix", []float64{2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0})
 			kernel.SetParams(&params)
 			valueTwo := kernel.Evaluate(
 				[]float64{0.3, 1.0, 0.0},
