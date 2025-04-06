@@ -3,6 +3,7 @@ package inference
 import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"golang.org/x/exp/rand"
+	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distmv"
 )
@@ -62,4 +63,27 @@ func (n *NormalLikelihoodDistribution) GenerateNewSamples(
 ) []float64 {
 	dist := n.getDist(mean, covariance)
 	return dist.Rand(nil)
+}
+
+func (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(
+	mean *mat.VecDense,
+	covariance mat.Symmetric,
+	data []float64,
+) []float64 {
+	stateWidth := mean.Len()
+	var choleskyDecomp mat.Cholesky
+	ok := choleskyDecomp.Factorize(covariance)
+	if !ok {
+		panic("cholesky decomp for covariance matrix failed")
+	}
+	logLikeGrad := mat.NewVecDense(stateWidth, nil)
+	diffVector := mat.NewVecDense(
+		stateWidth,
+		floats.SubTo(make([]float64, stateWidth), data, mean.RawVector().Data),
+	)
+	err := choleskyDecomp.SolveVecTo(logLikeGrad, diffVector)
+	if err != nil {
+		panic(err)
+	}
+	return logLikeGrad.RawVector().Data
 }

@@ -89,3 +89,6 @@ func TestGammaDataLinkingLogLikelihood(t *testing.T) {
 		},
 	)
 }
+
+func TestGammaDataLinkingLogLikelihoodGradient(t *testing.T) {
+}

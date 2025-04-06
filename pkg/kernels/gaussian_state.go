@@ -45,10 +45,10 @@ func (g *GaussianStateIntegrationKernel) Evaluate(
 		stateWidth,
 		floats.SubTo(make([]float64, stateWidth), currentState, pastState),
 	)
-	var vectorInvMat mat.VecDense
-	err := g.choleskyDecomp.SolveVecTo(&vectorInvMat, diffVector)
+	vectorInvMat := mat.NewVecDense(stateWidth, nil)
+	err := g.choleskyDecomp.SolveVecTo(vectorInvMat, diffVector)
 	if err != nil {
 		panic(err)
 	}
-	return math.Exp(-0.5*mat.Dot(&vectorInvMat, diffVector)) / g.determinant
+	return math.Exp(-0.5*mat.Dot(vectorInvMat, diffVector)) / g.determinant
 }

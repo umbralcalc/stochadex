@@ -47,13 +47,13 @@ func (t *TDistributionStateIntegrationKernel) Evaluate(
 		stateWidth,
 		floats.SubTo(make([]float64, stateWidth), currentState, pastState),
 	)
-	var vectorInvMat mat.VecDense
-	err := t.choleskyDecomp.SolveVecTo(&vectorInvMat, diffVector)
+	vectorInvMat := mat.NewVecDense(stateWidth, nil)
+	err := t.choleskyDecomp.SolveVecTo(vectorInvMat, diffVector)
 	if err != nil {
 		panic(err)
 	}
 	return math.Pow(
-		1.0+(mat.Dot(&vectorInvMat, diffVector)/t.dof),
+		1.0+(mat.Dot(vectorInvMat, diffVector)/t.dof),
 		-0.5*(float64(stateWidth)+t.dof),
 	) / t.determinant
 }
