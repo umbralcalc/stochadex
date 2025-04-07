@@ -51,7 +51,8 @@ func (d *DataComparisonGradientIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	mean := make([]float64, stateHistories[partitionIndex].StateWidth)
-	copy(mean, stateHistories[int(params.Get("mean_partition")[0])].Values.RawRowView(0))
+	copy(mean, stateHistories[int(
+		params.Get("mean_partition")[0])].Values.RawRowView(0))
 	dims := len(mean)
 	var covMat *mat.SymDense
 	cVals, ok := params.GetOk("covariance_matrix")
