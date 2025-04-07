@@ -10,7 +10,7 @@ import (
 
 func TestPoissonLogLikelihood(t *testing.T) {
 	t.Run(
-		"test that the Poisson data linking log-likelihood runs",
+		"test that the Poisson log-likelihood runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"poisson_settings.yaml",
@@ -48,7 +48,7 @@ func TestPoissonLogLikelihood(t *testing.T) {
 		},
 	)
 	t.Run(
-		"test that the Poisson data linking log-likelihood runs with harnesses",
+		"test that the Poisson log-likelihood runs with harnesses",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"poisson_settings.yaml",

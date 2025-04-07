@@ -14,8 +14,8 @@ type LikelihoodDistribution interface {
 	GenerateNewSamples(mean *mat.VecDense, covariance mat.Symmetric) []float64
 }
 
-// DataComparisonIteration allows for any data linking log-likelihood to be used
-// as a comparison distribution between data values, a mean vector and covariance
+// DataComparisonIteration allows for any log-likelihood to be used as a
+// comparison distribution between data values, a mean vector and covariance
 // matrix.
 type DataComparisonIteration struct {
 	Likelihood  LikelihoodDistribution
@@ -53,8 +53,8 @@ func (d *DataComparisonIteration) Iterate(
 		covMat = mat.NewSymDense(dims, cVals)
 	} else if varVals, ok := params.GetOk("variance"); ok {
 		cVals = make([]float64, 0)
-		for i := 0; i < dims; i++ {
-			for j := 0; j < dims; j++ {
+		for i := range dims {
+			for j := range dims {
 				switch i {
 				case j:
 					cVals = append(cVals, varVals[i])

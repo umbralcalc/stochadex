@@ -18,11 +18,23 @@ type LikelihoodDistributionGradient interface {
 	) []float64
 }
 
-// DataComparisonGradientIteration allows for any data linking log-likelihood
-// gradient to be used in computing the overall comparison distribution gradient.
+// MeanGradientFunc computes the gradient with respect to the mean directly.
+func MeanGradientFunc(
+	params *simulator.Params,
+	likeMeanGrad []float64,
+) []float64 {
+	return likeMeanGrad
+}
+
+// DataComparisonGradientIteration allows for any log-likelihood gradient to be
+// used in computing the overall comparison distribution gradient.
 type DataComparisonGradientIteration struct {
-	Likelihood LikelihoodDistributionGradient
-	Batch      *simulator.StateHistory
+	Likelihood   LikelihoodDistributionGradient
+	GradientFunc func(
+		params *simulator.Params,
+		likeMeanGrad []float64,
+	) []float64
+	Batch *simulator.StateHistory
 }
 
 func (d *DataComparisonGradientIteration) Configure(
@@ -38,7 +50,8 @@ func (d *DataComparisonGradientIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	mean := params.Get("mean")
+	mean := make([]float64, stateHistories[partitionIndex].StateWidth)
+	copy(mean, stateHistories[int(params.Get("mean_partition")[0])].Values.RawRowView(0))
 	dims := len(mean)
 	var covMat *mat.SymDense
 	cVals, ok := params.GetOk("covariance_matrix")
@@ -58,16 +71,16 @@ func (d *DataComparisonGradientIteration) Iterate(
 		}
 		covMat = mat.NewSymDense(dims, cVals)
 	}
-	likeGrad := make([]float64, len(mean))
+	likeMeanGrad := make([]float64, len(mean))
 	meanVec := mat.NewVecDense(dims, mean)
 	for i := range d.Batch.StateHistoryDepth {
-		floats.Add(likeGrad, d.Likelihood.EvaluateLogLikeMeanGrad(
+		floats.Add(likeMeanGrad, d.Likelihood.EvaluateLogLikeMeanGrad(
 			meanVec,
 			covMat,
 			d.Batch.Values.RawRowView(i),
 		))
 	}
-	return likeGrad
+	return d.GradientFunc(params, likeMeanGrad)
 }
 
 func (d *DataComparisonGradientIteration) UpdateMemory(

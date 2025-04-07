@@ -8,9 +8,9 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
+func TestNegativeBinomialLogLikelihood(t *testing.T) {
 	t.Run(
-		"test that the Negative Binomial data linking log-likelihood runs",
+		"test that the Negative Binomial log-likelihood runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"negative_binomial_settings.yaml",
@@ -52,7 +52,7 @@ func TestNegativeBinomialLinkingLogLikelihood(t *testing.T) {
 		},
 	)
 	t.Run(
-		"test that the Negative Binomial data linking log-likelihood runs with harnesses",
+		"test that the Negative Binomial log-likelihood runs with harnesses",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"negative_binomial_settings.yaml",

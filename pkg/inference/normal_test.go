@@ -8,9 +8,9 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestNormalLinkingLogLikelihood(t *testing.T) {
+func TestNormalLogLikelihood(t *testing.T) {
 	t.Run(
-		"test that the Normal data linking log-likelihood runs",
+		"test that the Normal log-likelihood runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"normal_settings.yaml",
@@ -52,7 +52,7 @@ func TestNormalLinkingLogLikelihood(t *testing.T) {
 		},
 	)
 	t.Run(
-		"test that the Normal data linking log-likelihood runs with harnesses",
+		"test that the Normal log-likelihood runs with harnesses",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
 				"normal_settings.yaml",
