@@ -3,7 +3,7 @@ iterations:
   params:
     copulas_off: [1]
     mean_partition: [1]
-    variance: [5.0, 5.0, 5.0]
+    variance: [1.0, 3.0, 2.0]
   init_state_values: [0.0, 0.0, 0.0]
   seed: 0
   state_width: 3
@@ -15,7 +15,7 @@ iterations:
   params_from_upstream:
     gradient:
       upstream: 0
-  init_state_values: [35.0, 3.6, 1.0]
+  init_state_values: [1.0, 1.0, 1.0]
   seed: 0
   state_width: 3
   state_history_depth: 1

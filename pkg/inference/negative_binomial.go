@@ -21,6 +21,8 @@ func (n *NegativeBinomialLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	n.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	checkCovariancesImplemented(
+		"negative_binomial", settings.Iterations[partitionIndex].Params)
 }
 
 func (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLike(

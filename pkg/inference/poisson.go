@@ -19,6 +19,8 @@ func (p *PoissonLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	p.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	checkCovariancesImplemented(
+		"poisson", settings.Iterations[partitionIndex].Params)
 }
 
 func (p *PoissonLikelihoodDistribution) EvaluateLogLike(
