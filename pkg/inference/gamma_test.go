@@ -93,7 +93,7 @@ func TestGammaDataLogLikelihood(t *testing.T) {
 	)
 }
 
-func TestGammaDataLogLikelihoodGradient(t *testing.T) {
+func TestGammaLogLikelihoodGradient(t *testing.T) {
 	t.Run(
 		"test that the Gamma log-likelihood gradient runs",
 		func(t *testing.T) {
