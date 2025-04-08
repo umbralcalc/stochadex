@@ -61,11 +61,11 @@ func (g *GammaLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {
 	logLikeGrad := make([]float64, 0)
-	var m, alpha float64
 	for i := range mean.Len() {
-		m = mean.AtVec(i)
-		alpha = m * m / covariance.At(i, i)
-		logLikeGrad = append(logLikeGrad, alpha*(data[i]-m)/(m*m))
+		logLikeGrad = append(
+			logLikeGrad,
+			(data[i]-mean.AtVec(i))/covariance.At(i, i),
+		)
 	}
 	return logLikeGrad
 }

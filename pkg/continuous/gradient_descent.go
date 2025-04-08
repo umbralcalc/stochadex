@@ -23,6 +23,11 @@ func (g *GradientDescentIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	gradient := params.Get("gradient")
 	learningRate := params.Get("learning_rate")[0]
+	if a, ok := params.GetOk("ascent"); ok {
+		if a[0] == 1 {
+			learningRate *= -1.0
+		}
+	}
 	values := make([]float64, stateHistory.StateWidth)
 	for i := range values {
 		values[i] = stateHistory.Values.At(0, i) - learningRate*gradient[i]

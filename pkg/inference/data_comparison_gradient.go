@@ -81,6 +81,7 @@ func (d *DataComparisonGradientIteration) Iterate(
 			d.Batch.Values.RawRowView(i),
 		))
 	}
+	floats.Scale(1.0/float64(d.Batch.StateHistoryDepth), likeMeanGrad)
 	return d.GradientFunc(params, likeMeanGrad)
 }
 
