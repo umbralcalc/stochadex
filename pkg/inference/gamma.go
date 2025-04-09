@@ -7,20 +7,6 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// checkCovariancesImplemented checks whether covariances have been implemented
-// for the distribution and panics if not switched off and unimplemented.
-func checkCovariancesImplemented(name string, params simulator.Params) {
-	if c, ok := params.GetOk("copulas_off"); ok {
-		if c[0] != 1 {
-			panic(name + " likelihood: copulas not yet implemented for covariances," +
-				" must set 'copulas_off' params = 1")
-		}
-	} else {
-		panic(name + " likelihood: copulas not yet implemented for covariances," +
-			" must set 'copulas_off' params = 1")
-	}
-}
-
 // GammaLikelihoodDistribution assumes the real data are well described
 // by a gamma distribution, given the input mean and covariance matrix.
 type GammaLikelihoodDistribution struct {
@@ -32,8 +18,6 @@ func (g *GammaLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	g.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
-	checkCovariancesImplemented(
-		"gamma", settings.Iterations[partitionIndex].Params)
 }
 
 func (g *GammaLikelihoodDistribution) EvaluateLogLike(

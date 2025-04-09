@@ -1,7 +1,6 @@
 iterations:
 - name: partition_0
   params:
-    copulas_off: [1]
     mean_partition: [1]
   init_state_values: [0.0, 0.0, 0.0]
   seed: 0
