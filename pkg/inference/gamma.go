@@ -10,7 +10,9 @@ import (
 // GammaLikelihoodDistribution assumes the real data are well described
 // by a gamma distribution, given the input mean and covariance matrix.
 type GammaLikelihoodDistribution struct {
-	Src rand.Source
+	Src      rand.Source
+	mean     *mat.VecDense
+	variance *mat.VecDense
 }
 
 func (g *GammaLikelihoodDistribution) Configure(
@@ -18,19 +20,21 @@ func (g *GammaLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	g.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	g.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
-func (g *GammaLikelihoodDistribution) EvaluateLogLike(
-	mean *mat.VecDense,
-	covariance mat.Symmetric,
-	data []float64,
-) float64 {
+func (g *GammaLikelihoodDistribution) SetParams(params *simulator.Params) {
+	g.mean = MeanFromParams(params)
+	g.variance = VarianceFromParams(params)
+}
+
+func (g *GammaLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
 	dist := &distuv.Gamma{Alpha: 1.0, Beta: 1.0, Src: g.Src}
 	logLike := 0.0
 	var m, v float64
-	for i := range mean.Len() {
-		m = mean.AtVec(i)
-		v = covariance.At(i, i)
+	for i := range g.mean.Len() {
+		m = g.mean.AtVec(i)
+		v = g.variance.AtVec(i)
 		dist.Beta = m / v
 		dist.Alpha = m * m / v
 		logLike += dist.LogProb(data[i])
@@ -38,16 +42,13 @@ func (g *GammaLikelihoodDistribution) EvaluateLogLike(
 	return logLike
 }
 
-func (g *GammaLikelihoodDistribution) GenerateNewSamples(
-	mean *mat.VecDense,
-	covariance mat.Symmetric,
-) []float64 {
+func (g *GammaLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
 	dist := &distuv.Gamma{Alpha: 1.0, Beta: 1.0, Src: g.Src}
 	var m, v float64
-	for i := range mean.Len() {
-		m = mean.AtVec(i)
-		v = covariance.At(i, i)
+	for i := range g.mean.Len() {
+		m = g.mean.AtVec(i)
+		v = g.variance.AtVec(i)
 		dist.Beta = m / v
 		dist.Alpha = m * m / v
 		samples = append(samples, dist.Rand())
@@ -56,15 +57,13 @@ func (g *GammaLikelihoodDistribution) GenerateNewSamples(
 }
 
 func (g *GammaLikelihoodDistribution) EvaluateLogLikeMeanGrad(
-	mean *mat.VecDense,
-	covariance mat.Symmetric,
 	data []float64,
 ) []float64 {
 	logLikeGrad := make([]float64, 0)
-	for i := range mean.Len() {
+	for i := range g.mean.Len() {
 		logLikeGrad = append(
 			logLikeGrad,
-			(data[i]-mean.AtVec(i))/covariance.At(i, i),
+			(data[i]-g.mean.AtVec(i))/g.variance.AtVec(i),
 		)
 	}
 	return logLikeGrad

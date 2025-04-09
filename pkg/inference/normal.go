@@ -11,9 +11,10 @@ import (
 // NormalLikelihoodDistribution assumes the real data are well described
 // by a normal distribution, given the input mean and covariance matrix.
 type NormalLikelihoodDistribution struct {
-	Src          rand.Source
-	defaultCov   []float64
-	defaultCovOk bool
+	Src        rand.Source
+	mean       *mat.VecDense
+	covariance *mat.SymDense
+	defaultCov []float64
 }
 
 func (n *NormalLikelihoodDistribution) Configure(
@@ -21,24 +22,30 @@ func (n *NormalLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	n.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
-	n.defaultCov, n.defaultCovOk =
-		settings.Iterations[partitionIndex].Params.GetOk("default_covariance")
+	n.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
-func (n *NormalLikelihoodDistribution) getDist(
-	mean *mat.VecDense,
-	covariance mat.Symmetric,
-) *distmv.Normal {
+func (n *NormalLikelihoodDistribution) SetParams(
+	params *simulator.Params,
+) {
+	n.mean = MeanFromParams(params)
+	n.covariance = CovarianceMatrixFromParams(params)
+	if c, ok := params.GetOk("default_covariance"); ok {
+		n.defaultCov = c
+	}
+}
+
+func (n *NormalLikelihoodDistribution) getDist() *distmv.Normal {
 	dist, ok := distmv.NewNormal(
-		mean.RawVector().Data,
-		covariance,
+		n.mean.RawVector().Data,
+		n.covariance,
 		n.Src,
 	)
 	if !ok {
-		if n.defaultCovOk {
+		if n.defaultCov != nil {
 			dist, _ = distmv.NewNormal(
-				mean.RawVector().Data,
-				mat.NewSymDense(mean.Len(), n.defaultCov),
+				n.mean.RawVector().Data,
+				mat.NewSymDense(n.mean.Len(), n.defaultCov),
 				n.Src,
 			)
 		} else {
@@ -48,38 +55,29 @@ func (n *NormalLikelihoodDistribution) getDist(
 	return dist
 }
 
-func (n *NormalLikelihoodDistribution) EvaluateLogLike(
-	mean *mat.VecDense,
-	covariance mat.Symmetric,
-	data []float64,
-) float64 {
-	dist := n.getDist(mean, covariance)
+func (n *NormalLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
+	dist := n.getDist()
 	return dist.LogProb(data)
 }
 
-func (n *NormalLikelihoodDistribution) GenerateNewSamples(
-	mean *mat.VecDense,
-	covariance mat.Symmetric,
-) []float64 {
-	dist := n.getDist(mean, covariance)
+func (n *NormalLikelihoodDistribution) GenerateNewSamples() []float64 {
+	dist := n.getDist()
 	return dist.Rand(nil)
 }
 
 func (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(
-	mean *mat.VecDense,
-	covariance mat.Symmetric,
 	data []float64,
 ) []float64 {
-	stateWidth := mean.Len()
+	stateWidth := n.mean.Len()
 	var choleskyDecomp mat.Cholesky
-	ok := choleskyDecomp.Factorize(covariance)
+	ok := choleskyDecomp.Factorize(n.covariance)
 	if !ok {
 		panic("cholesky decomp for covariance matrix failed")
 	}
 	logLikeGrad := mat.NewVecDense(stateWidth, nil)
 	diffVector := mat.NewVecDense(
 		stateWidth,
-		floats.SubTo(make([]float64, stateWidth), data, mean.RawVector().Data),
+		floats.SubTo(make([]float64, stateWidth), data, n.mean.RawVector().Data),
 	)
 	err := choleskyDecomp.SolveVecTo(logLikeGrad, diffVector)
 	if err != nil {

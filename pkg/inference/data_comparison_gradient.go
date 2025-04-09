@@ -4,19 +4,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/mat"
 )
-
-// LikelihoodDistributionGradient is the interface that must be implemented in
-// order to create a likelihood which computes a gradient.
-type LikelihoodDistributionGradient interface {
-	LikelihoodDistribution
-	EvaluateLogLikeMeanGrad(
-		mean *mat.VecDense,
-		covariance mat.Symmetric,
-		data []float64,
-	) []float64
-}
 
 // MeanGradientFunc computes the gradient with respect to the mean directly.
 func MeanGradientFunc(
@@ -50,34 +38,10 @@ func (d *DataComparisonGradientIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	mean := make([]float64, stateHistories[partitionIndex].StateWidth)
-	copy(mean, stateHistories[int(
-		params.Get("mean_partition")[0])].Values.RawRowView(0))
-	dims := len(mean)
-	var covMat *mat.SymDense
-	cVals, ok := params.GetOk("covariance_matrix")
-	if ok {
-		covMat = mat.NewSymDense(dims, cVals)
-	} else if varVals, ok := params.GetOk("variance"); ok {
-		cVals = make([]float64, 0)
-		for i := range dims {
-			for j := range dims {
-				switch i {
-				case j:
-					cVals = append(cVals, varVals[i])
-				default:
-					cVals = append(cVals, 0.0)
-				}
-			}
-		}
-		covMat = mat.NewSymDense(dims, cVals)
-	}
-	likeMeanGrad := make([]float64, len(mean))
-	meanVec := mat.NewVecDense(dims, mean)
+	d.Likelihood.SetParams(params)
+	likeMeanGrad := make([]float64, stateHistories[partitionIndex].StateWidth)
 	for i := range d.Batch.StateHistoryDepth {
 		floats.Add(likeMeanGrad, d.Likelihood.EvaluateLogLikeMeanGrad(
-			meanVec,
-			covMat,
 			d.Batch.Values.RawRowView(i),
 		))
 	}
