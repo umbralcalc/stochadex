@@ -8,7 +8,7 @@ import (
 )
 
 // GammaLikelihoodDistribution assumes the real data are well described
-// by a gamma distribution, given the input mean and covariance matrix.
+// by a gamma distribution, given the input mean and variance.
 type GammaLikelihoodDistribution struct {
 	Src      rand.Source
 	mean     *mat.VecDense

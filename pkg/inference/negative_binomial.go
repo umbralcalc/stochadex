@@ -11,7 +11,7 @@ import (
 
 // NegativeBinomialLikelihoodDistribution assumes the real data are well
 // described by a negative binomial distribution, given the input mean
-// and covariance matrix.
+// and variance.
 type NegativeBinomialLikelihoodDistribution struct {
 	Src      rand.Source
 	mean     *mat.VecDense

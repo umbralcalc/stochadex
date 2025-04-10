@@ -9,7 +9,7 @@ import (
 )
 
 // PoissonLikelihoodDistribution assumes the real data are well described
-// by a Poisson distribution, given the input mean and covariance matrix.
+// by a Poisson distribution, given the input mean.
 type PoissonLikelihoodDistribution struct {
 	Src  rand.Source
 	mean *mat.VecDense
