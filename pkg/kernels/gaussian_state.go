@@ -19,7 +19,6 @@ func (g *GaussianStateIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (g *GaussianStateIntegrationKernel) SetParams(params *simulator.Params) {

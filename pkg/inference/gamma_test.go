@@ -100,13 +100,13 @@ func TestGammaLogLikelihoodGradient(t *testing.T) {
 			dist := &GammaLikelihoodDistribution{
 				Src: rand.NewSource(123456),
 			}
-			mean := mat.NewVecDense(3, []float64{3.0, 1.8, 7.2})
-			covariance := mat.NewSymDense(3, []float64{
-				3.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 3.0,
-			})
+			params := simulator.NewParams(make(map[string][]float64))
+			params.Set("mean", []float64{3.0, 1.8, 7.2})
+			params.Set("variance", []float64{3.0, 3.0, 3.0})
+			dist.SetParams(&params, 0, nil, nil)
 			batchData := make([]float64, 0)
 			for range 100 {
-				values := dist.GenerateNewSamples(mean, covariance)
+				values := dist.GenerateNewSamples()
 				batchData = append(batchData, values...)
 			}
 			settings := simulator.LoadSettingsFromYaml(
@@ -149,13 +149,13 @@ func TestGammaLogLikelihoodGradient(t *testing.T) {
 			dist := &GammaLikelihoodDistribution{
 				Src: rand.NewSource(123456),
 			}
-			mean := mat.NewVecDense(3, []float64{3.0, 1.8, 7.2})
-			covariance := mat.NewSymDense(3, []float64{
-				3.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 3.0,
-			})
+			params := simulator.NewParams(make(map[string][]float64))
+			params.Set("mean", []float64{3.0, 1.8, 7.2})
+			params.Set("variance", []float64{3.0, 3.0, 3.0})
+			dist.SetParams(&params, 0, nil, nil)
 			batchData := make([]float64, 0)
 			for range 100 {
-				values := dist.GenerateNewSamples(mean, covariance)
+				values := dist.GenerateNewSamples()
 				batchData = append(batchData, values...)
 			}
 			settings := simulator.LoadSettingsFromYaml(

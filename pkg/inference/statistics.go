@@ -27,6 +27,27 @@ func MeanFromParams(params *simulator.Params) *mat.VecDense {
 	return mat.NewVecDense(len(mean), mean)
 }
 
+// MeanFromParamsOrPartition retrieves the mean from params or
+// indexed partition value, depending on which is set.
+func MeanFromParamsOrPartition(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+) *mat.VecDense {
+	if _, ok := params.GetOk("mean"); ok {
+		return MeanFromParams(params)
+	} else if _, ok := params.GetOk("mean_partition"); ok {
+		return MeanFromPartition(
+			params,
+			partitionIndex,
+			stateHistories,
+		)
+	} else {
+		panic("inference.MeanFromParamsOrPartition: neither" +
+			" 'mean' or 'mean_partition' have been set")
+	}
+}
+
 // VarianceFromParams retrieves the variance from params.
 func VarianceFromParams(params *simulator.Params) *mat.VecDense {
 	v := params.Get("variance")

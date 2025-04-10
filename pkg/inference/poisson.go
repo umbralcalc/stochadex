@@ -20,13 +20,15 @@ func (p *PoissonLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	p.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
-	p.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (p *PoissonLikelihoodDistribution) SetParams(
 	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
-	p.mean = MeanFromParams(params)
+	p.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
 }
 
 func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {

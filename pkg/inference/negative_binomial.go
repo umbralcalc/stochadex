@@ -23,13 +23,15 @@ func (n *NegativeBinomialLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	n.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
-	n.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (n *NegativeBinomialLikelihoodDistribution) SetParams(
 	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
-	n.mean = MeanFromParams(params)
+	n.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
 	n.variance = VarianceFromParams(params)
 }
 

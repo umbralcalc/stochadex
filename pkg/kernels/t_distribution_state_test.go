@@ -21,6 +21,7 @@ func TestTDistributionStateIntegrationKernel(t *testing.T) {
 					{Name: "test", Params: params},
 				},
 			})
+			kernel.SetParams(&params)
 			valueOne := kernel.Evaluate(
 				[]float64{0.3, 1.0, 0.0},
 				[]float64{0.5, 1.1, 1.0},

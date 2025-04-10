@@ -100,13 +100,15 @@ func TestNormalLogLikelihoodGradient(t *testing.T) {
 			dist := &NormalLikelihoodDistribution{
 				Src: rand.NewSource(123456),
 			}
-			mean := mat.NewVecDense(3, []float64{35.0, 3.6, 1.0})
-			covariance := mat.NewSymDense(3, []float64{
+			params := simulator.NewParams(make(map[string][]float64))
+			params.Set("mean", []float64{35.0, 3.6, 1.0})
+			params.Set("covariance_matrix", []float64{
 				1.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 2.0,
 			})
+			dist.SetParams(&params, 0, nil, nil)
 			batchData := make([]float64, 0)
 			for range 100 {
-				values := dist.GenerateNewSamples(mean, covariance)
+				values := dist.GenerateNewSamples()
 				batchData = append(batchData, values...)
 			}
 			settings := simulator.LoadSettingsFromYaml(
@@ -149,13 +151,15 @@ func TestNormalLogLikelihoodGradient(t *testing.T) {
 			dist := &NormalLikelihoodDistribution{
 				Src: rand.NewSource(123456),
 			}
-			mean := mat.NewVecDense(3, []float64{35.0, 3.6, 1.0})
-			covariance := mat.NewSymDense(3, []float64{
+			params := simulator.NewParams(make(map[string][]float64))
+			params.Set("mean", []float64{35.0, 3.6, 1.0})
+			params.Set("covariance_matrix", []float64{
 				1.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 2.0,
 			})
+			dist.SetParams(&params, 0, nil, nil)
 			batchData := make([]float64, 0)
 			for range 100 {
-				values := dist.GenerateNewSamples(mean, covariance)
+				values := dist.GenerateNewSamples()
 				batchData = append(batchData, values...)
 			}
 			settings := simulator.LoadSettingsFromYaml(

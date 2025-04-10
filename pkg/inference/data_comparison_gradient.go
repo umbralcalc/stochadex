@@ -38,7 +38,12 @@ func (d *DataComparisonGradientIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	d.Likelihood.SetParams(params)
+	d.Likelihood.SetParams(
+		params,
+		partitionIndex,
+		stateHistories,
+		timestepsHistory,
+	)
 	likeMeanGrad := make([]float64, stateHistories[partitionIndex].StateWidth)
 	for i := range d.Batch.StateHistoryDepth {
 		floats.Add(likeMeanGrad, d.Likelihood.EvaluateLogLikeMeanGrad(

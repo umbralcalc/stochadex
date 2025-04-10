@@ -38,6 +38,12 @@ func (d *DataGenerationIteration) Iterate(
 		copy(values, stateHistory.Values.RawRowView(0))
 		return values
 	}
+	d.Likelihood.SetParams(
+		params,
+		partitionIndex,
+		stateHistories,
+		timestepsHistory,
+	)
 	samples := d.Likelihood.GenerateNewSamples()
 	corr, ok := params.GetOk("correlation_with_previous")
 	if ok {

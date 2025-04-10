@@ -22,13 +22,15 @@ func (n *NormalLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	n.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
-	n.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (n *NormalLikelihoodDistribution) SetParams(
 	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
-	n.mean = MeanFromParams(params)
+	n.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
 	n.covariance = CovarianceMatrixFromParams(params)
 	if c, ok := params.GetOk("default_covariance"); ok {
 		n.defaultCov = c

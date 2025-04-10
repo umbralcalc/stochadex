@@ -20,7 +20,6 @@ func (t *TDistributionStateIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	t.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (t *TDistributionStateIntegrationKernel) SetParams(params *simulator.Params) {

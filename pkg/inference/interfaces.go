@@ -8,7 +8,12 @@ import (
 // order to create a likelihood model for some data.
 type LikelihoodDistribution interface {
 	Configure(partitionIndex int, settings *simulator.Settings)
-	SetParams(params *simulator.Params)
+	SetParams(
+		params *simulator.Params,
+		partitionIndex int,
+		stateHistories []*simulator.StateHistory,
+		timestepsHistory *simulator.CumulativeTimestepsHistory,
+	)
 	EvaluateLogLike(data []float64) float64
 	GenerateNewSamples() []float64
 }

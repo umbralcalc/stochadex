@@ -20,11 +20,15 @@ func (g *GammaLikelihoodDistribution) Configure(
 	settings *simulator.Settings,
 ) {
 	g.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
-	g.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
-func (g *GammaLikelihoodDistribution) SetParams(params *simulator.Params) {
-	g.mean = MeanFromParams(params)
+func (g *GammaLikelihoodDistribution) SetParams(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) {
+	g.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
 	g.variance = VarianceFromParams(params)
 }
 

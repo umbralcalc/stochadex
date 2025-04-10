@@ -16,7 +16,6 @@ func (b *BinnedIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	b.SetParams(&settings.Iterations[partitionIndex].Params)
 }
 
 func (b *BinnedIntegrationKernel) SetParams(

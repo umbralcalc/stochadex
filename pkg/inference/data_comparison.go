@@ -36,7 +36,12 @@ func (d *DataComparisonIteration) Iterate(
 	if timestepsHistory.CurrentStepNumber < d.burnInSteps {
 		return []float64{stateHistories[partitionIndex].Values.At(0, 0)}
 	}
-	d.Likelihood.SetParams(params)
+	d.Likelihood.SetParams(
+		params,
+		partitionIndex,
+		stateHistories,
+		timestepsHistory,
+	)
 	like := d.Likelihood.EvaluateLogLike(params.Get("latest_data_values"))
 	if d.cumulative {
 		like += stateHistories[partitionIndex].Values.At(0, 0)

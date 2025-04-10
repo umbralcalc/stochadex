@@ -100,13 +100,13 @@ func TestNegativeBinomialLogLikelihoodGradient(t *testing.T) {
 			dist := &NegativeBinomialLikelihoodDistribution{
 				Src: rand.NewSource(123456),
 			}
-			mean := mat.NewVecDense(3, []float64{0.5, 1.0, 0.8})
-			covariance := mat.NewSymDense(3, []float64{
-				5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 5.0,
-			})
+			params := simulator.NewParams(make(map[string][]float64))
+			params.Set("mean", []float64{0.5, 1.0, 0.8})
+			params.Set("variance", []float64{5.0, 5.0, 5.0})
+			dist.SetParams(&params, 0, nil, nil)
 			batchData := make([]float64, 0)
 			for range 100 {
-				values := dist.GenerateNewSamples(mean, covariance)
+				values := dist.GenerateNewSamples()
 				batchData = append(batchData, values...)
 			}
 			settings := simulator.LoadSettingsFromYaml(
@@ -149,13 +149,13 @@ func TestNegativeBinomialLogLikelihoodGradient(t *testing.T) {
 			dist := &NegativeBinomialLikelihoodDistribution{
 				Src: rand.NewSource(123456),
 			}
-			mean := mat.NewVecDense(3, []float64{0.5, 1.0, 0.8})
-			covariance := mat.NewSymDense(3, []float64{
-				5.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 5.0,
-			})
+			params := simulator.NewParams(make(map[string][]float64))
+			params.Set("mean", []float64{0.5, 1.0, 0.8})
+			params.Set("variance", []float64{5.0, 5.0, 5.0})
+			dist.SetParams(&params, 0, nil, nil)
 			batchData := make([]float64, 0)
 			for range 100 {
-				values := dist.GenerateNewSamples(mean, covariance)
+				values := dist.GenerateNewSamples()
 				batchData = append(batchData, values...)
 			}
 			settings := simulator.LoadSettingsFromYaml(
