@@ -121,7 +121,7 @@ func TestPoissonLogLikelihoodGradient(t *testing.T) {
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.EveryStepOutputCondition{},
-				OutputFunction:  &simulator.StdoutOutputFunction{},
+				OutputFunction:  &simulator.NilOutputFunction{},
 				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 100,
 				},
