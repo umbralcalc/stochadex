@@ -18,9 +18,9 @@ type LikelihoodDistribution interface {
 	GenerateNewSamples() []float64
 }
 
-// LikelihoodDistributionGradient is the interface that must be implemented in
-// order to create a likelihood which computes a gradient.
-type LikelihoodDistributionGradient interface {
+// LikelihoodDistributionWithGradient is the interface that must be
+// implemented in order to create a likelihood which computes a gradient.
+type LikelihoodDistributionWithGradient interface {
 	LikelihoodDistribution
 	EvaluateLogLikeMeanGrad(data []float64) []float64
 }

@@ -17,7 +17,7 @@ func MeanGradientFunc(
 // DataComparisonGradientIteration allows for any log-likelihood gradient to be
 // used in computing the overall comparison distribution gradient.
 type DataComparisonGradientIteration struct {
-	Likelihood   LikelihoodDistributionGradient
+	Likelihood   LikelihoodDistributionWithGradient
 	GradientFunc func(
 		params *simulator.Params,
 		likeMeanGrad []float64,

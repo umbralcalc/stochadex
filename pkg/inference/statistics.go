@@ -59,8 +59,7 @@ func VarianceFromParams(params *simulator.Params) *mat.VecDense {
 // CovarianceMatrixFromParams retrieves the covariance matrix from params.
 func CovarianceMatrixFromParams(params *simulator.Params) *mat.SymDense {
 	var covMat *mat.SymDense
-	cVals, ok := params.GetOk("covariance_matrix")
-	if ok {
+	if cVals, ok := params.GetOk("covariance_matrix"); ok {
 		covMat = mat.NewSymDense(int(math.Sqrt(float64(len(cVals)))), cVals)
 	} else if varVals, ok := params.GetOk("variance"); ok {
 		dims := len(varVals)
