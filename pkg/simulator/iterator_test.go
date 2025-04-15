@@ -51,7 +51,7 @@ func TestStateIterator(t *testing.T) {
 			iterator := &StateIterator{
 				Iteration:       &testIteration{},
 				Params:          params,
-				PartitionIndex:  0,
+				Partition:       NamedPartitionIndex{Index: 0},
 				ValueChannels:   stateValueChannels,
 				OutputCondition: &NilOutputCondition{},
 				OutputFunction:  &NilOutputFunction{},

@@ -7,14 +7,6 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// TODO: 'embedded_partition_name/set_state_from_partition_history' feature
-// (uses relative state history depths ot figure out what data to fill in)
-// and 'set_timestep_history' feature as well doing the same thing.
-// This stateful loading of histories will support two use cases at once:
-// 1. The posterior kernel history loading
-// 2. Future reward calculations from current state
-// TODO: How do we blend this with IterateFromHistory approach?
-
 // StateMemoryUpdate packages a memory update with a name which is the
 // partition name in the other simulation that it came from.
 type StateMemoryUpdate struct {
@@ -30,13 +22,6 @@ type StateMemoryIteration interface {
 	UpdateMemory(params *simulator.Params, update *StateMemoryUpdate)
 }
 
-// NamedPartitionIndex pairs the name of a partition with the partition
-// index assigned to it by the PartitionCoordinator.
-type NamedPartitionIndex struct {
-	Name  string
-	Index int
-}
-
 // EmbeddedSimulationRunIteration facilitates running an embedded
 // sub-simulation to termination inside of an iteration of another
 // simulation for each step of the latter simulation.
@@ -45,7 +30,7 @@ type EmbeddedSimulationRunIteration struct {
 	implementations       *simulator.Implementations
 	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
-	updateFromHistories   map[int][]NamedPartitionIndex
+	updateFromHistories   map[int][]simulator.NamedPartitionIndex
 	initStatesFromHistory map[int]int
 	useTimestepHistory    bool
 	burnInSteps           int
@@ -67,7 +52,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		"ignore_timestep_history"); ok {
 		e.useTimestepHistory = int(ignore[0]) != 1
 	}
-	e.updateFromHistories = make(map[int][]NamedPartitionIndex)
+	e.updateFromHistories = make(map[int][]simulator.NamedPartitionIndex)
 	e.initStatesFromHistory = make(map[int]int)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
@@ -86,11 +71,11 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				partitionNames := make([]NamedPartitionIndex, 0)
+				partitionNames := make([]simulator.NamedPartitionIndex, 0)
 				for _, paramsValue := range paramsValues {
 					partitionNames = append(
 						partitionNames,
-						NamedPartitionIndex{
+						simulator.NamedPartitionIndex{
 							Name:  settings.Iterations[int(paramsValue)].Name,
 							Index: int(paramsValue),
 						},
