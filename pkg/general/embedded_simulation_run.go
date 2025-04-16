@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/mat"
 )
 
 // StateMemoryUpdate packages a memory update with a name which is the
@@ -22,6 +23,12 @@ type StateMemoryIteration interface {
 	UpdateMemory(params *simulator.Params, update *StateMemoryUpdate)
 }
 
+// IndexedState pairs a partition index with a state history.
+type IndexedState struct {
+	Index   int
+	History *simulator.StateHistory
+}
+
 // EmbeddedSimulationRunIteration facilitates running an embedded
 // sub-simulation to termination inside of an iteration of another
 // simulation for each step of the latter simulation.
@@ -31,7 +38,7 @@ type EmbeddedSimulationRunIteration struct {
 	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
 	updateFromHistories   map[int][]simulator.NamedPartitionIndex
-	initStatesFromHistory map[int]int
+	initStatesFromHistory map[int]IndexedState
 	useTimestepHistory    bool
 	burnInSteps           int
 }
@@ -53,7 +60,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		e.useTimestepHistory = int(ignore[0]) != 1
 	}
 	e.updateFromHistories = make(map[int][]simulator.NamedPartitionIndex)
-	e.initStatesFromHistory = make(map[int]int)
+	e.initStatesFromHistory = make(map[int]IndexedState)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
 		Iterations[partitionIndex].Params.Map {
@@ -65,7 +72,17 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				e.initStatesFromHistory[inPartition] = int(paramsValues[0])
+				outPartition := int(paramsValues[0])
+				width := e.settings.Iterations[inPartition].StateWidth
+				historyDepth := e.settings.Iterations[inPartition].StateHistoryDepth
+				e.initStatesFromHistory[inPartition] = IndexedState{
+					Index: outPartition,
+					History: &simulator.StateHistory{
+						Values:            mat.NewDense(historyDepth, width, nil),
+						StateWidth:        width,
+						StateHistoryDepth: historyDepth,
+					},
+				}
 			case "update_from_partition_history":
 				inPartition, ok := e.partitionNameToIndex[matches[1]]
 				if !ok {
@@ -154,22 +171,30 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 			))
 		}
 	}
-	for inIndex, outIndex := range e.initStatesFromHistory {
-		e.settings.Iterations[inIndex].InitStateValues =
-			stateHistories[outIndex].Values.RawRowView(
-				stateHistories[outIndex].StateHistoryDepth - 1,
-			)
-	}
 	if t, ok := params.GetOk("init_time_value"); ok {
 		initTimeValue = t[0]
 	}
 	e.settings.InitTimeValue = initTimeValue
 
-	// instantiate and run the embedded simulation to termination
+	// instantiate the embedded simulation
 	coordinator := simulator.NewPartitionCoordinator(
 		e.settings,
 		e.implementations,
 	)
+	// update any configured state histories to run the simulation from
+	for inIndex, out := range e.initStatesFromHistory {
+		for i := out.History.StateHistoryDepth - 1; i > 0; i-- {
+			out.History.Values.SetRow(i, out.History.Values.RawRowView(i-1))
+		}
+		out.History.Values.SetRow(0,
+			stateHistories[out.Index].Values.RawRowView(
+				stateHistories[out.Index].StateHistoryDepth-
+					out.History.StateHistoryDepth,
+			),
+		)
+		coordinator.Shared.StateHistories[inIndex] = out.History
+	}
+	// run the embedded simulation to termination
 	coordinator.Run()
 
 	// prepare the returned state slice as the concatenated
