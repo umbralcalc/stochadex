@@ -57,7 +57,7 @@ func (s *StateValueChannels) UpdateUpstreamParams(params *Params) {
 // BroadcastDownstream broadcasts the computationally-upstream state values
 // to its configured number of downstreams on the relevant channel.
 func (s *StateValueChannels) BroadcastDownstream(stateValues []float64) {
-	for i := 0; i < s.Downstream.Copies; i++ {
+	for range s.Downstream.Copies {
 		s.Downstream.Channel <- stateValues
 	}
 }

@@ -15,9 +15,9 @@ func TestStateTimeStorage(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				inc := 0.0
-				for i := 0; i < 100; i++ {
+				for i := range 100 {
 					values := make([]float64, 0)
-					for j := 0; j < 2; j++ {
+					for range 2 {
 						values = append(values, inc)
 						inc += 1.0
 					}
@@ -28,9 +28,9 @@ func TestStateTimeStorage(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				inc := 0.0
-				for i := 0; i < 100; i++ {
+				for i := range 100 {
 					values := make([]float64, 0)
-					for j := 0; j < 3; j++ {
+					for range 3 {
 						values = append(values, inc)
 						inc += 1.0
 					}

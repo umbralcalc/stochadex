@@ -56,7 +56,7 @@ func PopFromOtherCollectionPushFunction(
 ) ([]float64, bool) {
 	nextValues := make([]float64, 0)
 	stateHistory := stateHistories[int(params.GetIndex("other_partition", 0))]
-	for index := 0; index < int(params.GetIndex("values_state_width", 0)); index++ {
+	for index := range int(params.GetIndex("values_state_width", 0)) {
 		nextValues = append(nextValues, stateHistory.Values.At(0, int(index)))
 		if index == 0 && params.GetIndex("empty_value", 0) == nextValues[0] {
 			return nil, false
@@ -129,7 +129,7 @@ func (v *ValuesCollectionIteration) Iterate(
 			for i := 1; i < int(stateHistory.StateWidth/valuesWidth); i++ {
 				firstStateValueIndex := i * valuesWidth
 				if outputValues[firstStateValueIndex] == emptyValue {
-					for j := 0; j < valuesWidth; j++ {
+					for j := range valuesWidth {
 						outputValues[firstStateValueIndex+j] = values[j]
 					}
 					collectionFull = false
@@ -143,7 +143,7 @@ func (v *ValuesCollectionIteration) Iterate(
 	}
 	if v.PopIndex != nil {
 		// clear the last popped values if they exist
-		for i := 0; i < valuesWidth; i++ {
+		for i := range valuesWidth {
 			outputValues[i] = emptyValue
 		}
 		if index, pop := v.PopIndex(
@@ -155,7 +155,7 @@ func (v *ValuesCollectionIteration) Iterate(
 			// values at index 0 of the collection are used to indicate
 			// a value pop by convention
 			firstStateValueIndex := index * valuesWidth
-			for j := 0; j < valuesWidth; j++ {
+			for j := range valuesWidth {
 				outputValues[j] = outputValues[firstStateValueIndex+j]
 				outputValues[firstStateValueIndex+j] = emptyValue
 			}

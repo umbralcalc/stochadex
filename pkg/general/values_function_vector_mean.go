@@ -189,7 +189,7 @@ func (v *ValuesFunctionVectorMeanIteration) Iterate(
 	var weight float64
 	sumContributionVec := mat.NewVecDense(
 		cumulativeWeightedFunctionValueSumVec.Len(), nil)
-	for i := 0; i < stateHistory.StateHistoryDepth; i++ {
+	for i := range stateHistory.StateHistoryDepth {
 		weight = v.Kernel.Evaluate(
 			latestStateValues,
 			stateHistory.Values.RawRowView(i),
@@ -208,6 +208,9 @@ func (v *ValuesFunctionVectorMeanIteration) Iterate(
 			cumulativeWeightedFunctionValueSumVec,
 			sumContributionVec,
 		)
+	}
+	if w, ok := params.GetOk("subtract_from_normalisation"); ok {
+		cumulativeWeightSum -= w[0]
 	}
 	cumulativeWeightedFunctionValueSumVec.ScaleVec(
 		1.0/cumulativeWeightSum,

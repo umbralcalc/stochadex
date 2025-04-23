@@ -50,14 +50,14 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 		stateHistory.StateHistoryDepth,
 		nil,
 	)
-	for i := 0; i < stateHistory.StateHistoryDepth; i++ {
+	for i := range stateHistory.StateHistoryDepth {
 		functionValuesTrans.SetCol(i, v.Function(
 			params, partitionIndex, stateHistories, i))
 	}
 	mean := params.Get("mean")
 	mostRecentDiffVec := mat.NewVecDense(stateHistory.StateWidth, nil)
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
-	for j := 0; j < stateHistory.StateWidth; j++ {
+	for j := range stateHistory.StateWidth {
 		f := functionValuesTrans.RawRowView(j)
 		floats.AddConst(-mean[j], f)
 		mostRecentDiffVec.SetVec(j, latestFunctionValues[j]-mean[j])
@@ -75,7 +75,7 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 		mostRecentDiffVec,
 	)
 	var weight float64
-	for i := 0; i < stateHistory.StateHistoryDepth; i++ {
+	for i := range stateHistory.StateHistoryDepth {
 		weight = v.Kernel.Evaluate(
 			latestStateValues,
 			stateHistory.Values.RawRowView(i),
@@ -85,7 +85,7 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 		sqrtWeights = append(sqrtWeights, math.Sqrt(weight))
 		cumulativeWeightSum += weight
 	}
-	for j := 0; j < stateHistory.StateWidth; j++ {
+	for j := range stateHistory.StateWidth {
 		f := functionValuesTrans.RawRowView(j)
 		floats.Mul(f, sqrtWeights)
 	}

@@ -30,7 +30,7 @@ func (p *PosteriorLogNormalisationIteration) Iterate(
 	stateHistoryDepth :=
 		stateHistories[int(params.GetIndex("loglike_partitions", 0))].StateHistoryDepth
 	logNorms := make([]float64, stateHistoryDepth)
-	for i := 0; i < stateHistoryDepth; i++ {
+	for i := range stateHistoryDepth {
 		for j, loglikePartition := range params.Get("loglike_partitions") {
 			var valueIndex int
 			if v, ok := params.GetOk("loglike_indices"); ok {

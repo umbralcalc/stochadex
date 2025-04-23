@@ -23,7 +23,7 @@ func (d *doublingProcessIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
-	for i := 0; i < stateHistory.StateWidth; i++ {
+	for i := range stateHistory.StateWidth {
 		values[i] = stateHistory.Values.At(0, i) * 2.0
 	}
 	return values
@@ -48,7 +48,7 @@ func (p *paramMultProcessIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := make([]float64, stateHistory.StateWidth)
-	for i := 0; i < stateHistory.StateWidth; i++ {
+	for i := range stateHistory.StateWidth {
 		values[i] = stateHistory.Values.At(0, i) * params.GetIndex("multipliers", i)
 	}
 	return values

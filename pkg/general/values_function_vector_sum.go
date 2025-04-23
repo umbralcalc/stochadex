@@ -92,7 +92,7 @@ func (v *ValuesFunctionVectorSumIteration) Iterate(
 	}
 	sumContributionVec := mat.NewVecDense(
 		cumulativeWeightedFunctionValueSumVec.Len(), nil)
-	for i := 0; i < stateHistory.StateHistoryDepth; i++ {
+	for i := range stateHistory.StateHistoryDepth {
 		pastTime = timestepsHistory.Values.AtVec(i)
 		if v.timeRange != nil {
 			timeDelta = latestTime - pastTime
