@@ -23,10 +23,10 @@ type StateMemoryIteration interface {
 	UpdateMemory(params *simulator.Params, update *StateMemoryUpdate)
 }
 
-// IndexedState pairs a partition index with a state history.
-type IndexedState struct {
-	Index   int
-	History *simulator.StateHistory
+// NamedIndexedState pairs a partition index and name with a state history.
+type NamedIndexedState struct {
+	NamedIndex simulator.NamedPartitionIndex
+	History    *simulator.StateHistory
 }
 
 // EmbeddedSimulationRunIteration facilitates running an embedded
@@ -37,8 +37,8 @@ type EmbeddedSimulationRunIteration struct {
 	implementations       *simulator.Implementations
 	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
-	updateFromHistories   map[int][]simulator.NamedPartitionIndex
-	initStatesFromHistory map[int]IndexedState
+	updateFromHistories   map[int][]NamedIndexedState
+	initStatesFromHistory map[int]NamedIndexedState
 	timestepFunction      *FromHistoryTimestepFunction
 	burnInSteps           int
 }
@@ -58,8 +58,11 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		"ignore_timestep_history"); !(ok && int(ignore[0]) == 1) {
 		e.timestepFunction = &FromHistoryTimestepFunction{}
 	}
-	e.updateFromHistories = make(map[int][]simulator.NamedPartitionIndex)
-	e.initStatesFromHistory = make(map[int]IndexedState)
+	// TODO: sort out default behaviour for when History field of NamedIndexedState
+	// is nil for both of these cases below, i.e., only actually create a struct if
+	// non-trivial slicing is necessary!
+	e.updateFromHistories = make(map[int][]NamedIndexedState)
+	e.initStatesFromHistory = make(map[int]NamedIndexedState)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
 		Iterations[partitionIndex].Params.Map {
@@ -74,8 +77,11 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				outPartition := int(paramsValues[0])
 				width := e.settings.Iterations[inPartition].StateWidth
 				historyDepth := e.settings.Iterations[inPartition].StateHistoryDepth
-				e.initStatesFromHistory[inPartition] = IndexedState{
-					Index: outPartition,
+				e.initStatesFromHistory[inPartition] = NamedIndexedState{
+					NamedIndex: simulator.NamedPartitionIndex{
+						Name:  settings.Iterations[outPartition].Name,
+						Index: outPartition,
+					},
 					History: &simulator.StateHistory{
 						Values:            mat.NewDense(historyDepth, width, nil),
 						StateWidth:        width,
@@ -87,13 +93,15 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				partitionNames := make([]simulator.NamedPartitionIndex, 0)
+				partitionNames := make([]NamedIndexedState, 0)
 				for _, paramsValue := range paramsValues {
 					partitionNames = append(
 						partitionNames,
-						simulator.NamedPartitionIndex{
-							Name:  settings.Iterations[int(paramsValue)].Name,
-							Index: int(paramsValue),
+						NamedIndexedState{
+							NamedIndex: simulator.NamedPartitionIndex{
+								Name:  settings.Iterations[int(paramsValue)].Name,
+								Index: int(paramsValue),
+							},
 						},
 					)
 				}
