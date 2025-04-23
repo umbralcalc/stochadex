@@ -27,7 +27,7 @@ func GetDataFrameFromPartition(
 	df = dataframe.LoadMatrix(
 		mat.NewVecDense(len(storedTimes), storedTimes)).CBind(df)
 	cols := []string{"time"}
-	for i := 0; i < len(storedValues[0]); i++ {
+	for i := range storedValues[0] {
 		cols = append(cols, strconv.Itoa(i))
 	}
 	df.SetNames(cols...)
@@ -45,9 +45,9 @@ func SetPartitionFromDataFrame(
 	overwriteTime bool,
 ) {
 	data := make([][]float64, 0)
-	for i := 0; i < df.Nrow(); i++ {
+	for i := range df.Nrow() {
 		row := make([]float64, 0)
-		for j := 0; j < df.Ncol()-1; j++ {
+		for j := range df.Ncol() - 1 {
 			row = append(
 				row,
 				df.Col(strconv.Itoa(j)).Elem(i).Float(),
@@ -58,7 +58,7 @@ func SetPartitionFromDataFrame(
 	storage.SetValues(partitionName, data)
 	if overwriteTime {
 		timeData := make([]float64, 0)
-		for i := 0; i < df.Nrow(); i++ {
+		for i := range df.Nrow() {
 			timeData = append(timeData, df.Col("time").Elem(i).Float())
 		}
 		storage.SetTimes(timeData)

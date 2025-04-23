@@ -188,7 +188,7 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 			latestTime,
 		)
 		groupKey = ""
-		for k := 0; k < v.tupleLength; k++ {
+		for k := range v.tupleLength {
 			groupKey = AppendFloatToKey(groupKey, params.GetIndex(
 				"latest_groupings_tupindex_"+strconv.Itoa(k), i), v.precision)
 		}
@@ -199,9 +199,9 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 			groupings[groupKey] = latestStateValueSlice
 			weightings[groupKey] = []float64{weight}
 		}
-		for j := 0; j < stateHistory.StateHistoryDepth; j++ {
+		for j := range stateHistory.StateHistoryDepth {
 			groupKey = ""
-			for k := 0; k < v.tupleLength; k++ {
+			for k := range v.tupleLength {
 				groupingHistory := stateHistories[int(params.GetIndex(
 					"grouping_partition_tupindex_"+strconv.Itoa(k), 0))]
 				groupKey = AppendFloatToKey(groupKey, groupingHistory.Values.At(

@@ -30,7 +30,7 @@ func TestCreatingPlot(t *testing.T) {
 				0.0,
 			)
 			yRefs := make([]DataRef, 0)
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				yRefs = append(yRefs, DataRef{
 					PartitionName: "test",
 					ValueIndices:  []int{i},
@@ -76,7 +76,7 @@ func TestCreatingPlot(t *testing.T) {
 				0.0,
 			)
 			yRefs := make([]DataRef, 0)
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				yRefs = append(yRefs, DataRef{
 					PartitionName: "test",
 					ValueIndices:  []int{i},

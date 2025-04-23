@@ -53,11 +53,11 @@ func NewGroupedAggregationPartition(
 		"latest_states": {Upstream: applied.Data.PartitionName},
 	}
 	defaults := make([]float64, storage.GetAcceptedValueGroupsLength())
-	for i := 0; i < len(defaults); i++ {
+	for i := range defaults {
 		defaults[i] = applied.DefaultValue
 	}
 	params.Set("default_values", defaults)
-	for tupIndex := 0; tupIndex < storage.GetGroupTupleLength(); tupIndex++ {
+	for tupIndex := range storage.GetGroupTupleLength() {
 		strTupIndex := strconv.Itoa(tupIndex)
 		params.Set(
 			"grouping_value_indices_tupindex_"+strTupIndex,
@@ -96,7 +96,7 @@ func NewVectorMeanPartition(
 ) *simulator.PartitionConfig {
 	appliedValueIndices := applied.Data.GetValueIndices(storage)
 	initStateValues := make([]float64, len(appliedValueIndices))
-	for i := 0; i < len(initStateValues); i++ {
+	for i := range initStateValues {
 		initStateValues[i] = applied.DefaultValue
 	}
 	dataValuesIndices := make([]float64, 0)
@@ -139,7 +139,7 @@ func NewVectorVariancePartition(
 ) *simulator.PartitionConfig {
 	appliedValueIndices := applied.Data.GetValueIndices(storage)
 	initStateValues := make([]float64, len(appliedValueIndices))
-	for i := 0; i < len(initStateValues); i++ {
+	for i := range initStateValues {
 		initStateValues[i] = applied.DefaultValue
 	}
 	dataValuesIndices := make([]float64, 0)
@@ -147,7 +147,8 @@ func NewVectorVariancePartition(
 		dataValuesIndices = append(dataValuesIndices, float64(index))
 	}
 	params := simulator.NewParams(map[string][]float64{
-		"data_values_indices": dataValuesIndices,
+		"subtract_from_normalisation": {1},
+		"data_values_indices":         dataValuesIndices,
 	})
 	paramsAsPartitions := map[string][]string{
 		"data_values_partition": {applied.Data.PartitionName},
@@ -187,8 +188,8 @@ func NewVectorCovariancePartition(
 	appliedValueIndices := applied.Data.GetValueIndices(storage)
 	num := len(appliedValueIndices)
 	initStateValues := make([]float64, num*num)
-	for i := 0; i < num; i++ {
-		for j := 0; j < num; j++ {
+	for i := range num {
+		for j := range num {
 			switch i {
 			case j:
 				initStateValues[i+j] = applied.DefaultValue
