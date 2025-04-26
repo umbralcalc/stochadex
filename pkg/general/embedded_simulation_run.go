@@ -72,9 +72,12 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 					panic("input partition was not found in embedded sim")
 				}
 				inSettings := e.settings.Iterations[inPartition]
-				var history *simulator.StateHistory
-				if inSettings.StateHistoryDepth > 1 {
-					history = &simulator.StateHistory{
+				e.initStatesFromHistory[inPartition] = &NamedIndexedState{
+					NamedIndex: simulator.NamedPartitionIndex{
+						Name:  settings.Iterations[int(paramsValues[0])].Name,
+						Index: int(paramsValues[0]),
+					},
+					History: &simulator.StateHistory{
 						Values: mat.NewDense(
 							inSettings.StateHistoryDepth,
 							inSettings.StateWidth,
@@ -82,14 +85,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 						),
 						StateWidth:        inSettings.StateWidth,
 						StateHistoryDepth: inSettings.StateHistoryDepth,
-					}
-				}
-				e.initStatesFromHistory[inPartition] = &NamedIndexedState{
-					NamedIndex: simulator.NamedPartitionIndex{
-						Name:  settings.Iterations[int(paramsValues[0])].Name,
-						Index: int(paramsValues[0]),
 					},
-					History: history,
 				}
 			case "update_from_partition_history":
 				inPartition, ok := e.partitionNameToIndex[matches[1]]
@@ -99,18 +95,6 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				partitionNames := make([]*NamedIndexedState, 0)
 				for _, paramsValue := range paramsValues {
 					inSettings := e.settings.Iterations[inPartition]
-					var history *simulator.StateHistory
-					if inSettings.StateHistoryDepth > 1 {
-						history = &simulator.StateHistory{
-							Values: mat.NewDense(
-								inSettings.StateHistoryDepth,
-								inSettings.StateWidth,
-								nil,
-							),
-							StateWidth:        inSettings.StateWidth,
-							StateHistoryDepth: inSettings.StateHistoryDepth,
-						}
-					}
 					partitionNames = append(
 						partitionNames,
 						&NamedIndexedState{
@@ -118,7 +102,10 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 								Name:  settings.Iterations[int(paramsValue)].Name,
 								Index: int(paramsValue),
 							},
-							History: history,
+							History: &simulator.StateHistory{
+								StateWidth:        inSettings.StateWidth,
+								StateHistoryDepth: inSettings.StateHistoryDepth,
+							},
 						},
 					)
 				}
@@ -181,8 +168,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		if ok {
 			for _, out := range outs {
 				e.stateMemoryUpdate.Name = out.NamedIndex.Name
-				e.stateMemoryUpdate.StateHistory =
-					stateHistories[out.NamedIndex.Index]
+				e.stateMemoryUpdate.StateHistory.Values =
+					stateHistories[out.NamedIndex.Index].Values
 				iteration.UpdateMemory(
 					&e.settings.Iterations[inIndex].Params,
 					e.stateMemoryUpdate,
