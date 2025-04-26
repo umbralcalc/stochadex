@@ -20,7 +20,7 @@ type StateMemoryUpdate struct {
 // in order to configure an updateable memory of params, states and times
 // which come from another simulation.
 type StateMemoryIteration interface {
-	UpdateMemory(params *simulator.Params, update *StateMemoryUpdate)
+	UpdateMemory(params *simulator.Params, update StateMemoryUpdate)
 }
 
 // NamedIndexedState pairs a partition index and name with a state history.
@@ -35,7 +35,6 @@ type NamedIndexedState struct {
 type EmbeddedSimulationRunIteration struct {
 	settings              *simulator.Settings
 	implementations       *simulator.Implementations
-	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
 	updateFromHistories   map[int][]*simulator.NamedPartitionIndex
 	initStatesFromHistory map[int]*NamedIndexedState
@@ -108,9 +107,39 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 			}
 		}
 	}
-	e.stateMemoryUpdate = &StateMemoryUpdate{}
 	e.burnInSteps = int(
 		settings.Iterations[partitionIndex].Params.GetIndex("burn_in_steps", 0))
+}
+
+func (e *EmbeddedSimulationRunIteration) updateStateMemory(
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) {
+	stateMemoryUpdate := StateMemoryUpdate{}
+	if e.timestepFunction != nil {
+		e.timestepFunction.Data = timestepsHistory
+		e.implementations.TimestepFunction = e.timestepFunction
+	}
+	stateMemoryUpdate.TimestepsHistory = timestepsHistory
+	for inIndex, outs := range e.updateFromHistories {
+		iteration, ok :=
+			e.implementations.Iterations[inIndex].(StateMemoryIteration)
+		if ok {
+			for _, out := range outs {
+				stateMemoryUpdate.Name = out.Name
+				stateMemoryUpdate.StateHistory = stateHistories[out.Index]
+				iteration.UpdateMemory(
+					&e.settings.Iterations[inIndex].Params,
+					stateMemoryUpdate,
+				)
+			}
+		} else {
+			panic(fmt.Errorf(
+				"internal state partition %d is not a StateMemoryIteration",
+				int(inIndex),
+			))
+		}
+	}
 }
 
 func (e *EmbeddedSimulationRunIteration) Iterate(
@@ -119,6 +148,11 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
+	// update any configured state memories at the start
+	if timestepsHistory.CurrentStepNumber == 1 {
+		e.updateStateMemory(stateHistories, timestepsHistory)
+	}
+
 	if timestepsHistory.CurrentStepNumber < e.burnInSteps {
 		return stateHistories[partitionIndex].Values.RawRowView(0)
 	}
@@ -144,40 +178,15 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		}
 	}
 
-	// set the data for the past timesteps and state memory partition
-	// iterations, if configured
-	initTimeValue := 0.0
+	// set the data for the past timesteps
 	if e.timestepFunction != nil {
-		e.timestepFunction.Data = timestepsHistory
-		e.implementations.TimestepFunction = e.timestepFunction
-		initTimeValue = timestepsHistory.Values.AtVec(
+		e.settings.InitTimeValue = timestepsHistory.Values.AtVec(
 			timestepsHistory.StateHistoryDepth - 1,
 		)
 	}
-	e.stateMemoryUpdate.TimestepsHistory = timestepsHistory
-	for inIndex, outs := range e.updateFromHistories {
-		iteration, ok :=
-			e.implementations.Iterations[inIndex].(StateMemoryIteration)
-		if ok {
-			for _, out := range outs {
-				e.stateMemoryUpdate.Name = out.Name
-				e.stateMemoryUpdate.StateHistory = stateHistories[out.Index]
-				iteration.UpdateMemory(
-					&e.settings.Iterations[inIndex].Params,
-					e.stateMemoryUpdate,
-				)
-			}
-		} else {
-			panic(fmt.Errorf(
-				"internal state partition %d is not a StateMemoryIteration",
-				int(inIndex),
-			))
-		}
-	}
 	if t, ok := params.GetOk("init_time_value"); ok {
-		initTimeValue = t[0]
+		e.settings.InitTimeValue = t[0]
 	}
-	e.settings.InitTimeValue = initTimeValue
 
 	// instantiate the embedded simulation
 	coordinator := simulator.NewPartitionCoordinator(

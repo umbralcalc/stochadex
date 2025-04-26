@@ -38,7 +38,7 @@ func (f *FromHistoryIteration) Iterate(
 
 func (f *FromHistoryIteration) UpdateMemory(
 	params *simulator.Params,
-	update *StateMemoryUpdate,
+	update StateMemoryUpdate,
 ) {
 	f.Data = update.StateHistory
 }

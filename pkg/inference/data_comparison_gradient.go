@@ -56,7 +56,7 @@ func (d *DataComparisonGradientIteration) Iterate(
 
 func (d *DataComparisonGradientIteration) UpdateMemory(
 	params *simulator.Params,
-	update *general.StateMemoryUpdate,
+	update general.StateMemoryUpdate,
 ) {
 	if _, ok := params.GetOk(update.Name + "->data_values"); ok {
 		d.Batch = update.StateHistory

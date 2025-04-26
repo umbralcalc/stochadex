@@ -38,7 +38,7 @@ func TestFromHistory(t *testing.T) {
 			}
 			iteration.UpdateMemory(
 				&params,
-				&StateMemoryUpdate{
+				StateMemoryUpdate{
 					Name: "test",
 					StateHistory: &simulator.StateHistory{
 
