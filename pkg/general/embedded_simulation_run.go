@@ -37,7 +37,7 @@ type EmbeddedSimulationRunIteration struct {
 	implementations       *simulator.Implementations
 	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
-	updateFromHistories   map[int][]*NamedIndexedState
+	updateFromHistories   map[int][]*simulator.NamedPartitionIndex
 	initStatesFromHistory map[int]*NamedIndexedState
 	timestepFunction      *FromHistoryTimestepFunction
 	burnInSteps           int
@@ -58,7 +58,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		"ignore_timestep_history"); !(ok && int(ignore[0]) == 1) {
 		e.timestepFunction = &FromHistoryTimestepFunction{}
 	}
-	e.updateFromHistories = make(map[int][]*NamedIndexedState)
+	e.updateFromHistories = make(map[int][]*simulator.NamedPartitionIndex)
 	e.initStatesFromHistory = make(map[int]*NamedIndexedState)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
@@ -92,20 +92,13 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				partitionNames := make([]*NamedIndexedState, 0)
+				partitionNames := make([]*simulator.NamedPartitionIndex, 0)
 				for _, paramsValue := range paramsValues {
-					inSettings := e.settings.Iterations[inPartition]
 					partitionNames = append(
 						partitionNames,
-						&NamedIndexedState{
-							NamedIndex: simulator.NamedPartitionIndex{
-								Name:  settings.Iterations[int(paramsValue)].Name,
-								Index: int(paramsValue),
-							},
-							History: &simulator.StateHistory{
-								StateWidth:        inSettings.StateWidth,
-								StateHistoryDepth: inSettings.StateHistoryDepth,
-							},
+						&simulator.NamedPartitionIndex{
+							Name:  settings.Iterations[int(paramsValue)].Name,
+							Index: int(paramsValue),
 						},
 					)
 				}
@@ -167,9 +160,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 			e.implementations.Iterations[inIndex].(StateMemoryIteration)
 		if ok {
 			for _, out := range outs {
-				e.stateMemoryUpdate.Name = out.NamedIndex.Name
-				e.stateMemoryUpdate.StateHistory.Values =
-					stateHistories[out.NamedIndex.Index].Values
+				e.stateMemoryUpdate.Name = out.Name
+				e.stateMemoryUpdate.StateHistory = stateHistories[out.Index]
 				iteration.UpdateMemory(
 					&e.settings.Iterations[inIndex].Params,
 					e.stateMemoryUpdate,
