@@ -153,6 +153,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		e.updateStateMemory(stateHistories, timestepsHistory)
 	}
 
+	// skip any steps for configured burn-in
 	if timestepsHistory.CurrentStepNumber < e.burnInSteps {
 		return stateHistories[partitionIndex].Values.RawRowView(0)
 	}
