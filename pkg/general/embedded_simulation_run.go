@@ -37,8 +37,8 @@ type EmbeddedSimulationRunIteration struct {
 	implementations       *simulator.Implementations
 	stateMemoryUpdate     *StateMemoryUpdate
 	partitionNameToIndex  map[string]int
-	updateFromHistories   map[int][]NamedIndexedState
-	initStatesFromHistory map[int]NamedIndexedState
+	updateFromHistories   map[int][]*NamedIndexedState
+	initStatesFromHistory map[int]*NamedIndexedState
 	timestepFunction      *FromHistoryTimestepFunction
 	burnInSteps           int
 }
@@ -58,11 +58,8 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		"ignore_timestep_history"); !(ok && int(ignore[0]) == 1) {
 		e.timestepFunction = &FromHistoryTimestepFunction{}
 	}
-	// TODO: sort out default behaviour for when History field of NamedIndexedState
-	// is nil for both of these cases below, i.e., only actually create a struct if
-	// non-trivial slicing is necessary!
-	e.updateFromHistories = make(map[int][]NamedIndexedState)
-	e.initStatesFromHistory = make(map[int]NamedIndexedState)
+	e.updateFromHistories = make(map[int][]*NamedIndexedState)
+	e.initStatesFromHistory = make(map[int]*NamedIndexedState)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
 		Iterations[partitionIndex].Params.Map {
@@ -74,34 +71,54 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				outPartition := int(paramsValues[0])
-				width := e.settings.Iterations[inPartition].StateWidth
-				historyDepth := e.settings.Iterations[inPartition].StateHistoryDepth
-				e.initStatesFromHistory[inPartition] = NamedIndexedState{
+				inSettings := e.settings.Iterations[inPartition]
+				var history *simulator.StateHistory
+				if inSettings.StateHistoryDepth > 1 {
+					history = &simulator.StateHistory{
+						Values: mat.NewDense(
+							inSettings.StateHistoryDepth,
+							inSettings.StateWidth,
+							nil,
+						),
+						StateWidth:        inSettings.StateWidth,
+						StateHistoryDepth: inSettings.StateHistoryDepth,
+					}
+				}
+				e.initStatesFromHistory[inPartition] = &NamedIndexedState{
 					NamedIndex: simulator.NamedPartitionIndex{
-						Name:  settings.Iterations[outPartition].Name,
-						Index: outPartition,
+						Name:  settings.Iterations[int(paramsValues[0])].Name,
+						Index: int(paramsValues[0]),
 					},
-					History: &simulator.StateHistory{
-						Values:            mat.NewDense(historyDepth, width, nil),
-						StateWidth:        width,
-						StateHistoryDepth: historyDepth,
-					},
+					History: history,
 				}
 			case "update_from_partition_history":
 				inPartition, ok := e.partitionNameToIndex[matches[1]]
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				partitionNames := make([]NamedIndexedState, 0)
+				partitionNames := make([]*NamedIndexedState, 0)
 				for _, paramsValue := range paramsValues {
+					inSettings := e.settings.Iterations[inPartition]
+					var history *simulator.StateHistory
+					if inSettings.StateHistoryDepth > 1 {
+						history = &simulator.StateHistory{
+							Values: mat.NewDense(
+								inSettings.StateHistoryDepth,
+								inSettings.StateWidth,
+								nil,
+							),
+							StateWidth:        inSettings.StateWidth,
+							StateHistoryDepth: inSettings.StateHistoryDepth,
+						}
+					}
 					partitionNames = append(
 						partitionNames,
-						NamedIndexedState{
+						&NamedIndexedState{
 							NamedIndex: simulator.NamedPartitionIndex{
 								Name:  settings.Iterations[int(paramsValue)].Name,
 								Index: int(paramsValue),
 							},
+							History: history,
 						},
 					)
 				}
@@ -158,14 +175,14 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		)
 	}
 	e.stateMemoryUpdate.TimestepsHistory = timestepsHistory
-	for inIndex, outPartitions := range e.updateFromHistories {
+	for inIndex, outs := range e.updateFromHistories {
 		iteration, ok :=
 			e.implementations.Iterations[inIndex].(StateMemoryIteration)
 		if ok {
-			for _, outPartition := range outPartitions {
-				e.stateMemoryUpdate.Name = outPartition.Name
+			for _, out := range outs {
+				e.stateMemoryUpdate.Name = out.NamedIndex.Name
 				e.stateMemoryUpdate.StateHistory =
-					stateHistories[outPartition.Index]
+					stateHistories[out.NamedIndex.Index]
 				iteration.UpdateMemory(
 					&e.settings.Iterations[inIndex].Params,
 					e.stateMemoryUpdate,
@@ -194,8 +211,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 			out.History.Values.SetRow(i, out.History.Values.RawRowView(i-1))
 		}
 		out.History.Values.SetRow(0,
-			stateHistories[out.Index].Values.RawRowView(
-				stateHistories[out.Index].StateHistoryDepth-
+			stateHistories[out.NamedIndex.Index].Values.RawRowView(
+				stateHistories[out.NamedIndex.Index].StateHistoryDepth-
 					out.History.StateHistoryDepth,
 			),
 		)
