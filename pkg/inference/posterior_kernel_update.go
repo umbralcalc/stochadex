@@ -9,7 +9,8 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// PosteriorKernelUpdateIteration
+// PosteriorKernelUpdateIteration computes updates to the degrees of freedom
+// and scale matrix of the posterior t-distribution kernel.
 type PosteriorKernelUpdateIteration struct {
 	timeRange *general.ValuesFunctionTimeDeltaRange
 }
