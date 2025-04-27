@@ -65,9 +65,9 @@ func NewLikelihoodComparisonPartition(
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: applied.Window.Depth,
 		},
-		// These will be overwritten with the times in the data...
-		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
-		InitTimeValue:    0.0,
+		TimestepFunction: &general.FromHistoryTimestepFunction{},
+		// This will be overwritten with the times in the data...
+		InitTimeValue: 0.0,
 	})
 	simInitStateValues := make([]float64, 0)
 	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
@@ -289,8 +289,7 @@ func NewLikelihoodMeanFunctionFitPartition(
 	simInitStateValues = append(
 		simInitStateValues, make([]float64, applied.Gradient.Width)...)
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps":           {float64(applied.Window.Depth)},
-		"ignore_timestep_history": {1},
+		"burn_in_steps": {float64(applied.Window.Depth)},
 	})
 	return &simulator.PartitionConfig{
 		Name: applied.Name,

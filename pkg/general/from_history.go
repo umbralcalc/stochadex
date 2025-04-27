@@ -7,7 +7,8 @@ import (
 // FromHistoryIteration provides a stream of data which is already known from a
 // separate data source and is held in memory as a simulator.StateHistory.
 type FromHistoryIteration struct {
-	Data *simulator.StateHistory
+	Data           *simulator.StateHistory
+	InitStepsTaken int
 }
 
 func (f *FromHistoryIteration) Configure(
@@ -26,7 +27,8 @@ func (f *FromHistoryIteration) Iterate(
 	// starts from one step into the window because it makes it possible to
 	// use the i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
 	// for the initial conditions
-	if i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
+	if i := f.Data.StateHistoryDepth -
+		timestepsHistory.CurrentStepNumber - (f.InitStepsTaken + 1); i >= 0 {
 		data = f.Data.Values.RawRowView(i)
 	} else if i == -1 {
 		data = params.Get("latest_data_values")
@@ -46,7 +48,8 @@ func (f *FromHistoryIteration) UpdateMemory(
 // FromHistoryTimestepFunction provides a stream of timesteps which already known from
 // a separate data source and is held in memory as a simulator.CumulativeTimestepsHistory.
 type FromHistoryTimestepFunction struct {
-	Data *simulator.CumulativeTimestepsHistory
+	Data           *simulator.CumulativeTimestepsHistory
+	InitStepsTaken int
 }
 
 func (f *FromHistoryTimestepFunction) NextIncrement(
@@ -55,7 +58,8 @@ func (f *FromHistoryTimestepFunction) NextIncrement(
 	// starts from one step into the window because it makes it possible to
 	// use the i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber value
 	// for the initial conditions
-	if i := f.Data.StateHistoryDepth - timestepsHistory.CurrentStepNumber - 1; i >= 0 {
+	if i := f.Data.StateHistoryDepth -
+		timestepsHistory.CurrentStepNumber - (f.InitStepsTaken + 1); i >= 0 {
 		return f.Data.Values.AtVec(i) - timestepsHistory.Values.AtVec(0)
 	} else if i == -1 {
 		return f.Data.NextIncrement

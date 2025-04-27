@@ -53,9 +53,9 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	for index, iteration := range e.settings.Iterations {
 		e.partitionNameToIndex[iteration.Name] = index
 	}
-	if ignore, ok := settings.Iterations[partitionIndex].Params.GetOk(
-		"ignore_timestep_history"); !(ok && int(ignore[0]) == 1) {
-		e.timestepFunction = &FromHistoryTimestepFunction{}
+	if timestepFunction, ok :=
+		e.implementations.TimestepFunction.(*FromHistoryTimestepFunction); ok {
+		e.timestepFunction = timestepFunction
 	}
 	e.updateFromHistories = make(map[int][]*simulator.NamedPartitionIndex)
 	e.initStatesFromHistory = make(map[int]*NamedIndexedState)
@@ -111,14 +111,13 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		settings.Iterations[partitionIndex].Params.GetIndex("burn_in_steps", 0))
 }
 
-func (e *EmbeddedSimulationRunIteration) updateStateMemory(
+func (e *EmbeddedSimulationRunIteration) updateStateMemoryAndTime(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
 	stateMemoryUpdate := StateMemoryUpdate{}
 	if e.timestepFunction != nil {
 		e.timestepFunction.Data = timestepsHistory
-		e.implementations.TimestepFunction = e.timestepFunction
 	}
 	stateMemoryUpdate.TimestepsHistory = timestepsHistory
 	for inIndex, outs := range e.updateFromHistories {
@@ -148,9 +147,9 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	// update any configured state memories at the start
+	// update any configured state memories and time history at the start
 	if timestepsHistory.CurrentStepNumber == 1 {
-		e.updateStateMemory(stateHistories, timestepsHistory)
+		e.updateStateMemoryAndTime(stateHistories, timestepsHistory)
 	}
 
 	// skip any steps for configured burn-in
@@ -182,7 +181,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	// set the data for the past timesteps
 	if e.timestepFunction != nil {
 		e.settings.InitTimeValue = timestepsHistory.Values.AtVec(
-			timestepsHistory.StateHistoryDepth - 1,
+			timestepsHistory.StateHistoryDepth -
+				(e.timestepFunction.InitStepsTaken + 1),
 		)
 	}
 	if t, ok := params.GetOk("init_time_value"); ok {

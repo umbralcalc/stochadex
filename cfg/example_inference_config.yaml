@@ -216,5 +216,5 @@ embedded:
     output_condition: "&simulator.NilOutputCondition{}"
     output_function: "&simulator.NilOutputFunction{}"
     termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 200}"
-    timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
+    timestep_function: "&general.FromHistoryTimestepFunction{}"
     init_time_value: 0.0
