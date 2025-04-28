@@ -36,8 +36,8 @@ type EmbeddedSimulationRunIteration struct {
 	settings              *simulator.Settings
 	implementations       *simulator.Implementations
 	partitionNameToIndex  map[string]int
-	updateFromHistories   map[int][]*simulator.NamedPartitionIndex
-	initStatesFromHistory map[int]*NamedIndexedState
+	updateFromHistories   map[int][]simulator.NamedPartitionIndex
+	initStatesFromHistory map[int]NamedIndexedState
 	timestepFunction      *FromHistoryTimestepFunction
 	burnInSteps           int
 }
@@ -57,8 +57,8 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		e.implementations.TimestepFunction.(*FromHistoryTimestepFunction); ok {
 		e.timestepFunction = timestepFunction
 	}
-	e.updateFromHistories = make(map[int][]*simulator.NamedPartitionIndex)
-	e.initStatesFromHistory = make(map[int]*NamedIndexedState)
+	e.updateFromHistories = make(map[int][]simulator.NamedPartitionIndex)
+	e.initStatesFromHistory = make(map[int]NamedIndexedState)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
 		Iterations[partitionIndex].Params.Map {
@@ -71,7 +71,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 					panic("input partition was not found in embedded sim")
 				}
 				inSettings := e.settings.Iterations[inPartition]
-				e.initStatesFromHistory[inPartition] = &NamedIndexedState{
+				e.initStatesFromHistory[inPartition] = NamedIndexedState{
 					NamedIndex: simulator.NamedPartitionIndex{
 						Name:  settings.Iterations[int(paramsValues[0])].Name,
 						Index: int(paramsValues[0]),
@@ -91,11 +91,11 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 				if !ok {
 					panic("input partition was not found in embedded sim")
 				}
-				partitionNames := make([]*simulator.NamedPartitionIndex, 0)
+				partitionNames := make([]simulator.NamedPartitionIndex, 0)
 				for _, paramsValue := range paramsValues {
 					partitionNames = append(
 						partitionNames,
-						&simulator.NamedPartitionIndex{
+						simulator.NamedPartitionIndex{
 							Name:  settings.Iterations[int(paramsValue)].Name,
 							Index: int(paramsValue),
 						},
