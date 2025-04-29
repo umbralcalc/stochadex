@@ -1,7 +1,9 @@
 package analysis
 
 import (
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
+	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -119,6 +121,162 @@ func NewPosteriorEstimationPartitions(
 			"mean":              {Upstream: applied.Names.Mean},
 			"covariance_matrix": {Upstream: applied.Names.Covariance},
 		},
+		InitStateValues:   applied.Defaults.Sampler,
+		StateHistoryDepth: 1,
+		Seed:              applied.Seed,
+	})
+	partitions = append(partitions, compPartition)
+	return partitions
+}
+
+// AppliedTKernelComparison is the base configuration for a rolling
+// comparison between a referenced dataset and referenced kernel model.
+type AppliedTKernelComparison struct {
+	Name   string
+	Data   DataRef
+	Window WindowedPartitions
+}
+
+// NewTKernelComparison creates a new PartitionConfig for a rolling
+// comparison between a referenced dataset and referenced kernel model.
+func NewAppliedTKernelComparisonPartition(
+	applied AppliedTKernelComparison,
+	storage *simulator.StateTimeStorage,
+) *simulator.PartitionConfig {
+	generator := simulator.NewConfigGenerator()
+	generator.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition: &simulator.NilOutputCondition{},
+		OutputFunction:  &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
+			MaxNumberOfSteps: applied.Window.Depth,
+		},
+		TimestepFunction: &general.FromHistoryTimestepFunction{},
+		// This will be overwritten with the times in the data...
+		InitTimeValue: 0.0,
+	})
+	simInitStateValues := make([]float64, 0)
+	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
+	if applied.Window.Partitions != nil {
+		for _, partition := range applied.Window.Partitions {
+			generator.SetPartition(partition.Partition)
+			simInitStateValues = append(
+				simInitStateValues,
+				partition.Partition.InitStateValues...,
+			)
+			if partition.OutsideUpstreams == nil {
+				continue
+			}
+			for paramsName, upstream := range partition.OutsideUpstreams {
+				simParamsFromUpstream[partition.Partition.Name+
+					"/"+paramsName] = upstream
+			}
+		}
+	}
+	simParamsAsPartitions := make(map[string][]string)
+	if applied.Window.Data != nil {
+		for _, ref := range applied.Window.Data {
+			if ref.ValueIndices != nil {
+				panic("value indices are not supported in window data")
+			}
+			initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
+			generator.SetPartition(&simulator.PartitionConfig{
+				Name:              ref.PartitionName,
+				Iteration:         &general.FromHistoryIteration{},
+				Params:            simulator.NewParams(make(map[string][]float64)),
+				InitStateValues:   initStateValues,
+				StateHistoryDepth: 1,
+				Seed:              0,
+			})
+			simInitStateValues = append(simInitStateValues, initStateValues...)
+			simParamsAsPartitions[ref.PartitionName+
+				"/update_from_partition_history"] = []string{ref.PartitionName}
+			simParamsAsPartitions[ref.PartitionName+
+				"/initial_state_from_partition_history"] = []string{ref.PartitionName}
+			simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
+				simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
+		}
+	}
+	generator.SetPartition(&simulator.PartitionConfig{
+		Name: "comparison",
+		Iteration: &general.CumulativeIteration{
+			Iteration: &general.ValuesFunctionVectorSumIteration{
+				Function: general.UnitValueFunction,
+				Kernel:   &kernels.TDistributionStateIntegrationKernel{},
+			},
+		},
+		Params: simulator.NewParams(make(map[string][]float64)),
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"latest_data_values": {
+				Upstream: applied.Data.PartitionName,
+				Indices:  applied.Data.ValueIndices,
+			},
+		},
+		InitStateValues:   []float64{0.0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	simInitStateValues = append(simInitStateValues, 0.0)
+	simParams := simulator.NewParams(map[string][]float64{
+		"burn_in_steps": {float64(applied.Window.Depth)},
+	})
+	return &simulator.PartitionConfig{
+		Name: applied.Name,
+		Iteration: general.NewEmbeddedSimulationRunIteration(
+			generator.GenerateConfigs(),
+		),
+		Params:             simParams,
+		ParamsAsPartitions: simParamsAsPartitions,
+		ParamsFromUpstream: simParamsFromUpstream,
+		InitStateValues:    simInitStateValues,
+		StateHistoryDepth:  1,
+		Seed:               0,
+	}
+}
+
+// PosteriorTKernelEstimationNames is a collection of the names given to
+// partitions used in the AppliedPosteriorTKernelEstimation.
+type PosteriorTKernelEstimationNames struct {
+	Updater string
+	Sampler string
+}
+
+// PosteriorTKernelDefaults is a collection of the defaults given to
+// partitions used in the AppliedPosteriorTKernelEstimation.
+type PosteriorTKernelDefaults struct {
+	Updater []float64
+	Sampler []float64
+}
+
+// AppliedPosteriorTKernelEstimation is the base configuration for an
+// online inference of a simulation (specified by partition configs)
+// from a referenced dataset using t-distribution kernel densities.
+type AppliedPosteriorTKernelEstimation struct {
+	Names        PosteriorTKernelEstimationNames
+	Comparison   AppliedTKernelComparison
+	Defaults     PosteriorTKernelDefaults
+	PastDiscount float64
+	MemoryDepth  int
+	Seed         uint64
+}
+
+// NewPosteriorTKernelEstimationPartitions creates a set of PartitionConfigs
+// for an online posterior estimation process using t-distribution kernel
+// densities.
+func NewPosteriorTKernelEstimationPartitions(
+	applied AppliedPosteriorTKernelEstimation,
+	storage *simulator.StateTimeStorage,
+) []*simulator.PartitionConfig {
+	compPartition := NewAppliedTKernelComparisonPartition(
+		applied.Comparison,
+		storage,
+	)
+	compPartition.StateHistoryDepth = applied.MemoryDepth
+	partitions := make([]*simulator.PartitionConfig, 0)
+	samplerParams := simulator.NewParams(make(map[string][]float64))
+	partitions = append(partitions, &simulator.PartitionConfig{
+		Name:              applied.Names.Sampler,
+		Iteration:         &inference.PosteriorImportanceResampleIteration{},
+		Params:            samplerParams,
 		InitStateValues:   applied.Defaults.Sampler,
 		StateHistoryDepth: 1,
 		Seed:              applied.Seed,
