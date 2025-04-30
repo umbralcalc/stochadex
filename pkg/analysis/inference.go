@@ -129,16 +129,26 @@ func NewPosteriorEstimationPartitions(
 	return partitions
 }
 
+// TKernelModel defines the configuration for a t-kernel density estimation
+// model applied to a referenced dataset.
+type TKernelModel struct {
+	Data  DataRef
+	Depth int
+}
+
 // AppliedTKernelComparison is the base configuration for a rolling
-// comparison between a referenced dataset and referenced kernel model.
+// comparison between a referenced dataset and kernel density estimation
+// model applied to another referenced dataset.
 type AppliedTKernelComparison struct {
 	Name   string
+	Model  TKernelModel
 	Data   DataRef
 	Window WindowedPartitions
 }
 
 // NewTKernelComparison creates a new PartitionConfig for a rolling
-// comparison between a referenced dataset and referenced kernel model.
+// comparison between a referenced dataset and kernel density estimation
+// model applied to another referenced dataset.
 func NewAppliedTKernelComparisonPartition(
 	applied AppliedTKernelComparison,
 	storage *simulator.StateTimeStorage,
@@ -150,7 +160,9 @@ func NewAppliedTKernelComparisonPartition(
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: applied.Window.Depth,
 		},
-		TimestepFunction: &general.FromHistoryTimestepFunction{},
+		TimestepFunction: &general.FromHistoryTimestepFunction{
+			InitStepsTaken: applied.Model.Depth,
+		},
 		// This will be overwritten with the times in the data...
 		InitTimeValue: 0.0,
 	})
@@ -180,11 +192,13 @@ func NewAppliedTKernelComparisonPartition(
 			}
 			initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
 			generator.SetPartition(&simulator.PartitionConfig{
-				Name:              ref.PartitionName,
-				Iteration:         &general.FromHistoryIteration{},
+				Name: ref.PartitionName,
+				Iteration: &general.FromHistoryIteration{
+					InitStepsTaken: applied.Model.Depth - 1,
+				},
 				Params:            simulator.NewParams(make(map[string][]float64)),
 				InitStateValues:   initStateValues,
-				StateHistoryDepth: 1,
+				StateHistoryDepth: applied.Model.Depth,
 				Seed:              0,
 			})
 			simInitStateValues = append(simInitStateValues, initStateValues...)
@@ -205,6 +219,9 @@ func NewAppliedTKernelComparisonPartition(
 			},
 		},
 		Params: simulator.NewParams(make(map[string][]float64)),
+		ParamsAsPartitions: map[string][]string{
+			"data_values_partition": {applied.Model.Data.PartitionName},
+		},
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
 			"latest_data_values": {
 				Upstream: applied.Data.PartitionName,
@@ -273,6 +290,14 @@ func NewPosteriorTKernelEstimationPartitions(
 	compPartition.StateHistoryDepth = applied.MemoryDepth
 	partitions := make([]*simulator.PartitionConfig, 0)
 	samplerParams := simulator.NewParams(make(map[string][]float64))
+	partitions = append(partitions, &simulator.PartitionConfig{
+		Name:              applied.Names.Sampler,
+		Iteration:         &inference.PosteriorKernelUpdateIteration{},
+		Params:            samplerParams,
+		InitStateValues:   applied.Defaults.Sampler,
+		StateHistoryDepth: 1,
+		Seed:              applied.Seed,
+	})
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name:              applied.Names.Sampler,
 		Iteration:         &inference.PosteriorImportanceResampleIteration{},
