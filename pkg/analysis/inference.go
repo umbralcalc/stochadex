@@ -129,11 +129,14 @@ func NewPosteriorEstimationPartitions(
 	return partitions
 }
 
-// TKernelModel defines the configuration for a t-kernel density estimation
-// model applied to a referenced dataset.
-type TKernelModel struct {
-	Data  DataRef
-	Depth int
+// ParameterisedTKernel defines the configuration for a t-kernel
+// density estimation model applied to a referenced dataset with
+// its corresponding parameters to set.
+type ParameterisedTKernel struct {
+	Data              DataRef
+	Depth             int
+	DegreesOfFreedom  float64
+	ScaleMatrixValues []float64
 }
 
 // AppliedTKernelComparison is the base configuration for a rolling
@@ -141,7 +144,7 @@ type TKernelModel struct {
 // model applied to another referenced dataset.
 type AppliedTKernelComparison struct {
 	Name   string
-	Model  TKernelModel
+	Model  ParameterisedTKernel
 	Data   DataRef
 	Window WindowedPartitions
 }
@@ -218,7 +221,10 @@ func NewAppliedTKernelComparisonPartition(
 				Kernel:   &kernels.TDistributionStateIntegrationKernel{},
 			},
 		},
-		Params: simulator.NewParams(make(map[string][]float64)),
+		Params: simulator.NewParams(map[string][]float64{
+			"degrees_of_freedom": {applied.Model.DegreesOfFreedom},
+			"scale_matrix":       applied.Model.ScaleMatrixValues,
+		}),
 		ParamsAsPartitions: map[string][]string{
 			"data_values_partition": {applied.Model.Data.PartitionName},
 		},
