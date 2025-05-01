@@ -295,19 +295,39 @@ func NewPosteriorTKernelEstimationPartitions(
 	)
 	compPartition.StateHistoryDepth = applied.MemoryDepth
 	partitions := make([]*simulator.PartitionConfig, 0)
-	samplerParams := simulator.NewParams(make(map[string][]float64))
 	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:              applied.Names.Sampler,
-		Iteration:         &inference.PosteriorKernelUpdateIteration{},
-		Params:            samplerParams,
-		InitStateValues:   applied.Defaults.Sampler,
+		Name:      applied.Names.Updater,
+		Iteration: &inference.PosteriorKernelUpdateIteration{},
+		Params: simulator.NewParams(map[string][]float64{
+			"past_discounting_factor": {applied.PastDiscount},
+		}),
+		ParamsAsPartitions: map[string][]string{
+			"data_values_partition": {applied.Comparison.Data.PartitionName},
+		},
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"latest_data_values": {
+				Upstream: applied.Comparison.Data.PartitionName,
+			},
+		},
+		InitStateValues:   applied.Defaults.Updater,
 		StateHistoryDepth: 1,
-		Seed:              applied.Seed,
+		Seed:              0,
 	})
 	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:              applied.Names.Sampler,
-		Iteration:         &inference.PosteriorImportanceResampleIteration{},
-		Params:            samplerParams,
+		Name:      applied.Names.Sampler,
+		Iteration: &inference.PosteriorImportanceResampleIteration{},
+		Params: simulator.NewParams(map[string][]float64{
+			"past_discounting_factor": {applied.PastDiscount},
+			"loglike_indices": {
+				float64(len(compPartition.InitStateValues) - 1),
+			},
+			// TODO: what should this be?
+			"sample_covariance": {},
+		}),
+		ParamsAsPartitions: map[string][]string{
+			"loglike_partitions": {applied.Comparison.Name},
+			"param_partitions":   {applied.Comparison.Data.PartitionName},
+		},
 		InitStateValues:   applied.Defaults.Sampler,
 		StateHistoryDepth: 1,
 		Seed:              applied.Seed,
