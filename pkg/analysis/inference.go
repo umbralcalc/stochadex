@@ -274,12 +274,13 @@ type PosteriorTKernelDefaults struct {
 // online inference of a simulation (specified by partition configs)
 // from a referenced dataset using t-distribution kernel densities.
 type AppliedPosteriorTKernelEstimation struct {
-	Names        PosteriorTKernelEstimationNames
-	Comparison   AppliedTKernelComparison
-	Defaults     PosteriorTKernelDefaults
-	PastDiscount float64
-	MemoryDepth  int
-	Seed         uint64
+	Names         PosteriorTKernelEstimationNames
+	Comparison    AppliedTKernelComparison
+	Defaults      PosteriorTKernelDefaults
+	ResamplingCov []float64
+	PastDiscount  float64
+	MemoryDepth   int
+	Seed          uint64
 }
 
 // NewPosteriorTKernelEstimationPartitions creates a set of PartitionConfigs
@@ -321,8 +322,7 @@ func NewPosteriorTKernelEstimationPartitions(
 			"loglike_indices": {
 				float64(len(compPartition.InitStateValues) - 1),
 			},
-			// TODO: what should this be?
-			"sample_covariance": {},
+			"sample_covariance": applied.ResamplingCov,
 		}),
 		ParamsAsPartitions: map[string][]string{
 			"loglike_partitions": {applied.Comparison.Name},
