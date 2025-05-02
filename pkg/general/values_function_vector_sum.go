@@ -18,9 +18,8 @@ func UnitValueFunction(
 	return []float64{1.0}
 }
 
-// ValuesFunctionTimeDeltaRange defines a past time interval over which to compute the sum.
-// Lower limit inclusive, upper limit exclusive.
-type ValuesFunctionTimeDeltaRange struct {
+// TimeDeltaRange defines a past time interval. Lower limit inclusive, upper limit exclusive.
+type TimeDeltaRange struct {
 	LowerDelta float64
 	UpperDelta float64
 }
@@ -35,21 +34,14 @@ type ValuesFunctionVectorSumIteration struct {
 		stateHistories []*simulator.StateHistory,
 		stateHistoryDepthIndex int,
 	) []float64
-	Kernel    kernels.IntegrationKernel
-	timeRange *ValuesFunctionTimeDeltaRange
+	Kernel         kernels.IntegrationKernel
+	TimeDeltaRange *TimeDeltaRange
 }
 
 func (v *ValuesFunctionVectorSumIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	if lowerUpper, ok := settings.Iterations[partitionIndex].Params.GetOk(
-		"delta_time_range"); ok {
-		v.timeRange = &ValuesFunctionTimeDeltaRange{
-			LowerDelta: lowerUpper[0],
-			UpperDelta: lowerUpper[1],
-		}
-	}
 	v.Kernel.Configure(partitionIndex, settings)
 }
 
@@ -68,7 +60,7 @@ func (v *ValuesFunctionVectorSumIteration) Iterate(
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	var cumulativeWeightedFunctionValueSumVec *mat.VecDense
 	var weight, timeDelta, pastTime float64
-	if v.timeRange != nil {
+	if v.TimeDeltaRange != nil {
 		// convention is to use -1 here as the state history depth index of the
 		// very latest function value
 		latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)
@@ -94,10 +86,10 @@ func (v *ValuesFunctionVectorSumIteration) Iterate(
 		cumulativeWeightedFunctionValueSumVec.Len(), nil)
 	for i := range stateHistory.StateHistoryDepth {
 		pastTime = timestepsHistory.Values.AtVec(i)
-		if v.timeRange != nil {
+		if v.TimeDeltaRange != nil {
 			timeDelta = latestTime - pastTime
-			if v.timeRange.LowerDelta > timeDelta ||
-				timeDelta >= v.timeRange.UpperDelta {
+			if v.TimeDeltaRange.LowerDelta > timeDelta ||
+				timeDelta >= v.TimeDeltaRange.UpperDelta {
 				continue
 			}
 		}

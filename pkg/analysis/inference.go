@@ -1,6 +1,8 @@
 package analysis
 
 import (
+	"fmt"
+
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
@@ -137,6 +139,7 @@ type ParameterisedTKernel struct {
 	Depth             int
 	DegreesOfFreedom  float64
 	ScaleMatrixValues []float64
+	TimeDeltaRanges   []general.TimeDeltaRange
 }
 
 // AppliedTKernelComparison is the base configuration for a rolling
@@ -213,31 +216,35 @@ func NewAppliedTKernelComparisonPartition(
 				simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
 		}
 	}
-	generator.SetPartition(&simulator.PartitionConfig{
-		Name: "comparison",
-		Iteration: &general.CumulativeIteration{
-			Iteration: &general.ValuesFunctionVectorSumIteration{
-				Function: general.UnitValueFunction,
-				Kernel:   &kernels.TDistributionStateIntegrationKernel{},
+	for _, timeDeltaRange := range applied.Model.TimeDeltaRanges {
+		generator.SetPartition(&simulator.PartitionConfig{
+			Name: "comparison" + fmt.Sprintf(
+				"_%f_%f", timeDeltaRange.LowerDelta, timeDeltaRange.UpperDelta),
+			Iteration: &general.CumulativeIteration{
+				Iteration: &general.ValuesFunctionVectorSumIteration{
+					Function:       general.UnitValueFunction,
+					Kernel:         &kernels.TDistributionStateIntegrationKernel{},
+					TimeDeltaRange: &timeDeltaRange,
+				},
 			},
-		},
-		Params: simulator.NewParams(map[string][]float64{
-			"degrees_of_freedom": {applied.Model.DegreesOfFreedom},
-			"scale_matrix":       applied.Model.ScaleMatrixValues,
-		}),
-		ParamsAsPartitions: map[string][]string{
-			"data_values_partition": {applied.Model.Data.PartitionName},
-		},
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"latest_data_values": {
-				Upstream: applied.Data.PartitionName,
-				Indices:  applied.Data.ValueIndices,
+			Params: simulator.NewParams(map[string][]float64{
+				"degrees_of_freedom": {applied.Model.DegreesOfFreedom},
+				"scale_matrix":       applied.Model.ScaleMatrixValues,
+			}),
+			ParamsAsPartitions: map[string][]string{
+				"data_values_partition": {applied.Model.Data.PartitionName},
 			},
-		},
-		InitStateValues:   []float64{0.0},
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
+			ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+				"latest_data_values": {
+					Upstream: applied.Data.PartitionName,
+					Indices:  applied.Data.ValueIndices,
+				},
+			},
+			InitStateValues:   []float64{0.0},
+			StateHistoryDepth: 1,
+			Seed:              0,
+		})
+	}
 	simInitStateValues = append(simInitStateValues, 0.0)
 	simParams := simulator.NewParams(map[string][]float64{
 		"burn_in_steps": {float64(applied.Window.Depth)},
@@ -296,36 +303,45 @@ func NewPosteriorTKernelEstimationPartitions(
 	)
 	compPartition.StateHistoryDepth = applied.MemoryDepth
 	partitions := make([]*simulator.PartitionConfig, 0)
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:      applied.Names.Updater,
-		Iteration: &inference.PosteriorKernelUpdateIteration{},
-		Params: simulator.NewParams(map[string][]float64{
-			"past_discounting_factor": {applied.PastDiscount},
-		}),
-		ParamsAsPartitions: map[string][]string{
-			"data_values_partition": {applied.Comparison.Data.PartitionName},
-		},
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"latest_data_values": {
-				Upstream: applied.Comparison.Data.PartitionName,
+	loglikeIndices := make([]float64, 0)
+	loglikePartitions := make([]string, 0)
+	for i, timeDeltaRange := range applied.Comparison.Model.TimeDeltaRanges {
+		// TODO: Still missing the scale matrix updates to the compPartition config...
+		partitions = append(partitions, &simulator.PartitionConfig{
+			Name: applied.Names.Updater + fmt.Sprintf(
+				"_%f_%f", timeDeltaRange.LowerDelta, timeDeltaRange.UpperDelta),
+			Iteration: &inference.PosteriorKernelUpdateIteration{
+				TimeDeltaRange: &timeDeltaRange,
 			},
-		},
-		InitStateValues:   applied.Defaults.Updater,
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
+			Params: simulator.NewParams(map[string][]float64{
+				"past_discounting_factor": {applied.PastDiscount},
+			}),
+			ParamsAsPartitions: map[string][]string{
+				"data_values_partition": {applied.Comparison.Data.PartitionName},
+			},
+			ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+				"latest_data_values": {
+					Upstream: applied.Comparison.Data.PartitionName,
+				},
+			},
+			InitStateValues:   applied.Defaults.Updater,
+			StateHistoryDepth: 1,
+			Seed:              0,
+		})
+		loglikePartitions = append(loglikePartitions, applied.Comparison.Name)
+		loglikeIndices = append(
+			loglikeIndices, float64(len(compPartition.InitStateValues)-i-1))
+	}
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name:      applied.Names.Sampler,
 		Iteration: &inference.PosteriorImportanceResampleIteration{},
 		Params: simulator.NewParams(map[string][]float64{
 			"past_discounting_factor": {applied.PastDiscount},
-			"loglike_indices": {
-				float64(len(compPartition.InitStateValues) - 1),
-			},
-			"sample_covariance": applied.ResamplingCov,
+			"loglike_indices":         loglikeIndices,
+			"sample_covariance":       applied.ResamplingCov,
 		}),
 		ParamsAsPartitions: map[string][]string{
-			"loglike_partitions": {applied.Comparison.Name},
+			"loglike_partitions": loglikePartitions,
 			"param_partitions":   {applied.Comparison.Data.PartitionName},
 		},
 		InitStateValues:   applied.Defaults.Sampler,

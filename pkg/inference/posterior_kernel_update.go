@@ -12,20 +12,13 @@ import (
 // PosteriorKernelUpdateIteration computes updates to the degrees of freedom
 // and scale matrix of the posterior t-distribution kernel.
 type PosteriorKernelUpdateIteration struct {
-	timeRange *general.ValuesFunctionTimeDeltaRange
+	TimeDeltaRange *general.TimeDeltaRange
 }
 
 func (p *PosteriorKernelUpdateIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	if lowerUpper, ok := settings.Iterations[partitionIndex].Params.GetOk(
-		"delta_time_range"); ok {
-		p.timeRange = &general.ValuesFunctionTimeDeltaRange{
-			LowerDelta: lowerUpper[0],
-			UpperDelta: lowerUpper[1],
-		}
-	}
 }
 
 func (p *PosteriorKernelUpdateIteration) Iterate(
@@ -56,10 +49,10 @@ func (p *PosteriorKernelUpdateIteration) Iterate(
 	var timeDelta, pastTime float64
 	for i := range dataStateHistory.StateHistoryDepth {
 		pastTime = timestepsHistory.Values.AtVec(i)
-		if p.timeRange != nil {
+		if p.TimeDeltaRange != nil {
 			timeDelta = latestTime - pastTime
-			if p.timeRange.LowerDelta > timeDelta ||
-				timeDelta >= p.timeRange.UpperDelta {
+			if p.TimeDeltaRange.LowerDelta > timeDelta ||
+				timeDelta >= p.TimeDeltaRange.UpperDelta {
 				continue
 			}
 		}
