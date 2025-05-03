@@ -301,12 +301,19 @@ func NewPosteriorTKernelEstimationPartitions(
 		applied.Comparison,
 		storage,
 	)
+	for _, timeDeltaRange := range applied.Comparison.Model.TimeDeltaRanges {
+		nameAppend := fmt.Sprintf("_%f_%f",
+			timeDeltaRange.LowerDelta, timeDeltaRange.UpperDelta)
+		compPartition.ParamsFromUpstream["comparison"+
+			nameAppend+"/scale_matrix"] = simulator.NamedUpstreamConfig{
+			Upstream: applied.Names.Updater + nameAppend,
+		}
+	}
 	compPartition.StateHistoryDepth = applied.MemoryDepth
 	partitions := make([]*simulator.PartitionConfig, 0)
 	loglikeIndices := make([]float64, 0)
 	loglikePartitions := make([]string, 0)
 	for i, timeDeltaRange := range applied.Comparison.Model.TimeDeltaRanges {
-		// TODO: Still missing the scale matrix updates to the compPartition config...
 		partitions = append(partitions, &simulator.PartitionConfig{
 			Name: applied.Names.Updater + fmt.Sprintf(
 				"_%f_%f", timeDeltaRange.LowerDelta, timeDeltaRange.UpperDelta),
