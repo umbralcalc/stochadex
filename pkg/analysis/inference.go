@@ -301,12 +301,17 @@ func NewPosteriorTKernelEstimationPartitions(
 		applied.Comparison,
 		storage,
 	)
+	scaleMatrixIndices := make([]int, 0)
+	for i := range len(applied.Comparison.Model.ScaleMatrixValues) {
+		scaleMatrixIndices = append(scaleMatrixIndices, i)
+	}
 	for _, timeDeltaRange := range applied.Comparison.Model.TimeDeltaRanges {
 		nameAppend := fmt.Sprintf("_%f_%f",
 			timeDeltaRange.LowerDelta, timeDeltaRange.UpperDelta)
 		compPartition.ParamsFromUpstream["comparison"+
 			nameAppend+"/scale_matrix"] = simulator.NamedUpstreamConfig{
 			Upstream: applied.Names.Updater + nameAppend,
+			Indices:  scaleMatrixIndices,
 		}
 	}
 	compPartition.StateHistoryDepth = applied.MemoryDepth
