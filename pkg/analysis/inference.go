@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
@@ -142,6 +143,14 @@ type ParameterisedTKernel struct {
 	TimeDeltaRanges   []general.TimeDeltaRange
 }
 
+// TimeDeltaRangeToString converts a TimeDeltaRange to a string
+// representation.
+func TimeDeltaRangeToString(timeDeltaRange general.TimeDeltaRange) string {
+	return strings.ReplaceAll(fmt.Sprintf("_%f_%f",
+		timeDeltaRange.LowerDelta,
+		timeDeltaRange.UpperDelta), ".", "")
+}
+
 // AppliedTKernelComparison is the base configuration for a rolling
 // comparison between a referenced dataset and kernel density estimation
 // model applied to another referenced dataset.
@@ -218,8 +227,7 @@ func NewAppliedTKernelComparisonPartition(
 	}
 	for _, timeDeltaRange := range applied.Model.TimeDeltaRanges {
 		generator.SetPartition(&simulator.PartitionConfig{
-			Name: "comparison" + fmt.Sprintf(
-				"_%f_%f", timeDeltaRange.LowerDelta, timeDeltaRange.UpperDelta),
+			Name: "comparison" + TimeDeltaRangeToString(timeDeltaRange),
 			Iteration: &general.CumulativeIteration{
 				Iteration: &general.ValuesFunctionVectorSumIteration{
 					Function:       general.UnitValueFunction,
@@ -306,8 +314,7 @@ func NewPosteriorTKernelEstimationPartitions(
 		scaleMatrixIndices = append(scaleMatrixIndices, i)
 	}
 	for _, timeDeltaRange := range applied.Comparison.Model.TimeDeltaRanges {
-		nameAppend := fmt.Sprintf("_%f_%f",
-			timeDeltaRange.LowerDelta, timeDeltaRange.UpperDelta)
+		nameAppend := TimeDeltaRangeToString(timeDeltaRange)
 		compPartition.ParamsFromUpstream["comparison"+
 			nameAppend+"/scale_matrix"] = simulator.NamedUpstreamConfig{
 			Upstream: applied.Names.Updater + nameAppend,
@@ -320,8 +327,7 @@ func NewPosteriorTKernelEstimationPartitions(
 	loglikePartitions := make([]string, 0)
 	for i, timeDeltaRange := range applied.Comparison.Model.TimeDeltaRanges {
 		partitions = append(partitions, &simulator.PartitionConfig{
-			Name: applied.Names.Updater + fmt.Sprintf(
-				"_%f_%f", timeDeltaRange.LowerDelta, timeDeltaRange.UpperDelta),
+			Name: applied.Names.Updater + TimeDeltaRangeToString(timeDeltaRange),
 			Iteration: &inference.PosteriorKernelUpdateIteration{
 				TimeDeltaRange: &timeDeltaRange,
 			},
