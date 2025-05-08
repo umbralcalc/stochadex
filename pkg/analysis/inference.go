@@ -352,15 +352,15 @@ func NewPosteriorTKernelEstimationPartitions(
 	}
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name:      applied.Names.Sampler,
-		Iteration: &inference.PosteriorImportanceResampleIteration{},
+		Iteration: &general.WeightedResamplingIteration{},
 		Params: simulator.NewParams(map[string][]float64{
 			"past_discounting_factor": {applied.PastDiscount},
-			"loglike_indices":         loglikeIndices,
-			"sample_covariance":       applied.ResamplingCov,
+			"log_weight_indices":      loglikeIndices,
+			"noise_covariance":        applied.ResamplingCov,
 		}),
 		ParamsAsPartitions: map[string][]string{
-			"loglike_partitions": loglikePartitions,
-			"param_partitions":   {applied.Comparison.Data.PartitionName},
+			"log_weight_partitions":  loglikePartitions,
+			"data_values_partitions": {applied.Comparison.Data.PartitionName},
 		},
 		InitStateValues:   applied.Defaults.Sampler,
 		StateHistoryDepth: 1,

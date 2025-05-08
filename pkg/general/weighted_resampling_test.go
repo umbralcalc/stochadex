@@ -1,29 +1,24 @@
-package inference
+package general
 
 import (
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestPosteriorImportanceResampleIteration(t *testing.T) {
+func TestWeightedResamplingIteration(t *testing.T) {
 	t.Run(
-		"test that the posterior importance resample iteration runs",
+		"test that the weighted resampling iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"posterior_importance_resample_settings.yaml",
+				"weighted_resampling_settings.yaml",
 			)
 			iterations := []simulator.Iteration{
-				&DataGenerationIteration{
-					Likelihood: &NormalLikelihoodDistribution{},
-				},
-				&general.ConstantValuesIteration{},
-				&DataGenerationIteration{
-					Likelihood: &NormalLikelihoodDistribution{},
-				},
-				&general.ConstantValuesIteration{},
-				&PosteriorImportanceResampleIteration{},
+				&ConstantValuesIteration{},
+				&ConstantValuesIteration{},
+				&ConstantValuesIteration{},
+				&ConstantValuesIteration{},
+				&WeightedResamplingIteration{},
 			}
 			for index, iteration := range iterations {
 				iteration.Configure(index, settings)
@@ -46,21 +41,17 @@ func TestPosteriorImportanceResampleIteration(t *testing.T) {
 		},
 	)
 	t.Run(
-		"test that the posterior importance resample iteration runs with harnesses",
+		"test that the weighted resampling iteration runs with harnesses",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"posterior_importance_resample_settings.yaml",
+				"weighted_resampling_settings.yaml",
 			)
 			iterations := []simulator.Iteration{
-				&DataGenerationIteration{
-					Likelihood: &NormalLikelihoodDistribution{},
-				},
-				&general.ConstantValuesIteration{},
-				&DataGenerationIteration{
-					Likelihood: &NormalLikelihoodDistribution{},
-				},
-				&general.ConstantValuesIteration{},
-				&PosteriorImportanceResampleIteration{},
+				&ConstantValuesIteration{},
+				&ConstantValuesIteration{},
+				&ConstantValuesIteration{},
+				&ConstantValuesIteration{},
+				&WeightedResamplingIteration{},
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{
