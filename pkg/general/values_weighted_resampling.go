@@ -11,15 +11,15 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// WeightedResamplingIteration resamples from the history of state values
+// ValuesWeightedResamplingIteration resamples from the history of state values
 // of other partitions with optional frequencies according to the provided
 // weights and optional additional noise applied to each sample.
-type WeightedResamplingIteration struct {
+type ValuesWeightedResamplingIteration struct {
 	Src     rand.Source
 	catDist distuv.Categorical
 }
 
-func (w *WeightedResamplingIteration) Configure(
+func (v *ValuesWeightedResamplingIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
@@ -31,11 +31,11 @@ func (w *WeightedResamplingIteration) Configure(
 			settings.Iterations[int(logWeightPartitions[0])].StateHistoryDepth,
 	)
 	nilWeights[0] = 1.0
-	w.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
-	w.catDist = distuv.NewCategorical(nilWeights, w.Src)
+	v.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	v.catDist = distuv.NewCategorical(nilWeights, v.Src)
 }
 
-func (w *WeightedResamplingIteration) Iterate(
+func (v *ValuesWeightedResamplingIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -64,16 +64,16 @@ func (w *WeightedResamplingIteration) Iterate(
 	}
 	logNorm := floats.LogSumExp(logWeights)
 	for i, logWeight := range logWeights {
-		w.catDist.Reweight(i, math.Exp(logWeight-logNorm))
+		v.catDist.Reweight(i, math.Exp(logWeight-logNorm))
 	}
-	indexPair := indices[int(w.catDist.Rand())]
+	indexPair := indices[int(v.catDist.Rand())]
 	dataPartition := params.GetIndex("data_values_partitions", indexPair[1])
 	sampleCentre := stateHistories[int(dataPartition)].Values.RawRowView(indexPair[0])
 	if sampleCov, ok := params.GetOk("noise_covariance"); ok {
 		normDist, ok := distmv.NewNormal(
 			sampleCentre,
 			mat.NewSymDense(len(sampleCentre), sampleCov),
-			w.Src,
+			v.Src,
 		)
 		if !ok {
 			panic("covariance matrix is not positive-definite")

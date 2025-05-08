@@ -6,19 +6,19 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func TestWeightedResamplingIteration(t *testing.T) {
+func TestValuesWeightedResamplingIteration(t *testing.T) {
 	t.Run(
-		"test that the weighted resampling iteration runs",
+		"test that the values weighted resampling iteration runs",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"weighted_resampling_settings.yaml",
+				"values_weighted_resampling_settings.yaml",
 			)
 			iterations := []simulator.Iteration{
 				&ConstantValuesIteration{},
 				&ConstantValuesIteration{},
 				&ConstantValuesIteration{},
 				&ConstantValuesIteration{},
-				&WeightedResamplingIteration{},
+				&ValuesWeightedResamplingIteration{},
 			}
 			for index, iteration := range iterations {
 				iteration.Configure(index, settings)
@@ -41,17 +41,17 @@ func TestWeightedResamplingIteration(t *testing.T) {
 		},
 	)
 	t.Run(
-		"test that the weighted resampling iteration runs with harnesses",
+		"test that the values weighted resampling iteration runs with harnesses",
 		func(t *testing.T) {
 			settings := simulator.LoadSettingsFromYaml(
-				"weighted_resampling_settings.yaml",
+				"values_weighted_resampling_settings.yaml",
 			)
 			iterations := []simulator.Iteration{
 				&ConstantValuesIteration{},
 				&ConstantValuesIteration{},
 				&ConstantValuesIteration{},
 				&ConstantValuesIteration{},
-				&WeightedResamplingIteration{},
+				&ValuesWeightedResamplingIteration{},
 			}
 			store := simulator.NewStateTimeStorage()
 			implementations := &simulator.Implementations{

@@ -352,7 +352,7 @@ func NewPosteriorTKernelEstimationPartitions(
 	}
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name:      applied.Names.Sampler,
-		Iteration: &general.WeightedResamplingIteration{},
+		Iteration: &general.ValuesWeightedResamplingIteration{},
 		Params: simulator.NewParams(map[string][]float64{
 			"past_discounting_factor": {applied.PastDiscount},
 			"log_weight_indices":      loglikeIndices,
