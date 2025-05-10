@@ -3,8 +3,9 @@ package discrete
 import (
 	"strconv"
 
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -20,12 +21,10 @@ func (c *CategoricalStateTransitionIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	seed := settings.Iterations[partitionIndex].Seed
-	rand.Seed(seed)
-
 	c.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,
 		Max: 1.0,
-		Src: rand.NewSource(seed),
+		Src: rand.NewPCG(seed, seed),
 	}
 	c.rateSlices = make([][]int, 0)
 	i := 0

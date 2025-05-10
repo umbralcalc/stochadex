@@ -3,8 +3,9 @@ package continuous
 import (
 	"math"
 
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -21,7 +22,10 @@ func (g *GeometricBrownianMotionIteration) Configure(
 	g.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,
 		Sigma: 1.0,
-		Src:   rand.NewSource(settings.Iterations[partitionIndex].Seed),
+		Src: rand.NewPCG(
+			settings.Iterations[partitionIndex].Seed,
+			settings.Iterations[partitionIndex].Seed,
+		),
 	}
 }
 

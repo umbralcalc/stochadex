@@ -289,13 +289,12 @@ type PosteriorTKernelDefaults struct {
 // online inference of a simulation (specified by partition configs)
 // from a referenced dataset using t-distribution kernel densities.
 type AppliedPosteriorTKernelEstimation struct {
-	Names         PosteriorTKernelEstimationNames
-	Comparison    AppliedTKernelComparison
-	Defaults      PosteriorTKernelDefaults
-	ResamplingCov []float64
-	PastDiscount  float64
-	MemoryDepth   int
-	Seed          uint64
+	Names        PosteriorTKernelEstimationNames
+	Comparison   AppliedTKernelComparison
+	Defaults     PosteriorTKernelDefaults
+	PastDiscount float64
+	MemoryDepth  int
+	Seed         uint64
 }
 
 // NewPosteriorTKernelEstimationPartitions creates a set of PartitionConfigs
@@ -335,11 +334,13 @@ func NewPosteriorTKernelEstimationPartitions(
 				"past_discounting_factor": {applied.PastDiscount},
 			}),
 			ParamsAsPartitions: map[string][]string{
-				"data_values_partition": {applied.Comparison.Data.PartitionName},
+				"data_values_partition": {
+					applied.Comparison.Model.Data.PartitionName,
+				},
 			},
 			ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
 				"latest_data_values": {
-					Upstream: applied.Comparison.Data.PartitionName,
+					Upstream: applied.Comparison.Model.Data.PartitionName,
 				},
 			},
 			InitStateValues:   applied.Defaults.Updater,
@@ -356,11 +357,10 @@ func NewPosteriorTKernelEstimationPartitions(
 		Params: simulator.NewParams(map[string][]float64{
 			"past_discounting_factor": {applied.PastDiscount},
 			"log_weight_indices":      loglikeIndices,
-			"noise_covariance":        applied.ResamplingCov,
 		}),
 		ParamsAsPartitions: map[string][]string{
 			"log_weight_partitions":  loglikePartitions,
-			"data_values_partitions": {applied.Comparison.Data.PartitionName},
+			"data_values_partitions": {applied.Comparison.Model.Data.PartitionName},
 		},
 		InitStateValues:   applied.Defaults.Sampler,
 		StateHistoryDepth: 1,

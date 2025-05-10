@@ -3,7 +3,7 @@ package simulator
 import (
 	"strconv"
 
-	"golang.org/x/exp/rand"
+	"math/rand/v2"
 )
 
 // UpstreamConfig is the yaml-loadable representation of a slice of data
@@ -164,9 +164,9 @@ func (c *ConfigGenerator) GetGlobalSeed() uint64 {
 // based on a process which itself is dependent on the input random seed.
 func (c *ConfigGenerator) SetGlobalSeed(seed uint64) {
 	c.globalSeed = seed
-	rand.Seed(seed)
+	r := rand.New(rand.NewPCG(seed, seed))
 	for _, config := range c.partitionConfigOrdering.ConfigByName {
-		config.Seed = uint64(rand.Intn(1e8))
+		config.Seed = uint64(r.IntN(1e8))
 	}
 }
 

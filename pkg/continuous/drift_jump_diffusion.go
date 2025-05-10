@@ -3,8 +3,9 @@ package continuous
 import (
 	"math"
 
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -20,16 +21,19 @@ func (d *DriftJumpDiffusionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	rand.Seed(settings.Iterations[partitionIndex].Seed)
+	r := rand.New(rand.NewPCG(
+		settings.Iterations[partitionIndex].Seed,
+		settings.Iterations[partitionIndex].Seed,
+	))
 	d.unitNormalDist = &distuv.Normal{
 		Mu:    0.0,
 		Sigma: 1.0,
-		Src:   rand.NewSource(uint64(rand.Intn(1e8))),
+		Src:   rand.NewPCG(uint64(r.IntN(1e8)), uint64(r.IntN(1e8))),
 	}
 	d.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,
 		Max: 1.0,
-		Src: rand.NewSource(uint64(rand.Intn(1e8))),
+		Src: rand.NewPCG(uint64(r.IntN(1e8)), uint64(r.IntN(1e8))),
 	}
 	d.JumpDist.Configure(partitionIndex, settings)
 }

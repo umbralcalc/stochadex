@@ -1,8 +1,9 @@
 package continuous
 
 import (
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -26,7 +27,8 @@ func (g *GammaJumpDistribution) Configure(
 	g.dist = &distuv.Gamma{
 		Alpha: 1.0,
 		Beta:  1.0,
-		Src: rand.NewSource(
+		Src: rand.NewPCG(
+			settings.Iterations[partitionIndex].Seed,
 			settings.Iterations[partitionIndex].Seed,
 		),
 	}
@@ -56,7 +58,10 @@ func (c *CompoundPoissonProcessIteration) Configure(
 	c.unitUniformDist = &distuv.Uniform{
 		Min: 0.0,
 		Max: 1.0,
-		Src: rand.NewSource(settings.Iterations[partitionIndex].Seed),
+		Src: rand.NewPCG(
+			settings.Iterations[partitionIndex].Seed,
+			settings.Iterations[partitionIndex].Seed,
+		),
 	}
 }
 

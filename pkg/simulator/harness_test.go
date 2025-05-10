@@ -3,7 +3,7 @@ package simulator
 import (
 	"testing"
 
-	"golang.org/x/exp/rand"
+	"math/rand/v2"
 )
 
 // harnessSuccessTestIteration is a basic iteration for testing the harness.
@@ -75,7 +75,7 @@ func (h *harnessFailStatefulTestIteration) Iterate(
 	newValues := make([]float64, stateHistory.StateWidth)
 	copy(newValues, stateHistory.Values.RawRowView(0))
 	for i, value := range newValues {
-		newValues[i] = value + float64(rand.Intn(100))
+		newValues[i] = value + float64(rand.IntN(100))
 	}
 	return newValues
 }

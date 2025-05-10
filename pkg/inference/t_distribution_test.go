@@ -3,11 +3,12 @@ package inference
 import (
 	"testing"
 
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -98,7 +99,7 @@ func TestTDistributionLogLikelihoodGradient(t *testing.T) {
 		"test that the t-distribution log-likelihood gradient runs",
 		func(t *testing.T) {
 			dist := &TLikelihoodDistribution{
-				Src: rand.NewSource(123456),
+				Src: rand.NewPCG(123456, 123456),
 			}
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("degrees_of_freedom", []float64{23.0})
@@ -150,7 +151,7 @@ func TestTDistributionLogLikelihoodGradient(t *testing.T) {
 		"test that the t-distribution log-likelihood gradient runs with harnesses",
 		func(t *testing.T) {
 			dist := &TLikelihoodDistribution{
-				Src: rand.NewSource(123456),
+				Src: rand.NewPCG(123456, 123456),
 			}
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("degrees_of_freedom", []float64{23.0})

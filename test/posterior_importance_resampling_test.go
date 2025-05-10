@@ -64,7 +64,6 @@ func TestPosteriorImportanceResampling(t *testing.T) {
 							Depth: 100,
 						},
 					},
-					ResamplingCov: []float64{1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0},
 					Defaults: analysis.PosteriorTKernelDefaults{
 						Updater: []float64{2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0, 1.0},
 						Sampler: []float64{1.0, 1.0, 1.0},

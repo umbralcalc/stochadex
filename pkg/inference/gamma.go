@@ -1,8 +1,9 @@
 package inference
 
 import (
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
@@ -19,7 +20,10 @@ func (g *GammaLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	g.Src = rand.NewPCG(
+		settings.Iterations[partitionIndex].Seed,
+		settings.Iterations[partitionIndex].Seed,
+	)
 }
 
 func (g *GammaLikelihoodDistribution) SetParams(

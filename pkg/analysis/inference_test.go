@@ -129,7 +129,6 @@ func TestInference(t *testing.T) {
 							Depth: 200,
 						},
 					},
-					ResamplingCov: []float64{1.0, 0.0, 0.0, 1.0},
 					Defaults: PosteriorTKernelDefaults{
 						Updater: []float64{2.5, 0.0, 0.0, 9.0, 1.0},
 						Sampler: []float64{1.8, 5.0},

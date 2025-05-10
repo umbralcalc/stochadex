@@ -1,7 +1,8 @@
 package simulator
 
 import (
-	"golang.org/x/exp/rand"
+	"math/rand/v2"
+
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -45,8 +46,11 @@ func NewExponentialDistributionTimestepFunction(
 	seed uint64,
 ) *ExponentialDistributionTimestepFunction {
 	return &ExponentialDistributionTimestepFunction{
-		Mean:         mean,
-		Seed:         seed,
-		distribution: distuv.Exponential{Rate: 1.0 / mean, Src: rand.NewSource(seed)},
+		Mean: mean,
+		Seed: seed,
+		distribution: distuv.Exponential{
+			Rate: 1.0 / mean,
+			Src:  rand.NewPCG(seed, seed),
+		},
 	}
 }

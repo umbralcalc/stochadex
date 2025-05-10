@@ -3,17 +3,15 @@ package general
 import (
 	"math"
 
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat/distmv"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // ValuesWeightedResamplingIteration resamples from the history of state values
-// of other partitions with optional frequencies according to the provided
-// weights and optional additional noise applied to each sample.
+// of other partitions with optional frequencies according to the provided weights.
 type ValuesWeightedResamplingIteration struct {
 	Src     rand.Source
 	catDist distuv.Categorical
@@ -31,7 +29,10 @@ func (v *ValuesWeightedResamplingIteration) Configure(
 			settings.Iterations[int(logWeightPartitions[0])].StateHistoryDepth,
 	)
 	nilWeights[0] = 1.0
-	v.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	v.Src = rand.NewPCG(
+		settings.Iterations[partitionIndex].Seed,
+		settings.Iterations[partitionIndex].Seed,
+	)
 	v.catDist = distuv.NewCategorical(nilWeights, v.Src)
 }
 
@@ -68,18 +69,5 @@ func (v *ValuesWeightedResamplingIteration) Iterate(
 	}
 	indexPair := indices[int(v.catDist.Rand())]
 	dataPartition := params.GetIndex("data_values_partitions", indexPair[1])
-	sampleCentre := stateHistories[int(dataPartition)].Values.RawRowView(indexPair[0])
-	if sampleCov, ok := params.GetOk("noise_covariance"); ok {
-		normDist, ok := distmv.NewNormal(
-			sampleCentre,
-			mat.NewSymDense(len(sampleCentre), sampleCov),
-			v.Src,
-		)
-		if !ok {
-			panic("covariance matrix is not positive-definite")
-		}
-		return normDist.Rand(nil)
-	} else {
-		return sampleCentre
-	}
+	return stateHistories[int(dataPartition)].Values.RawRowView(indexPair[0])
 }

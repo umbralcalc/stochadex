@@ -3,8 +3,9 @@ package inference
 import (
 	"math"
 
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
@@ -22,7 +23,10 @@ func (n *NegativeBinomialLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	n.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	n.Src = rand.NewPCG(
+		settings.Iterations[partitionIndex].Seed,
+		settings.Iterations[partitionIndex].Seed,
+	)
 }
 
 func (n *NegativeBinomialLikelihoodDistribution) SetParams(

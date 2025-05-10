@@ -3,8 +3,9 @@ package inference
 import (
 	"math"
 
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distmat"
 )
@@ -24,7 +25,10 @@ func (w *WishartLikelihoodDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	w.Src = rand.NewSource(settings.Iterations[partitionIndex].Seed)
+	w.Src = rand.NewPCG(
+		settings.Iterations[partitionIndex].Seed,
+		settings.Iterations[partitionIndex].Seed,
+	)
 }
 
 func (w *WishartLikelihoodDistribution) SetParams(

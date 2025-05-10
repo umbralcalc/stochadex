@@ -3,9 +3,10 @@ package main
 import (
 	"testing"
 
+	"math/rand/v2"
+
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -20,9 +21,12 @@ func (m *MyCustomIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	m.binomialDist = &distuv.Binomial{
-		N:   0,
-		P:   1.0,
-		Src: rand.NewSource(settings.Iterations[partitionIndex].Seed),
+		N: 0,
+		P: 1.0,
+		Src: rand.NewPCG(
+			settings.Iterations[partitionIndex].Seed,
+			settings.Iterations[partitionIndex].Seed,
+		),
 	}
 }
 
