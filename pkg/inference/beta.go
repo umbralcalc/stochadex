@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat/distuv"
 	"scientificgo.org/special"
 )
@@ -36,11 +37,13 @@ func (b *BetaLikelihoodDistribution) SetParams(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
-	b.beta = params.Get("beta")
 	if alpha, ok := params.GetOk("alpha"); ok {
 		b.alpha = alpha
+		b.beta = params.Get("beta")
 	} else if mean, ok := params.GetOk("mean"); ok {
-		copy(b.alpha, mean)
+		precision := params.Get("precision")
+		floats.MulTo(b.alpha, mean, precision)
+		floats.SubTo(b.beta, precision, b.alpha)
 	} else {
 		panic("beta likelihood error: either 'alpha' or 'mean' must be set")
 	}
