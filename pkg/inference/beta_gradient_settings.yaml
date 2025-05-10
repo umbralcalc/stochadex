@@ -1,0 +1,22 @@
+iterations:
+- name: partition_0
+  params:
+    alpha: [1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0]
+    beta: [2.0, 3.0, 1.0, 3.0, 2.0, 3.0, 1.0, 1.0, 1.0]
+  init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  seed: 0
+  state_width: 9
+  state_history_depth: 1
+- name: partition_1
+  params:
+    ascent: [1]
+    learning_rate: [0.05]
+  params_from_upstream:
+    gradient:
+      upstream: 0
+  init_state_values: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+  seed: 0
+  state_width: 9
+  state_history_depth: 1
+init_time_value: 0.0
+timesteps_history_depth: 1
