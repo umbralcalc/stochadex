@@ -28,7 +28,6 @@ func (b *BetaLikelihoodDistribution) Configure(
 		settings.Iterations[partitionIndex].Seed,
 		settings.Iterations[partitionIndex].Seed,
 	)
-	b.alpha = make([]float64, settings.Iterations[partitionIndex].StateWidth)
 }
 
 func (b *BetaLikelihoodDistribution) SetParams(
@@ -38,15 +37,22 @@ func (b *BetaLikelihoodDistribution) SetParams(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
 	if alpha, ok := params.GetOk("alpha"); ok {
-		b.alpha = alpha
-		b.beta = params.Get("beta")
+		b.alpha = make([]float64, len(alpha))
+		b.beta = make([]float64, len(alpha))
+		copy(b.alpha, alpha)
+		copy(b.beta, params.Get("beta"))
 	} else if mean, ok := params.GetOk("mean"); ok {
+		b.alpha = make([]float64, len(alpha))
+		b.beta = make([]float64, len(alpha))
 		precision := params.Get("precision")
 		floats.MulTo(b.alpha, mean, precision)
 		floats.SubTo(b.beta, precision, b.alpha)
 	} else {
 		panic("beta likelihood error: either 'alpha' or 'mean' must be set")
 	}
+	// handle situations with 0 values
+	floats.AddConst(1e-8, b.alpha)
+	floats.AddConst(1e-8, b.beta)
 }
 
 func (b *BetaLikelihoodDistribution) EvaluateLogLike(

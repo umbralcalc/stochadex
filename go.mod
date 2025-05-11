@@ -6,7 +6,6 @@ toolchain go1.23.2
 
 require (
 	github.com/akamensky/argparse v1.4.0
-	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
 	gonum.org/v1/gonum v0.16.0
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0

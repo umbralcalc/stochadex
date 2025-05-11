@@ -87,8 +87,7 @@ func TestBetaLogLikelihoodGradient(t *testing.T) {
 			params.Set("alpha", []float64{
 				1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0})
 			params.Set("beta", []float64{
-				2.0, 3.0, 1.0, 3.0, 2.0, 3.0, 1.0, 1.0, 1.0,
-			})
+				2.0, 3.0, 1.0, 3.0, 2.0, 3.0, 1.0, 1.0, 1.0})
 			dist.SetParams(&params, 0, nil, nil)
 			batchData := make([]float64, 0)
 			for range 100 {
@@ -139,8 +138,7 @@ func TestBetaLogLikelihoodGradient(t *testing.T) {
 			params.Set("alpha", []float64{
 				1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0})
 			params.Set("beta", []float64{
-				2.0, 3.0, 1.0, 3.0, 2.0, 3.0, 1.0, 1.0, 1.0,
-			})
+				2.0, 3.0, 1.0, 3.0, 2.0, 3.0, 1.0, 1.0, 1.0})
 			dist.SetParams(&params, 0, nil, nil)
 			batchData := make([]float64, 0)
 			for range 100 {
