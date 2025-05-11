@@ -18,7 +18,7 @@ type NormalLikelihoodDistribution struct {
 	defaultCov []float64
 }
 
-func (n *NormalLikelihoodDistribution) Configure(
+func (n *NormalLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {

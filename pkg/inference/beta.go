@@ -20,7 +20,7 @@ type BetaLikelihoodDistribution struct {
 	beta  []float64
 }
 
-func (b *BetaLikelihoodDistribution) Configure(
+func (b *BetaLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {

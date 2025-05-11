@@ -29,7 +29,7 @@ func (d *DataComparisonGradientIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	d.Likelihood.Configure(partitionIndex, settings)
+	d.Likelihood.SetSeed(partitionIndex, settings)
 }
 
 func (d *DataComparisonGradientIteration) Iterate(

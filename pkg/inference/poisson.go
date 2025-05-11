@@ -16,7 +16,7 @@ type PoissonLikelihoodDistribution struct {
 	mean *mat.VecDense
 }
 
-func (p *PoissonLikelihoodDistribution) Configure(
+func (p *PoissonLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {

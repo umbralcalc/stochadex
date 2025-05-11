@@ -24,7 +24,7 @@ func (d *DataComparisonIteration) Configure(
 	}
 	d.burnInSteps = int(
 		settings.Iterations[partitionIndex].Params.GetIndex("burn_in_steps", 0))
-	d.Likelihood.Configure(partitionIndex, settings)
+	d.Likelihood.SetSeed(partitionIndex, settings)
 }
 
 func (d *DataComparisonIteration) Iterate(

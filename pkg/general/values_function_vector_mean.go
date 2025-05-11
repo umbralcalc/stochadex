@@ -9,6 +9,17 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+// UnitValueFunction just returns a slice of length 1 with a value of 1. This can be
+// used while also setting "without_normalisation" to compute the kernel density.
+func UnitValueFunction(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	stateHistoryDepthIndex int,
+) []float64 {
+	return []float64{1.0}
+}
+
 // PastDiscountedDataValuesFunction returns the value from the "data_values_partition"
 // discounted by some "past_discounting_factor" in the params, resulting in
 // calculating the past-discounted rolling windowed weighted mean.
@@ -208,6 +219,11 @@ func (v *ValuesFunctionVectorMeanIteration) Iterate(
 			cumulativeWeightedFunctionValueSumVec,
 			sumContributionVec,
 		)
+	}
+	if d, ok := params.GetOk("without_normalisation"); ok {
+		if d[0] == 1 {
+			return cumulativeWeightedFunctionValueSumVec.RawVector().Data
+		}
 	}
 	if w, ok := params.GetOk("subtract_from_normalisation"); ok {
 		cumulativeWeightSum -= w[0]

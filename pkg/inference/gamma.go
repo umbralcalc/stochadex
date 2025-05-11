@@ -16,7 +16,7 @@ type GammaLikelihoodDistribution struct {
 	variance *mat.VecDense
 }
 
-func (g *GammaLikelihoodDistribution) Configure(
+func (g *GammaLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {

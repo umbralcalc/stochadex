@@ -19,7 +19,7 @@ type NegativeBinomialLikelihoodDistribution struct {
 	variance *mat.VecDense
 }
 
-func (n *NegativeBinomialLikelihoodDistribution) Configure(
+func (n *NegativeBinomialLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
