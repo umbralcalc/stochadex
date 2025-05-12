@@ -44,9 +44,13 @@ func (b *BetaLikelihoodDistribution) SetParams(
 	} else if mean, ok := params.GetOk("mean"); ok {
 		b.alpha = make([]float64, len(alpha))
 		b.beta = make([]float64, len(alpha))
-		precision := params.Get("precision")
-		floats.MulTo(b.alpha, mean, precision)
-		floats.SubTo(b.beta, precision, b.alpha)
+		variance := params.Get("variance")
+		var f float64
+		for i, m := range mean {
+			f = (m * (1.0 - m) / variance[i]) - 1.0
+			b.alpha[i] = m * f
+			b.beta[i] = (1.0 - m) * f
+		}
 	} else {
 		panic("beta likelihood error: either 'alpha' or 'mean' must be set")
 	}

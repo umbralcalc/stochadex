@@ -6,7 +6,6 @@ import (
 	"math/rand/v2"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distmat"
 )
@@ -32,7 +31,6 @@ func (w *WishartLikelihoodDistribution) SetSeed(
 	)
 }
 
-// TODO: Add short-circuit to update params from packet
 func (w *WishartLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -96,32 +94,4 @@ func (w *WishartLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	invScale.ScaleSym(0.5*float64(w.dof), &invScale)
 	logLikeGrad.Sub(logLikeGrad, &invScale)
 	return logLikeGrad.RawMatrix().Data
-}
-
-// TODO: Fix this to add log weights
-func (w *WishartLikelihoodDistribution) EvaluateUpdate(
-	params *simulator.Params,
-	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) []float64 {
-	latestStateValues := params.Get("latest_data_values")
-	discount := params.Get("past_discounting_factor")[0]
-	w.dof *= discount
-	w.scale.ScaleSym(discount, w.scale)
-	w.dof = w.dof + 1.0
-	w.scale.SymRankOne(
-		w.scale,
-		1.0,
-		mat.NewVecDense(
-			len(latestStateValues),
-			floats.SubTo(
-				make([]float64, len(latestStateValues)),
-				latestStateValues,
-				stateHistories[int(params.GetIndex(
-					"data_values_partition", 0))].Values.RawRowView(0),
-			),
-		),
-	)
-	return append(w.scale.RawSymmetric().Data, w.dof)
 }

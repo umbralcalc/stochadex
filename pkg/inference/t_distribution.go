@@ -1,7 +1,6 @@
 package inference
 
 import (
-	"math"
 	"math/rand/v2"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -31,7 +30,6 @@ func (t *TLikelihoodDistribution) SetSeed(
 	)
 }
 
-// TODO: Add short-circuit to update params from packet
 func (t *TLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -101,43 +99,4 @@ func (t *TLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 		logLikeGrad,
 	)
 	return logLikeGrad.RawVector().Data
-}
-
-// TODO: Fix this to add log weights
-func (t *TLikelihoodDistribution) EvaluateUpdate(
-	params *simulator.Params,
-	partitionIndex int,
-	stateHistories []*simulator.StateHistory,
-	timestepsHistory *simulator.CumulativeTimestepsHistory,
-) []float64 {
-	stateHistory := stateHistories[partitionIndex]
-	dof := stateHistory.Values.At(0, stateHistory.StateWidth-1)
-	scaleMatrixValues := make([]float64, stateHistory.StateWidth-1)
-	copy(
-		scaleMatrixValues,
-		stateHistory.Values.RawRowView(0)[:stateHistory.StateWidth-1],
-	)
-	scaleMatrix := mat.NewSymDense(
-		int(math.Sqrt(float64(stateHistory.StateWidth-1))),
-		scaleMatrixValues,
-	)
-	latestStateValues := params.Get("latest_data_values")
-	discount := params.Get("past_discounting_factor")[0]
-	dof *= discount
-	scaleMatrix.ScaleSym(discount, scaleMatrix)
-	dof = dof + 1.0
-	scaleMatrix.SymRankOne(
-		scaleMatrix,
-		1.0,
-		mat.NewVecDense(
-			len(latestStateValues),
-			floats.SubTo(
-				make([]float64, len(latestStateValues)),
-				latestStateValues,
-				stateHistories[int(params.GetIndex(
-					"data_values_partition", 0))].Values.RawRowView(0),
-			),
-		),
-	)
-	return append(scaleMatrix.RawSymmetric().Data, dof)
 }
