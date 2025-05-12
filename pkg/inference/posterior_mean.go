@@ -8,10 +8,36 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+// VarianceTransform returns the values needed to compute the variance.
+func VarianceTransform(
+	params *simulator.Params,
+	values mat.Vector,
+) mat.Vector {
+	diff := mat.NewVecDense(values.Len(), nil)
+	diff.SubVec(
+		mat.NewVecDense(values.Len(), params.Get("mean")),
+		values,
+	)
+	diff.MulElemVec(diff, diff)
+	return diff
+}
+
+// MeanTransform returns the values needed to compute the mean.
+func MeanTransform(
+	params *simulator.Params,
+	values mat.Vector,
+) mat.Vector {
+	return values
+}
+
 // PosteriorMeanIteration updates an estimate of the mean of the posterior
 // distribution over params using log-likelihood and param values given in
 // the state history of other partitions.
 type PosteriorMeanIteration struct {
+	Transform func(
+		params *simulator.Params,
+		values mat.Vector,
+	) mat.Vector
 }
 
 func (p *PosteriorMeanIteration) Configure(
@@ -48,7 +74,10 @@ func (p *PosteriorMeanIteration) Iterate(
 		mean.AddScaledVec(
 			mean,
 			math.Exp(logLikes[i]-logNormTotal),
-			stateHistories[int(paramsPartition)].Values.RowView(0),
+			p.Transform(
+				params,
+				stateHistories[int(paramsPartition)].Values.RowView(0),
+			),
 		)
 	}
 	return mean.RawVector().Data

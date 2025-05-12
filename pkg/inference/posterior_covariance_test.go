@@ -24,7 +24,7 @@ func TestPosteriorCovarianceIteration(t *testing.T) {
 				},
 				&general.ConstantValuesIteration{},
 				&PosteriorLogNormalisationIteration{},
-				&PosteriorMeanIteration{},
+				&PosteriorMeanIteration{Transform: MeanTransform},
 				&PosteriorCovarianceIteration{},
 			}
 			for index, iteration := range iterations {
@@ -63,7 +63,7 @@ func TestPosteriorCovarianceIteration(t *testing.T) {
 				},
 				&general.ConstantValuesIteration{},
 				&PosteriorLogNormalisationIteration{},
-				&PosteriorMeanIteration{},
+				&PosteriorMeanIteration{Transform: MeanTransform},
 				&PosteriorCovarianceIteration{},
 			}
 			store := simulator.NewStateTimeStorage()

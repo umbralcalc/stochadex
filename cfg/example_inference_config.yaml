@@ -86,7 +86,7 @@ main:
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
-    - paramsPosteriorMean: "&inference.PosteriorMeanIteration{}"
+    - paramsPosteriorMean: "&inference.PosteriorMeanIteration{Transform: inference.MeanTransform}"
 
   - name: params_posterior_cov
     iteration: paramsPosteriorCov

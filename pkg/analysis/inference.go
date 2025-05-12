@@ -71,9 +71,11 @@ func NewPosteriorEstimationPartitions(
 	meanParams := simulator.NewParams(make(map[string][]float64))
 	meanParams.Set("loglike_indices", loglikeIndices)
 	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:      applied.Names.Mean,
-		Iteration: &inference.PosteriorMeanIteration{},
-		Params:    meanParams,
+		Name: applied.Names.Mean,
+		Iteration: &inference.PosteriorMeanIteration{
+			Transform: inference.MeanTransform,
+		},
+		Params: meanParams,
 		ParamsAsPartitions: map[string][]string{
 			"loglike_partitions": loglikePartitions,
 			"param_partitions":   paramPartitions,
