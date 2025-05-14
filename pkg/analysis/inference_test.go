@@ -37,11 +37,32 @@ func TestInference(t *testing.T) {
 			params.Set("covariance_matrix", []float64{2.5, 0.0, 0.0, 9.0})
 			partitions := NewPosteriorEstimationPartitions(
 				AppliedPosteriorEstimation{
-					Names: PosteriorEstimationNames{
-						LogNorm:    "test_post_log_norm",
-						Mean:       "test_post_mean",
-						Covariance: "test_post_cov",
-						Sampler:    "test_post_sampler",
+					LogNorm: PosteriorLogNorm{
+						Name:    "test_post_log_norm",
+						Default: 0.0,
+					},
+					Mean: PosteriorMean{
+						Name:    "test_post_mean",
+						Default: []float64{1.8, 5.0},
+					},
+					Covariance: PosteriorCovariance{
+						Name:    "test_post_cov",
+						Default: []float64{2.5, 0.0, 0.0, 9.0},
+					},
+					Sampler: PosteriorSampler{
+						Name:    "test_post_sampler",
+						Default: []float64{1.8, 5.0},
+						Distribution: ParameterisedModel{
+							Likelihood: &inference.NormalLikelihoodDistribution{},
+							Params: simulator.NewParams(map[string][]float64{
+								"default_covariance": {2.5, 0.0, 0.0, 9.0},
+								"cov_burn_in_steps":  {200},
+							}),
+							ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+								"mean":              {Upstream: "test_post_mean"},
+								"covariance_matrix": {Upstream: "test_post_cov"},
+							},
+						},
 					},
 					Comparison: AppliedLikelihoodComparison{
 						Name: "test_likelihood",
@@ -54,12 +75,6 @@ func TestInference(t *testing.T) {
 							Data:  []DataRef{{PartitionName: "test_data"}},
 							Depth: 200,
 						},
-					},
-					Defaults: PosteriorDefaults{
-						LogNorm:    0.0,
-						Mean:       []float64{1.8, 5.0},
-						Covariance: []float64{2.5, 0.0, 0.0, 9.0},
-						Sampler:    []float64{1.8, 5.0},
 					},
 					PastDiscount: 1.0,
 					MemoryDepth:  200,

@@ -6,7 +6,7 @@ import (
 	"math/rand/v2"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
 	"scientificgo.org/special"
 )
@@ -16,8 +16,8 @@ import (
 // and beta parameters.
 type BetaLikelihoodDistribution struct {
 	Src   rand.Source
-	alpha []float64
-	beta  []float64
+	alpha *mat.VecDense
+	beta  *mat.VecDense
 }
 
 func (b *BetaLikelihoodDistribution) SetSeed(
@@ -37,26 +37,26 @@ func (b *BetaLikelihoodDistribution) SetParams(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
 	if alpha, ok := params.GetOk("alpha"); ok {
-		b.alpha = make([]float64, len(alpha))
-		b.beta = make([]float64, len(alpha))
-		copy(b.alpha, alpha)
-		copy(b.beta, params.Get("beta"))
-	} else if mean, ok := params.GetOk("mean"); ok {
-		b.alpha = make([]float64, len(alpha))
-		b.beta = make([]float64, len(alpha))
-		variance := params.Get("variance")
-		var f float64
-		for i, m := range mean {
-			f = (m * (1.0 - m) / variance[i]) - 1.0
-			b.alpha[i] = m * f
-			b.beta[i] = (1.0 - m) * f
-		}
+		alphaCopy := make([]float64, len(alpha))
+		betaCopy := make([]float64, len(alpha))
+		copy(alphaCopy, alpha)
+		copy(betaCopy, params.Get("beta"))
+		b.alpha = mat.NewVecDense(len(alpha), alphaCopy)
+		b.beta = mat.NewVecDense(len(alpha), betaCopy)
 	} else {
-		panic("beta likelihood error: either 'alpha' or 'mean' must be set")
+		b.alpha = mat.NewVecDense(len(alpha), nil)
+		b.beta = mat.NewVecDense(len(alpha), nil)
+		mean := MeanFromParamsOrPartition(
+			params, partitionIndex, stateHistories)
+		variance := VarianceFromParams(params)
+		var f, m float64
+		for i := range mean.Len() {
+			m = mean.AtVec(i)
+			f = (m * (1.0 - m) / variance.AtVec(i)) - 1.0
+			b.alpha.SetVec(i, m*f)
+			b.beta.SetVec(i, (1.0-m)*f)
+		}
 	}
-	// handle situations with 0 values
-	floats.AddConst(1e-8, b.alpha)
-	floats.AddConst(1e-8, b.beta)
 }
 
 func (b *BetaLikelihoodDistribution) EvaluateLogLike(
@@ -64,9 +64,9 @@ func (b *BetaLikelihoodDistribution) EvaluateLogLike(
 ) float64 {
 	dist := &distuv.Beta{Alpha: 1.0, Beta: 1.0, Src: b.Src}
 	logLike := 0.0
-	for i, alpha := range b.alpha {
-		dist.Alpha = alpha
-		dist.Beta = b.beta[i]
+	for i := range b.alpha.Len() {
+		dist.Alpha = b.alpha.AtVec(i)
+		dist.Beta = b.beta.AtVec(i)
 		logLike += dist.LogProb(data[i])
 	}
 	return logLike
@@ -75,9 +75,9 @@ func (b *BetaLikelihoodDistribution) EvaluateLogLike(
 func (b *BetaLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
 	dist := &distuv.Beta{Alpha: 1.0, Beta: 1.0, Src: b.Src}
-	for i, alpha := range b.alpha {
-		dist.Alpha = alpha
-		dist.Beta = b.beta[i]
+	for i := range b.alpha.Len() {
+		dist.Alpha = b.alpha.AtVec(i)
+		dist.Beta = b.beta.AtVec(i)
 		samples = append(samples, dist.Rand())
 	}
 	return samples
@@ -87,10 +87,11 @@ func (b *BetaLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {
 	logLikeGrad := make([]float64, 0)
-	var prec, mean, x float64
-	for i, alpha := range b.alpha {
+	var prec, mean, x, alpha float64
+	for i := range b.alpha.Len() {
 		x = data[i]
-		prec = alpha + b.beta[i]
+		alpha = b.alpha.AtVec(i)
+		prec = alpha + b.beta.AtVec(i)
 		mean = alpha / prec
 		logLikeGrad = append(
 			logLikeGrad,

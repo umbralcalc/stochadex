@@ -91,11 +91,32 @@ func TestSimulationInference(t *testing.T) {
 			// distribution over the target parameters (the rolling mean vector in this example)
 			partitions := analysis.NewPosteriorEstimationPartitions(
 				analysis.AppliedPosteriorEstimation{
-					Names: analysis.PosteriorEstimationNames{
-						LogNorm:    "posterior_log_norm",
-						Mean:       "posterior_mean",
-						Covariance: "posterior_cov",
-						Sampler:    "posterior_sampler",
+					LogNorm: analysis.PosteriorLogNorm{
+						Name:    "posterior_log_norm",
+						Default: 0.0,
+					},
+					Mean: analysis.PosteriorMean{
+						Name:    "posterior_mean",
+						Default: []float64{0.0, 0.0, 0.0, 0.0},
+					},
+					Covariance: analysis.PosteriorCovariance{
+						Name:    "posterior_cov",
+						Default: []float64{5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0},
+					},
+					Sampler: analysis.PosteriorSampler{
+						Name:    "posterior_sampler",
+						Default: []float64{0.0, 0.0, 0.0, 0.0},
+						Distribution: analysis.ParameterisedModel{
+							Likelihood: &inference.NormalLikelihoodDistribution{},
+							Params: simulator.NewParams(map[string][]float64{
+								"default_covariance": {5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0},
+								"cov_burn_in_steps":  {300},
+							}),
+							ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+								"mean":              {Upstream: "posterior_mean"},
+								"covariance_matrix": {Upstream: "posterior_cov"},
+							},
+						},
 					},
 					Comparison: analysis.AppliedLikelihoodComparison{
 						Name:  "loglikelihood",
@@ -114,12 +135,6 @@ func TestSimulationInference(t *testing.T) {
 							},
 							Depth: 200,
 						},
-					},
-					Defaults: analysis.PosteriorDefaults{
-						LogNorm:    0.0,
-						Mean:       []float64{0.0, 0.0, 0.0, 0.0},
-						Covariance: []float64{5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0},
-						Sampler:    []float64{0.0, 0.0, 0.0, 0.0},
 					},
 					PastDiscount: 1.0,
 					MemoryDepth:  300,

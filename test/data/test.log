@@ -254,8 +254,8 @@
 {"partition_name":"first_wiener_process","state":[-0.3696022335047414,-2.9323105413720936,28.97127750519549,-26.0000388906201],"time":126}
 {"partition_name":"second_wiener_process","state":[-8.175288069294314,24.351843894870434],"time":127}
 {"partition_name":"first_wiener_process","state":[1.0289729743449523,-4.282096267307845,29.423330113803285,-25.15714078556544],"time":127}
-{"partition_name":"second_wiener_process","state":[-8.656432383069927,26.400852532493257],"time":128}
 {"partition_name":"first_wiener_process","state":[0.4039186877372942,-2.2163745318953705,29.694793255531714,-24.527670151759757],"time":128}
+{"partition_name":"second_wiener_process","state":[-8.656432383069927,26.400852532493257],"time":128}
 {"partition_name":"second_wiener_process","state":[-11.227365477599513,25.965906169650015],"time":129}
 {"partition_name":"first_wiener_process","state":[-0.22906125854764825,-3.754232207498597,27.94414884511193,-24.169058776369905],"time":129}
 {"partition_name":"second_wiener_process","state":[-9.424282140352839,26.20223850802773],"time":130}
