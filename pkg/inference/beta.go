@@ -44,11 +44,11 @@ func (b *BetaLikelihoodDistribution) SetParams(
 		b.alpha = mat.NewVecDense(len(alpha), alphaCopy)
 		b.beta = mat.NewVecDense(len(alpha), betaCopy)
 	} else {
-		b.alpha = mat.NewVecDense(len(alpha), nil)
-		b.beta = mat.NewVecDense(len(alpha), nil)
 		mean := MeanFromParamsOrPartition(
 			params, partitionIndex, stateHistories)
 		variance := VarianceFromParams(params)
+		b.alpha = mat.NewVecDense(mean.Len(), nil)
+		b.beta = mat.NewVecDense(mean.Len(), nil)
 		var f, m float64
 		for i := range mean.Len() {
 			m = mean.AtVec(i)

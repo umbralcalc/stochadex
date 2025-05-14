@@ -103,22 +103,43 @@ func NewPosteriorEstimationPartitions(
 	})
 	covParams := simulator.NewParams(make(map[string][]float64))
 	covParams.Set("loglike_indices", loglikeIndices)
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:      applied.Covariance.Name,
-		Iteration: &inference.PosteriorCovarianceIteration{},
-		Params:    covParams,
-		ParamsAsPartitions: map[string][]string{
-			"loglike_partitions": loglikePartitions,
-			"param_partitions":   paramPartitions,
-		},
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"posterior_log_normalisation": {Upstream: applied.LogNorm.Name},
-			"mean":                        {Upstream: applied.Mean.Name},
-		},
-		InitStateValues:   applied.Covariance.Default,
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
+	if applied.Covariance.JustVariance {
+		partitions = append(partitions, &simulator.PartitionConfig{
+			Name: applied.Covariance.Name,
+			Iteration: &inference.PosteriorMeanIteration{
+				Transform: inference.VarianceTransform,
+			},
+			Params: covParams,
+			ParamsAsPartitions: map[string][]string{
+				"loglike_partitions": loglikePartitions,
+				"param_partitions":   paramPartitions,
+			},
+			ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+				"posterior_log_normalisation": {Upstream: applied.LogNorm.Name},
+				"mean":                        {Upstream: applied.Mean.Name},
+			},
+			InitStateValues:   applied.Covariance.Default,
+			StateHistoryDepth: 1,
+			Seed:              0,
+		})
+	} else {
+		partitions = append(partitions, &simulator.PartitionConfig{
+			Name:      applied.Covariance.Name,
+			Iteration: &inference.PosteriorCovarianceIteration{},
+			Params:    covParams,
+			ParamsAsPartitions: map[string][]string{
+				"loglike_partitions": loglikePartitions,
+				"param_partitions":   paramPartitions,
+			},
+			ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+				"posterior_log_normalisation": {Upstream: applied.LogNorm.Name},
+				"mean":                        {Upstream: applied.Mean.Name},
+			},
+			InitStateValues:   applied.Covariance.Default,
+			StateHistoryDepth: 1,
+			Seed:              0,
+		})
+	}
 	applied.Sampler.Distribution.Init()
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name: applied.Sampler.Name,

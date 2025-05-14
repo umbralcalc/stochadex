@@ -88,8 +88,8 @@
 {"partition_name":"first_wiener_process","state":[0.4059419916396587,-6.59841585501848,12.311362034307768,-1.2140826250525203],"time":43}
 {"partition_name":"second_wiener_process","state":[-4.36036671350002,4.414868190970295],"time":44}
 {"partition_name":"first_wiener_process","state":[1.8591526976625286,-7.543431154630925,12.541988854052226,-3.4572610853815418],"time":44}
-{"partition_name":"second_wiener_process","state":[-3.085839960950088,3.488654727134883],"time":45}
 {"partition_name":"first_wiener_process","state":[1.308502217284634,-7.5712051646692995,14.385857057625117,-5.279593686606321],"time":45}
+{"partition_name":"second_wiener_process","state":[-3.085839960950088,3.488654727134883],"time":45}
 {"partition_name":"second_wiener_process","state":[-1.3464083429297018,5.310062779424653],"time":46}
 {"partition_name":"first_wiener_process","state":[0.802574538380482,-10.047340258265109,13.723501385024136,-3.876370114711396],"time":46}
 {"partition_name":"second_wiener_process","state":[-0.6456040081502666,5.6959660934374305],"time":47}
@@ -254,8 +254,8 @@
 {"partition_name":"first_wiener_process","state":[-0.3696022335047414,-2.9323105413720936,28.97127750519549,-26.0000388906201],"time":126}
 {"partition_name":"second_wiener_process","state":[-8.175288069294314,24.351843894870434],"time":127}
 {"partition_name":"first_wiener_process","state":[1.0289729743449523,-4.282096267307845,29.423330113803285,-25.15714078556544],"time":127}
-{"partition_name":"first_wiener_process","state":[0.4039186877372942,-2.2163745318953705,29.694793255531714,-24.527670151759757],"time":128}
 {"partition_name":"second_wiener_process","state":[-8.656432383069927,26.400852532493257],"time":128}
+{"partition_name":"first_wiener_process","state":[0.4039186877372942,-2.2163745318953705,29.694793255531714,-24.527670151759757],"time":128}
 {"partition_name":"second_wiener_process","state":[-11.227365477599513,25.965906169650015],"time":129}
 {"partition_name":"first_wiener_process","state":[-0.22906125854764825,-3.754232207498597,27.94414884511193,-24.169058776369905],"time":129}
 {"partition_name":"second_wiener_process","state":[-9.424282140352839,26.20223850802773],"time":130}
@@ -326,8 +326,8 @@
 {"partition_name":"first_wiener_process","state":[7.338786326867073,-14.547242748499832,32.077368659615814,-22.095392667287836],"time":162}
 {"partition_name":"second_wiener_process","state":[-14.712692379223226,29.497258840980546],"time":163}
 {"partition_name":"first_wiener_process","state":[7.6166461196681166,-17.020862890894243,34.57909487916494,-23.167187067603066],"time":163}
-{"partition_name":"second_wiener_process","state":[-15.371581759968297,28.79892179814732],"time":164}
 {"partition_name":"first_wiener_process","state":[7.971828341892539,-18.401006069516402,34.620076320778885,-23.812676810121275],"time":164}
+{"partition_name":"second_wiener_process","state":[-15.371581759968297,28.79892179814732],"time":164}
 {"partition_name":"second_wiener_process","state":[-14.641744434828695,30.225895402692878],"time":165}
 {"partition_name":"first_wiener_process","state":[9.908271648668693,-17.411982377477777,35.96468841757175,-24.521761573079665],"time":165}
 {"partition_name":"second_wiener_process","state":[-15.16337796710839,30.335219458874064],"time":166}
