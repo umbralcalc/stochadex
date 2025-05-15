@@ -11,7 +11,7 @@ From a software engineering perspective, the stochadex simulation framework abst
 - Simulation engine motivation and design article: [https://umbralcalc.github.io/posts/stochadexI.html](https://umbralcalc.github.io/posts/stochadexI.html).
 - A probabilistic description of simulations: [https://umbralcalc.github.io/posts/stochadexII.html](https://umbralcalc.github.io/posts/stochadexII.html).
 - Estimation-based inference of simulations: [https://umbralcalc.github.io/posts/stochadexIII.html](https://umbralcalc.github.io/posts/stochadexIII.html).
-- Optimising agent interactions with simulated environments:  [https://umbralcalc.github.io/posts/stochadexIV.html](https://umbralcalc.github.io/posts/stochadexIV.html).
+- Optimising action-taking within simulations:  [https://umbralcalc.github.io/posts/stochadexIV.html](https://umbralcalc.github.io/posts/stochadexIV.html).
 - Structuring simulation partitions for real-world use cases: [https://umbralcalc.github.io/posts/stochadexV.html](https://umbralcalc.github.io/posts/stochadexV.html).
 
 ## Building and running the binary
