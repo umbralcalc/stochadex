@@ -38,7 +38,11 @@ func (t *TLikelihoodDistribution) SetParams(
 ) {
 	t.dof = params.Get("degrees_of_freedom")[0]
 	t.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
-	t.covariance = CovarianceMatrixFromParams(params)
+	t.covariance = CovarianceMatrixFromParamsOrPartition(
+		params,
+		partitionIndex,
+		stateHistories,
+	)
 	if c, ok := params.GetOk("default_covariance"); ok {
 		t.defaultCov = c
 	}

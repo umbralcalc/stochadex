@@ -33,7 +33,11 @@ func (g *GammaLikelihoodDistribution) SetParams(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
 	g.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
-	g.variance = VarianceFromParams(params)
+	g.variance = VarianceFromParamsOrPartition(
+		params,
+		partitionIndex,
+		stateHistories,
+	)
 }
 
 func (g *GammaLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {

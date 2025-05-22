@@ -35,7 +35,11 @@ func (n *NormalLikelihoodDistribution) SetParams(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
 	n.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
-	n.covariance = CovarianceMatrixFromParams(params)
+	n.covariance = CovarianceMatrixFromParamsOrPartition(
+		params,
+		partitionIndex,
+		stateHistories,
+	)
 	if c, ok := params.GetOk("default_covariance"); ok {
 		n.defaultCov = c
 	}

@@ -36,7 +36,11 @@ func (n *NegativeBinomialLikelihoodDistribution) SetParams(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
 	n.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
-	n.variance = VarianceFromParams(params)
+	n.variance = VarianceFromParamsOrPartition(
+		params,
+		partitionIndex,
+		stateHistories,
+	)
 }
 
 func (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLike(
