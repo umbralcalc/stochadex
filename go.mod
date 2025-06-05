@@ -1,8 +1,6 @@
 module github.com/umbralcalc/stochadex
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.24.0
 
 require (
 	github.com/akamensky/argparse v1.4.0
@@ -14,7 +12,7 @@ require (
 require (
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/gorilla/websocket v1.5.3
-	scientificgo.org/special v0.0.0
+	github.com/scientificgo/special v0.0.2
 )
 
 require (

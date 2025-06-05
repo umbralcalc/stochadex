@@ -46,6 +46,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/ruudk/golang-pdf417 v0.0.0-20181029194003-1af4ab5afa58/go.mod h1:6lfFZQK844Gfx8o5WFuvpxWRwnSoipWe/p622j1v06w=
+github.com/scientificgo/special v0.0.2 h1:op6ET2lyLzzRcQ3ahCN1CSd4uz+zOfWqvNlLwWmsQhs=
+github.com/scientificgo/special v0.0.2/go.mod h1:BqiyV7QBWtBCHu7IdcVsPYweRvTcsjMoqUnR4gjcSZk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
@@ -116,7 +118,3 @@ gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
-scientificgo.org/special v0.0.0 h1:P6WJkECo6tgtvZAEfNXl+KEB9ReAatjKAeX8U07mjSc=
-scientificgo.org/special v0.0.0/go.mod h1:LoGVh9tS431RLTJo7gFlYDKFWq44cEb7QqL+M0EKtZU=
-scientificgo.org/testutil v0.0.0 h1:y356DHRo0tAz9zIFmxlhZoKDlHPHaWW/DCm9k3PhIMA=
-scientificgo.org/testutil v0.0.0/go.mod h1:Go6R4b+9YkFocMo3H3vNQ7tjbrX9Rc12wal7NZjvPXg=

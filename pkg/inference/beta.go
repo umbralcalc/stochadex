@@ -5,10 +5,10 @@ import (
 
 	"math/rand/v2"
 
+	"github.com/scientificgo/special"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
-	"scientificgo.org/special"
 )
 
 // BetaLikelihoodDistribution assumes the real data are well
