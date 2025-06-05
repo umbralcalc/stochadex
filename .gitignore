@@ -8,3 +8,4 @@ tmp/
 .vscode/
 nbs/data/*
 log/*
+test/data/test.log
