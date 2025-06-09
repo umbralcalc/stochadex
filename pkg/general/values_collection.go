@@ -82,7 +82,7 @@ func ParamValuesPushFunction(
 }
 
 // ValuesCollectionIteration maintains a collection of same-size
-// state values can push more to the collection depending on the
+// state values. You can push more to the collection depending on the
 // output of a user-specified function or pop an indexed value set
 // from this collection depending on the output of another function.
 type ValuesCollectionIteration struct {
@@ -113,7 +113,8 @@ func (v *ValuesCollectionIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	outputValues := stateHistory.Values.RawRowView(0)
+	outputValues := make([]float64, stateHistory.StateWidth)
+	copy(outputValues, stateHistory.Values.RawRowView(0))
 	emptyValue := params.GetIndex("empty_value", 0)
 	valuesWidth := int(params.GetIndex("values_state_width", 0))
 	if v.Push != nil {
