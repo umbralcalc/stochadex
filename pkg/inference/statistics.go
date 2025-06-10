@@ -14,16 +14,13 @@ func MeanFromPartition(
 	stateHistories []*simulator.StateHistory,
 ) *mat.VecDense {
 	meanPartHistory := stateHistories[int(params.Get("mean_partition")[0])]
-	mean := make([]float64, meanPartHistory.StateWidth)
-	copy(mean, meanPartHistory.Values.RawRowView(0))
+	mean := meanPartHistory.CopyStateRow(0)
 	return mat.NewVecDense(len(mean), mean)
 }
 
 // MeanFromParams retrieves the mean from params.
 func MeanFromParams(params *simulator.Params) *mat.VecDense {
-	m := params.Get("mean")
-	mean := make([]float64, len(m))
-	copy(mean, m)
+	mean := params.GetCopy("mean")
 	return mat.NewVecDense(len(mean), mean)
 }
 
@@ -56,16 +53,13 @@ func VarianceFromPartition(
 	stateHistories []*simulator.StateHistory,
 ) *mat.VecDense {
 	varPartHistory := stateHistories[int(params.Get("variance_partition")[0])]
-	variance := make([]float64, varPartHistory.StateWidth)
-	copy(variance, varPartHistory.Values.RawRowView(0))
+	variance := varPartHistory.CopyStateRow(0)
 	return mat.NewVecDense(len(variance), variance)
 }
 
 // VarianceFromParams retrieves the variance from params.
 func VarianceFromParams(params *simulator.Params) *mat.VecDense {
-	v := params.Get("variance")
-	variance := make([]float64, len(v))
-	copy(variance, v)
+	variance := params.GetCopy("variance")
 	return mat.NewVecDense(len(variance), variance)
 }
 
@@ -100,8 +94,7 @@ func CovarianceMatrixFromPartition(
 	var covMat *mat.SymDense
 	covPart := params.Get("covariance_matrix_partition")
 	covPartHistory := stateHistories[int(covPart[0])]
-	cVals := make([]float64, covPartHistory.StateWidth)
-	copy(cVals, covPartHistory.Values.RawRowView(0))
+	cVals := covPartHistory.CopyStateRow(0)
 	covMat = mat.NewSymDense(int(math.Sqrt(float64(len(cVals)))), cVals)
 	return covMat
 }

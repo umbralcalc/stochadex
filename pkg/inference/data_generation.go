@@ -34,9 +34,7 @@ func (d *DataGenerationIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	if timestepsHistory.CurrentStepNumber%d.stepsPerResample != 0 {
-		values := make([]float64, stateHistory.StateWidth)
-		copy(values, stateHistory.Values.RawRowView(0))
-		return values
+		return stateHistory.CopyStateRow(0)
 	}
 	d.Likelihood.SetParams(
 		params,

@@ -35,8 +35,7 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 ) []float64 {
 	h.excitingKernel.SetParams(params)
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
-	values := make([]float64, stateHistories[partitionIndex].StateWidth)
-	copy(values, params.Get("background_rates"))
+	values := params.GetCopy("background_rates")
 	for i := 1; i < hawkesHistory.StateHistoryDepth; i++ {
 		sumValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 		floats.SubTo(

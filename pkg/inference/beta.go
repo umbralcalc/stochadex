@@ -36,13 +36,10 @@ func (b *BetaLikelihoodDistribution) SetParams(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
-	if alpha, ok := params.GetOk("alpha"); ok {
-		alphaCopy := make([]float64, len(alpha))
-		betaCopy := make([]float64, len(alpha))
-		copy(alphaCopy, alpha)
-		copy(betaCopy, params.Get("beta"))
-		b.alpha = mat.NewVecDense(len(alpha), alphaCopy)
-		b.beta = mat.NewVecDense(len(alpha), betaCopy)
+	if alphaCopy, ok := params.GetCopyOk("alpha"); ok {
+		betaCopy := params.GetCopy("beta")
+		b.alpha = mat.NewVecDense(len(alphaCopy), alphaCopy)
+		b.beta = mat.NewVecDense(len(alphaCopy), betaCopy)
 	} else {
 		mean := MeanFromParamsOrPartition(
 			params, partitionIndex, stateHistories)

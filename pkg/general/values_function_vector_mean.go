@@ -32,8 +32,7 @@ func PastDiscountedDataValuesFunction(
 	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
 	functionValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		copy(functionValues, params.Get("latest_data_values"))
-		return functionValues
+		return params.GetCopy("latest_data_values")
 	}
 	floats.ScaleTo(
 		functionValues,
@@ -59,8 +58,7 @@ func PastDiscountedOtherValuesFunction(
 	stateHistory := stateHistories[int(params.GetIndex("other_values_partition", 0))]
 	functionValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		copy(functionValues, params.Get("latest_other_values"))
-		return functionValues
+		return params.GetCopy("latest_other_values")
 	}
 	for i, index := range params.Get("other_values_indices") {
 		functionValues[i] = stateHistory.Values.At(stateHistoryDepthIndex, int(index))
@@ -87,8 +85,7 @@ func OtherValuesFunction(
 	stateHistory := stateHistories[int(params.GetIndex("other_values_partition", 0))]
 	functionValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		copy(functionValues, params.Get("latest_other_values"))
-		return functionValues
+		return params.GetCopy("latest_other_values")
 	}
 	for i, index := range params.Get("other_values_indices") {
 		functionValues[i] = stateHistory.Values.At(stateHistoryDepthIndex, int(index))
@@ -106,11 +103,11 @@ func DataValuesVarianceFunction(
 	stateHistoryDepthIndex int,
 ) []float64 {
 	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
-	varianceValues := make([]float64, stateHistory.StateWidth)
+	var varianceValues []float64
 	if stateHistoryDepthIndex == -1 {
-		copy(varianceValues, params.Get("latest_data_values"))
+		varianceValues = params.GetCopy("latest_data_values")
 	} else {
-		copy(varianceValues, stateHistory.Values.RawRowView(stateHistoryDepthIndex))
+		varianceValues = stateHistory.CopyStateRow(stateHistoryDepthIndex)
 		if indices, ok := params.GetOk("data_values_indices"); ok {
 			values := make([]float64, 0)
 			for _, index := range indices {
@@ -133,12 +130,10 @@ func DataValuesFunction(
 	stateHistoryDepthIndex int,
 ) []float64 {
 	stateHistory := stateHistories[int(params.GetIndex("data_values_partition", 0))]
-	functionValues := make([]float64, stateHistory.StateWidth)
 	if stateHistoryDepthIndex == -1 {
-		copy(functionValues, params.Get("latest_data_values"))
-		return functionValues
+		return params.GetCopy("latest_data_values")
 	}
-	copy(functionValues, stateHistory.Values.RawRowView(stateHistoryDepthIndex))
+	functionValues := stateHistory.CopyStateRow(stateHistoryDepthIndex)
 	if indices, ok := params.GetOk("data_values_indices"); ok {
 		values := make([]float64, 0)
 		for _, index := range indices {

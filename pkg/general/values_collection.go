@@ -113,8 +113,7 @@ func (v *ValuesCollectionIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	outputValues := make([]float64, stateHistory.StateWidth)
-	copy(outputValues, stateHistory.Values.RawRowView(0))
+	outputValues := stateHistory.GetNextStateRowToUpdate()
 	emptyValue := params.GetIndex("empty_value", 0)
 	valuesWidth := int(params.GetIndex("values_state_width", 0))
 	if v.Push != nil {

@@ -16,11 +16,37 @@ func (p *Params) GetOk(name string) ([]float64, bool) {
 	return values, ok
 }
 
+// GetCopyOk retrieves a copy of the desired parameter values given
+// their name, returning the values and a boolean indicating if the
+// name was found.
+func (p *Params) GetCopyOk(name string) ([]float64, bool) {
+	if values, ok := p.Map[name]; ok {
+		valuesCopy := make([]float64, len(values))
+		copy(valuesCopy, values)
+		return valuesCopy, ok
+	} else {
+		return nil, ok
+	}
+}
+
 // Get retrieves the desired parameter values given their name, or
 // panics giving a useful error message.
 func (p *Params) Get(name string) []float64 {
 	if values, ok := p.Map[name]; ok {
 		return values
+	} else {
+		panic("partition: " + p.partitionName +
+			" does not have params set for: " + name)
+	}
+}
+
+// GetCopy retrieves a copy of the desired parameter values given
+// their name, or panics giving a useful error message.
+func (p *Params) GetCopy(name string) []float64 {
+	if values, ok := p.Map[name]; ok {
+		valuesCopy := make([]float64, len(values))
+		copy(valuesCopy, values)
+		return valuesCopy
 	} else {
 		panic("partition: " + p.partitionName +
 			" does not have params set for: " + name)

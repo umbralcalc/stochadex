@@ -16,6 +16,23 @@ type StateHistory struct {
 	StateHistoryDepth int
 }
 
+// CopyStateRow copies a row from the state history given the index.
+func (s *StateHistory) CopyStateRow(index int) []float64 {
+	valuesCopy := make([]float64, s.StateWidth)
+	copy(valuesCopy, s.Values.RawRowView(index))
+	return valuesCopy
+}
+
+// GetNextStateRowToUpdate determines whether or not it is necessary
+// to copy the previous row or simply expose it based on whether a history
+// longer than 1 is needed.
+func (s *StateHistory) GetNextStateRowToUpdate() []float64 {
+	if s.StateHistoryDepth == 1 {
+		return s.Values.RawRowView(0)
+	}
+	return s.CopyStateRow(0)
+}
+
 // CumulativeTimestepsHistory is a windowed history of cumulative timestep values
 // which includes the next value to increment time by and number of steps taken.
 type CumulativeTimestepsHistory struct {
