@@ -66,7 +66,7 @@ func PopFromOtherCollectionPushFunction(
 }
 
 // ParamValuesPushFunction retrieves the next values to push from
-// the "next_value_push" params and if the first value is equal
+// the "next_values_push" params and if the first value is equal
 // to the "empty_value" param then nothing is pushed.
 func ParamValuesPushFunction(
 	params *simulator.Params,

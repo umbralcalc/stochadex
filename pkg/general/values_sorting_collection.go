@@ -11,24 +11,50 @@ type SortingValues struct {
 	Values []float64
 }
 
-// OtherPartitionPushAndSortFunction
-func OtherPartitionPushAndSortFunction(
+// OtherPartitionsPushAndSortFunction retrieves the next values to
+// push from the last values of another partition and sorts by the values
+// of yet another partition. In the former case, if the first value is
+// equal to the "empty_value" param then nothing is pushed.
+func OtherPartitionsPushAndSortFunction(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) (SortingValues, bool) {
-	return SortingValues{}, false
+	nextValues := make([]float64, 0)
+	stateHistory := stateHistories[int(params.GetIndex("other_partition", 0))]
+	for _, index := range params.Get("value_indices") {
+		nextValues = append(nextValues, stateHistory.Values.At(0, int(index)))
+		if index == 0 && params.GetIndex("empty_value", 0) == nextValues[0] {
+			return SortingValues{}, false
+		}
+	}
+	return SortingValues{
+		SortBy: stateHistories[int(
+			params.GetIndex("other_partition_sort_by", 0))].Values.At(0, int(
+			params.GetIndex("value_index_sort_by", 0))),
+		Values: nextValues,
+	}, true
 }
 
-// ParamValuesPushAndSortFunction
+// ParamValuesPushAndSortFunction retrieves the next values to
+// push from the "next_values_push" params and if the first value is equal
+// to the "empty_value" param then nothing is pushed. It also sorts by
+// the "next_values_sort_by" param.
 func ParamValuesPushAndSortFunction(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) (SortingValues, bool) {
-	return SortingValues{}, false
+	nextValues := params.Get("next_values_push")
+	if params.GetIndex("empty_value", 0) == nextValues[0] {
+		return SortingValues{}, false
+	}
+	return SortingValues{
+		SortBy: params.GetIndex("next_values_sort_by", 0),
+		Values: nextValues,
+	}, true
 }
 
 // ValuesSortingCollectionIteration maintains a sorted collection
@@ -82,7 +108,7 @@ func (v *ValuesSortingCollectionIteration) Iterate(
 						outputValues[firstStateValueIndex] = sorting.SortBy
 						continue
 					}
-					outputValues[firstStateValueIndex+j] = sorting.Values[j]
+					outputValues[firstStateValueIndex+j] = sorting.Values[j-1]
 				}
 				break
 			}
