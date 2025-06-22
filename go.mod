@@ -1,6 +1,6 @@
 module github.com/umbralcalc/stochadex
 
-go 1.24.0
+go 1.24.4
 
 require (
 	github.com/akamensky/argparse v1.4.0
@@ -18,14 +18,14 @@ require (
 require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
 )
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/go-echarts/go-echarts/v2 v2.5.4
+	github.com/go-echarts/go-echarts/v2 v2.6.0
 	github.com/go-gota/gota v0.12.0
 	github.com/lib/pq v1.10.9
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
 )
