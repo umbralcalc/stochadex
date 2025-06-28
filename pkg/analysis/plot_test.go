@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/go-gota/gota/dataframe"
+	"github.com/go-gota/gota/series"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
 func TestCreatingPlot(t *testing.T) {
 	t.Run(
-		"test that rendering a scatter plot works",
+		"test that rendering a scatter plot from storage works",
 		func(t *testing.T) {
 			storage := NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{{
@@ -56,7 +58,28 @@ func TestCreatingPlot(t *testing.T) {
 		},
 	)
 	t.Run(
-		"test that rendering a line plot works",
+		"test that rendering a scatter plot from dataframe works",
+		func(t *testing.T) {
+			df := dataframe.New(
+				series.New([]float64{1.0, 2.0, 3.0}, series.Float, "test"),
+				series.New([]float64{2.0, 4.0, 6.0}, series.Float, "test_other"),
+			)
+			scatter := NewScatterPlotFromDataFrame(
+				&df, "test", "test_other",
+			)
+			// Test by rendering to in-memory buffer
+			var buf bytes.Buffer
+			err := scatter.Render(&buf)
+			if err != nil {
+				t.Errorf("error rendering scatter plot: %v", err)
+			}
+			if err != nil {
+				t.Error(err)
+			}
+		},
+	)
+	t.Run(
+		"test that rendering a line plot from storage works",
 		func(t *testing.T) {
 			storage := NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{{
@@ -90,6 +113,27 @@ func TestCreatingPlot(t *testing.T) {
 				},
 				yRefs,
 				nil,
+			)
+			// Test by rendering to in-memory buffer
+			var buf bytes.Buffer
+			err := line.Render(&buf)
+			if err != nil {
+				t.Errorf("error rendering line plot: %v", err)
+			}
+			if err != nil {
+				t.Error(err)
+			}
+		},
+	)
+	t.Run(
+		"test that rendering a line plot from dataframe works",
+		func(t *testing.T) {
+			df := dataframe.New(
+				series.New([]float64{1.0, 2.0, 3.0}, series.Float, "test"),
+				series.New([]float64{2.0, 4.0, 6.0}, series.Float, "test_other"),
+			)
+			line := NewLinePlotFromDataFrame(
+				&df, "test", "test_other",
 			)
 			// Test by rendering to in-memory buffer
 			var buf bytes.Buffer
