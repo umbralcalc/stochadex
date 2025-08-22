@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <style>
+    .body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+      color: #1F2328;
+      background-color: #ffff;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+      line-height: 1.5;
+      word-wrap: break-word;
+      text-align: justify;
+    }
+
+    .body h1 {
+      margin: 0;
+      font-size: 200%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body h2, h3, h4, h5 {
+      margin: 0;
+      font-size: 150%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body strong {
+      color: rgb(42, 65, 83);
+    }
+
+    .body a {
+      color: #0969da;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .body a:hover {
+      color: LightGrey;
+    }
+
+    pre {
+      padding: .5em 1em;
+      font-size: 95%;
+      color: #F5F5F5;
+      background-color: rgb(42, 65, 83);
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    code {
+      display: block;
+    }
+
+    .centered {
+      text-align: center;
+    }
+
+    img:not(.no-center), 
+    svg:not(.no-center) {
+      display: block;
+      margin: 1em auto;
+      max-width: 100%;
+      height: auto;
+    }
+
+    img.no-center, 
+    svg.no-center {
+      display: inline;
+      margin: 0;
+    }
+
+    .otherimgs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .otherimgs img {
+      display: inline-block;
+      height: auto;
+      margin: 0;
+    }
+
+    .articleHeader {
+      padding: .2em .4em;
+      margin: 1em;
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+      text-align: justify;
+    }
+
+    a.articleTitle h1 {
+      text-align: left;
+      color: rgb(79, 97, 114);
+      text-align: left;
+    }
+
+    a.articleTitle h1:hover {
+      color: LightGrey;
+    }
+
+    .articleHeader strong {
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    .body .navbar {
+      padding:8px 16px;
+      float:right;
+      width:auto;
+      border:none;
+      display:block;
+      outline:0;
+      color: LightGrey;
+    }
+
+    .logofavicon {
+      vertical-align: middle;
+    }
+
+    .body .repotitle {
+      float: left;
+      text-align: left;
+    }
+
+    strong.nameRepo {
+      color: rgb(42, 65, 83);
+    }
+
+    .body .navbar:hover {
+      color: rgb(42, 65, 83);
+    }
+
+    .csl-entry {
+      display: flex;
+      margin-top: 15px;
+    }
+
+    #references {
+      margin-bottom: 0.5em;
+    }
+
+    .csl-left-margin {
+      margin-right: 10px;
+    }
+
+    .custom-spacer {
+      display: block;
+      height: 1em;
+    }
+
+    @media (max-width: 767px) {
+      .body {
+        padding: 15px;
+      }
+      p {
+        overflow-x: auto;
+      }
+      p span.math.display {
+        display: inline-block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+  </style>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<article class="body">
+<a class="navbar" href="https://umbralcalc.github.io/stochadex">
+Home
+</a>
+<a class="navbar" href="https://github.com/umbralcalc">
+About
+</a>
+</br>
+</br>
+</br>
+using module mode; GOMOD=/home/robert/Code/stochadex/go.mod
+<div id="lowframe"
+style="position: fixed; bottom: 0; left: 0; height: 0; width: 100%; border-top: thin solid grey; background-color: white; overflow: auto;">
+...
+</div>
+<div id="topbar" class="wide">
+<div class="container">
+<div id="heading-wide" class="top-heading">
+<a href="/pkg/">Go Documentation Server</a>
+</div>
+<div id="heading-narrow" class="top-heading">
+<a href="/pkg/">GoDoc</a>
+</div>
+<a href="#" id="menu-button"><span id="menu-button-arrow">▽</span></a>
+<div id="menu">
+<span><img
+src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdib3g9IjAgMCAyNCAyNCI+PHRpdGxlPnN1Ym1pdCBzZWFyY2g8L3RpdGxlPjxwYXRoIGQ9Ik0xNS41IDE0aC0uNzlsLS4yOC0uMjdDMTUuNDEgMTIuNTkgMTYgMTEuMTEgMTYgOS41IDE2IDUuOTEgMTMuMDkgMyA5LjUgM1MzIDUuOTEgMyA5LjUgNS45MSAxNiA5LjUgMTZjMS42MSAwIDMuMDktLjU5IDQuMjMtMS41N2wuMjcuMjh2Ljc5bDUgNC45OUwyMC40OSAxOWwtNC45OS01em0tNiAwQzcuMDEgMTQgNSAxMS45OSA1IDkuNVM3LjAxIDUgOS41IDUgMTQgNy4wMSAxNCA5LjUgMTEuOTkgMTQgOS41IDE0eiI+PC9wYXRoPjxwYXRoIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiPjwvcGF0aD48L3N2Zz4=" /></span>
+</div>
+</div>
+</div>
+<div id="page" class="wide">
+<section id="package-continuous" class="container">
+<h1>Package continuous <span class="text-muted"></span></h1>
+<div id="nav">
+
+</div>
+<div id="short-nav">
+<code>import "github.com/umbralcalc/stochadex/pkg/continuous"</code>
+<a href="#pkg-overview" class="overviewLink">Overview</a>
+<a href="#pkg-index" class="indexLink">Index</a>
+</div>
+<div id="pkg-overview" class="toggleVisible">
+<section id="overview" class="toggleButton collapsed"
+title="Click to show Overview section">
+<h2 class="toggleButton" title="Click to show Overview section">Overview
+▹</h2>
+</section>
+<section id="overview-1" class="toggleButton expanded"
+title="Click to hide Overview section">
+<h2 class="toggleButton" title="Click to hide Overview section">Overview
+▾</h2>
+</section>
+</div>
+<div id="pkg-index" class="toggleVisible">
+<section id="index" class="toggleButton collapsed"
+title="Click to show Index section">
+<h2 class="toggleButton" title="Click to show Index section">Index
+▹</h2>
+</section>
+<section id="index-1" class="toggleButton expanded"
+title="Click to hide Index section">
+<h2 class="toggleButton" title="Click to hide Index section">Index
+▾</h2>
+<div id="manual-nav">
+<a href="#CompoundPoissonProcessIteration">type
+CompoundPoissonProcessIteration</a>
+    <a href="#CompoundPoissonProcessIteration.Configure">func (c
+*CompoundPoissonProcessIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#CompoundPoissonProcessIteration.Iterate">func (c
+*CompoundPoissonProcessIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#CumulativeTimeIteration">type CumulativeTimeIteration</a>
+    <a href="#CumulativeTimeIteration.Configure">func (c
+*CumulativeTimeIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#CumulativeTimeIteration.Iterate">func (c
+*CumulativeTimeIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#DriftDiffusionIteration">type DriftDiffusionIteration</a>
+    <a href="#DriftDiffusionIteration.Configure">func (d
+*DriftDiffusionIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#DriftDiffusionIteration.Iterate">func (d
+*DriftDiffusionIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#DriftJumpDiffusionIteration">type
+DriftJumpDiffusionIteration</a>
+    <a href="#DriftJumpDiffusionIteration.Configure">func (d
+*DriftJumpDiffusionIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#DriftJumpDiffusionIteration.Iterate">func (d
+*DriftJumpDiffusionIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#GammaJumpDistribution">type GammaJumpDistribution</a>
+    <a href="#GammaJumpDistribution.Configure">func (g
+*GammaJumpDistribution) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#GammaJumpDistribution.NewJump">func (g
+*GammaJumpDistribution) NewJump(params *simulator.Params, valueIndex
+int) float64</a>
+<a href="#GeometricBrownianMotionIteration">type
+GeometricBrownianMotionIteration</a>
+    <a href="#GeometricBrownianMotionIteration.Configure">func (g
+*GeometricBrownianMotionIteration) Configure(partitionIndex int,
+settings *simulator.Settings)</a>
+    <a href="#GeometricBrownianMotionIteration.Iterate">func (g
+*GeometricBrownianMotionIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#GradientDescentIteration">type GradientDescentIteration</a>
+    <a href="#GradientDescentIteration.Configure">func (g
+*GradientDescentIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#GradientDescentIteration.Iterate">func (g
+*GradientDescentIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#JumpDistribution">type JumpDistribution</a>
+<a href="#OrnsteinUhlenbeckIteration">type
+OrnsteinUhlenbeckIteration</a>
+    <a href="#OrnsteinUhlenbeckIteration.Configure">func (o
+*OrnsteinUhlenbeckIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#OrnsteinUhlenbeckIteration.Iterate">func (o
+*OrnsteinUhlenbeckIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#WienerProcessIteration">type WienerProcessIteration</a>
+    <a href="#WienerProcessIteration.Configure">func (w
+*WienerProcessIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#WienerProcessIteration.Iterate">func (w
+*WienerProcessIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+</div>
+<h3 id="package-files">Package files</h3>
+<p><span style="font-size:90%"> <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/compound_poisson_process.go">compound_poisson_process.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/cumulative_time.go">cumulative_time.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/drift_diffusion.go">drift_diffusion.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/drift_jump_diffusion.go">drift_jump_diffusion.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/geometric_brownian_motion.go">geometric_brownian_motion.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/gradient_descent.go">gradient_descent.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/ornstein_uhlenbeck.go">ornstein_uhlenbeck.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/wiener_process.go">wiener_process.go</a>
+</span></p>
+</section>
+</div>
+<h2 id="CompoundPoissonProcessIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/compound_poisson_process.go?s=1231:1345#L38">CompoundPoissonProcessIteration</a>
+<a href="#CompoundPoissonProcessIteration" class="permalink">¶</a></h2>
+<p>CompoundPoissonProcessIteration defines an iteration for a compound
+Poisson process.</p>
+<pre><code>type CompoundPoissonProcessIteration struct {
+    JumpDist JumpDistribution
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="CompoundPoissonProcessIteration.Configure">func
+(*CompoundPoissonProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/compound_poisson_process.go?s=1347:1453#L43">Configure</a>
+<a href="#CompoundPoissonProcessIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (c *CompoundPoissonProcessIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="CompoundPoissonProcessIteration.Iterate">func
+(*CompoundPoissonProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/compound_poisson_process.go?s=1687:1897#L58">Iterate</a>
+<a href="#CompoundPoissonProcessIteration.Iterate"
+class="permalink">¶</a></h3>
+<pre><code>func (c *CompoundPoissonProcessIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="CumulativeTimeIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/cumulative_time.go?s=203:240#L1">CumulativeTimeIteration</a>
+<a href="#CumulativeTimeIteration" class="permalink">¶</a></h2>
+<p>CumulativeTimeIteration defines an iteration which outputs the
+cumulative time which has elapsed in the simulation.</p>
+<pre><code>type CumulativeTimeIteration struct{}</code></pre>
+<h3 id="CumulativeTimeIteration.Configure">func
+(*CumulativeTimeIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/cumulative_time.go?s=242:340#L1">Configure</a>
+<a href="#CumulativeTimeIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (c *CumulativeTimeIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="CumulativeTimeIteration.Iterate">func (*CumulativeTimeIteration)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/cumulative_time.go?s=346:548#L7">Iterate</a>
+<a href="#CumulativeTimeIteration.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (c *CumulativeTimeIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="DriftDiffusionIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/drift_diffusion.go?s=233:303#L4">DriftDiffusionIteration</a>
+<a href="#DriftDiffusionIteration" class="permalink">¶</a></h2>
+<p>DriftDiffusionIteration defines an iteration for any general
+drift-diffusion process.</p>
+<pre><code>type DriftDiffusionIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="DriftDiffusionIteration.Configure">func
+(*DriftDiffusionIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/drift_diffusion.go?s=305:403#L8">Configure</a>
+<a href="#DriftDiffusionIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (d *DriftDiffusionIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="DriftDiffusionIteration.Iterate">func (*DriftDiffusionIteration)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/drift_diffusion.go?s=591:793#L22">Iterate</a>
+<a href="#DriftDiffusionIteration.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (d *DriftDiffusionIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="DriftJumpDiffusionIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/drift_jump_diffusion.go?s=242:384#L4">DriftJumpDiffusionIteration</a>
+<a href="#DriftJumpDiffusionIteration" class="permalink">¶</a></h2>
+<p>DriftJumpDiffusionIteration defines an iteration for any general
+drift-jump-diffusion process.</p>
+<pre><code>type DriftJumpDiffusionIteration struct {
+    JumpDist JumpDistribution
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="DriftJumpDiffusionIteration.Configure">func
+(*DriftJumpDiffusionIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/drift_jump_diffusion.go?s=386:488#L10">Configure</a>
+<a href="#DriftJumpDiffusionIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (d *DriftJumpDiffusionIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="DriftJumpDiffusionIteration.Iterate">func
+(*DriftJumpDiffusionIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/drift_jump_diffusion.go?s=920:1126#L31">Iterate</a>
+<a href="#DriftJumpDiffusionIteration.Iterate"
+class="permalink">¶</a></h3>
+<pre><code>func (d *DriftJumpDiffusionIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="GammaJumpDistribution">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/compound_poisson_process.go?s=568:625#L9">GammaJumpDistribution</a>
+<a href="#GammaJumpDistribution" class="permalink">¶</a></h2>
+<p>GammaJumpDistribution jumps with samples drawn from a gamma
+distribution.</p>
+<pre><code>type GammaJumpDistribution struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="GammaJumpDistribution.Configure">func (*GammaJumpDistribution)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/compound_poisson_process.go?s=627:723#L13">Configure</a>
+<a href="#GammaJumpDistribution.Configure" class="permalink">¶</a></h3>
+<pre><code>func (g *GammaJumpDistribution) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="GammaJumpDistribution.NewJump">func (*GammaJumpDistribution) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/compound_poisson_process.go?s=900:994#L27">NewJump</a>
+<a href="#GammaJumpDistribution.NewJump" class="permalink">¶</a></h3>
+<pre><code>func (g *GammaJumpDistribution) NewJump(
+    params *simulator.Params,
+    valueIndex int,
+) float64</code></pre>
+<h2 id="GeometricBrownianMotionIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/geometric_brownian_motion.go?s=241:320#L4">GeometricBrownianMotionIteration</a>
+<a href="#GeometricBrownianMotionIteration" class="permalink">¶</a></h2>
+<p>GeometricBrownianMotionIteration defines an iteration for a simple
+geometric Brownian motion.</p>
+<pre><code>type GeometricBrownianMotionIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="GeometricBrownianMotionIteration.Configure">func
+(*GeometricBrownianMotionIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/geometric_brownian_motion.go?s=322:429#L8">Configure</a>
+<a href="#GeometricBrownianMotionIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GeometricBrownianMotionIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="GeometricBrownianMotionIteration.Iterate">func
+(*GeometricBrownianMotionIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/geometric_brownian_motion.go?s=617:828#L22">Iterate</a>
+<a href="#GeometricBrownianMotionIteration.Iterate"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GeometricBrownianMotionIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="GradientDescentIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/gradient_descent.go?s=175:213#L1">GradientDescentIteration</a>
+<a href="#GradientDescentIteration" class="permalink">¶</a></h2>
+<p>GradientDescentIteration defines an iteration for any general
+gradient descent process.</p>
+<pre><code>type GradientDescentIteration struct{}</code></pre>
+<h3 id="GradientDescentIteration.Configure">func
+(*GradientDescentIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/gradient_descent.go?s=215:314#L1">Configure</a>
+<a href="#GradientDescentIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GradientDescentIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="GradientDescentIteration.Iterate">func
+(*GradientDescentIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/gradient_descent.go?s=320:523#L7">Iterate</a>
+<a href="#GradientDescentIteration.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (g *GradientDescentIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="JumpDistribution">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/compound_poisson_process.go?s=334:489#L3">JumpDistribution</a>
+<a href="#JumpDistribution" class="permalink">¶</a></h2>
+<p>JumpDistribution defines the interface that must be implemented to
+provide a distribution to generate sudden 'jumps' from. This is used in
+compound Poisson processes and drift-jump-diffusions.</p>
+<pre><code>type JumpDistribution interface {
+    Configure(partitionIndex int, settings *simulator.Settings)
+    NewJump(params *simulator.Params, valueIndex int) float64
+}</code></pre>
+<h2 id="OrnsteinUhlenbeckIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/ornstein_uhlenbeck.go?s=230:303#L4">OrnsteinUhlenbeckIteration</a>
+<a href="#OrnsteinUhlenbeckIteration" class="permalink">¶</a></h2>
+<p>OrnsteinUhlenbeckIteration defines an iteration for an
+Ornstein-Uhlenbeck process.</p>
+<pre><code>type OrnsteinUhlenbeckIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="OrnsteinUhlenbeckIteration.Configure">func
+(*OrnsteinUhlenbeckIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/ornstein_uhlenbeck.go?s=305:406#L8">Configure</a>
+<a href="#OrnsteinUhlenbeckIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (o *OrnsteinUhlenbeckIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="OrnsteinUhlenbeckIteration.Iterate">func
+(*OrnsteinUhlenbeckIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/ornstein_uhlenbeck.go?s=594:799#L22">Iterate</a>
+<a href="#OrnsteinUhlenbeckIteration.Iterate"
+class="permalink">¶</a></h3>
+<pre><code>func (o *OrnsteinUhlenbeckIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="WienerProcessIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/wiener_process.go?s=220:289#L4">WienerProcessIteration</a>
+<a href="#WienerProcessIteration" class="permalink">¶</a></h2>
+<p>WienerProcessIteration defines an iteration for a simple Wiener
+process.</p>
+<pre><code>type WienerProcessIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="WienerProcessIteration.Configure">func (*WienerProcessIteration)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/wiener_process.go?s=291:388#L8">Configure</a>
+<a href="#WienerProcessIteration.Configure" class="permalink">¶</a></h3>
+<pre><code>func (w *WienerProcessIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="WienerProcessIteration.Iterate">func (*WienerProcessIteration)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/continuous/wiener_process.go?s=576:777#L22">Iterate</a>
+<a href="#WienerProcessIteration.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (w *WienerProcessIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<div id="footer">
+Build version go1.22.2.<br />
+Except as <a
+href="https://developers.google.com/site-policies#restrictions">noted</a>,
+the content of this page is licensed under the Creative Commons
+Attribution 3.0 License, and code is licensed under a <a
+href="/LICENSE">BSD license</a>.<br />
+<a href="https://golang.org/doc/tos.html">Terms of Service</a> | <a
+href="https://www.google.com/intl/en/policies/privacy/">Privacy
+Policy</a>
+</div>
+</section>
+</div>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</article>
+</html>

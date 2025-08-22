@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <style>
+    .body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+      color: #1F2328;
+      background-color: #ffff;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+      line-height: 1.5;
+      word-wrap: break-word;
+      text-align: justify;
+    }
+
+    .body h1 {
+      margin: 0;
+      font-size: 200%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body h2, h3, h4, h5 {
+      margin: 0;
+      font-size: 150%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body strong {
+      color: rgb(42, 65, 83);
+    }
+
+    .body a {
+      color: #0969da;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .body a:hover {
+      color: LightGrey;
+    }
+
+    pre {
+      padding: .5em 1em;
+      font-size: 95%;
+      color: #F5F5F5;
+      background-color: rgb(42, 65, 83);
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    code {
+      display: block;
+    }
+
+    .centered {
+      text-align: center;
+    }
+
+    img:not(.no-center), 
+    svg:not(.no-center) {
+      display: block;
+      margin: 1em auto;
+      max-width: 100%;
+      height: auto;
+    }
+
+    img.no-center, 
+    svg.no-center {
+      display: inline;
+      margin: 0;
+    }
+
+    .otherimgs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .otherimgs img {
+      display: inline-block;
+      height: auto;
+      margin: 0;
+    }
+
+    .articleHeader {
+      padding: .2em .4em;
+      margin: 1em;
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+      text-align: justify;
+    }
+
+    a.articleTitle h1 {
+      text-align: left;
+      color: rgb(79, 97, 114);
+      text-align: left;
+    }
+
+    a.articleTitle h1:hover {
+      color: LightGrey;
+    }
+
+    .articleHeader strong {
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    .body .navbar {
+      padding:8px 16px;
+      float:right;
+      width:auto;
+      border:none;
+      display:block;
+      outline:0;
+      color: LightGrey;
+    }
+
+    .logofavicon {
+      vertical-align: middle;
+    }
+
+    .body .repotitle {
+      float: left;
+      text-align: left;
+    }
+
+    strong.nameRepo {
+      color: rgb(42, 65, 83);
+    }
+
+    .body .navbar:hover {
+      color: rgb(42, 65, 83);
+    }
+
+    .csl-entry {
+      display: flex;
+      margin-top: 15px;
+    }
+
+    #references {
+      margin-bottom: 0.5em;
+    }
+
+    .csl-left-margin {
+      margin-right: 10px;
+    }
+
+    .custom-spacer {
+      display: block;
+      height: 1em;
+    }
+
+    @media (max-width: 767px) {
+      .body {
+        padding: 15px;
+      }
+      p {
+        overflow-x: auto;
+      }
+      p span.math.display {
+        display: inline-block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+  </style>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<article class="body">
+<a class="navbar" href="https://umbralcalc.github.io/stochadex">
+Home
+</a>
+<a class="navbar" href="https://github.com/umbralcalc">
+About
+</a>
+</br>
+</br>
+</br>
+using module mode; GOMOD=/home/robert/Code/stochadex/go.mod
+<div id="lowframe"
+style="position: fixed; bottom: 0; left: 0; height: 0; width: 100%; border-top: thin solid grey; background-color: white; overflow: auto;">
+...
+</div>
+<div id="topbar" class="wide">
+<div class="container">
+<div id="heading-wide" class="top-heading">
+<a href="/pkg/">Go Documentation Server</a>
+</div>
+<div id="heading-narrow" class="top-heading">
+<a href="/pkg/">GoDoc</a>
+</div>
+<a href="#" id="menu-button"><span id="menu-button-arrow">▽</span></a>
+<div id="menu">
+<span><img
+src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdib3g9IjAgMCAyNCAyNCI+PHRpdGxlPnN1Ym1pdCBzZWFyY2g8L3RpdGxlPjxwYXRoIGQ9Ik0xNS41IDE0aC0uNzlsLS4yOC0uMjdDMTUuNDEgMTIuNTkgMTYgMTEuMTEgMTYgOS41IDE2IDUuOTEgMTMuMDkgMyA5LjUgM1MzIDUuOTEgMyA5LjUgNS45MSAxNiA5LjUgMTZjMS42MSAwIDMuMDktLjU5IDQuMjMtMS41N2wuMjcuMjh2Ljc5bDUgNC45OUwyMC40OSAxOWwtNC45OS01em0tNiAwQzcuMDEgMTQgNSAxMS45OSA1IDkuNVM3LjAxIDUgOS41IDUgMTQgNy4wMSAxNCA5LjUgMTEuOTkgMTQgOS41IDE0eiI+PC9wYXRoPjxwYXRoIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiPjwvcGF0aD48L3N2Zz4=" /></span>
+</div>
+</div>
+</div>
+<div id="page" class="wide">
+<section id="package-simulator" class="container">
+<h1>Package simulator <span class="text-muted"></span></h1>
+<div id="nav">
+
+</div>
+<div id="short-nav">
+<code>import "github.com/umbralcalc/stochadex/pkg/simulator"</code>
+<a href="#pkg-overview" class="overviewLink">Overview</a>
+<a href="#pkg-index" class="indexLink">Index</a>
+</div>
+<div id="pkg-overview" class="toggleVisible">
+<section id="overview" class="toggleButton collapsed"
+title="Click to show Overview section">
+<h2 class="toggleButton" title="Click to show Overview section">Overview
+▹</h2>
+</section>
+<section id="overview-1" class="toggleButton expanded"
+title="Click to hide Overview section">
+<h2 class="toggleButton" title="Click to hide Overview section">Overview
+▾</h2>
+</section>
+</div>
+<div id="pkg-index" class="toggleVisible">
+<section id="index" class="toggleButton collapsed"
+title="Click to show Index section">
+<h2 class="toggleButton" title="Click to show Index section">Index
+▹</h2>
+</section>
+<section id="index-1" class="toggleButton expanded"
+title="Click to hide Index section">
+<h2 class="toggleButton" title="Click to hide Index section">Index
+▾</h2>
+<div id="manual-nav">
+<a href="#pkg-variables">Variables</a>
+<a href="#RunWithHarnesses">func RunWithHarnesses(settings *Settings,
+implementations *Implementations) error</a>
+<a href="#ConfigGenerator">type ConfigGenerator</a>
+    <a href="#NewConfigGenerator">func NewConfigGenerator()
+*ConfigGenerator</a>
+    <a href="#ConfigGenerator.GenerateConfigs">func (c *ConfigGenerator)
+GenerateConfigs() (*Settings, *Implementations)</a>
+    <a href="#ConfigGenerator.GetGlobalSeed">func (c *ConfigGenerator)
+GetGlobalSeed() uint64</a>
+    <a href="#ConfigGenerator.GetPartition">func (c *ConfigGenerator)
+GetPartition(name string) *PartitionConfig</a>
+    <a href="#ConfigGenerator.GetSimulation">func (c *ConfigGenerator)
+GetSimulation() *SimulationConfig</a>
+    <a href="#ConfigGenerator.ResetPartition">func (c *ConfigGenerator)
+ResetPartition(name string, config *PartitionConfig)</a>
+    <a href="#ConfigGenerator.SetGlobalSeed">func (c *ConfigGenerator)
+SetGlobalSeed(seed uint64)</a>
+    <a href="#ConfigGenerator.SetPartition">func (c *ConfigGenerator)
+SetPartition(config *PartitionConfig)</a>
+    <a href="#ConfigGenerator.SetSimulation">func (c *ConfigGenerator)
+SetSimulation(config *SimulationConfig)</a>
+<a href="#ConstantTimestepFunction">type ConstantTimestepFunction</a>
+    <a href="#ConstantTimestepFunction.NextIncrement">func (t
+*ConstantTimestepFunction) NextIncrement(timestepsHistory
+*CumulativeTimestepsHistory) float64</a>
+<a href="#CumulativeTimestepsHistory">type
+CumulativeTimestepsHistory</a>
+<a href="#DownstreamStateValues">type DownstreamStateValues</a>
+<a href="#EveryNStepsOutputCondition">type
+EveryNStepsOutputCondition</a>
+    <a href="#EveryNStepsOutputCondition.IsOutputStep">func (c
+*EveryNStepsOutputCondition) IsOutputStep(partitionName string, state
+[]float64, cumulativeTimesteps float64) bool</a>
+<a href="#EveryStepOutputCondition">type EveryStepOutputCondition</a>
+    <a href="#EveryStepOutputCondition.IsOutputStep">func (c
+*EveryStepOutputCondition) IsOutputStep(partitionName string, state
+[]float64, cumulativeTimesteps float64) bool</a>
+<a href="#ExponentialDistributionTimestepFunction">type
+ExponentialDistributionTimestepFunction</a>
+    <a href="#NewExponentialDistributionTimestepFunction">func
+NewExponentialDistributionTimestepFunction(mean float64, seed uint64)
+*ExponentialDistributionTimestepFunction</a>
+    <a
+href="#ExponentialDistributionTimestepFunction.NextIncrement">func (t
+*ExponentialDistributionTimestepFunction) NextIncrement(timestepsHistory
+*CumulativeTimestepsHistory) float64</a>
+<a href="#Implementations">type Implementations</a>
+<a href="#Iteration">type Iteration</a>
+<a href="#IterationSettings">type IterationSettings</a>
+<a href="#IterationTestHarness">type IterationTestHarness</a>
+    <a href="#IterationTestHarness.Configure">func (h
+*IterationTestHarness) Configure(partitionIndex int, settings
+*Settings)</a>
+    <a href="#IterationTestHarness.Iterate">func (h
+*IterationTestHarness) Iterate(params *Params, partitionIndex int,
+stateHistories []*StateHistory, timestepsHistory
+*CumulativeTimestepsHistory) []float64</a>
+<a href="#IteratorInputMessage">type IteratorInputMessage</a>
+<a href="#JsonLogChannelOutputFunction">type
+JsonLogChannelOutputFunction</a>
+    <a href="#NewJsonLogChannelOutputFunction">func
+NewJsonLogChannelOutputFunction(filePath string)
+*JsonLogChannelOutputFunction</a>
+    <a href="#JsonLogChannelOutputFunction.Close">func (j
+*JsonLogChannelOutputFunction) Close()</a>
+    <a href="#JsonLogChannelOutputFunction.Output">func (j
+*JsonLogChannelOutputFunction) Output(partitionName string, state
+[]float64, cumulativeTimesteps float64)</a>
+<a href="#JsonLogEntry">type JsonLogEntry</a>
+<a href="#JsonLogOutputFunction">type JsonLogOutputFunction</a>
+    <a href="#NewJsonLogOutputFunction">func
+NewJsonLogOutputFunction(filePath string) *JsonLogOutputFunction</a>
+    <a href="#JsonLogOutputFunction.Output">func (j
+*JsonLogOutputFunction) Output(partitionName string, state []float64,
+cumulativeTimesteps float64)</a>
+<a href="#NamedPartitionIndex">type NamedPartitionIndex</a>
+<a href="#NamedUpstreamConfig">type NamedUpstreamConfig</a>
+<a href="#NilOutputCondition">type NilOutputCondition</a>
+    <a href="#NilOutputCondition.IsOutputStep">func (c
+*NilOutputCondition) IsOutputStep(partitionName string, state []float64,
+cumulativeTimesteps float64) bool</a>
+<a href="#NilOutputFunction">type NilOutputFunction</a>
+    <a href="#NilOutputFunction.Output">func (f *NilOutputFunction)
+Output(partitionName string, state []float64, cumulativeTimesteps
+float64)</a>
+<a href="#NumberOfStepsTerminationCondition">type
+NumberOfStepsTerminationCondition</a>
+    <a href="#NumberOfStepsTerminationCondition.Terminate">func (t
+*NumberOfStepsTerminationCondition) Terminate(stateHistories
+[]*StateHistory, timestepsHistory *CumulativeTimestepsHistory) bool</a>
+<a href="#OnlyGivenPartitionsOutputCondition">type
+OnlyGivenPartitionsOutputCondition</a>
+    <a href="#OnlyGivenPartitionsOutputCondition.IsOutputStep">func (o
+*OnlyGivenPartitionsOutputCondition) IsOutputStep(partitionName string,
+state []float64, cumulativeTimesteps float64) bool</a>
+<a href="#OutputCondition">type OutputCondition</a>
+<a href="#OutputFunction">type OutputFunction</a>
+<a href="#Params">type Params</a>
+    <a href="#NewParams">func NewParams(params map[string][]float64)
+Params</a>
+    <a href="#Params.Get">func (p *Params) Get(name string)
+[]float64</a>
+    <a href="#Params.GetCopy">func (p *Params) GetCopy(name string)
+[]float64</a>
+    <a href="#Params.GetCopyOk">func (p *Params) GetCopyOk(name string)
+([]float64, bool)</a>
+    <a href="#Params.GetIndex">func (p *Params) GetIndex(name string,
+index int) float64</a>
+    <a href="#Params.GetOk">func (p *Params) GetOk(name string)
+([]float64, bool)</a>
+    <a href="#Params.Set">func (p *Params) Set(name string, values
+[]float64)</a>
+    <a href="#Params.SetIndex">func (p *Params) SetIndex(name string,
+index int, value float64)</a>
+    <a href="#Params.SetPartitionName">func (p *Params)
+SetPartitionName(name string)</a>
+<a href="#PartitionConfig">type PartitionConfig</a>
+    <a href="#LoadPartitionConfigFromYaml">func
+LoadPartitionConfigFromYaml(path string) *PartitionConfig</a>
+    <a href="#PartitionConfig.Init">func (p *PartitionConfig) Init()</a>
+<a href="#PartitionConfigOrdering">type PartitionConfigOrdering</a>
+    <a href="#PartitionConfigOrdering.Append">func (p
+*PartitionConfigOrdering) Append(config *PartitionConfig)</a>
+<a href="#PartitionCoordinator">type PartitionCoordinator</a>
+    <a href="#NewPartitionCoordinator">func
+NewPartitionCoordinator(settings *Settings, implementations
+*Implementations) *PartitionCoordinator</a>
+    <a href="#PartitionCoordinator.ReadyToTerminate">func (c
+*PartitionCoordinator) ReadyToTerminate() bool</a>
+    <a href="#PartitionCoordinator.RequestMoreIterations">func (c
+*PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup)</a>
+    <a href="#PartitionCoordinator.Run">func (c *PartitionCoordinator)
+Run()</a>
+    <a href="#PartitionCoordinator.Step">func (c *PartitionCoordinator)
+Step(wg *sync.WaitGroup)</a>
+    <a href="#PartitionCoordinator.UpdateHistory">func (c
+*PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup)</a>
+<a href="#PartitionState">type PartitionState</a>
+    <a href="#PartitionState.Descriptor">func (*PartitionState)
+Descriptor() ([]byte, []int)</a>
+    <a href="#PartitionState.GetCumulativeTimesteps">func (x
+*PartitionState) GetCumulativeTimesteps() float64</a>
+    <a href="#PartitionState.GetPartitionName">func (x *PartitionState)
+GetPartitionName() string</a>
+    <a href="#PartitionState.GetState">func (x *PartitionState)
+GetState() []float64</a>
+    <a href="#PartitionState.ProtoMessage">func (*PartitionState)
+ProtoMessage()</a>
+    <a href="#PartitionState.ProtoReflect">func (x *PartitionState)
+ProtoReflect() protoreflect.Message</a>
+    <a href="#PartitionState.Reset">func (x *PartitionState) Reset()</a>
+    <a href="#PartitionState.String">func (x *PartitionState) String()
+string</a>
+<a href="#Settings">type Settings</a>
+    <a href="#LoadSettingsFromYaml">func LoadSettingsFromYaml(path
+string) *Settings</a>
+    <a href="#Settings.Init">func (s *Settings) Init()</a>
+<a href="#SimulationConfig">type SimulationConfig</a>
+<a href="#SimulationConfigStrings">type SimulationConfigStrings</a>
+    <a href="#LoadSimulationConfigStringsFromYaml">func
+LoadSimulationConfigStringsFromYaml(path string)
+*SimulationConfigStrings</a>
+<a href="#StateHistory">type StateHistory</a>
+    <a href="#StateHistory.CopyStateRow">func (s *StateHistory)
+CopyStateRow(index int) []float64</a>
+    <a href="#StateHistory.GetNextStateRowToUpdate">func (s
+*StateHistory) GetNextStateRowToUpdate() []float64</a>
+<a href="#StateIterator">type StateIterator</a>
+    <a href="#NewStateIterator">func NewStateIterator(iteration
+Iteration, params Params, partitionName string, partitionIndex int,
+valueChannels StateValueChannels, outputCondition OutputCondition,
+outputFunction OutputFunction, initState []float64, initTime float64)
+*StateIterator</a>
+    <a href="#StateIterator.Iterate">func (s *StateIterator)
+Iterate(stateHistories []*StateHistory, timestepsHistory
+*CumulativeTimestepsHistory) []float64</a>
+    <a href="#StateIterator.ReceiveAndIteratePending">func (s
+*StateIterator) ReceiveAndIteratePending(inputChannel &lt;-chan
+*IteratorInputMessage)</a>
+    <a href="#StateIterator.UpdateHistory">func (s *StateIterator)
+UpdateHistory(inputChannel &lt;-chan *IteratorInputMessage)</a>
+<a href="#StateTimeStorage">type StateTimeStorage</a>
+    <a href="#NewStateTimeStorage">func NewStateTimeStorage()
+*StateTimeStorage</a>
+    <a href="#StateTimeStorage.ConcurrentAppend">func (s
+*StateTimeStorage) ConcurrentAppend(name string, time float64, values
+[]float64)</a>
+    <a href="#StateTimeStorage.GetIndex">func (s *StateTimeStorage)
+GetIndex(name string) int</a>
+    <a href="#StateTimeStorage.GetNames">func (s *StateTimeStorage)
+GetNames() []string</a>
+    <a href="#StateTimeStorage.GetTimes">func (s *StateTimeStorage)
+GetTimes() []float64</a>
+    <a href="#StateTimeStorage.GetValues">func (s *StateTimeStorage)
+GetValues(name string) [][]float64</a>
+    <a href="#StateTimeStorage.SetTimes">func (s *StateTimeStorage)
+SetTimes(times []float64)</a>
+    <a href="#StateTimeStorage.SetValues">func (s *StateTimeStorage)
+SetValues(name string, values [][]float64)</a>
+<a href="#StateTimeStorageOutputFunction">type
+StateTimeStorageOutputFunction</a>
+    <a href="#StateTimeStorageOutputFunction.Output">func (f
+*StateTimeStorageOutputFunction) Output(partitionName string, state
+[]float64, cumulativeTimesteps float64)</a>
+<a href="#StateValueChannels">type StateValueChannels</a>
+    <a href="#StateValueChannels.BroadcastDownstream">func (s
+*StateValueChannels) BroadcastDownstream(stateValues []float64)</a>
+    <a href="#StateValueChannels.UpdateUpstreamParams">func (s
+*StateValueChannels) UpdateUpstreamParams(params *Params)</a>
+<a href="#StdoutOutputFunction">type StdoutOutputFunction</a>
+    <a href="#StdoutOutputFunction.Output">func (s
+*StdoutOutputFunction) Output(partitionName string, state []float64,
+cumulativeTimesteps float64)</a>
+<a href="#TerminationCondition">type TerminationCondition</a>
+<a href="#TimeElapsedTerminationCondition">type
+TimeElapsedTerminationCondition</a>
+    <a href="#TimeElapsedTerminationCondition.Terminate">func (t
+*TimeElapsedTerminationCondition) Terminate(stateHistories
+[]*StateHistory, timestepsHistory *CumulativeTimestepsHistory) bool</a>
+<a href="#TimestepFunction">type TimestepFunction</a>
+<a href="#UpstreamConfig">type UpstreamConfig</a>
+<a href="#UpstreamStateValues">type UpstreamStateValues</a>
+<a href="#WebsocketOutputFunction">type WebsocketOutputFunction</a>
+    <a href="#NewWebsocketOutputFunction">func
+NewWebsocketOutputFunction(connection *websocket.Conn, mutex
+*sync.Mutex) *WebsocketOutputFunction</a>
+    <a href="#WebsocketOutputFunction.Output">func (w
+*WebsocketOutputFunction) Output(partitionName string, state []float64,
+cumulativeTimesteps float64)</a>
+</div>
+<h3 id="package-files">Package files</h3>
+<p><span style="font-size:90%"> <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go">configs.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/coordinator.go">coordinator.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/harness.go">harness.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/histories.go">histories.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go">iterator.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/loaders.go">loaders.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go">output.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go">params.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go">partition_state.pb.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go">storage.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/termination.go">termination.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/timesteps.go">timesteps.go</a>
+</span></p>
+</section>
+</div>
+<h2 id="pkg-variables">Variables</h2>
+<pre><code>var File_cmd_messages_partition_state_proto protoreflect.FileDescriptor</code></pre>
+<h2 id="RunWithHarnesses">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/harness.go?s=3695:3776#L117">RunWithHarnesses</a>
+<a href="#RunWithHarnesses" class="permalink">¶</a></h2>
+<pre><code>func RunWithHarnesses(settings *Settings, implementations *Implementations) error</code></pre>
+<p>RunWithHarnesses runs all iterations, each wrapped in a test harness
+and returns any errors if found. The simulation is also run twice to
+check for statefulness residues.</p>
+<h2 id="ConfigGenerator">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=6211:6367#L142">ConfigGenerator</a>
+<a href="#ConfigGenerator" class="permalink">¶</a></h2>
+<p>ConfigGenerator enables users to dynamically configure a stochadex
+simulation programmatically while providing tools for just-in-time
+generation of the necessary Implementation and Settings configs required
+to create a new PartitionCoordinator through the .GenerateConfigs
+method.</p>
+<pre><code>type ConfigGenerator struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewConfigGenerator">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=10973:11015#L271">NewConfigGenerator</a>
+<a href="#NewConfigGenerator" class="permalink">¶</a></h3>
+<pre><code>func NewConfigGenerator() *ConfigGenerator</code></pre>
+<p>NewConfigGenerator creates a new ConfigGenerator.</p>
+<h3 id="ConfigGenerator.GenerateConfigs">func (*ConfigGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=8319:8392#L201">GenerateConfigs</a>
+<a href="#ConfigGenerator.GenerateConfigs" class="permalink">¶</a></h3>
+<pre><code>func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations)</code></pre>
+<p>GenerateConfigs generates the necessary Implementation and Settings
+configs required to create a new PartitionCoordinator based on the
+currently configured simulation that is represented by the
+generator.</p>
+<h3 id="ConfigGenerator.GetGlobalSeed">func (*ConfigGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=6431:6479#L149">GetGlobalSeed</a>
+<a href="#ConfigGenerator.GetGlobalSeed" class="permalink">¶</a></h3>
+<pre><code>func (c *ConfigGenerator) GetGlobalSeed() uint64</code></pre>
+<p>GetGlobalSeed retrieves what global seed is currently set.</p>
+<h3 id="ConfigGenerator.GetPartition">func (*ConfigGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=7313:7381#L176">GetPartition</a>
+<a href="#ConfigGenerator.GetPartition" class="permalink">¶</a></h3>
+<pre><code>func (c *ConfigGenerator) GetPartition(name string) *PartitionConfig</code></pre>
+<p>GetPartition retrieves a partition config in the generator using on
+its name.</p>
+<h3 id="ConfigGenerator.GetSimulation">func (*ConfigGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=6973:7032#L165">GetSimulation</a>
+<a href="#ConfigGenerator.GetSimulation" class="permalink">¶</a></h3>
+<pre><code>func (c *ConfigGenerator) GetSimulation() *SimulationConfig</code></pre>
+<p>GetSimulation retrieves the current configured simulation config that
+is in the generator.</p>
+<h3 id="ConfigGenerator.ResetPartition">func (*ConfigGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=7825:7903#L189">ResetPartition</a>
+<a href="#ConfigGenerator.ResetPartition" class="permalink">¶</a></h3>
+<pre><code>func (c *ConfigGenerator) ResetPartition(name string, config *PartitionConfig)</code></pre>
+<p>ResetPartition allows the user to reset the config for a partition by
+name.</p>
+<h3 id="ConfigGenerator.SetGlobalSeed">func (*ConfigGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=6653:6705#L155">SetGlobalSeed</a>
+<a href="#ConfigGenerator.SetGlobalSeed" class="permalink">¶</a></h3>
+<pre><code>func (c *ConfigGenerator) SetGlobalSeed(seed uint64)</code></pre>
+<p>SetGlobalSeed sets a random seed for each partition in the simulation
+based on a process which itself is dependent on the input random
+seed.</p>
+<h3 id="ConfigGenerator.SetPartition">func (*ConfigGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=7620:7683#L183">SetPartition</a>
+<a href="#ConfigGenerator.SetPartition" class="permalink">¶</a></h3>
+<pre><code>func (c *ConfigGenerator) SetPartition(config *PartitionConfig)</code></pre>
+<p>SetPartition sets another new partition config in the generator which
+must have a unique name field to every other one which currently exists
+otherwise there is an error.</p>
+<h3 id="ConfigGenerator.SetSimulation">func (*ConfigGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=7129:7194#L170">SetSimulation</a>
+<a href="#ConfigGenerator.SetSimulation" class="permalink">¶</a></h3>
+<pre><code>func (c *ConfigGenerator) SetSimulation(config *SimulationConfig)</code></pre>
+<p>SetSimulation sets a new simulation config in the generator.</p>
+<h2 id="ConstantTimestepFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/timesteps.go?s=423:481#L8">ConstantTimestepFunction</a>
+<a href="#ConstantTimestepFunction" class="permalink">¶</a></h2>
+<p>ConstantTimestepFunction iterates the timestep by a constant
+stepsize.</p>
+<pre><code>type ConstantTimestepFunction struct {
+    Stepsize float64
+}</code></pre>
+<h3 id="ConstantTimestepFunction.NextIncrement">func
+(*ConstantTimestepFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/timesteps.go?s=483:589#L12">NextIncrement</a>
+<a href="#ConstantTimestepFunction.NextIncrement"
+class="permalink">¶</a></h3>
+<pre><code>func (t *ConstantTimestepFunction) NextIncrement(
+    timestepsHistory *CumulativeTimestepsHistory,
+) float64</code></pre>
+<h2 id="CumulativeTimestepsHistory">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/histories.go?s=1171:1319#L28">CumulativeTimestepsHistory</a>
+<a href="#CumulativeTimestepsHistory" class="permalink">¶</a></h2>
+<p>CumulativeTimestepsHistory is a windowed history of cumulative
+timestep values which includes the next value to increment time by and
+number of steps taken.</p>
+<pre><code>type CumulativeTimestepsHistory struct {
+    NextIncrement     float64
+    Values            *mat.VecDense
+    CurrentStepNumber int
+    StateHistoryDepth int
+}</code></pre>
+<h2 id="DownstreamStateValues">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=958:1032#L17">DownstreamStateValues</a>
+<a href="#DownstreamStateValues" class="permalink">¶</a></h2>
+<p>DownstreamStateValues contains the information needed to send state
+values to a computationally-downstream StateIterator.</p>
+<pre><code>type DownstreamStateValues struct {
+    Channel chan []float64
+    Copies  int
+}</code></pre>
+<h2 id="EveryNStepsOutputCondition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=6850:6916#L250">EveryNStepsOutputCondition</a>
+<a href="#EveryNStepsOutputCondition" class="permalink">¶</a></h2>
+<p>EveryNStepsOutputCondition calls the OutputFunction once for every N
+steps that occur.</p>
+<pre><code>type EveryNStepsOutputCondition struct {
+    N int
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="EveryNStepsOutputCondition.IsOutputStep">func
+(*EveryNStepsOutputCondition) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=6918:7046#L255">IsOutputStep</a>
+<a href="#EveryNStepsOutputCondition.IsOutputStep"
+class="permalink">¶</a></h3>
+<pre><code>func (c *EveryNStepsOutputCondition) IsOutputStep(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+) bool</code></pre>
+<h2 id="EveryStepOutputCondition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=6572:6610#L238">EveryStepOutputCondition</a>
+<a href="#EveryStepOutputCondition" class="permalink">¶</a></h2>
+<p>EveryStepOutputCondition calls the OutputFunction at every step.</p>
+<pre><code>type EveryStepOutputCondition struct{}</code></pre>
+<h3 id="EveryStepOutputCondition.IsOutputStep">func
+(*EveryStepOutputCondition) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=6612:6738#L240">IsOutputStep</a>
+<a href="#EveryStepOutputCondition.IsOutputStep"
+class="permalink">¶</a></h3>
+<pre><code>func (c *EveryStepOutputCondition) IsOutputStep(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+) bool</code></pre>
+<h2 id="ExponentialDistributionTimestepFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/timesteps.go?s=780:911#L20">ExponentialDistributionTimestepFunction</a>
+<a href="#ExponentialDistributionTimestepFunction"
+class="permalink">¶</a></h2>
+<p>ExponentialDistributionTimestepFunction iterates the timestep by a
+new sample drawn from an exponential distribution with hyperparameters
+set by Mean and Seed.</p>
+<pre><code>type ExponentialDistributionTimestepFunction struct {
+    Mean float64
+    Seed uint64
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewExponentialDistributionTimestepFunction">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/timesteps.go?s=1197:1317#L34">NewExponentialDistributionTimestepFunction</a>
+<a href="#NewExponentialDistributionTimestepFunction"
+class="permalink">¶</a></h3>
+<pre><code>func NewExponentialDistributionTimestepFunction(
+    mean float64,
+    seed uint64,
+) *ExponentialDistributionTimestepFunction</code></pre>
+<p>New ExponentialDistributionTimestepFunction creates a new
+ExponentialDistributionTimestepFunction given a mean and seed.</p>
+<h3 id="ExponentialDistributionTimestepFunction.NextIncrement">func
+(*ExponentialDistributionTimestepFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/timesteps.go?s=913:1034#L26">NextIncrement</a>
+<a href="#ExponentialDistributionTimestepFunction.NextIncrement"
+class="permalink">¶</a></h3>
+<pre><code>func (t *ExponentialDistributionTimestepFunction) NextIncrement(
+    timestepsHistory *CumulativeTimestepsHistory,
+) float64</code></pre>
+<h2 id="Implementations">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=2339:2561#L50">Implementations</a>
+<a href="#Implementations" class="permalink">¶</a></h2>
+<p>Implementations defines all of the interfaces that must be
+implemented in order to configure a simulation defined by the
+stochadex.</p>
+<pre><code>type Implementations struct {
+    Iterations           []Iteration
+    OutputCondition      OutputCondition
+    OutputFunction       OutputFunction
+    TerminationCondition TerminationCondition
+    TimestepFunction     TimestepFunction
+}</code></pre>
+<h2 id="Iteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=399:623#L1">Iteration</a>
+<a href="#Iteration" class="permalink">¶</a></h2>
+<p>Iteration is the interface that must be implemented for any
+partitioned state iteration in the stochadex. Its .Iterate method reads
+in the *Params, a int partitionIndex, the full current history of all
+partitions defined by a slice []*StateHistory and a
+*CumulativeTimestepsHistory reference and outputs an updated state
+history row in the form of a float64 slice.</p>
+<pre><code>type Iteration interface {
+    Configure(partitionIndex int, settings *Settings)
+    Iterate(
+        params *Params,
+        partitionIndex int,
+        stateHistories []*StateHistory,
+        timestepsHistory *CumulativeTimestepsHistory,
+    ) []float64
+}</code></pre>
+<h2 id="IterationSettings">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=532:1048#L9">IterationSettings</a>
+<a href="#IterationSettings" class="permalink">¶</a></h2>
+<p>IterationSettings is the yaml-loadable config which defines the
+settings for an iteration which acts on a partition of the the global
+simulation state and its upstream partitions which may provide params
+for it.</p>
+<pre><code>type IterationSettings struct {
+    Name               string                    `yaml:&quot;name&quot;`
+    Params             Params                    `yaml:&quot;params&quot;`
+    ParamsFromUpstream map[string]UpstreamConfig `yaml:&quot;params_from_upstream,omitempty&quot;`
+    InitStateValues    []float64                 `yaml:&quot;init_state_values&quot;`
+    Seed               uint64                    `yaml:&quot;seed&quot;`
+    StateWidth         int                       `yaml:&quot;state_width&quot;`
+    StateHistoryDepth  int                       `yaml:&quot;state_history_depth&quot;`
+}</code></pre>
+<h2 id="IterationTestHarness">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/harness.go?s=200:314#L3">IterationTestHarness</a>
+<a href="#IterationTestHarness" class="permalink">¶</a></h2>
+<p>IterationTestHarness wraps an iteration and performs checks on its
+behaviour while running.</p>
+<pre><code>type IterationTestHarness struct {
+    Iteration Iteration
+    Err       error
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="IterationTestHarness.Configure">func (*IterationTestHarness) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/harness.go?s=316:401#L10">Configure</a>
+<a href="#IterationTestHarness.Configure" class="permalink">¶</a></h3>
+<pre><code>func (h *IterationTestHarness) Configure(
+    partitionIndex int,
+    settings *Settings,
+)</code></pre>
+<h3 id="IterationTestHarness.Iterate">func (*IterationTestHarness) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/harness.go?s=725:894#L24">Iterate</a>
+<a href="#IterationTestHarness.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (h *IterationTestHarness) Iterate(
+    params *Params,
+    partitionIndex int,
+    stateHistories []*StateHistory,
+    timestepsHistory *CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="IteratorInputMessage">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/histories.go?s=1516:1632#L38">IteratorInputMessage</a>
+<a href="#IteratorInputMessage" class="permalink">¶</a></h2>
+<p>IteratorInputMessage defines the message which is passed from the
+PartitionCoordinator to a StateIterator of a given partition when the
+former is requesting the latter to perform a job.</p>
+<pre><code>type IteratorInputMessage struct {
+    StateHistories   []*StateHistory
+    TimestepsHistory *CumulativeTimestepsHistory
+}</code></pre>
+<h2 id="JsonLogChannelOutputFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=2966:3040#L104">JsonLogChannelOutputFunction</a>
+<a href="#JsonLogChannelOutputFunction" class="permalink">¶</a></h2>
+<p>JsonLogChannelOutputFunction outputs data to a log of json packets
+from the simulation on the steps where the OutputCondition is met. This
+is functionally the same as the JsonLogOutputFunction but runs in its
+own thread and receives logs via channel for improved performance.</p>
+<pre><code>type JsonLogChannelOutputFunction struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewJsonLogChannelOutputFunction">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=3745:3832#L130">NewJsonLogChannelOutputFunction</a>
+<a href="#NewJsonLogChannelOutputFunction" class="permalink">¶</a></h3>
+<pre><code>func NewJsonLogChannelOutputFunction(
+    filePath string,
+) *JsonLogChannelOutputFunction</code></pre>
+<p>NewJsonLogChannelOutputFunction creates a new
+JsonLogChannelOutputFunction. This creates a new channel which can be
+deferred to close so that flushing at the end of a run is ensured like
+this: f = NewJsonLogChannelOutputFunction("file.log"); defer
+f.Close()</p>
+<h3 id="JsonLogChannelOutputFunction.Close">func
+(*JsonLogChannelOutputFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=3402:3448#L122">Close</a>
+<a href="#JsonLogChannelOutputFunction.Close"
+class="permalink">¶</a></h3>
+<pre><code>func (j *JsonLogChannelOutputFunction) Close()</code></pre>
+<p>Close ensures that the log channel flushes at the end of a run.</p>
+<h3 id="JsonLogChannelOutputFunction.Output">func
+(*JsonLogChannelOutputFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=3042:3161#L108">Output</a>
+<a href="#JsonLogChannelOutputFunction.Output"
+class="permalink">¶</a></h3>
+<pre><code>func (j *JsonLogChannelOutputFunction) Output(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+)</code></pre>
+<h2 id="JsonLogEntry">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=1436:1610#L49">JsonLogEntry</a>
+<a href="#JsonLogEntry" class="permalink">¶</a></h2>
+<p>JsonLogEntry is the format in which the logs are serialised when
+using the JsonLogOutputFunction.</p>
+<pre><code>type JsonLogEntry struct {
+    PartitionName       string    `json:&quot;partition_name&quot;`
+    State               []float64 `json:&quot;state&quot;`
+    CumulativeTimesteps float64   `json:&quot;time&quot;`
+}</code></pre>
+<h2 id="JsonLogOutputFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=1745:1817#L57">JsonLogOutputFunction</a>
+<a href="#JsonLogOutputFunction" class="permalink">¶</a></h2>
+<p>JsonLogOutputFunction outputs data to a log of json packets from the
+simulation on the steps where the OutputCondition is met.</p>
+<pre><code>type JsonLogOutputFunction struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewJsonLogOutputFunction">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=2407:2480#L88">NewJsonLogOutputFunction</a>
+<a href="#NewJsonLogOutputFunction" class="permalink">¶</a></h3>
+<pre><code>func NewJsonLogOutputFunction(
+    filePath string,
+) *JsonLogOutputFunction</code></pre>
+<p>NewJsonLogOutputFunction creates a new JsonLogOutputFunction.</p>
+<h3 id="JsonLogOutputFunction.Output">func (*JsonLogOutputFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=1819:1931#L62">Output</a>
+<a href="#JsonLogOutputFunction.Output" class="permalink">¶</a></h3>
+<pre><code>func (j *JsonLogOutputFunction) Output(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+)</code></pre>
+<h2 id="NamedPartitionIndex">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=2283:2343#L57">NamedPartitionIndex</a>
+<a href="#NamedPartitionIndex" class="permalink">¶</a></h2>
+<p>NamedPartitionIndex pairs the name of a partition with the partition
+index assigned to it by the PartitionCoordinator.</p>
+<pre><code>type NamedPartitionIndex struct {
+    Name  string
+    Index int
+}</code></pre>
+<h2 id="NamedUpstreamConfig">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=2766:2880#L61">NamedUpstreamConfig</a>
+<a href="#NamedUpstreamConfig" class="permalink">¶</a></h2>
+<p>NamedUpstreamConfig is the yaml-loadable representation of a slice of
+data from the output of a partitiion which is computationally upstream.
+This version uses a string name for this partition.</p>
+<pre><code>type NamedUpstreamConfig struct {
+    Upstream string `yaml:&quot;upstream&quot;`
+    Indices  []int  `yaml:&quot;indices,omitempty&quot;`
+}</code></pre>
+<h2 id="NilOutputCondition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=6330:6362#L227">NilOutputCondition</a>
+<a href="#NilOutputCondition" class="permalink">¶</a></h2>
+<p>NilOutputCondition never outputs.</p>
+<pre><code>type NilOutputCondition struct{}</code></pre>
+<h3 id="NilOutputCondition.IsOutputStep">func (*NilOutputCondition) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=6364:6484#L229">IsOutputStep</a>
+<a href="#NilOutputCondition.IsOutputStep" class="permalink">¶</a></h3>
+<pre><code>func (c *NilOutputCondition) IsOutputStep(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+) bool</code></pre>
+<h2 id="NilOutputFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=493:524#L12">NilOutputFunction</a>
+<a href="#NilOutputFunction" class="permalink">¶</a></h2>
+<p>NilOutputFunction outputs nothing from the simulation.</p>
+<pre><code>type NilOutputFunction struct{}</code></pre>
+<h3 id="NilOutputFunction.Output">func (*NilOutputFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=526:634#L14">Output</a>
+<a href="#NilOutputFunction.Output" class="permalink">¶</a></h3>
+<pre><code>func (f *NilOutputFunction) Output(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+)</code></pre>
+<h2 id="NumberOfStepsTerminationCondition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/termination.go?s=429:500#L4">NumberOfStepsTerminationCondition</a>
+<a href="#NumberOfStepsTerminationCondition"
+class="permalink">¶</a></h2>
+<p>NumberOfStepsTerminationCondition terminates the process when the
+overall number of steps performed has reached MaxNumberOfSteps.</p>
+<pre><code>type NumberOfStepsTerminationCondition struct {
+    MaxNumberOfSteps int
+}</code></pre>
+<h3 id="NumberOfStepsTerminationCondition.Terminate">func
+(*NumberOfStepsTerminationCondition) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/termination.go?s=502:643#L8">Terminate</a>
+<a href="#NumberOfStepsTerminationCondition.Terminate"
+class="permalink">¶</a></h3>
+<pre><code>func (t *NumberOfStepsTerminationCondition) Terminate(
+    stateHistories []*StateHistory,
+    timestepsHistory *CumulativeTimestepsHistory,
+) bool</code></pre>
+<h2 id="OnlyGivenPartitionsOutputCondition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=7237:7315#L270">OnlyGivenPartitionsOutputCondition</a>
+<a href="#OnlyGivenPartitionsOutputCondition"
+class="permalink">¶</a></h2>
+<p>OnlyGivenPartitionsOutputCondition calls the OutputFunction for only
+the given partition names.</p>
+<pre><code>type OnlyGivenPartitionsOutputCondition struct {
+    Partitions map[string]bool
+}</code></pre>
+<h3 id="OnlyGivenPartitionsOutputCondition.IsOutputStep">func
+(*OnlyGivenPartitionsOutputCondition) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=7317:7453#L274">IsOutputStep</a>
+<a href="#OnlyGivenPartitionsOutputCondition.IsOutputStep"
+class="permalink">¶</a></h3>
+<pre><code>func (o *OnlyGivenPartitionsOutputCondition) IsOutputStep(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+) bool</code></pre>
+<h2 id="OutputCondition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=6170:6291#L222">OutputCondition</a>
+<a href="#OutputCondition" class="permalink">¶</a></h2>
+<p>OutputCondition is the interface that must be implemented to define
+when the simulation calls the OutputFunction.</p>
+<pre><code>type OutputCondition interface {
+    IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
+}</code></pre>
+<h2 id="OutputFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=324:433#L7">OutputFunction</a>
+<a href="#OutputFunction" class="permalink">¶</a></h2>
+<p>OutputFunction is the interface that must be implemented for any
+function which can be used to outputs data from the simulation when the
+provided OutputCondition is met.</p>
+<pre><code>type OutputFunction interface {
+    Output(partitionName string, state []float64, cumulativeTimesteps float64)
+}</code></pre>
+<h2 id="Params">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=117:239#L1">Params</a>
+<a href="#Params" class="permalink">¶</a></h2>
+<p>Params is a type alias for the parameters needed to configure the
+simulation.</p>
+<pre><code>type Params struct {
+    Map map[string][]float64 `yaml:&quot;,inline&quot;`
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewParams">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=2946:2996#L88">NewParams</a>
+<a href="#NewParams" class="permalink">¶</a></h3>
+<pre><code>func NewParams(params map[string][]float64) Params</code></pre>
+<p>NewParams creates a new Params struct.</p>
+<h3 id="Params.Get">func (*Params) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=972:1015#L24">Get</a>
+<a href="#Params.Get" class="permalink">¶</a></h3>
+<pre><code>func (p *Params) Get(name string) []float64</code></pre>
+<p>Get retrieves the desired parameter values given their name, or
+panics giving a useful error message.</p>
+<h3 id="Params.GetCopy">func (*Params) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=1295:1342#L35">GetCopy</a>
+<a href="#Params.GetCopy" class="permalink">¶</a></h3>
+<pre><code>func (p *Params) GetCopy(name string) []float64</code></pre>
+<p>GetCopy retrieves a copy of the desired parameter values given their
+name, or panics giving a useful error message.</p>
+<h3 id="Params.GetCopyOk">func (*Params) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=639:696#L12">GetCopyOk</a>
+<a href="#Params.GetCopyOk" class="permalink">¶</a></h3>
+<pre><code>func (p *Params) GetCopyOk(name string) ([]float64, bool)</code></pre>
+<p>GetCopyOk retrieves a copy of the desired parameter values given
+their name, returning the values and a boolean indicating if the name
+was found.</p>
+<h3 id="Params.GetIndex">func (*Params) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=1726:1783#L49">GetIndex</a>
+<a href="#Params.GetIndex" class="permalink">¶</a></h3>
+<pre><code>func (p *Params) GetIndex(name string, index int) float64</code></pre>
+<p>GetIndex retrieves the desired parameter value given the params name
+and index of the value itself, or panics giving a useful error
+message.</p>
+<h3 id="Params.GetOk">func (*Params) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=379:432#L4">GetOk</a>
+<a href="#Params.GetOk" class="permalink">¶</a></h3>
+<pre><code>func (p *Params) GetOk(name string) ([]float64, bool)</code></pre>
+<p>GetOk retrieves the desired parameter values given their name,
+returning the values and a boolean indicating if the name was found.</p>
+<h3 id="Params.Set">func (*Params) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=2021:2072#L59">Set</a>
+<a href="#Params.Set" class="permalink">¶</a></h3>
+<pre><code>func (p *Params) Set(name string, values []float64)</code></pre>
+<p>Set creates or updates the desired parameter values given their
+name.</p>
+<h3 id="Params.SetIndex">func (*Params) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=2254:2318#L66">SetIndex</a>
+<a href="#Params.SetIndex" class="permalink">¶</a></h3>
+<pre><code>func (p *Params) SetIndex(name string, index int, value float64)</code></pre>
+<p>Set creates or updates the desired parameter value given the params
+name and index of the value itself, or panics giving a useful error
+message.</p>
+<h3 id="Params.SetPartitionName">func (*Params) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/params.go?s=2828:2874#L83">SetPartitionName</a>
+<a href="#Params.SetPartitionName" class="permalink">¶</a></h3>
+<pre><code>func (p *Params) SetPartitionName(name string)</code></pre>
+<p>SetPartitionName sets the partition name that these params are
+associated to, mainly for providing more informative error messages.</p>
+<h2 id="PartitionConfig">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=3106:3736#L69">PartitionConfig</a>
+<a href="#PartitionConfig" class="permalink">¶</a></h2>
+<p>PartitionConfig defines all of the configuration needed in order to
+add a partition to a stochadex simulation. This is mostly yaml-loadable,
+however the Iteration implementation needs to be inserted via
+templating.</p>
+<pre><code>type PartitionConfig struct {
+    Name               string                         `yaml:&quot;name&quot;`
+    Iteration          Iteration                      `yaml:&quot;-&quot;`
+    Params             Params                         `yaml:&quot;params&quot;`
+    ParamsAsPartitions map[string][]string            `yaml:&quot;params_as_partitions,omitempty&quot;`
+    ParamsFromUpstream map[string]NamedUpstreamConfig `yaml:&quot;params_from_upstream,omitempty&quot;`
+    InitStateValues    []float64                      `yaml:&quot;init_state_values&quot;`
+    StateHistoryDepth  int                            `yaml:&quot;state_history_depth&quot;`
+    Seed               uint64                         `yaml:&quot;seed&quot;`
+}</code></pre>
+<h3 id="LoadPartitionConfigFromYaml">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/loaders.go?s=494:556#L16">LoadPartitionConfigFromYaml</a>
+<a href="#LoadPartitionConfigFromYaml" class="permalink">¶</a></h3>
+<pre><code>func LoadPartitionConfigFromYaml(path string) *PartitionConfig</code></pre>
+<p>LoadPartitionConfigFromYaml creates a new PartitionConfig struct from
+a provided yaml path.</p>
+<h3 id="PartitionConfig.Init">func (*PartitionConfig) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=3920:3952#L83">Init</a>
+<a href="#PartitionConfig.Init" class="permalink">¶</a></h3>
+<pre><code>func (p *PartitionConfig) Init()</code></pre>
+<p>Init checks to see if any of the param maps have not been populated
+and instantiates them if not. This is typically used immediately after
+unmarshalling from a yaml config.</p>
+<h2 id="PartitionConfigOrdering">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=5359:5492#L120">PartitionConfigOrdering</a>
+<a href="#PartitionConfigOrdering" class="permalink">¶</a></h2>
+<p>PartitionConfigOrdering is a structure which maintains various
+representations of the order in which partitions will be indexed in the
+simulation. This can be dynamically updated with new partitions using
+the .Append method.</p>
+<pre><code>type PartitionConfigOrdering struct {
+    Names        []string
+    IndexByName  map[string]int
+    ConfigByName map[string]*PartitionConfig
+}</code></pre>
+<h3 id="PartitionConfigOrdering.Append">func (*PartitionConfigOrdering)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=5606:5671#L128">Append</a>
+<a href="#PartitionConfigOrdering.Append" class="permalink">¶</a></h3>
+<pre><code>func (p *PartitionConfigOrdering) Append(config *PartitionConfig)</code></pre>
+<p>Append puts another partition into the specified ordering that it
+will appear in the simulation indexing.</p>
+<h2 id="PartitionCoordinator">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/coordinator.go?s=252:506#L2">PartitionCoordinator</a>
+<a href="#PartitionCoordinator" class="permalink">¶</a></h2>
+<p>PartitionCoordinator coordinates the assignment of iteration work to
+separate StateIterator objects on separate goroutines and when to enact
+these updates on the state history.</p>
+<pre><code>type PartitionCoordinator struct {
+    Iterators            []*StateIterator
+    Shared               *IteratorInputMessage
+    TimestepFunction     TimestepFunction
+    TerminationCondition TerminationCondition
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewPartitionCoordinator">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/coordinator.go?s=3514:3623#L94">NewPartitionCoordinator</a>
+<a href="#NewPartitionCoordinator" class="permalink">¶</a></h3>
+<pre><code>func NewPartitionCoordinator(
+    settings *Settings,
+    implementations *Implementations,
+) *PartitionCoordinator</code></pre>
+<p>NewPartitionCoordinator creates a new PartitionCoordinator given a
+StochadexConfig.</p>
+<h3 id="PartitionCoordinator.ReadyToTerminate">func
+(*PartitionCoordinator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/coordinator.go?s=3014:3068#L75">ReadyToTerminate</a>
+<a href="#PartitionCoordinator.ReadyToTerminate"
+class="permalink">¶</a></h3>
+<pre><code>func (c *PartitionCoordinator) ReadyToTerminate() bool</code></pre>
+<p>ReadyToTerminate returns whether or not the process has met the
+TerminationCondition.</p>
+<h3 id="PartitionCoordinator.RequestMoreIterations">func
+(*PartitionCoordinator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/coordinator.go?s=625:697#L12">RequestMoreIterations</a>
+<a href="#PartitionCoordinator.RequestMoreIterations"
+class="permalink">¶</a></h3>
+<pre><code>func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup)</code></pre>
+<p>RequestMoreIterations spawns a goroutine for each state partition to
+carry out a ReceiveAndIteratePending job.</p>
+<h3 id="PartitionCoordinator.Run">func (*PartitionCoordinator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/coordinator.go?s=3255:3291#L83">Run</a>
+<a href="#PartitionCoordinator.Run" class="permalink">¶</a></h3>
+<pre><code>func (c *PartitionCoordinator) Run()</code></pre>
+<p>Run runs multiple Step calls up until the TerminationCondition has
+been met.</p>
+<h3 id="PartitionCoordinator.Step">func (*PartitionCoordinator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/coordinator.go?s=2429:2484#L58">Step</a>
+<a href="#PartitionCoordinator.Step" class="permalink">¶</a></h3>
+<pre><code>func (c *PartitionCoordinator) Step(wg *sync.WaitGroup)</code></pre>
+<p>Step is the main method call of PartitionCoordinator - call this
+proceeding a new configuration of the latter to run the desired process
+for a single step.</p>
+<h3 id="PartitionCoordinator.UpdateHistory">func (*PartitionCoordinator)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/coordinator.go?s=1297:1361#L30">UpdateHistory</a>
+<a href="#PartitionCoordinator.UpdateHistory"
+class="permalink">¶</a></h3>
+<pre><code>func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup)</code></pre>
+<p>RequestMoreIterations spawns a goroutine for each state partition to
+carry out an UpdateHistory job.</p>
+<h2 id="PartitionState">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=598:1135#L13">PartitionState</a>
+<a href="#PartitionState" class="permalink">¶</a></h2>
+<pre><code>type PartitionState struct {
+    CumulativeTimesteps float64   `protobuf:&quot;fixed64,1,opt,name=cumulative_timesteps,json=cumulativeTimesteps,proto3&quot; json:&quot;cumulative_timesteps,omitempty&quot;`
+    PartitionName       string    `protobuf:&quot;bytes,2,opt,name=partition_name,json=partitionName,proto3&quot; json:&quot;partition_name,omitempty&quot;`
+    State               []float64 `protobuf:&quot;fixed64,3,rep,packed,name=state,proto3&quot; json:&quot;state,omitempty&quot;`
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="PartitionState.Descriptor">func (*PartitionState) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=1899:1950#L51">Descriptor</a>
+<a href="#PartitionState.Descriptor" class="permalink">¶</a></h3>
+<pre><code>func (*PartitionState) Descriptor() ([]byte, []int)</code></pre>
+<p>Deprecated: Use PartitionState.ProtoReflect.Descriptor instead.</p>
+<h3 id="PartitionState.GetCumulativeTimesteps">func (*PartitionState) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=2028:2085#L55">GetCumulativeTimesteps</a>
+<a href="#PartitionState.GetCumulativeTimesteps"
+class="permalink">¶</a></h3>
+<pre><code>func (x *PartitionState) GetCumulativeTimesteps() float64</code></pre>
+<h3 id="PartitionState.GetPartitionName">func (*PartitionState) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=2150:2200#L62">GetPartitionName</a>
+<a href="#PartitionState.GetPartitionName" class="permalink">¶</a></h3>
+<pre><code>func (x *PartitionState) GetPartitionName() string</code></pre>
+<h3 id="PartitionState.GetState">func (*PartitionState) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=2260:2305#L69">GetState</a>
+<a href="#PartitionState.GetState" class="permalink">¶</a></h3>
+<pre><code>func (x *PartitionState) GetState() []float64</code></pre>
+<h3 id="PartitionState.ProtoMessage">func (*PartitionState) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=1460:1497#L36">ProtoMessage</a>
+<a href="#PartitionState.ProtoMessage" class="permalink">¶</a></h3>
+<pre><code>func (*PartitionState) ProtoMessage()</code></pre>
+<h3 id="PartitionState.ProtoReflect">func (*PartitionState) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=1502:1562#L38">ProtoReflect</a>
+<a href="#PartitionState.ProtoReflect" class="permalink">¶</a></h3>
+<pre><code>func (x *PartitionState) ProtoReflect() protoreflect.Message</code></pre>
+<h3 id="PartitionState.Reset">func (*PartitionState) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=1137:1169#L23">Reset</a>
+<a href="#PartitionState.Reset" class="permalink">¶</a></h3>
+<pre><code>func (x *PartitionState) Reset()</code></pre>
+<h3 id="PartitionState.String">func (*PartitionState) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/partition_state.pb.go?s=1375:1415#L32">String</a>
+<a href="#PartitionState.String" class="permalink">¶</a></h3>
+<pre><code>func (x *PartitionState) String() string</code></pre>
+<h2 id="Settings">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=1186:1417#L21">Settings</a>
+<a href="#Settings" class="permalink">¶</a></h2>
+<p>Settings is the yaml-loadable config which defines all of the
+settings that can be set for a simulation defined by the stochadex.</p>
+<pre><code>type Settings struct {
+    Iterations            []IterationSettings `yaml:&quot;iterations&quot;`
+    InitTimeValue         float64             `yaml:&quot;init_time_value&quot;`
+    TimestepsHistoryDepth int                 `yaml:&quot;timesteps_history_depth&quot;`
+}</code></pre>
+<h3 id="LoadSettingsFromYaml">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/loaders.go?s=139:187#L1">LoadSettingsFromYaml</a>
+<a href="#LoadSettingsFromYaml" class="permalink">¶</a></h3>
+<pre><code>func LoadSettingsFromYaml(path string) *Settings</code></pre>
+<p>LoadSettingsFromYaml creates a new Settings struct from a provided
+yaml path.</p>
+<h3 id="Settings.Init">func (*Settings) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=1625:1650#L30">Init</a>
+<a href="#Settings.Init" class="permalink">¶</a></h3>
+<pre><code>func (s *Settings) Init()</code></pre>
+<p>Init checks to see if any of the param maps and iteration names have
+not not been populated and instantiates them if not. This is typically
+used immediately after unmarshalling from a yaml config.</p>
+<h2 id="SimulationConfig">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=4338:4557#L97">SimulationConfig</a>
+<a href="#SimulationConfig" class="permalink">¶</a></h2>
+<p>SimulationConfig defines all of the additional configuration needed
+in order to setup a stochadex simulation run.</p>
+<pre><code>type SimulationConfig struct {
+    OutputCondition      OutputCondition
+    OutputFunction       OutputFunction
+    TerminationCondition TerminationCondition
+    TimestepFunction     TimestepFunction
+    InitTimeValue        float64
+}</code></pre>
+<h2 id="SimulationConfigStrings">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=4800:5123#L109">SimulationConfigStrings</a>
+<a href="#SimulationConfigStrings" class="permalink">¶</a></h2>
+<p>SimulationConfigStrings defines all of the additional configuration
+needed in order to setup a stochadex simulation run. This is the
+yaml-loadable version of the config which includes string type names to
+insert into templating.</p>
+<pre><code>type SimulationConfigStrings struct {
+    OutputCondition      string  `yaml:&quot;output_condition&quot;`
+    OutputFunction       string  `yaml:&quot;output_function&quot;`
+    TerminationCondition string  `yaml:&quot;termination_condition&quot;`
+    TimestepFunction     string  `yaml:&quot;timestep_function&quot;`
+    InitTimeValue        float64 `yaml:&quot;init_time_value&quot;`
+}</code></pre>
+<h3 id="LoadSimulationConfigStringsFromYaml">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/loaders.go?s=878:956#L32">LoadSimulationConfigStringsFromYaml</a>
+<a href="#LoadSimulationConfigStringsFromYaml"
+class="permalink">¶</a></h3>
+<pre><code>func LoadSimulationConfigStringsFromYaml(path string) *SimulationConfigStrings</code></pre>
+<p>LoadSimulationConfigStringsFromYaml creates a new
+SimulationConfigStrings struct from a provided yaml path.</p>
+<h2 id="StateHistory">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/histories.go?s=166:437#L1">StateHistory</a>
+<a href="#StateHistory" class="permalink">¶</a></h2>
+<p>StateHistory represents the information contained within a windowed
+history of []float64 state values.</p>
+<pre><code>type StateHistory struct {
+    // each row is a different state in the history, by convention,
+    // starting with the most recent at index = 0
+    Values *mat.Dense
+    // should be of length = StateWidth
+    NextValues        []float64
+    StateWidth        int
+    StateHistoryDepth int
+}</code></pre>
+<h3 id="StateHistory.CopyStateRow">func (*StateHistory) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/histories.go?s=508:564#L10">CopyStateRow</a>
+<a href="#StateHistory.CopyStateRow" class="permalink">¶</a></h3>
+<pre><code>func (s *StateHistory) CopyStateRow(index int) []float64</code></pre>
+<p>CopyStateRow copies a row from the state history given the index.</p>
+<h3 id="StateHistory.GetNextStateRowToUpdate">func (*StateHistory) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/histories.go?s=852:910#L19">GetNextStateRowToUpdate</a>
+<a href="#StateHistory.GetNextStateRowToUpdate"
+class="permalink">¶</a></h3>
+<pre><code>func (s *StateHistory) GetNextStateRowToUpdate() []float64</code></pre>
+<p>GetNextStateRowToUpdate determines whether or not it is necessary to
+copy the previous row or simply expose it based on whether a history
+longer than 1 is needed.</p>
+<h2 id="StateIterator">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=2484:2702#L64">StateIterator</a>
+<a href="#StateIterator" class="permalink">¶</a></h2>
+<p>StateIterator handles iterations of a given state partition on a
+separate goroutine and reads/writes data from/to the state history.</p>
+<pre><code>type StateIterator struct {
+    Iteration       Iteration
+    Params          Params
+    Partition       NamedPartitionIndex
+    ValueChannels   StateValueChannels
+    OutputCondition OutputCondition
+    OutputFunction  OutputFunction
+}</code></pre>
+<h3 id="NewStateIterator">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=5039:5302#L131">NewStateIterator</a>
+<a href="#NewStateIterator" class="permalink">¶</a></h3>
+<pre><code>func NewStateIterator(
+    iteration Iteration,
+    params Params,
+    partitionName string,
+    partitionIndex int,
+    valueChannels StateValueChannels,
+    outputCondition OutputCondition,
+    outputFunction OutputFunction,
+    initState []float64,
+    initTime float64,
+) *StateIterator</code></pre>
+<p>NewStateIterator creates a new StateIterator, potentially also
+calling the output function if the condition is met by the initial state
+and time.</p>
+<h3 id="StateIterator.Iterate">func (*StateIterator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=2834:2958#L75">Iterate</a>
+<a href="#StateIterator.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (s *StateIterator) Iterate(
+    stateHistories []*StateHistory,
+    timestepsHistory *CumulativeTimestepsHistory,
+) []float64</code></pre>
+<p>Iterate takes the state and timesteps history and outputs an updated
+State struct using an implemented Iteration interface.</p>
+<h3 id="StateIterator.ReceiveAndIteratePending">func (*StateIterator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=3626:3721#L97">ReceiveAndIteratePending</a>
+<a href="#StateIterator.ReceiveAndIteratePending"
+class="permalink">¶</a></h3>
+<pre><code>func (s *StateIterator) ReceiveAndIteratePending(
+    inputChannel &lt;-chan *IteratorInputMessage,
+)</code></pre>
+<p>ReceiveAndIteratePending listens for input messages sent to the input
+channel, runs Iterate when an IteratorInputMessage has been received on
+the provided inputChannel and then updates an internal pending state
+update object.</p>
+<h3 id="StateIterator.UpdateHistory">func (*StateIterator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=4381:4461#L116">UpdateHistory</a>
+<a href="#StateIterator.UpdateHistory" class="permalink">¶</a></h3>
+<pre><code>func (s *StateIterator) UpdateHistory(inputChannel &lt;-chan *IteratorInputMessage)</code></pre>
+<p>UpdateHistory should always follow a call to ReceiveAndIteratePending
+as it enacts the internal pending state update on the StateHistory
+object passed over the provided inputChannel.</p>
+<h2 id="StateTimeStorage">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=298:433#L2">StateTimeStorage</a>
+<a href="#StateTimeStorage" class="permalink">¶</a></h2>
+<p>StateTimeStorage dynamically adapts its structure to support incoming
+time series data from the simulation output in a thread-safe manner.
+This is done in a way to minimise write blocking for better performance
+in a concurrent program.</p>
+<pre><code>type StateTimeStorage struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewStateTimeStorage">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=2939:2983#L93">NewStateTimeStorage</a>
+<a href="#NewStateTimeStorage" class="permalink">¶</a></h3>
+<pre><code>func NewStateTimeStorage() *StateTimeStorage</code></pre>
+<p>NewStateTimeStorage creates a new StateTimeStorage.</p>
+<h3 id="StateTimeStorage.ConcurrentAppend">func (*StateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=2108:2202#L62">ConcurrentAppend</a>
+<a href="#StateTimeStorage.ConcurrentAppend"
+class="permalink">¶</a></h3>
+<pre><code>func (s *StateTimeStorage) ConcurrentAppend(
+    name string,
+    time float64,
+    values []float64,
+)</code></pre>
+<p>ConcurrentAppend adds another set of values to the time series data
+keyed by the provided name. This method also handles dynamic extension
+of the size of the store in response to the inputs, and can safely
+handle concurrent calls within the same program.</p>
+<h3 id="StateTimeStorage.GetIndex">func (*StateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=566:618#L11">GetIndex</a>
+<a href="#StateTimeStorage.GetIndex" class="permalink">¶</a></h3>
+<pre><code>func (s *StateTimeStorage) GetIndex(name string) int</code></pre>
+<p>GetIndex retrieves the index for provided a key name. This will make
+a new index if the name doesn't yet exist in the store.</p>
+<h3 id="StateTimeStorage.GetNames">func (*StateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=900:946#L23">GetNames</a>
+<a href="#StateTimeStorage.GetNames" class="permalink">¶</a></h3>
+<pre><code>func (s *StateTimeStorage) GetNames() []string</code></pre>
+<p>GetNames retrieves all the names in the store to key each time
+series.</p>
+<h3 id="StateTimeStorage.GetTimes">func (*StateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=1659:1706#L49">GetTimes</a>
+<a href="#StateTimeStorage.GetTimes" class="permalink">¶</a></h3>
+<pre><code>func (s *StateTimeStorage) GetTimes() []float64</code></pre>
+<p>GetTimes retrieves all the time values.</p>
+<h3 id="StateTimeStorage.GetValues">func (*StateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=1197:1258#L33">GetValues</a>
+<a href="#StateTimeStorage.GetValues" class="permalink">¶</a></h3>
+<pre><code>func (s *StateTimeStorage) GetValues(name string) [][]float64</code></pre>
+<p>GetValues retrieves all the time series values keyed by the name.
+This method will panic if the name doesn't exist in the store.</p>
+<h3 id="StateTimeStorage.SetTimes">func (*StateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=1766:1818#L54">SetTimes</a>
+<a href="#StateTimeStorage.SetTimes" class="permalink">¶</a></h3>
+<pre><code>func (s *StateTimeStorage) SetTimes(times []float64)</code></pre>
+<p>SetTimes sets all the time values.</p>
+<h3 id="StateTimeStorage.SetValues">func (*StateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/storage.go?s=1505:1574#L44">SetValues</a>
+<a href="#StateTimeStorage.SetValues" class="permalink">¶</a></h3>
+<pre><code>func (s *StateTimeStorage) SetValues(name string, values [][]float64)</code></pre>
+<p>SetValues sets all the time series values keyed by the name.</p>
+<h2 id="StateTimeStorageOutputFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=1063:1134#L35">StateTimeStorageOutputFunction</a>
+<a href="#StateTimeStorageOutputFunction" class="permalink">¶</a></h2>
+<p>StateTimeStorageOutputFunction stores the data from the simulation in
+the provided StateTimeStorage on the steps when the OutputCondition is
+met.</p>
+<pre><code>type StateTimeStorageOutputFunction struct {
+    Store *StateTimeStorage
+}</code></pre>
+<h3 id="StateTimeStorageOutputFunction.Output">func
+(*StateTimeStorageOutputFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=1136:1257#L39">Output</a>
+<a href="#StateTimeStorageOutputFunction.Output"
+class="permalink">¶</a></h3>
+<pre><code>func (f *StateTimeStorageOutputFunction) Output(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+)</code></pre>
+<h2 id="StateValueChannels">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=1230:1343#L25">StateValueChannels</a>
+<a href="#StateValueChannels" class="permalink">¶</a></h2>
+<p>StateValueChannels defines the methods by which separate
+StateIterators can communicate with each other by sending the values of
+upstream iterators to downstream parameters via channels.</p>
+<pre><code>type StateValueChannels struct {
+    Upstreams  map[string]*UpstreamStateValues
+    Downstream *DownstreamStateValues
+}</code></pre>
+<h3 id="StateValueChannels.BroadcastDownstream">func
+(*StateValueChannels) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=2007:2078#L49">BroadcastDownstream</a>
+<a href="#StateValueChannels.BroadcastDownstream"
+class="permalink">¶</a></h3>
+<pre><code>func (s *StateValueChannels) BroadcastDownstream(stateValues []float64)</code></pre>
+<p>BroadcastDownstream broadcasts the computationally-upstream state
+values to its configured number of downstreams on the relevant
+channel.</p>
+<h3 id="StateValueChannels.UpdateUpstreamParams">func
+(*StateValueChannels) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=1486:1551#L32">UpdateUpstreamParams</a>
+<a href="#StateValueChannels.UpdateUpstreamParams"
+class="permalink">¶</a></h3>
+<pre><code>func (s *StateValueChannels) UpdateUpstreamParams(params *Params)</code></pre>
+<p>UpdateUpstreamParams updates the provided params with the state
+values which have been provided computationally upstream via
+channels.</p>
+<h2 id="StdoutOutputFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=699:733#L22">StdoutOutputFunction</a>
+<a href="#StdoutOutputFunction" class="permalink">¶</a></h2>
+<p>StdoutOutputFunction outputs the state to the terminal.</p>
+<pre><code>type StdoutOutputFunction struct{}</code></pre>
+<h3 id="StdoutOutputFunction.Output">func (*StdoutOutputFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=735:846#L24">Output</a>
+<a href="#StdoutOutputFunction.Output" class="permalink">¶</a></h3>
+<pre><code>func (s *StdoutOutputFunction) Output(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+)</code></pre>
+<h2 id="TerminationCondition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/termination.go?s=150:291#L1">TerminationCondition</a>
+<a href="#TerminationCondition" class="permalink">¶</a></h2>
+<p>TerminationCondition is the interface that must be implemented in
+order to create a new condition for ending the simulation.</p>
+<pre><code>type TerminationCondition interface {
+    Terminate(
+        stateHistories []*StateHistory,
+        timestepsHistory *CumulativeTimestepsHistory,
+    ) bool
+}</code></pre>
+<h2 id="TimeElapsedTerminationCondition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/termination.go?s=833:904#L17">TimeElapsedTerminationCondition</a>
+<a href="#TimeElapsedTerminationCondition" class="permalink">¶</a></h2>
+<p>TimeElapsedTerminationCondition terminates the process when the
+overall time elapsed has reached MaxTimeElapsed.</p>
+<pre><code>type TimeElapsedTerminationCondition struct {
+    MaxTimeElapsed float64
+}</code></pre>
+<h3 id="TimeElapsedTerminationCondition.Terminate">func
+(*TimeElapsedTerminationCondition) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/termination.go?s=906:1045#L21">Terminate</a>
+<a href="#TimeElapsedTerminationCondition.Terminate"
+class="permalink">¶</a></h3>
+<pre><code>func (t *TimeElapsedTerminationCondition) Terminate(
+    stateHistories []*StateHistory,
+    timestepsHistory *CumulativeTimestepsHistory,
+) bool</code></pre>
+<h2 id="TimestepFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/timesteps.go?s=237:347#L1">TimestepFunction</a>
+<a href="#TimestepFunction" class="permalink">¶</a></h2>
+<p>TimestepFunction is the interface that must be implemented for a
+function which evaluates the next increment to the time variable of the
+simulation.</p>
+<pre><code>type TimestepFunction interface {
+    NextIncrement(
+        timestepsHistory *CumulativeTimestepsHistory,
+    ) float64
+}</code></pre>
+<h2 id="UpstreamConfig">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/configs.go?s=202:309#L1">UpstreamConfig</a>
+<a href="#UpstreamConfig" class="permalink">¶</a></h2>
+<p>UpstreamConfig is the yaml-loadable representation of a slice of data
+from the output of a partitiion which is computationally upstream.</p>
+<pre><code>type UpstreamConfig struct {
+    Upstream int   `yaml:&quot;upstream&quot;`
+    Indices  []int `yaml:&quot;indices,omitempty&quot;`
+}</code></pre>
+<h2 id="UpstreamStateValues">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/iterator.go?s=754:828#L10">UpstreamStateValues</a>
+<a href="#UpstreamStateValues" class="permalink">¶</a></h2>
+<p>UpstreamStateValues contains the information needed to receive state
+values from a computationally-upstream StateIterator.</p>
+<pre><code>type UpstreamStateValues struct {
+    Channel chan []float64
+    Indices []int
+}</code></pre>
+<h2 id="WebsocketOutputFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=4696:4787#L169">WebsocketOutputFunction</a>
+<a href="#WebsocketOutputFunction" class="permalink">¶</a></h2>
+<p>WebsocketOutputFunction serialises the state of each partition of the
+simulation and sends this data via a websocket connection on the steps
+when the OutputCondition is met.</p>
+<pre><code>type WebsocketOutputFunction struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewWebsocketOutputFunction">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=5865:5973#L213">NewWebsocketOutputFunction</a>
+<a href="#NewWebsocketOutputFunction" class="permalink">¶</a></h3>
+<pre><code>func NewWebsocketOutputFunction(
+    connection *websocket.Conn,
+    mutex *sync.Mutex,
+) *WebsocketOutputFunction</code></pre>
+<p>NewWebsocketOutputFunction creates a new WebsocketOutputFunction
+given a connection struct and mutex to protect concurrent writes to the
+connection.</p>
+<h3 id="WebsocketOutputFunction.Output">func (*WebsocketOutputFunction)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/simulator/output.go?s=4789:4903#L174">Output</a>
+<a href="#WebsocketOutputFunction.Output" class="permalink">¶</a></h3>
+<pre><code>func (w *WebsocketOutputFunction) Output(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+)</code></pre>
+<div id="footer">
+Build version go1.22.2.<br />
+Except as <a
+href="https://developers.google.com/site-policies#restrictions">noted</a>,
+the content of this page is licensed under the Creative Commons
+Attribution 3.0 License, and code is licensed under a <a
+href="/LICENSE">BSD license</a>.<br />
+<a href="https://golang.org/doc/tos.html">Terms of Service</a> | <a
+href="https://www.google.com/intl/en/policies/privacy/">Privacy
+Policy</a>
+</div>
+</section>
+</div>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</article>
+</html>

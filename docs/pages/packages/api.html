@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <style>
+    .body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+      color: #1F2328;
+      background-color: #ffff;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+      line-height: 1.5;
+      word-wrap: break-word;
+      text-align: justify;
+    }
+
+    .body h1 {
+      margin: 0;
+      font-size: 200%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body h2, h3, h4, h5 {
+      margin: 0;
+      font-size: 150%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body strong {
+      color: rgb(42, 65, 83);
+    }
+
+    .body a {
+      color: #0969da;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .body a:hover {
+      color: LightGrey;
+    }
+
+    pre {
+      padding: .5em 1em;
+      font-size: 95%;
+      color: #F5F5F5;
+      background-color: rgb(42, 65, 83);
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    code {
+      display: block;
+    }
+
+    .centered {
+      text-align: center;
+    }
+
+    img:not(.no-center), 
+    svg:not(.no-center) {
+      display: block;
+      margin: 1em auto;
+      max-width: 100%;
+      height: auto;
+    }
+
+    img.no-center, 
+    svg.no-center {
+      display: inline;
+      margin: 0;
+    }
+
+    .otherimgs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .otherimgs img {
+      display: inline-block;
+      height: auto;
+      margin: 0;
+    }
+
+    .articleHeader {
+      padding: .2em .4em;
+      margin: 1em;
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+      text-align: justify;
+    }
+
+    a.articleTitle h1 {
+      text-align: left;
+      color: rgb(79, 97, 114);
+      text-align: left;
+    }
+
+    a.articleTitle h1:hover {
+      color: LightGrey;
+    }
+
+    .articleHeader strong {
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    .body .navbar {
+      padding:8px 16px;
+      float:right;
+      width:auto;
+      border:none;
+      display:block;
+      outline:0;
+      color: LightGrey;
+    }
+
+    .logofavicon {
+      vertical-align: middle;
+    }
+
+    .body .repotitle {
+      float: left;
+      text-align: left;
+    }
+
+    strong.nameRepo {
+      color: rgb(42, 65, 83);
+    }
+
+    .body .navbar:hover {
+      color: rgb(42, 65, 83);
+    }
+
+    .csl-entry {
+      display: flex;
+      margin-top: 15px;
+    }
+
+    #references {
+      margin-bottom: 0.5em;
+    }
+
+    .csl-left-margin {
+      margin-right: 10px;
+    }
+
+    .custom-spacer {
+      display: block;
+      height: 1em;
+    }
+
+    @media (max-width: 767px) {
+      .body {
+        padding: 15px;
+      }
+      p {
+        overflow-x: auto;
+      }
+      p span.math.display {
+        display: inline-block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+  </style>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<article class="body">
+<a class="navbar" href="https://umbralcalc.github.io/stochadex">
+Home
+</a>
+<a class="navbar" href="https://github.com/umbralcalc">
+About
+</a>
+</br>
+</br>
+</br>
+using module mode; GOMOD=/home/robert/Code/stochadex/go.mod
+<div id="lowframe"
+style="position: fixed; bottom: 0; left: 0; height: 0; width: 100%; border-top: thin solid grey; background-color: white; overflow: auto;">
+...
+</div>
+<div id="topbar" class="wide">
+<div class="container">
+<div id="heading-wide" class="top-heading">
+<a href="/pkg/">Go Documentation Server</a>
+</div>
+<div id="heading-narrow" class="top-heading">
+<a href="/pkg/">GoDoc</a>
+</div>
+<a href="#" id="menu-button"><span id="menu-button-arrow">▽</span></a>
+<div id="menu">
+<span><img
+src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdib3g9IjAgMCAyNCAyNCI+PHRpdGxlPnN1Ym1pdCBzZWFyY2g8L3RpdGxlPjxwYXRoIGQ9Ik0xNS41IDE0aC0uNzlsLS4yOC0uMjdDMTUuNDEgMTIuNTkgMTYgMTEuMTEgMTYgOS41IDE2IDUuOTEgMTMuMDkgMyA5LjUgM1MzIDUuOTEgMyA5LjUgNS45MSAxNiA5LjUgMTZjMS42MSAwIDMuMDktLjU5IDQuMjMtMS41N2wuMjcuMjh2Ljc5bDUgNC45OUwyMC40OSAxOWwtNC45OS01em0tNiAwQzcuMDEgMTQgNSAxMS45OSA1IDkuNVM3LjAxIDUgOS41IDUgMTQgNy4wMSAxNCA5LjUgMTEuOTkgMTQgOS41IDE0eiI+PC9wYXRoPjxwYXRoIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiPjwvcGF0aD48L3N2Zz4=" /></span>
+</div>
+</div>
+</div>
+<div id="page" class="wide">
+<section id="package-api" class="container">
+<h1>Package api <span class="text-muted"></span></h1>
+<div id="nav">
+
+</div>
+<div id="short-nav">
+<code>import "github.com/umbralcalc/stochadex/pkg/api"</code>
+<a href="#pkg-overview" class="overviewLink">Overview</a>
+<a href="#pkg-index" class="indexLink">Index</a>
+</div>
+<div id="pkg-overview" class="toggleVisible">
+<section id="overview" class="toggleButton collapsed"
+title="Click to show Overview section">
+<h2 class="toggleButton" title="Click to show Overview section">Overview
+▹</h2>
+</section>
+<section id="overview-1" class="toggleButton expanded"
+title="Click to hide Overview section">
+<h2 class="toggleButton" title="Click to hide Overview section">Overview
+▾</h2>
+</section>
+</div>
+<div id="pkg-index" class="toggleVisible">
+<section id="index" class="toggleButton collapsed"
+title="Click to show Index section">
+<h2 class="toggleButton" title="Click to show Index section">Index
+▹</h2>
+</section>
+<section id="index-1" class="toggleButton expanded"
+title="Click to hide Index section">
+<h2 class="toggleButton" title="Click to hide Index section">Index
+▾</h2>
+<div id="manual-nav">
+<a href="#pkg-variables">Variables</a>
+<a href="#Run">func Run(config *ApiRunConfig, socket *SocketConfig)</a>
+<a href="#RunWithParsedArgs">func RunWithParsedArgs(args ParsedArgs)</a>
+<a href="#StepAndServeWebsocket">func StepAndServeWebsocket(generator
+*simulator.ConfigGenerator, stepDelay time.Duration, handle string,
+address string)</a>
+<a href="#WriteMainProgram">func WriteMainProgram(args ParsedArgs)
+string</a>
+<a href="#ApiRunConfig">type ApiRunConfig</a>
+    <a href="#LoadApiRunConfigFromYaml">func
+LoadApiRunConfigFromYaml(path string) *ApiRunConfig</a>
+    <a href="#ApiRunConfig.GetConfigGenerator">func (a *ApiRunConfig)
+GetConfigGenerator() *simulator.ConfigGenerator</a>
+<a href="#ApiRunConfigStrings">type ApiRunConfigStrings</a>
+    <a href="#LoadApiRunConfigStringsFromYaml">func
+LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings</a>
+<a href="#EmbeddedRunConfig">type EmbeddedRunConfig</a>
+<a href="#EmbeddedRunConfigStrings">type EmbeddedRunConfigStrings</a>
+<a href="#ParsedArgs">type ParsedArgs</a>
+    <a href="#ArgParse">func ArgParse() ParsedArgs</a>
+<a href="#PartitionConfigStrings">type PartitionConfigStrings</a>
+<a href="#RunConfig">type RunConfig</a>
+    <a href="#RunConfig.GetConfigGenerator">func (r *RunConfig)
+GetConfigGenerator() *simulator.ConfigGenerator</a>
+<a href="#RunConfigStrings">type RunConfigStrings</a>
+<a href="#SocketConfig">type SocketConfig</a>
+    <a href="#LoadSocketConfigFromYaml">func
+LoadSocketConfigFromYaml(path string) *SocketConfig</a>
+    <a href="#SocketConfig.Active">func (s *SocketConfig) Active()
+bool</a>
+</div>
+<h3 id="package-files">Package files</h3>
+<p><span style="font-size:90%"> <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/parsing.go">parsing.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go">program.go</a>
+<a href="/src/github.com/umbralcalc/stochadex/pkg/api/run.go">run.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/socket.go">socket.go</a>
+</span></p>
+</section>
+</div>
+<h2 id="pkg-variables">Variables</h2>
+<p>ApiCodeTemplate is a string representing the template for the API run
+code.</p>
+<pre><code>var ApiCodeTemplate = `package main
+
+import (
+    &quot;github.com/umbralcalc/stochadex/pkg/api&quot;
+    &quot;github.com/umbralcalc/stochadex/pkg/simulator&quot;
+    {{.ExtraPackages}}
+)
+
+func main() {
+    config := api.LoadApiRunConfigFromYaml(&quot;{{.ConfigFile}}&quot;)
+    socket := api.LoadSocketConfigFromYaml(&quot;{{.SocketFile}}&quot;)
+    {{.ExtraVars}}
+    {{.ExtraCode}}
+    api.Run(config, socket)
+}`</code></pre>
+<h2 id="Run">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/run.go?s=1360:1412#L48">Run</a>
+<a href="#Run" class="permalink">¶</a></h2>
+<pre><code>func Run(config *ApiRunConfig, socket *SocketConfig)</code></pre>
+<p>Run the the main run routine for the API.</p>
+<h2 id="RunWithParsedArgs">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/run.go?s=1865:1904#L68">RunWithParsedArgs</a>
+<a href="#RunWithParsedArgs" class="permalink">¶</a></h2>
+<pre><code>func RunWithParsedArgs(args ParsedArgs)</code></pre>
+<p>RunWithParsedArgs takes in the outputs from ArgParse and runs the
+stochadex with these configurations.</p>
+<h2 id="StepAndServeWebsocket">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/run.go?s=275:402#L7">StepAndServeWebsocket</a>
+<a href="#StepAndServeWebsocket" class="permalink">¶</a></h2>
+<pre><code>func StepAndServeWebsocket(
+    generator *simulator.ConfigGenerator,
+    stepDelay time.Duration,
+    handle string,
+    address string,
+)</code></pre>
+<p>StepAndServeWebsocket runs a simulation while serving a websocket
+with the simulator.WebsocketOutputFunction.</p>
+<h2 id="WriteMainProgram">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=8961:9006#L276">WriteMainProgram</a>
+<a href="#WriteMainProgram" class="permalink">¶</a></h2>
+<pre><code>func WriteMainProgram(args ParsedArgs) string</code></pre>
+<p>WriteMainProgram writes string representations of various types of
+data to a template /tmp/*main.go file ready for runtime execution in
+this *main.go.</p>
+<h2 id="ApiRunConfig">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=2207:2337#L54">ApiRunConfig</a>
+<a href="#ApiRunConfig" class="permalink">¶</a></h2>
+<p>ApiRunConfig is the yaml-loadable config which specifies the loadable
+config data within the generated code for an API run.</p>
+<pre><code>type ApiRunConfig struct {
+    Main     RunConfig           `yaml:&quot;main&quot;`
+    Embedded []EmbeddedRunConfig `yaml:&quot;embedded,omitempty&quot;`
+}</code></pre>
+<h3 id="LoadApiRunConfigFromYaml">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=3113:3169#L77">LoadApiRunConfigFromYaml</a>
+<a href="#LoadApiRunConfigFromYaml" class="permalink">¶</a></h3>
+<pre><code>func LoadApiRunConfigFromYaml(path string) *ApiRunConfig</code></pre>
+<p>LoadApiRunConfigFromYaml creates a new ApiRunConfig from a provided
+yaml path.</p>
+<h3 id="ApiRunConfig.GetConfigGenerator">func (*ApiRunConfig) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=2617:2687#L63">GetConfigGenerator</a>
+<a href="#ApiRunConfig.GetConfigGenerator" class="permalink">¶</a></h3>
+<pre><code>func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator</code></pre>
+<p>GetConfigGenerator returns a config generator which has been
+configured to produce the settings and implementations based on the
+configured fields of the main RunConfig. This method also takes into
+account the mappings of embedded simulation runs into the main run.</p>
+<h2 id="ApiRunConfigStrings">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=3693:3844#L100">ApiRunConfigStrings</a>
+<a href="#ApiRunConfigStrings" class="permalink">¶</a></h2>
+<p>ApiRunConfigStrings is the yaml-loadable config which specifies the
+templating inputs for an API run.</p>
+<pre><code>type ApiRunConfigStrings struct {
+    Main     RunConfigStrings           `yaml:&quot;main&quot;`
+    Embedded []EmbeddedRunConfigStrings `yaml:&quot;embedded,omitempty&quot;`
+}</code></pre>
+<h3 id="LoadApiRunConfigStringsFromYaml">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=4529:4599#L126">LoadApiRunConfigStringsFromYaml</a>
+<a href="#LoadApiRunConfigStringsFromYaml" class="permalink">¶</a></h3>
+<pre><code>func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings</code></pre>
+<p>LoadApiRunConfigStringsFromYaml creates a new ApiRunConfigStrings
+from a provided yaml path.</p>
+<h2 id="EmbeddedRunConfig">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=1422:1518#L33">EmbeddedRunConfig</a>
+<a href="#EmbeddedRunConfig" class="permalink">¶</a></h2>
+<p>EmbeddedRunConfig is the yaml-loadable config which consists of all
+the necessary config data for an embedded simulation run.</p>
+<pre><code>type EmbeddedRunConfig struct {
+    Name string    `yaml:&quot;name&quot;`
+    Run  RunConfig `yaml:&quot;,inline&quot;`
+}</code></pre>
+<h2 id="EmbeddedRunConfigStrings">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=1958:2075#L47">EmbeddedRunConfigStrings</a>
+<a href="#EmbeddedRunConfigStrings" class="permalink">¶</a></h2>
+<p>EmbeddedRunConfigStrings is the yaml-loadable config which consists
+of all the necessary templating inputs for an embedded simulation
+run.</p>
+<pre><code>type EmbeddedRunConfigStrings struct {
+    Name string           `yaml:&quot;name&quot;`
+    Run  RunConfigStrings `yaml:&quot;,inline&quot;`
+}</code></pre>
+<h2 id="ParsedArgs">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/parsing.go?s=185:291#L2">ParsedArgs</a>
+<a href="#ParsedArgs" class="permalink">¶</a></h2>
+<p>ParsedArgs contains the information that needs to pass from the CLI
+to the runner in order to run the API.</p>
+<pre><code>type ParsedArgs struct {
+    ConfigStrings *ApiRunConfigStrings
+    ConfigFile    string
+    SocketFile    string
+}</code></pre>
+<h3 id="ArgParse">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/parsing.go?s=397:423#L10">ArgParse</a>
+<a href="#ArgParse" class="permalink">¶</a></h3>
+<pre><code>func ArgParse() ParsedArgs</code></pre>
+<p>ArgParse builds the configs parsed as args to the stochadex binary
+and also retrieves other args.</p>
+<h2 id="PartitionConfigStrings">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=319:604#L5">PartitionConfigStrings</a>
+<a href="#PartitionConfigStrings" class="permalink">¶</a></h2>
+<p>PartitionConfigStrings holds the string Iteration implementations and
+the potential to define extra packages and variables in
+configuration.</p>
+<pre><code>type PartitionConfigStrings struct {
+    Name          string              `yaml:&quot;name&quot;`
+    Iteration     string              `yaml:&quot;iteration,omitempty&quot;`
+    ExtraPackages []string            `yaml:&quot;extra_packages,omitempty&quot;`
+    ExtraVars     []map[string]string `yaml:&quot;extra_vars,omitempty&quot;`
+}</code></pre>
+<h2 id="RunConfig">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=720:856#L14">RunConfig</a>
+<a href="#RunConfig" class="permalink">¶</a></h2>
+<p>RunConfig is the yaml-loadable config which consists of all the
+necessary config data for a simulation run.</p>
+<pre><code>type RunConfig struct {
+    Partitions []simulator.PartitionConfig `yaml:&quot;partitions&quot;`
+    Simulation simulator.SimulationConfig  `yaml:&quot;-&quot;`
+}</code></pre>
+<h3 id="RunConfig.GetConfigGenerator">func (*RunConfig) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=1032:1099#L22">GetConfigGenerator</a>
+<a href="#RunConfig.GetConfigGenerator" class="permalink">¶</a></h3>
+<pre><code>func (r *RunConfig) GetConfigGenerator() *simulator.ConfigGenerator</code></pre>
+<p>GetConfigGenerator returns a config generator which has been
+configured to produce the settings and implementations based on the
+configured fields of the RunConfig.</p>
+<h2 id="RunConfigStrings">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/program.go?s=1647:1811#L40">RunConfigStrings</a>
+<a href="#RunConfigStrings" class="permalink">¶</a></h2>
+<p>RunConfigStrings is the yaml-loadable config which consists of all
+the necessary templating inputs for a simulation run.</p>
+<pre><code>type RunConfigStrings struct {
+    Partitions []PartitionConfigStrings          `yaml:&quot;partitions&quot;`
+    Simulation simulator.SimulationConfigStrings `yaml:&quot;simulation&quot;`
+}</code></pre>
+<h2 id="SocketConfig">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/socket.go?s=162:325#L2">SocketConfig</a>
+<a href="#SocketConfig" class="permalink">¶</a></h2>
+<p>SocketConfig is a yaml-loadable config for the real-time websocket
+connection to the simulation.</p>
+<pre><code>type SocketConfig struct {
+    Address          string `yaml:&quot;address&quot;`
+    Handle           string `yaml:&quot;handle&quot;`
+    MillisecondDelay uint64 `yaml:&quot;millisecond_delay&quot;`
+}</code></pre>
+<h3 id="LoadSocketConfigFromYaml">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/socket.go?s=627:683#L16">LoadSocketConfigFromYaml</a>
+<a href="#LoadSocketConfigFromYaml" class="permalink">¶</a></h3>
+<pre><code>func LoadSocketConfigFromYaml(path string) *SocketConfig</code></pre>
+<p>LoadSocketConfigFromYaml creates a new SocketConfig from a provided
+yaml path. If the path is an empty string this outputs a SocketConfig
+with empty fields.</p>
+<h3 id="SocketConfig.Active">func (*SocketConfig) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/api/socket.go?s=395:431#L9">Active</a>
+<a href="#SocketConfig.Active" class="permalink">¶</a></h3>
+<pre><code>func (s *SocketConfig) Active() bool</code></pre>
+<p>Active determines whether or not the websocket should be active.</p>
+<div id="footer">
+Build version go1.22.2.<br />
+Except as <a
+href="https://developers.google.com/site-policies#restrictions">noted</a>,
+the content of this page is licensed under the Creative Commons
+Attribution 3.0 License, and code is licensed under a <a
+href="/LICENSE">BSD license</a>.<br />
+<a href="https://golang.org/doc/tos.html">Terms of Service</a> | <a
+href="https://www.google.com/intl/en/policies/privacy/">Privacy
+Policy</a>
+</div>
+</section>
+</div>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</article>
+</html>

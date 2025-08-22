@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <style>
+    .body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+      color: #1F2328;
+      background-color: #ffff;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+      line-height: 1.5;
+      word-wrap: break-word;
+      text-align: justify;
+    }
+
+    .body h1 {
+      margin: 0;
+      font-size: 200%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body h2, h3, h4, h5 {
+      margin: 0;
+      font-size: 150%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body strong {
+      color: rgb(42, 65, 83);
+    }
+
+    .body a {
+      color: #0969da;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .body a:hover {
+      color: LightGrey;
+    }
+
+    pre {
+      padding: .5em 1em;
+      font-size: 95%;
+      color: #F5F5F5;
+      background-color: rgb(42, 65, 83);
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    code {
+      display: block;
+    }
+
+    .centered {
+      text-align: center;
+    }
+
+    img:not(.no-center), 
+    svg:not(.no-center) {
+      display: block;
+      margin: 1em auto;
+      max-width: 100%;
+      height: auto;
+    }
+
+    img.no-center, 
+    svg.no-center {
+      display: inline;
+      margin: 0;
+    }
+
+    .otherimgs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .otherimgs img {
+      display: inline-block;
+      height: auto;
+      margin: 0;
+    }
+
+    .articleHeader {
+      padding: .2em .4em;
+      margin: 1em;
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+      text-align: justify;
+    }
+
+    a.articleTitle h1 {
+      text-align: left;
+      color: rgb(79, 97, 114);
+      text-align: left;
+    }
+
+    a.articleTitle h1:hover {
+      color: LightGrey;
+    }
+
+    .articleHeader strong {
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    .body .navbar {
+      padding:8px 16px;
+      float:right;
+      width:auto;
+      border:none;
+      display:block;
+      outline:0;
+      color: LightGrey;
+    }
+
+    .logofavicon {
+      vertical-align: middle;
+    }
+
+    .body .repotitle {
+      float: left;
+      text-align: left;
+    }
+
+    strong.nameRepo {
+      color: rgb(42, 65, 83);
+    }
+
+    .body .navbar:hover {
+      color: rgb(42, 65, 83);
+    }
+
+    .csl-entry {
+      display: flex;
+      margin-top: 15px;
+    }
+
+    #references {
+      margin-bottom: 0.5em;
+    }
+
+    .csl-left-margin {
+      margin-right: 10px;
+    }
+
+    .custom-spacer {
+      display: block;
+      height: 1em;
+    }
+
+    @media (max-width: 767px) {
+      .body {
+        padding: 15px;
+      }
+      p {
+        overflow-x: auto;
+      }
+      p span.math.display {
+        display: inline-block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+  </style>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<article class="body">
+<a class="navbar" href="https://umbralcalc.github.io/stochadex">
+Home
+</a>
+<a class="navbar" href="https://github.com/umbralcalc">
+About
+</a>
+</br>
+</br>
+</br>
+using module mode; GOMOD=/home/robert/Code/stochadex/go.mod
+<div id="lowframe"
+style="position: fixed; bottom: 0; left: 0; height: 0; width: 100%; border-top: thin solid grey; background-color: white; overflow: auto;">
+...
+</div>
+<div id="topbar" class="wide">
+<div class="container">
+<div id="heading-wide" class="top-heading">
+<a href="/pkg/">Go Documentation Server</a>
+</div>
+<div id="heading-narrow" class="top-heading">
+<a href="/pkg/">GoDoc</a>
+</div>
+<a href="#" id="menu-button"><span id="menu-button-arrow">▽</span></a>
+<div id="menu">
+<span><img
+src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdib3g9IjAgMCAyNCAyNCI+PHRpdGxlPnN1Ym1pdCBzZWFyY2g8L3RpdGxlPjxwYXRoIGQ9Ik0xNS41IDE0aC0uNzlsLS4yOC0uMjdDMTUuNDEgMTIuNTkgMTYgMTEuMTEgMTYgOS41IDE2IDUuOTEgMTMuMDkgMyA5LjUgM1MzIDUuOTEgMyA5LjUgNS45MSAxNiA5LjUgMTZjMS42MSAwIDMuMDktLjU5IDQuMjMtMS41N2wuMjcuMjh2Ljc5bDUgNC45OUwyMC40OSAxOWwtNC45OS01em0tNiAwQzcuMDEgMTQgNSAxMS45OSA1IDkuNVM3LjAxIDUgOS41IDUgMTQgNy4wMSAxNCA5LjUgMTEuOTkgMTQgOS41IDE0eiI+PC9wYXRoPjxwYXRoIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiPjwvcGF0aD48L3N2Zz4=" /></span>
+</div>
+</div>
+</div>
+<div id="page" class="wide">
+<section id="package-analysis" class="container">
+<h1>Package analysis <span class="text-muted"></span></h1>
+<div id="nav">
+
+</div>
+<div id="short-nav">
+<code>import "github.com/umbralcalc/stochadex/pkg/analysis"</code>
+<a href="#pkg-overview" class="overviewLink">Overview</a>
+<a href="#pkg-index" class="indexLink">Index</a>
+</div>
+<div id="pkg-overview" class="toggleVisible">
+<section id="overview" class="toggleButton collapsed"
+title="Click to show Overview section">
+<h2 class="toggleButton" title="Click to show Overview section">Overview
+▹</h2>
+</section>
+<section id="overview-1" class="toggleButton expanded"
+title="Click to hide Overview section">
+<h2 class="toggleButton" title="Click to hide Overview section">Overview
+▾</h2>
+</section>
+</div>
+<div id="pkg-index" class="toggleVisible">
+<section id="index" class="toggleButton collapsed"
+title="Click to show Index section">
+<h2 class="toggleButton" title="Click to show Index section">Index
+▹</h2>
+</section>
+<section id="index-1" class="toggleButton expanded"
+title="Click to hide Index section">
+<h2 class="toggleButton" title="Click to hide Index section">Index
+▾</h2>
+<div id="manual-nav">
+<a href="#AddPartitionsToStateTimeStorage">func
+AddPartitionsToStateTimeStorage(storage *simulator.StateTimeStorage,
+partitions []*simulator.PartitionConfig, windowSizeByPartition
+map[string]int) *simulator.StateTimeStorage</a>
+<a href="#GetDataFrameFromPartition">func
+GetDataFrameFromPartition(storage *simulator.StateTimeStorage,
+partitionName string) dataframe.DataFrame</a>
+<a href="#NewGroupedAggregationPartition">func
+NewGroupedAggregationPartition(aggregation func(defaultValues []float64,
+outputIndexByGroup map[string]int, groupings map[string][]float64,
+weightings map[string][]float64) []float64, applied AppliedAggregation,
+storage *GroupedStateTimeStorage) *simulator.PartitionConfig</a>
+<a href="#NewLikelihoodComparisonPartition">func
+NewLikelihoodComparisonPartition(applied AppliedLikelihoodComparison,
+storage *simulator.StateTimeStorage) *simulator.PartitionConfig</a>
+<a href="#NewLikelihoodMeanFunctionFitPartition">func
+NewLikelihoodMeanFunctionFitPartition(applied
+AppliedLikelihoodMeanFunctionFit, storage *simulator.StateTimeStorage)
+*simulator.PartitionConfig</a>
+<a href="#NewLinePlotFromDataFrame">func NewLinePlotFromDataFrame(df
+*dataframe.DataFrame, xAxis string, yAxis string, groupBy ...string)
+*charts.Line</a>
+<a href="#NewLinePlotFromPartition">func
+NewLinePlotFromPartition(storage *simulator.StateTimeStorage, xRef
+DataRef, yRefs []DataRef, fillYRefs []FillLineRef) *charts.Line</a>
+<a href="#NewPosteriorEstimationPartitions">func
+NewPosteriorEstimationPartitions(applied AppliedPosteriorEstimation,
+storage *simulator.StateTimeStorage) []*simulator.PartitionConfig</a>
+<a href="#NewScatterPlotFromDataFrame">func
+NewScatterPlotFromDataFrame(df *dataframe.DataFrame, xAxis string, yAxis
+string, groupBy ...string) *charts.Scatter</a>
+<a href="#NewScatterPlotFromPartition">func
+NewScatterPlotFromPartition(storage *simulator.StateTimeStorage, xRef
+DataRef, yRefs []DataRef) *charts.Scatter</a>
+<a href="#NewStateTimeStorageFromCsv">func
+NewStateTimeStorageFromCsv(filePath string, timeColumn int,
+stateColumnsByPartition map[string][]int, skipHeaderRow bool)
+(*simulator.StateTimeStorage, error)</a>
+<a href="#NewStateTimeStorageFromJsonLogEntries">func
+NewStateTimeStorageFromJsonLogEntries(filename string)
+(*simulator.StateTimeStorage, error)</a>
+<a href="#NewStateTimeStorageFromPartitions">func
+NewStateTimeStorageFromPartitions(partitions
+[]*simulator.PartitionConfig, termination
+simulator.TerminationCondition, timestep simulator.TimestepFunction,
+initTime float64) *simulator.StateTimeStorage</a>
+<a href="#NewStateTimeStorageFromPostgresDb">func
+NewStateTimeStorageFromPostgresDb(db *PostgresDb, partitionNames
+[]string, startTime float64, endTime float64)
+(*simulator.StateTimeStorage, error)</a>
+<a href="#NewVectorCovariancePartition">func
+NewVectorCovariancePartition(mean DataRef, applied AppliedAggregation,
+storage *simulator.StateTimeStorage) *simulator.PartitionConfig</a>
+<a href="#NewVectorMeanPartition">func NewVectorMeanPartition(applied
+AppliedAggregation, storage *simulator.StateTimeStorage)
+*simulator.PartitionConfig</a>
+<a href="#NewVectorVariancePartition">func
+NewVectorVariancePartition(mean DataRef, applied AppliedAggregation,
+storage *simulator.StateTimeStorage) *simulator.PartitionConfig</a>
+<a href="#SetPartitionFromDataFrame">func
+SetPartitionFromDataFrame(storage *simulator.StateTimeStorage,
+partitionName string, df dataframe.DataFrame, overwriteTime bool)</a>
+<a href="#WriteStateTimeStorageToPostgresDb">func
+WriteStateTimeStorageToPostgresDb(db *PostgresDb, storage
+*simulator.StateTimeStorage)</a>
+<a href="#AppliedAggregation">type AppliedAggregation</a>
+    <a href="#AppliedAggregation.GetKernel">func (a *AppliedAggregation)
+GetKernel() kernels.IntegrationKernel</a>
+<a href="#AppliedGrouping">type AppliedGrouping</a>
+<a href="#AppliedLikelihoodComparison">type
+AppliedLikelihoodComparison</a>
+<a href="#AppliedLikelihoodMeanFunctionFit">type
+AppliedLikelihoodMeanFunctionFit</a>
+<a href="#AppliedPosteriorEstimation">type
+AppliedPosteriorEstimation</a>
+<a href="#ColourGenerator">type ColourGenerator</a>
+    <a href="#ColourGenerator.Next">func (cg *ColourGenerator) Next()
+string</a>
+<a href="#DataPlotting">type DataPlotting</a>
+<a href="#DataRef">type DataRef</a>
+    <a href="#DataRef.GetFromStorage">func (d *DataRef)
+GetFromStorage(storage *simulator.StateTimeStorage) [][]float64</a>
+    <a href="#DataRef.GetSeriesNames">func (d *DataRef)
+GetSeriesNames(storage *simulator.StateTimeStorage) []string</a>
+    <a href="#DataRef.GetTimeIndexFromStorage">func (d *DataRef)
+GetTimeIndexFromStorage(storage *simulator.StateTimeStorage, timeIndex
+int) []float64</a>
+    <a href="#DataRef.GetValueIndices">func (d *DataRef)
+GetValueIndices(storage *simulator.StateTimeStorage) []int</a>
+<a href="#FillLineRef">type FillLineRef</a>
+<a href="#GroupedStateTimeStorage">type GroupedStateTimeStorage</a>
+    <a href="#NewGroupedStateTimeStorage">func
+NewGroupedStateTimeStorage(applied AppliedGrouping, storage
+*simulator.StateTimeStorage) *GroupedStateTimeStorage</a>
+    <a href="#GroupedStateTimeStorage.GetAcceptedValueGroupLabels">func
+(g *GroupedStateTimeStorage) GetAcceptedValueGroupLabels() []string</a>
+    <a href="#GroupedStateTimeStorage.GetAcceptedValueGroups">func (g
+*GroupedStateTimeStorage) GetAcceptedValueGroups(tupIndex int)
+[]float64</a>
+    <a href="#GroupedStateTimeStorage.GetAcceptedValueGroupsLength">func
+(g *GroupedStateTimeStorage) GetAcceptedValueGroupsLength() int</a>
+    <a href="#GroupedStateTimeStorage.GetGroupTupleLength">func (g
+*GroupedStateTimeStorage) GetGroupTupleLength() int</a>
+    <a href="#GroupedStateTimeStorage.GetGroupingPartition">func (g
+*GroupedStateTimeStorage) GetGroupingPartition(tupIndex int) string</a>
+    <a href="#GroupedStateTimeStorage.GetGroupingValueIndices">func (g
+*GroupedStateTimeStorage) GetGroupingValueIndices(tupIndex int)
+[]float64</a>
+    <a href="#GroupedStateTimeStorage.GetPrecision">func (g
+*GroupedStateTimeStorage) GetPrecision() int</a>
+<a href="#IndexRange">type IndexRange</a>
+<a href="#LikelihoodMeanGradient">type LikelihoodMeanGradient</a>
+<a href="#ParameterisedModel">type ParameterisedModel</a>
+    <a href="#ParameterisedModel.Init">func (p *ParameterisedModel)
+Init()</a>
+<a href="#ParameterisedModelWithGradient">type
+ParameterisedModelWithGradient</a>
+    <a href="#ParameterisedModelWithGradient.Init">func (p
+*ParameterisedModelWithGradient) Init()</a>
+<a href="#PosteriorCovariance">type PosteriorCovariance</a>
+<a href="#PosteriorLogNorm">type PosteriorLogNorm</a>
+<a href="#PosteriorMean">type PosteriorMean</a>
+<a href="#PosteriorSampler">type PosteriorSampler</a>
+<a href="#PostgresDb">type PostgresDb</a>
+    <a href="#PostgresDb.OpenTableConnection">func (p *PostgresDb)
+OpenTableConnection() error</a>
+    <a href="#PostgresDb.ReadStateInRange">func (p *PostgresDb)
+ReadStateInRange(partitionName string, startTime float64, endTime
+float64) (*sql.Rows, error)</a>
+    <a href="#PostgresDb.WriteState">func (p *PostgresDb)
+WriteState(partitionName string, time float64, state []float64)
+error</a>
+<a href="#PostgresDbOutputFunction">type PostgresDbOutputFunction</a>
+    <a href="#NewPostgresDbOutputFunction">func
+NewPostgresDbOutputFunction(db *PostgresDb)
+*PostgresDbOutputFunction</a>
+    <a href="#PostgresDbOutputFunction.Output">func (p
+*PostgresDbOutputFunction) Output(partitionName string, state []float64,
+cumulativeTimesteps float64)</a>
+<a href="#WindowedPartition">type WindowedPartition</a>
+<a href="#WindowedPartitions">type WindowedPartitions</a>
+</div>
+<h3 id="package-files">Package files</h3>
+<p><span style="font-size:90%"> <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/aggregation.go">aggregation.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/csv.go">csv.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/data.go">data.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/dataframe.go">dataframe.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go">grouping.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/inference.go">inference.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go">likelihood.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/logs.go">logs.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/partitions.go">partitions.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/plot.go">plot.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go">postgres.go</a>
+</span></p>
+</section>
+</div>
+<h2 id="AddPartitionsToStateTimeStorage">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/partitions.go?s=1210:1396#L27">AddPartitionsToStateTimeStorage</a>
+<a href="#AddPartitionsToStateTimeStorage" class="permalink">¶</a></h2>
+<pre><code>func AddPartitionsToStateTimeStorage(
+    storage *simulator.StateTimeStorage,
+    partitions []*simulator.PartitionConfig,
+    windowSizeByPartition map[string]int,
+) *simulator.StateTimeStorage</code></pre>
+<p>AddPartitionsToStateTimeStorage extends the state time storage with
+newly generated values from the specified partitions.</p>
+<h2 id="GetDataFrameFromPartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/dataframe.go?s=303:417#L4">GetDataFrameFromPartition</a>
+<a href="#GetDataFrameFromPartition" class="permalink">¶</a></h2>
+<pre><code>func GetDataFrameFromPartition(
+    storage *simulator.StateTimeStorage,
+    partitionName string,
+) dataframe.DataFrame</code></pre>
+<p>GetDataFrameFromPartition constructs a dataframe from the state time
+storage of a given partition. A "time" column is also provided.</p>
+<h2 id="NewGroupedAggregationPartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/aggregation.go?s=808:1103#L21">NewGroupedAggregationPartition</a>
+<a href="#NewGroupedAggregationPartition" class="permalink">¶</a></h2>
+<pre><code>func NewGroupedAggregationPartition(
+    aggregation func(
+        defaultValues []float64,
+        outputIndexByGroup map[string]int,
+        groupings map[string][]float64,
+        weightings map[string][]float64,
+    ) []float64,
+    applied AppliedAggregation,
+    storage *GroupedStateTimeStorage,
+) *simulator.PartitionConfig</code></pre>
+<p>NewGroupedAggregationPartition creates a new PartitionConfig for a
+grouped aggregation.</p>
+<h2 id="NewLikelihoodComparisonPartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=1760:1903#L47">NewLikelihoodComparisonPartition</a>
+<a href="#NewLikelihoodComparisonPartition" class="permalink">¶</a></h2>
+<pre><code>func NewLikelihoodComparisonPartition(
+    applied AppliedLikelihoodComparison,
+    storage *simulator.StateTimeStorage,
+) *simulator.PartitionConfig</code></pre>
+<p>NewLikelihoodComparisonPartition creates a new PartitionConfig for a
+rolling likelihood comparison.</p>
+<h2 id="NewLikelihoodMeanFunctionFitPartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=6914:7067#L188">NewLikelihoodMeanFunctionFitPartition</a>
+<a href="#NewLikelihoodMeanFunctionFitPartition"
+class="permalink">¶</a></h2>
+<pre><code>func NewLikelihoodMeanFunctionFitPartition(
+    applied AppliedLikelihoodMeanFunctionFit,
+    storage *simulator.StateTimeStorage,
+) *simulator.PartitionConfig</code></pre>
+<p>NewLikelihoodMeanFunctionFitPartition creates a new PartitionConfig
+fitting the mean of a referenced likelihood model with a function
+specified by its gradient with respect to the desired fit
+parameters.</p>
+<h2 id="NewLinePlotFromDataFrame">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/plot.go?s=6286:6407#L227">NewLinePlotFromDataFrame</a>
+<a href="#NewLinePlotFromDataFrame" class="permalink">¶</a></h2>
+<pre><code>func NewLinePlotFromDataFrame(
+    df *dataframe.DataFrame,
+    xAxis string,
+    yAxis string,
+    groupBy ...string,
+) *charts.Line</code></pre>
+<p>NewLinePlotFromDataFrame creates a new line plot from the dataframe
+given the axes references to subsets of it.</p>
+<h2 id="NewLinePlotFromPartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/plot.go?s=4953:5095#L174">NewLinePlotFromPartition</a>
+<a href="#NewLinePlotFromPartition" class="permalink">¶</a></h2>
+<pre><code>func NewLinePlotFromPartition(
+    storage *simulator.StateTimeStorage,
+    xRef DataRef,
+    yRefs []DataRef,
+    fillYRefs []FillLineRef,
+) *charts.Line</code></pre>
+<p>NewLinePlotFromPartition creates a new line plot from the storage
+data given the axes references to subsets of it.</p>
+<h2 id="NewPosteriorEstimationPartitions">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/inference.go?s=1555:1699#L44">NewPosteriorEstimationPartitions</a>
+<a href="#NewPosteriorEstimationPartitions" class="permalink">¶</a></h2>
+<pre><code>func NewPosteriorEstimationPartitions(
+    applied AppliedPosteriorEstimation,
+    storage *simulator.StateTimeStorage,
+) []*simulator.PartitionConfig</code></pre>
+<p>NewPosteriorEstimationPartitions creates a set of PartitionConfigs
+for an online posterior estimation process using rolling statistics.</p>
+<h2 id="NewScatterPlotFromDataFrame">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/plot.go?s=1351:1478#L39">NewScatterPlotFromDataFrame</a>
+<a href="#NewScatterPlotFromDataFrame" class="permalink">¶</a></h2>
+<pre><code>func NewScatterPlotFromDataFrame(
+    df *dataframe.DataFrame,
+    xAxis string,
+    yAxis string,
+    groupBy ...string,
+) *charts.Scatter</code></pre>
+<p>NewScatterPlotFromDataFrame creates a new scatter plot from the
+dataframe given the axes references to subsets of it.</p>
+<h2 id="NewScatterPlotFromPartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/plot.go?s=367:489#L3">NewScatterPlotFromPartition</a>
+<a href="#NewScatterPlotFromPartition" class="permalink">¶</a></h2>
+<pre><code>func NewScatterPlotFromPartition(
+    storage *simulator.StateTimeStorage,
+    xRef DataRef,
+    yRefs []DataRef,
+) *charts.Scatter</code></pre>
+<p>NewScatterPlotFromPartition creates a new scatter plot from the
+storage data given the axes references to subsets of it.</p>
+<h2 id="NewStateTimeStorageFromCsv">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/csv.go?s=298:468#L6">NewStateTimeStorageFromCsv</a>
+<a href="#NewStateTimeStorageFromCsv" class="permalink">¶</a></h2>
+<pre><code>func NewStateTimeStorageFromCsv(
+    filePath string,
+    timeColumn int,
+    stateColumnsByPartition map[string][]int,
+    skipHeaderRow bool,
+) (*simulator.StateTimeStorage, error)</code></pre>
+<p>NewStateTimeStorageFromCsv creates a new StateTimeStorage based on
+data that is read in from the provided csv file and some specified
+columns for time and state.</p>
+<h2 id="NewStateTimeStorageFromJsonLogEntries">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/logs.go?s=253:353#L4">NewStateTimeStorageFromJsonLogEntries</a>
+<a href="#NewStateTimeStorageFromJsonLogEntries"
+class="permalink">¶</a></h2>
+<pre><code>func NewStateTimeStorageFromJsonLogEntries(
+    filename string,
+) (*simulator.StateTimeStorage, error)</code></pre>
+<p>NewStateTimeStorageFromJsonLogEntries reads a file up to a given
+number of iterations into a simulator.StateTimeStorage struct.</p>
+<h2 id="NewStateTimeStorageFromPartitions">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/partitions.go?s=275:488#L1">NewStateTimeStorageFromPartitions</a>
+<a href="#NewStateTimeStorageFromPartitions"
+class="permalink">¶</a></h2>
+<pre><code>func NewStateTimeStorageFromPartitions(
+    partitions []*simulator.PartitionConfig,
+    termination simulator.TerminationCondition,
+    timestep simulator.TimestepFunction,
+    initTime float64,
+) *simulator.StateTimeStorage</code></pre>
+<p>NewStateTimeStorageFromPartitions generates a new
+simulator.StateTimeStorage by running a simulation with the specified
+partitions configured.</p>
+<h2 id="NewStateTimeStorageFromPostgresDb">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=3314:3473#L118">NewStateTimeStorageFromPostgresDb</a>
+<a href="#NewStateTimeStorageFromPostgresDb"
+class="permalink">¶</a></h2>
+<pre><code>func NewStateTimeStorageFromPostgresDb(
+    db *PostgresDb,
+    partitionNames []string,
+    startTime float64,
+    endTime float64,
+) (*simulator.StateTimeStorage, error)</code></pre>
+<p>NewStateTimeStorageFromPostgresDb reads from a PostgreSQL database
+over a pre-defined time interval into a simulator.StateTimeStorage
+struct.</p>
+<h2 id="NewVectorCovariancePartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/aggregation.go?s=5967:6112#L173">NewVectorCovariancePartition</a>
+<a href="#NewVectorCovariancePartition" class="permalink">¶</a></h2>
+<pre><code>func NewVectorCovariancePartition(
+    mean DataRef,
+    applied AppliedAggregation,
+    storage *simulator.StateTimeStorage,
+) *simulator.PartitionConfig</code></pre>
+<p>NewVectorCovariancePartition creates a creates a new PartitionConfig
+to compute the vector covariance matrix of the referenced data
+partition.</p>
+<h2 id="NewVectorMeanPartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/aggregation.go?s=2977:3101#L83">NewVectorMeanPartition</a>
+<a href="#NewVectorMeanPartition" class="permalink">¶</a></h2>
+<pre><code>func NewVectorMeanPartition(
+    applied AppliedAggregation,
+    storage *simulator.StateTimeStorage,
+) *simulator.PartitionConfig</code></pre>
+<p>NewVectorMeanPartition creates a creates a new PartitionConfig to
+compute the vector mean of the referenced data partition.</p>
+<h2 id="NewVectorVariancePartition">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/aggregation.go?s=4383:4526#L125">NewVectorVariancePartition</a>
+<a href="#NewVectorVariancePartition" class="permalink">¶</a></h2>
+<pre><code>func NewVectorVariancePartition(
+    mean DataRef,
+    applied AppliedAggregation,
+    storage *simulator.StateTimeStorage,
+) *simulator.PartitionConfig</code></pre>
+<p>NewVectorVariancePartition creates a creates a new PartitionConfig to
+compute the vector variance of the referenced data partition.</p>
+<h2 id="SetPartitionFromDataFrame">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/dataframe.go?s=1119:1259#L31">SetPartitionFromDataFrame</a>
+<a href="#SetPartitionFromDataFrame" class="permalink">¶</a></h2>
+<pre><code>func SetPartitionFromDataFrame(
+    storage *simulator.StateTimeStorage,
+    partitionName string,
+    df dataframe.DataFrame,
+    overwriteTime bool,
+)</code></pre>
+<p>SetPartitionFromDataFrame sets the values in the state time storage
+of a given partition using a dataframe as input. This dataframe can
+optionally also be used to overwrite the stored times by setting the
+overwriteTime boolean flag to true.</p>
+<h2 id="WriteStateTimeStorageToPostgresDb">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=4275:4371#L156">WriteStateTimeStorageToPostgresDb</a>
+<a href="#WriteStateTimeStorageToPostgresDb"
+class="permalink">¶</a></h2>
+<pre><code>func WriteStateTimeStorageToPostgresDb(
+    db *PostgresDb,
+    storage *simulator.StateTimeStorage,
+)</code></pre>
+<p>WriteStateTimeStorageToPostgresDb writes all of the data in the state
+time storage to a PostgreSQL database.</p>
+<h2 id="AppliedAggregation">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/aggregation.go?s=282:421#L3">AppliedAggregation</a>
+<a href="#AppliedAggregation" class="permalink">¶</a></h2>
+<p>AppliedAggregation is the base configuration for an aggregation over
+a referenced dataset.</p>
+<pre><code>type AppliedAggregation struct {
+    Name         string
+    Data         DataRef
+    Kernel       kernels.IntegrationKernel
+    DefaultValue float64
+}</code></pre>
+<h3 id="AppliedAggregation.GetKernel">func (*AppliedAggregation) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/aggregation.go?s=549:615#L12">GetKernel</a>
+<a href="#AppliedAggregation.GetKernel" class="permalink">¶</a></h3>
+<pre><code>func (a *AppliedAggregation) GetKernel() kernels.IntegrationKernel</code></pre>
+<p>GetKernel retrieves the integration kernel used, returning the
+default of instantaneous (no window) if initially unset.</p>
+<h2 id="AppliedGrouping">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=191:258#L1">AppliedGrouping</a>
+<a href="#AppliedGrouping" class="permalink">¶</a></h2>
+<p>AppliedGrouping configures a grouping transformation on data.</p>
+<pre><code>type AppliedGrouping struct {
+    GroupBy   []DataRef
+    Precision int
+}</code></pre>
+<h2 id="AppliedLikelihoodComparison">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=1524:1652#L38">AppliedLikelihoodComparison</a>
+<a href="#AppliedLikelihoodComparison" class="permalink">¶</a></h2>
+<p>AppliedLikelihoodComparison is the base configuration for a rolling
+comparison between a referenced dataset and referenced likelihood
+model.</p>
+<pre><code>type AppliedLikelihoodComparison struct {
+    Name   string
+    Model  ParameterisedModel
+    Data   DataRef
+    Window WindowedPartitions
+}</code></pre>
+<h2 id="AppliedLikelihoodMeanFunctionFit">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=6418:6699#L175">AppliedLikelihoodMeanFunctionFit</a>
+<a href="#AppliedLikelihoodMeanFunctionFit" class="permalink">¶</a></h2>
+<p>AppliedLikelihoodMeanFunctionFit is the base configuration for
+fitting the mean of a referenced likelihood model with a function
+specified by its gradient with respect to the desired fit
+parameters.</p>
+<pre><code>type AppliedLikelihoodMeanFunctionFit struct {
+    Name              string
+    Model             ParameterisedModelWithGradient
+    Gradient          LikelihoodMeanGradient
+    Data              DataRef
+    Window            WindowedPartitions
+    LearningRate      float64
+    DescentIterations int
+}</code></pre>
+<h2 id="AppliedPosteriorEstimation">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/inference.go?s=1142:1411#L31">AppliedPosteriorEstimation</a>
+<a href="#AppliedPosteriorEstimation" class="permalink">¶</a></h2>
+<p>AppliedPosteriorEstimation is the base configuration for an online
+inference of a simulation (specified by partition configs) from a
+referenced dataset.</p>
+<pre><code>type AppliedPosteriorEstimation struct {
+    LogNorm      PosteriorLogNorm
+    Mean         PosteriorMean
+    Covariance   PosteriorCovariance
+    Sampler      PosteriorSampler
+    Comparison   AppliedLikelihoodComparison
+    PastDiscount float64
+    MemoryDepth  int
+    Seed         uint64
+}</code></pre>
+<h2 id="ColourGenerator">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/plot.go?s=3309:3351#L122">ColourGenerator</a>
+<a href="#ColourGenerator" class="permalink">¶</a></h2>
+<p>ColourGenerator keeps track of the current colour index.</p>
+<pre><code>type ColourGenerator struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="ColourGenerator.Next">func (*ColourGenerator) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/plot.go?s=3436:3476#L128">Next</a>
+<a href="#ColourGenerator.Next" class="permalink">¶</a></h3>
+<pre><code>func (cg *ColourGenerator) Next() string</code></pre>
+<p>Next returns the next colour in the ECharts palette, cycling back if
+needed.</p>
+<h2 id="DataPlotting">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/data.go?s=329:396#L8">DataPlotting</a>
+<a href="#DataPlotting" class="permalink">¶</a></h2>
+<p>DataPlotting configures the changes to the data which can be applied
+before plotting.</p>
+<pre><code>type DataPlotting struct {
+    IsTime    bool
+    TimeRange *IndexRange
+}</code></pre>
+<h2 id="DataRef">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/data.go?s=459:554#L14">DataRef</a>
+<a href="#DataRef" class="permalink">¶</a></h2>
+<p>DataRef is a reference to some subset of the stored data.</p>
+<pre><code>type DataRef struct {
+    PartitionName string
+    ValueIndices  []int
+    Plotting      *DataPlotting
+}</code></pre>
+<h3 id="DataRef.GetFromStorage">func (*DataRef) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/data.go?s=3008:3093#L107">GetFromStorage</a>
+<a href="#DataRef.GetFromStorage" class="permalink">¶</a></h3>
+<pre><code>func (d *DataRef) GetFromStorage(
+    storage *simulator.StateTimeStorage,
+) [][]float64</code></pre>
+<p>GetFromStorage retrieves the relevant data from storage that the
+reference is pointing to.</p>
+<h3 id="DataRef.GetSeriesNames">func (*DataRef) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/data.go?s=2042:2124#L73">GetSeriesNames</a>
+<a href="#DataRef.GetSeriesNames" class="permalink">¶</a></h3>
+<pre><code>func (d *DataRef) GetSeriesNames(
+    storage *simulator.StateTimeStorage,
+) []string</code></pre>
+<p>GetSeriesName retrieves unique names for each dimension in the time
+series data that is typically used for labelling plots.</p>
+<h3 id="DataRef.GetTimeIndexFromStorage">func (*DataRef) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/data.go?s=2470:2578#L88">GetTimeIndexFromStorage</a>
+<a href="#DataRef.GetTimeIndexFromStorage" class="permalink">¶</a></h3>
+<pre><code>func (d *DataRef) GetTimeIndexFromStorage(
+    storage *simulator.StateTimeStorage,
+    timeIndex int,
+) []float64</code></pre>
+<p>GetTimeIndexFromStorage retrieves the relevant data from storage that
+the reference is pointing to for a given index in time.</p>
+<h3 id="DataRef.GetValueIndices">func (*DataRef) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/data.go?s=1631:1711#L59">GetValueIndices</a>
+<a href="#DataRef.GetValueIndices" class="permalink">¶</a></h3>
+<pre><code>func (d *DataRef) GetValueIndices(
+    storage *simulator.StateTimeStorage,
+) []int</code></pre>
+<p>GetValueIndices populates the value indices slice with all of the
+indices found in the referenced partition if set initially to nil.</p>
+<h2 id="FillLineRef">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/plot.go?s=2896:2953#L103">FillLineRef</a>
+<a href="#FillLineRef" class="permalink">¶</a></h2>
+<p>FillLineRef holds the data required to construct a filled region in
+the line plot.</p>
+<pre><code>type FillLineRef struct {
+    Upper DataRef
+    Lower DataRef
+}</code></pre>
+<h2 id="GroupedStateTimeStorage">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=403:571#L6">GroupedStateTimeStorage</a>
+<a href="#GroupedStateTimeStorage" class="permalink">¶</a></h2>
+<p>GroupedStateTimeStorage is a representation of
+simulator.StateTimeStorage which has already had a grouping
+transformation applied to it.</p>
+<pre><code>type GroupedStateTimeStorage struct {
+    Storage *simulator.StateTimeStorage
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewGroupedStateTimeStorage">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=2512:2635#L61">NewGroupedStateTimeStorage</a>
+<a href="#NewGroupedStateTimeStorage" class="permalink">¶</a></h3>
+<pre><code>func NewGroupedStateTimeStorage(
+    applied AppliedGrouping,
+    storage *simulator.StateTimeStorage,
+) *GroupedStateTimeStorage</code></pre>
+<p>NewGroupedStateTimeStorage creates a new GroupedStateTimeStorage
+given the provided simulator.StateTimeStorage and applied grouping.</p>
+<h3 id="GroupedStateTimeStorage.GetAcceptedValueGroupLabels">func
+(*GroupedStateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=1681:1753#L39">GetAcceptedValueGroupLabels</a>
+<a href="#GroupedStateTimeStorage.GetAcceptedValueGroupLabels"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GroupedStateTimeStorage) GetAcceptedValueGroupLabels() []string</code></pre>
+<p>GetAcceptedValueGroupLabels returns the unique group labels that were
+found in the data which are typically used for labelling plots.</p>
+<h3 id="GroupedStateTimeStorage.GetAcceptedValueGroups">func
+(*GroupedStateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=1298:1378#L29">GetAcceptedValueGroups</a>
+<a href="#GroupedStateTimeStorage.GetAcceptedValueGroups"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GroupedStateTimeStorage) GetAcceptedValueGroups(tupIndex int) []float64</code></pre>
+<p>GetAcceptedValueGroups returns the unique groups that were found in
+the data which are typically used to configure group aggregation
+partitions.</p>
+<h3 id="GroupedStateTimeStorage.GetAcceptedValueGroupsLength">func
+(*GroupedStateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=1932:2000#L45">GetAcceptedValueGroupsLength</a>
+<a href="#GroupedStateTimeStorage.GetAcceptedValueGroupsLength"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GroupedStateTimeStorage) GetAcceptedValueGroupsLength() int</code></pre>
+<p>GetAcceptedValueGroupsLength returns the number of accepted value
+groups (equivalent to the length of the state vector in simulation
+partition).</p>
+<h3 id="GroupedStateTimeStorage.GetGroupTupleLength">func
+(*GroupedStateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=2123:2182#L50">GetGroupTupleLength</a>
+<a href="#GroupedStateTimeStorage.GetGroupTupleLength"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GroupedStateTimeStorage) GetGroupTupleLength() int</code></pre>
+<p>GetGroupTupleLength returns the length of tuple in the grouping index
+construction.</p>
+<h3 id="GroupedStateTimeStorage.GetGroupingPartition">func
+(*GroupedStateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=651:726#L14">GetGroupingPartition</a>
+<a href="#GroupedStateTimeStorage.GetGroupingPartition"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GroupedStateTimeStorage) GetGroupingPartition(tupIndex int) string</code></pre>
+<p>GetGroupingPartitions returns the partition used in the data for
+grouping.</p>
+<h3 id="GroupedStateTimeStorage.GetGroupingValueIndices">func
+(*GroupedStateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=866:947#L19">GetGroupingValueIndices</a>
+<a href="#GroupedStateTimeStorage.GetGroupingValueIndices"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GroupedStateTimeStorage) GetGroupingValueIndices(tupIndex int) []float64</code></pre>
+<p>GetGroupingValueIndices returns the value indices used in the data
+for grouping.</p>
+<h3 id="GroupedStateTimeStorage.GetPrecision">func
+(*GroupedStateTimeStorage) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/grouping.go?s=2287:2339#L55">GetPrecision</a>
+<a href="#GroupedStateTimeStorage.GetPrecision"
+class="permalink">¶</a></h3>
+<pre><code>func (g *GroupedStateTimeStorage) GetPrecision() int</code></pre>
+<p>GetPrecision returns the requested float precision for grouping.</p>
+<h2 id="IndexRange">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/data.go?s=187:235#L1">IndexRange</a>
+<a href="#IndexRange" class="permalink">¶</a></h2>
+<p>IndexRange holds upper and lower index values for a range of indices
+selected to be used.</p>
+<pre><code>type IndexRange struct {
+    Lower int
+    Upper int
+}</code></pre>
+<h2 id="LikelihoodMeanGradient">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=6076:6208#L164">LikelihoodMeanGradient</a>
+<a href="#LikelihoodMeanGradient" class="permalink">¶</a></h2>
+<p>LikelihoodMeanGradient defines the function which takes the gradient
+of the likelihood mean with respect to the desired fit parameters.</p>
+<pre><code>type LikelihoodMeanGradient struct {
+    Function func(
+        params *simulator.Params,
+        likeMeanGrad []float64,
+    ) []float64
+    Width int
+}</code></pre>
+<h2 id="ParameterisedModel">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=837:1062#L18">ParameterisedModel</a>
+<a href="#ParameterisedModel" class="permalink">¶</a></h2>
+<p>ParameterisedModel defines a likelihood model for the data with its
+corresponding parameters to set.</p>
+<pre><code>type ParameterisedModel struct {
+    Likelihood         inference.LikelihoodDistribution
+    Params             simulator.Params
+    ParamsAsPartitions map[string][]string
+    ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
+}</code></pre>
+<h3 id="ParameterisedModel.Init">func (*ParameterisedModel) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=1136:1171#L26">Init</a>
+<a href="#ParameterisedModel.Init" class="permalink">¶</a></h3>
+<pre><code>func (p *ParameterisedModel) Init()</code></pre>
+<p>Init populates the model parameter fields if they have not been
+set.</p>
+<h2 id="ParameterisedModelWithGradient">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=5358:5607#L144">ParameterisedModelWithGradient</a>
+<a href="#ParameterisedModelWithGradient" class="permalink">¶</a></h2>
+<p>ParameterisedModelWithGradient defines a ParameterisedModel which has
+a gradient.</p>
+<pre><code>type ParameterisedModelWithGradient struct {
+    Likelihood         inference.LikelihoodDistributionWithGradient
+    Params             simulator.Params
+    ParamsAsPartitions map[string][]string
+    ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
+}</code></pre>
+<h3 id="ParameterisedModelWithGradient.Init">func
+(*ParameterisedModelWithGradient) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=5681:5728#L152">Init</a>
+<a href="#ParameterisedModelWithGradient.Init"
+class="permalink">¶</a></h3>
+<pre><code>func (p *ParameterisedModelWithGradient) Init()</code></pre>
+<p>Init populates the model parameter fields if they have not been
+set.</p>
+<h2 id="PosteriorCovariance">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/inference.go?s=643:742#L14">PosteriorCovariance</a>
+<a href="#PosteriorCovariance" class="permalink">¶</a></h2>
+<p>PosteriorCovariance defines the configuration needed to specify the
+posterior covariance in the AppliedPosteriorEstimation.</p>
+<pre><code>type PosteriorCovariance struct {
+    Name         string
+    Default      []float64
+    JustVariance bool
+}</code></pre>
+<h2 id="PosteriorLogNorm">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/inference.go?s=262:327#L1">PosteriorLogNorm</a>
+<a href="#PosteriorLogNorm" class="permalink">¶</a></h2>
+<p>PosteriorLogNorm defines the configuration needed to specify the
+posterior log-normalisation in the AppliedPosteriorEstimation.</p>
+<pre><code>type PosteriorLogNorm struct {
+    Name    string
+    Default float64
+}</code></pre>
+<h2 id="PosteriorMean">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/inference.go?s=447:511#L7">PosteriorMean</a>
+<a href="#PosteriorMean" class="permalink">¶</a></h2>
+<p>PosteriorMean defines the configuration needed to specify the
+posterior mean in the AppliedPosteriorEstimation.</p>
+<pre><code>type PosteriorMean struct {
+    Name    string
+    Default []float64
+}</code></pre>
+<h2 id="PosteriorSampler">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/inference.go?s=868:978#L22">PosteriorSampler</a>
+<a href="#PosteriorSampler" class="permalink">¶</a></h2>
+<p>PosteriorSampler defines the configuration needed to specify the
+posterior sampler in the AppliedPosteriorEstimation.</p>
+<pre><code>type PosteriorSampler struct {
+    Name         string
+    Default      []float64
+    Distribution ParameterisedModel
+}</code></pre>
+<h2 id="PostgresDb">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=276:393#L4">PostgresDb</a>
+<a href="#PostgresDb" class="permalink">¶</a></h2>
+<p>PostgresDb is a struct which can be configured to define interactions
+with a PostgresSQL database.</p>
+<pre><code>type PostgresDb struct {
+    User      string
+    Password  string
+    Dbname    string
+    TableName string
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="PostgresDb.OpenTableConnection">func (*PostgresDb) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=492:540#L14">OpenTableConnection</a>
+<a href="#PostgresDb.OpenTableConnection" class="permalink">¶</a></h3>
+<pre><code>func (p *PostgresDb) OpenTableConnection() error</code></pre>
+<p>OpenTableConnection connects to the PostgreSQL database or creates it
+if it doesn't exist.</p>
+<h3 id="PostgresDb.ReadStateInRange">func (*PostgresDb) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=2065:2185#L73">ReadStateInRange</a>
+<a href="#PostgresDb.ReadStateInRange" class="permalink">¶</a></h3>
+<pre><code>func (p *PostgresDb) ReadStateInRange(
+    partitionName string,
+    startTime float64,
+    endTime float64,
+) (*sql.Rows, error)</code></pre>
+<p>ReadStateInRange retrieves all entries between a specified start and
+end time range for a given partition.</p>
+<h3 id="PostgresDb.WriteState">func (*PostgresDb) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=1108:1204#L37">WriteState</a>
+<a href="#PostgresDb.WriteState" class="permalink">¶</a></h3>
+<pre><code>func (p *PostgresDb) WriteState(
+    partitionName string,
+    time float64,
+    state []float64,
+) error</code></pre>
+<p>WriteState writes a new partition state value to the database.</p>
+<h2 id="PostgresDbOutputFunction">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=2664:2720#L93">PostgresDbOutputFunction</a>
+<a href="#PostgresDbOutputFunction" class="permalink">¶</a></h2>
+<p>PostgresDbOutputFunction writes the data from the simulation to a
+PostgresSQL database when the simulator.OutputCondition is met.</p>
+<pre><code>type PostgresDbOutputFunction struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewPostgresDbOutputFunction">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=2974:3052#L106">NewPostgresDbOutputFunction</a>
+<a href="#NewPostgresDbOutputFunction" class="permalink">¶</a></h3>
+<pre><code>func NewPostgresDbOutputFunction(
+    db *PostgresDb,
+) *PostgresDbOutputFunction</code></pre>
+<p>NewPostgresDbOutputFunction creates a new
+PostgresDbOutputFunction.</p>
+<h3 id="PostgresDbOutputFunction.Output">func
+(*PostgresDbOutputFunction) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/postgres.go?s=2722:2837#L97">Output</a>
+<a href="#PostgresDbOutputFunction.Output" class="permalink">¶</a></h3>
+<pre><code>func (p *PostgresDbOutputFunction) Output(
+    partitionName string,
+    state []float64,
+    cumulativeTimesteps float64,
+)</code></pre>
+<h2 id="WindowedPartition">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=312:449#L2">WindowedPartition</a>
+<a href="#WindowedPartition" class="permalink">¶</a></h2>
+<p>WindowedPartition configures a partition to simulate within a
+windowed duration.</p>
+<pre><code>type WindowedPartition struct {
+    Partition        *simulator.PartitionConfig
+    OutsideUpstreams map[string]simulator.NamedUpstreamConfig
+}</code></pre>
+<h2 id="WindowedPartitions">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/analysis/likelihood.go?s=624:728#L10">WindowedPartitions</a>
+<a href="#WindowedPartitions" class="permalink">¶</a></h2>
+<p>WindowedPartitions defines a windowed history of data from partitions
+in storage and possible additional partitions to include when simulating
+the window duration.</p>
+<pre><code>type WindowedPartitions struct {
+    Partitions []WindowedPartition
+    Data       []DataRef
+    Depth      int
+}</code></pre>
+<div id="footer">
+Build version go1.22.2.<br />
+Except as <a
+href="https://developers.google.com/site-policies#restrictions">noted</a>,
+the content of this page is licensed under the Creative Commons
+Attribution 3.0 License, and code is licensed under a <a
+href="/LICENSE">BSD license</a>.<br />
+<a href="https://golang.org/doc/tos.html">Terms of Service</a> | <a
+href="https://www.google.com/intl/en/policies/privacy/">Privacy
+Policy</a>
+</div>
+</section>
+</div>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</article>
+</html>

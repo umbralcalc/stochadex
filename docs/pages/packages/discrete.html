@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <style>
+    .body {
+      box-sizing: border-box;
+      min-width: 200px;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 45px;
+      color: #1F2328;
+      background-color: #ffff;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+      line-height: 1.5;
+      word-wrap: break-word;
+      text-align: justify;
+    }
+
+    .body h1 {
+      margin: 0;
+      font-size: 200%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body h2, h3, h4, h5 {
+      margin: 0;
+      font-size: 150%;
+      color: rgb(42, 65, 83);
+      border-radius: 6px;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .body strong {
+      color: rgb(42, 65, 83);
+    }
+
+    .body a {
+      color: #0969da;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .body a:hover {
+      color: LightGrey;
+    }
+
+    pre {
+      padding: .5em 1em;
+      font-size: 95%;
+      color: #F5F5F5;
+      background-color: rgb(42, 65, 83);
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    code {
+      display: block;
+    }
+
+    .centered {
+      text-align: center;
+    }
+
+    img:not(.no-center), 
+    svg:not(.no-center) {
+      display: block;
+      margin: 1em auto;
+      max-width: 100%;
+      height: auto;
+    }
+
+    img.no-center, 
+    svg.no-center {
+      display: inline;
+      margin: 0;
+    }
+
+    .otherimgs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .otherimgs img {
+      display: inline-block;
+      height: auto;
+      margin: 0;
+    }
+
+    .articleHeader {
+      padding: .2em .4em;
+      margin: 1em;
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+      text-align: justify;
+    }
+
+    a.articleTitle h1 {
+      text-align: left;
+      color: rgb(79, 97, 114);
+      text-align: left;
+    }
+
+    a.articleTitle h1:hover {
+      color: LightGrey;
+    }
+
+    .articleHeader strong {
+      font-size: 95%;
+      color: rgb(79, 97, 114);
+      background-color: #ffff;
+      border-radius: 6px;
+      overflow: auto;
+    }
+
+    .body .navbar {
+      padding:8px 16px;
+      float:right;
+      width:auto;
+      border:none;
+      display:block;
+      outline:0;
+      color: LightGrey;
+    }
+
+    .logofavicon {
+      vertical-align: middle;
+    }
+
+    .body .repotitle {
+      float: left;
+      text-align: left;
+    }
+
+    strong.nameRepo {
+      color: rgb(42, 65, 83);
+    }
+
+    .body .navbar:hover {
+      color: rgb(42, 65, 83);
+    }
+
+    .csl-entry {
+      display: flex;
+      margin-top: 15px;
+    }
+
+    #references {
+      margin-bottom: 0.5em;
+    }
+
+    .csl-left-margin {
+      margin-right: 10px;
+    }
+
+    .custom-spacer {
+      display: block;
+      height: 1em;
+    }
+
+    @media (max-width: 767px) {
+      .body {
+        padding: 15px;
+      }
+      p {
+        overflow-x: auto;
+      }
+      p span.math.display {
+        display: inline-block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
+  </style>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<article class="body">
+<a class="navbar" href="https://umbralcalc.github.io/stochadex">
+Home
+</a>
+<a class="navbar" href="https://github.com/umbralcalc">
+About
+</a>
+</br>
+</br>
+</br>
+using module mode; GOMOD=/home/robert/Code/stochadex/go.mod
+<div id="lowframe"
+style="position: fixed; bottom: 0; left: 0; height: 0; width: 100%; border-top: thin solid grey; background-color: white; overflow: auto;">
+...
+</div>
+<div id="topbar" class="wide">
+<div class="container">
+<div id="heading-wide" class="top-heading">
+<a href="/pkg/">Go Documentation Server</a>
+</div>
+<div id="heading-narrow" class="top-heading">
+<a href="/pkg/">GoDoc</a>
+</div>
+<a href="#" id="menu-button"><span id="menu-button-arrow">▽</span></a>
+<div id="menu">
+<span><img
+src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdib3g9IjAgMCAyNCAyNCI+PHRpdGxlPnN1Ym1pdCBzZWFyY2g8L3RpdGxlPjxwYXRoIGQ9Ik0xNS41IDE0aC0uNzlsLS4yOC0uMjdDMTUuNDEgMTIuNTkgMTYgMTEuMTEgMTYgOS41IDE2IDUuOTEgMTMuMDkgMyA5LjUgM1MzIDUuOTEgMyA5LjUgNS45MSAxNiA5LjUgMTZjMS42MSAwIDMuMDktLjU5IDQuMjMtMS41N2wuMjcuMjh2Ljc5bDUgNC45OUwyMC40OSAxOWwtNC45OS01em0tNiAwQzcuMDEgMTQgNSAxMS45OSA1IDkuNVM3LjAxIDUgOS41IDUgMTQgNy4wMSAxNCA5LjUgMTEuOTkgMTQgOS41IDE0eiI+PC9wYXRoPjxwYXRoIGQ9Ik0wIDBoMjR2MjRIMHoiIGZpbGw9Im5vbmUiPjwvcGF0aD48L3N2Zz4=" /></span>
+</div>
+</div>
+</div>
+<div id="page" class="wide">
+<section id="package-discrete" class="container">
+<h1>Package discrete <span class="text-muted"></span></h1>
+<div id="nav">
+
+</div>
+<div id="short-nav">
+<code>import "github.com/umbralcalc/stochadex/pkg/discrete"</code>
+<a href="#pkg-overview" class="overviewLink">Overview</a>
+<a href="#pkg-index" class="indexLink">Index</a>
+</div>
+<div id="pkg-overview" class="toggleVisible">
+<section id="overview" class="toggleButton collapsed"
+title="Click to show Overview section">
+<h2 class="toggleButton" title="Click to show Overview section">Overview
+▹</h2>
+</section>
+<section id="overview-1" class="toggleButton expanded"
+title="Click to hide Overview section">
+<h2 class="toggleButton" title="Click to hide Overview section">Overview
+▾</h2>
+</section>
+</div>
+<div id="pkg-index" class="toggleVisible">
+<section id="index" class="toggleButton collapsed"
+title="Click to show Index section">
+<h2 class="toggleButton" title="Click to show Index section">Index
+▹</h2>
+</section>
+<section id="index-1" class="toggleButton expanded"
+title="Click to hide Index section">
+<h2 class="toggleButton" title="Click to hide Index section">Index
+▾</h2>
+<div id="manual-nav">
+<a href="#BernoulliProcessIteration">type BernoulliProcessIteration</a>
+    <a href="#BernoulliProcessIteration.Configure">func (b
+*BernoulliProcessIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#BernoulliProcessIteration.Iterate">func (b
+*BernoulliProcessIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#BinomialObservationProcessIteration">type
+BinomialObservationProcessIteration</a>
+    <a href="#BinomialObservationProcessIteration.Configure">func (b
+*BinomialObservationProcessIteration) Configure(partitionIndex int,
+settings *simulator.Settings)</a>
+    <a href="#BinomialObservationProcessIteration.Iterate">func (b
+*BinomialObservationProcessIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#CategoricalStateTransitionIteration">type
+CategoricalStateTransitionIteration</a>
+    <a href="#CategoricalStateTransitionIteration.Configure">func (c
+*CategoricalStateTransitionIteration) Configure(partitionIndex int,
+settings *simulator.Settings)</a>
+    <a href="#CategoricalStateTransitionIteration.Iterate">func (c
+*CategoricalStateTransitionIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#CoxProcessIteration">type CoxProcessIteration</a>
+    <a href="#CoxProcessIteration.Configure">func (c
+*CoxProcessIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#CoxProcessIteration.Iterate">func (c *CoxProcessIteration)
+Iterate(params *simulator.Params, partitionIndex int, stateHistories
+[]*simulator.StateHistory, timestepsHistory
+*simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#HawkesProcessIntensityIteration">type
+HawkesProcessIntensityIteration</a>
+    <a href="#NewHawkesProcessIntensityIteration">func
+NewHawkesProcessIntensityIteration(excitingKernel
+kernels.IntegrationKernel, hawkesPartitionIndex int)
+*HawkesProcessIntensityIteration</a>
+    <a href="#HawkesProcessIntensityIteration.Configure">func (h
+*HawkesProcessIntensityIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#HawkesProcessIntensityIteration.Iterate">func (h
+*HawkesProcessIntensityIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#HawkesProcessIteration">type HawkesProcessIteration</a>
+    <a href="#HawkesProcessIteration.Configure">func (h
+*HawkesProcessIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#HawkesProcessIteration.Iterate">func (h
+*HawkesProcessIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+<a href="#PoissonProcessIteration">type PoissonProcessIteration</a>
+    <a href="#PoissonProcessIteration.Configure">func (p
+*PoissonProcessIteration) Configure(partitionIndex int, settings
+*simulator.Settings)</a>
+    <a href="#PoissonProcessIteration.Iterate">func (p
+*PoissonProcessIteration) Iterate(params *simulator.Params,
+partitionIndex int, stateHistories []*simulator.StateHistory,
+timestepsHistory *simulator.CumulativeTimestepsHistory) []float64</a>
+</div>
+<h3 id="package-files">Package files</h3>
+<p><span style="font-size:90%"> <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/bernoulli_process.go">bernoulli_process.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/binomial_observation_process.go">binomial_observation_process.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/categorical_state_transition.go">categorical_state_transition.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/cox_process.go">cox_process.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/hawkes_process.go">hawkes_process.go</a>
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/poisson_process.go">poisson_process.go</a>
+</span></p>
+</section>
+</div>
+<h2 id="BernoulliProcessIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/bernoulli_process.go?s=279:349#L3">BernoulliProcessIteration</a>
+<a href="#BernoulliProcessIteration" class="permalink">¶</a></h2>
+<p>BernoulliProcessIteration observes a success (or failure) with a 1
+(or 0) depending on the probability provided for each state value
+index.</p>
+<pre><code>type BernoulliProcessIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="BernoulliProcessIteration.Configure">func
+(*BernoulliProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/bernoulli_process.go?s=351:451#L7">Configure</a>
+<a href="#BernoulliProcessIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (b *BernoulliProcessIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="BernoulliProcessIteration.Iterate">func
+(*BernoulliProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/bernoulli_process.go?s=633:837#L21">Iterate</a>
+<a href="#BernoulliProcessIteration.Iterate"
+class="permalink">¶</a></h3>
+<pre><code>func (b *BernoulliProcessIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="BinomialObservationProcessIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/binomial_observation_process.go?s=295:377#L3">BinomialObservationProcessIteration</a>
+<a href="#BinomialObservationProcessIteration"
+class="permalink">¶</a></h2>
+<p>BinomialObservationProcessIteration observes each count value
+provided with a binomial probability distribution - emulating a sequence
+of Bernoulli trials.</p>
+<pre><code>type BinomialObservationProcessIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="BinomialObservationProcessIteration.Configure">func
+(*BinomialObservationProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/binomial_observation_process.go?s=379:489#L7">Configure</a>
+<a href="#BinomialObservationProcessIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (b *BinomialObservationProcessIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="BinomialObservationProcessIteration.Iterate">func
+(*BinomialObservationProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/binomial_observation_process.go?s=667:881#L21">Iterate</a>
+<a href="#BinomialObservationProcessIteration.Iterate"
+class="permalink">¶</a></h3>
+<pre><code>func (b *BinomialObservationProcessIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="CategoricalStateTransitionIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/categorical_state_transition.go?s=288:397#L4">CategoricalStateTransitionIteration</a>
+<a href="#CategoricalStateTransitionIteration"
+class="permalink">¶</a></h2>
+<p>CategoricalStateTransitionIteration is essentially a state machine
+which transitions between states according to the event rate
+parameters.</p>
+<pre><code>type CategoricalStateTransitionIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="CategoricalStateTransitionIteration.Configure">func
+(*CategoricalStateTransitionIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/categorical_state_transition.go?s=399:509#L9">Configure</a>
+<a href="#CategoricalStateTransitionIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (c *CategoricalStateTransitionIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="CategoricalStateTransitionIteration.Iterate">func
+(*CategoricalStateTransitionIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/categorical_state_transition.go?s=990:1204#L37">Iterate</a>
+<a href="#CategoricalStateTransitionIteration.Iterate"
+class="permalink">¶</a></h3>
+<pre><code>func (c *CategoricalStateTransitionIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="CoxProcessIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/cox_process.go?s=193:261#L1">CoxProcessIteration</a>
+<a href="#CoxProcessIteration" class="permalink">¶</a></h2>
+<p>CoxProcessIteration defines an iteration for a Cox process.</p>
+<pre><code>type CoxProcessIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="CoxProcessIteration.Configure">func (*CoxProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/cox_process.go?s=263:357#L5">Configure</a>
+<a href="#CoxProcessIteration.Configure" class="permalink">¶</a></h3>
+<pre><code>func (c *CoxProcessIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="CoxProcessIteration.Iterate">func (*CoxProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/cox_process.go?s=543:741#L19">Iterate</a>
+<a href="#CoxProcessIteration.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (c *CoxProcessIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="HawkesProcessIntensityIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/hawkes_process.go?s=312:433#L4">HawkesProcessIntensityIteration</a>
+<a href="#HawkesProcessIntensityIteration" class="permalink">¶</a></h2>
+<p>HawkesProcessIntensityIteration an iteration for a Hawkes process
+self-exciting intensity function.</p>
+<pre><code>type HawkesProcessIntensityIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="NewHawkesProcessIntensityIteration">func <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/hawkes_process.go?s=1743:1888#L53">NewHawkesProcessIntensityIteration</a>
+<a href="#NewHawkesProcessIntensityIteration"
+class="permalink">¶</a></h3>
+<pre><code>func NewHawkesProcessIntensityIteration(
+    excitingKernel kernels.IntegrationKernel,
+    hawkesPartitionIndex int,
+) *HawkesProcessIntensityIteration</code></pre>
+<p>NewHawkesProcessIntensityIteration creates a new
+HawkesProcessIntensityIteration given a partition index for the Hawkes
+process itself.</p>
+<h3 id="HawkesProcessIntensityIteration.Configure">func
+(*HawkesProcessIntensityIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/hawkes_process.go?s=435:541#L9">Configure</a>
+<a href="#HawkesProcessIntensityIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (h *HawkesProcessIntensityIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="HawkesProcessIntensityIteration.Iterate">func
+(*HawkesProcessIntensityIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/hawkes_process.go?s=723:933#L20">Iterate</a>
+<a href="#HawkesProcessIntensityIteration.Iterate"
+class="permalink">¶</a></h3>
+<pre><code>func (h *HawkesProcessIntensityIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="HawkesProcessIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/hawkes_process.go?s=2094:2165#L64">HawkesProcessIteration</a>
+<a href="#HawkesProcessIteration" class="permalink">¶</a></h2>
+<p>HawkesProcessIteration defines an iteration for a Hawkes process.</p>
+<pre><code>type HawkesProcessIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="HawkesProcessIteration.Configure">func (*HawkesProcessIteration)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/hawkes_process.go?s=2167:2264#L68">Configure</a>
+<a href="#HawkesProcessIteration.Configure" class="permalink">¶</a></h3>
+<pre><code>func (h *HawkesProcessIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="HawkesProcessIteration.Iterate">func (*HawkesProcessIteration)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/hawkes_process.go?s=2450:2651#L82">Iterate</a>
+<a href="#HawkesProcessIteration.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (h *HawkesProcessIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<h2 id="PoissonProcessIteration">type <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/poisson_process.go?s=211:283#L2">PoissonProcessIteration</a>
+<a href="#PoissonProcessIteration" class="permalink">¶</a></h2>
+<p>PoissonProcessIteration defines an iteration for a simple Poisson
+process.</p>
+<pre><code>type PoissonProcessIteration struct {
+    // contains filtered or unexported fields
+}</code></pre>
+<h3 id="PoissonProcessIteration.Configure">func
+(*PoissonProcessIteration) <a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/poisson_process.go?s=285:383#L6">Configure</a>
+<a href="#PoissonProcessIteration.Configure"
+class="permalink">¶</a></h3>
+<pre><code>func (p *PoissonProcessIteration) Configure(
+    partitionIndex int,
+    settings *simulator.Settings,
+)</code></pre>
+<h3 id="PoissonProcessIteration.Iterate">func (*PoissonProcessIteration)
+<a
+href="/src/github.com/umbralcalc/stochadex/pkg/discrete/poisson_process.go?s=569:771#L20">Iterate</a>
+<a href="#PoissonProcessIteration.Iterate" class="permalink">¶</a></h3>
+<pre><code>func (p *PoissonProcessIteration) Iterate(
+    params *simulator.Params,
+    partitionIndex int,
+    stateHistories []*simulator.StateHistory,
+    timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64</code></pre>
+<div id="footer">
+Build version go1.22.2.<br />
+Except as <a
+href="https://developers.google.com/site-policies#restrictions">noted</a>,
+the content of this page is licensed under the Creative Commons
+Attribution 3.0 License, and code is licensed under a <a
+href="/LICENSE">BSD license</a>.<br />
+<a href="https://golang.org/doc/tos.html">Terms of Service</a> | <a
+href="https://www.google.com/intl/en/policies/privacy/">Privacy
+Policy</a>
+</div>
+</section>
+</div>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</article>
+</html>

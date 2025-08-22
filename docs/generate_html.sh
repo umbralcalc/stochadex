@@ -29,3 +29,10 @@ for filename in _pages/*.md; do
     -o pages/${newFilename}.html \
     ${filename};
 done
+
+# ...and generate package pages
+for pkg in $(go list ../... | grep '/pkg/'); do
+    out=pages/packages/$(basename $pkg).html
+    godoc -url=/pkg/$pkg/ > "$out"
+    pandoc "$out" -o "$out" --template=template.html
+done
