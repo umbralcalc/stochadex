@@ -17,7 +17,7 @@ The hope for this project is that it can become the basis upon which to build ge
 
 From a software engineering perspective, the stochadex simulation framework abstracts away many of the common features that sampling algorithms have for performing these computations behind a highly-configurable interface.
 
-While the concept of a 'generalised simulation engine' isn't new (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), this simulation engine is designed based on some deep research into simulating a wide variety of real world systems and has a structure which allows for a lot of cool applications!
+While the concept of a 'generalised simulation engine' isn't new (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), this simulation engine is designed based on some deep research into [simulating a wide variety of real world systems](https://github.com/umbralcalc) and has a structure which allows for a lot of cool applications!
 
 ## Documentation: the 'stochadocs'
 
