@@ -71,15 +71,22 @@ $endif$
       display: block;
     }
 
-    img {
-      max-width: 100%;
-      max-height: 100%;
-      text-align: justify;
+    .centered {
+      text-align: center;
     }
-  
-    p img {
+
+    img:not(.no-center), 
+    svg:not(.no-center) {
       display: block;
-      margin: 0 auto;
+      margin: 1em auto;
+      max-width: 100%;
+      height: auto;
+    }
+
+    img.no-center, 
+    svg.no-center {
+      display: inline;
+      margin: 0;
     }
 
     .otherimgs {
@@ -138,11 +145,7 @@ $endif$
     }
 
     .body .repotitle {
-      padding:8px 0px;
       float: left;
-      color: LightGrey;
-      font-weight: bold;
-      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
       text-align: left;
     }
 
@@ -195,49 +198,21 @@ $endfor$
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <article class="body">
-<a class="navbar" href="https://umbralcalc.github.io/">
+<a class="navbar" href="https://umbralcalc.github.io/stochadex">
 Home
 </a>
-<a class="navbar" href="https://umbralcalc.github.io/posts/about.html">
+<a class="navbar" href="https://github.com/umbralcalc">
 About
 </a>
-</br>
-</br>
-</br>
-
-<h1>$title$</h1>
-$if(author)$
-</br>
-<hr color="LightGray">
-<div class="articleHeader">
-<strong> Author. </strong> $author$
-</br>
-$endif$
-$if(date)$
-<strong> Date. </strong> $date$
-</br>
-$endif$
-$if(concept)$
-<strong> Concept. </strong> $concept$
+$if(logo)$
+<div class="repotitle">
+<span class="logofavicon"> <img src="../assets/logo.png" width="120"></img></span>
 </div>
-<hr color="LightGray">
+$endif$
 </br>
-$endif$
+</br>
+</br>
 $body$
-$if(articleId)$
-<span class="custom-spacer"></span>
-<hr color="LightGray">
-<div class="articleHeader">
-  <strong> Cite. </strong> You can cite this article using the following BibTeX:
-<code><pre>@article{$articleId$-$year$,
-  title = {$title$},
-  author = {$author$},
-  journal = {umbralcalculations (umbralcalc.github.io/posts/$articleId$.html)},
-  year = {$year$},
-}</pre></code>
-  <strong> Code. </strong> The code for this article was developed here: <a href=$codeLink$>$codeLink$</a>.</br>
-  <strong> License. </strong> This article is shared by the author under an <a href=../LICENSE>MIT License</a>.</br>
-$endif$
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </article>

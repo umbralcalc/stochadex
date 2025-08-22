@@ -65,15 +65,22 @@
       display: block;
     }
 
-    img {
-      max-width: 100%;
-      max-height: 100%;
-      text-align: justify;
+    .centered {
+      text-align: center;
     }
-  
-    p img {
+
+    img:not(.no-center), 
+    svg:not(.no-center) {
       display: block;
-      margin: 0 auto;
+      margin: 1em auto;
+      max-width: 100%;
+      height: auto;
+    }
+
+    img.no-center, 
+    svg.no-center {
+      display: inline;
+      margin: 0;
     }
 
     .otherimgs {
@@ -132,11 +139,7 @@
     }
 
     .body .repotitle {
-      padding:8px 0px;
       float: left;
-      color: LightGrey;
-      font-weight: bold;
-      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
       text-align: left;
     }
 
@@ -183,20 +186,28 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <article class="body">
-<a class="navbar" href="https://umbralcalc.github.io/">
+<a class="navbar" href="https://umbralcalc.github.io/stochadex">
 Home
 </a>
-<a class="navbar" href="https://umbralcalc.github.io/posts/about.html">
+<a class="navbar" href="https://github.com/umbralcalc">
 About
 </a>
+<div class="repotitle">
+<span class="logofavicon"> <img src="../assets/logo.png" width="120"></img></span>
+</div>
 </br>
 </br>
 </br>
-
-<h1></h1>
 <h1 id="introduction">Introduction</h1>
-<p>Why no mathematics?</p>
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 991.1408133125212 567.9820582836867" width="495.570406656" height="283.991029142">
+<div style="height:0.75em;">
+
+</div>
+<h2 id="why-no-mathematics">Why no mathematics?</h2>
+<p>Mathematical concepts and tools are absolutely essential to understanding and deriving deeper relationships when analysing systems in the real world.</p>
+<p>While the explanatory power of mathematics is enormous, its power to effectively communicate ideas is limited by layers of pre-requiste knowledge. So I thought it would be cool to try something a bit different.</p>
+<p>Writing documentation for <a href="https://umbralcalc.github.io/stochadex">the ‘stochadex’ project</a> provides us with the opportunity to explore the technical foundations for constructing simulations of the real world through the powerful lenses of stochastic phenomena and probabilistic thinking.</p>
+<p>However, instead of churning through all of these interesting concepts with mathematical symbols (which I still love by the way!), I’ve constructed a diagrammatic language for understanding simulated systems. I’ve used these completely in place of any mathematical formalism throughout these ‘stochadocs’.</p>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 991.1408133125212 567.9820582836867" width="743.355609984" height="425.986543713">
 <!-- svg-source:excalidraw -->
 <metadata></metadata><defs>
 <style class="style-fonts">
