@@ -6,6 +6,12 @@ logo: true
 # Quickstart
 <div style="height:0.75em;"></div>
 
+## Cloning the repository
+
+```shell
+git clone git@github.com:umbralcalc/stochadex.git
+```
+
 ## Building and running the binary
 
 ```shell
@@ -49,6 +55,4 @@ You can add any new simulation partition you like by following the patterns for 
 
 The **pkg/analysis** package provides tools for analysing simulation outputs and building new simulations on top of them. The plots work well within GoNB notebooks (notebooks with a Go-friendly Jupyter Kernel) and there are some simple examples of what you can do provided the **nbs/** folder. So take a look!
 
-```txt
-In order to use the GoNB Jupyter Kernel, please install GoNB from here: https://github.com/janpfeifer/gonb.
-```
+In order to use the GoNB Jupyter Kernel, please install GoNB from here: [https://github.com/janpfeifer/gonb](https://github.com/janpfeifer/gonb).
