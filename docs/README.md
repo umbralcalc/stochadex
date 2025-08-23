@@ -7,7 +7,7 @@ title: "Home"
 <div class="centered"><a href="https://github.com/umbralcalc/stochadex"><img src="https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&amp;logo=github&amp;logoColor=white" class="no-center" alt="Github" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" height="27" class="no-center" alt="MIT" /></a></div>
 <div style="height:0.75em;"></div>
 
-# So what is the 'stochadex' project?
+## So what is the 'stochadex' project?
 
 It's a simulation engine which can be used to generate samples from and statistically infer a whole 'Pokédex' of possible systems.
 

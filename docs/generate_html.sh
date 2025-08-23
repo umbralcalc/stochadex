@@ -37,5 +37,11 @@ for pkg in $(go list ../... | grep '/pkg/'); do
     gomarkdoc $pkg --output _pkg/$out.md
     # hack fixes headings
     sed -i 's#</a>#</a>\n#g' _pkg/$out.md
+    # hack adds markdown config
+    sed -i "1i\\
+---\\
+title: \"$out\"\\
+logo: true\\
+---" _pkg/$out.md
     pandoc _pkg/$out.md -o pkg/$out.html --template=template.html
 done
