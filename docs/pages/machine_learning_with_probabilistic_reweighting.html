@@ -195,42 +195,10 @@ About
 </br>
 </br>
 </br>
-<h1 id="quickstart">Quickstart</h1>
+<h1 id="machine-learning-with-probabilistic-reweighting">Machine learning with probabilistic reweighting</h1>
 <div style="height:0.75em;">
 
 </div>
-<h2 id="cloning-the-repository">Cloning the repository</h2>
-<pre class="shell"><code>git clone git@github.com:umbralcalc/stochadex.git</code></pre>
-<h2 id="building-and-running-the-binary">Building and running the binary</h2>
-<pre class="shell"><code># update the go modules
-go mod tidy
-
-# build the binary
-go build -o bin/ ./cmd/stochadex
-
-# run your config
-./bin/stochadex --config ./cfg/example_config.yaml</code></pre>
-<h2 id="running-over-websocket">Running over websocket</h2>
-<pre class="shell"><code># run the stochadex with a socket config
-./bin/stochadex --config ./cfg/example_config.yaml \
---socket ./cfg/socket.yaml</code></pre>
-<h2 id="building-and-running-the-containerised-version-may-need-sudo">Building and running the containerised version (may need sudo)</h2>
-<pre class="shell"><code># build the stochadex container
-docker build -t stochadex -f Dockerfile.stochadex .
-
-# run the binary in the container with your configs
-docker run -p 2112:2112 stochadex --config ./cfg/example_config.yaml \
---socket ./cfg/socket.yaml</code></pre>
-<h2 id="developing-the-code">Developing the code</h2>
-<p>You can add any new simulation partition you like by following the patterns for other processes given, e.g., in the <a href="https://umbralcalc.github.io/stochadex/pkg/continuous.html">pkg/continuous</a> package.</p>
-<ul>
-<li>The main step is to create a new struct for your partition iterator which implements the <a href="https://umbralcalc.github.io/stochadex/pkg/simulator.html#Iteration">simulator.Iteration</a> interface.</li>
-<li>It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls <a href="https://umbralcalc.github.io/stochadex/pkg/simulator.html#RunWithHarnesses">simulator.RunWithHarnesses</a>.</li>
-</ul>
-<h2 id="using-the-analysis-package">Using the analysis package</h2>
-<p>The <a href="https://umbralcalc.github.io/stochadex/pkg/analysis.html">pkg/analysis</a> package provides tools for analysing simulation outputs and building new simulations.</p>
-<p>The plots work well within GoNB notebooks (notebooks with a Go-friendly Jupyter Kernel) and there are some simple examples of what you can do provided the <a href="https://github.com/umbralcalc/stochadex/tree/main/nbs">nbs/</a> folder.</p>
-<p>In order to use the GoNB Jupyter Kernel, please install GoNB from here: <a href="https://github.com/janpfeifer/gonb">https://github.com/janpfeifer/gonb</a>.</p>
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </article>

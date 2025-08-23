@@ -21,8 +21,20 @@ While the concept of a 'generalised simulation engine' isn't new (see, e.g., [Si
 
 ## Documentation: the 'stochadocs'
 
+The fundamentals
+
 - [Quickstart](https://umbralcalc.github.io/stochadex/pages/quickstart.html)
 - [Introduction](https://umbralcalc.github.io/stochadex/pages/introduction.html)
+- [Computational formalism](https://umbralcalc.github.io/stochadex/pages/computational_formalism.html)
+- [Probabilistic computations](https://umbralcalc.github.io/stochadex/pages/probabilistic_computations.html)
+
+Various example applications
+
+- [Simulating memoryless phenomena](https://umbralcalc.github.io/stochadex/pages/simulating_memoryless_phenomena.html)
+- [Simulating non-memoryless phenomena](https://umbralcalc.github.io/stochadex/pages/simulating_non_memoryless_phenomena.html)
+- [Machine learning with probabilistic reweighting](https://umbralcalc.github.io/stochadex/pages/machine_learning_with_probabilistic_reweighting.html)
+- [Machine learning with generalised linear models (GLMs)](https://umbralcalc.github.io/stochadex/pages/machine_learning_with_generalised_linear_models.html)
+- [Learning simulations directly with online posterior estimation](https://umbralcalc.github.io/stochadex/pages/learning_simulations_directly_with_online_posterior_estimation.html)
 
 ## Documentation: the packages
 
