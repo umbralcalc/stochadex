@@ -46,13 +46,13 @@ docker run -p 2112:2112 stochadex --config ./cfg/example_config.yaml \
 
 ## Developing the code
 
-You can add any new simulation partition you like by following the patterns for other processes given, e.g., in the **pkg/continuous** package.
+You can add any new simulation partition you like by following the patterns for other processes given, e.g., in the [pkg/continuous](https://umbralcalc.github.io/stochadex/pkg/continuous.html) package.
 
-- The main step is to create a new struct for your partition iterator which implements the **simulator.Iteration** interface.
-- It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls **simulator.RunWithHarnesses**.
+- The main step is to create a new struct for your partition iterator which implements the [simulator.Iteration](https://umbralcalc.github.io/stochadex/pkg/simulator.html#Iteration) interface.
+- It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls [simulator.RunWithHarnesses](https://umbralcalc.github.io/stochadex/pkg/simulator.html#RunWithHarnesses).
 
 ## Using the analysis package
 
-The **pkg/analysis** package provides tools for analysing simulation outputs and building new simulations on top of them. The plots work well within GoNB notebooks (notebooks with a Go-friendly Jupyter Kernel) and there are some simple examples of what you can do provided the **nbs/** folder. So take a look!
+The [pkg/analysis](https://umbralcalc.github.io/stochadex/pkg/analysis.html) package provides tools for analysing simulation outputs and building new simulations on top of them. The plots work well within GoNB notebooks (notebooks with a Go-friendly Jupyter Kernel) and there are some simple examples of what you can do provided the [nbs/](https://github.com/umbralcalc/stochadex/tree/main/nbs) folder. So take a look!
 
 In order to use the GoNB Jupyter Kernel, please install GoNB from here: [https://github.com/janpfeifer/gonb](https://github.com/janpfeifer/gonb).

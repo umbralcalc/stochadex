@@ -222,13 +222,13 @@ docker build -t stochadex -f Dockerfile.stochadex .
 docker run -p 2112:2112 stochadex --config ./cfg/example_config.yaml \
 --socket ./cfg/socket.yaml</code></pre>
 <h2 id="developing-the-code">Developing the code</h2>
-<p>You can add any new simulation partition you like by following the patterns for other processes given, e.g., in the <strong>pkg/continuous</strong> package.</p>
+<p>You can add any new simulation partition you like by following the patterns for other processes given, e.g., in the <a href="https://umbralcalc.github.io/stochadex/pkg/continuous.html">pkg/continuous</a> package.</p>
 <ul>
-<li>The main step is to create a new struct for your partition iterator which implements the <strong>simulator.Iteration</strong> interface.</li>
-<li>It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls <strong>simulator.RunWithHarnesses</strong>.</li>
+<li>The main step is to create a new struct for your partition iterator which implements the <a href="https://umbralcalc.github.io/stochadex/pkg/simulator.html#Iteration">simulator.Iteration</a> interface.</li>
+<li>It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls <a href="https://umbralcalc.github.io/stochadex/pkg/simulator.html#RunWithHarnesses">simulator.RunWithHarnesses</a>.</li>
 </ul>
 <h2 id="using-the-analysis-package">Using the analysis package</h2>
-<p>The <strong>pkg/analysis</strong> package provides tools for analysing simulation outputs and building new simulations on top of them. The plots work well within GoNB notebooks (notebooks with a Go-friendly Jupyter Kernel) and there are some simple examples of what you can do provided the <strong>nbs/</strong> folder. So take a look!</p>
+<p>The <a href="https://umbralcalc.github.io/stochadex/pkg/analysis.html">pkg/analysis</a> package provides tools for analysing simulation outputs and building new simulations on top of them. The plots work well within GoNB notebooks (notebooks with a Go-friendly Jupyter Kernel) and there are some simple examples of what you can do provided the <a href="https://github.com/umbralcalc/stochadex/tree/main/nbs">nbs/</a> folder. So take a look!</p>
 <p>In order to use the GoNB Jupyter Kernel, please install GoNB from here: <a href="https://github.com/janpfeifer/gonb">https://github.com/janpfeifer/gonb</a>.</p>
 <script type="text/javascript" id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
