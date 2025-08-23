@@ -30,9 +30,12 @@ for filename in _pages/*.md; do
     ${filename};
 done
 
-# ...and generate package pages
+# ...and generate package pages using gomarkdoc
+# (go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest)
 for pkg in $(go list ../... | grep '/pkg/'); do
-    out=pkg/$(basename $pkg).html
-    godoc -url=/pkg/$pkg/ > "$out"
-    pandoc "$out" -o "$out" --template=template.html
+    out=$(basename $pkg)
+    gomarkdoc $pkg --output _pkg/$out.md
+    # hack fixes headings
+    sed -i 's#</a>#</a>\n#g' _pkg/$out.md
+    pandoc _pkg/$out.md -o pkg/$out.html --template=template.html
 done
