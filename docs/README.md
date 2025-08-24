@@ -4,12 +4,12 @@ title: "Home"
 
 ![](./assets/logo.png)
 
-<div class="centered"><a href="https://github.com/umbralcalc/stochadex"><img src="https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&amp;logo=github&amp;logoColor=white" class="no-center" alt="Github" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" height="27" class="no-center" alt="MIT" /></a></div>
+<div class="centered"><a href="https://github.com/umbralcalc/stochadex"><img src="https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&amp;logo=github&amp;logoColor=white" class="no-center" alt="Github" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" height="27" class="no-center" alt="MIT" /></a> <a href="https://go.dev/"><img src="https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white" class="no-center" alt="Go" /></a></div>
 <div style="height:0.75em;"></div>
 
 ## So what is the 'stochadex' project?
 
-It's a simulation engine which can be used to generate samples from and statistically infer a whole 'Pokédex' of possible systems.
+It's a simulation engine written in Go which can be used to generate samples from and statistically infer a whole 'Pokédex' of possible systems.
 
 'Pokédex' here is just a fanciful metaphor for the large range of simulations that might come in useful when taming the complex descriptions of real world systems... and _kind of_ gives us the name 'stochadex'.
 
@@ -19,24 +19,10 @@ From a software engineering perspective, the stochadex simulation framework abst
 
 While the concept of a 'generalised simulation engine' isn't new (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), this simulation engine is designed based on some deep research into [simulating a wide variety of real world systems](https://github.com/umbralcalc) and has a structure which allows for a lot of cool applications!
 
-## Documentation: the 'stochadocs'
+## [Quickstart](https://umbralcalc.github.io/stochadex/pages/quickstart.html)
+<div style="height:0.75em;"></div>
 
-The fundamentals
-
-- [Quickstart](https://umbralcalc.github.io/stochadex/pages/quickstart.html)
-- [Introduction](https://umbralcalc.github.io/stochadex/pages/introduction.html)
-- [Computational formalism](https://umbralcalc.github.io/stochadex/pages/computational_formalism.html)
-- [Probabilistic computations](https://umbralcalc.github.io/stochadex/pages/probabilistic_computations.html)
-
-Various example applications
-
-- [Simulating memoryless phenomena](https://umbralcalc.github.io/stochadex/pages/simulating_memoryless_phenomena.html)
-- [Simulating non-memoryless phenomena](https://umbralcalc.github.io/stochadex/pages/simulating_non_memoryless_phenomena.html)
-- [Machine learning with probabilistic reweighting](https://umbralcalc.github.io/stochadex/pages/machine_learning_with_probabilistic_reweighting.html)
-- [Machine learning with generalised linear models (GLMs)](https://umbralcalc.github.io/stochadex/pages/machine_learning_with_generalised_linear_models.html)
-- [Learning simulations directly with online posterior estimation](https://umbralcalc.github.io/stochadex/pages/learning_simulations_directly_with_online_posterior_estimation.html)
-
-## Documentation: the packages
+## Packages within the project
 
 - [github.com/umbralcalc/stochadex/pkg/analysis](https://umbralcalc.github.io/stochadex/pkg/analysis.html)
 - [github.com/umbralcalc/stochadex/pkg/api](https://umbralcalc.github.io/stochadex/pkg/api.html)
@@ -47,3 +33,17 @@ Various example applications
 - [github.com/umbralcalc/stochadex/pkg/kernels](https://umbralcalc.github.io/stochadex/pkg/kernels.html)
 - [github.com/umbralcalc/stochadex/pkg/keyboard](https://umbralcalc.github.io/stochadex/pkg/keyboard.html)
 - [github.com/umbralcalc/stochadex/pkg/simulator](https://umbralcalc.github.io/stochadex/pkg/simulator.html)
+
+## The fundamentals
+
+- [Introduction](https://umbralcalc.github.io/stochadex/pages/introduction.html)
+- [Computational formalism](https://umbralcalc.github.io/stochadex/pages/computational_formalism.html)
+- [Probabilistic computations](https://umbralcalc.github.io/stochadex/pages/probabilistic_computations.html)
+
+## Various example applications
+
+- [Simulating memoryless phenomena](https://umbralcalc.github.io/stochadex/pages/simulating_memoryless_phenomena.html)
+- [Simulating non-memoryless phenomena](https://umbralcalc.github.io/stochadex/pages/simulating_non_memoryless_phenomena.html)
+- [Machine learning with probabilistic reweighting](https://umbralcalc.github.io/stochadex/pages/machine_learning_with_probabilistic_reweighting.html)
+- [Machine learning with generalised linear models (GLMs)](https://umbralcalc.github.io/stochadex/pages/machine_learning_with_generalised_linear_models.html)
+- [Learning simulations directly with online posterior estimation](https://umbralcalc.github.io/stochadex/pages/learning_simulations_directly_with_online_posterior_estimation.html)
