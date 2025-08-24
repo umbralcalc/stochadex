@@ -6,11 +6,13 @@ logo: true
 # Introduction
 <div style="height:0.75em;"></div>
 
-## What's the point?
+## Who are these docs for?
 
-Writing documentation for [the 'stochadex' project](https://umbralcalc.github.io/stochadex) provides us with the opportunity to explore the technical foundations for constructing simulations of the real world through the powerful lenses of stochastic phenomena and probabilistic thinking.
+Welcome to the documentation for the [the stochadex project](https://umbralcalc.github.io/stochadex), a.k.a., the 'stochadocs'!
 
-These 'stochadocs' are intended to both motivate the design of the software at a higher level and develop a deeper understanding of simulations in practice.
+This documentation is aimed users wanting to get to grips with the software and/or understand more about simulated systems in general.
+
+In the latter case, treat the stochadocs as an opportunity to explore the technical foundations for constructing simulations of the real world through the powerful lenses of stochastic phenomena and probabilistic thinking.
 
 ## Why no mathematics?
 
