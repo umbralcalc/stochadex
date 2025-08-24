@@ -19,9 +19,6 @@ From a software engineering perspective, the stochadex simulation framework abst
 
 While the concept of a 'generalised simulation engine' isn't new (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), this simulation engine is designed based on some deep research into [simulating a wide variety of real world systems](https://github.com/umbralcalc) and has a structure which allows for a lot of cool applications!
 
-## [Quickstart](https://umbralcalc.github.io/stochadex/pages/quickstart.html)
-<div style="height:0.75em;"></div>
-
 ## Packages within the project
 
 - [github.com/umbralcalc/stochadex/pkg/analysis](https://umbralcalc.github.io/stochadex/pkg/analysis.html)
