@@ -9,15 +9,15 @@ title: "Home"
 
 ## So what is the 'stochadex' project?
 
-It's a simulation engine written in Go which can be used to generate samples from and statistically infer a whole 'Pokédex' of possible systems.
+It's a simulation engine written in Go which can be used to generate samples from, and statistically infer, a whole 'Pokédex' of possible systems.
 
-'Pokédex' here is just a fanciful metaphor for the large range of simulations that might come in useful when taming the complex descriptions of real world systems... and _kind of_ gives us the name 'stochadex'.
+'Pokédex' here is just a fanciful metaphor for the many types of simulation that come in useful when taming the complex dynamics of real world systems... and _kind of_ gives us the name 'stochadex'.
 
 The hope for this project is that it can become the basis upon which to build generalised software solutions for a whole lot of different and interesting problems.
 
 From a software engineering perspective, the stochadex simulation framework abstracts away many of the common features that sampling algorithms have for performing these computations behind a highly-configurable interface.
 
-While the concept of a 'generalised simulation engine' isn't new (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), this simulation engine is designed based on some deep research into [simulating a wide variety of real world systems](https://github.com/umbralcalc) and has a structure which allows for a lot of cool applications!
+While the concept of a 'generalised simulation engine' isn't new (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), this simulation engine is designed based on deep research into [simulating a wide variety of real world systems over many years](https://github.com/umbralcalc) and has a structure which allows for a lot of cool applications!
 
 ## Packages within the project
 
