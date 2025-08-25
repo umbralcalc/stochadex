@@ -8,13 +8,15 @@ logo: true
 
 ## Who are these docs for?
 
-Welcome to the documentation for the [the stochadex project](https://umbralcalc.github.io/stochadex), a.k.a., the 'stochadocs'!
+Welcome to the documentation for [the stochadex project](https://umbralcalc.github.io/stochadex), a.k.a., the 'stochadocs'!
 
 This documentation is aimed users wanting to get to grips with the software and/or understand more about simulated systems in general.
 
-In the latter case, treat the stochadocs as an opportunity to explore the technical foundations for constructing simulations of the real world through the powerful lenses of stochastic phenomena and probabilistic thinking.
+In the latter case, treat the stochadocs as an opportunity to explore the technical foundations for constructing simulations of the real world.
 
-## Why no mathematics?
+You will see the power of stochastic phenomena and probabilistic thinking without mathematical symbols too.
+
+## Why no mathematical symbols?
 
 Mathematical concepts and tools are absolutely essential to understanding and deriving deeper relationships when analysing systems in the real world.
 
