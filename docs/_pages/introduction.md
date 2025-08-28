@@ -10,7 +10,7 @@ logo: true
 
 Welcome to the documentation for [the stochadex project](https://umbralcalc.github.io/stochadex), a.k.a., the 'stochadocs'!
 
-This documentation is aimed users wanting to get to grips with the software and/or understand more about simulated systems in general.
+This documentation is aimed at users wanting to get to grips with the software and/or understand more about simulated systems in general.
 
 In the latter case, treat the stochadocs as an opportunity to explore the technical foundations for constructing simulations of the real world.
 
