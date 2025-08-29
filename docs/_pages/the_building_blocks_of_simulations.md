@@ -1,9 +1,9 @@
 ---
-title: "Computational formalism"
+title: "The building blocks of simulations"
 logo: true
 ---
 
-# Computational formalism
+# The building blocks of simulations
 <div style="height:0.75em;"></div>
 
 ## Time and its 'history'

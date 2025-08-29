@@ -1,9 +1,9 @@
 ---
-title: "Introduction"
+title: "Introducing the 'stochadocs'"
 logo: true
 ---
 
-# Introduction
+# Introducing the 'stochadocs'
 <div style="height:0.75em;"></div>
 
 ## Who are these docs for?

@@ -1,9 +1,9 @@
 ---
-title: "Probabilistic computations"
+title: "Understanding probabilities in simulations"
 logo: true
 ---
 
-# Probabilistic computations
+# Understanding probabilities in simulations
 <div style="height:0.75em;"></div>
 
 ## Why do we care?

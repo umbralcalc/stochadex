@@ -40,9 +40,9 @@ The stochadex can be used to create these simulations and ensure that they behav
 
 ## The fundamentals
 
-- [Introduction](https://umbralcalc.github.io/stochadex/pages/introduction.html)
-- [Computational formalism](https://umbralcalc.github.io/stochadex/pages/computational_formalism.html)
-- [Probabilistic computations](https://umbralcalc.github.io/stochadex/pages/probabilistic_computations.html)
+- [Introducing the 'stochadocs'](https://umbralcalc.github.io/stochadex/pages/introducing_the_stochadocs.html)
+- [The building blocks of simulations](https://umbralcalc.github.io/stochadex/pages/the_building_blocks_of_simulations.html)
+- [Understanding probabilities in simulations](https://umbralcalc.github.io/stochadex/pages/understanding_probabilities_in_simulations.html)
 
 ## Example applications
 
