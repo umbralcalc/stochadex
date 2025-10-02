@@ -5,7 +5,7 @@ go 1.24.4
 require (
 	github.com/akamensky/argparse v1.4.0
 	gonum.org/v1/gonum v0.16.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.9
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -18,14 +18,14 @@ require (
 require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
 )
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/go-echarts/go-echarts/v2 v2.6.0
+	github.com/go-echarts/go-echarts/v2 v2.6.3
 	github.com/go-gota/gota v0.12.0
 	github.com/lib/pq v1.10.9
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/tools v0.34.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/tools v0.37.0 // indirect
 )
