@@ -58,4 +58,4 @@ The stochadex can be used to create these simulations and ensure that they behav
 - [Inferring simulations of stock market data for backtesting portfolios](https://github.com/umbralcalc/qwakes)
 - [Fish ecosystem simulations using environment data to evaluate sustanability policies](https://github.com/umbralcalc/anglersim)
 - [Data-driven simulations for UK woodland health monitoring and forecasting](https://github.com/umbralcalc/forecastree)
-- [Decision-making games made for the python programmer](https://github.com/umbralcalc/dexetera)
+- [Decision-making games for the python programmer](https://github.com/umbralcalc/dexetera)
