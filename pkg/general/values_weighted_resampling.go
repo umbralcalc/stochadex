@@ -69,5 +69,5 @@ func (v *ValuesWeightedResamplingIteration) Iterate(
 	}
 	indexPair := indices[int(v.catDist.Rand())]
 	dataPartition := params.GetIndex("data_values_partitions", indexPair[1])
-	return stateHistories[int(dataPartition)].Values.RawRowView(indexPair[0])
+	return stateHistories[int(dataPartition)].CopyStateRow(indexPair[0])
 }
