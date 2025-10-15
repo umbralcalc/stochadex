@@ -7,24 +7,31 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// WindowedPartition configures a partition to simulate within a
-// windowed duration.
+// WindowedPartition configures a partition that participates in a finite
+// windowed simulation.
+//
+// Usage hints:
+//   - Partition defines the inner partition and its params.
+//   - OutsideUpstreams map allows wiring upstreams from outside the window.
 type WindowedPartition struct {
 	Partition        *simulator.PartitionConfig
 	OutsideUpstreams map[string]simulator.NamedUpstreamConfig
 }
 
-// WindowedPartitions defines a windowed history of data from
-// partitions in storage and possible additional partitions to include
-// when simulating the window duration.
+// WindowedPartitions defines the sliding-window context used by analysis.
+//
+// Usage hints:
+//   - Partitions are simulated inside the window.
+//   - Data references supply historical values to seed and drive the window.
+//   - Depth is the number of steps in the window.
 type WindowedPartitions struct {
 	Partitions []WindowedPartition
 	Data       []DataRef
 	Depth      int
 }
 
-// ParameterisedModel defines a likelihood model for the data with its
-// corresponding parameters to set.
+// ParameterisedModel bundles a likelihood distribution with its parameter
+// configuration and any cross-partition parameter wiring required at runtime.
 type ParameterisedModel struct {
 	Likelihood         inference.LikelihoodDistribution
 	Params             simulator.Params
@@ -32,7 +39,7 @@ type ParameterisedModel struct {
 	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
 }
 
-// Init populates the model parameter fields if they have not been set.
+// Init ensures internal parameter wiring maps are initialised.
 func (p *ParameterisedModel) Init() {
 	if p.ParamsAsPartitions == nil {
 		p.ParamsAsPartitions = make(map[string][]string)
@@ -43,8 +50,8 @@ func (p *ParameterisedModel) Init() {
 	}
 }
 
-// AppliedLikelihoodComparison is the base configuration for a rolling
-// comparison between a referenced dataset and referenced likelihood model.
+// AppliedLikelihoodComparison configures a rolling likelihood comparison
+// between referenced data and a model over a sliding window.
 type AppliedLikelihoodComparison struct {
 	Name   string
 	Model  ParameterisedModel
@@ -52,8 +59,9 @@ type AppliedLikelihoodComparison struct {
 	Window WindowedPartitions
 }
 
-// NewLikelihoodComparisonPartition creates a new PartitionConfig for
-// a rolling likelihood comparison.
+// NewLikelihoodComparisonPartition builds a PartitionConfig embedding an
+// inner windowed simulation to evaluate the likelihood over a rolling window,
+// producing a per-step comparison score.
 func NewLikelihoodComparisonPartition(
 	applied AppliedLikelihoodComparison,
 	storage *simulator.StateTimeStorage,
@@ -149,8 +157,8 @@ func NewLikelihoodComparisonPartition(
 	}
 }
 
-// ParameterisedModelWithGradient defines a ParameterisedModel
-// which has a gradient.
+// ParameterisedModelWithGradient augments ParameterisedModel with gradient
+// support for optimisation routines.
 type ParameterisedModelWithGradient struct {
 	Likelihood         inference.LikelihoodDistributionWithGradient
 	Params             simulator.Params
@@ -158,7 +166,7 @@ type ParameterisedModelWithGradient struct {
 	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
 }
 
-// Init populates the model parameter fields if they have not been set.
+// Init ensures internal parameter wiring maps are initialised.
 func (p *ParameterisedModelWithGradient) Init() {
 	if p.ParamsAsPartitions == nil {
 		p.ParamsAsPartitions = make(map[string][]string)
@@ -169,8 +177,8 @@ func (p *ParameterisedModelWithGradient) Init() {
 	}
 }
 
-// LikelihoodMeanGradient defines the function which takes the gradient
-// of the likelihood mean with respect to the desired fit parameters.
+// LikelihoodMeanGradient specifies a function mapping params and the gradient
+// of the likelihood mean to a parameter update direction.
 type LikelihoodMeanGradient struct {
 	Function func(
 		params *simulator.Params,
@@ -179,9 +187,9 @@ type LikelihoodMeanGradient struct {
 	Width int
 }
 
-// AppliedLikelihoodMeanFunctionFit is the base configuration for
-// fitting the mean of a referenced likelihood model with a function
-// specified by its gradient with respect to the desired fit parameters.
+// AppliedLikelihoodMeanFunctionFit configures online fitting of the model's
+// likelihood mean to data using a gradient function and learning rate over a
+// finite descent schedule.
 type AppliedLikelihoodMeanFunctionFit struct {
 	Name              string
 	Model             ParameterisedModelWithGradient
@@ -192,9 +200,9 @@ type AppliedLikelihoodMeanFunctionFit struct {
 	DescentIterations int
 }
 
-// NewLikelihoodMeanFunctionFitPartition creates a new PartitionConfig
-// fitting the mean of a referenced likelihood model with a function
-// specified by its gradient with respect to the desired fit parameters.
+// NewLikelihoodMeanFunctionFitPartition builds a PartitionConfig embedding an
+// inner simulation that runs gradient descent to fit the likelihood mean to
+// the referenced data window.
 func NewLikelihoodMeanFunctionFitPartition(
 	applied AppliedLikelihoodMeanFunctionFit,
 	storage *simulator.StateTimeStorage,

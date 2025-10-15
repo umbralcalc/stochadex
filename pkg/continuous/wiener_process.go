@@ -9,8 +9,13 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// WienerProcessIteration defines an iteration for a simple Wiener
-// process.
+// WienerProcessIteration steps a standard Wiener process (Brownian motion)
+// per state dimension.
+//
+// Usage hints:
+//   - Provide a per-dimension "variances" param; next increment uses dW ~ N(0, dt).
+//   - Ensure the simulation timestep is set appropriately via the timestep function.
+//   - Seed is taken from the partition's Settings for reproducibility.
 type WienerProcessIteration struct {
 	unitNormalDist *distuv.Normal
 }

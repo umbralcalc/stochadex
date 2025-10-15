@@ -9,8 +9,13 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// GeometricBrownianMotionIteration defines an iteration for a simple
-// geometric Brownian motion.
+// GeometricBrownianMotionIteration steps a multiplicative (geometric)
+// Brownian motion per dimension.
+//
+// Usage hints:
+//   - Provide per-dimension "variances"; multiplicative noise uses sqrt(variance*dt).
+//   - Consider log-transforms if you need additive dynamics in log space.
+//   - Seed is taken from the partition's Settings for reproducibility.
 type GeometricBrownianMotionIteration struct {
 	unitNormalDist *distuv.Normal
 }

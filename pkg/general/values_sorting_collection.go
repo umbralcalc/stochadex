@@ -4,17 +4,18 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// SortingValues specifies a new set of values to be added to the
-// sorting collection.
+// SortingValues encapsulates a new entry to add to the sorting collection.
 type SortingValues struct {
 	SortBy float64
 	Values []float64
 }
 
-// OtherPartitionsPushAndSortFunction retrieves the next values to
-// push from the last values of another partition and sorts by the values
-// of yet another partition. In the former case, if the first value is
-// equal to the "empty_value" param then nothing is pushed.
+// OtherPartitionsPushAndSortFunction retrieves values from one partition and
+// sorts by another partition's value.
+//
+// Usage hints:
+//   - Provide: "other_partition", "value_indices", "other_partition_sort_by",
+//     and "value_index_sort_by". Skip push if first value equals "empty_value".
 func OtherPartitionsPushAndSortFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -37,10 +38,10 @@ func OtherPartitionsPushAndSortFunction(
 	}, true
 }
 
-// ParamValuesPushAndSortFunction retrieves the next values to
-// push from the "next_values_push" params and if the first value is equal
-// to the "empty_value" param then nothing is pushed. It also sorts by
-// the "next_values_sort_by" param.
+// ParamValuesPushAndSortFunction uses params for both values and sort key.
+//
+// Usage hints:
+//   - Provide: "next_values_push", "empty_value", and "next_values_sort_by".
 func ParamValuesPushAndSortFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -57,10 +58,11 @@ func ParamValuesPushAndSortFunction(
 	}, true
 }
 
-// ValuesSortingCollectionIteration maintains a sorted collection
-// of same-size state values. You can push more to the collection
-// depending on the output of a user-specified function, where values
-// are removed when they are sorted out of the full collection size.
+// ValuesSortingCollectionIteration maintains a sorted collection of entries.
+//
+// Usage hints:
+//   - Provide: "values_state_width" (entry width minus 1 for sort key) and
+//     "empty_value" sentinel. Set PushAndSort to define insertion behaviour.
 type ValuesSortingCollectionIteration struct {
 	PushAndSort func(
 		params *simulator.Params,

@@ -7,9 +7,12 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// BernoulliProcessIteration observes a success (or failure) with
-// a 1 (or 0) depending on the probability provided for each state
-// value index.
+// BernoulliProcessIteration emits 1/0 based on per-dimension success probs.
+//
+// Usage hints:
+//   - Provide "state_value_observation_probs" with values in [0, 1].
+//   - Outputs are written in-place to the current state row and returned.
+//   - Seed is taken from the partition's Settings for reproducibility.
 type BernoulliProcessIteration struct {
 	uniformDist *distuv.Uniform
 }

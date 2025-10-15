@@ -5,10 +5,11 @@ import (
 	"sync"
 )
 
-// StateTimeStorage dynamically adapts its structure to support incoming
-// time series data from the simulation output in a thread-safe manner.
-// This is done in a way to minimise write blocking for better performance
-// in a concurrent program.
+// StateTimeStorage stores per-partition time series with minimal contention.
+//
+// Usage hints:
+//   - Use ConcurrentAppend to add samples safely; times are deduplicated.
+//   - GetValues/GetTimes retrieve stored series; Set* replace series entirely.
 type StateTimeStorage struct {
 	indexByName map[string]int
 	store       [][][]float64
@@ -16,8 +17,7 @@ type StateTimeStorage struct {
 	mutex       *sync.Mutex
 }
 
-// GetIndex retrieves the index for provided a key name. This will make
-// a new index if the name doesn't yet exist in the store.
+// GetIndex returns or creates the index for a name.
 func (s *StateTimeStorage) GetIndex(name string) int {
 	var index int
 	var exists bool
@@ -29,7 +29,7 @@ func (s *StateTimeStorage) GetIndex(name string) int {
 	return index
 }
 
-// GetNames retrieves all the names in the store to key each time series.
+// GetNames returns all partition names present in the store.
 func (s *StateTimeStorage) GetNames() []string {
 	names := make([]string, 0)
 	for name := range s.indexByName {
@@ -38,8 +38,7 @@ func (s *StateTimeStorage) GetNames() []string {
 	return names
 }
 
-// GetValues retrieves all the time series values keyed by the name. This
-// method will panic if the name doesn't exist in the store.
+// GetValues returns all time series for name, panicking if absent.
 func (s *StateTimeStorage) GetValues(name string) [][]float64 {
 	index, ok := s.indexByName[name]
 	if !ok {
@@ -50,25 +49,23 @@ func (s *StateTimeStorage) GetValues(name string) [][]float64 {
 	return s.store[index]
 }
 
-// SetValues sets all the time series values keyed by the name.
+// SetValues replaces the entire series for name.
 func (s *StateTimeStorage) SetValues(name string, values [][]float64) {
 	s.store[s.GetIndex(name)] = values
 }
 
-// GetTimes retrieves all the time values.
+// GetTimes returns the time axis.
 func (s *StateTimeStorage) GetTimes() []float64 {
 	return s.times
 }
 
-// SetTimes sets all the time values.
+// SetTimes replaces the time axis.
 func (s *StateTimeStorage) SetTimes(times []float64) {
 	s.times = times
 }
 
-// ConcurrentAppend adds another set of values to the time series data keyed
-// by the provided name. This method also handles dynamic extension of the
-// size of the store in response to the inputs, and can safely handle
-// concurrent calls within the same program.
+// ConcurrentAppend appends values for name and updates the time axis at most
+// once per unique timestamp. Safe for concurrent use.
 func (s *StateTimeStorage) ConcurrentAppend(
 	name string,
 	time float64,
@@ -99,7 +96,7 @@ func (s *StateTimeStorage) ConcurrentAppend(
 	}
 }
 
-// NewStateTimeStorage creates a new StateTimeStorage.
+// NewStateTimeStorage constructs a new StateTimeStorage.
 func NewStateTimeStorage() *StateTimeStorage {
 	var mutex sync.Mutex
 	return &StateTimeStorage{

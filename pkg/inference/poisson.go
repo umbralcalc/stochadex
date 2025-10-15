@@ -9,8 +9,11 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// PoissonLikelihoodDistribution assumes the real data are well described
-// by a Poisson distribution, given the input mean.
+// PoissonLikelihoodDistribution models count data with a Poisson distribution.
+//
+// Usage hints:
+//   - Provide mean via params or upstream partition outputs.
+//   - GenerateNewSamples draws iid Poisson variates per dimension.
 type PoissonLikelihoodDistribution struct {
 	Src  rand.Source
 	mean *mat.VecDense

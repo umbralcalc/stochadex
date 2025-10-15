@@ -7,9 +7,13 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// BinomialObservationProcessIteration observes each count value provided
-// with a binomial probability distribution - emulating a sequence of
-// Bernoulli trials.
+// BinomialObservationProcessIteration draws binomial counts for selected indices.
+//
+// Usage hints:
+//   - Provide: "observed_values" (counts), "state_value_observation_probs" (p's),
+//     and "state_value_observation_indices" (which entries to observe).
+//   - For each index i: draws Binomial(N=observed_values[i], p=probs[i]).
+//   - Seed is taken from the partition's Settings for reproducibility.
 type BinomialObservationProcessIteration struct {
 	binomialDist *distuv.Binomial
 }

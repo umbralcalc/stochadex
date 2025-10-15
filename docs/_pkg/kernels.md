@@ -49,9 +49,13 @@ import "github.com/umbralcalc/stochadex/pkg/kernels"
 
 <a name="BinnedIntegrationKernel"></a>
 
-## type [BinnedIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L10-L13>)
+## type [BinnedIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L13-L16>)
 
-BinnedIntegrationKernel outputs the configured binned values in time.
+BinnedIntegrationKernel outputs piecewise\-constant weights in time.
+
+Usage hints:
+
+- Provide "bin\_values" and "bin\_stepsize"; index is floor\(\(t\_now \- t\_past\)/stepsize\).
 
 ```go
 type BinnedIntegrationKernel struct {
@@ -61,7 +65,7 @@ type BinnedIntegrationKernel struct {
 
 <a name="BinnedIntegrationKernel.Configure"></a>
 
-### func \(\*BinnedIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L15-L18>)
+### func \(\*BinnedIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L18-L21>)
 
 ```go
 func (b *BinnedIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -71,7 +75,7 @@ func (b *BinnedIntegrationKernel) Configure(partitionIndex int, settings *simula
 
 <a name="BinnedIntegrationKernel.Evaluate"></a>
 
-### func \(\*BinnedIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L28-L33>)
+### func \(\*BinnedIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L31-L36>)
 
 ```go
 func (b *BinnedIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -81,7 +85,7 @@ func (b *BinnedIntegrationKernel) Evaluate(currentState []float64, pastState []f
 
 <a name="BinnedIntegrationKernel.SetParams"></a>
 
-### func \(\*BinnedIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L21-L23>)
+### func \(\*BinnedIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L24-L26>)
 
 ```go
 func (b *BinnedIntegrationKernel) SetParams(params *simulator.Params)
@@ -91,9 +95,13 @@ func (b *BinnedIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="ConstantIntegrationKernel"></a>
 
-## type [ConstantIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L8>)
+## type [ConstantIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L11>)
 
-ConstantIntegrationKernel just returns 1.0 for every value.
+ConstantIntegrationKernel returns 1.0 for every sample.
+
+Usage hints:
+
+- Use to compute simple \(unweighted\) sums or means.
 
 ```go
 type ConstantIntegrationKernel struct{}
@@ -101,7 +109,7 @@ type ConstantIntegrationKernel struct{}
 
 <a name="ConstantIntegrationKernel.Configure"></a>
 
-### func \(\*ConstantIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L10-L13>)
+### func \(\*ConstantIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L13-L16>)
 
 ```go
 func (c *ConstantIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -111,7 +119,7 @@ func (c *ConstantIntegrationKernel) Configure(partitionIndex int, settings *simu
 
 <a name="ConstantIntegrationKernel.Evaluate"></a>
 
-### func \(\*ConstantIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L21-L26>)
+### func \(\*ConstantIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L24-L29>)
 
 ```go
 func (c *ConstantIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -121,7 +129,7 @@ func (c *ConstantIntegrationKernel) Evaluate(currentState []float64, pastState [
 
 <a name="ConstantIntegrationKernel.SetParams"></a>
 
-### func \(\*ConstantIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L16-L18>)
+### func \(\*ConstantIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L19-L21>)
 
 ```go
 func (c *ConstantIntegrationKernel) SetParams(params *simulator.Params)
@@ -131,9 +139,14 @@ func (c *ConstantIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="ExponentialIntegrationKernel"></a>
 
-## type [ExponentialIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L10-L12>)
+## type [ExponentialIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L14-L16>)
 
-ExponentialIntegrationKernel is a simple exponential weighting in time.
+ExponentialIntegrationKernel applies exponential decay over time.
+
+Usage hints:
+
+- Provide "exponential\_weighting\_timescale"; weight = exp\(\(t\_past \- t\_now\)/tau\).
+- Suitable for recency\-weighted means.
 
 ```go
 type ExponentialIntegrationKernel struct {
@@ -143,7 +156,7 @@ type ExponentialIntegrationKernel struct {
 
 <a name="ExponentialIntegrationKernel.Configure"></a>
 
-### func \(\*ExponentialIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L14-L17>)
+### func \(\*ExponentialIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L18-L21>)
 
 ```go
 func (e *ExponentialIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -153,7 +166,7 @@ func (e *ExponentialIntegrationKernel) Configure(partitionIndex int, settings *s
 
 <a name="ExponentialIntegrationKernel.Evaluate"></a>
 
-### func \(\*ExponentialIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L26-L31>)
+### func \(\*ExponentialIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L30-L35>)
 
 ```go
 func (e *ExponentialIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -163,7 +176,7 @@ func (e *ExponentialIntegrationKernel) Evaluate(currentState []float64, pastStat
 
 <a name="ExponentialIntegrationKernel.SetParams"></a>
 
-### func \(\*ExponentialIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L20-L22>)
+### func \(\*ExponentialIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L24-L26>)
 
 ```go
 func (e *ExponentialIntegrationKernel) SetParams(params *simulator.Params)
@@ -173,9 +186,14 @@ func (e *ExponentialIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="GaussianStateIntegrationKernel"></a>
 
-## type [GaussianStateIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L13-L16>)
+## type [GaussianStateIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L17-L20>)
 
-GaussianStateIntegrationKernel applies a Gaussian kernel using an input covariance.
+GaussianStateIntegrationKernel applies a Gaussian state\-distance kernel using an input covariance matrix.
+
+Usage hints:
+
+- Provide "covariance\_matrix" as a flattened symmetric matrix \(row\-major\).
+- Weights are exp\(\-0.5 \(x\-μ\)^T Σ^\{\-1\} \(x\-μ\)\) / det\(Σ\).
 
 ```go
 type GaussianStateIntegrationKernel struct {
@@ -185,7 +203,7 @@ type GaussianStateIntegrationKernel struct {
 
 <a name="GaussianStateIntegrationKernel.Configure"></a>
 
-### func \(\*GaussianStateIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L18-L21>)
+### func \(\*GaussianStateIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L22-L25>)
 
 ```go
 func (g *GaussianStateIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -195,7 +213,7 @@ func (g *GaussianStateIntegrationKernel) Configure(partitionIndex int, settings 
 
 <a name="GaussianStateIntegrationKernel.Evaluate"></a>
 
-### func \(\*GaussianStateIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L36-L41>)
+### func \(\*GaussianStateIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L40-L45>)
 
 ```go
 func (g *GaussianStateIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -205,7 +223,7 @@ func (g *GaussianStateIntegrationKernel) Evaluate(currentState []float64, pastSt
 
 <a name="GaussianStateIntegrationKernel.SetParams"></a>
 
-### func \(\*GaussianStateIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L24>)
+### func \(\*GaussianStateIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L28>)
 
 ```go
 func (g *GaussianStateIntegrationKernel) SetParams(params *simulator.Params)
@@ -215,9 +233,13 @@ func (g *GaussianStateIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="InstantaneousIntegrationKernel"></a>
 
-## type [InstantaneousIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L9>)
+## type [InstantaneousIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L12>)
 
-InstantaneousIntegrationKernel just returns 1.0 for the most recent value, else 0.0.
+InstantaneousIntegrationKernel returns 1.0 for the most recent sample and 0.0 otherwise.
+
+Usage hints:
+
+- Useful to select only the latest value when aggregating.
 
 ```go
 type InstantaneousIntegrationKernel struct{}
@@ -225,7 +247,7 @@ type InstantaneousIntegrationKernel struct{}
 
 <a name="InstantaneousIntegrationKernel.Configure"></a>
 
-### func \(\*InstantaneousIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L11-L14>)
+### func \(\*InstantaneousIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L14-L17>)
 
 ```go
 func (i *InstantaneousIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -235,7 +257,7 @@ func (i *InstantaneousIntegrationKernel) Configure(partitionIndex int, settings 
 
 <a name="InstantaneousIntegrationKernel.Evaluate"></a>
 
-### func \(\*InstantaneousIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L22-L27>)
+### func \(\*InstantaneousIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L25-L30>)
 
 ```go
 func (i *InstantaneousIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -245,7 +267,7 @@ func (i *InstantaneousIntegrationKernel) Evaluate(currentState []float64, pastSt
 
 <a name="InstantaneousIntegrationKernel.SetParams"></a>
 
-### func \(\*InstantaneousIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L17-L19>)
+### func \(\*InstantaneousIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L20-L22>)
 
 ```go
 func (i *InstantaneousIntegrationKernel) SetParams(params *simulator.Params)
@@ -255,9 +277,15 @@ func (i *InstantaneousIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="IntegrationKernel"></a>
 
-## type [IntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L7-L16>)
+## type [IntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L12-L21>)
 
-IntegrationKernel defines an interface that must be implemented for any integration kernel.
+IntegrationKernel defines the interface for time/state weighting kernels used when aggregating over history.
+
+Usage hints:
+
+- Configure is called once with the simulator settings.
+- SetParams reads per\-step parameters \(e.g., bandwidths, timescales\).
+- Evaluate returns the non\-negative weight for a past sample.
 
 ```go
 type IntegrationKernel interface {
@@ -274,9 +302,14 @@ type IntegrationKernel interface {
 
 <a name="PeriodicIntegrationKernel"></a>
 
-## type [PeriodicIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L10-L12>)
+## type [PeriodicIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L14-L16>)
 
-PeriodicIntegrationKernel is a periodic weighting in time.
+PeriodicIntegrationKernel applies periodic \(circular\) time weighting.
+
+Usage hints:
+
+- Provide "periodic\_weighting\_timescale"; weight = exp\(\-2 sin^2\(dt/2\)/tau^2\).
+- Useful for daily/weekly seasonality.
 
 ```go
 type PeriodicIntegrationKernel struct {
@@ -286,7 +319,7 @@ type PeriodicIntegrationKernel struct {
 
 <a name="PeriodicIntegrationKernel.Configure"></a>
 
-### func \(\*PeriodicIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L14-L17>)
+### func \(\*PeriodicIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L18-L21>)
 
 ```go
 func (p *PeriodicIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -296,7 +329,7 @@ func (p *PeriodicIntegrationKernel) Configure(partitionIndex int, settings *simu
 
 <a name="PeriodicIntegrationKernel.Evaluate"></a>
 
-### func \(\*PeriodicIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L27-L32>)
+### func \(\*PeriodicIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L31-L36>)
 
 ```go
 func (p *PeriodicIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -306,7 +339,7 @@ func (p *PeriodicIntegrationKernel) Evaluate(currentState []float64, pastState [
 
 <a name="PeriodicIntegrationKernel.SetParams"></a>
 
-### func \(\*PeriodicIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L20-L22>)
+### func \(\*PeriodicIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L24-L26>)
 
 ```go
 func (p *PeriodicIntegrationKernel) SetParams(params *simulator.Params)
@@ -316,9 +349,14 @@ func (p *PeriodicIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="ProductIntegrationKernel"></a>
 
-## type [ProductIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L8-L11>)
+## type [ProductIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L12-L15>)
 
-ProductIntegrationKernel uses the product of two kernels as the kernel.
+ProductIntegrationKernel multiplies two kernels to form a composite weight.
+
+Usage hints:
+
+- Configure and SetParams will be forwarded to both KernelA and KernelB.
+- Useful to combine, e.g., temporal and state\-distance weightings.
 
 ```go
 type ProductIntegrationKernel struct {
@@ -329,7 +367,7 @@ type ProductIntegrationKernel struct {
 
 <a name="ProductIntegrationKernel.Configure"></a>
 
-### func \(\*ProductIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L13-L16>)
+### func \(\*ProductIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L17-L20>)
 
 ```go
 func (p *ProductIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -339,7 +377,7 @@ func (p *ProductIntegrationKernel) Configure(partitionIndex int, settings *simul
 
 <a name="ProductIntegrationKernel.Evaluate"></a>
 
-### func \(\*ProductIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L28-L33>)
+### func \(\*ProductIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L32-L37>)
 
 ```go
 func (p *ProductIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -349,7 +387,7 @@ func (p *ProductIntegrationKernel) Evaluate(currentState []float64, pastState []
 
 <a name="ProductIntegrationKernel.SetParams"></a>
 
-### func \(\*ProductIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L21-L23>)
+### func \(\*ProductIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L25-L27>)
 
 ```go
 func (p *ProductIntegrationKernel) SetParams(params *simulator.Params)
@@ -359,9 +397,14 @@ func (p *ProductIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="TDistributionStateIntegrationKernel"></a>
 
-## type [TDistributionStateIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L13-L17>)
+## type [TDistributionStateIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L18-L22>)
 
-TDistributionStateIntegrationKernel applies a t\-distribution kenel using an input scale matrix and degrees of freedom parameters.
+TDistributionStateIntegrationKernel applies a multivariate t kernel using an input scale matrix and degrees of freedom.
+
+Usage hints:
+
+- Provide "scale\_matrix" as a flattened symmetric matrix \(row\-major\) and "degrees\_of\_freedom".
+- Weights are proportional to \(1 \+ \(x\-μ\)^T S^\{\-1\} \(x\-μ\)/ν\)^\{\-\(d\+ν\)/2\} / det\(S\).
 
 ```go
 type TDistributionStateIntegrationKernel struct {
@@ -371,7 +414,7 @@ type TDistributionStateIntegrationKernel struct {
 
 <a name="TDistributionStateIntegrationKernel.Configure"></a>
 
-### func \(\*TDistributionStateIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L19-L22>)
+### func \(\*TDistributionStateIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L24-L27>)
 
 ```go
 func (t *TDistributionStateIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -381,7 +424,7 @@ func (t *TDistributionStateIntegrationKernel) Configure(partitionIndex int, sett
 
 <a name="TDistributionStateIntegrationKernel.Evaluate"></a>
 
-### func \(\*TDistributionStateIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L38-L43>)
+### func \(\*TDistributionStateIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L43-L48>)
 
 ```go
 func (t *TDistributionStateIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -391,7 +434,7 @@ func (t *TDistributionStateIntegrationKernel) Evaluate(currentState []float64, p
 
 <a name="TDistributionStateIntegrationKernel.SetParams"></a>
 
-### func \(\*TDistributionStateIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L25>)
+### func \(\*TDistributionStateIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L30>)
 
 ```go
 func (t *TDistributionStateIntegrationKernel) SetParams(params *simulator.Params)

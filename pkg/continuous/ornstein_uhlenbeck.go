@@ -9,8 +9,14 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// OrnsteinUhlenbeckIteration defines an iteration for an Ornstein-Uhlenbeck
-// process.
+// OrnsteinUhlenbeckIteration steps an Ornstein–Uhlenbeck mean-reverting
+// process per dimension.
+//
+// Usage hints:
+//   - Required params per dimension: "thetas" (reversion speed), "mus" (long-run mean),
+//     and "sigmas" (volatility).
+//   - Timestep size influences both drift and diffusion terms; ensure dt is configured.
+//   - Seed is taken from the partition's Settings for reproducibility.
 type OrnsteinUhlenbeckIteration struct {
 	unitNormalDist *distuv.Normal
 }

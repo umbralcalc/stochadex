@@ -6,15 +6,14 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// TimestepFunction is the interface that must be implemented for a function
-// which evaluates the next increment to the time variable of the simulation.
+// TimestepFunction computes the next time increment.
 type TimestepFunction interface {
 	NextIncrement(
 		timestepsHistory *CumulativeTimestepsHistory,
 	) float64
 }
 
-// ConstantTimestepFunction iterates the timestep by a constant stepsize.
+// ConstantTimestepFunction uses a fixed stepsize.
 type ConstantTimestepFunction struct {
 	Stepsize float64
 }
@@ -25,8 +24,8 @@ func (t *ConstantTimestepFunction) NextIncrement(
 	return t.Stepsize
 }
 
-// ExponentialDistributionTimestepFunction iterates the timestep by a new sample
-// drawn from an exponential distribution with hyperparameters set by Mean and Seed.
+// ExponentialDistributionTimestepFunction draws dt from an exponential
+// distribution parameterised by Mean and Seed.
 type ExponentialDistributionTimestepFunction struct {
 	Mean         float64
 	Seed         uint64
@@ -39,8 +38,8 @@ func (t *ExponentialDistributionTimestepFunction) NextIncrement(
 	return t.distribution.Rand()
 }
 
-// New ExponentialDistributionTimestepFunction creates a new
-// ExponentialDistributionTimestepFunction given a mean and seed.
+// NewExponentialDistributionTimestepFunction constructs an exponential-dt
+// timestep function given mean and seed.
 func NewExponentialDistributionTimestepFunction(
 	mean float64,
 	seed uint64,

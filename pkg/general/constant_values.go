@@ -4,8 +4,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ConstantValuesIteration leaves the values set by the initial conditions
-// unchanged for all time.
+// ConstantValuesIteration leaves initial state values unchanged over time.
+//
+// Usage hints:
+//   - Useful for fixed baselines or as a placeholder partition.
 type ConstantValuesIteration struct {
 }
 

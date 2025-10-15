@@ -10,8 +10,13 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// ValuesWeightedResamplingIteration resamples from the history of state values
-// of other partitions with optional frequencies according to the provided weights.
+// ValuesWeightedResamplingIteration resamples historical values from other
+// partitions according to provided (optionally discounted) weights.
+//
+// Usage hints:
+//   - Provide: "log_weight_partitions" (and optional "log_weight_indices").
+//   - Provide: "data_values_partitions" to choose which values to resample.
+//   - Use "past_discounting_factor" to downweight older history (exponential).
 type ValuesWeightedResamplingIteration struct {
 	Src     rand.Source
 	catDist distuv.Categorical

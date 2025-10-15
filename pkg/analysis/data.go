@@ -6,29 +6,30 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// IndexRange holds upper and lower index values for a range
-// of indices selected to be used.
+// IndexRange represents an inclusive-exclusive [Lower, Upper) span of
+// indices. It is commonly used to clip time-series windows for plotting.
 type IndexRange struct {
 	Lower int
 	Upper int
 }
 
-// DataPlotting configures the changes to the data which can
-// be applied before plotting.
+// DataPlotting declares optional transformations for plotting, such as
+// treating a reference as time and restricting to a time index range.
 type DataPlotting struct {
 	IsTime    bool
 	TimeRange *IndexRange
 }
 
-// DataRef is a reference to some subset of the stored data.
+// DataRef identifies a subset of data stored in StateTimeStorage. It can
+// reference the special time axis or one or more value indices of a
+// partition. Optional plotting hints may be supplied via Plotting.
 type DataRef struct {
 	PartitionName string
 	ValueIndices  []int
 	Plotting      *DataPlotting
 }
 
-// isTime is a convenience method for finding if the data has
-// been configured to the time variable or not.
+// isTime reports whether the reference targets the simulation time axis.
 func (d *DataRef) isTime() bool {
 	if d.Plotting != nil {
 		return d.Plotting.IsTime
@@ -36,8 +37,8 @@ func (d *DataRef) isTime() bool {
 	return false
 }
 
-// isOutsideTimeRange checks to see if the specified index in time
-// is outside the time range, if it has been configured.
+// isOutsideTimeRange reports whether a time index falls outside the
+// configured plotting range, if any.
 func (d *DataRef) isOutsideTimeRange(index int) bool {
 	if d.Plotting != nil {
 		if d.Plotting.TimeRange != nil {
@@ -50,8 +51,8 @@ func (d *DataRef) isOutsideTimeRange(index int) bool {
 	return false
 }
 
-// applyTimeRange applies a time range restriction to the data
-// if it has been configured.
+// applyTimeRange slices all provided series to the configured plotting
+// time window, if set.
 func (d *DataRef) applyTimeRange(outValues [][]float64) {
 	if d.Plotting != nil {
 		if d.Plotting.TimeRange != nil {
@@ -63,9 +64,8 @@ func (d *DataRef) applyTimeRange(outValues [][]float64) {
 	}
 }
 
-// GetValueIndices populates the value indices slice with all
-// of the indices found in the referenced partition if set
-// initially to nil.
+// GetValueIndices returns the referenced value indices, defaulting to
+// all indices within the partition when ValueIndices is nil.
 func (d *DataRef) GetValueIndices(
 	storage *simulator.StateTimeStorage,
 ) []int {
@@ -78,8 +78,9 @@ func (d *DataRef) GetValueIndices(
 	return d.ValueIndices
 }
 
-// GetSeriesName retrieves unique names for each dimension in the
-// time series data that is typically used for labelling plots.
+// GetSeriesNames returns human-readable series labels for plotting.
+// Time references are labeled "time"; value references are labeled as
+// "<partition> <index>".
 func (d *DataRef) GetSeriesNames(
 	storage *simulator.StateTimeStorage,
 ) []string {
@@ -93,8 +94,9 @@ func (d *DataRef) GetSeriesNames(
 	return names
 }
 
-// GetTimeIndexFromStorage retrieves the relevant data from storage that
-// the reference is pointing to for a given index in time.
+// GetTimeIndexFromStorage returns the data at a specific time index. For a
+// time reference, this is a single-element slice containing the time value;
+// for a value reference, this is the row slice for that time index.
 func (d *DataRef) GetTimeIndexFromStorage(
 	storage *simulator.StateTimeStorage,
 	timeIndex int,
@@ -112,8 +114,9 @@ func (d *DataRef) GetTimeIndexFromStorage(
 	return outValues
 }
 
-// GetFromStorage retrieves the relevant data from storage that
-// the reference is pointing to.
+// GetFromStorage returns the entire referenced series. For a time
+// reference, this is a single series containing all times; for a value
+// reference, this is one series per value index.
 func (d *DataRef) GetFromStorage(
 	storage *simulator.StateTimeStorage,
 ) [][]float64 {

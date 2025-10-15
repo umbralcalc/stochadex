@@ -8,8 +8,13 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// TDistributionStateIntegrationKernel applies a t-distribution kenel using
-// an input scale matrix and degrees of freedom parameters.
+// TDistributionStateIntegrationKernel applies a multivariate t kernel using
+// an input scale matrix and degrees of freedom.
+//
+// Usage hints:
+//   - Provide "scale_matrix" as a flattened symmetric matrix (row-major) and
+//     "degrees_of_freedom".
+//   - Weights are proportional to (1 + (x-μ)^T S^{-1} (x-μ)/ν)^{-(d+ν)/2} / det(S).
 type TDistributionStateIntegrationKernel struct {
 	choleskyDecomp mat.Cholesky
 	determinant    float64

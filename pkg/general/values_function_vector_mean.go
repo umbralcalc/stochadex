@@ -9,8 +9,8 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// UnitValueFunction just returns a slice of length 1 with a value of 1. This can be
-// used while also setting "without_normalisation" to compute the kernel density.
+// UnitValueFunction returns [1]. Combine with "without_normalisation" to
+// compute a kernel density (sum of weights) directly.
 func UnitValueFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -20,9 +20,9 @@ func UnitValueFunction(
 	return []float64{1.0}
 }
 
-// PastDiscountedDataValuesFunction returns the value from the "data_values_partition"
-// discounted by some "past_discounting_factor" in the params, resulting in
-// calculating the past-discounted rolling windowed weighted mean.
+// PastDiscountedDataValuesFunction reads from "data_values_partition" and
+// applies an exponential discount factor raised to the history depth index.
+// Useful with a kernel for a past-discounted rolling mean.
 func PastDiscountedDataValuesFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -45,10 +45,8 @@ func PastDiscountedDataValuesFunction(
 	return functionValues
 }
 
-// PastDiscountedOtherValuesFunction just returns the value of the
-// "other_values_partition" discounted by some "past_discounting_factor"
-// in the params, resulting in calculating the past-discounted rolling
-// windowed weighted mean of the other partition values.
+// PastDiscountedOtherValuesFunction mirrors PastDiscountedDataValuesFunction
+// for "other_values_partition", optionally subselecting indices.
 func PastDiscountedOtherValuesFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -73,9 +71,8 @@ func PastDiscountedOtherValuesFunction(
 	return functionValues
 }
 
-// OtherValuesFunction just returns the value of the "other_values_partition",
-// resulting in calculating the rolling windowed weighted mean of the other
-// partition values.
+// OtherValuesFunction returns values from "other_values_partition",
+// optionally subselecting indices.
 func OtherValuesFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -93,9 +90,8 @@ func OtherValuesFunction(
 	return functionValues
 }
 
-// DataValuesVarianceFunction just returns the contribution to the value of the
-// variance of the "data_values_partition", resulting in calculating its rolling
-// windowed weighted variance.
+// DataValuesVarianceFunction returns per-index squared deviations from the
+// provided "mean" for "data_values_partition".
 func DataValuesVarianceFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -121,8 +117,8 @@ func DataValuesVarianceFunction(
 	return varianceValues
 }
 
-// DataValuesFunction just returns the value of the "data_values_partition", resulting
-// in calculating its rolling windowed weighted mean.
+// DataValuesFunction returns values from "data_values_partition",
+// optionally subselecting indices.
 func DataValuesFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -144,9 +140,15 @@ func DataValuesFunction(
 	return functionValues
 }
 
-// ValuesFunctionVectorMeanIteration computes the rolling windowed weighted
-// mean value of a function using inputs into the latter specified by another partition
-// and weights specified by an integration kernel.
+// ValuesFunctionVectorMeanIteration computes a kernel-weighted rolling mean
+// of a function over historical values and times.
+//
+// Usage hints:
+//   - Provide Function that accepts a history index (-1 for latest) and returns
+//     a vector matching the partition state width.
+//   - Set Kernel and related params (e.g., discount factors, bandwidth, etc.).
+//   - Use "without_normalisation" to return the weighted sum rather than mean;
+//     "subtract_from_normalisation" adjusts the normaliser if needed.
 type ValuesFunctionVectorMeanIteration struct {
 	Function func(
 		params *simulator.Params,

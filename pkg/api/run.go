@@ -12,8 +12,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// StepAndServeWebsocket runs a simulation while serving a websocket with
-// the simulator.WebsocketOutputFunction.
+// StepAndServeWebsocket steps a simulation and streams state updates over a
+// websocket using simulator.WebsocketOutputFunction.
+//
+// Usage hints:
+//   - The HTTP server mounts the websocket at handle and listens on address.
+//   - stepDelay controls the delay between steps in milliseconds.
 func StepAndServeWebsocket(
 	generator *simulator.ConfigGenerator,
 	stepDelay time.Duration,
@@ -54,7 +58,9 @@ func StepAndServeWebsocket(
 	log.Fatal(http.ListenAndServe(address, nil))
 }
 
-// Run the the main run routine for the API.
+// Run executes the configured simulation.
+// If a websocket socket is active, it serves real-time updates; otherwise,
+// it runs to completion offline.
 func Run(config *ApiRunConfig, socket *SocketConfig) {
 	generator := config.GetConfigGenerator()
 	activeSocket := socket.Active()
@@ -73,8 +79,8 @@ func Run(config *ApiRunConfig, socket *SocketConfig) {
 	}
 }
 
-// RunWithParsedArgs takes in the outputs from ArgParse and runs the
-// stochadex with these configurations.
+// RunWithParsedArgs generates a temporary main program from the templated
+// config and executes it via `go run`, enabling dynamic iteration wiring.
 func RunWithParsedArgs(args ParsedArgs) {
 	// hydrate the template code and write it to a /tmp/*main.go
 	fileName := WriteMainProgram(args)

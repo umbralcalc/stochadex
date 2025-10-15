@@ -8,8 +8,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// AppliedAggregation is the base configuration for an aggregation
-// over a referenced dataset.
+// AppliedAggregation describes how to aggregate a referenced dataset
+// over time. It names the output partition, points to the source data,
+// specifies the integration kernel (windowing/weighting), and provides
+// a default fill value used when the aggregation has insufficient history.
 type AppliedAggregation struct {
 	Name         string
 	Data         DataRef
@@ -17,8 +19,9 @@ type AppliedAggregation struct {
 	DefaultValue float64
 }
 
-// GetKernel retrieves the integration kernel used, returning the
-// default of instantaneous (no window) if initially unset.
+// GetKernel returns the configured integration kernel. If none is set,
+// it falls back to an instantaneous (no window) kernel so callers never
+// need to guard against a nil kernel.
 func (a *AppliedAggregation) GetKernel() kernels.IntegrationKernel {
 	if a.Kernel == nil {
 		return &kernels.InstantaneousIntegrationKernel{}
@@ -26,8 +29,10 @@ func (a *AppliedAggregation) GetKernel() kernels.IntegrationKernel {
 	return a.Kernel
 }
 
-// NewGroupedAggregationPartition creates a new PartitionConfig for a
-// grouped aggregation.
+// NewGroupedAggregationPartition constructs a PartitionConfig that applies
+// a caller-provided grouped aggregation over historical values. Group bins
+// and weighting are derived from the provided GroupedStateTimeStorage, and
+// the output state vector is ordered by the accepted value groups.
 func NewGroupedAggregationPartition(
 	aggregation func(
 		defaultValues []float64,
@@ -88,8 +93,8 @@ func NewGroupedAggregationPartition(
 	}
 }
 
-// NewVectorMeanPartition creates a creates a new PartitionConfig to
-// compute the vector mean of the referenced data partition.
+// NewVectorMeanPartition constructs a PartitionConfig that computes the
+// rolling windowed weighted mean per-index of the referenced data values.
 func NewVectorMeanPartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
@@ -130,8 +135,9 @@ func NewVectorMeanPartition(
 	}
 }
 
-// NewVectorVariancePartition creates a creates a new PartitionConfig to
-// compute the vector variance of the referenced data partition.
+// NewVectorVariancePartition constructs a PartitionConfig that computes the
+// rolling windowed weighted variance per-index of the referenced data
+// values. Provide the corresponding rolling mean via the mean DataRef.
 func NewVectorVariancePartition(
 	mean DataRef,
 	applied AppliedAggregation,
@@ -178,8 +184,9 @@ func NewVectorVariancePartition(
 	}
 }
 
-// NewVectorCovariancePartition creates a creates a new PartitionConfig to
-// compute the vector covariance matrix of the referenced data partition.
+// NewVectorCovariancePartition constructs a PartitionConfig that computes the
+// rolling windowed weighted covariance matrix of the referenced data values.
+// Provide the corresponding rolling mean via the mean DataRef.
 func NewVectorCovariancePartition(
 	mean DataRef,
 	applied AppliedAggregation,

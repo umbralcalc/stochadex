@@ -38,7 +38,7 @@ import "github.com/umbralcalc/stochadex/pkg/api"
 ## Variables
 
 <a name="ApiCodeTemplate"></a>
-ApiCodeTemplate is a string representing the template for the API run code.
+ApiCodeTemplate is the Go source template used to generate a runnable temporary main program that executes the requested run configuration.
 
 ```go
 var ApiCodeTemplate = `package main
@@ -60,49 +60,58 @@ func main() {
 
 <a name="Run"></a>
 
-## func [Run](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L58>)
+## func [Run](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L64>)
 
 ```go
 func Run(config *ApiRunConfig, socket *SocketConfig)
 ```
 
-Run the the main run routine for the API.
+Run executes the configured simulation. If a websocket socket is active, it serves real\-time updates; otherwise, it runs to completion offline.
 
 <a name="RunWithParsedArgs"></a>
 
-## func [RunWithParsedArgs](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L78>)
+## func [RunWithParsedArgs](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L84>)
 
 ```go
 func RunWithParsedArgs(args ParsedArgs)
 ```
 
-RunWithParsedArgs takes in the outputs from ArgParse and runs the stochadex with these configurations.
+RunWithParsedArgs generates a temporary main program from the templated config and executes it via \`go run\`, enabling dynamic iteration wiring.
 
 <a name="StepAndServeWebsocket"></a>
 
-## func [StepAndServeWebsocket](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L17-L22>)
+## func [StepAndServeWebsocket](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L21-L26>)
 
 ```go
 func StepAndServeWebsocket(generator *simulator.ConfigGenerator, stepDelay time.Duration, handle string, address string)
 ```
 
-StepAndServeWebsocket runs a simulation while serving a websocket with the simulator.WebsocketOutputFunction.
+StepAndServeWebsocket steps a simulation and streams state updates over a websocket using simulator.WebsocketOutputFunction.
+
+Usage hints:
+
+- The HTTP server mounts the websocket at handle and listens on address.
+- stepDelay controls the delay between steps in milliseconds.
 
 <a name="WriteMainProgram"></a>
 
-## func [WriteMainProgram](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L286>)
+## func [WriteMainProgram](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L294>)
 
 ```go
 func WriteMainProgram(args ParsedArgs) string
 ```
 
-WriteMainProgram writes string representations of various types of data to a template /tmp/\*main.go file ready for runtime execution in this \*main.go.
+WriteMainProgram renders ApiCodeTemplate to a /tmp/\*main.go and returns the file path.
+
+Usage hints:
+
+- The generated program imports extra packages, declares extra variables, and wires iterations per the templated config.
 
 <a name="ApiRunConfig"></a>
 
-## type [ApiRunConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L64-L67>)
+## type [ApiRunConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L68-L71>)
 
-ApiRunConfig is the yaml\-loadable config which specifies the loadable config data within the generated code for an API run.
+ApiRunConfig is the concrete, YAML\-loadable configuration for an API run: a main RunConfig and optional embedded runs.
 
 ```go
 type ApiRunConfig struct {
@@ -113,29 +122,29 @@ type ApiRunConfig struct {
 
 <a name="LoadApiRunConfigFromYaml"></a>
 
-### func [LoadApiRunConfigFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L87>)
+### func [LoadApiRunConfigFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L90>)
 
 ```go
 func LoadApiRunConfigFromYaml(path string) *ApiRunConfig
 ```
 
-LoadApiRunConfigFromYaml creates a new ApiRunConfig from a provided yaml path.
+LoadApiRunConfigFromYaml loads ApiRunConfig from YAML and initialises partition defaults.
 
 <a name="ApiRunConfig.GetConfigGenerator"></a>
 
-### func \(\*ApiRunConfig\) [GetConfigGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L73>)
+### func \(\*ApiRunConfig\) [GetConfigGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L76>)
 
 ```go
 func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator
 ```
 
-GetConfigGenerator returns a config generator which has been configured to produce the settings and implementations based on the configured fields of the main RunConfig. This method also takes into account the mappings of embedded simulation runs into the main run.
+GetConfigGenerator returns a ConfigGenerator for the main run. Any partition whose name matches an embedded run is replaced by an embedded simulation iteration wired to that embedded run.
 
 <a name="ApiRunConfigStrings"></a>
 
-## type [ApiRunConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L110-L113>)
+## type [ApiRunConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L113-L116>)
 
-ApiRunConfigStrings is the yaml\-loadable config which specifies the templating inputs for an API run.
+ApiRunConfigStrings is the string\-templated configuration used to generate code for an API run \(imports, variables, iteration factories\).
 
 ```go
 type ApiRunConfigStrings struct {
@@ -146,19 +155,19 @@ type ApiRunConfigStrings struct {
 
 <a name="LoadApiRunConfigStringsFromYaml"></a>
 
-### func [LoadApiRunConfigStringsFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L136>)
+### func [LoadApiRunConfigStringsFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L139>)
 
 ```go
 func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings
 ```
 
-LoadApiRunConfigStringsFromYaml creates a new ApiRunConfigStrings from a provided yaml path.
+LoadApiRunConfigStringsFromYaml loads the templated config from YAML and validates it for code generation.
 
 <a name="EmbeddedRunConfig"></a>
 
-## type [EmbeddedRunConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L43-L46>)
+## type [EmbeddedRunConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L47-L50>)
 
-EmbeddedRunConfig is the yaml\-loadable config which consists of all the necessary config data for an embedded simulation run.
+EmbeddedRunConfig names and embeds an additional RunConfig that can be wired into a partition in the main run.
 
 ```go
 type EmbeddedRunConfig struct {
@@ -169,9 +178,9 @@ type EmbeddedRunConfig struct {
 
 <a name="EmbeddedRunConfigStrings"></a>
 
-## type [EmbeddedRunConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L57-L60>)
+## type [EmbeddedRunConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L61-L64>)
 
-EmbeddedRunConfigStrings is the yaml\-loadable config which consists of all the necessary templating inputs for an embedded simulation run.
+EmbeddedRunConfigStrings names and provides string\-templated inputs for an embedded simulation run.
 
 ```go
 type EmbeddedRunConfigStrings struct {
@@ -182,9 +191,9 @@ type EmbeddedRunConfigStrings struct {
 
 <a name="ParsedArgs"></a>
 
-## type [ParsedArgs](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/parsing.go#L12-L16>)
+## type [ParsedArgs](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/parsing.go#L13-L17>)
 
-ParsedArgs contains the information that needs to pass from the CLI to the runner in order to run the API.
+ParsedArgs bundles CLI\-derived inputs for running the API. Includes the YAML config path, optional socket config path, and the string\-templated configuration used to generate a runnable main.
 
 ```go
 type ParsedArgs struct {
@@ -196,19 +205,25 @@ type ParsedArgs struct {
 
 <a name="ArgParse"></a>
 
-### func [ArgParse](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/parsing.go#L20>)
+### func [ArgParse](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/parsing.go#L21>)
 
 ```go
 func ArgParse() ParsedArgs
 ```
 
-ArgParse builds the configs parsed as args to the stochadex binary and also retrieves other args.
+ArgParse parses CLI flags into a ParsedArgs, loading ApiRunConfigStrings from the provided YAML path for template hydration.
 
 <a name="PartitionConfigStrings"></a>
 
-## type [PartitionConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L15-L20>)
+## type [PartitionConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L20-L25>)
 
-PartitionConfigStrings holds the string Iteration implementations and the potential to define extra packages and variables in configuration.
+PartitionConfigStrings describes a partition in its string\-templated form for code generation.
+
+Usage hints:
+
+- Iteration is a Go expression constructing the iteration \(factory call\).
+- ExtraPackages lists import paths required by Iteration or ExtraVars.
+- ExtraVars declares ad\-hoc variables injected into the generated main.
 
 ```go
 type PartitionConfigStrings struct {
@@ -221,9 +236,9 @@ type PartitionConfigStrings struct {
 
 <a name="RunConfig"></a>
 
-## type [RunConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L24-L27>)
+## type [RunConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L29-L32>)
 
-RunConfig is the yaml\-loadable config which consists of all the necessary config data for a simulation run.
+RunConfig is the concrete, YAML\-loadable configuration for a run: partitions plus a SimulationConfig.
 
 ```go
 type RunConfig struct {
@@ -234,19 +249,19 @@ type RunConfig struct {
 
 <a name="RunConfig.GetConfigGenerator"></a>
 
-### func \(\*RunConfig\) [GetConfigGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L32>)
+### func \(\*RunConfig\) [GetConfigGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L36>)
 
 ```go
 func (r *RunConfig) GetConfigGenerator() *simulator.ConfigGenerator
 ```
 
-GetConfigGenerator returns a config generator which has been configured to produce the settings and implementations based on the configured fields of the RunConfig.
+GetConfigGenerator constructs a ConfigGenerator preloaded with the run's SimulationConfig and Partitions.
 
 <a name="RunConfigStrings"></a>
 
-## type [RunConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L50-L53>)
+## type [RunConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L54-L57>)
 
-RunConfigStrings is the yaml\-loadable config which consists of all the necessary templating inputs for a simulation run.
+RunConfigStrings provides the string\-templated inputs required to generate a runnable main for a simulation run.
 
 ```go
 type RunConfigStrings struct {
@@ -259,7 +274,7 @@ type RunConfigStrings struct {
 
 ## type [SocketConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/api/socket.go#L12-L16>)
 
-SocketConfig is a yaml\-loadable config for the real\-time websocket connection to the simulation.
+SocketConfig configures an optional real\-time websocket used to stream simulation updates.
 
 ```go
 type SocketConfig struct {
@@ -277,7 +292,7 @@ type SocketConfig struct {
 func LoadSocketConfigFromYaml(path string) *SocketConfig
 ```
 
-LoadSocketConfigFromYaml creates a new SocketConfig from a provided yaml path. If the path is an empty string this outputs a SocketConfig with empty fields.
+LoadSocketConfigFromYaml loads a SocketConfig from YAML. If the path is empty, it returns a zero\-valued config and logs that sockets are disabled.
 
 <a name="SocketConfig.Active"></a>
 
@@ -287,6 +302,6 @@ LoadSocketConfigFromYaml creates a new SocketConfig from a provided yaml path. I
 func (s *SocketConfig) Active() bool
 ```
 
-Active determines whether or not the websocket should be active.
+Active reports whether the websocket server should be started.
 
 Generated by [gomarkdoc](<https://github.com/princjef/gomarkdoc>)

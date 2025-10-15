@@ -44,9 +44,15 @@ import "github.com/umbralcalc/stochadex/pkg/continuous"
 
 <a name="CompoundPoissonProcessIteration"></a>
 
-## type [CompoundPoissonProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L48-L51>)
+## type [CompoundPoissonProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L58-L61>)
 
-CompoundPoissonProcessIteration defines an iteration for a compound Poisson process.
+CompoundPoissonProcessIteration steps a compound Poisson process.
+
+Usage hints:
+
+- Provide per\-dimension "rates" and a JumpDistribution implementation.
+- At each step, increments by a jump draw with probability approx. rate\*dt.
+- Configure timestep size via the simulator to control event frequency.
 
 ```go
 type CompoundPoissonProcessIteration struct {
@@ -57,7 +63,7 @@ type CompoundPoissonProcessIteration struct {
 
 <a name="CompoundPoissonProcessIteration.Configure"></a>
 
-### func \(\*CompoundPoissonProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L53-L56>)
+### func \(\*CompoundPoissonProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L63-L66>)
 
 ```go
 func (c *CompoundPoissonProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -67,7 +73,7 @@ func (c *CompoundPoissonProcessIteration) Configure(partitionIndex int, settings
 
 <a name="CompoundPoissonProcessIteration.Iterate"></a>
 
-### func \(\*CompoundPoissonProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L68-L73>)
+### func \(\*CompoundPoissonProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L78-L83>)
 
 ```go
 func (c *CompoundPoissonProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -77,9 +83,14 @@ func (c *CompoundPoissonProcessIteration) Iterate(params *simulator.Params, part
 
 <a name="CumulativeTimeIteration"></a>
 
-## type [CumulativeTimeIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L9>)
+## type [CumulativeTimeIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L12>)
 
-CumulativeTimeIteration defines an iteration which outputs the cumulative time which has elapsed in the simulation.
+CumulativeTimeIteration outputs the cumulative simulation time.
+
+Usage hints:
+
+- Returns a single\-element vector: current\_time \+ dt for the next step.
+- Useful for logging or as an input to time\-dependent components.
 
 ```go
 type CumulativeTimeIteration struct{}
@@ -87,7 +98,7 @@ type CumulativeTimeIteration struct{}
 
 <a name="CumulativeTimeIteration.Configure"></a>
 
-### func \(\*CumulativeTimeIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L11-L14>)
+### func \(\*CumulativeTimeIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L14-L17>)
 
 ```go
 func (c *CumulativeTimeIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -97,7 +108,7 @@ func (c *CumulativeTimeIteration) Configure(partitionIndex int, settings *simula
 
 <a name="CumulativeTimeIteration.Iterate"></a>
 
-### func \(\*CumulativeTimeIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L17-L22>)
+### func \(\*CumulativeTimeIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L20-L25>)
 
 ```go
 func (c *CumulativeTimeIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -107,9 +118,16 @@ func (c *CumulativeTimeIteration) Iterate(params *simulator.Params, partitionInd
 
 <a name="DriftDiffusionIteration"></a>
 
-## type [DriftDiffusionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L14-L16>)
+## type [DriftDiffusionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L19-L21>)
 
-DriftDiffusionIteration defines an iteration for any general drift\-diffusion process.
+DriftDiffusionIteration steps a general drift–diffusion SDE per dimension.
+
+Usage hints:
+
+- Provide per\-dimension params: "drift\_coefficients" and "diffusion\_coefficients".
+- The update uses x\_\{t\+dt\} = x\_t \+ drift\*dt \+ diffusion\*sqrt\(dt\)\*N\(0,1\).
+- Ensure the timestep function is configured; diffusion scales with sqrt\(dt\).
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type DriftDiffusionIteration struct {
@@ -119,7 +137,7 @@ type DriftDiffusionIteration struct {
 
 <a name="DriftDiffusionIteration.Configure"></a>
 
-### func \(\*DriftDiffusionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L18-L21>)
+### func \(\*DriftDiffusionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L23-L26>)
 
 ```go
 func (d *DriftDiffusionIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -129,7 +147,7 @@ func (d *DriftDiffusionIteration) Configure(partitionIndex int, settings *simula
 
 <a name="DriftDiffusionIteration.Iterate"></a>
 
-### func \(\*DriftDiffusionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L32-L37>)
+### func \(\*DriftDiffusionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L37-L42>)
 
 ```go
 func (d *DriftDiffusionIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -139,9 +157,16 @@ func (d *DriftDiffusionIteration) Iterate(params *simulator.Params, partitionInd
 
 <a name="DriftJumpDiffusionIteration"></a>
 
-## type [DriftJumpDiffusionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L14-L18>)
+## type [DriftJumpDiffusionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L20-L24>)
 
-DriftJumpDiffusionIteration defines an iteration for any general drift\-jump\-diffusion process.
+DriftJumpDiffusionIteration steps a general drift–jump–diffusion process.
+
+Usage hints:
+
+- Provide per\-dimension params: "drift\_coefficients", "diffusion\_coefficients", and "jump\_rates"; also set a JumpDistribution implementation \(e.g. Gamma\).
+- Uses x\_\{t\+dt\} = x\_t \+ drift\*dt \+ diffusion\*sqrt\(dt\)\*N\(0,1\) \+ jumps.
+- Jumps occur with Poisson hazard approx. rate\*dt; set dt via timestep config.
+- Seed for RNGs derives from the partition's Settings for reproducibility.
 
 ```go
 type DriftJumpDiffusionIteration struct {
@@ -152,7 +177,7 @@ type DriftJumpDiffusionIteration struct {
 
 <a name="DriftJumpDiffusionIteration.Configure"></a>
 
-### func \(\*DriftJumpDiffusionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L20-L23>)
+### func \(\*DriftJumpDiffusionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L26-L29>)
 
 ```go
 func (d *DriftJumpDiffusionIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -162,7 +187,7 @@ func (d *DriftJumpDiffusionIteration) Configure(partitionIndex int, settings *si
 
 <a name="DriftJumpDiffusionIteration.Iterate"></a>
 
-### func \(\*DriftJumpDiffusionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L41-L46>)
+### func \(\*DriftJumpDiffusionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L47-L52>)
 
 ```go
 func (d *DriftJumpDiffusionIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -172,9 +197,14 @@ func (d *DriftJumpDiffusionIteration) Iterate(params *simulator.Params, partitio
 
 <a name="GammaJumpDistribution"></a>
 
-## type [GammaJumpDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L19-L21>)
+## type [GammaJumpDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L25-L27>)
 
-GammaJumpDistribution jumps with samples drawn from a gamma distribution.
+GammaJumpDistribution draws jump magnitudes from a gamma distribution.
+
+Usage hints:
+
+- Param names per dimension: "gamma\_alphas" and "gamma\_betas".
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type GammaJumpDistribution struct {
@@ -184,7 +214,7 @@ type GammaJumpDistribution struct {
 
 <a name="GammaJumpDistribution.Configure"></a>
 
-### func \(\*GammaJumpDistribution\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L23-L26>)
+### func \(\*GammaJumpDistribution\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L29-L32>)
 
 ```go
 func (g *GammaJumpDistribution) Configure(partitionIndex int, settings *simulator.Settings)
@@ -194,7 +224,7 @@ func (g *GammaJumpDistribution) Configure(partitionIndex int, settings *simulato
 
 <a name="GammaJumpDistribution.NewJump"></a>
 
-### func \(\*GammaJumpDistribution\) [NewJump](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L37-L40>)
+### func \(\*GammaJumpDistribution\) [NewJump](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L43-L46>)
 
 ```go
 func (g *GammaJumpDistribution) NewJump(params *simulator.Params, valueIndex int) float64
@@ -204,9 +234,15 @@ func (g *GammaJumpDistribution) NewJump(params *simulator.Params, valueIndex int
 
 <a name="GeometricBrownianMotionIteration"></a>
 
-## type [GeometricBrownianMotionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L14-L16>)
+## type [GeometricBrownianMotionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L19-L21>)
 
-GeometricBrownianMotionIteration defines an iteration for a simple geometric Brownian motion.
+GeometricBrownianMotionIteration steps a multiplicative \(geometric\) Brownian motion per dimension.
+
+Usage hints:
+
+- Provide per\-dimension "variances"; multiplicative noise uses sqrt\(variance\*dt\).
+- Consider log\-transforms if you need additive dynamics in log space.
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type GeometricBrownianMotionIteration struct {
@@ -216,7 +252,7 @@ type GeometricBrownianMotionIteration struct {
 
 <a name="GeometricBrownianMotionIteration.Configure"></a>
 
-### func \(\*GeometricBrownianMotionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L18-L21>)
+### func \(\*GeometricBrownianMotionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L23-L26>)
 
 ```go
 func (g *GeometricBrownianMotionIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -226,7 +262,7 @@ func (g *GeometricBrownianMotionIteration) Configure(partitionIndex int, setting
 
 <a name="GeometricBrownianMotionIteration.Iterate"></a>
 
-### func \(\*GeometricBrownianMotionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L32-L37>)
+### func \(\*GeometricBrownianMotionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L37-L42>)
 
 ```go
 func (g *GeometricBrownianMotionIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -236,9 +272,15 @@ func (g *GeometricBrownianMotionIteration) Iterate(params *simulator.Params, par
 
 <a name="GradientDescentIteration"></a>
 
-## type [GradientDescentIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L9>)
+## type [GradientDescentIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L13>)
 
-GradientDescentIteration defines an iteration for any general gradient descent process.
+GradientDescentIteration performs a gradient\-based parameter update.
+
+Usage hints:
+
+- Provide params: "gradient" \(vector\) and "learning\_rate" \(scalar\).
+- Optional flag: "ascent" == 1 switches to gradient ascent.
+- Update uses x\_\{t\+1\} = x\_t \- lr \* gradient \(or \+ for ascent\).
 
 ```go
 type GradientDescentIteration struct{}
@@ -246,7 +288,7 @@ type GradientDescentIteration struct{}
 
 <a name="GradientDescentIteration.Configure"></a>
 
-### func \(\*GradientDescentIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L11-L14>)
+### func \(\*GradientDescentIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L15-L18>)
 
 ```go
 func (g *GradientDescentIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -256,7 +298,7 @@ func (g *GradientDescentIteration) Configure(partitionIndex int, settings *simul
 
 <a name="GradientDescentIteration.Iterate"></a>
 
-### func \(\*GradientDescentIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L17-L22>)
+### func \(\*GradientDescentIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L21-L26>)
 
 ```go
 func (g *GradientDescentIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -266,9 +308,14 @@ func (g *GradientDescentIteration) Iterate(params *simulator.Params, partitionIn
 
 <a name="JumpDistribution"></a>
 
-## type [JumpDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L13-L16>)
+## type [JumpDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L15-L18>)
 
-JumpDistribution defines the interface that must be implemented to provide a distribution to generate sudden 'jumps' from. This is used in compound Poisson processes and drift\-jump\-diffusions.
+JumpDistribution defines the interface to draw sudden jumps.
+
+Usage hints:
+
+- Implement for custom jump magnitudes; called when a jump event occurs.
+- Used by compound Poisson processes and drift–jump–diffusions.
 
 ```go
 type JumpDistribution interface {
@@ -279,9 +326,15 @@ type JumpDistribution interface {
 
 <a name="OrnsteinUhlenbeckIteration"></a>
 
-## type [OrnsteinUhlenbeckIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L14-L16>)
+## type [OrnsteinUhlenbeckIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L20-L22>)
 
-OrnsteinUhlenbeckIteration defines an iteration for an Ornstein\-Uhlenbeck process.
+OrnsteinUhlenbeckIteration steps an Ornstein–Uhlenbeck mean\-reverting process per dimension.
+
+Usage hints:
+
+- Required params per dimension: "thetas" \(reversion speed\), "mus" \(long\-run mean\), and "sigmas" \(volatility\).
+- Timestep size influences both drift and diffusion terms; ensure dt is configured.
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type OrnsteinUhlenbeckIteration struct {
@@ -291,7 +344,7 @@ type OrnsteinUhlenbeckIteration struct {
 
 <a name="OrnsteinUhlenbeckIteration.Configure"></a>
 
-### func \(\*OrnsteinUhlenbeckIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L18-L21>)
+### func \(\*OrnsteinUhlenbeckIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L24-L27>)
 
 ```go
 func (o *OrnsteinUhlenbeckIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -301,7 +354,7 @@ func (o *OrnsteinUhlenbeckIteration) Configure(partitionIndex int, settings *sim
 
 <a name="OrnsteinUhlenbeckIteration.Iterate"></a>
 
-### func \(\*OrnsteinUhlenbeckIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L32-L37>)
+### func \(\*OrnsteinUhlenbeckIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L38-L43>)
 
 ```go
 func (o *OrnsteinUhlenbeckIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -311,9 +364,15 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(params *simulator.Params, partition
 
 <a name="WienerProcessIteration"></a>
 
-## type [WienerProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L14-L16>)
+## type [WienerProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L19-L21>)
 
-WienerProcessIteration defines an iteration for a simple Wiener process.
+WienerProcessIteration steps a standard Wiener process \(Brownian motion\) per state dimension.
+
+Usage hints:
+
+- Provide a per\-dimension "variances" param; next increment uses dW \~ N\(0, dt\).
+- Ensure the simulation timestep is set appropriately via the timestep function.
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type WienerProcessIteration struct {
@@ -323,7 +382,7 @@ type WienerProcessIteration struct {
 
 <a name="WienerProcessIteration.Configure"></a>
 
-### func \(\*WienerProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L18-L21>)
+### func \(\*WienerProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L23-L26>)
 
 ```go
 func (w *WienerProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -333,7 +392,7 @@ func (w *WienerProcessIteration) Configure(partitionIndex int, settings *simulat
 
 <a name="WienerProcessIteration.Iterate"></a>
 
-### func \(\*WienerProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L32-L37>)
+### func \(\*WienerProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L37-L42>)
 
 ```go
 func (w *WienerProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64

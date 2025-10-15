@@ -6,7 +6,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// LoadSettingsFromYaml creates a new Settings struct from a provided yaml path.
+// LoadSettingsFromYaml loads Settings from a YAML file path.
+//
+// Usage hints:
+//   - Calls Init to populate missing defaults after unmarshalling.
 func LoadSettingsFromYaml(path string) *Settings {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
@@ -21,8 +24,10 @@ func LoadSettingsFromYaml(path string) *Settings {
 	return &settings
 }
 
-// LoadPartitionConfigFromYaml creates a new PartitionConfig struct from a
-// provided yaml path.
+// LoadPartitionConfigFromYaml loads PartitionConfig from a YAML file path.
+//
+// Usage hints:
+//   - Calls Init to populate missing defaults after unmarshalling.
 func LoadPartitionConfigFromYaml(path string) *PartitionConfig {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
@@ -37,8 +42,7 @@ func LoadPartitionConfigFromYaml(path string) *PartitionConfig {
 	return &config
 }
 
-// LoadSimulationConfigStringsFromYaml creates a new SimulationConfigStrings
-// struct from a provided yaml path.
+// LoadSimulationConfigStringsFromYaml loads SimulationConfigStrings from YAML.
 func LoadSimulationConfigStringsFromYaml(path string) *SimulationConfigStrings {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {

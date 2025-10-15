@@ -4,8 +4,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// PartitionEventFunction provides the capability to set events using
-// the most recent value from the state history of another partition.
+// PartitionEventFunction emits an event value from the latest state of
+// another partition.
+//
+// Usage hints:
+//   - Provide: "event_partition_index" and "event_state_value_index".
 func PartitionEventFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -19,8 +22,7 @@ func PartitionEventFunction(
 	)}
 }
 
-// ParamsEventFunction provides the capability to set events using
-// the "event" params.
+// ParamsEventFunction emits an event value from the "event" params.
 func ParamsEventFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -30,11 +32,13 @@ func ParamsEventFunction(
 	return params.Get("event")
 }
 
-// ValuesChangingEventsIteration defines an iteration which calls and
-// outputs from an iteration in the map if its keyed event occurs.
-// If none of the events happen (i.e., the event key doesn't exist in
-// the map) either the previous values or some optionally-specified
-// default values are used as the output.
+// ValuesChangingEventsIteration calls and outputs from an iteration in the
+// map keyed by an event. If no event key matches, it returns previous values
+// or optional "default_values".
+//
+// Usage hints:
+//   - Set EventIteration to produce the event key; provide IterationByEvent map.
+//   - Optional: set "default_values" to override fallback behaviour.
 type ValuesChangingEventsIteration struct {
 	EventIteration   simulator.Iteration
 	IterationByEvent map[float64]simulator.Iteration

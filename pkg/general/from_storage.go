@@ -4,8 +4,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// FromStorageIteration provides a stream of data which is already known from a
-// separate data source and is held in memory as a [][]float64.
+// FromStorageIteration streams data from an in-memory [][]float64.
+//
+// Usage hints:
+//   - Provide Data (rows over time); supports initial offset via InitStepsTaken.
 type FromStorageIteration struct {
 	Data           [][]float64
 	InitStepsTaken int
@@ -35,8 +37,10 @@ func (f *FromStorageIteration) Iterate(
 	return data
 }
 
-// FromStorageTimestepFunction provides a stream of timesteps which already
-// known from a separate data source and is held in memory as a []float64.
+// FromStorageTimestepFunction streams timesteps from an in-memory []float64.
+//
+// Usage hints:
+//   - Provide Data; supports initial offset via InitStepsTaken.
 type FromStorageTimestepFunction struct {
 	Data           []float64
 	InitStepsTaken int

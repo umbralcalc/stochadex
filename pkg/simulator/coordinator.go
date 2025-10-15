@@ -6,9 +6,12 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// PartitionCoordinator coordinates the assignment of iteration work to
-// separate StateIterator objects on separate goroutines and when to enact
-// these updates on the state history.
+// PartitionCoordinator orchestrates iteration work across partitions and
+// applies state/time history updates.
+//
+// Usage hints:
+//   - Call Step in a loop or Run to advance until termination.
+//   - TimestepFunction determines NextIncrement each step.
 type PartitionCoordinator struct {
 	Iterators            []*StateIterator
 	Shared               *IteratorInputMessage
@@ -17,8 +20,8 @@ type PartitionCoordinator struct {
 	newWorkChannels      [](chan *IteratorInputMessage)
 }
 
-// RequestMoreIterations spawns a goroutine for each state partition to
-// carry out a ReceiveAndIteratePending job.
+// RequestMoreIterations spawns a goroutine per partition to run
+// ReceiveAndIteratePending.
 func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 	// setup iterators to receive and send their iteration results
 	for partitionIndex, iterator := range c.Iterators {
@@ -35,8 +38,8 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 	}
 }
 
-// RequestMoreIterations spawns a goroutine for each state partition to
-// carry out an UpdateHistory job.
+// UpdateHistory spawns a goroutine per partition to run UpdateHistory and
+// shifts time history forward, adding NextIncrement to t[0].
 func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	// setup iterators to receive and send their iteration results
 	for partitionIndex, iterator := range c.Iterators {
@@ -63,8 +66,8 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 			c.Shared.TimestepsHistory.NextIncrement)
 }
 
-// Step is the main method call of PartitionCoordinator - call this proceeding
-// a new configuration of the latter to run the desired process for a single step.
+// Step performs one simulation tick: compute dt, request iterations, then
+// apply state/time updates.
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// update the overall step count and get the next time increment
 	c.Shared.TimestepsHistory.CurrentStepNumber += 1
@@ -81,7 +84,7 @@ func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	wg.Wait()
 }
 
-// ReadyToTerminate returns whether or not the process has met the TerminationCondition.
+// ReadyToTerminate returns whether the TerminationCondition is met.
 func (c *PartitionCoordinator) ReadyToTerminate() bool {
 	return c.TerminationCondition.Terminate(
 		c.Shared.StateHistories,
@@ -89,7 +92,7 @@ func (c *PartitionCoordinator) ReadyToTerminate() bool {
 	)
 }
 
-// Run runs multiple Step calls up until the TerminationCondition has been met.
+// Run advances by repeatedly calling Step until termination.
 func (c *PartitionCoordinator) Run() {
 	var wg sync.WaitGroup
 
@@ -99,8 +102,8 @@ func (c *PartitionCoordinator) Run() {
 	}
 }
 
-// NewPartitionCoordinator creates a new PartitionCoordinator given a
-// StochadexConfig.
+// NewPartitionCoordinator wires Settings and Implementations into a runnable
+// coordinator with initial state/time histories and channels.
 func NewPartitionCoordinator(
 	settings *Settings,
 	implementations *Implementations,

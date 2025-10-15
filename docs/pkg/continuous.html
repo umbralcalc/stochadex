@@ -282,9 +282,17 @@ timestepsHistory *simulator.CumulativeTimestepsHistory)
 </ul>
 <p><a name="CompoundPoissonProcessIteration"></a></p>
 <h2 id="type-compoundpoissonprocessiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L48-L51">CompoundPoissonProcessIteration</a></h2>
-<p>CompoundPoissonProcessIteration defines an iteration for a compound
-Poisson process.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L58-L61">CompoundPoissonProcessIteration</a></h2>
+<p>CompoundPoissonProcessIteration steps a compound Poisson process.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide per-dimension “rates” and a JumpDistribution
+implementation.</li>
+<li>At each step, increments by a jump draw with probability approx.
+rate*dt.</li>
+<li>Configure timestep size via the simulator to control event
+frequency.</li>
+</ul>
 <div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> CompoundPoissonProcessIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    JumpDist JumpDistribution</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -292,53 +300,81 @@ Poisson process.</p>
 <p><a name="CompoundPoissonProcessIteration.Configure"></a></p>
 <h3 id="func-compoundpoissonprocessiteration-configure">func
 (*CompoundPoissonProcessIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L53-L56">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L63-L66">Configure</a></h3>
 <div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>CompoundPoissonProcessIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="CompoundPoissonProcessIteration.Iterate"></a></p>
 <h3 id="func-compoundpoissonprocessiteration-iterate">func
 (*CompoundPoissonProcessIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L68-L73">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L78-L83">Iterate</a></h3>
 <div class="sourceCode" id="cb4"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>CompoundPoissonProcessIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="CumulativeTimeIteration"></a></p>
 <h2 id="type-cumulativetimeiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L9">CumulativeTimeIteration</a></h2>
-<p>CumulativeTimeIteration defines an iteration which outputs the
-cumulative time which has elapsed in the simulation.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L12">CumulativeTimeIteration</a></h2>
+<p>CumulativeTimeIteration outputs the cumulative simulation time.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Returns a single-element vector: current_time + dt for the next
+step.</li>
+<li>Useful for logging or as an input to time-dependent components.</li>
+</ul>
 <div class="sourceCode" id="cb5"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> CumulativeTimeIteration <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
 <p><a name="CumulativeTimeIteration.Configure"></a></p>
 <h3 id="func-cumulativetimeiteration-configure">func
 (*CumulativeTimeIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L11-L14">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L14-L17">Configure</a></h3>
 <div class="sourceCode" id="cb6"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>CumulativeTimeIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="CumulativeTimeIteration.Iterate"></a></p>
 <h3 id="func-cumulativetimeiteration-iterate">func
 (*CumulativeTimeIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L17-L22">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/cumulative_time.go#L20-L25">Iterate</a></h3>
 <div class="sourceCode" id="cb7"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>CumulativeTimeIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="DriftDiffusionIteration"></a></p>
 <h2 id="type-driftdiffusioniteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L14-L16">DriftDiffusionIteration</a></h2>
-<p>DriftDiffusionIteration defines an iteration for any general
-drift-diffusion process.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L19-L21">DriftDiffusionIteration</a></h2>
+<p>DriftDiffusionIteration steps a general drift–diffusion SDE per
+dimension.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide per-dimension params: “drift_coefficients” and
+“diffusion_coefficients”.</li>
+<li>The update uses x_{t+dt} = x_t + drift*dt +
+diffusion*sqrt(dt)*N(0,1).</li>
+<li>Ensure the timestep function is configured; diffusion scales with
+sqrt(dt).</li>
+<li>Seed is taken from the partition’s Settings for
+reproducibility.</li>
+</ul>
 <div class="sourceCode" id="cb8"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DriftDiffusionIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="DriftDiffusionIteration.Configure"></a></p>
 <h3 id="func-driftdiffusioniteration-configure">func
 (*DriftDiffusionIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L18-L21">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L23-L26">Configure</a></h3>
 <div class="sourceCode" id="cb9"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DriftDiffusionIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="DriftDiffusionIteration.Iterate"></a></p>
 <h3 id="func-driftdiffusioniteration-iterate">func
 (*DriftDiffusionIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L32-L37">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_diffusion.go#L37-L42">Iterate</a></h3>
 <div class="sourceCode" id="cb10"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DriftDiffusionIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="DriftJumpDiffusionIteration"></a></p>
 <h2 id="type-driftjumpdiffusioniteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L14-L18">DriftJumpDiffusionIteration</a></h2>
-<p>DriftJumpDiffusionIteration defines an iteration for any general
-drift-jump-diffusion process.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L20-L24">DriftJumpDiffusionIteration</a></h2>
+<p>DriftJumpDiffusionIteration steps a general drift–jump–diffusion
+process.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide per-dimension params: “drift_coefficients”,
+“diffusion_coefficients”, and “jump_rates”; also set a JumpDistribution
+implementation (e.g. Gamma).</li>
+<li>Uses x_{t+dt} = x_t + drift*dt + diffusion*sqrt(dt)*N(0,1) +
+jumps.</li>
+<li>Jumps occur with Poisson hazard approx. rate*dt; set dt via timestep
+config.</li>
+<li>Seed for RNGs derives from the partition’s Settings for
+reproducibility.</li>
+</ul>
 <div class="sourceCode" id="cb11"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DriftJumpDiffusionIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    JumpDist JumpDistribution</span>
@@ -347,20 +383,26 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb
 <p><a name="DriftJumpDiffusionIteration.Configure"></a></p>
 <h3 id="func-driftjumpdiffusioniteration-configure">func
 (*DriftJumpDiffusionIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L20-L23">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L26-L29">Configure</a></h3>
 <div class="sourceCode" id="cb12"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DriftJumpDiffusionIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="DriftJumpDiffusionIteration.Iterate"></a></p>
 <h3 id="func-driftjumpdiffusioniteration-iterate">func
 (*DriftJumpDiffusionIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L41-L46">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/drift_jump_diffusion.go#L47-L52">Iterate</a></h3>
 <div class="sourceCode" id="cb13"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DriftJumpDiffusionIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="GammaJumpDistribution"></a></p>
 <h2 id="type-gammajumpdistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L19-L21">GammaJumpDistribution</a></h2>
-<p>GammaJumpDistribution jumps with samples drawn from a gamma
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L25-L27">GammaJumpDistribution</a></h2>
+<p>GammaJumpDistribution draws jump magnitudes from a gamma
 distribution.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Param names per dimension: “gamma_alphas” and “gamma_betas”.</li>
+<li>Seed is taken from the partition’s Settings for
+reproducibility.</li>
+</ul>
 <div class="sourceCode" id="cb14"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> GammaJumpDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -368,20 +410,29 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb
 <p><a name="GammaJumpDistribution.Configure"></a></p>
 <h3 id="func-gammajumpdistribution-configure">func
 (*GammaJumpDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L23-L26">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L29-L32">Configure</a></h3>
 <div class="sourceCode" id="cb15"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaJumpDistribution<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="GammaJumpDistribution.NewJump"></a></p>
 <h3 id="func-gammajumpdistribution-newjump">func
 (*GammaJumpDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L37-L40">NewJump</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L43-L46">NewJump</a></h3>
 <div class="sourceCode" id="cb16"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaJumpDistribution<span class="op">)</span> NewJump<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> valueIndex <span class="dt">int</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="GeometricBrownianMotionIteration"></a></p>
 <h2 id="type-geometricbrownianmotioniteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L14-L16">GeometricBrownianMotionIteration</a></h2>
-<p>GeometricBrownianMotionIteration defines an iteration for a simple
-geometric Brownian motion.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L19-L21">GeometricBrownianMotionIteration</a></h2>
+<p>GeometricBrownianMotionIteration steps a multiplicative (geometric)
+Brownian motion per dimension.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide per-dimension “variances”; multiplicative noise uses
+sqrt(variance*dt).</li>
+<li>Consider log-transforms if you need additive dynamics in log
+space.</li>
+<li>Seed is taken from the partition’s Settings for
+reproducibility.</li>
+</ul>
 <div class="sourceCode" id="cb17"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> GeometricBrownianMotionIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -389,40 +440,51 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb17-1"><a href="#cb
 <p><a name="GeometricBrownianMotionIteration.Configure"></a></p>
 <h3 id="func-geometricbrownianmotioniteration-configure">func
 (*GeometricBrownianMotionIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L18-L21">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L23-L26">Configure</a></h3>
 <div class="sourceCode" id="cb18"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GeometricBrownianMotionIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="GeometricBrownianMotionIteration.Iterate"></a></p>
 <h3 id="func-geometricbrownianmotioniteration-iterate">func
 (*GeometricBrownianMotionIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L32-L37">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/geometric_brownian_motion.go#L37-L42">Iterate</a></h3>
 <div class="sourceCode" id="cb19"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GeometricBrownianMotionIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="GradientDescentIteration"></a></p>
 <h2 id="type-gradientdescentiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L9">GradientDescentIteration</a></h2>
-<p>GradientDescentIteration defines an iteration for any general
-gradient descent process.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L13">GradientDescentIteration</a></h2>
+<p>GradientDescentIteration performs a gradient-based parameter
+update.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide params: “gradient” (vector) and “learning_rate”
+(scalar).</li>
+<li>Optional flag: “ascent” == 1 switches to gradient ascent.</li>
+<li>Update uses x_{t+1} = x_t - lr * gradient (or + for ascent).</li>
+</ul>
 <div class="sourceCode" id="cb20"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> GradientDescentIteration <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
 <p><a name="GradientDescentIteration.Configure"></a></p>
 <h3 id="func-gradientdescentiteration-configure">func
 (*GradientDescentIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L11-L14">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L15-L18">Configure</a></h3>
 <div class="sourceCode" id="cb21"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GradientDescentIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="GradientDescentIteration.Iterate"></a></p>
 <h3 id="func-gradientdescentiteration-iterate">func
 (*GradientDescentIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L17-L22">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/gradient_descent.go#L21-L26">Iterate</a></h3>
 <div class="sourceCode" id="cb22"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GradientDescentIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="JumpDistribution"></a></p>
 <h2 id="type-jumpdistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L13-L16">JumpDistribution</a></h2>
-<p>JumpDistribution defines the interface that must be implemented to
-provide a distribution to generate sudden ‘jumps’ from. This is used in
-compound Poisson processes and drift-jump-diffusions.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/compound_poisson_process.go#L15-L18">JumpDistribution</a></h2>
+<p>JumpDistribution defines the interface to draw sudden jumps.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Implement for custom jump magnitudes; called when a jump event
+occurs.</li>
+<li>Used by compound Poisson processes and drift–jump–diffusions.</li>
+</ul>
 <div class="sourceCode" id="cb23"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> JumpDistribution <span class="kw">interface</span> <span class="op">{</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span>
@@ -430,9 +492,18 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="OrnsteinUhlenbeckIteration"></a></p>
 <h2 id="type-ornsteinuhlenbeckiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L14-L16">OrnsteinUhlenbeckIteration</a></h2>
-<p>OrnsteinUhlenbeckIteration defines an iteration for an
-Ornstein-Uhlenbeck process.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L20-L22">OrnsteinUhlenbeckIteration</a></h2>
+<p>OrnsteinUhlenbeckIteration steps an Ornstein–Uhlenbeck mean-reverting
+process per dimension.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Required params per dimension: “thetas” (reversion speed), “mus”
+(long-run mean), and “sigmas” (volatility).</li>
+<li>Timestep size influences both drift and diffusion terms; ensure dt
+is configured.</li>
+<li>Seed is taken from the partition’s Settings for
+reproducibility.</li>
+</ul>
 <div class="sourceCode" id="cb24"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> OrnsteinUhlenbeckIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -440,20 +511,29 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb
 <p><a name="OrnsteinUhlenbeckIteration.Configure"></a></p>
 <h3 id="func-ornsteinuhlenbeckiteration-configure">func
 (*OrnsteinUhlenbeckIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L18-L21">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L24-L27">Configure</a></h3>
 <div class="sourceCode" id="cb25"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>o <span class="op">*</span>OrnsteinUhlenbeckIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="OrnsteinUhlenbeckIteration.Iterate"></a></p>
 <h3 id="func-ornsteinuhlenbeckiteration-iterate">func
 (*OrnsteinUhlenbeckIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L32-L37">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/ornstein_uhlenbeck.go#L38-L43">Iterate</a></h3>
 <div class="sourceCode" id="cb26"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>o <span class="op">*</span>OrnsteinUhlenbeckIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="WienerProcessIteration"></a></p>
 <h2 id="type-wienerprocessiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L14-L16">WienerProcessIteration</a></h2>
-<p>WienerProcessIteration defines an iteration for a simple Wiener
-process.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L19-L21">WienerProcessIteration</a></h2>
+<p>WienerProcessIteration steps a standard Wiener process (Brownian
+motion) per state dimension.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide a per-dimension “variances” param; next increment uses dW ~
+N(0, dt).</li>
+<li>Ensure the simulation timestep is set appropriately via the timestep
+function.</li>
+<li>Seed is taken from the partition’s Settings for
+reproducibility.</li>
+</ul>
 <div class="sourceCode" id="cb27"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> WienerProcessIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -461,13 +541,13 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb
 <p><a name="WienerProcessIteration.Configure"></a></p>
 <h3 id="func-wienerprocessiteration-configure">func
 (*WienerProcessIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L18-L21">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L23-L26">Configure</a></h3>
 <div class="sourceCode" id="cb28"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WienerProcessIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="WienerProcessIteration.Iterate"></a></p>
 <h3 id="func-wienerprocessiteration-iterate">func
 (*WienerProcessIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L32-L37">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L37-L42">Iterate</a></h3>
 <div class="sourceCode" id="cb29"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WienerProcessIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p>Generated by <a

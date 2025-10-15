@@ -6,7 +6,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// PeriodicIntegrationKernel is a periodic weighting in time.
+// PeriodicIntegrationKernel applies periodic (circular) time weighting.
+//
+// Usage hints:
+//   - Provide "periodic_weighting_timescale"; weight = exp(-2 sin^2(dt/2)/tau^2).
+//   - Useful for daily/weekly seasonality.
 type PeriodicIntegrationKernel struct {
 	timescaleSq float64
 }

@@ -88,63 +88,72 @@ AddPartitionsToStateTimeStorage extends the state time storage with newly genera
 
 <a name="GetDataFrameFromPartition"></a>
 
-## func [GetDataFrameFromPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/dataframe.go#L14-L17>)
+## func [GetDataFrameFromPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/dataframe.go#L15-L18>)
 
 ```go
 func GetDataFrameFromPartition(storage *simulator.StateTimeStorage, partitionName string) dataframe.DataFrame
 ```
 
-GetDataFrameFromPartition constructs a dataframe from the state time storage of a given partition. A "time" column is also provided.
+GetDataFrameFromPartition materializes a partition's values and times into a Gota dataframe. The first column is named "time" followed by one column per value index labeled by its integer index.
 
 <a name="NewGroupedAggregationPartition"></a>
 
-## func [NewGroupedAggregationPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L31-L40>)
+## func [NewGroupedAggregationPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L36-L45>)
 
 ```go
 func NewGroupedAggregationPartition(aggregation func(defaultValues []float64, outputIndexByGroup map[string]int, groupings map[string][]float64, weightings map[string][]float64) []float64, applied AppliedAggregation, storage *GroupedStateTimeStorage) *simulator.PartitionConfig
 ```
 
-NewGroupedAggregationPartition creates a new PartitionConfig for a grouped aggregation.
+NewGroupedAggregationPartition constructs a PartitionConfig that applies a caller\-provided grouped aggregation over historical values. Group bins and weighting are derived from the provided GroupedStateTimeStorage, and the output state vector is ordered by the accepted value groups.
 
 <a name="NewLikelihoodComparisonPartition"></a>
 
-## func [NewLikelihoodComparisonPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L57-L60>)
+## func [NewLikelihoodComparisonPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L65-L68>)
 
 ```go
 func NewLikelihoodComparisonPartition(applied AppliedLikelihoodComparison, storage *simulator.StateTimeStorage) *simulator.PartitionConfig
 ```
 
-NewLikelihoodComparisonPartition creates a new PartitionConfig for a rolling likelihood comparison.
+NewLikelihoodComparisonPartition builds a PartitionConfig embedding an inner windowed simulation to evaluate the likelihood over a rolling window, producing a per\-step comparison score.
 
 <a name="NewLikelihoodMeanFunctionFitPartition"></a>
 
-## func [NewLikelihoodMeanFunctionFitPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L198-L201>)
+## func [NewLikelihoodMeanFunctionFitPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L206-L209>)
 
 ```go
 func NewLikelihoodMeanFunctionFitPartition(applied AppliedLikelihoodMeanFunctionFit, storage *simulator.StateTimeStorage) *simulator.PartitionConfig
 ```
 
-NewLikelihoodMeanFunctionFitPartition creates a new PartitionConfig fitting the mean of a referenced likelihood model with a function specified by its gradient with respect to the desired fit parameters.
+NewLikelihoodMeanFunctionFitPartition builds a PartitionConfig embedding an inner simulation that runs gradient descent to fit the likelihood mean to the referenced data window.
 
 <a name="NewLinePlotFromDataFrame"></a>
 
-## func [NewLinePlotFromDataFrame](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L237-L242>)
+## func [NewLinePlotFromDataFrame](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L252-L257>)
 
 ```go
 func NewLinePlotFromDataFrame(df *dataframe.DataFrame, xAxis string, yAxis string, groupBy ...string) *charts.Line
 ```
 
-NewLinePlotFromDataFrame creates a new line plot from the dataframe given the axes references to subsets of it.
+NewLinePlotFromDataFrame renders a line chart from a dataframe using the specified X and Y columns.
+
+Usage hints:
+
+- Optionally split by a single groupBy column into multiple series.
 
 <a name="NewLinePlotFromPartition"></a>
 
-## func [NewLinePlotFromPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L184-L189>)
+## func [NewLinePlotFromPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L196-L201>)
 
 ```go
 func NewLinePlotFromPartition(storage *simulator.StateTimeStorage, xRef DataRef, yRefs []DataRef, fillYRefs []FillLineRef) *charts.Line
 ```
 
-NewLinePlotFromPartition creates a new line plot from the storage data given the axes references to subsets of it.
+NewLinePlotFromPartition renders a multi\-series line chart from storage using an X reference and one or more Y references.
+
+Usage hints:
+
+- yRefs may contain multiple series each; one line per series is added.
+- Optional filled bands can be added via fillYRefs.
 
 <a name="NewPosteriorEstimationPartitions"></a>
 
@@ -158,23 +167,32 @@ NewPosteriorEstimationPartitions creates a set of PartitionConfigs for an online
 
 <a name="NewScatterPlotFromDataFrame"></a>
 
-## func [NewScatterPlotFromDataFrame](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L49-L54>)
+## func [NewScatterPlotFromDataFrame](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L57-L62>)
 
 ```go
 func NewScatterPlotFromDataFrame(df *dataframe.DataFrame, xAxis string, yAxis string, groupBy ...string) *charts.Scatter
 ```
 
-NewScatterPlotFromDataFrame creates a new scatter plot from the dataframe given the axes references to subsets of it.
+NewScatterPlotFromDataFrame renders a scatter plot using columns of a dataframe.
+
+Usage hints:
+
+- Optionally provide a single groupBy column to split series.
 
 <a name="NewScatterPlotFromPartition"></a>
 
-## func [NewScatterPlotFromPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L13-L17>)
+## func [NewScatterPlotFromPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L18-L22>)
 
 ```go
 func NewScatterPlotFromPartition(storage *simulator.StateTimeStorage, xRef DataRef, yRefs []DataRef) *charts.Scatter
 ```
 
-NewScatterPlotFromPartition creates a new scatter plot from the storage data given the axes references to subsets of it.
+NewScatterPlotFromPartition renders a scatter plot from storage\-backed DataRef axes.
+
+Usage hints:
+
+- X\-axis must reference a single series \(typically time\).
+- Each DataRef in yRefs may contain multiple series; a series is added for each.
 
 <a name="NewStateTimeStorageFromCsv"></a>
 
@@ -218,33 +236,33 @@ NewStateTimeStorageFromPostgresDb reads from a PostgreSQL database over a pre\-d
 
 <a name="NewVectorCovariancePartition"></a>
 
-## func [NewVectorCovariancePartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L183-L187>)
+## func [NewVectorCovariancePartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L190-L194>)
 
 ```go
 func NewVectorCovariancePartition(mean DataRef, applied AppliedAggregation, storage *simulator.StateTimeStorage) *simulator.PartitionConfig
 ```
 
-NewVectorCovariancePartition creates a creates a new PartitionConfig to compute the vector covariance matrix of the referenced data partition.
+NewVectorCovariancePartition constructs a PartitionConfig that computes the rolling windowed weighted covariance matrix of the referenced data values. Provide the corresponding rolling mean via the mean DataRef.
 
 <a name="NewVectorMeanPartition"></a>
 
-## func [NewVectorMeanPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L93-L96>)
+## func [NewVectorMeanPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L98-L101>)
 
 ```go
 func NewVectorMeanPartition(applied AppliedAggregation, storage *simulator.StateTimeStorage) *simulator.PartitionConfig
 ```
 
-NewVectorMeanPartition creates a creates a new PartitionConfig to compute the vector mean of the referenced data partition.
+NewVectorMeanPartition constructs a PartitionConfig that computes the rolling windowed weighted mean per\-index of the referenced data values.
 
 <a name="NewVectorVariancePartition"></a>
 
-## func [NewVectorVariancePartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L135-L139>)
+## func [NewVectorVariancePartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L141-L145>)
 
 ```go
 func NewVectorVariancePartition(mean DataRef, applied AppliedAggregation, storage *simulator.StateTimeStorage) *simulator.PartitionConfig
 ```
 
-NewVectorVariancePartition creates a creates a new PartitionConfig to compute the vector variance of the referenced data partition.
+NewVectorVariancePartition constructs a PartitionConfig that computes the rolling windowed weighted variance per\-index of the referenced data values. Provide the corresponding rolling mean via the mean DataRef.
 
 <a name="SetPartitionFromDataFrame"></a>
 
@@ -254,7 +272,7 @@ NewVectorVariancePartition creates a creates a new PartitionConfig to compute th
 func SetPartitionFromDataFrame(storage *simulator.StateTimeStorage, partitionName string, df dataframe.DataFrame, overwriteTime bool)
 ```
 
-SetPartitionFromDataFrame sets the values in the state time storage of a given partition using a dataframe as input. This dataframe can optionally also be used to overwrite the stored times by setting the overwriteTime boolean flag to true.
+SetPartitionFromDataFrame updates a partition's values from a Gota dataframe with schema \[time, 0, 1, ...\]. If overwriteTime is true, the storage's time vector is replaced with the "time" column.
 
 <a name="WriteStateTimeStorageToPostgresDb"></a>
 
@@ -268,9 +286,9 @@ WriteStateTimeStorageToPostgresDb writes all of the data in the state time stora
 
 <a name="AppliedAggregation"></a>
 
-## type [AppliedAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L13-L18>)
+## type [AppliedAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L15-L20>)
 
-AppliedAggregation is the base configuration for an aggregation over a referenced dataset.
+AppliedAggregation describes how to aggregate a referenced dataset over time. It names the output partition, points to the source data, specifies the integration kernel \(windowing/weighting\), and provides a default fill value used when the aggregation has insufficient history.
 
 ```go
 type AppliedAggregation struct {
@@ -283,13 +301,13 @@ type AppliedAggregation struct {
 
 <a name="AppliedAggregation.GetKernel"></a>
 
-### func \(\*AppliedAggregation\) [GetKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L22>)
+### func \(\*AppliedAggregation\) [GetKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L25>)
 
 ```go
 func (a *AppliedAggregation) GetKernel() kernels.IntegrationKernel
 ```
 
-GetKernel retrieves the integration kernel used, returning the default of instantaneous \(no window\) if initially unset.
+GetKernel returns the configured integration kernel. If none is set, it falls back to an instantaneous \(no window\) kernel so callers never need to guard against a nil kernel.
 
 <a name="AppliedGrouping"></a>
 
@@ -306,9 +324,9 @@ type AppliedGrouping struct {
 
 <a name="AppliedLikelihoodComparison"></a>
 
-## type [AppliedLikelihoodComparison](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L48-L53>)
+## type [AppliedLikelihoodComparison](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L55-L60>)
 
-AppliedLikelihoodComparison is the base configuration for a rolling comparison between a referenced dataset and referenced likelihood model.
+AppliedLikelihoodComparison configures a rolling likelihood comparison between referenced data and a model over a sliding window.
 
 ```go
 type AppliedLikelihoodComparison struct {
@@ -321,9 +339,9 @@ type AppliedLikelihoodComparison struct {
 
 <a name="AppliedLikelihoodMeanFunctionFit"></a>
 
-## type [AppliedLikelihoodMeanFunctionFit](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L185-L193>)
+## type [AppliedLikelihoodMeanFunctionFit](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L193-L201>)
 
-AppliedLikelihoodMeanFunctionFit is the base configuration for fitting the mean of a referenced likelihood model with a function specified by its gradient with respect to the desired fit parameters.
+AppliedLikelihoodMeanFunctionFit configures online fitting of the model's likelihood mean to data using a gradient function and learning rate over a finite descent schedule.
 
 ```go
 type AppliedLikelihoodMeanFunctionFit struct {
@@ -358,9 +376,9 @@ type AppliedPosteriorEstimation struct {
 
 <a name="ColourGenerator"></a>
 
-## type [ColourGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L132-L134>)
+## type [ColourGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L140-L142>)
 
-ColourGenerator keeps track of the current colour index.
+ColourGenerator iterates over the default ECharts categorical palette.
 
 ```go
 type ColourGenerator struct {
@@ -370,19 +388,19 @@ type ColourGenerator struct {
 
 <a name="ColourGenerator.Next"></a>
 
-### func \(\*ColourGenerator\) [Next](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L138>)
+### func \(\*ColourGenerator\) [Next](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L146>)
 
 ```go
 func (cg *ColourGenerator) Next() string
 ```
 
-Next returns the next colour in the ECharts palette, cycling back if needed.
+Next returns the next colour in the ECharts palette, cycling when the end is reached.
 
 <a name="DataPlotting"></a>
 
 ## type [DataPlotting](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L18-L21>)
 
-DataPlotting configures the changes to the data which can be applied before plotting.
+DataPlotting declares optional transformations for plotting, such as treating a reference as time and restricting to a time index range.
 
 ```go
 type DataPlotting struct {
@@ -393,9 +411,9 @@ type DataPlotting struct {
 
 <a name="DataRef"></a>
 
-## type [DataRef](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L24-L28>)
+## type [DataRef](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L26-L30>)
 
-DataRef is a reference to some subset of the stored data.
+DataRef identifies a subset of data stored in StateTimeStorage. It can reference the special time axis or one or more value indices of a partition. Optional plotting hints may be supplied via Plotting.
 
 ```go
 type DataRef struct {
@@ -407,33 +425,33 @@ type DataRef struct {
 
 <a name="DataRef.GetFromStorage"></a>
 
-### func \(\*DataRef\) [GetFromStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L117-L119>)
+### func \(\*DataRef\) [GetFromStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L120-L122>)
 
 ```go
 func (d *DataRef) GetFromStorage(storage *simulator.StateTimeStorage) [][]float64
 ```
 
-GetFromStorage retrieves the relevant data from storage that the reference is pointing to.
+GetFromStorage returns the entire referenced series. For a time reference, this is a single series containing all times; for a value reference, this is one series per value index.
 
 <a name="DataRef.GetSeriesNames"></a>
 
-### func \(\*DataRef\) [GetSeriesNames](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L83-L85>)
+### func \(\*DataRef\) [GetSeriesNames](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L84-L86>)
 
 ```go
 func (d *DataRef) GetSeriesNames(storage *simulator.StateTimeStorage) []string
 ```
 
-GetSeriesName retrieves unique names for each dimension in the time series data that is typically used for labelling plots.
+GetSeriesNames returns human\-readable series labels for plotting. Time references are labeled "time"; value references are labeled as "\<partition\> \<index\>".
 
 <a name="DataRef.GetTimeIndexFromStorage"></a>
 
-### func \(\*DataRef\) [GetTimeIndexFromStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L98-L101>)
+### func \(\*DataRef\) [GetTimeIndexFromStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L100-L103>)
 
 ```go
 func (d *DataRef) GetTimeIndexFromStorage(storage *simulator.StateTimeStorage, timeIndex int) []float64
 ```
 
-GetTimeIndexFromStorage retrieves the relevant data from storage that the reference is pointing to for a given index in time.
+GetTimeIndexFromStorage returns the data at a specific time index. For a time reference, this is a single\-element slice containing the time value; for a value reference, this is the row slice for that time index.
 
 <a name="DataRef.GetValueIndices"></a>
 
@@ -443,13 +461,13 @@ GetTimeIndexFromStorage retrieves the relevant data from storage that the refere
 func (d *DataRef) GetValueIndices(storage *simulator.StateTimeStorage) []int
 ```
 
-GetValueIndices populates the value indices slice with all of the indices found in the referenced partition if set initially to nil.
+GetValueIndices returns the referenced value indices, defaulting to all indices within the partition when ValueIndices is nil.
 
 <a name="FillLineRef"></a>
 
-## type [FillLineRef](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L113-L116>)
+## type [FillLineRef](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/plot.go#L121-L124>)
 
-FillLineRef holds the data required to construct a filled region in the line plot.
+FillLineRef specifies an upper and lower bound series used to fill a confidence region in a line plot.
 
 ```go
 type FillLineRef struct {
@@ -555,7 +573,7 @@ GetPrecision returns the requested float precision for grouping.
 
 ## type [IndexRange](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/data.go#L11-L14>)
 
-IndexRange holds upper and lower index values for a range of indices selected to be used.
+IndexRange represents an inclusive\-exclusive \[Lower, Upper\) span of indices. It is commonly used to clip time\-series windows for plotting.
 
 ```go
 type IndexRange struct {
@@ -566,9 +584,9 @@ type IndexRange struct {
 
 <a name="LikelihoodMeanGradient"></a>
 
-## type [LikelihoodMeanGradient](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L174-L180>)
+## type [LikelihoodMeanGradient](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L182-L188>)
 
-LikelihoodMeanGradient defines the function which takes the gradient of the likelihood mean with respect to the desired fit parameters.
+LikelihoodMeanGradient specifies a function mapping params and the gradient of the likelihood mean to a parameter update direction.
 
 ```go
 type LikelihoodMeanGradient struct {
@@ -582,9 +600,9 @@ type LikelihoodMeanGradient struct {
 
 <a name="ParameterisedModel"></a>
 
-## type [ParameterisedModel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L28-L33>)
+## type [ParameterisedModel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L35-L40>)
 
-ParameterisedModel defines a likelihood model for the data with its corresponding parameters to set.
+ParameterisedModel bundles a likelihood distribution with its parameter configuration and any cross\-partition parameter wiring required at runtime.
 
 ```go
 type ParameterisedModel struct {
@@ -597,19 +615,19 @@ type ParameterisedModel struct {
 
 <a name="ParameterisedModel.Init"></a>
 
-### func \(\*ParameterisedModel\) [Init](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L36>)
+### func \(\*ParameterisedModel\) [Init](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L43>)
 
 ```go
 func (p *ParameterisedModel) Init()
 ```
 
-Init populates the model parameter fields if they have not been set.
+Init ensures internal parameter wiring maps are initialised.
 
 <a name="ParameterisedModelWithGradient"></a>
 
-## type [ParameterisedModelWithGradient](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L154-L159>)
+## type [ParameterisedModelWithGradient](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L162-L167>)
 
-ParameterisedModelWithGradient defines a ParameterisedModel which has a gradient.
+ParameterisedModelWithGradient augments ParameterisedModel with gradient support for optimisation routines.
 
 ```go
 type ParameterisedModelWithGradient struct {
@@ -622,13 +640,13 @@ type ParameterisedModelWithGradient struct {
 
 <a name="ParameterisedModelWithGradient.Init"></a>
 
-### func \(\*ParameterisedModelWithGradient\) [Init](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L162>)
+### func \(\*ParameterisedModelWithGradient\) [Init](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L170>)
 
 ```go
 func (p *ParameterisedModelWithGradient) Init()
 ```
 
-Init populates the model parameter fields if they have not been set.
+Init ensures internal parameter wiring maps are initialised.
 
 <a name="PosteriorCovariance"></a>
 
@@ -764,9 +782,14 @@ func (p *PostgresDbOutputFunction) Output(partitionName string, state []float64,
 
 <a name="WindowedPartition"></a>
 
-## type [WindowedPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L12-L15>)
+## type [WindowedPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L16-L19>)
 
-WindowedPartition configures a partition to simulate within a windowed duration.
+WindowedPartition configures a partition that participates in a finite windowed simulation.
+
+Usage hints:
+
+- Partition defines the inner partition and its params.
+- OutsideUpstreams map allows wiring upstreams from outside the window.
 
 ```go
 type WindowedPartition struct {
@@ -777,9 +800,15 @@ type WindowedPartition struct {
 
 <a name="WindowedPartitions"></a>
 
-## type [WindowedPartitions](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L20-L24>)
+## type [WindowedPartitions](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L27-L31>)
 
-WindowedPartitions defines a windowed history of data from partitions in storage and possible additional partitions to include when simulating the window duration.
+WindowedPartitions defines the sliding\-window context used by analysis.
+
+Usage hints:
+
+- Partitions are simulated inside the window.
+- Data references supply historical values to seed and drive the window.
+- Depth is the number of steps in the window.
 
 ```go
 type WindowedPartitions struct {

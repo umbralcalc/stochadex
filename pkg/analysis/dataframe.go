@@ -9,8 +9,9 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// GetDataFrameFromPartition constructs a dataframe from the state time
-// storage of a given partition. A "time" column is also provided.
+// GetDataFrameFromPartition materializes a partition's values and times
+// into a Gota dataframe. The first column is named "time" followed by one
+// column per value index labeled by its integer index.
 func GetDataFrameFromPartition(
 	storage *simulator.StateTimeStorage,
 	partitionName string,
@@ -34,10 +35,9 @@ func GetDataFrameFromPartition(
 	return df
 }
 
-// SetPartitionFromDataFrame sets the values in the state time storage of a
-// given partition using a dataframe as input. This dataframe can optionally
-// also be used to overwrite the stored times by setting the overwriteTime
-// boolean flag to true.
+// SetPartitionFromDataFrame updates a partition's values from a Gota
+// dataframe with schema [time, 0, 1, ...]. If overwriteTime is true, the
+// storage's time vector is replaced with the "time" column.
 func SetPartitionFromDataFrame(
 	storage *simulator.StateTimeStorage,
 	partitionName string,

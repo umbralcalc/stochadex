@@ -4,8 +4,11 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// StateHistory represents the information contained within a windowed
-// history of []float64 state values.
+// StateHistory is a rolling window of state vectors.
+//
+// Usage hints:
+//   - Values holds rows of state (row 0 is most recent by convention).
+//   - Use GetNextStateRowToUpdate when updating in multi-row histories.
 type StateHistory struct {
 	// each row is a different state in the history, by convention,
 	// starting with the most recent at index = 0
@@ -33,8 +36,8 @@ func (s *StateHistory) GetNextStateRowToUpdate() []float64 {
 	return s.CopyStateRow(0)
 }
 
-// CumulativeTimestepsHistory is a windowed history of cumulative timestep values
-// which includes the next value to increment time by and number of steps taken.
+// CumulativeTimestepsHistory is a rolling window of cumulative timesteps with
+// NextIncrement and CurrentStepNumber.
 type CumulativeTimestepsHistory struct {
 	NextIncrement     float64
 	Values            *mat.VecDense
@@ -42,9 +45,7 @@ type CumulativeTimestepsHistory struct {
 	StateHistoryDepth int
 }
 
-// IteratorInputMessage defines the message which is passed from the
-// PartitionCoordinator to a StateIterator of a given partition when
-// the former is requesting the latter to perform a job.
+// IteratorInputMessage carries shared histories into iterator jobs.
 type IteratorInputMessage struct {
 	StateHistories   []*StateHistory
 	TimestepsHistory *CumulativeTimestepsHistory

@@ -155,9 +155,9 @@ RunWithHarnesses runs all iterations, each wrapped in a test harness and returns
 
 <a name="ConfigGenerator"></a>
 
-## type [ConfigGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L152-L156>)
+## type [ConfigGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L144-L148>)
 
-ConfigGenerator enables users to dynamically configure a stochadex simulation programmatically while providing tools for just\-in\-time generation of the necessary Implementation and Settings configs required to create a new PartitionCoordinator through the .GenerateConfigs method.
+ConfigGenerator builds Settings and Implementations programmatically and can generate runnable configs on demand.
 
 ```go
 type ConfigGenerator struct {
@@ -167,99 +167,99 @@ type ConfigGenerator struct {
 
 <a name="NewConfigGenerator"></a>
 
-### func [NewConfigGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L281>)
+### func [NewConfigGenerator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L269>)
 
 ```go
 func NewConfigGenerator() *ConfigGenerator
 ```
 
-NewConfigGenerator creates a new ConfigGenerator.
+NewConfigGenerator creates a new ConfigGenerator with empty ordering.
 
 <a name="ConfigGenerator.GenerateConfigs"></a>
 
-### func \(\*ConfigGenerator\) [GenerateConfigs](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L211>)
+### func \(\*ConfigGenerator\) [GenerateConfigs](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L199>)
 
 ```go
 func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations)
 ```
 
-GenerateConfigs generates the necessary Implementation and Settings configs required to create a new PartitionCoordinator based on the currently configured simulation that is represented by the generator.
+GenerateConfigs constructs Settings and Implementations ready to run. It computes state widths, converts named references, and configures iterations with their partition indices.
 
 <a name="ConfigGenerator.GetGlobalSeed"></a>
 
-### func \(\*ConfigGenerator\) [GetGlobalSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L159>)
+### func \(\*ConfigGenerator\) [GetGlobalSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L151>)
 
 ```go
 func (c *ConfigGenerator) GetGlobalSeed() uint64
 ```
 
-GetGlobalSeed retrieves what global seed is currently set.
+GetGlobalSeed returns the current global seed.
 
 <a name="ConfigGenerator.GetPartition"></a>
 
-### func \(\*ConfigGenerator\) [GetPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L186>)
+### func \(\*ConfigGenerator\) [GetPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L176>)
 
 ```go
 func (c *ConfigGenerator) GetPartition(name string) *PartitionConfig
 ```
 
-GetPartition retrieves a partition config in the generator using on its name.
+GetPartition retrieves a partition config by name.
 
 <a name="ConfigGenerator.GetSimulation"></a>
 
-### func \(\*ConfigGenerator\) [GetSimulation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L175>)
+### func \(\*ConfigGenerator\) [GetSimulation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L166>)
 
 ```go
 func (c *ConfigGenerator) GetSimulation() *SimulationConfig
 ```
 
-GetSimulation retrieves the current configured simulation config that is in the generator.
+GetSimulation returns the current simulation config.
 
 <a name="ConfigGenerator.ResetPartition"></a>
 
-### func \(\*ConfigGenerator\) [ResetPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L199>)
+### func \(\*ConfigGenerator\) [ResetPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L187>)
 
 ```go
 func (c *ConfigGenerator) ResetPartition(name string, config *PartitionConfig)
 ```
 
-ResetPartition allows the user to reset the config for a partition by name.
+ResetPartition replaces the config for a partition by name.
 
 <a name="ConfigGenerator.SetGlobalSeed"></a>
 
-### func \(\*ConfigGenerator\) [SetGlobalSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L165>)
+### func \(\*ConfigGenerator\) [SetGlobalSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L157>)
 
 ```go
 func (c *ConfigGenerator) SetGlobalSeed(seed uint64)
 ```
 
-SetGlobalSeed sets a random seed for each partition in the simulation based on a process which itself is dependent on the input random seed.
+SetGlobalSeed assigns a random seed to each partition derived from the provided global seed.
 
 <a name="ConfigGenerator.SetPartition"></a>
 
-### func \(\*ConfigGenerator\) [SetPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L193>)
+### func \(\*ConfigGenerator\) [SetPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L181>)
 
 ```go
 func (c *ConfigGenerator) SetPartition(config *PartitionConfig)
 ```
 
-SetPartition sets another new partition config in the generator which must have a unique name field to every other one which currently exists otherwise there is an error.
+SetPartition adds a new partition config. Names must be unique.
 
 <a name="ConfigGenerator.SetSimulation"></a>
 
-### func \(\*ConfigGenerator\) [SetSimulation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L180>)
+### func \(\*ConfigGenerator\) [SetSimulation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L171>)
 
 ```go
 func (c *ConfigGenerator) SetSimulation(config *SimulationConfig)
 ```
 
-SetSimulation sets a new simulation config in the generator.
+SetSimulation sets the current simulation config.
 
 <a name="ConstantTimestepFunction"></a>
 
-## type [ConstantTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L18-L20>)
+## type [ConstantTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L17-L19>)
 
-ConstantTimestepFunction iterates the timestep by a constant stepsize.
+ConstantTimestepFunction uses a fixed stepsize.
 
 ```go
 type ConstantTimestepFunction struct {
@@ -269,7 +269,7 @@ type ConstantTimestepFunction struct {
 
 <a name="ConstantTimestepFunction.NextIncrement"></a>
 
-### func \(\*ConstantTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L22-L24>)
+### func \(\*ConstantTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L21-L23>)
 
 ```go
 func (t *ConstantTimestepFunction) NextIncrement(timestepsHistory *CumulativeTimestepsHistory) float64
@@ -279,9 +279,9 @@ func (t *ConstantTimestepFunction) NextIncrement(timestepsHistory *CumulativeTim
 
 <a name="CumulativeTimestepsHistory"></a>
 
-## type [CumulativeTimestepsHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L38-L43>)
+## type [CumulativeTimestepsHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L41-L46>)
 
-CumulativeTimestepsHistory is a windowed history of cumulative timestep values which includes the next value to increment time by and number of steps taken.
+CumulativeTimestepsHistory is a rolling window of cumulative timesteps with NextIncrement and CurrentStepNumber.
 
 ```go
 type CumulativeTimestepsHistory struct {
@@ -294,9 +294,9 @@ type CumulativeTimestepsHistory struct {
 
 <a name="DownstreamStateValues"></a>
 
-## type [DownstreamStateValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L27-L30>)
+## type [DownstreamStateValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L28-L31>)
 
-DownstreamStateValues contains the information needed to send state values to a computationally\-downstream StateIterator.
+DownstreamStateValues contains information to broadcast state values to downstream iterators via channel.
 
 ```go
 type DownstreamStateValues struct {
@@ -307,9 +307,9 @@ type DownstreamStateValues struct {
 
 <a name="EveryNStepsOutputCondition"></a>
 
-## type [EveryNStepsOutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L260-L263>)
+## type [EveryNStepsOutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L249-L252>)
 
-EveryNStepsOutputCondition calls the OutputFunction once for every N steps that occur.
+EveryNStepsOutputCondition emits output once every N steps.
 
 ```go
 type EveryNStepsOutputCondition struct {
@@ -320,7 +320,7 @@ type EveryNStepsOutputCondition struct {
 
 <a name="EveryNStepsOutputCondition.IsOutputStep"></a>
 
-### func \(\*EveryNStepsOutputCondition\) [IsOutputStep](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L265-L269>)
+### func \(\*EveryNStepsOutputCondition\) [IsOutputStep](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L254-L258>)
 
 ```go
 func (c *EveryNStepsOutputCondition) IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
@@ -330,7 +330,7 @@ func (c *EveryNStepsOutputCondition) IsOutputStep(partitionName string, state []
 
 <a name="EveryStepOutputCondition"></a>
 
-## type [EveryStepOutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L248>)
+## type [EveryStepOutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L238>)
 
 EveryStepOutputCondition calls the OutputFunction at every step.
 
@@ -340,7 +340,7 @@ type EveryStepOutputCondition struct{}
 
 <a name="EveryStepOutputCondition.IsOutputStep"></a>
 
-### func \(\*EveryStepOutputCondition\) [IsOutputStep](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L250-L254>)
+### func \(\*EveryStepOutputCondition\) [IsOutputStep](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L240-L244>)
 
 ```go
 func (c *EveryStepOutputCondition) IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
@@ -350,9 +350,9 @@ func (c *EveryStepOutputCondition) IsOutputStep(partitionName string, state []fl
 
 <a name="ExponentialDistributionTimestepFunction"></a>
 
-## type [ExponentialDistributionTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L30-L34>)
+## type [ExponentialDistributionTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L29-L33>)
 
-ExponentialDistributionTimestepFunction iterates the timestep by a new sample drawn from an exponential distribution with hyperparameters set by Mean and Seed.
+ExponentialDistributionTimestepFunction draws dt from an exponential distribution parameterised by Mean and Seed.
 
 ```go
 type ExponentialDistributionTimestepFunction struct {
@@ -364,17 +364,17 @@ type ExponentialDistributionTimestepFunction struct {
 
 <a name="NewExponentialDistributionTimestepFunction"></a>
 
-### func [NewExponentialDistributionTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L44-L47>)
+### func [NewExponentialDistributionTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L43-L46>)
 
 ```go
 func NewExponentialDistributionTimestepFunction(mean float64, seed uint64) *ExponentialDistributionTimestepFunction
 ```
 
-New ExponentialDistributionTimestepFunction creates a new ExponentialDistributionTimestepFunction given a mean and seed.
+NewExponentialDistributionTimestepFunction constructs an exponential\-dt timestep function given mean and seed.
 
 <a name="ExponentialDistributionTimestepFunction.NextIncrement"></a>
 
-### func \(\*ExponentialDistributionTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L36-L38>)
+### func \(\*ExponentialDistributionTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L35-L37>)
 
 ```go
 func (t *ExponentialDistributionTimestepFunction) NextIncrement(timestepsHistory *CumulativeTimestepsHistory) float64
@@ -386,7 +386,7 @@ func (t *ExponentialDistributionTimestepFunction) NextIncrement(timestepsHistory
 
 ## type [Implementations](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L60-L66>)
 
-Implementations defines all of the interfaces that must be implemented in order to configure a simulation defined by the stochadex.
+Implementations provides concrete implementations for a simulation run.
 
 ```go
 type Implementations struct {
@@ -400,9 +400,14 @@ type Implementations struct {
 
 <a name="Iteration"></a>
 
-## type [Iteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L8-L16>)
+## type [Iteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L9-L17>)
 
-Iteration is the interface that must be implemented for any partitioned state iteration in the stochadex. Its .Iterate method reads in the \*Params, a int partitionIndex, the full current history of all partitions defined by a slice \[\]\*StateHistory and a \*CumulativeTimestepsHistory reference and outputs an updated state history row in the form of a float64 slice.
+Iteration defines a per\-partition state update.
+
+Usage hints:
+
+- Configure is called once per partition with global Settings.
+- Iterate receives Params, partition index, all state histories, and the timestep history, and must return the next state row.
 
 ```go
 type Iteration interface {
@@ -418,9 +423,15 @@ type Iteration interface {
 
 <a name="IterationSettings"></a>
 
-## type [IterationSettings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L19-L27>)
+## type [IterationSettings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L22-L30>)
 
-IterationSettings is the yaml\-loadable config which defines the settings for an iteration which acts on a partition of the the global simulation state and its upstream partitions which may provide params for it.
+IterationSettings is the YAML\-loadable per\-partition configuration.
+
+Usage hints:
+
+- Name is used to address partitions in other configs and params maps.
+- ParamsFromUpstream forwards outputs from upstream partitions into Params.
+- StateWidth and StateHistoryDepth control the size and depth of state.
 
 ```go
 type IterationSettings struct {
@@ -470,9 +481,9 @@ func (h *IterationTestHarness) Iterate(params *Params, partitionIndex int, state
 
 <a name="IteratorInputMessage"></a>
 
-## type [IteratorInputMessage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L48-L51>)
+## type [IteratorInputMessage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L49-L52>)
 
-IteratorInputMessage defines the message which is passed from the PartitionCoordinator to a StateIterator of a given partition when the former is requesting the latter to perform a job.
+IteratorInputMessage carries shared histories into iterator jobs.
 
 ```go
 type IteratorInputMessage struct {
@@ -483,9 +494,9 @@ type IteratorInputMessage struct {
 
 <a name="JsonLogChannelOutputFunction"></a>
 
-## type [JsonLogChannelOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L114-L116>)
+## type [JsonLogChannelOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L108-L110>)
 
-JsonLogChannelOutputFunction outputs data to a log of json packets from the simulation on the steps where the OutputCondition is met. This is functionally the same as the JsonLogOutputFunction but runs in its own thread and receives logs via channel for improved performance.
+JsonLogChannelOutputFunction writes JSON log entries via a background goroutine using a channel for improved throughput.
 
 ```go
 type JsonLogChannelOutputFunction struct {
@@ -495,17 +506,17 @@ type JsonLogChannelOutputFunction struct {
 
 <a name="NewJsonLogChannelOutputFunction"></a>
 
-### func [NewJsonLogChannelOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L140-L142>)
+### func [NewJsonLogChannelOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L132-L134>)
 
 ```go
 func NewJsonLogChannelOutputFunction(filePath string) *JsonLogChannelOutputFunction
 ```
 
-NewJsonLogChannelOutputFunction creates a new JsonLogChannelOutputFunction. This creates a new channel which can be deferred to close so that flushing at the end of a run is ensured like this: f = NewJsonLogChannelOutputFunction\("file.log"\); defer f.Close\(\)
+NewJsonLogChannelOutputFunction creates a JsonLogChannelOutputFunction. Call Close \(defer it\) to ensure flushing at the end of a run.
 
 <a name="JsonLogChannelOutputFunction.Close"></a>
 
-### func \(\*JsonLogChannelOutputFunction\) [Close](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L132>)
+### func \(\*JsonLogChannelOutputFunction\) [Close](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L126>)
 
 ```go
 func (j *JsonLogChannelOutputFunction) Close()
@@ -515,7 +526,7 @@ Close ensures that the log channel flushes at the end of a run.
 
 <a name="JsonLogChannelOutputFunction.Output"></a>
 
-### func \(\*JsonLogChannelOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L118-L122>)
+### func \(\*JsonLogChannelOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L112-L116>)
 
 ```go
 func (j *JsonLogChannelOutputFunction) Output(partitionName string, state []float64, cumulativeTimesteps float64)
@@ -525,9 +536,9 @@ func (j *JsonLogChannelOutputFunction) Output(partitionName string, state []floa
 
 <a name="JsonLogEntry"></a>
 
-## type [JsonLogEntry](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L59-L63>)
+## type [JsonLogEntry](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L56-L60>)
 
-JsonLogEntry is the format in which the logs are serialised when using the JsonLogOutputFunction.
+JsonLogEntry is the serialised record format used by JSON log outputs.
 
 ```go
 type JsonLogEntry struct {
@@ -539,9 +550,9 @@ type JsonLogEntry struct {
 
 <a name="JsonLogOutputFunction"></a>
 
-## type [JsonLogOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L67-L70>)
+## type [JsonLogOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L63-L66>)
 
-JsonLogOutputFunction outputs data to a log of json packets from the simulation on the steps where the OutputCondition is met.
+JsonLogOutputFunction writes newline\-delimited JSON log entries.
 
 ```go
 type JsonLogOutputFunction struct {
@@ -551,7 +562,7 @@ type JsonLogOutputFunction struct {
 
 <a name="NewJsonLogOutputFunction"></a>
 
-### func [NewJsonLogOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L98-L100>)
+### func [NewJsonLogOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L94-L96>)
 
 ```go
 func NewJsonLogOutputFunction(filePath string) *JsonLogOutputFunction
@@ -561,7 +572,7 @@ NewJsonLogOutputFunction creates a new JsonLogOutputFunction.
 
 <a name="JsonLogOutputFunction.Output"></a>
 
-### func \(\*JsonLogOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L72-L76>)
+### func \(\*JsonLogOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L68-L72>)
 
 ```go
 func (j *JsonLogOutputFunction) Output(partitionName string, state []float64, cumulativeTimesteps float64)
@@ -571,7 +582,7 @@ func (j *JsonLogOutputFunction) Output(partitionName string, state []float64, cu
 
 <a name="NamedPartitionIndex"></a>
 
-## type [NamedPartitionIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L67-L70>)
+## type [NamedPartitionIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L66-L69>)
 
 NamedPartitionIndex pairs the name of a partition with the partition index assigned to it by the PartitionCoordinator.
 
@@ -584,9 +595,9 @@ type NamedPartitionIndex struct {
 
 <a name="NamedUpstreamConfig"></a>
 
-## type [NamedUpstreamConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L71-L74>)
+## type [NamedUpstreamConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L69-L72>)
 
-NamedUpstreamConfig is the yaml\-loadable representation of a slice of data from the output of a partitiion which is computationally upstream. This version uses a string name for this partition.
+NamedUpstreamConfig is like UpstreamConfig but refers to upstream by name.
 
 ```go
 type NamedUpstreamConfig struct {
@@ -597,7 +608,7 @@ type NamedUpstreamConfig struct {
 
 <a name="NilOutputCondition"></a>
 
-## type [NilOutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L237>)
+## type [NilOutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L227>)
 
 NilOutputCondition never outputs.
 
@@ -607,7 +618,7 @@ type NilOutputCondition struct{}
 
 <a name="NilOutputCondition.IsOutputStep"></a>
 
-### func \(\*NilOutputCondition\) [IsOutputStep](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L239-L243>)
+### func \(\*NilOutputCondition\) [IsOutputStep](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L229-L233>)
 
 ```go
 func (c *NilOutputCondition) IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
@@ -617,7 +628,7 @@ func (c *NilOutputCondition) IsOutputStep(partitionName string, state []float64,
 
 <a name="NilOutputFunction"></a>
 
-## type [NilOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L22>)
+## type [NilOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L21>)
 
 NilOutputFunction outputs nothing from the simulation.
 
@@ -627,7 +638,7 @@ type NilOutputFunction struct{}
 
 <a name="NilOutputFunction.Output"></a>
 
-### func \(\*NilOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L24-L28>)
+### func \(\*NilOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L23-L27>)
 
 ```go
 func (f *NilOutputFunction) Output(partitionName string, state []float64, cumulativeTimesteps float64)
@@ -637,9 +648,9 @@ func (f *NilOutputFunction) Output(partitionName string, state []float64, cumula
 
 <a name="NumberOfStepsTerminationCondition"></a>
 
-## type [NumberOfStepsTerminationCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L14-L16>)
+## type [NumberOfStepsTerminationCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L12-L14>)
 
-NumberOfStepsTerminationCondition terminates the process when the overall number of steps performed has reached MaxNumberOfSteps.
+NumberOfStepsTerminationCondition terminates after MaxNumberOfSteps.
 
 ```go
 type NumberOfStepsTerminationCondition struct {
@@ -649,7 +660,7 @@ type NumberOfStepsTerminationCondition struct {
 
 <a name="NumberOfStepsTerminationCondition.Terminate"></a>
 
-### func \(\*NumberOfStepsTerminationCondition\) [Terminate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L18-L21>)
+### func \(\*NumberOfStepsTerminationCondition\) [Terminate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L16-L19>)
 
 ```go
 func (t *NumberOfStepsTerminationCondition) Terminate(stateHistories []*StateHistory, timestepsHistory *CumulativeTimestepsHistory) bool
@@ -659,9 +670,9 @@ func (t *NumberOfStepsTerminationCondition) Terminate(stateHistories []*StateHis
 
 <a name="OnlyGivenPartitionsOutputCondition"></a>
 
-## type [OnlyGivenPartitionsOutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L280-L282>)
+## type [OnlyGivenPartitionsOutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L268-L270>)
 
-OnlyGivenPartitionsOutputCondition calls the OutputFunction for only the given partition names.
+OnlyGivenPartitionsOutputCondition emits output only for listed partitions.
 
 ```go
 type OnlyGivenPartitionsOutputCondition struct {
@@ -671,7 +682,7 @@ type OnlyGivenPartitionsOutputCondition struct {
 
 <a name="OnlyGivenPartitionsOutputCondition.IsOutputStep"></a>
 
-### func \(\*OnlyGivenPartitionsOutputCondition\) [IsOutputStep](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L284-L288>)
+### func \(\*OnlyGivenPartitionsOutputCondition\) [IsOutputStep](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L272-L276>)
 
 ```go
 func (o *OnlyGivenPartitionsOutputCondition) IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
@@ -681,9 +692,9 @@ func (o *OnlyGivenPartitionsOutputCondition) IsOutputStep(partitionName string, 
 
 <a name="OutputCondition"></a>
 
-## type [OutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L232-L234>)
+## type [OutputCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L222-L224>)
 
-OutputCondition is the interface that must be implemented to define when the simulation calls the OutputFunction.
+OutputCondition decides whether an output should be emitted this step.
 
 ```go
 type OutputCondition interface {
@@ -693,9 +704,9 @@ type OutputCondition interface {
 
 <a name="OutputFunction"></a>
 
-## type [OutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L17-L19>)
+## type [OutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L16-L18>)
 
-OutputFunction is the interface that must be implemented for any function which can be used to outputs data from the simulation when the provided OutputCondition is met.
+OutputFunction writes state/time to an output sink when the OutputCondition is met.
 
 ```go
 type OutputFunction interface {
@@ -705,9 +716,14 @@ type OutputFunction interface {
 
 <a name="Params"></a>
 
-## type [Params](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L7-L10>)
+## type [Params](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L10-L13>)
 
-Params is a type alias for the parameters needed to configure the simulation.
+Params stores per\-partition parameter values.
+
+Usage hints:
+
+- Use Get/GetIndex helpers to retrieve, Set/SetIndex to update.
+- SetPartitionName improves error messages for missing params.
 
 ```go
 type Params struct {
@@ -718,33 +734,33 @@ type Params struct {
 
 <a name="NewParams"></a>
 
-### func [NewParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L98>)
+### func [NewParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L91>)
 
 ```go
 func NewParams(params map[string][]float64) Params
 ```
 
-NewParams creates a new Params struct.
+NewParams constructs a Params instance.
 
 <a name="Params.Get"></a>
 
-### func \(\*Params\) [Get](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L34>)
+### func \(\*Params\) [Get](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L33>)
 
 ```go
 func (p *Params) Get(name string) []float64
 ```
 
-Get retrieves the desired parameter values given their name, or panics giving a useful error message.
+Get returns parameter values or panics with a helpful message.
 
 <a name="Params.GetCopy"></a>
 
-### func \(\*Params\) [GetCopy](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L45>)
+### func \(\*Params\) [GetCopy](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L43>)
 
 ```go
 func (p *Params) GetCopy(name string) []float64
 ```
 
-GetCopy retrieves a copy of the desired parameter values given their name, or panics giving a useful error message.
+GetCopy returns a copy of parameter values or panics with a helpful message.
 
 <a name="Params.GetCopyOk"></a>
 
@@ -754,63 +770,69 @@ GetCopy retrieves a copy of the desired parameter values given their name, or pa
 func (p *Params) GetCopyOk(name string) ([]float64, bool)
 ```
 
-GetCopyOk retrieves a copy of the desired parameter values given their name, returning the values and a boolean indicating if the name was found.
+GetCopyOk returns a copy of parameter values if present along with a flag.
 
 <a name="Params.GetIndex"></a>
 
-### func \(\*Params\) [GetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L59>)
+### func \(\*Params\) [GetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L55>)
 
 ```go
 func (p *Params) GetIndex(name string, index int) float64
 ```
 
-GetIndex retrieves the desired parameter value given the params name and index of the value itself, or panics giving a useful error message.
+GetIndex returns a single parameter value or panics.
 
 <a name="Params.GetOk"></a>
 
-### func \(\*Params\) [GetOk](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L14>)
+### func \(\*Params\) [GetOk](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L16>)
 
 ```go
 func (p *Params) GetOk(name string) ([]float64, bool)
 ```
 
-GetOk retrieves the desired parameter values given their name, returning the values and a boolean indicating if the name was found.
+GetOk returns parameter values if present along with a boolean flag.
 
 <a name="Params.Set"></a>
 
-### func \(\*Params\) [Set](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L69>)
+### func \(\*Params\) [Set](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L65>)
 
 ```go
 func (p *Params) Set(name string, values []float64)
 ```
 
-Set creates or updates the desired parameter values given their name.
+Set creates or updates parameter values by name.
 
 <a name="Params.SetIndex"></a>
 
-### func \(\*Params\) [SetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L76>)
+### func \(\*Params\) [SetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L70>)
 
 ```go
 func (p *Params) SetIndex(name string, index int, value float64)
 ```
 
-Set creates or updates the desired parameter value given the params name and index of the value itself, or panics giving a useful error message.
+SetIndex updates a single parameter value or panics on invalid index.
 
 <a name="Params.SetPartitionName"></a>
 
-### func \(\*Params\) [SetPartitionName](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L93>)
+### func \(\*Params\) [SetPartitionName](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L86>)
 
 ```go
 func (p *Params) SetPartitionName(name string)
 ```
 
-SetPartitionName sets the partition name that these params are associated to, mainly for providing more informative error messages.
+SetPartitionName attaches the owning partition name for better errors.
 
 <a name="PartitionConfig"></a>
 
-## type [PartitionConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L79-L88>)
+## type [PartitionConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L80-L89>)
 
-PartitionConfig defines all of the configuration needed in order to add a partition to a stochadex simulation. This is mostly yaml\-loadable, however the Iteration implementation needs to be inserted via templating.
+PartitionConfig defines a partition to add to a simulation.
+
+Usage hints:
+
+- Iteration is not YAML\-serialised; set it programmatically.
+- ParamsAsPartitions allows passing partition indices via their names.
+- ParamsFromUpstream forwards outputs from named upstream partitions.
 
 ```go
 type PartitionConfig struct {
@@ -827,29 +849,33 @@ type PartitionConfig struct {
 
 <a name="LoadPartitionConfigFromYaml"></a>
 
-### func [LoadPartitionConfigFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/loaders.go#L26>)
+### func [LoadPartitionConfigFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/loaders.go#L31>)
 
 ```go
 func LoadPartitionConfigFromYaml(path string) *PartitionConfig
 ```
 
-LoadPartitionConfigFromYaml creates a new PartitionConfig struct from a provided yaml path.
+LoadPartitionConfigFromYaml loads PartitionConfig from a YAML file path.
+
+Usage hints:
+
+- Calls Init to populate missing defaults after unmarshalling.
 
 <a name="PartitionConfig.Init"></a>
 
-### func \(\*PartitionConfig\) [Init](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L93>)
+### func \(\*PartitionConfig\) [Init](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L92>)
 
 ```go
 func (p *PartitionConfig) Init()
 ```
 
-Init checks to see if any of the param maps have not been populated and instantiates them if not. This is typically used immediately after unmarshalling from a yaml config.
+Init ensures params maps are initialised; call after unmarshalling YAML.
 
 <a name="PartitionConfigOrdering"></a>
 
-## type [PartitionConfigOrdering](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L130-L134>)
+## type [PartitionConfigOrdering](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L125-L129>)
 
-PartitionConfigOrdering is a structure which maintains various representations of the order in which partitions will be indexed in the simulation. This can be dynamically updated with new partitions using the .Append method.
+PartitionConfigOrdering maintains the ordering and lookup for partitions. Can be updated dynamically via Append.
 
 ```go
 type PartitionConfigOrdering struct {
@@ -861,19 +887,24 @@ type PartitionConfigOrdering struct {
 
 <a name="PartitionConfigOrdering.Append"></a>
 
-### func \(\*PartitionConfigOrdering\) [Append](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L138>)
+### func \(\*PartitionConfigOrdering\) [Append](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L132>)
 
 ```go
 func (p *PartitionConfigOrdering) Append(config *PartitionConfig)
 ```
 
-Append puts another partition into the specified ordering that it will appear in the simulation indexing.
+Append inserts another partition into the ordering and updates lookups.
 
 <a name="PartitionCoordinator"></a>
 
-## type [PartitionCoordinator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L12-L18>)
+## type [PartitionCoordinator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L15-L21>)
 
-PartitionCoordinator coordinates the assignment of iteration work to separate StateIterator objects on separate goroutines and when to enact these updates on the state history.
+PartitionCoordinator orchestrates iteration work across partitions and applies state/time history updates.
+
+Usage hints:
+
+- Call Step in a loop or Run to advance until termination.
+- TimestepFunction determines NextIncrement each step.
 
 ```go
 type PartitionCoordinator struct {
@@ -887,63 +918,63 @@ type PartitionCoordinator struct {
 
 <a name="NewPartitionCoordinator"></a>
 
-### func [NewPartitionCoordinator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L104-L107>)
+### func [NewPartitionCoordinator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L107-L110>)
 
 ```go
 func NewPartitionCoordinator(settings *Settings, implementations *Implementations) *PartitionCoordinator
 ```
 
-NewPartitionCoordinator creates a new PartitionCoordinator given a StochadexConfig.
+NewPartitionCoordinator wires Settings and Implementations into a runnable coordinator with initial state/time histories and channels.
 
 <a name="PartitionCoordinator.ReadyToTerminate"></a>
 
-### func \(\*PartitionCoordinator\) [ReadyToTerminate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L85>)
+### func \(\*PartitionCoordinator\) [ReadyToTerminate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L88>)
 
 ```go
 func (c *PartitionCoordinator) ReadyToTerminate() bool
 ```
 
-ReadyToTerminate returns whether or not the process has met the TerminationCondition.
+ReadyToTerminate returns whether the TerminationCondition is met.
 
 <a name="PartitionCoordinator.RequestMoreIterations"></a>
 
-### func \(\*PartitionCoordinator\) [RequestMoreIterations](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L22>)
+### func \(\*PartitionCoordinator\) [RequestMoreIterations](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L25>)
 
 ```go
 func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup)
 ```
 
-RequestMoreIterations spawns a goroutine for each state partition to carry out a ReceiveAndIteratePending job.
+RequestMoreIterations spawns a goroutine per partition to run ReceiveAndIteratePending.
 
 <a name="PartitionCoordinator.Run"></a>
 
-### func \(\*PartitionCoordinator\) [Run](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L93>)
+### func \(\*PartitionCoordinator\) [Run](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L96>)
 
 ```go
 func (c *PartitionCoordinator) Run()
 ```
 
-Run runs multiple Step calls up until the TerminationCondition has been met.
+Run advances by repeatedly calling Step until termination.
 
 <a name="PartitionCoordinator.Step"></a>
 
-### func \(\*PartitionCoordinator\) [Step](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L68>)
+### func \(\*PartitionCoordinator\) [Step](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L71>)
 
 ```go
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup)
 ```
 
-Step is the main method call of PartitionCoordinator \- call this proceeding a new configuration of the latter to run the desired process for a single step.
+Step performs one simulation tick: compute dt, request iterations, then apply state/time updates.
 
 <a name="PartitionCoordinator.UpdateHistory"></a>
 
-### func \(\*PartitionCoordinator\) [UpdateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L40>)
+### func \(\*PartitionCoordinator\) [UpdateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L43>)
 
 ```go
 func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup)
 ```
 
-RequestMoreIterations spawns a goroutine for each state partition to carry out an UpdateHistory job.
+UpdateHistory spawns a goroutine per partition to run UpdateHistory and shifts time history forward, adding NextIncrement to t\[0\].
 
 <a name="PartitionState"></a>
 
@@ -1042,9 +1073,9 @@ func (x *PartitionState) String() string
 
 <a name="Settings"></a>
 
-## type [Settings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L31-L35>)
+## type [Settings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L33-L37>)
 
-Settings is the yaml\-loadable config which defines all of the settings that can be set for a simulation defined by the stochadex.
+Settings is the YAML\-loadable top\-level simulation configuration.
 
 ```go
 type Settings struct {
@@ -1056,29 +1087,33 @@ type Settings struct {
 
 <a name="LoadSettingsFromYaml"></a>
 
-### func [LoadSettingsFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/loaders.go#L10>)
+### func [LoadSettingsFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/loaders.go#L13>)
 
 ```go
 func LoadSettingsFromYaml(path string) *Settings
 ```
 
-LoadSettingsFromYaml creates a new Settings struct from a provided yaml path.
+LoadSettingsFromYaml loads Settings from a YAML file path.
+
+Usage hints:
+
+- Calls Init to populate missing defaults after unmarshalling.
 
 <a name="Settings.Init"></a>
 
-### func \(\*Settings\) [Init](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L40>)
+### func \(\*Settings\) [Init](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L41>)
 
 ```go
 func (s *Settings) Init()
 ```
 
-Init checks to see if any of the param maps and iteration names have not not been populated and instantiates them if not. This is typically used immediately after unmarshalling from a yaml config.
+Init fills in defaults and ensures maps are initialised. Call immediately after unmarshalling from YAML.
 
 <a name="SimulationConfig"></a>
 
-## type [SimulationConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L107-L113>)
+## type [SimulationConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L105-L111>)
 
-SimulationConfig defines all of the additional configuration needed in order to setup a stochadex simulation run.
+SimulationConfig defines additional run\-level configuration.
 
 ```go
 type SimulationConfig struct {
@@ -1092,9 +1127,9 @@ type SimulationConfig struct {
 
 <a name="SimulationConfigStrings"></a>
 
-## type [SimulationConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L119-L125>)
+## type [SimulationConfigStrings](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L115-L121>)
 
-SimulationConfigStrings defines all of the additional configuration needed in order to setup a stochadex simulation run. This is the yaml\-loadable version of the config which includes string type names to insert into templating.
+SimulationConfigStrings is the YAML\-loadable version of SimulationConfig, referring to implementations by type names for templating.
 
 ```go
 type SimulationConfigStrings struct {
@@ -1108,19 +1143,24 @@ type SimulationConfigStrings struct {
 
 <a name="LoadSimulationConfigStringsFromYaml"></a>
 
-### func [LoadSimulationConfigStringsFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/loaders.go#L42>)
+### func [LoadSimulationConfigStringsFromYaml](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/loaders.go#L46>)
 
 ```go
 func LoadSimulationConfigStringsFromYaml(path string) *SimulationConfigStrings
 ```
 
-LoadSimulationConfigStringsFromYaml creates a new SimulationConfigStrings struct from a provided yaml path.
+LoadSimulationConfigStringsFromYaml loads SimulationConfigStrings from YAML.
 
 <a name="StateHistory"></a>
 
-## type [StateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L9-L17>)
+## type [StateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L12-L20>)
 
-StateHistory represents the information contained within a windowed history of \[\]float64 state values.
+StateHistory is a rolling window of state vectors.
+
+Usage hints:
+
+- Values holds rows of state \(row 0 is most recent by convention\).
+- Use GetNextStateRowToUpdate when updating in multi\-row histories.
 
 ```go
 type StateHistory struct {
@@ -1136,7 +1176,7 @@ type StateHistory struct {
 
 <a name="StateHistory.CopyStateRow"></a>
 
-### func \(\*StateHistory\) [CopyStateRow](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L20>)
+### func \(\*StateHistory\) [CopyStateRow](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L23>)
 
 ```go
 func (s *StateHistory) CopyStateRow(index int) []float64
@@ -1146,7 +1186,7 @@ CopyStateRow copies a row from the state history given the index.
 
 <a name="StateHistory.GetNextStateRowToUpdate"></a>
 
-### func \(\*StateHistory\) [GetNextStateRowToUpdate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L29>)
+### func \(\*StateHistory\) [GetNextStateRowToUpdate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L32>)
 
 ```go
 func (s *StateHistory) GetNextStateRowToUpdate() []float64
@@ -1156,9 +1196,9 @@ GetNextStateRowToUpdate determines whether or not it is necessary to copy the pr
 
 <a name="StateIterator"></a>
 
-## type [StateIterator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L74-L81>)
+## type [StateIterator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L73-L80>)
 
-StateIterator handles iterations of a given state partition on a separate goroutine and reads/writes data from/to the state history.
+StateIterator runs an Iteration for a partition on a goroutine and manages reads/writes to history and output.
 
 ```go
 type StateIterator struct {
@@ -1173,49 +1213,54 @@ type StateIterator struct {
 
 <a name="NewStateIterator"></a>
 
-### func [NewStateIterator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L141-L151>)
+### func [NewStateIterator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L137-L147>)
 
 ```go
 func NewStateIterator(iteration Iteration, params Params, partitionName string, partitionIndex int, valueChannels StateValueChannels, outputCondition OutputCondition, outputFunction OutputFunction, initState []float64, initTime float64) *StateIterator
 ```
 
-NewStateIterator creates a new StateIterator, potentially also calling the output function if the condition is met by the initial state and time.
+NewStateIterator creates a StateIterator and may emit initial output if the condition is met by the initial state/time.
 
 <a name="StateIterator.Iterate"></a>
 
-### func \(\*StateIterator\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L85-L88>)
+### func \(\*StateIterator\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L84-L87>)
 
 ```go
 func (s *StateIterator) Iterate(stateHistories []*StateHistory, timestepsHistory *CumulativeTimestepsHistory) []float64
 ```
 
-Iterate takes the state and timesteps history and outputs an updated State struct using an implemented Iteration interface.
+Iterate runs the Iteration and optionally triggers output if the condition is met for the new state/time.
 
 <a name="StateIterator.ReceiveAndIteratePending"></a>
 
-### func \(\*StateIterator\) [ReceiveAndIteratePending](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L107-L109>)
+### func \(\*StateIterator\) [ReceiveAndIteratePending](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L105-L107>)
 
 ```go
 func (s *StateIterator) ReceiveAndIteratePending(inputChannel <-chan *IteratorInputMessage)
 ```
 
-ReceiveAndIteratePending listens for input messages sent to the input channel, runs Iterate when an IteratorInputMessage has been received on the provided inputChannel and then updates an internal pending state update object.
+ReceiveAndIteratePending listens for an IteratorInputMessage, updates upstream\-driven params, runs Iterate, and stores a pending state update.
 
 <a name="StateIterator.UpdateHistory"></a>
 
-### func \(\*StateIterator\) [UpdateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L126>)
+### func \(\*StateIterator\) [UpdateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L122>)
 
 ```go
 func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage)
 ```
 
-UpdateHistory should always follow a call to ReceiveAndIteratePending as it enacts the internal pending state update on the StateHistory object passed over the provided inputChannel.
+UpdateHistory applies the pending state update to the partition history.
 
 <a name="StateTimeStorage"></a>
 
-## type [StateTimeStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L12-L17>)
+## type [StateTimeStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L13-L18>)
 
-StateTimeStorage dynamically adapts its structure to support incoming time series data from the simulation output in a thread\-safe manner. This is done in a way to minimise write blocking for better performance in a concurrent program.
+StateTimeStorage stores per\-partition time series with minimal contention.
+
+Usage hints:
+
+- Use ConcurrentAppend to add samples safely; times are deduplicated.
+- GetValues/GetTimes retrieve stored series; Set\* replace series entirely.
 
 ```go
 type StateTimeStorage struct {
@@ -1225,23 +1270,23 @@ type StateTimeStorage struct {
 
 <a name="NewStateTimeStorage"></a>
 
-### func [NewStateTimeStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L103>)
+### func [NewStateTimeStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L100>)
 
 ```go
 func NewStateTimeStorage() *StateTimeStorage
 ```
 
-NewStateTimeStorage creates a new StateTimeStorage.
+NewStateTimeStorage constructs a new StateTimeStorage.
 
 <a name="StateTimeStorage.ConcurrentAppend"></a>
 
-### func \(\*StateTimeStorage\) [ConcurrentAppend](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L72-L76>)
+### func \(\*StateTimeStorage\) [ConcurrentAppend](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L69-L73>)
 
 ```go
 func (s *StateTimeStorage) ConcurrentAppend(name string, time float64, values []float64)
 ```
 
-ConcurrentAppend adds another set of values to the time series data keyed by the provided name. This method also handles dynamic extension of the size of the store in response to the inputs, and can safely handle concurrent calls within the same program.
+ConcurrentAppend appends values for name and updates the time axis at most once per unique timestamp. Safe for concurrent use.
 
 <a name="StateTimeStorage.GetIndex"></a>
 
@@ -1251,7 +1296,7 @@ ConcurrentAppend adds another set of values to the time series data keyed by the
 func (s *StateTimeStorage) GetIndex(name string) int
 ```
 
-GetIndex retrieves the index for provided a key name. This will make a new index if the name doesn't yet exist in the store.
+GetIndex returns or creates the index for a name.
 
 <a name="StateTimeStorage.GetNames"></a>
 
@@ -1261,53 +1306,53 @@ GetIndex retrieves the index for provided a key name. This will make a new index
 func (s *StateTimeStorage) GetNames() []string
 ```
 
-GetNames retrieves all the names in the store to key each time series.
+GetNames returns all partition names present in the store.
 
 <a name="StateTimeStorage.GetTimes"></a>
 
-### func \(\*StateTimeStorage\) [GetTimes](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L59>)
+### func \(\*StateTimeStorage\) [GetTimes](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L58>)
 
 ```go
 func (s *StateTimeStorage) GetTimes() []float64
 ```
 
-GetTimes retrieves all the time values.
+GetTimes returns the time axis.
 
 <a name="StateTimeStorage.GetValues"></a>
 
-### func \(\*StateTimeStorage\) [GetValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L43>)
+### func \(\*StateTimeStorage\) [GetValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L42>)
 
 ```go
 func (s *StateTimeStorage) GetValues(name string) [][]float64
 ```
 
-GetValues retrieves all the time series values keyed by the name. This method will panic if the name doesn't exist in the store.
+GetValues returns all time series for name, panicking if absent.
 
 <a name="StateTimeStorage.SetTimes"></a>
 
-### func \(\*StateTimeStorage\) [SetTimes](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L64>)
+### func \(\*StateTimeStorage\) [SetTimes](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L63>)
 
 ```go
 func (s *StateTimeStorage) SetTimes(times []float64)
 ```
 
-SetTimes sets all the time values.
+SetTimes replaces the time axis.
 
 <a name="StateTimeStorage.SetValues"></a>
 
-### func \(\*StateTimeStorage\) [SetValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L54>)
+### func \(\*StateTimeStorage\) [SetValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L53>)
 
 ```go
 func (s *StateTimeStorage) SetValues(name string, values [][]float64)
 ```
 
-SetValues sets all the time series values keyed by the name.
+SetValues replaces the entire series for name.
 
 <a name="StateTimeStorageOutputFunction"></a>
 
-## type [StateTimeStorageOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L45-L47>)
+## type [StateTimeStorageOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L43-L45>)
 
-StateTimeStorageOutputFunction stores the data from the simulation in the provided StateTimeStorage on the steps when the OutputCondition is met.
+StateTimeStorageOutputFunction stores output into StateTimeStorage when the condition is met.
 
 ```go
 type StateTimeStorageOutputFunction struct {
@@ -1317,7 +1362,7 @@ type StateTimeStorageOutputFunction struct {
 
 <a name="StateTimeStorageOutputFunction.Output"></a>
 
-### func \(\*StateTimeStorageOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L49-L53>)
+### func \(\*StateTimeStorageOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L47-L51>)
 
 ```go
 func (f *StateTimeStorageOutputFunction) Output(partitionName string, state []float64, cumulativeTimesteps float64)
@@ -1329,7 +1374,7 @@ func (f *StateTimeStorageOutputFunction) Output(partitionName string, state []fl
 
 ## type [StateValueChannels](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L35-L38>)
 
-StateValueChannels defines the methods by which separate StateIterators can communicate with each other by sending the values of upstream iterators to downstream parameters via channels.
+StateValueChannels provides upstream/downstream channels for inter\-iterator communication.
 
 ```go
 type StateValueChannels struct {
@@ -1340,13 +1385,13 @@ type StateValueChannels struct {
 
 <a name="StateValueChannels.BroadcastDownstream"></a>
 
-### func \(\*StateValueChannels\) [BroadcastDownstream](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L59>)
+### func \(\*StateValueChannels\) [BroadcastDownstream](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L58>)
 
 ```go
 func (s *StateValueChannels) BroadcastDownstream(stateValues []float64)
 ```
 
-BroadcastDownstream broadcasts the computationally\-upstream state values to its configured number of downstreams on the relevant channel.
+BroadcastDownstream sends state values to all configured downstream copies.
 
 <a name="StateValueChannels.UpdateUpstreamParams"></a>
 
@@ -1356,11 +1401,11 @@ BroadcastDownstream broadcasts the computationally\-upstream state values to its
 func (s *StateValueChannels) UpdateUpstreamParams(params *Params)
 ```
 
-UpdateUpstreamParams updates the provided params with the state values which have been provided computationally upstream via channels.
+UpdateUpstreamParams updates Params with values received from upstream channels.
 
 <a name="StdoutOutputFunction"></a>
 
-## type [StdoutOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L32>)
+## type [StdoutOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L31>)
 
 StdoutOutputFunction outputs the state to the terminal.
 
@@ -1370,7 +1415,7 @@ type StdoutOutputFunction struct{}
 
 <a name="StdoutOutputFunction.Output"></a>
 
-### func \(\*StdoutOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L34-L38>)
+### func \(\*StdoutOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L33-L37>)
 
 ```go
 func (s *StdoutOutputFunction) Output(partitionName string, state []float64, cumulativeTimesteps float64)
@@ -1380,9 +1425,9 @@ func (s *StdoutOutputFunction) Output(partitionName string, state []float64, cum
 
 <a name="TerminationCondition"></a>
 
-## type [TerminationCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L5-L10>)
+## type [TerminationCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L4-L9>)
 
-TerminationCondition is the interface that must be implemented in order to create a new condition for ending the simulation.
+TerminationCondition decides when the simulation should end.
 
 ```go
 type TerminationCondition interface {
@@ -1395,9 +1440,9 @@ type TerminationCondition interface {
 
 <a name="TimeElapsedTerminationCondition"></a>
 
-## type [TimeElapsedTerminationCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L27-L29>)
+## type [TimeElapsedTerminationCondition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L24-L26>)
 
-TimeElapsedTerminationCondition terminates the process when the overall time elapsed has reached MaxTimeElapsed.
+TimeElapsedTerminationCondition terminates after MaxTimeElapsed.
 
 ```go
 type TimeElapsedTerminationCondition struct {
@@ -1407,7 +1452,7 @@ type TimeElapsedTerminationCondition struct {
 
 <a name="TimeElapsedTerminationCondition.Terminate"></a>
 
-### func \(\*TimeElapsedTerminationCondition\) [Terminate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L31-L34>)
+### func \(\*TimeElapsedTerminationCondition\) [Terminate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/termination.go#L28-L31>)
 
 ```go
 func (t *TimeElapsedTerminationCondition) Terminate(stateHistories []*StateHistory, timestepsHistory *CumulativeTimestepsHistory) bool
@@ -1417,9 +1462,9 @@ func (t *TimeElapsedTerminationCondition) Terminate(stateHistories []*StateHisto
 
 <a name="TimestepFunction"></a>
 
-## type [TimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L11-L15>)
+## type [TimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L10-L14>)
 
-TimestepFunction is the interface that must be implemented for a function which evaluates the next increment to the time variable of the simulation.
+TimestepFunction computes the next time increment.
 
 ```go
 type TimestepFunction interface {
@@ -1433,7 +1478,7 @@ type TimestepFunction interface {
 
 ## type [UpstreamConfig](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L11-L14>)
 
-UpstreamConfig is the yaml\-loadable representation of a slice of data from the output of a partitiion which is computationally upstream.
+UpstreamConfig is the YAML\-loadable representation of a slice of data from the output of a partition which is computationally upstream.
 
 ```go
 type UpstreamConfig struct {
@@ -1444,9 +1489,9 @@ type UpstreamConfig struct {
 
 <a name="UpstreamStateValues"></a>
 
-## type [UpstreamStateValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L20-L23>)
+## type [UpstreamStateValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L21-L24>)
 
-UpstreamStateValues contains the information needed to receive state values from a computationally\-upstream StateIterator.
+UpstreamStateValues contains information to receive state values from an upstream iterator via channel.
 
 ```go
 type UpstreamStateValues struct {
@@ -1457,9 +1502,9 @@ type UpstreamStateValues struct {
 
 <a name="WebsocketOutputFunction"></a>
 
-## type [WebsocketOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L179-L182>)
+## type [WebsocketOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L170-L173>)
 
-WebsocketOutputFunction serialises the state of each partition of the simulation and sends this data via a websocket connection on the steps when the OutputCondition is met.
+WebsocketOutputFunction serialises and sends outputs via a websocket connection when the condition is met.
 
 ```go
 type WebsocketOutputFunction struct {
@@ -1469,17 +1514,17 @@ type WebsocketOutputFunction struct {
 
 <a name="NewWebsocketOutputFunction"></a>
 
-### func [NewWebsocketOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L223-L226>)
+### func [NewWebsocketOutputFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L214-L217>)
 
 ```go
 func NewWebsocketOutputFunction(connection *websocket.Conn, mutex *sync.Mutex) *WebsocketOutputFunction
 ```
 
-NewWebsocketOutputFunction creates a new WebsocketOutputFunction given a connection struct and mutex to protect concurrent writes to the connection.
+NewWebsocketOutputFunction constructs a WebsocketOutputFunction with a connection and a mutex for safe concurrent writes.
 
 <a name="WebsocketOutputFunction.Output"></a>
 
-### func \(\*WebsocketOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L184-L188>)
+### func \(\*WebsocketOutputFunction\) [Output](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L175-L179>)
 
 ```go
 func (w *WebsocketOutputFunction) Output(partitionName string, state []float64, cumulativeTimesteps float64)

@@ -4,8 +4,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// GradientDescentIteration defines an iteration for any general
-// gradient descent process.
+// GradientDescentIteration performs a gradient-based parameter update.
+//
+// Usage hints:
+//   - Provide params: "gradient" (vector) and "learning_rate" (scalar).
+//   - Optional flag: "ascent" == 1 switches to gradient ascent.
+//   - Update uses x_{t+1} = x_t - lr * gradient (or + for ascent).
 type GradientDescentIteration struct{}
 
 func (g *GradientDescentIteration) Configure(

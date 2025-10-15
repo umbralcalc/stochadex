@@ -4,8 +4,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// CopyValuesIteration writes a copy of the most recent state
-// history values from other partitions to its own state.
+// CopyValuesIteration copies selected values from other partitions' latest
+// states into its own state.
+//
+// Usage hints:
+//   - Provide params: "partitions" (indices) and "partition_state_values".
 type CopyValuesIteration struct {
 }
 

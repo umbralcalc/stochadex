@@ -7,22 +7,22 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// SocketConfig is a yaml-loadable config for the real-time websocket
-// connection to the simulation.
+// SocketConfig configures an optional real-time websocket used to stream
+// simulation updates.
 type SocketConfig struct {
 	Address          string `yaml:"address"`
 	Handle           string `yaml:"handle"`
 	MillisecondDelay uint64 `yaml:"millisecond_delay"`
 }
 
-// Active determines whether or not the websocket should be active.
+// Active reports whether the websocket server should be started.
 func (s *SocketConfig) Active() bool {
 	return s.Address != ""
 }
 
-// LoadSocketConfigFromYaml creates a new SocketConfig from a
-// provided yaml path. If the path is an empty string this outputs a
-// SocketConfig with empty fields.
+// LoadSocketConfigFromYaml loads a SocketConfig from YAML.
+// If the path is empty, it returns a zero-valued config and logs that sockets
+// are disabled.
 func LoadSocketConfigFromYaml(path string) *SocketConfig {
 	config := SocketConfig{}
 	if path == "" {

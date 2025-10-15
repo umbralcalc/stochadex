@@ -95,163 +95,185 @@ import "github.com/umbralcalc/stochadex/pkg/general"
 
 <a name="AppendFloatToKey"></a>
 
-## func [AppendFloatToKey](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L102>)
+## func [AppendFloatToKey](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L103>)
 
 ```go
 func AppendFloatToKey(key string, value float64, precision int) string
 ```
 
-AppendFloatToKey appends the provided string key with another formatted float value up to the required precision.
+AppendFloatToKey appends a formatted float to a composite grouping key at a fixed precision.
 
 <a name="CountAggregation"></a>
 
-## func [CountAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L13-L18>)
+## func [CountAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L14-L19>)
 
 ```go
 func CountAggregation(defaultValues []float64, outputIndexByGroup map[string]int, groupings map[string][]float64, weightings map[string][]float64) []float64
 ```
 
-CountAggregation returns the count of values in the group.
+CountAggregation outputs, per group, the sum of weights \(i.e., a count when weights are all 1\).
 
 <a name="DataValuesFunction"></a>
 
-## func [DataValuesFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L126-L131>)
+## func [DataValuesFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L122-L127>)
 
 ```go
 func DataValuesFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, stateHistoryDepthIndex int) []float64
 ```
 
-DataValuesFunction just returns the value of the "data\_values\_partition", resulting in calculating its rolling windowed weighted mean.
+DataValuesFunction returns values from "data\_values\_partition", optionally subselecting indices.
 
 <a name="DataValuesVarianceFunction"></a>
 
-## func [DataValuesVarianceFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L99-L104>)
+## func [DataValuesVarianceFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L95-L100>)
 
 ```go
 func DataValuesVarianceFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, stateHistoryDepthIndex int) []float64
 ```
 
-DataValuesVarianceFunction just returns the contribution to the value of the variance of the "data\_values\_partition", resulting in calculating its rolling windowed weighted variance.
+DataValuesVarianceFunction returns per\-index squared deviations from the provided "mean" for "data\_values\_partition".
 
 <a name="FloatTupleToKey"></a>
 
-## func [FloatTupleToKey](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L111>)
+## func [FloatTupleToKey](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L112>)
 
 ```go
 func FloatTupleToKey(tuple []float64, precision int) string
 ```
 
-FloatTupleToKey converts a slice of floats to a string key with fixed precision for float values.
+FloatTupleToKey converts a vector to a composite key string at fixed precision, suitable for use as a map key.
 
 <a name="MaxAggregation"></a>
 
-## func [MaxAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L65-L70>)
+## func [MaxAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L66-L71>)
 
 ```go
 func MaxAggregation(defaultValues []float64, outputIndexByGroup map[string]int, groupings map[string][]float64, weightings map[string][]float64) []float64
 ```
 
-MaxAggregation returns the maximum of values in the group.
+MaxAggregation computes the maximum of weighted values per group.
 
 <a name="MeanAggregation"></a>
 
-## func [MeanAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L47-L52>)
+## func [MeanAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L48-L53>)
 
 ```go
 func MeanAggregation(defaultValues []float64, outputIndexByGroup map[string]int, groupings map[string][]float64, weightings map[string][]float64) []float64
 ```
 
-MeanAggregation returns the mean of values in the group.
+MeanAggregation computes the weighted mean of values per group.
 
 <a name="MinAggregation"></a>
 
-## func [MinAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L83-L88>)
+## func [MinAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L84-L89>)
 
 ```go
 func MinAggregation(defaultValues []float64, outputIndexByGroup map[string]int, groupings map[string][]float64, weightings map[string][]float64) []float64
 ```
 
-MinAggregation returns the minimum of values in the group.
+MinAggregation computes the minimum of weighted values per group.
 
 <a name="NewTransformReduceFunction"></a>
 
-## func [NewTransformReduceFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L33-L46>)
+## func [NewTransformReduceFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L41-L54>)
 
 ```go
 func NewTransformReduceFunction(transform func(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) map[string][]float64, reduce func(values map[string][]float64) []float64) func(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
 ```
 
-NewTransformReduceFunction creates a new function that applies the provided transformation and reduction function operations as a composition that can be used in the ValuesFunctionIteration.
+NewTransformReduceFunction returns a function that first transforms the provided simulation context into a map of vectors, then reduces those vectors into a single vector.
+
+Usage hints:
+
+- Compose transform/reduce pipelines to feed ValuesFunctionIteration.
 
 <a name="NextNonEmptyPopIndexFunction"></a>
 
-## func [NextNonEmptyPopIndexFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L9-L14>)
+## func [NextNonEmptyPopIndexFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L13-L18>)
 
 ```go
 func NextNonEmptyPopIndexFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) (int, bool)
 ```
 
-NextNonEmptyPopIndexFunction returns the index of the next non\- empty value found in the collection.
+NextNonEmptyPopIndexFunction scans the rolling collection for the next occupied slot \(index \> 0\) and returns its index for popping.
+
+Usage hints:
+
+- Index 0 is reserved for the most recently popped values.
+- Configure "values\_state\_width" and "empty\_value" to mark empty slots.
 
 <a name="OtherPartitionPushFunction"></a>
 
-## func [OtherPartitionPushFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L30-L35>)
+## func [OtherPartitionPushFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L37-L42>)
 
 ```go
 func OtherPartitionPushFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) ([]float64, bool)
 ```
 
-OtherPartitionPushFunction retrieves the next values to push from the last values of another partition. If the first value is equal to the "empty\_value" param then nothing is pushed.
+OtherPartitionPushFunction collects the latest values from another partition to push into the collection, subject to empty\_value.
+
+Usage hints:
+
+- Provide: "other\_partition" and "value\_indices".
+- If the first element equals "empty\_value", the push is skipped.
 
 <a name="OtherValuesFunction"></a>
 
-## func [OtherValuesFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L79-L84>)
+## func [OtherValuesFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L76-L81>)
 
 ```go
 func OtherValuesFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, stateHistoryDepthIndex int) []float64
 ```
 
-OtherValuesFunction just returns the value of the "other\_values\_partition", resulting in calculating the rolling windowed weighted mean of the other partition values.
+OtherValuesFunction returns values from "other\_values\_partition", optionally subselecting indices.
 
 <a name="ParamValuesPushFunction"></a>
 
-## func [ParamValuesPushFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L71-L76>)
+## func [ParamValuesPushFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L82-L87>)
 
 ```go
 func ParamValuesPushFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) ([]float64, bool)
 ```
 
-ParamValuesPushFunction retrieves the next values to push from the "next\_values\_push" params and if the first value is equal to the "empty\_value" param then nothing is pushed.
+ParamValuesPushFunction reads the next values directly from params under "next\_values\_push", subject to empty\_value.
+
+Usage hints:
+
+- Provide: "next\_values\_push" and "empty\_value".
 
 <a name="ParamsEventFunction"></a>
 
-## func [ParamsEventFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L24-L29>)
+## func [ParamsEventFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L26-L31>)
 
 ```go
 func ParamsEventFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
 ```
 
-ParamsEventFunction provides the capability to set events using the "event" params.
+ParamsEventFunction emits an event value from the "event" params.
 
 <a name="ParamsTransform"></a>
 
-## func [ParamsTransform](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L9-L14>)
+## func [ParamsTransform](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L10-L15>)
 
 ```go
 func ParamsTransform(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) map[string][]float64
 ```
 
-ParamsTransform simply returns the params.
+ParamsTransform is a convenience transform that returns the current params map. Useful as a building block for transform/reduce pipelines.
 
 <a name="PartitionEventFunction"></a>
 
-## func [PartitionEventFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L9-L14>)
+## func [PartitionEventFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L12-L17>)
 
 ```go
 func PartitionEventFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
 ```
 
-PartitionEventFunction provides the capability to set events using the most recent value from the state history of another partition.
+PartitionEventFunction emits an event value from the latest state of another partition.
+
+Usage hints:
+
+- Provide: "event\_partition\_index" and "event\_state\_value\_index".
 
 <a name="PastDiscountedDataValuesFunction"></a>
 
@@ -261,47 +283,56 @@ PartitionEventFunction provides the capability to set events using the most rece
 func PastDiscountedDataValuesFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, stateHistoryDepthIndex int) []float64
 ```
 
-PastDiscountedDataValuesFunction returns the value from the "data\_values\_partition" discounted by some "past\_discounting\_factor" in the params, resulting in calculating the past\-discounted rolling windowed weighted mean.
+PastDiscountedDataValuesFunction reads from "data\_values\_partition" and applies an exponential discount factor raised to the history depth index. Useful with a kernel for a past\-discounted rolling mean.
 
 <a name="PastDiscountedOtherValuesFunction"></a>
 
-## func [PastDiscountedOtherValuesFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L52-L57>)
+## func [PastDiscountedOtherValuesFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L50-L55>)
 
 ```go
 func PastDiscountedOtherValuesFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, stateHistoryDepthIndex int) []float64
 ```
 
-PastDiscountedOtherValuesFunction just returns the value of the "other\_values\_partition" discounted by some "past\_discounting\_factor" in the params, resulting in calculating the past\-discounted rolling windowed weighted mean of the other partition values.
+PastDiscountedOtherValuesFunction mirrors PastDiscountedDataValuesFunction for "other\_values\_partition", optionally subselecting indices.
 
 <a name="PopFromOtherCollectionPushFunction"></a>
 
-## func [PopFromOtherCollectionPushFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L51-L56>)
+## func [PopFromOtherCollectionPushFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L60-L65>)
 
 ```go
 func PopFromOtherCollectionPushFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) ([]float64, bool)
 ```
 
-PopFromOtherCollectionPushFunction retrieves the next values to push from the popped values of another partition which is hence assumed to also be another value collection. If the first value is equal to the "empty\_value" param then nothing is pushed.
+PopFromOtherCollectionPushFunction pulls the current popped values from another collection\-like partition and uses them as the next values to push.
+
+Usage hints:
+
+- Provide: "other\_partition" and "values\_state\_width".
+- If the first element equals "empty\_value", the push is skipped.
 
 <a name="SumAggregation"></a>
 
-## func [SumAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L30-L35>)
+## func [SumAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L31-L36>)
 
 ```go
 func SumAggregation(defaultValues []float64, outputIndexByGroup map[string]int, groupings map[string][]float64, weightings map[string][]float64) []float64
 ```
 
-SumAggregation returns the sum of values in the group.
+SumAggregation computes the weighted sum of values per group.
 
 <a name="SumReduce"></a>
 
-## func [SumReduce](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L19>)
+## func [SumReduce](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L24>)
 
 ```go
 func SumReduce(values map[string][]float64) []float64
 ```
 
-SumReduce computes the sum reduction.
+SumReduce reduces a map of equally sized vectors by summing them element\-wise into a single output vector.
+
+Usage hints:
+
+- Combine with NewTransformReduceFunction to compose dataflow operations.
 
 <a name="UnitValueFunction"></a>
 
@@ -311,13 +342,17 @@ SumReduce computes the sum reduction.
 func UnitValueFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, stateHistoryDepthIndex int) []float64
 ```
 
-UnitValueFunction just returns a slice of length 1 with a value of 1. This can be used while also setting "without\_normalisation" to compute the kernel density.
+UnitValueFunction returns \[1\]. Combine with "without\_normalisation" to compute a kernel density \(sum of weights\) directly.
 
 <a name="ConstantValuesIteration"></a>
 
-## type [ConstantValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L9-L10>)
+## type [ConstantValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L11-L12>)
 
-ConstantValuesIteration leaves the values set by the initial conditions unchanged for all time.
+ConstantValuesIteration leaves initial state values unchanged over time.
+
+Usage hints:
+
+- Useful for fixed baselines or as a placeholder partition.
 
 ```go
 type ConstantValuesIteration struct {
@@ -326,7 +361,7 @@ type ConstantValuesIteration struct {
 
 <a name="ConstantValuesIteration.Configure"></a>
 
-### func \(\*ConstantValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L12-L15>)
+### func \(\*ConstantValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L14-L17>)
 
 ```go
 func (c *ConstantValuesIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -336,7 +371,7 @@ func (c *ConstantValuesIteration) Configure(partitionIndex int, settings *simula
 
 <a name="ConstantValuesIteration.Iterate"></a>
 
-### func \(\*ConstantValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L18-L23>)
+### func \(\*ConstantValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L20-L25>)
 
 ```go
 func (c *ConstantValuesIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -346,9 +381,13 @@ func (c *ConstantValuesIteration) Iterate(params *simulator.Params, partitionInd
 
 <a name="CopyValuesIteration"></a>
 
-## type [CopyValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L9-L10>)
+## type [CopyValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L12-L13>)
 
-CopyValuesIteration writes a copy of the most recent state history values from other partitions to its own state.
+CopyValuesIteration copies selected values from other partitions' latest states into its own state.
+
+Usage hints:
+
+- Provide params: "partitions" \(indices\) and "partition\_state\_values".
 
 ```go
 type CopyValuesIteration struct {
@@ -357,7 +396,7 @@ type CopyValuesIteration struct {
 
 <a name="CopyValuesIteration.Configure"></a>
 
-### func \(\*CopyValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L12-L15>)
+### func \(\*CopyValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L15-L18>)
 
 ```go
 func (c *CopyValuesIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -367,7 +406,7 @@ func (c *CopyValuesIteration) Configure(partitionIndex int, settings *simulator.
 
 <a name="CopyValuesIteration.Iterate"></a>
 
-### func \(\*CopyValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L18-L23>)
+### func \(\*CopyValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L21-L26>)
 
 ```go
 func (c *CopyValuesIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -377,9 +416,13 @@ func (c *CopyValuesIteration) Iterate(params *simulator.Params, partitionIndex i
 
 <a name="CumulativeIteration"></a>
 
-## type [CumulativeIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L10-L12>)
+## type [CumulativeIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L12-L14>)
 
-CumulativeIteration sums the new state value to the previous state value of the provided iteration for all iterations.
+CumulativeIteration accumulates a provided iteration's outputs over time.
+
+Usage hints:
+
+- Wrap another iteration to compute cumulative sums step\-by\-step.
 
 ```go
 type CumulativeIteration struct {
@@ -389,7 +432,7 @@ type CumulativeIteration struct {
 
 <a name="CumulativeIteration.Configure"></a>
 
-### func \(\*CumulativeIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L14-L17>)
+### func \(\*CumulativeIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L16-L19>)
 
 ```go
 func (c *CumulativeIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -399,7 +442,7 @@ func (c *CumulativeIteration) Configure(partitionIndex int, settings *simulator.
 
 <a name="CumulativeIteration.Iterate"></a>
 
-### func \(\*CumulativeIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L20-L25>)
+### func \(\*CumulativeIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L22-L27>)
 
 ```go
 func (c *CumulativeIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -409,9 +452,16 @@ func (c *CumulativeIteration) Iterate(params *simulator.Params, partitionIndex i
 
 <a name="EmbeddedSimulationRunIteration"></a>
 
-## type [EmbeddedSimulationRunIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L35-L43>)
+## type [EmbeddedSimulationRunIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L47-L55>)
 
-EmbeddedSimulationRunIteration facilitates running an embedded sub\-simulation to termination inside of an iteration of another simulation for each step of the latter simulation.
+EmbeddedSimulationRunIteration runs a nested simulation to termination at each outer step.
+
+Usage hints:
+
+- Configure params on the outer iteration with keys of the form "\<innerPartitionName\>/\<param\_name\>" to forward into the inner simulation.
+- Use "\<innerPartitionName\>/initial\_state\_from\_partition\_history" to seed inner initial states from an outer partition's history.
+- Use "\<innerPartitionName\>/update\_from\_partition\_history" to stream outer histories into inner iterations that implement StateMemoryIteration.
+- Optional "burn\_in\_steps" skips initial outer steps before running inner sim.
 
 ```go
 type EmbeddedSimulationRunIteration struct {
@@ -421,17 +471,17 @@ type EmbeddedSimulationRunIteration struct {
 
 <a name="NewEmbeddedSimulationRunIteration"></a>
 
-### func [NewEmbeddedSimulationRunIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L228-L231>)
+### func [NewEmbeddedSimulationRunIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L239-L242>)
 
 ```go
 func NewEmbeddedSimulationRunIteration(settings *simulator.Settings, implementations *simulator.Implementations) *EmbeddedSimulationRunIteration
 ```
 
-NewEmbeddedSimulationRunIterationFromConfigs creates a new EmbeddedSimulationRunIteration from settings and implementations configs.
+NewEmbeddedSimulationRunIteration constructs an embedded run iteration from prepared settings and implementations.
 
 <a name="EmbeddedSimulationRunIteration.Configure"></a>
 
-### func \(\*EmbeddedSimulationRunIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L45-L48>)
+### func \(\*EmbeddedSimulationRunIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L57-L60>)
 
 ```go
 func (e *EmbeddedSimulationRunIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -441,7 +491,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(partitionIndex int, settings 
 
 <a name="EmbeddedSimulationRunIteration.Iterate"></a>
 
-### func \(\*EmbeddedSimulationRunIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L144-L149>)
+### func \(\*EmbeddedSimulationRunIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L156-L161>)
 
 ```go
 func (e *EmbeddedSimulationRunIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -451,9 +501,14 @@ func (e *EmbeddedSimulationRunIteration) Iterate(params *simulator.Params, parti
 
 <a name="FromHistoryIteration"></a>
 
-## type [FromHistoryIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L9-L12>)
+## type [FromHistoryIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L12-L15>)
 
-FromHistoryIteration provides a stream of data which is already known from a separate data source and is held in memory as a simulator.StateHistory.
+FromHistoryIteration streams data from an in\-memory StateHistory.
+
+Usage hints:
+
+- Use with EmbeddedSimulationRun or analysis windows to replay data.
+- Set Data to the source history; supports initial offset via InitStepsTaken.
 
 ```go
 type FromHistoryIteration struct {
@@ -464,7 +519,7 @@ type FromHistoryIteration struct {
 
 <a name="FromHistoryIteration.Configure"></a>
 
-### func \(\*FromHistoryIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L14-L17>)
+### func \(\*FromHistoryIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L17-L20>)
 
 ```go
 func (f *FromHistoryIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -474,7 +529,7 @@ func (f *FromHistoryIteration) Configure(partitionIndex int, settings *simulator
 
 <a name="FromHistoryIteration.Iterate"></a>
 
-### func \(\*FromHistoryIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L20-L25>)
+### func \(\*FromHistoryIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L23-L28>)
 
 ```go
 func (f *FromHistoryIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -484,7 +539,7 @@ func (f *FromHistoryIteration) Iterate(params *simulator.Params, partitionIndex 
 
 <a name="FromHistoryIteration.UpdateMemory"></a>
 
-### func \(\*FromHistoryIteration\) [UpdateMemory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L41-L44>)
+### func \(\*FromHistoryIteration\) [UpdateMemory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L44-L47>)
 
 ```go
 func (f *FromHistoryIteration) UpdateMemory(params *simulator.Params, update StateMemoryUpdate)
@@ -494,9 +549,13 @@ func (f *FromHistoryIteration) UpdateMemory(params *simulator.Params, update Sta
 
 <a name="FromHistoryTimestepFunction"></a>
 
-## type [FromHistoryTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L50-L53>)
+## type [FromHistoryTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L56-L59>)
 
-FromHistoryTimestepFunction provides a stream of timesteps which already known from a separate data source and is held in memory as a simulator.CumulativeTimestepsHistory.
+FromHistoryTimestepFunction streams timesteps from an in\-memory CumulativeTimestepsHistory.
+
+Usage hints:
+
+- Set Data to the source timestep series; supports initial offset via InitStepsTaken.
 
 ```go
 type FromHistoryTimestepFunction struct {
@@ -507,7 +566,7 @@ type FromHistoryTimestepFunction struct {
 
 <a name="FromHistoryTimestepFunction.NextIncrement"></a>
 
-### func \(\*FromHistoryTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L55-L57>)
+### func \(\*FromHistoryTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_history.go#L61-L63>)
 
 ```go
 func (f *FromHistoryTimestepFunction) NextIncrement(timestepsHistory *simulator.CumulativeTimestepsHistory) float64
@@ -517,9 +576,13 @@ func (f *FromHistoryTimestepFunction) NextIncrement(timestepsHistory *simulator.
 
 <a name="FromStorageIteration"></a>
 
-## type [FromStorageIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L9-L12>)
+## type [FromStorageIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L11-L14>)
 
-FromStorageIteration provides a stream of data which is already known from a separate data source and is held in memory as a \[\]\[\]float64.
+FromStorageIteration streams data from an in\-memory \[\]\[\]float64.
+
+Usage hints:
+
+- Provide Data \(rows over time\); supports initial offset via InitStepsTaken.
 
 ```go
 type FromStorageIteration struct {
@@ -530,7 +593,7 @@ type FromStorageIteration struct {
 
 <a name="FromStorageIteration.Configure"></a>
 
-### func \(\*FromStorageIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L14-L17>)
+### func \(\*FromStorageIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L16-L19>)
 
 ```go
 func (f *FromStorageIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -540,7 +603,7 @@ func (f *FromStorageIteration) Configure(partitionIndex int, settings *simulator
 
 <a name="FromStorageIteration.Iterate"></a>
 
-### func \(\*FromStorageIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L20-L25>)
+### func \(\*FromStorageIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L22-L27>)
 
 ```go
 func (f *FromStorageIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -550,9 +613,13 @@ func (f *FromStorageIteration) Iterate(params *simulator.Params, partitionIndex 
 
 <a name="FromStorageTimestepFunction"></a>
 
-## type [FromStorageTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L40-L43>)
+## type [FromStorageTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L44-L47>)
 
-FromStorageTimestepFunction provides a stream of timesteps which already known from a separate data source and is held in memory as a \[\]float64.
+FromStorageTimestepFunction streams timesteps from an in\-memory \[\]float64.
+
+Usage hints:
+
+- Provide Data; supports initial offset via InitStepsTaken.
 
 ```go
 type FromStorageTimestepFunction struct {
@@ -563,7 +630,7 @@ type FromStorageTimestepFunction struct {
 
 <a name="FromStorageTimestepFunction.NextIncrement"></a>
 
-### func \(\*FromStorageTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L45-L47>)
+### func \(\*FromStorageTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage.go#L49-L51>)
 
 ```go
 func (f *FromStorageTimestepFunction) NextIncrement(timestepsHistory *simulator.CumulativeTimestepsHistory) float64
@@ -573,9 +640,9 @@ func (f *FromStorageTimestepFunction) NextIncrement(timestepsHistory *simulator.
 
 <a name="NamedIndexedState"></a>
 
-## type [NamedIndexedState](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L27-L30>)
+## type [NamedIndexedState](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L31-L34>)
 
-NamedIndexedState pairs a partition index and name with a state history.
+NamedIndexedState pairs a partition's name/index with its state history. Useful for initialising inner histories from a chosen outer partition.
 
 ```go
 type NamedIndexedState struct {
@@ -586,9 +653,13 @@ type NamedIndexedState struct {
 
 <a name="ParamValuesIteration"></a>
 
-## type [ParamValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/param_values.go#L9-L10>)
+## type [ParamValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/param_values.go#L12-L13>)
 
-ParamValuesIteration writes the float param values in the "param\_values" key directly to the state.
+ParamValuesIteration writes the float param values under "param\_values" directly to the state.
+
+Usage hints:
+
+- Useful for injecting immediate parameter\-driven values.
 
 ```go
 type ParamValuesIteration struct {
@@ -597,7 +668,7 @@ type ParamValuesIteration struct {
 
 <a name="ParamValuesIteration.Configure"></a>
 
-### func \(\*ParamValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/param_values.go#L12-L15>)
+### func \(\*ParamValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/param_values.go#L15-L18>)
 
 ```go
 func (p *ParamValuesIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -607,7 +678,7 @@ func (p *ParamValuesIteration) Configure(partitionIndex int, settings *simulator
 
 <a name="ParamValuesIteration.Iterate"></a>
 
-### func \(\*ParamValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/param_values.go#L18-L23>)
+### func \(\*ParamValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/param_values.go#L21-L26>)
 
 ```go
 func (p *ParamValuesIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -617,9 +688,9 @@ func (p *ParamValuesIteration) Iterate(params *simulator.Params, partitionIndex 
 
 <a name="SortingValues"></a>
 
-## type [SortingValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L9-L12>)
+## type [SortingValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L8-L11>)
 
-SortingValues specifies a new set of values to be added to the sorting collection.
+SortingValues encapsulates a new entry to add to the sorting collection.
 
 ```go
 type SortingValues struct {
@@ -630,29 +701,37 @@ type SortingValues struct {
 
 <a name="OtherPartitionsPushAndSortFunction"></a>
 
-### func [OtherPartitionsPushAndSortFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L18-L23>)
+### func [OtherPartitionsPushAndSortFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L19-L24>)
 
 ```go
 func OtherPartitionsPushAndSortFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) (SortingValues, bool)
 ```
 
-OtherPartitionsPushAndSortFunction retrieves the next values to push from the last values of another partition and sorts by the values of yet another partition. In the former case, if the first value is equal to the "empty\_value" param then nothing is pushed.
+OtherPartitionsPushAndSortFunction retrieves values from one partition and sorts by another partition's value.
+
+Usage hints:
+
+- Provide: "other\_partition", "value\_indices", "other\_partition\_sort\_by", and "value\_index\_sort\_by". Skip push if first value equals "empty\_value".
 
 <a name="ParamValuesPushAndSortFunction"></a>
 
-### func [ParamValuesPushAndSortFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L44-L49>)
+### func [ParamValuesPushAndSortFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L45-L50>)
 
 ```go
 func ParamValuesPushAndSortFunction(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) (SortingValues, bool)
 ```
 
-ParamValuesPushAndSortFunction retrieves the next values to push from the "next\_values\_push" params and if the first value is equal to the "empty\_value" param then nothing is pushed. It also sorts by the "next\_values\_sort\_by" param.
+ParamValuesPushAndSortFunction uses params for both values and sort key.
+
+Usage hints:
+
+- Provide: "next\_values\_push", "empty\_value", and "next\_values\_sort\_by".
 
 <a name="StateMemoryIteration"></a>
 
-## type [StateMemoryIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L22-L24>)
+## type [StateMemoryIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L25-L27>)
 
-StateMemoryIteration defines the interface that must be implemented in order to configure an updateable memory of params, states and times which come from another simulation.
+StateMemoryIteration marks iterations that can receive state/time from a parent simulation and store it for later use.
 
 ```go
 type StateMemoryIteration interface {
@@ -662,9 +741,14 @@ type StateMemoryIteration interface {
 
 <a name="StateMemoryUpdate"></a>
 
-## type [StateMemoryUpdate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L13-L17>)
+## type [StateMemoryUpdate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L17-L21>)
 
-StateMemoryUpdate packages a memory update with a name which is the partition name in the other simulation that it came from.
+StateMemoryUpdate carries a named partition's state and timestep history from an outer simulation into an inner \(embedded\) simulation.
+
+Usage hints:
+
+- Used by iterations implementing StateMemoryIteration to receive context.
+- Set Name to the outer partition name for disambiguation.
 
 ```go
 type StateMemoryUpdate struct {
@@ -676,9 +760,14 @@ type StateMemoryUpdate struct {
 
 <a name="ValuesChangingEventsIteration"></a>
 
-## type [ValuesChangingEventsIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L38-L41>)
+## type [ValuesChangingEventsIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L42-L45>)
 
-ValuesChangingEventsIteration defines an iteration which calls and outputs from an iteration in the map if its keyed event occurs. If none of the events happen \(i.e., the event key doesn't exist in the map\) either the previous values or some optionally\-specified default values are used as the output.
+ValuesChangingEventsIteration calls and outputs from an iteration in the map keyed by an event. If no event key matches, it returns previous values or optional "default\_values".
+
+Usage hints:
+
+- Set EventIteration to produce the event key; provide IterationByEvent map.
+- Optional: set "default\_values" to override fallback behaviour.
 
 ```go
 type ValuesChangingEventsIteration struct {
@@ -689,7 +778,7 @@ type ValuesChangingEventsIteration struct {
 
 <a name="ValuesChangingEventsIteration.Configure"></a>
 
-### func \(\*ValuesChangingEventsIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L43-L46>)
+### func \(\*ValuesChangingEventsIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L47-L50>)
 
 ```go
 func (v *ValuesChangingEventsIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -699,7 +788,7 @@ func (v *ValuesChangingEventsIteration) Configure(partitionIndex int, settings *
 
 <a name="ValuesChangingEventsIteration.Iterate"></a>
 
-### func \(\*ValuesChangingEventsIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L53-L58>)
+### func \(\*ValuesChangingEventsIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_changing_events.go#L57-L62>)
 
 ```go
 func (v *ValuesChangingEventsIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -709,9 +798,14 @@ func (v *ValuesChangingEventsIteration) Iterate(params *simulator.Params, partit
 
 <a name="ValuesCollectionIteration"></a>
 
-## type [ValuesCollectionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L88-L101>)
+## type [ValuesCollectionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L102-L115>)
 
-ValuesCollectionIteration maintains a collection of same\-size state values. You can push more to the collection depending on the output of a user\-specified function or pop an indexed value set from this collection depending on the output of another function.
+ValuesCollectionIteration maintains a fixed\-width rolling collection of value vectors.
+
+Usage hints:
+
+- Provide: "values\_state\_width" and "empty\_value" for sentinel handling.
+- Set Push to define how new values are appended; set PopIndex to surface an existing entry into index 0 and clear that slot.
 
 ```go
 type ValuesCollectionIteration struct {
@@ -732,7 +826,7 @@ type ValuesCollectionIteration struct {
 
 <a name="ValuesCollectionIteration.Configure"></a>
 
-### func \(\*ValuesCollectionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L103-L106>)
+### func \(\*ValuesCollectionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L117-L120>)
 
 ```go
 func (v *ValuesCollectionIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -742,7 +836,7 @@ func (v *ValuesCollectionIteration) Configure(partitionIndex int, settings *simu
 
 <a name="ValuesCollectionIteration.Iterate"></a>
 
-### func \(\*ValuesCollectionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L109-L114>)
+### func \(\*ValuesCollectionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_collection.go#L123-L128>)
 
 ```go
 func (v *ValuesCollectionIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -752,9 +846,14 @@ func (v *ValuesCollectionIteration) Iterate(params *simulator.Params, partitionI
 
 <a name="ValuesFunctionIteration"></a>
 
-## type [ValuesFunctionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L64-L71>)
+## type [ValuesFunctionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L76-L83>)
 
-ValuesFunctionIteration defines an iteration which wraps a user\-specified function. This iteration is fully stateless.
+ValuesFunctionIteration evaluates a user\-provided function of params, states and time each step.
+
+Usage hints:
+
+- Set Function to a pure mapping from the simulation context to values.
+- Useful for feature engineering inside the simulator.
 
 ```go
 type ValuesFunctionIteration struct {
@@ -769,7 +868,7 @@ type ValuesFunctionIteration struct {
 
 <a name="ValuesFunctionIteration.Configure"></a>
 
-### func \(\*ValuesFunctionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L73-L76>)
+### func \(\*ValuesFunctionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L85-L88>)
 
 ```go
 func (v *ValuesFunctionIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -779,7 +878,7 @@ func (v *ValuesFunctionIteration) Configure(partitionIndex int, settings *simula
 
 <a name="ValuesFunctionIteration.Iterate"></a>
 
-### func \(\*ValuesFunctionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L79-L84>)
+### func \(\*ValuesFunctionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L91-L96>)
 
 ```go
 func (v *ValuesFunctionIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -789,9 +888,16 @@ func (v *ValuesFunctionIteration) Iterate(params *simulator.Params, partitionInd
 
 <a name="ValuesFunctionVectorCovarianceIteration"></a>
 
-## type [ValuesFunctionVectorCovarianceIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_covariance.go#L16-L24>)
+## type [ValuesFunctionVectorCovarianceIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_covariance.go#L21-L29>)
 
-ValuesFunctionVectorCovarianceIteration computes the rolling windowed weighted covariance value of a function using inputs into the latter specified by another partition and weights specified by an integration kernel. It also requires a "mean" param vector.
+ValuesFunctionVectorCovarianceIteration computes a kernel\-weighted rolling covariance of a function over historical values and times.
+
+Usage hints:
+
+- Provide Function that accepts a history index \(\-1 for latest\) and returns a vector matching the partition state width.
+- Set Kernel and related params \(e.g., bandwidth, discounting\).
+- Requires a "mean" param vector for centring.
+- The upper\-triangular covariance is returned flattened.
 
 ```go
 type ValuesFunctionVectorCovarianceIteration struct {
@@ -807,7 +913,7 @@ type ValuesFunctionVectorCovarianceIteration struct {
 
 <a name="ValuesFunctionVectorCovarianceIteration.Configure"></a>
 
-### func \(\*ValuesFunctionVectorCovarianceIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_covariance.go#L26-L29>)
+### func \(\*ValuesFunctionVectorCovarianceIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_covariance.go#L31-L34>)
 
 ```go
 func (v *ValuesFunctionVectorCovarianceIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -817,7 +923,7 @@ func (v *ValuesFunctionVectorCovarianceIteration) Configure(partitionIndex int, 
 
 <a name="ValuesFunctionVectorCovarianceIteration.Iterate"></a>
 
-### func \(\*ValuesFunctionVectorCovarianceIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_covariance.go#L33-L38>)
+### func \(\*ValuesFunctionVectorCovarianceIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_covariance.go#L38-L43>)
 
 ```go
 func (v *ValuesFunctionVectorCovarianceIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -827,9 +933,15 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(params *simulator.Para
 
 <a name="ValuesFunctionVectorMeanIteration"></a>
 
-## type [ValuesFunctionVectorMeanIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L150-L158>)
+## type [ValuesFunctionVectorMeanIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L152-L160>)
 
-ValuesFunctionVectorMeanIteration computes the rolling windowed weighted mean value of a function using inputs into the latter specified by another partition and weights specified by an integration kernel.
+ValuesFunctionVectorMeanIteration computes a kernel\-weighted rolling mean of a function over historical values and times.
+
+Usage hints:
+
+- Provide Function that accepts a history index \(\-1 for latest\) and returns a vector matching the partition state width.
+- Set Kernel and related params \(e.g., discount factors, bandwidth, etc.\).
+- Use "without\_normalisation" to return the weighted sum rather than mean; "subtract\_from\_normalisation" adjusts the normaliser if needed.
 
 ```go
 type ValuesFunctionVectorMeanIteration struct {
@@ -845,7 +957,7 @@ type ValuesFunctionVectorMeanIteration struct {
 
 <a name="ValuesFunctionVectorMeanIteration.Configure"></a>
 
-### func \(\*ValuesFunctionVectorMeanIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L160-L163>)
+### func \(\*ValuesFunctionVectorMeanIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L162-L165>)
 
 ```go
 func (v *ValuesFunctionVectorMeanIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -855,7 +967,7 @@ func (v *ValuesFunctionVectorMeanIteration) Configure(partitionIndex int, settin
 
 <a name="ValuesFunctionVectorMeanIteration.Iterate"></a>
 
-### func \(\*ValuesFunctionVectorMeanIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L167-L172>)
+### func \(\*ValuesFunctionVectorMeanIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function_vector_mean.go#L169-L174>)
 
 ```go
 func (v *ValuesFunctionVectorMeanIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -865,9 +977,16 @@ func (v *ValuesFunctionVectorMeanIteration) Iterate(params *simulator.Params, pa
 
 <a name="ValuesGroupedAggregationIteration"></a>
 
-## type [ValuesGroupedAggregationIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L122-L133>)
+## type [ValuesGroupedAggregationIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L130-L141>)
 
-ValuesGroupedAggregationIteration defines an iteration which applies a user\-defined aggregation function to the histories of values from other partitions and groups them into bins.
+ValuesGroupedAggregationIteration collects historical values and weights into grouping buckets \(defined by tupled grouping series\) and applies a caller\-provided aggregation per bucket.
+
+Usage hints:
+
+- Configure accepted group tuples via params: "accepted\_value\_group\_tupindex\_k".
+- Provide grouping source partitions/indices via "grouping\_partition\_tupindex\_k" and "grouping\_value\_indices\_tupindex\_k".
+- Provide the state series via "state\_partition" and "state\_value\_indices".
+- Set Kernel and precision \("float\_precision"\); optionally set "default\_values".
 
 ```go
 type ValuesGroupedAggregationIteration struct {
@@ -884,7 +1003,7 @@ type ValuesGroupedAggregationIteration struct {
 
 <a name="ValuesGroupedAggregationIteration.Configure"></a>
 
-### func \(\*ValuesGroupedAggregationIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L135-L138>)
+### func \(\*ValuesGroupedAggregationIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L143-L146>)
 
 ```go
 func (v *ValuesGroupedAggregationIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -894,7 +1013,7 @@ func (v *ValuesGroupedAggregationIteration) Configure(partitionIndex int, settin
 
 <a name="ValuesGroupedAggregationIteration.Iterate"></a>
 
-### func \(\*ValuesGroupedAggregationIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L163-L168>)
+### func \(\*ValuesGroupedAggregationIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_grouped_aggregation.go#L171-L176>)
 
 ```go
 func (v *ValuesGroupedAggregationIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -904,9 +1023,13 @@ func (v *ValuesGroupedAggregationIteration) Iterate(params *simulator.Params, pa
 
 <a name="ValuesSortingCollectionIteration"></a>
 
-## type [ValuesSortingCollectionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L64-L71>)
+## type [ValuesSortingCollectionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L66-L73>)
 
-ValuesSortingCollectionIteration maintains a sorted collection of same\-size state values. You can push more to the collection depending on the output of a user\-specified function, where values are removed when they are sorted out of the full collection size.
+ValuesSortingCollectionIteration maintains a sorted collection of entries.
+
+Usage hints:
+
+- Provide: "values\_state\_width" \(entry width minus 1 for sort key\) and "empty\_value" sentinel. Set PushAndSort to define insertion behaviour.
 
 ```go
 type ValuesSortingCollectionIteration struct {
@@ -921,7 +1044,7 @@ type ValuesSortingCollectionIteration struct {
 
 <a name="ValuesSortingCollectionIteration.Configure"></a>
 
-### func \(\*ValuesSortingCollectionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L73-L76>)
+### func \(\*ValuesSortingCollectionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L75-L78>)
 
 ```go
 func (v *ValuesSortingCollectionIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -931,7 +1054,7 @@ func (v *ValuesSortingCollectionIteration) Configure(partitionIndex int, setting
 
 <a name="ValuesSortingCollectionIteration.Iterate"></a>
 
-### func \(\*ValuesSortingCollectionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L79-L84>)
+### func \(\*ValuesSortingCollectionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_sorting_collection.go#L81-L86>)
 
 ```go
 func (v *ValuesSortingCollectionIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -941,9 +1064,15 @@ func (v *ValuesSortingCollectionIteration) Iterate(params *simulator.Params, par
 
 <a name="ValuesWeightedResamplingIteration"></a>
 
-## type [ValuesWeightedResamplingIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_weighted_resampling.go#L15-L18>)
+## type [ValuesWeightedResamplingIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_weighted_resampling.go#L20-L23>)
 
-ValuesWeightedResamplingIteration resamples from the history of state values of other partitions with optional frequencies according to the provided weights.
+ValuesWeightedResamplingIteration resamples historical values from other partitions according to provided \(optionally discounted\) weights.
+
+Usage hints:
+
+- Provide: "log\_weight\_partitions" \(and optional "log\_weight\_indices"\).
+- Provide: "data\_values\_partitions" to choose which values to resample.
+- Use "past\_discounting\_factor" to downweight older history \(exponential\).
 
 ```go
 type ValuesWeightedResamplingIteration struct {
@@ -954,7 +1083,7 @@ type ValuesWeightedResamplingIteration struct {
 
 <a name="ValuesWeightedResamplingIteration.Configure"></a>
 
-### func \(\*ValuesWeightedResamplingIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_weighted_resampling.go#L20-L23>)
+### func \(\*ValuesWeightedResamplingIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_weighted_resampling.go#L25-L28>)
 
 ```go
 func (v *ValuesWeightedResamplingIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -964,7 +1093,7 @@ func (v *ValuesWeightedResamplingIteration) Configure(partitionIndex int, settin
 
 <a name="ValuesWeightedResamplingIteration.Iterate"></a>
 
-### func \(\*ValuesWeightedResamplingIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_weighted_resampling.go#L39-L44>)
+### func \(\*ValuesWeightedResamplingIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_weighted_resampling.go#L44-L49>)
 
 ```go
 func (v *ValuesWeightedResamplingIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64

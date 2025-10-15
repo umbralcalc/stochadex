@@ -6,7 +6,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ExponentialIntegrationKernel is a simple exponential weighting in time.
+// ExponentialIntegrationKernel applies exponential decay over time.
+//
+// Usage hints:
+//   - Provide "exponential_weighting_timescale"; weight = exp((t_past - t_now)/tau).
+//   - Suitable for recency-weighted means.
 type ExponentialIntegrationKernel struct {
 	timescale float64
 }

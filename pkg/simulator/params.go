@@ -2,23 +2,23 @@ package simulator
 
 import "fmt"
 
-// Params is a type alias for the parameters needed to configure
-// the simulation.
+// Params stores per-partition parameter values.
+//
+// Usage hints:
+//   - Use Get/GetIndex helpers to retrieve, Set/SetIndex to update.
+//   - SetPartitionName improves error messages for missing params.
 type Params struct {
 	Map           map[string][]float64 `yaml:",inline"`
 	partitionName string               `yaml:"-"`
 }
 
-// GetOk retrieves the desired parameter values given their name,
-// returning the values and a boolean indicating if the name was found.
+// GetOk returns parameter values if present along with a boolean flag.
 func (p *Params) GetOk(name string) ([]float64, bool) {
 	values, ok := p.Map[name]
 	return values, ok
 }
 
-// GetCopyOk retrieves a copy of the desired parameter values given
-// their name, returning the values and a boolean indicating if the
-// name was found.
+// GetCopyOk returns a copy of parameter values if present along with a flag.
 func (p *Params) GetCopyOk(name string) ([]float64, bool) {
 	if values, ok := p.Map[name]; ok {
 		valuesCopy := make([]float64, len(values))
@@ -29,8 +29,7 @@ func (p *Params) GetCopyOk(name string) ([]float64, bool) {
 	}
 }
 
-// Get retrieves the desired parameter values given their name, or
-// panics giving a useful error message.
+// Get returns parameter values or panics with a helpful message.
 func (p *Params) Get(name string) []float64 {
 	if values, ok := p.Map[name]; ok {
 		return values
@@ -40,8 +39,7 @@ func (p *Params) Get(name string) []float64 {
 	}
 }
 
-// GetCopy retrieves a copy of the desired parameter values given
-// their name, or panics giving a useful error message.
+// GetCopy returns a copy of parameter values or panics with a helpful message.
 func (p *Params) GetCopy(name string) []float64 {
 	if values, ok := p.Map[name]; ok {
 		valuesCopy := make([]float64, len(values))
@@ -53,9 +51,7 @@ func (p *Params) GetCopy(name string) []float64 {
 	}
 }
 
-// GetIndex retrieves the desired parameter value given the params
-// name and index of the value itself, or panics giving a useful
-// error message.
+// GetIndex returns a single parameter value or panics.
 func (p *Params) GetIndex(name string, index int) float64 {
 	if values, ok := p.Map[name]; ok {
 		return values[index]
@@ -65,14 +61,12 @@ func (p *Params) GetIndex(name string, index int) float64 {
 	}
 }
 
-// Set creates or updates the desired parameter values given their name.
+// Set creates or updates parameter values by name.
 func (p *Params) Set(name string, values []float64) {
 	p.Map[name] = values
 }
 
-// Set creates or updates the desired parameter value given the params
-// name and index of the value itself, or panics giving a useful
-// error message.
+// SetIndex updates a single parameter value or panics on invalid index.
 func (p *Params) SetIndex(name string, index int, value float64) {
 	values, ok := p.Map[name]
 	if !ok {
@@ -88,13 +82,12 @@ func (p *Params) SetIndex(name string, index int, value float64) {
 	p.Map[name][index] = value
 }
 
-// SetPartitionName sets the partition name that these params are
-// associated to, mainly for providing more informative error messages.
+// SetPartitionName attaches the owning partition name for better errors.
 func (p *Params) SetPartitionName(name string) {
 	p.partitionName = name
 }
 
-// NewParams creates a new Params struct.
+// NewParams constructs a Params instance.
 func NewParams(params map[string][]float64) Params {
 	return Params{
 		Map:           params,

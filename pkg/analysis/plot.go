@@ -8,8 +8,13 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// NewScatterPlotFromPartition creates a new scatter plot from
-// the storage data given the axes references to subsets of it.
+// NewScatterPlotFromPartition renders a scatter plot from storage-backed
+// DataRef axes.
+//
+// Usage hints:
+//   - X-axis must reference a single series (typically time).
+//   - Each DataRef in yRefs may contain multiple series; a series is added
+//     for each.
 func NewScatterPlotFromPartition(
 	storage *simulator.StateTimeStorage,
 	xRef DataRef,
@@ -44,8 +49,11 @@ func NewScatterPlotFromPartition(
 	return scatter
 }
 
-// NewScatterPlotFromDataFrame creates a new scatter plot from
-// the dataframe given the axes references to subsets of it.
+// NewScatterPlotFromDataFrame renders a scatter plot using columns of a
+// dataframe.
+//
+// Usage hints:
+//   - Optionally provide a single groupBy column to split series.
 func NewScatterPlotFromDataFrame(
 	df *dataframe.DataFrame,
 	xAxis string,
@@ -108,8 +116,8 @@ func NewScatterPlotFromDataFrame(
 	return scatter
 }
 
-// FillLineRef holds the data required to construct a filled
-// region in the line plot.
+// FillLineRef specifies an upper and lower bound series used to fill a
+// confidence region in a line plot.
 type FillLineRef struct {
 	Upper DataRef
 	Lower DataRef
@@ -128,21 +136,21 @@ var echartsColours = []string{
 	"#EA7CCC", // Pink
 }
 
-// ColourGenerator keeps track of the current colour index.
+// ColourGenerator iterates over the default ECharts categorical palette.
 type ColourGenerator struct {
 	index int
 }
 
-// Next returns the next colour in the ECharts palette,
-// cycling back if needed.
+// Next returns the next colour in the ECharts palette, cycling when the
+// end is reached.
 func (cg *ColourGenerator) Next() string {
 	colour := echartsColours[cg.index]
 	cg.index = (cg.index + 1) % len(echartsColours)
 	return colour
 }
 
-// appendFilledRegionToLinePlot uses the fillYRef data references
-// to create filled a region in the referenced line plot.
+// appendFilledRegionToLinePlot draws a filled band between two series for
+// each referenced Y series, reusing the provided colours and labels.
 func appendFilledRegionToLinePlot(
 	storage *simulator.StateTimeStorage,
 	fillYRef FillLineRef,
@@ -179,8 +187,12 @@ func appendFilledRegionToLinePlot(
 	}
 }
 
-// NewLinePlotFromPartition creates a new line plot from
-// the storage data given the axes references to subsets of it.
+// NewLinePlotFromPartition renders a multi-series line chart from storage
+// using an X reference and one or more Y references.
+//
+// Usage hints:
+//   - yRefs may contain multiple series each; one line per series is added.
+//   - Optional filled bands can be added via fillYRefs.
 func NewLinePlotFromPartition(
 	storage *simulator.StateTimeStorage,
 	xRef DataRef,
@@ -232,8 +244,11 @@ func NewLinePlotFromPartition(
 	return line
 }
 
-// NewLinePlotFromDataFrame creates a new line plot from
-// the dataframe given the axes references to subsets of it.
+// NewLinePlotFromDataFrame renders a line chart from a dataframe using the
+// specified X and Y columns.
+//
+// Usage hints:
+//   - Optionally split by a single groupBy column into multiple series.
 func NewLinePlotFromDataFrame(
 	df *dataframe.DataFrame,
 	xAxis string,

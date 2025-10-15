@@ -10,8 +10,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// PartitionConfigStrings holds the string Iteration implementations
-// and the potential to define extra packages and variables in configuration.
+// PartitionConfigStrings describes a partition in its string-templated form
+// for code generation.
+//
+// Usage hints:
+//   - Iteration is a Go expression constructing the iteration (factory call).
+//   - ExtraPackages lists import paths required by Iteration or ExtraVars.
+//   - ExtraVars declares ad-hoc variables injected into the generated main.
 type PartitionConfigStrings struct {
 	Name          string              `yaml:"name"`
 	Iteration     string              `yaml:"iteration,omitempty"`
@@ -19,16 +24,15 @@ type PartitionConfigStrings struct {
 	ExtraVars     []map[string]string `yaml:"extra_vars,omitempty"`
 }
 
-// RunConfig is the yaml-loadable config which consists of all the
-// necessary config data for a simulation run.
+// RunConfig is the concrete, YAML-loadable configuration for a run: partitions
+// plus a SimulationConfig.
 type RunConfig struct {
 	Partitions []simulator.PartitionConfig `yaml:"partitions"`
 	Simulation simulator.SimulationConfig  `yaml:"-"`
 }
 
-// GetConfigGenerator returns a config generator which has been configured
-// to produce the settings and implementations based on the configured fields
-// of the RunConfig.
+// GetConfigGenerator constructs a ConfigGenerator preloaded with the run's
+// SimulationConfig and Partitions.
 func (r *RunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	generator := simulator.NewConfigGenerator()
 	generator.SetSimulation(&r.Simulation)
@@ -38,38 +42,37 @@ func (r *RunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	return generator
 }
 
-// EmbeddedRunConfig is the yaml-loadable config which consists of all the
-// necessary config data for an embedded simulation run.
+// EmbeddedRunConfig names and embeds an additional RunConfig that can be
+// wired into a partition in the main run.
 type EmbeddedRunConfig struct {
 	Name string    `yaml:"name"`
 	Run  RunConfig `yaml:",inline"`
 }
 
-// RunConfigStrings is the yaml-loadable config which consists of
-// all the necessary templating inputs for a simulation run.
+// RunConfigStrings provides the string-templated inputs required to generate
+// a runnable main for a simulation run.
 type RunConfigStrings struct {
 	Partitions []PartitionConfigStrings          `yaml:"partitions"`
 	Simulation simulator.SimulationConfigStrings `yaml:"simulation"`
 }
 
-// EmbeddedRunConfigStrings is the yaml-loadable config which consists of
-// all the necessary templating inputs for an embedded simulation run.
+// EmbeddedRunConfigStrings names and provides string-templated inputs for an
+// embedded simulation run.
 type EmbeddedRunConfigStrings struct {
 	Name string           `yaml:"name"`
 	Run  RunConfigStrings `yaml:",inline"`
 }
 
-// ApiRunConfig is the yaml-loadable config which specifies the loadable
-// config data within the generated code for an API run.
+// ApiRunConfig is the concrete, YAML-loadable configuration for an API run:
+// a main RunConfig and optional embedded runs.
 type ApiRunConfig struct {
 	Main     RunConfig           `yaml:"main"`
 	Embedded []EmbeddedRunConfig `yaml:"embedded,omitempty"`
 }
 
-// GetConfigGenerator returns a config generator which has been configured
-// to produce the settings and implementations based on the configured fields
-// of the main RunConfig. This method also takes into account the mappings of
-// embedded simulation runs into the main run.
+// GetConfigGenerator returns a ConfigGenerator for the main run. Any partition
+// whose name matches an embedded run is replaced by an embedded simulation
+// iteration wired to that embedded run.
 func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	generator := a.Main.GetConfigGenerator()
 	for _, embedded := range a.Embedded {
@@ -82,8 +85,8 @@ func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	return generator
 }
 
-// LoadApiRunConfigFromYaml creates a new ApiRunConfig from a provided
-// yaml path.
+// LoadApiRunConfigFromYaml loads ApiRunConfig from YAML and initialises
+// partition defaults.
 func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
@@ -105,15 +108,15 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 	return &config
 }
 
-// ApiRunConfigStrings is the yaml-loadable config which specifies the
-// templating inputs for an API run.
+// ApiRunConfigStrings is the string-templated configuration used to generate
+// code for an API run (imports, variables, iteration factories).
 type ApiRunConfigStrings struct {
 	Main     RunConfigStrings           `yaml:"main"`
 	Embedded []EmbeddedRunConfigStrings `yaml:"embedded,omitempty"`
 }
 
-// validateApiRunConfigStrings checks the ApiRunConfigStrings for errors
-// and panics if there are any.
+// validateApiRunConfigStrings asserts the templated config is coherent.
+// Any partition without an Iteration must correspond to a named embedded run.
 func validateApiRunConfigStrings(config *ApiRunConfigStrings) {
 	embeddedNames := make(map[string]bool)
 	for _, embedded := range config.Embedded {
@@ -131,8 +134,8 @@ func validateApiRunConfigStrings(config *ApiRunConfigStrings) {
 	}
 }
 
-// LoadApiRunConfigStringsFromYaml creates a new ApiRunConfigStrings
-// from a provided yaml path.
+// LoadApiRunConfigStringsFromYaml loads the templated config from YAML and
+// validates it for code generation.
 func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
@@ -147,8 +150,8 @@ func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings {
 	return &config
 }
 
-// formatExtraCode takes the parsed args and returns the extra code formatted
-// to work with templating.
+// formatExtraCode serialises Iteration factories and SimulationConfig into
+// Go code fragments for main and embedded runs.
 func formatExtraCode(args ParsedArgs) string {
 	extraCode := ""
 	for i, partition := range args.ConfigStrings.Main.Partitions {
@@ -201,8 +204,8 @@ func formatExtraCode(args ParsedArgs) string {
 	return extraCode
 }
 
-// formatExtraVariables takes the parsed args and returns the extra variable
-// declarations formatted to work with templating.
+// formatExtraVariables emits variable declarations from the templated config
+// so they are available to code fragments.
 func formatExtraVariables(args ParsedArgs) string {
 	extraVariables := ""
 	for _, partition := range args.ConfigStrings.Main.Partitions {
@@ -230,8 +233,8 @@ func formatExtraVariables(args ParsedArgs) string {
 	return extraVariables
 }
 
-// formatExtraPackages takes the parsed args and returns the extra package
-// imports formatted to work with templating.
+// formatExtraPackages de-duplicates and renders import paths required by code
+// fragments for main and embedded runs.
 func formatExtraPackages(args ParsedArgs) string {
 	extraPackages := ""
 	extraPackagesSet := make(map[string]bool)
@@ -264,7 +267,8 @@ func formatExtraPackages(args ParsedArgs) string {
 	return extraPackages
 }
 
-// ApiCodeTemplate is a string representing the template for the API run code.
+// ApiCodeTemplate is the Go source template used to generate a runnable
+// temporary main program that executes the requested run configuration.
 var ApiCodeTemplate = `package main
 
 import (
@@ -281,8 +285,12 @@ func main() {
     api.Run(config, socket)
 }`
 
-// WriteMainProgram writes string representations of various types of data
-// to a template /tmp/*main.go file ready for runtime execution in this *main.go.
+// WriteMainProgram renders ApiCodeTemplate to a /tmp/*main.go and returns the
+// file path.
+//
+// Usage hints:
+//   - The generated program imports extra packages, declares extra variables,
+//     and wires iterations per the templated config.
 func WriteMainProgram(args ParsedArgs) string {
 	fmt.Println("\nParsed run config ...")
 	codeTemplate := template.New("stochadexMain")

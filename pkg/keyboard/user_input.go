@@ -9,9 +9,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// KeystrokeChannel is an interface which must be implemented in order
-// to setup the channel of key stroke inputs from the user into the
-// UserInputIteration.
+// KeystrokeChannel abstracts a source of keyboard events.
+//
+// Usage hints:
+//   - Implement to inject custom key event sources (e.g., tests or GUIs).
+//   - The default StandardKeystrokeChannel reads from the terminal.
 type KeystrokeChannel interface {
 	Get(
 		partitionIndex int,
@@ -19,8 +21,7 @@ type KeystrokeChannel interface {
 	) (<-chan keyboard.KeyEvent, error)
 }
 
-// StandardKeystrokeChannel is the standard method for retrieving key strokes
-// for the user input.
+// StandardKeystrokeChannel retrieves keystrokes from the terminal.
 type StandardKeystrokeChannel struct{}
 
 func (s *StandardKeystrokeChannel) Get(
@@ -30,8 +31,12 @@ func (s *StandardKeystrokeChannel) Get(
 	return keyboard.GetKeys(1)
 }
 
-// UserInputIteration implements an iteration that uses actions collected
-// from user keyboard input.
+// UserInputIteration emits actions based on user keystrokes.
+//
+// Usage hints:
+//   - Configure params named "user_input_keystroke_action_<key>" => action id.
+//   - Optional: "wait_milliseconds" (timeout). "default_value" used on timeout.
+//   - Press ESC to stop scanning; subsequent steps return "default_value".
 type UserInputIteration struct {
 	Channel          KeystrokeChannel
 	keystrokeMap     map[string]int64

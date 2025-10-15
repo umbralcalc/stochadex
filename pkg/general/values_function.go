@@ -5,7 +5,8 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-// ParamsTransform simply returns the params.
+// ParamsTransform is a convenience transform that returns the current params
+// map. Useful as a building block for transform/reduce pipelines.
 func ParamsTransform(
 	params *simulator.Params,
 	partitionIndex int,
@@ -15,7 +16,11 @@ func ParamsTransform(
 	return params.Map
 }
 
-// SumReduce computes the sum reduction.
+// SumReduce reduces a map of equally sized vectors by summing them
+// element-wise into a single output vector.
+//
+// Usage hints:
+//   - Combine with NewTransformReduceFunction to compose dataflow operations.
 func SumReduce(values map[string][]float64) []float64 {
 	var out []float64
 	for _, v := range values {
@@ -27,9 +32,12 @@ func SumReduce(values map[string][]float64) []float64 {
 	return out
 }
 
-// NewTransformReduceFunction creates a new function that applies
-// the provided transformation and reduction function operations
-// as a composition that can be used in the ValuesFunctionIteration.
+// NewTransformReduceFunction returns a function that first transforms the
+// provided simulation context into a map of vectors, then reduces those
+// vectors into a single vector.
+//
+// Usage hints:
+//   - Compose transform/reduce pipelines to feed ValuesFunctionIteration.
 func NewTransformReduceFunction(
 	transform func(
 		params *simulator.Params,
@@ -59,8 +67,12 @@ func NewTransformReduceFunction(
 	}
 }
 
-// ValuesFunctionIteration defines an iteration which wraps a
-// user-specified function. This iteration is fully stateless.
+// ValuesFunctionIteration evaluates a user-provided function of params,
+// states and time each step.
+//
+// Usage hints:
+//   - Set Function to a pure mapping from the simulation context to values.
+//   - Useful for feature engineering inside the simulator.
 type ValuesFunctionIteration struct {
 	Function func(
 		params *simulator.Params,

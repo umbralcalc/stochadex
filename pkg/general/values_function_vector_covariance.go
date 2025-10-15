@@ -9,10 +9,15 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// ValuesFunctionVectorCovarianceIteration computes the rolling windowed
-// weighted covariance value of a function using inputs into the latter specified
-// by another partition and weights specified by an integration kernel. It also
-// requires a "mean" param vector.
+// ValuesFunctionVectorCovarianceIteration computes a kernel-weighted rolling
+// covariance of a function over historical values and times.
+//
+// Usage hints:
+//   - Provide Function that accepts a history index (-1 for latest) and returns
+//     a vector matching the partition state width.
+//   - Set Kernel and related params (e.g., bandwidth, discounting).
+//   - Requires a "mean" param vector for centring.
+//   - The upper-triangular covariance is returned flattened.
 type ValuesFunctionVectorCovarianceIteration struct {
 	Function func(
 		params *simulator.Params,

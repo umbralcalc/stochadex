@@ -4,7 +4,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ConstantIntegrationKernel just returns 1.0 for every value.
+// ConstantIntegrationKernel returns 1.0 for every sample.
+//
+// Usage hints:
+//   - Use to compute simple (unweighted) sums or means.
 type ConstantIntegrationKernel struct{}
 
 func (c *ConstantIntegrationKernel) Configure(

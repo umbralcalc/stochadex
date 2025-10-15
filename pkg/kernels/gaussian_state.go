@@ -8,8 +8,12 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// GaussianStateIntegrationKernel applies a Gaussian kernel using
-// an input covariance.
+// GaussianStateIntegrationKernel applies a Gaussian state-distance kernel
+// using an input covariance matrix.
+//
+// Usage hints:
+//   - Provide "covariance_matrix" as a flattened symmetric matrix (row-major).
+//   - Weights are exp(-0.5 (x-μ)^T Σ^{-1} (x-μ)) / det(Σ).
 type GaussianStateIntegrationKernel struct {
 	choleskyDecomp mat.Cholesky
 	determinant    float64

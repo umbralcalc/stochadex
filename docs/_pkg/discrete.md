@@ -38,9 +38,15 @@ import "github.com/umbralcalc/stochadex/pkg/discrete"
 
 <a name="BernoulliProcessIteration"></a>
 
-## type [BernoulliProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/bernoulli_process.go#L13-L15>)
+## type [BernoulliProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/bernoulli_process.go#L16-L18>)
 
-BernoulliProcessIteration observes a success \(or failure\) with a 1 \(or 0\) depending on the probability provided for each state value index.
+BernoulliProcessIteration emits 1/0 based on per\-dimension success probs.
+
+Usage hints:
+
+- Provide "state\_value\_observation\_probs" with values in \[0, 1\].
+- Outputs are written in\-place to the current state row and returned.
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type BernoulliProcessIteration struct {
@@ -50,7 +56,7 @@ type BernoulliProcessIteration struct {
 
 <a name="BernoulliProcessIteration.Configure"></a>
 
-### func \(\*BernoulliProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/bernoulli_process.go#L17-L20>)
+### func \(\*BernoulliProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/bernoulli_process.go#L20-L23>)
 
 ```go
 func (b *BernoulliProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -60,7 +66,7 @@ func (b *BernoulliProcessIteration) Configure(partitionIndex int, settings *simu
 
 <a name="BernoulliProcessIteration.Iterate"></a>
 
-### func \(\*BernoulliProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/bernoulli_process.go#L31-L36>)
+### func \(\*BernoulliProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/bernoulli_process.go#L34-L39>)
 
 ```go
 func (b *BernoulliProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -70,9 +76,15 @@ func (b *BernoulliProcessIteration) Iterate(params *simulator.Params, partitionI
 
 <a name="BinomialObservationProcessIteration"></a>
 
-## type [BinomialObservationProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/binomial_observation_process.go#L13-L15>)
+## type [BinomialObservationProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/binomial_observation_process.go#L17-L19>)
 
-BinomialObservationProcessIteration observes each count value provided with a binomial probability distribution \- emulating a sequence of Bernoulli trials.
+BinomialObservationProcessIteration draws binomial counts for selected indices.
+
+Usage hints:
+
+- Provide: "observed\_values" \(counts\), "state\_value\_observation\_probs" \(p's\), and "state\_value\_observation\_indices" \(which entries to observe\).
+- For each index i: draws Binomial\(N=observed\_values\[i\], p=probs\[i\]\).
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type BinomialObservationProcessIteration struct {
@@ -82,7 +94,7 @@ type BinomialObservationProcessIteration struct {
 
 <a name="BinomialObservationProcessIteration.Configure"></a>
 
-### func \(\*BinomialObservationProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/binomial_observation_process.go#L17-L20>)
+### func \(\*BinomialObservationProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/binomial_observation_process.go#L21-L24>)
 
 ```go
 func (b *BinomialObservationProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -92,7 +104,7 @@ func (b *BinomialObservationProcessIteration) Configure(partitionIndex int, sett
 
 <a name="BinomialObservationProcessIteration.Iterate"></a>
 
-### func \(\*BinomialObservationProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/binomial_observation_process.go#L31-L36>)
+### func \(\*BinomialObservationProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/binomial_observation_process.go#L35-L40>)
 
 ```go
 func (b *BinomialObservationProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -134,9 +146,15 @@ func (c *CategoricalStateTransitionIteration) Iterate(params *simulator.Params, 
 
 <a name="CoxProcessIteration"></a>
 
-## type [CoxProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/cox_process.go#L11-L13>)
+## type [CoxProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/cox_process.go#L16-L18>)
 
-CoxProcessIteration defines an iteration for a Cox process.
+CoxProcessIteration steps a Cox process \(doubly stochastic Poisson\).
+
+Usage hints:
+
+- Provide time\-varying "rates" per dimension; event prob approx. rate\*dt.
+- At each step, increments by 1 with the above probability.
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type CoxProcessIteration struct {
@@ -146,7 +164,7 @@ type CoxProcessIteration struct {
 
 <a name="CoxProcessIteration.Configure"></a>
 
-### func \(\*CoxProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/cox_process.go#L15-L18>)
+### func \(\*CoxProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/cox_process.go#L20-L23>)
 
 ```go
 func (c *CoxProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -156,7 +174,7 @@ func (c *CoxProcessIteration) Configure(partitionIndex int, settings *simulator.
 
 <a name="CoxProcessIteration.Iterate"></a>
 
-### func \(\*CoxProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/cox_process.go#L29-L34>)
+### func \(\*CoxProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/cox_process.go#L34-L39>)
 
 ```go
 func (c *CoxProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -166,9 +184,15 @@ func (c *CoxProcessIteration) Iterate(params *simulator.Params, partitionIndex i
 
 <a name="HawkesProcessIntensityIteration"></a>
 
-## type [HawkesProcessIntensityIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L14-L17>)
+## type [HawkesProcessIntensityIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L18-L21>)
 
-HawkesProcessIntensityIteration an iteration for a Hawkes process self\-exciting intensity function.
+HawkesProcessIntensityIteration computes a Hawkes self\-exciting intensity.
+
+Usage hints:
+
+- Configure with an integration kernel and the Hawkes partition index.
+- Provide params: "background\_rates"; kernel reads further params as needed.
+- Integrates past event increments to produce current intensity per dimension.
 
 ```go
 type HawkesProcessIntensityIteration struct {
@@ -178,17 +202,17 @@ type HawkesProcessIntensityIteration struct {
 
 <a name="NewHawkesProcessIntensityIteration"></a>
 
-### func [NewHawkesProcessIntensityIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L63-L66>)
+### func [NewHawkesProcessIntensityIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L66-L69>)
 
 ```go
 func NewHawkesProcessIntensityIteration(excitingKernel kernels.IntegrationKernel, hawkesPartitionIndex int) *HawkesProcessIntensityIteration
 ```
 
-NewHawkesProcessIntensityIteration creates a new HawkesProcessIntensityIteration given a partition index for the Hawkes process itself.
+NewHawkesProcessIntensityIteration constructs the intensity iteration with a kernel and target Hawkes partition index.
 
 <a name="HawkesProcessIntensityIteration.Configure"></a>
 
-### func \(\*HawkesProcessIntensityIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L19-L22>)
+### func \(\*HawkesProcessIntensityIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L23-L26>)
 
 ```go
 func (h *HawkesProcessIntensityIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -198,7 +222,7 @@ func (h *HawkesProcessIntensityIteration) Configure(partitionIndex int, settings
 
 <a name="HawkesProcessIntensityIteration.Iterate"></a>
 
-### func \(\*HawkesProcessIntensityIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L30-L35>)
+### func \(\*HawkesProcessIntensityIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L34-L39>)
 
 ```go
 func (h *HawkesProcessIntensityIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -208,9 +232,15 @@ func (h *HawkesProcessIntensityIteration) Iterate(params *simulator.Params, part
 
 <a name="HawkesProcessIteration"></a>
 
-## type [HawkesProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L74-L76>)
+## type [HawkesProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L82-L84>)
 
-HawkesProcessIteration defines an iteration for a Hawkes process.
+HawkesProcessIteration steps a Hawkes counting process with given intensity.
+
+Usage hints:
+
+- Provide "intensity" per dimension \(e.g., from HawkesProcessIntensityIteration\).
+- Increments by 1 with probability approx. intensity\*dt at each step.
+- Seed is taken from the partition's Settings for reproducibility.
 
 ```go
 type HawkesProcessIteration struct {
@@ -220,7 +250,7 @@ type HawkesProcessIteration struct {
 
 <a name="HawkesProcessIteration.Configure"></a>
 
-### func \(\*HawkesProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L78-L81>)
+### func \(\*HawkesProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L86-L89>)
 
 ```go
 func (h *HawkesProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -230,7 +260,7 @@ func (h *HawkesProcessIteration) Configure(partitionIndex int, settings *simulat
 
 <a name="HawkesProcessIteration.Iterate"></a>
 
-### func \(\*HawkesProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L92-L97>)
+### func \(\*HawkesProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/hawkes_process.go#L100-L105>)
 
 ```go
 func (h *HawkesProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -240,9 +270,15 @@ func (h *HawkesProcessIteration) Iterate(params *simulator.Params, partitionInde
 
 <a name="PoissonProcessIteration"></a>
 
-## type [PoissonProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L12-L14>)
+## type [PoissonProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L16-L18>)
 
-PoissonProcessIteration defines an iteration for a simple Poisson process.
+PoissonProcessIteration steps a simple Poisson counting process.
+
+Usage hints:
+
+- Provide per\-dimension "rates" \(lambda\); event approx. prob is rate\*dt.
+- On an event, the count increments by 1; otherwise it is unchanged.
+- Configure timestep size via the simulator to control event probability.
 
 ```go
 type PoissonProcessIteration struct {
@@ -252,7 +288,7 @@ type PoissonProcessIteration struct {
 
 <a name="PoissonProcessIteration.Configure"></a>
 
-### func \(\*PoissonProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L16-L19>)
+### func \(\*PoissonProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L20-L23>)
 
 ```go
 func (p *PoissonProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -262,7 +298,7 @@ func (p *PoissonProcessIteration) Configure(partitionIndex int, settings *simula
 
 <a name="PoissonProcessIteration.Iterate"></a>
 
-### func \(\*PoissonProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L30-L35>)
+### func \(\*PoissonProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L34-L39>)
 
 ```go
 func (p *PoissonProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64

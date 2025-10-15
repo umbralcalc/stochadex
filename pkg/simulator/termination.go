@@ -1,7 +1,6 @@
 package simulator
 
-// TerminationCondition is the interface that must be implemented in
-// order to create a new condition for ending the simulation.
+// TerminationCondition decides when the simulation should end.
 type TerminationCondition interface {
 	Terminate(
 		stateHistories []*StateHistory,
@@ -9,8 +8,7 @@ type TerminationCondition interface {
 	) bool
 }
 
-// NumberOfStepsTerminationCondition terminates the process when the
-// overall number of steps performed has reached MaxNumberOfSteps.
+// NumberOfStepsTerminationCondition terminates after MaxNumberOfSteps.
 type NumberOfStepsTerminationCondition struct {
 	MaxNumberOfSteps int
 }
@@ -22,8 +20,7 @@ func (t *NumberOfStepsTerminationCondition) Terminate(
 	return timestepsHistory.CurrentStepNumber >= t.MaxNumberOfSteps
 }
 
-// TimeElapsedTerminationCondition terminates the process when the
-// overall time elapsed has reached MaxTimeElapsed.
+// TimeElapsedTerminationCondition terminates after MaxTimeElapsed.
 type TimeElapsedTerminationCondition struct {
 	MaxTimeElapsed float64
 }

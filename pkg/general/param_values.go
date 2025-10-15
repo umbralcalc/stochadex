@@ -4,8 +4,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ParamValuesIteration writes the float param values in the
-// "param_values" key directly to the state.
+// ParamValuesIteration writes the float param values under "param_values"
+// directly to the state.
+//
+// Usage hints:
+//   - Useful for injecting immediate parameter-driven values.
 type ParamValuesIteration struct {
 }
 

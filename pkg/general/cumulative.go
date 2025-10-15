@@ -5,8 +5,10 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-// CumulativeIteration sums the new state value to the previous state
-// value of the provided iteration for all iterations.
+// CumulativeIteration accumulates a provided iteration's outputs over time.
+//
+// Usage hints:
+//   - Wrap another iteration to compute cumulative sums step-by-step.
 type CumulativeIteration struct {
 	Iteration simulator.Iteration
 }

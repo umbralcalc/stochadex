@@ -7,16 +7,17 @@ import (
 	"github.com/akamensky/argparse"
 )
 
-// ParsedArgs contains the information that needs to pass from the CLI to
-// the runner in order to run the API.
+// ParsedArgs bundles CLI-derived inputs for running the API.
+// Includes the YAML config path, optional socket config path, and the
+// string-templated configuration used to generate a runnable main.
 type ParsedArgs struct {
 	ConfigStrings *ApiRunConfigStrings
 	ConfigFile    string
 	SocketFile    string
 }
 
-// ArgParse builds the configs parsed as args to the stochadex binary and
-// also retrieves other args.
+// ArgParse parses CLI flags into a ParsedArgs, loading ApiRunConfigStrings
+// from the provided YAML path for template hydration.
 func ArgParse() ParsedArgs {
 	fmt.Println("\nReading in args ...")
 	parser := argparse.NewParser(

@@ -7,8 +7,12 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// PoissonProcessIteration defines an iteration for a simple Poisson
-// process.
+// PoissonProcessIteration steps a simple Poisson counting process.
+//
+// Usage hints:
+//   - Provide per-dimension "rates" (lambda); event approx. prob is rate*dt.
+//   - On an event, the count increments by 1; otherwise it is unchanged.
+//   - Configure timestep size via the simulator to control event probability.
 type PoissonProcessIteration struct {
 	unitUniformDist *distuv.Uniform
 }

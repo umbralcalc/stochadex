@@ -9,7 +9,8 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-// CountAggregation returns the count of values in the group.
+// CountAggregation outputs, per group, the sum of weights (i.e., a count when
+// weights are all 1).
 func CountAggregation(
 	defaultValues []float64,
 	outputIndexByGroup map[string]int,
@@ -26,7 +27,7 @@ func CountAggregation(
 	return defaultValues
 }
 
-// SumAggregation returns the sum of values in the group.
+// SumAggregation computes the weighted sum of values per group.
 func SumAggregation(
 	defaultValues []float64,
 	outputIndexByGroup map[string]int,
@@ -43,7 +44,7 @@ func SumAggregation(
 	return defaultValues
 }
 
-// MeanAggregation returns the mean of values in the group.
+// MeanAggregation computes the weighted mean of values per group.
 func MeanAggregation(
 	defaultValues []float64,
 	outputIndexByGroup map[string]int,
@@ -61,7 +62,7 @@ func MeanAggregation(
 	return defaultValues
 }
 
-// MaxAggregation returns the maximum of values in the group.
+// MaxAggregation computes the maximum of weighted values per group.
 func MaxAggregation(
 	defaultValues []float64,
 	outputIndexByGroup map[string]int,
@@ -79,7 +80,7 @@ func MaxAggregation(
 	return defaultValues
 }
 
-// MinAggregation returns the minimum of values in the group.
+// MinAggregation computes the minimum of weighted values per group.
 func MinAggregation(
 	defaultValues []float64,
 	outputIndexByGroup map[string]int,
@@ -97,8 +98,8 @@ func MinAggregation(
 	return defaultValues
 }
 
-// AppendFloatToKey appends the provided string key with another
-// formatted float value up to the required precision.
+// AppendFloatToKey appends a formatted float to a composite grouping key at
+// a fixed precision.
 func AppendFloatToKey(key string, value float64, precision int) string {
 	format := "%." + strconv.Itoa(precision) + "f"
 	rounded, _ := strconv.ParseFloat(fmt.Sprintf(format, value), 64)
@@ -106,8 +107,8 @@ func AppendFloatToKey(key string, value float64, precision int) string {
 	return key
 }
 
-// FloatTupleToKey converts a slice of floats to a string key with
-// fixed precision for float values.
+// FloatTupleToKey converts a vector to a composite key string at fixed
+// precision, suitable for use as a map key.
 func FloatTupleToKey(tuple []float64, precision int) string {
 	key := ""
 	for _, value := range tuple {
@@ -116,9 +117,16 @@ func FloatTupleToKey(tuple []float64, precision int) string {
 	return key
 }
 
-// ValuesGroupedAggregationIteration defines an iteration which applies
-// a user-defined aggregation function to the histories of values from
-// other partitions and groups them into bins.
+// ValuesGroupedAggregationIteration collects historical values and weights
+// into grouping buckets (defined by tupled grouping series) and applies a
+// caller-provided aggregation per bucket.
+//
+// Usage hints:
+//   - Configure accepted group tuples via params: "accepted_value_group_tupindex_k".
+//   - Provide grouping source partitions/indices via
+//     "grouping_partition_tupindex_k" and "grouping_value_indices_tupindex_k".
+//   - Provide the state series via "state_partition" and "state_value_indices".
+//   - Set Kernel and precision ("float_precision"); optionally set "default_values".
 type ValuesGroupedAggregationIteration struct {
 	Aggregation func(
 		defaultValues []float64,

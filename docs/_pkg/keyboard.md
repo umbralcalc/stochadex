@@ -22,9 +22,14 @@ import "github.com/umbralcalc/stochadex/pkg/keyboard"
 
 <a name="KeystrokeChannel"></a>
 
-## type [KeystrokeChannel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L15-L20>)
+## type [KeystrokeChannel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L17-L22>)
 
-KeystrokeChannel is an interface which must be implemented in order to setup the channel of key stroke inputs from the user into the UserInputIteration.
+KeystrokeChannel abstracts a source of keyboard events.
+
+Usage hints:
+
+- Implement to inject custom key event sources \(e.g., tests or GUIs\).
+- The default StandardKeystrokeChannel reads from the terminal.
 
 ```go
 type KeystrokeChannel interface {
@@ -37,9 +42,9 @@ type KeystrokeChannel interface {
 
 <a name="StandardKeystrokeChannel"></a>
 
-## type [StandardKeystrokeChannel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L24>)
+## type [StandardKeystrokeChannel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L25>)
 
-StandardKeystrokeChannel is the standard method for retrieving key strokes for the user input.
+StandardKeystrokeChannel retrieves keystrokes from the terminal.
 
 ```go
 type StandardKeystrokeChannel struct{}
@@ -47,7 +52,7 @@ type StandardKeystrokeChannel struct{}
 
 <a name="StandardKeystrokeChannel.Get"></a>
 
-### func \(\*StandardKeystrokeChannel\) [Get](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L26-L29>)
+### func \(\*StandardKeystrokeChannel\) [Get](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L27-L30>)
 
 ```go
 func (s *StandardKeystrokeChannel) Get(partitionIndex int, settings *simulator.Settings) (<-chan keyboard.KeyEvent, error)
@@ -57,9 +62,15 @@ func (s *StandardKeystrokeChannel) Get(partitionIndex int, settings *simulator.S
 
 <a name="UserInputIteration"></a>
 
-## type [UserInputIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L35-L41>)
+## type [UserInputIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L40-L46>)
 
-UserInputIteration implements an iteration that uses actions collected from user keyboard input.
+UserInputIteration emits actions based on user keystrokes.
+
+Usage hints:
+
+- Configure params named "user\_input\_keystroke\_action\_\<key\>" =\> action id.
+- Optional: "wait\_milliseconds" \(timeout\). "default\_value" used on timeout.
+- Press ESC to stop scanning; subsequent steps return "default\_value".
 
 ```go
 type UserInputIteration struct {
@@ -70,7 +81,7 @@ type UserInputIteration struct {
 
 <a name="UserInputIteration.Configure"></a>
 
-### func \(\*UserInputIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L43-L46>)
+### func \(\*UserInputIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L48-L51>)
 
 ```go
 func (u *UserInputIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -80,7 +91,7 @@ func (u *UserInputIteration) Configure(partitionIndex int, settings *simulator.S
 
 <a name="UserInputIteration.Iterate"></a>
 
-### func \(\*UserInputIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L71-L76>)
+### func \(\*UserInputIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L76-L81>)
 
 ```go
 func (u *UserInputIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64

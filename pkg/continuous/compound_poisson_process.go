@@ -7,15 +7,21 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// JumpDistribution defines the interface that must be implemented
-// to provide a distribution to generate sudden 'jumps' from. This
-// is used in compound Poisson processes and drift-jump-diffusions.
+// JumpDistribution defines the interface to draw sudden jumps.
+//
+// Usage hints:
+//   - Implement for custom jump magnitudes; called when a jump event occurs.
+//   - Used by compound Poisson processes and drift–jump–diffusions.
 type JumpDistribution interface {
 	Configure(partitionIndex int, settings *simulator.Settings)
 	NewJump(params *simulator.Params, valueIndex int) float64
 }
 
-// GammaJumpDistribution jumps with samples drawn from a gamma distribution.
+// GammaJumpDistribution draws jump magnitudes from a gamma distribution.
+//
+// Usage hints:
+//   - Param names per dimension: "gamma_alphas" and "gamma_betas".
+//   - Seed is taken from the partition's Settings for reproducibility.
 type GammaJumpDistribution struct {
 	dist *distuv.Gamma
 }
@@ -43,8 +49,12 @@ func (g *GammaJumpDistribution) NewJump(
 	return g.dist.Rand()
 }
 
-// CompoundPoissonProcessIteration defines an iteration for a compound
-// Poisson process.
+// CompoundPoissonProcessIteration steps a compound Poisson process.
+//
+// Usage hints:
+//   - Provide per-dimension "rates" and a JumpDistribution implementation.
+//   - At each step, increments by a jump draw with probability approx. rate*dt.
+//   - Configure timestep size via the simulator to control event frequency.
 type CompoundPoissonProcessIteration struct {
 	JumpDist        JumpDistribution
 	unitUniformDist *distuv.Uniform

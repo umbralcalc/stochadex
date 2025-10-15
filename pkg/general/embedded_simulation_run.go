@@ -8,30 +8,42 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// StateMemoryUpdate packages a memory update with a name which is the
-// partition name in the other simulation that it came from.
+// StateMemoryUpdate carries a named partition's state and timestep history
+// from an outer simulation into an inner (embedded) simulation.
+//
+// Usage hints:
+//   - Used by iterations implementing StateMemoryIteration to receive context.
+//   - Set Name to the outer partition name for disambiguation.
 type StateMemoryUpdate struct {
 	Name             string
 	StateHistory     *simulator.StateHistory
 	TimestepsHistory *simulator.CumulativeTimestepsHistory
 }
 
-// StateMemoryIteration defines the interface that must be implemented
-// in order to configure an updateable memory of params, states and times
-// which come from another simulation.
+// StateMemoryIteration marks iterations that can receive state/time from a
+// parent simulation and store it for later use.
 type StateMemoryIteration interface {
 	UpdateMemory(params *simulator.Params, update StateMemoryUpdate)
 }
 
-// NamedIndexedState pairs a partition index and name with a state history.
+// NamedIndexedState pairs a partition's name/index with its state history.
+// Useful for initialising inner histories from a chosen outer partition.
 type NamedIndexedState struct {
 	NamedIndex simulator.NamedPartitionIndex
 	History    *simulator.StateHistory
 }
 
-// EmbeddedSimulationRunIteration facilitates running an embedded
-// sub-simulation to termination inside of an iteration of another
-// simulation for each step of the latter simulation.
+// EmbeddedSimulationRunIteration runs a nested simulation to termination at
+// each outer step.
+//
+// Usage hints:
+//   - Configure params on the outer iteration with keys of the form
+//     "<innerPartitionName>/<param_name>" to forward into the inner simulation.
+//   - Use "<innerPartitionName>/initial_state_from_partition_history" to seed
+//     inner initial states from an outer partition's history.
+//   - Use "<innerPartitionName>/update_from_partition_history" to stream
+//     outer histories into inner iterations that implement StateMemoryIteration.
+//   - Optional "burn_in_steps" skips initial outer steps before running inner sim.
 type EmbeddedSimulationRunIteration struct {
 	settings              *simulator.Settings
 	implementations       *simulator.Implementations
@@ -222,9 +234,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	return concatFinalStates
 }
 
-// NewEmbeddedSimulationRunIterationFromConfigs creates a new
-// EmbeddedSimulationRunIteration from settings and implementations
-// configs.
+// NewEmbeddedSimulationRunIteration constructs an embedded run iteration
+// from prepared settings and implementations.
 func NewEmbeddedSimulationRunIteration(
 	settings *simulator.Settings,
 	implementations *simulator.Implementations,

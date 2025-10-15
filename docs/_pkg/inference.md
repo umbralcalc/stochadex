@@ -472,9 +472,15 @@ func (g *GammaLikelihoodDistribution) SetSeed(partitionIndex int, settings *simu
 
 <a name="LikelihoodDistribution"></a>
 
-## type [LikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L9-L19>)
+## type [LikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L14-L24>)
 
-LikelihoodDistribution is the interface that must be implemented in order to create a likelihood model for some data.
+LikelihoodDistribution defines a likelihood model over observed data.
+
+Usage hints:
+
+- SetSeed is called once per partition to initialise RNG state.
+- SetParams configures the distribution from the current simulation context.
+- EvaluateLogLike computes log p\(data | params\); GenerateNewSamples draws from the current model.
 
 ```go
 type LikelihoodDistribution interface {
@@ -492,9 +498,9 @@ type LikelihoodDistribution interface {
 
 <a name="LikelihoodDistributionWithGradient"></a>
 
-## type [LikelihoodDistributionWithGradient](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L23-L26>)
+## type [LikelihoodDistributionWithGradient](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L28-L31>)
 
-LikelihoodDistributionWithGradient is the interface that must be implemented in order to create a likelihood which computes a gradient.
+LikelihoodDistributionWithGradient extends LikelihoodDistribution with a mean gradient for optimisation.
 
 ```go
 type LikelihoodDistributionWithGradient interface {
@@ -568,9 +574,15 @@ func (n *NegativeBinomialLikelihoodDistribution) SetSeed(partitionIndex int, set
 
 <a name="NormalLikelihoodDistribution"></a>
 
-## type [NormalLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L14-L19>)
+## type [NormalLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L18-L23>)
 
-NormalLikelihoodDistribution assumes the real data are well described by a normal distribution, given the input mean and covariance matrix.
+NormalLikelihoodDistribution models data with a multivariate normal.
+
+Usage hints:
+
+- Provide mean/covariance via params or upstream partition outputs.
+- Optional: "default\_covariance" used if provided covariance is not PD.
+- GenerateNewSamples draws from the current parameterised distribution.
 
 ```go
 type NormalLikelihoodDistribution struct {
@@ -581,7 +593,7 @@ type NormalLikelihoodDistribution struct {
 
 <a name="NormalLikelihoodDistribution.EvaluateLogLike"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L68>)
+### func \(\*NormalLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L72>)
 
 ```go
 func (n *NormalLikelihoodDistribution) EvaluateLogLike(data []float64) float64
@@ -591,7 +603,7 @@ func (n *NormalLikelihoodDistribution) EvaluateLogLike(data []float64) float64
 
 <a name="NormalLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L78-L80>)
+### func \(\*NormalLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L82-L84>)
 
 ```go
 func (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) []float64
@@ -601,7 +613,7 @@ func (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) [
 
 <a name="NormalLikelihoodDistribution.GenerateNewSamples"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L73>)
+### func \(\*NormalLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L77>)
 
 ```go
 func (n *NormalLikelihoodDistribution) GenerateNewSamples() []float64
@@ -611,7 +623,7 @@ func (n *NormalLikelihoodDistribution) GenerateNewSamples() []float64
 
 <a name="NormalLikelihoodDistribution.SetParams"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L31-L36>)
+### func \(\*NormalLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L35-L40>)
 
 ```go
 func (n *NormalLikelihoodDistribution) SetParams(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory)
@@ -621,7 +633,7 @@ func (n *NormalLikelihoodDistribution) SetParams(params *simulator.Params, parti
 
 <a name="NormalLikelihoodDistribution.SetSeed"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L21-L24>)
+### func \(\*NormalLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L25-L28>)
 
 ```go
 func (n *NormalLikelihoodDistribution) SetSeed(partitionIndex int, settings *simulator.Settings)
@@ -631,9 +643,14 @@ func (n *NormalLikelihoodDistribution) SetSeed(partitionIndex int, settings *sim
 
 <a name="PoissonLikelihoodDistribution"></a>
 
-## type [PoissonLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L14-L17>)
+## type [PoissonLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L17-L20>)
 
-PoissonLikelihoodDistribution assumes the real data are well described by a Poisson distribution, given the input mean.
+PoissonLikelihoodDistribution models count data with a Poisson distribution.
+
+Usage hints:
+
+- Provide mean via params or upstream partition outputs.
+- GenerateNewSamples draws iid Poisson variates per dimension.
 
 ```go
 type PoissonLikelihoodDistribution struct {
@@ -644,7 +661,7 @@ type PoissonLikelihoodDistribution struct {
 
 <a name="PoissonLikelihoodDistribution.EvaluateLogLike"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L38>)
+### func \(\*PoissonLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L41>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64
@@ -654,7 +671,7 @@ func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64
 
 <a name="PoissonLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L58-L60>)
+### func \(\*PoissonLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L61-L63>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) []float64
@@ -664,7 +681,7 @@ func (p *PoissonLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) 
 
 <a name="PoissonLikelihoodDistribution.GenerateNewSamples"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L48>)
+### func \(\*PoissonLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L51>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) GenerateNewSamples() []float64
@@ -674,7 +691,7 @@ func (p *PoissonLikelihoodDistribution) GenerateNewSamples() []float64
 
 <a name="PoissonLikelihoodDistribution.SetParams"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L29-L34>)
+### func \(\*PoissonLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L32-L37>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) SetParams(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory)
@@ -684,7 +701,7 @@ func (p *PoissonLikelihoodDistribution) SetParams(params *simulator.Params, part
 
 <a name="PoissonLikelihoodDistribution.SetSeed"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L19-L22>)
+### func \(\*PoissonLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L22-L25>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) SetSeed(partitionIndex int, settings *simulator.Settings)

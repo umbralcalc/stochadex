@@ -6,7 +6,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// BinnedIntegrationKernel outputs the configured binned values in time.
+// BinnedIntegrationKernel outputs piecewise-constant weights in time.
+//
+// Usage hints:
+//   - Provide "bin_values" and "bin_stepsize"; index is floor((t_now - t_past)/stepsize).
 type BinnedIntegrationKernel struct {
 	binValues   []float64
 	binStepsize float64

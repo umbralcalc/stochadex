@@ -9,8 +9,12 @@ import (
 	"gonum.org/v1/gonum/stat/distmv"
 )
 
-// NormalLikelihoodDistribution assumes the real data are well described
-// by a normal distribution, given the input mean and covariance matrix.
+// NormalLikelihoodDistribution models data with a multivariate normal.
+//
+// Usage hints:
+//   - Provide mean/covariance via params or upstream partition outputs.
+//   - Optional: "default_covariance" used if provided covariance is not PD.
+//   - GenerateNewSamples draws from the current parameterised distribution.
 type NormalLikelihoodDistribution struct {
 	Src        rand.Source
 	mean       *mat.VecDense

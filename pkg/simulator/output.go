@@ -11,9 +11,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// OutputFunction is the interface that must be implemented for any function
-// which can be used to outputs data from the simulation when the provided
-// OutputCondition is met.
+// OutputFunction writes state/time to an output sink when the OutputCondition
+// is met.
 type OutputFunction interface {
 	Output(partitionName string, state []float64, cumulativeTimesteps float64)
 }
@@ -39,9 +38,8 @@ func (s *StdoutOutputFunction) Output(
 	fmt.Println(cumulativeTimesteps, partitionName, state)
 }
 
-// StateTimeStorageOutputFunction stores the data from the simulation
-// in the provided StateTimeStorage on the steps when the OutputCondition
-// is met.
+// StateTimeStorageOutputFunction stores output into StateTimeStorage when the
+// condition is met.
 type StateTimeStorageOutputFunction struct {
 	Store *StateTimeStorage
 }
@@ -54,16 +52,14 @@ func (f *StateTimeStorageOutputFunction) Output(
 	f.Store.ConcurrentAppend(partitionName, cumulativeTimesteps, state)
 }
 
-// JsonLogEntry is the format in which the logs are serialised when using the
-// JsonLogOutputFunction.
+// JsonLogEntry is the serialised record format used by JSON log outputs.
 type JsonLogEntry struct {
 	PartitionName       string    `json:"partition_name"`
 	State               []float64 `json:"state"`
 	CumulativeTimesteps float64   `json:"time"`
 }
 
-// JsonLogOutputFunction outputs data to a log of json packets from
-// the simulation on the steps where the OutputCondition is met.
+// JsonLogOutputFunction writes newline-delimited JSON log entries.
 type JsonLogOutputFunction struct {
 	file  *os.File
 	mutex *sync.Mutex
@@ -107,10 +103,8 @@ func NewJsonLogOutputFunction(
 	return &JsonLogOutputFunction{file: file, mutex: &mutex}
 }
 
-// JsonLogChannelOutputFunction outputs data to a log of json packets from
-// the simulation on the steps where the OutputCondition is met. This is
-// functionally the same as the JsonLogOutputFunction but runs in its own
-// thread and receives logs via channel for improved performance.
+// JsonLogChannelOutputFunction writes JSON log entries via a background
+// goroutine using a channel for improved throughput.
 type JsonLogChannelOutputFunction struct {
 	logChannel chan JsonLogEntry
 }
@@ -133,10 +127,8 @@ func (j *JsonLogChannelOutputFunction) Close() {
 	close(j.logChannel)
 }
 
-// NewJsonLogChannelOutputFunction creates a new JsonLogChannelOutputFunction.
-// This creates a new channel which can be deferred to close so that flushing
-// at the end of a run is ensured like this:
-// f = NewJsonLogChannelOutputFunction("file.log"); defer f.Close()
+// NewJsonLogChannelOutputFunction creates a JsonLogChannelOutputFunction.
+// Call Close (defer it) to ensure flushing at the end of a run.
 func NewJsonLogChannelOutputFunction(
 	filePath string,
 ) *JsonLogChannelOutputFunction {
@@ -173,9 +165,8 @@ func NewJsonLogChannelOutputFunction(
 	return &JsonLogChannelOutputFunction{logChannel: logChannel}
 }
 
-// WebsocketOutputFunction serialises the state of each partition of the
-// simulation and sends this data via a websocket connection on the steps
-// when the OutputCondition is met.
+// WebsocketOutputFunction serialises and sends outputs via a websocket
+// connection when the condition is met.
 type WebsocketOutputFunction struct {
 	connection *websocket.Conn
 	mutex      *sync.Mutex
@@ -218,8 +209,8 @@ func (w *WebsocketOutputFunction) Output(
 	}
 }
 
-// NewWebsocketOutputFunction creates a new WebsocketOutputFunction given a
-// connection struct and mutex to protect concurrent writes to the connection.
+// NewWebsocketOutputFunction constructs a WebsocketOutputFunction with a
+// connection and a mutex for safe concurrent writes.
 func NewWebsocketOutputFunction(
 	connection *websocket.Conn,
 	mutex *sync.Mutex,
@@ -227,8 +218,7 @@ func NewWebsocketOutputFunction(
 	return &WebsocketOutputFunction{connection: connection, mutex: mutex}
 }
 
-// OutputCondition is the interface that must be implemented to define when the
-// simulation calls the OutputFunction.
+// OutputCondition decides whether an output should be emitted this step.
 type OutputCondition interface {
 	IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
 }
@@ -255,8 +245,7 @@ func (c *EveryStepOutputCondition) IsOutputStep(
 	return true
 }
 
-// EveryNStepsOutputCondition calls the OutputFunction once for every N
-// steps that occur.
+// EveryNStepsOutputCondition emits output once every N steps.
 type EveryNStepsOutputCondition struct {
 	N      int
 	ticker int
@@ -275,8 +264,7 @@ func (c *EveryNStepsOutputCondition) IsOutputStep(
 	return false
 }
 
-// OnlyGivenPartitionsOutputCondition calls the OutputFunction for only
-// the given partition names.
+// OnlyGivenPartitionsOutputCondition emits output only for listed partitions.
 type OnlyGivenPartitionsOutputCondition struct {
 	Partitions map[string]bool
 }

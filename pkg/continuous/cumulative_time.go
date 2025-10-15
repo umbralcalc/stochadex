@@ -4,8 +4,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// CumulativeTimeIteration defines an iteration which outputs
-// the cumulative time which has elapsed in the simulation.
+// CumulativeTimeIteration outputs the cumulative simulation time.
+//
+// Usage hints:
+//   - Returns a single-element vector: current_time + dt for the next step.
+//   - Useful for logging or as an input to time-dependent components.
 type CumulativeTimeIteration struct{}
 
 func (c *CumulativeTimeIteration) Configure(

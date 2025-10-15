@@ -9,8 +9,13 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// DriftDiffusionIteration defines an iteration for any general
-// drift-diffusion process.
+// DriftDiffusionIteration steps a general drift–diffusion SDE per dimension.
+//
+// Usage hints:
+//   - Provide per-dimension params: "drift_coefficients" and "diffusion_coefficients".
+//   - The update uses x_{t+dt} = x_t + drift*dt + diffusion*sqrt(dt)*N(0,1).
+//   - Ensure the timestep function is configured; diffusion scales with sqrt(dt).
+//   - Seed is taken from the partition's Settings for reproducibility.
 type DriftDiffusionIteration struct {
 	unitNormalDist *distuv.Normal
 }

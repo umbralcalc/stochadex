@@ -7,7 +7,12 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// CoxProcessIteration defines an iteration for a Cox process.
+// CoxProcessIteration steps a Cox process (doubly stochastic Poisson).
+//
+// Usage hints:
+//   - Provide time-varying "rates" per dimension; event prob approx. rate*dt.
+//   - At each step, increments by 1 with the above probability.
+//   - Seed is taken from the partition's Settings for reproducibility.
 type CoxProcessIteration struct {
 	unitUniformDist *distuv.Uniform
 }

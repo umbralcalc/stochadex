@@ -4,8 +4,13 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// LikelihoodDistribution is the interface that must be implemented in
-// order to create a likelihood model for some data.
+// LikelihoodDistribution defines a likelihood model over observed data.
+//
+// Usage hints:
+//   - SetSeed is called once per partition to initialise RNG state.
+//   - SetParams configures the distribution from the current simulation context.
+//   - EvaluateLogLike computes log p(data | params); GenerateNewSamples draws
+//     from the current model.
 type LikelihoodDistribution interface {
 	SetSeed(partitionIndex int, settings *simulator.Settings)
 	SetParams(
@@ -18,8 +23,8 @@ type LikelihoodDistribution interface {
 	GenerateNewSamples() []float64
 }
 
-// LikelihoodDistributionWithGradient is the interface that must be
-// implemented in order to create a likelihood which computes a gradient.
+// LikelihoodDistributionWithGradient extends LikelihoodDistribution with a
+// mean gradient for optimisation.
 type LikelihoodDistributionWithGradient interface {
 	LikelihoodDistribution
 	EvaluateLogLikeMeanGrad(data []float64) []float64

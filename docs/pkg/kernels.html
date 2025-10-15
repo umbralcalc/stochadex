@@ -283,52 +283,66 @@ float64</a></li>
 </ul>
 <p><a name="BinnedIntegrationKernel"></a></p>
 <h2 id="type-binnedintegrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L10-L13">BinnedIntegrationKernel</a></h2>
-<p>BinnedIntegrationKernel outputs the configured binned values in
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L13-L16">BinnedIntegrationKernel</a></h2>
+<p>BinnedIntegrationKernel outputs piecewise-constant weights in
 time.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide “bin_values” and “bin_stepsize”; index is floor((t_now -
+t_past)/stepsize).</li>
+</ul>
 <div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> BinnedIntegrationKernel <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="BinnedIntegrationKernel.Configure"></a></p>
 <h3 id="func-binnedintegrationkernel-configure">func
 (*BinnedIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L15-L18">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L18-L21">Configure</a></h3>
 <div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BinnedIntegrationKernel<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="BinnedIntegrationKernel.Evaluate"></a></p>
 <h3 id="func-binnedintegrationkernel-evaluate">func
 (*BinnedIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L28-L33">Evaluate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L31-L36">Evaluate</a></h3>
 <div class="sourceCode" id="cb4"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BinnedIntegrationKernel<span class="op">)</span> Evaluate<span class="op">(</span>currentState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> pastState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> currentTime <span class="dt">float64</span><span class="op">,</span> pastTime <span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="BinnedIntegrationKernel.SetParams"></a></p>
 <h3 id="func-binnedintegrationkernel-setparams">func
 (*BinnedIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L21-L23">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/binned.go#L24-L26">SetParams</a></h3>
 <div class="sourceCode" id="cb5"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BinnedIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p><a name="ConstantIntegrationKernel"></a></p>
 <h2 id="type-constantintegrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L8">ConstantIntegrationKernel</a></h2>
-<p>ConstantIntegrationKernel just returns 1.0 for every value.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L11">ConstantIntegrationKernel</a></h2>
+<p>ConstantIntegrationKernel returns 1.0 for every sample.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Use to compute simple (unweighted) sums or means.</li>
+</ul>
 <div class="sourceCode" id="cb6"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ConstantIntegrationKernel <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
 <p><a name="ConstantIntegrationKernel.Configure"></a></p>
 <h3 id="func-constantintegrationkernel-configure">func
 (*ConstantIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L10-L13">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L13-L16">Configure</a></h3>
 <div class="sourceCode" id="cb7"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConstantIntegrationKernel<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="ConstantIntegrationKernel.Evaluate"></a></p>
 <h3 id="func-constantintegrationkernel-evaluate">func
 (*ConstantIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L21-L26">Evaluate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L24-L29">Evaluate</a></h3>
 <div class="sourceCode" id="cb8"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConstantIntegrationKernel<span class="op">)</span> Evaluate<span class="op">(</span>currentState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> pastState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> currentTime <span class="dt">float64</span><span class="op">,</span> pastTime <span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="ConstantIntegrationKernel.SetParams"></a></p>
 <h3 id="func-constantintegrationkernel-setparams">func
 (*ConstantIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L16-L18">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/constant.go#L19-L21">SetParams</a></h3>
 <div class="sourceCode" id="cb9"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConstantIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p><a name="ExponentialIntegrationKernel"></a></p>
 <h2 id="type-exponentialintegrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L10-L12">ExponentialIntegrationKernel</a></h2>
-<p>ExponentialIntegrationKernel is a simple exponential weighting in
-time.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L14-L16">ExponentialIntegrationKernel</a></h2>
+<p>ExponentialIntegrationKernel applies exponential decay over time.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide “exponential_weighting_timescale”; weight = exp((t_past -
+t_now)/tau).</li>
+<li>Suitable for recency-weighted means.</li>
+</ul>
 <div class="sourceCode" id="cb10"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ExponentialIntegrationKernel <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -336,26 +350,32 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb
 <p><a name="ExponentialIntegrationKernel.Configure"></a></p>
 <h3 id="func-exponentialintegrationkernel-configure">func
 (*ExponentialIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L14-L17">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L18-L21">Configure</a></h3>
 <div class="sourceCode" id="cb11"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>e <span class="op">*</span>ExponentialIntegrationKernel<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="ExponentialIntegrationKernel.Evaluate"></a></p>
 <h3 id="func-exponentialintegrationkernel-evaluate">func
 (*ExponentialIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L26-L31">Evaluate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L30-L35">Evaluate</a></h3>
 <div class="sourceCode" id="cb12"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>e <span class="op">*</span>ExponentialIntegrationKernel<span class="op">)</span> Evaluate<span class="op">(</span>currentState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> pastState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> currentTime <span class="dt">float64</span><span class="op">,</span> pastTime <span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="ExponentialIntegrationKernel.SetParams"></a></p>
 <h3 id="func-exponentialintegrationkernel-setparams">func
 (*ExponentialIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L20-L22">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/exponential.go#L24-L26">SetParams</a></h3>
 <div class="sourceCode" id="cb13"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>e <span class="op">*</span>ExponentialIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p><a name="GaussianStateIntegrationKernel"></a></p>
 <h2 id="type-gaussianstateintegrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L13-L16">GaussianStateIntegrationKernel</a></h2>
-<p>GaussianStateIntegrationKernel applies a Gaussian kernel using an
-input covariance.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L17-L20">GaussianStateIntegrationKernel</a></h2>
+<p>GaussianStateIntegrationKernel applies a Gaussian state-distance
+kernel using an input covariance matrix.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide “covariance_matrix” as a flattened symmetric matrix
+(row-major).</li>
+<li>Weights are exp(-0.5 (x-μ)^T Σ^{-1} (x-μ)) / det(Σ).</li>
+</ul>
 <div class="sourceCode" id="cb14"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> GaussianStateIntegrationKernel <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -363,51 +383,62 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb
 <p><a name="GaussianStateIntegrationKernel.Configure"></a></p>
 <h3 id="func-gaussianstateintegrationkernel-configure">func
 (*GaussianStateIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L18-L21">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L22-L25">Configure</a></h3>
 <div class="sourceCode" id="cb15"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GaussianStateIntegrationKernel<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="GaussianStateIntegrationKernel.Evaluate"></a></p>
 <h3 id="func-gaussianstateintegrationkernel-evaluate">func
 (*GaussianStateIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L36-L41">Evaluate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L40-L45">Evaluate</a></h3>
 <div class="sourceCode" id="cb16"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GaussianStateIntegrationKernel<span class="op">)</span> Evaluate<span class="op">(</span>currentState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> pastState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> currentTime <span class="dt">float64</span><span class="op">,</span> pastTime <span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="GaussianStateIntegrationKernel.SetParams"></a></p>
 <h3 id="func-gaussianstateintegrationkernel-setparams">func
 (*GaussianStateIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L24">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L28">SetParams</a></h3>
 <div class="sourceCode" id="cb17"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GaussianStateIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p><a name="InstantaneousIntegrationKernel"></a></p>
 <h2 id="type-instantaneousintegrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L9">InstantaneousIntegrationKernel</a></h2>
-<p>InstantaneousIntegrationKernel just returns 1.0 for the most recent
-value, else 0.0.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L12">InstantaneousIntegrationKernel</a></h2>
+<p>InstantaneousIntegrationKernel returns 1.0 for the most recent sample
+and 0.0 otherwise.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Useful to select only the latest value when aggregating.</li>
+</ul>
 <div class="sourceCode" id="cb18"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> InstantaneousIntegrationKernel <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
 <p><a name="InstantaneousIntegrationKernel.Configure"></a></p>
 <h3 id="func-instantaneousintegrationkernel-configure">func
 (*InstantaneousIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L11-L14">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L14-L17">Configure</a></h3>
 <div class="sourceCode" id="cb19"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>i <span class="op">*</span>InstantaneousIntegrationKernel<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="InstantaneousIntegrationKernel.Evaluate"></a></p>
 <h3 id="func-instantaneousintegrationkernel-evaluate">func
 (*InstantaneousIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L22-L27">Evaluate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L25-L30">Evaluate</a></h3>
 <div class="sourceCode" id="cb20"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>i <span class="op">*</span>InstantaneousIntegrationKernel<span class="op">)</span> Evaluate<span class="op">(</span>currentState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> pastState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> currentTime <span class="dt">float64</span><span class="op">,</span> pastTime <span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="InstantaneousIntegrationKernel.SetParams"></a></p>
 <h3 id="func-instantaneousintegrationkernel-setparams">func
 (*InstantaneousIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L17-L19">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneous.go#L20-L22">SetParams</a></h3>
 <div class="sourceCode" id="cb21"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>i <span class="op">*</span>InstantaneousIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p><a name="IntegrationKernel"></a></p>
 <h2 id="type-integrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L7-L16">IntegrationKernel</a></h2>
-<p>IntegrationKernel defines an interface that must be implemented for
-any integration kernel.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L12-L21">IntegrationKernel</a></h2>
+<p>IntegrationKernel defines the interface for time/state weighting
+kernels used when aggregating over history.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Configure is called once with the simulator settings.</li>
+<li>SetParams reads per-step parameters (e.g., bandwidths,
+timescales).</li>
+<li>Evaluate returns the non-negative weight for a past sample.</li>
+</ul>
 <div class="sourceCode" id="cb22"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> IntegrationKernel <span class="kw">interface</span> <span class="op">{</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span>
@@ -421,8 +452,15 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb
 <span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="PeriodicIntegrationKernel"></a></p>
 <h2 id="type-periodicintegrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L10-L12">PeriodicIntegrationKernel</a></h2>
-<p>PeriodicIntegrationKernel is a periodic weighting in time.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L14-L16">PeriodicIntegrationKernel</a></h2>
+<p>PeriodicIntegrationKernel applies periodic (circular) time
+weighting.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide “periodic_weighting_timescale”; weight = exp(-2
+sin<sup>2(dt/2)/tau</sup>2).</li>
+<li>Useful for daily/weekly seasonality.</li>
+</ul>
 <div class="sourceCode" id="cb23"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PeriodicIntegrationKernel <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -430,26 +468,33 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb
 <p><a name="PeriodicIntegrationKernel.Configure"></a></p>
 <h3 id="func-periodicintegrationkernel-configure">func
 (*PeriodicIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L14-L17">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L18-L21">Configure</a></h3>
 <div class="sourceCode" id="cb24"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PeriodicIntegrationKernel<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="PeriodicIntegrationKernel.Evaluate"></a></p>
 <h3 id="func-periodicintegrationkernel-evaluate">func
 (*PeriodicIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L27-L32">Evaluate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L31-L36">Evaluate</a></h3>
 <div class="sourceCode" id="cb25"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PeriodicIntegrationKernel<span class="op">)</span> Evaluate<span class="op">(</span>currentState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> pastState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> currentTime <span class="dt">float64</span><span class="op">,</span> pastTime <span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="PeriodicIntegrationKernel.SetParams"></a></p>
 <h3 id="func-periodicintegrationkernel-setparams">func
 (*PeriodicIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L20-L22">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/periodic.go#L24-L26">SetParams</a></h3>
 <div class="sourceCode" id="cb26"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PeriodicIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p><a name="ProductIntegrationKernel"></a></p>
 <h2 id="type-productintegrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L8-L11">ProductIntegrationKernel</a></h2>
-<p>ProductIntegrationKernel uses the product of two kernels as the
-kernel.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L12-L15">ProductIntegrationKernel</a></h2>
+<p>ProductIntegrationKernel multiplies two kernels to form a composite
+weight.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Configure and SetParams will be forwarded to both KernelA and
+KernelB.</li>
+<li>Useful to combine, e.g., temporal and state-distance
+weightings.</li>
+</ul>
 <div class="sourceCode" id="cb27"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ProductIntegrationKernel <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    KernelA IntegrationKernel</span>
@@ -458,26 +503,33 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb
 <p><a name="ProductIntegrationKernel.Configure"></a></p>
 <h3 id="func-productintegrationkernel-configure">func
 (*ProductIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L13-L16">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L17-L20">Configure</a></h3>
 <div class="sourceCode" id="cb28"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>ProductIntegrationKernel<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="ProductIntegrationKernel.Evaluate"></a></p>
 <h3 id="func-productintegrationkernel-evaluate">func
 (*ProductIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L28-L33">Evaluate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L32-L37">Evaluate</a></h3>
 <div class="sourceCode" id="cb29"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>ProductIntegrationKernel<span class="op">)</span> Evaluate<span class="op">(</span>currentState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> pastState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> currentTime <span class="dt">float64</span><span class="op">,</span> pastTime <span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="ProductIntegrationKernel.SetParams"></a></p>
 <h3 id="func-productintegrationkernel-setparams">func
 (*ProductIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L21-L23">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/product.go#L25-L27">SetParams</a></h3>
 <div class="sourceCode" id="cb30"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>ProductIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p><a name="TDistributionStateIntegrationKernel"></a></p>
 <h2 id="type-tdistributionstateintegrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L13-L17">TDistributionStateIntegrationKernel</a></h2>
-<p>TDistributionStateIntegrationKernel applies a t-distribution kenel
-using an input scale matrix and degrees of freedom parameters.</p>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L18-L22">TDistributionStateIntegrationKernel</a></h2>
+<p>TDistributionStateIntegrationKernel applies a multivariate t kernel
+using an input scale matrix and degrees of freedom.</p>
+<p>Usage hints:</p>
+<ul>
+<li>Provide “scale_matrix” as a flattened symmetric matrix (row-major)
+and “degrees_of_freedom”.</li>
+<li>Weights are proportional to (1 + (x-μ)^T S^{-1} (x-μ)/ν)^{-(d+ν)/2}
+/ det(S).</li>
+</ul>
 <div class="sourceCode" id="cb31"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> TDistributionStateIntegrationKernel <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
@@ -485,19 +537,19 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb31-1"><a href="#cb
 <p><a name="TDistributionStateIntegrationKernel.Configure"></a></p>
 <h3 id="func-tdistributionstateintegrationkernel-configure">func
 (*TDistributionStateIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L19-L22">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L24-L27">Configure</a></h3>
 <div class="sourceCode" id="cb32"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TDistributionStateIntegrationKernel<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="TDistributionStateIntegrationKernel.Evaluate"></a></p>
 <h3 id="func-tdistributionstateintegrationkernel-evaluate">func
 (*TDistributionStateIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L38-L43">Evaluate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L43-L48">Evaluate</a></h3>
 <div class="sourceCode" id="cb33"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TDistributionStateIntegrationKernel<span class="op">)</span> Evaluate<span class="op">(</span>currentState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> pastState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> currentTime <span class="dt">float64</span><span class="op">,</span> pastTime <span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="TDistributionStateIntegrationKernel.SetParams"></a></p>
 <h3 id="func-tdistributionstateintegrationkernel-setparams">func
 (*TDistributionStateIntegrationKernel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L25">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/t_distribution_state.go#L30">SetParams</a></h3>
 <div class="sourceCode" id="cb34"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TDistributionStateIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p>Generated by <a

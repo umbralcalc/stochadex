@@ -4,8 +4,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// NextNonEmptyPopIndexFunction returns the index of the next non-
-// empty value found in the collection.
+// NextNonEmptyPopIndexFunction scans the rolling collection for the next
+// occupied slot (index > 0) and returns its index for popping.
+//
+// Usage hints:
+//   - Index 0 is reserved for the most recently popped values.
+//   - Configure "values_state_width" and "empty_value" to mark empty slots.
 func NextNonEmptyPopIndexFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -24,9 +28,12 @@ func NextNonEmptyPopIndexFunction(
 	return 0, false
 }
 
-// OtherPartitionPushFunction retrieves the next values to push from
-// the last values of another partition. If the first value is equal
-// to the "empty_value" param then nothing is pushed.
+// OtherPartitionPushFunction collects the latest values from another
+// partition to push into the collection, subject to empty_value.
+//
+// Usage hints:
+//   - Provide: "other_partition" and "value_indices".
+//   - If the first element equals "empty_value", the push is skipped.
 func OtherPartitionPushFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -44,10 +51,12 @@ func OtherPartitionPushFunction(
 	return nextValues, true
 }
 
-// PopFromOtherCollectionPushFunction retrieves the next values to
-// push from the popped values of another partition which is hence
-// assumed to also be another value collection. If the first value
-// is equal to the "empty_value" param then nothing is pushed.
+// PopFromOtherCollectionPushFunction pulls the current popped values from
+// another collection-like partition and uses them as the next values to push.
+//
+// Usage hints:
+//   - Provide: "other_partition" and "values_state_width".
+//   - If the first element equals "empty_value", the push is skipped.
 func PopFromOtherCollectionPushFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -65,9 +74,11 @@ func PopFromOtherCollectionPushFunction(
 	return nextValues, true
 }
 
-// ParamValuesPushFunction retrieves the next values to push from
-// the "next_values_push" params and if the first value is equal
-// to the "empty_value" param then nothing is pushed.
+// ParamValuesPushFunction reads the next values directly from params under
+// "next_values_push", subject to empty_value.
+//
+// Usage hints:
+//   - Provide: "next_values_push" and "empty_value".
 func ParamValuesPushFunction(
 	params *simulator.Params,
 	partitionIndex int,
@@ -81,10 +92,13 @@ func ParamValuesPushFunction(
 	return nextValues, true
 }
 
-// ValuesCollectionIteration maintains a collection of same-size
-// state values. You can push more to the collection depending on the
-// output of a user-specified function or pop an indexed value set
-// from this collection depending on the output of another function.
+// ValuesCollectionIteration maintains a fixed-width rolling collection of
+// value vectors.
+//
+// Usage hints:
+//   - Provide: "values_state_width" and "empty_value" for sentinel handling.
+//   - Set Push to define how new values are appended; set PopIndex to surface
+//     an existing entry into index 0 and clear that slot.
 type ValuesCollectionIteration struct {
 	PopIndex func(
 		params *simulator.Params,

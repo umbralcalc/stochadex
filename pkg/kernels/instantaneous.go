@@ -4,8 +4,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// InstantaneousIntegrationKernel just returns 1.0 for the most
-// recent value, else 0.0.
+// InstantaneousIntegrationKernel returns 1.0 for the most recent sample and
+// 0.0 otherwise.
+//
+// Usage hints:
+//   - Useful to select only the latest value when aggregating.
 type InstantaneousIntegrationKernel struct{}
 
 func (i *InstantaneousIntegrationKernel) Configure(

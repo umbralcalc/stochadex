@@ -4,8 +4,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// FromHistoryIteration provides a stream of data which is already known from a
-// separate data source and is held in memory as a simulator.StateHistory.
+// FromHistoryIteration streams data from an in-memory StateHistory.
+//
+// Usage hints:
+//   - Use with EmbeddedSimulationRun or analysis windows to replay data.
+//   - Set Data to the source history; supports initial offset via InitStepsTaken.
 type FromHistoryIteration struct {
 	Data           *simulator.StateHistory
 	InitStepsTaken int
@@ -45,8 +48,11 @@ func (f *FromHistoryIteration) UpdateMemory(
 	f.Data = update.StateHistory
 }
 
-// FromHistoryTimestepFunction provides a stream of timesteps which already known from
-// a separate data source and is held in memory as a simulator.CumulativeTimestepsHistory.
+// FromHistoryTimestepFunction streams timesteps from an in-memory
+// CumulativeTimestepsHistory.
+//
+// Usage hints:
+//   - Set Data to the source timestep series; supports initial offset via InitStepsTaken.
 type FromHistoryTimestepFunction struct {
 	Data           *simulator.CumulativeTimestepsHistory
 	InitStepsTaken int

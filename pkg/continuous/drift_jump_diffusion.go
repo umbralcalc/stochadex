@@ -9,8 +9,14 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// DriftJumpDiffusionIteration defines an iteration for any general
-// drift-jump-diffusion process.
+// DriftJumpDiffusionIteration steps a general drift–jump–diffusion process.
+//
+// Usage hints:
+//   - Provide per-dimension params: "drift_coefficients", "diffusion_coefficients",
+//     and "jump_rates"; also set a JumpDistribution implementation (e.g. Gamma).
+//   - Uses x_{t+dt} = x_t + drift*dt + diffusion*sqrt(dt)*N(0,1) + jumps.
+//   - Jumps occur with Poisson hazard approx. rate*dt; set dt via timestep config.
+//   - Seed for RNGs derives from the partition's Settings for reproducibility.
 type DriftJumpDiffusionIteration struct {
 	JumpDist        JumpDistribution
 	unitNormalDist  *distuv.Normal

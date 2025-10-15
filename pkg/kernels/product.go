@@ -4,7 +4,11 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ProductIntegrationKernel uses the product of two kernels as the kernel.
+// ProductIntegrationKernel multiplies two kernels to form a composite weight.
+//
+// Usage hints:
+//   - Configure and SetParams will be forwarded to both KernelA and KernelB.
+//   - Useful to combine, e.g., temporal and state-distance weightings.
 type ProductIntegrationKernel struct {
 	KernelA IntegrationKernel
 	KernelB IntegrationKernel
