@@ -9,12 +9,8 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// HawkesProcessIntensityIteration computes a Hawkes self-exciting intensity.
-//
-// Usage hints:
-//   - Configure with an integration kernel and the Hawkes partition index.
-//   - Provide params: "background_rates"; kernel reads further params as needed.
-//   - Integrates past event increments to produce current intensity per dimension.
+// HawkesProcessIntensityIteration an iteration for a Hawkes process
+// self-exciting intensity function.
 type HawkesProcessIntensityIteration struct {
 	excitingKernel       kernels.IntegrationKernel
 	hawkesPartitionIndex int
@@ -61,8 +57,9 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 	return values
 }
 
-// NewHawkesProcessIntensityIteration constructs the intensity iteration with
-// a kernel and target Hawkes partition index.
+// NewHawkesProcessIntensityIteration creates a new
+// HawkesProcessIntensityIteration given a partition index
+// for the Hawkes process itself.
 func NewHawkesProcessIntensityIteration(
 	excitingKernel kernels.IntegrationKernel,
 	hawkesPartitionIndex int,
@@ -73,12 +70,7 @@ func NewHawkesProcessIntensityIteration(
 	}
 }
 
-// HawkesProcessIteration steps a Hawkes counting process with given intensity.
-//
-// Usage hints:
-//   - Provide "intensity" per dimension (e.g., from HawkesProcessIntensityIteration).
-//   - Increments by 1 with probability approx. intensity*dt at each step.
-//   - Seed is taken from the partition's Settings for reproducibility.
+// HawkesProcessIteration defines an iteration for a Hawkes process.
 type HawkesProcessIteration struct {
 	unitUniformDist *distuv.Uniform
 }
