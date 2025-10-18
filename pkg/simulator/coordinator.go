@@ -1,3 +1,40 @@
+// Package simulator provides the core simulation engine and infrastructure
+// for stochadex simulations. It includes the main simulation loop, state management,
+// partition coordination, and execution control mechanisms.
+//
+// Key Features:
+//   - Partition-based simulation architecture
+//   - Concurrent execution with goroutine coordination
+//   - State history management and time tracking
+//   - Configurable termination and output conditions
+//   - Flexible timestep control
+//   - Thread-safe state storage and communication
+//
+// Architecture Overview:
+// The simulator uses a partition-based architecture where each partition
+// represents a component of the simulation state. Partitions can communicate
+// through upstream/downstream channels, enabling complex multi-component
+// simulations with dependencies between components.
+//
+// Core Components:
+//   - PartitionCoordinator: Orchestrates execution across all partitions
+//   - StateIterator: Manages individual partition execution and communication
+//   - StateTimeStorage: Thread-safe storage for simulation results
+//   - ConfigGenerator: Creates simulation configurations from settings
+//   - TerminationCondition: Controls when simulations stop
+//   - OutputFunction: Handles result collection and storage
+//
+// Design Philosophy:
+// The simulator emphasizes modularity, concurrency, and flexibility. It provides
+// a robust foundation for building complex simulations while maintaining good
+// performance characteristics and thread safety.
+//
+// Usage Patterns:
+//   - Multi-component system simulation
+//   - Agent-based modeling with interactions
+//   - Monte Carlo simulations with multiple sources of randomness
+//   - Time-series analysis and forecasting
+//   - Parameter estimation and optimization
 package simulator
 
 import (
@@ -7,11 +44,66 @@ import (
 )
 
 // PartitionCoordinator orchestrates iteration work across partitions and
-// applies state/time history updates.
+// applies state/time history updates in a coordinated manner.
 //
-// Usage hints:
-//   - Call Step in a loop or Run to advance until termination.
-//   - TimestepFunction determines NextIncrement each step.
+// The PartitionCoordinator is the central component that manages the execution
+// of all partitions in a simulation. It coordinates the timing, communication,
+// and state updates across all partitions, ensuring proper synchronization
+// and maintaining simulation consistency.
+//
+// Architecture:
+// The coordinator uses a two-phase execution model:
+//  1. Iteration Phase: All partitions compute their next state values
+//  2. Update Phase: State and time histories are updated with new values
+//
+// This design ensures that all partitions see consistent state information
+// during each iteration, preventing race conditions and maintaining
+// simulation determinism.
+//
+// Concurrency Model:
+//   - Each partition runs in its own goroutine for parallel execution
+//   - Channels are used for inter-partition communication
+//   - WaitGroups ensure proper synchronization between phases
+//   - Shared state is protected by the coordinator's control flow
+//
+// Execution Flow:
+//  1. Compute next timestep increment using TimestepFunction
+//  2. Request iterations from all partitions (parallel execution)
+//  3. Wait for all iterations to complete
+//  4. Update state and time histories (parallel execution)
+//  5. Check termination condition
+//  6. Repeat until termination
+//
+// Fields:
+//   - Iterators: List of StateIterators, one per partition
+//   - Shared: Shared state and time information accessible to all partitions
+//   - TimestepFunction: Function that determines the next timestep increment
+//   - TerminationCondition: Condition that determines when to stop the simulation
+//   - newWorkChannels: Communication channels for coordinating partition work
+//
+// Example Usage:
+//
+//	coordinator := NewPartitionCoordinator(settings, implementations)
+//
+//	// Run simulation until termination
+//	coordinator.Run()
+//
+//	// Or step-by-step control
+//	for !coordinator.ReadyToTerminate() {
+//	    var wg sync.WaitGroup
+//	    coordinator.Step(&wg)
+//	}
+//
+// Performance:
+//   - O(p) time complexity where p is the number of partitions
+//   - Parallel execution of partition iterations
+//   - Efficient channel-based communication
+//   - Memory usage scales with partition count and state size
+//
+// Thread Safety:
+//   - Safe for concurrent access to coordinator methods
+//   - Internal synchronization ensures consistent state updates
+//   - Partition communication is thread-safe through channels
 type PartitionCoordinator struct {
 	Iterators            []*StateIterator
 	Shared               *IteratorInputMessage

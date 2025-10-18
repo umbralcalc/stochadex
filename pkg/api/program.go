@@ -11,12 +11,39 @@ import (
 )
 
 // PartitionConfigStrings describes a partition in its string-templated form
-// for code generation.
+// for code generation and dynamic program construction.
 //
-// Usage hints:
-//   - Iteration is a Go expression constructing the iteration (factory call).
-//   - ExtraPackages lists import paths required by Iteration or ExtraVars.
-//   - ExtraVars declares ad-hoc variables injected into the generated main.
+// This struct is used to generate Go code from YAML configurations, allowing
+// for flexible simulation setups without hardcoded partition types. It supports
+// dynamic iteration creation, package imports, and variable injection.
+//
+// Fields:
+//   - Name: Partition name (must be unique within a simulation)
+//   - Iteration: Go expression that constructs the iteration (e.g., "&continuous.WienerProcessIteration{}")
+//   - ExtraPackages: Import paths required by the Iteration expression or ExtraVars
+//   - ExtraVars: Ad-hoc variable declarations injected into the generated main function
+//
+// Code Generation:
+// The Iteration field is evaluated as Go code, allowing for parameterized
+// iteration construction. ExtraVars provide additional context for the
+// generated code.
+//
+// Example:
+//
+//	config := PartitionConfigStrings{
+//	    Name: "brownian_motion",
+//	    Iteration: "&continuous.WienerProcessIteration{}",
+//	    ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
+//	    ExtraVars: []map[string]string{
+//	        {"variance": "0.1"},
+//	        {"dimensions": "2"},
+//	    },
+//	}
+//
+// Validation:
+//   - Iteration must be a valid Go expression
+//   - ExtraPackages must be valid import paths
+//   - ExtraVars must be valid Go variable declarations
 type PartitionConfigStrings struct {
 	Name          string              `yaml:"name"`
 	Iteration     string              `yaml:"iteration,omitempty"`
@@ -24,8 +51,35 @@ type PartitionConfigStrings struct {
 	ExtraVars     []map[string]string `yaml:"extra_vars,omitempty"`
 }
 
-// RunConfig is the concrete, YAML-loadable configuration for a run: partitions
-// plus a SimulationConfig.
+// RunConfig represents a complete simulation run configuration with partitions
+// and simulation settings.
+//
+// This struct combines partition configurations with simulation control parameters
+// to define a complete simulation run. It serves as the primary configuration
+// structure for YAML-based simulation setup.
+//
+// Fields:
+//   - Partitions: List of partition configurations defining the simulation state
+//   - Simulation: Simulation control parameters (not loaded from YAML directly)
+//
+// YAML Structure:
+//
+//	partitions:
+//	  - name: "process1"
+//	    iteration: "&continuous.WienerProcessIteration{}"
+//	    params:
+//	      variances: [0.1, 0.2]
+//	    init_state_values: [0.0, 0.0]
+//	  - name: "process2"
+//	    iteration: "&discrete.PoissonProcessIteration{}"
+//	    params:
+//	      rates: [0.5, 1.0]
+//	    init_state_values: [0.0, 0.0]
+//
+// Related Types:
+//   - See simulator.PartitionConfig for partition configuration details
+//   - See simulator.SimulationConfig for simulation control parameters
+//   - See ApiRunConfig for API-level configuration with embedded runs
 type RunConfig struct {
 	Partitions []simulator.PartitionConfig `yaml:"partitions"`
 	Simulation simulator.SimulationConfig  `yaml:"-"`
@@ -85,8 +139,57 @@ func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	return generator
 }
 
-// LoadApiRunConfigFromYaml loads ApiRunConfig from YAML and initialises
-// partition defaults.
+// LoadApiRunConfigFromYaml loads simulation configuration from YAML file.
+//
+// This function reads a complete API run configuration from a YAML file,
+// including main simulation configuration and optional embedded runs.
+// It automatically initializes partition defaults and validates the configuration.
+//
+// Parameters:
+//   - path: Path to the YAML configuration file (must exist and be readable)
+//
+// Returns:
+//   - *ApiRunConfig: Loaded and initialized configuration ready for execution
+//
+// YAML File Format:
+// The YAML file must contain:
+//
+//	main:
+//	  partitions:
+//	    - name: "process1"
+//	      iteration: "&continuous.WienerProcessIteration{}"
+//	      params:
+//	        variances: [0.1, 0.2]
+//	      init_state_values: [0.0, 0.0]
+//	      state_history_depth: 10
+//	      state_width: 2
+//	      seed: 42
+//	  simulation:
+//	    output_condition: "&simulator.StepCountOutputCondition{MaxSteps: 100}"
+//	    output_function: "&simulator.StateTimeStorageOutputFunction{Store: store}"
+//	    termination_condition: "&simulator.StepCountTerminationCondition{MaxSteps: 1000}"
+//	    timestep_function: "&simulator.ConstantTimestepFunction{Timestep: 0.01}"
+//	    init_time_value: 0.0
+//	embedded:
+//	  - name: "sub_simulation"
+//	    partitions: [...]
+//	    simulation: [...]
+//
+// Error Handling:
+//   - Panics on file read errors (file not found, permission denied)
+//   - Panics on YAML parsing errors (malformed YAML, type mismatches)
+//   - Automatically initializes partition defaults on success
+//
+// Example:
+//
+//	config := LoadApiRunConfigFromYaml("simulation_config.yaml")
+//	generator := config.GetConfigGenerator()
+//	// Use generator to run the simulation
+//
+// Performance Notes:
+//   - Loads entire file into memory
+//   - O(n) time complexity where n is the YAML file size
+//   - Memory usage scales with configuration complexity
 func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {

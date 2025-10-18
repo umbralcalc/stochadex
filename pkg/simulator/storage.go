@@ -5,11 +5,63 @@ import (
 	"sync"
 )
 
-// StateTimeStorage stores per-partition time series with minimal contention.
+// StateTimeStorage provides thread-safe storage for simulation time series data
+// with minimal contention and efficient access patterns.
 //
-// Usage hints:
-//   - Use ConcurrentAppend to add samples safely; times are deduplicated.
-//   - GetValues/GetTimes retrieve stored series; Set* replace series entirely.
+// StateTimeStorage is designed to handle concurrent access from multiple
+// simulation partitions while maintaining data consistency and performance.
+// It uses a mutex-protected design optimized for the common case of
+// appending new data points during simulation execution.
+//
+// Data Organization:
+//   - Time series are organized by partition name
+//   - Each partition can have multiple state dimensions
+//   - Time axis is shared across all partitions
+//   - Data is stored in row-major format for efficient access
+//
+// Thread Safety:
+//   - ConcurrentAppend is safe for concurrent use from multiple goroutines
+//   - GetValues/GetTimes are safe for concurrent reads
+//   - SetValues/SetTimes should not be called concurrently with appends
+//   - Internal mutex protects against race conditions
+//
+// Performance Characteristics:
+//   - O(1) lookup by partition name using hash map
+//   - O(1) append operations with minimal locking
+//   - Memory usage: O(total_samples * state_dimensions)
+//   - Efficient for high-frequency data collection
+//
+// Usage Patterns:
+//   - Real-time data collection during simulation runs
+//   - Batch data loading from external sources
+//   - Result storage for post-simulation analysis
+//   - Intermediate storage for multi-stage simulations
+//
+// Example Usage:
+//
+//	storage := NewStateTimeStorage()
+//
+//	// Concurrent appends from multiple partitions
+//	go func() {
+//	    storage.ConcurrentAppend("prices", 1.0, []float64{100.0, 101.0})
+//	}()
+//	go func() {
+//	    storage.ConcurrentAppend("volumes", 1.0, []float64{1000.0})
+//	}()
+//
+//	// Retrieve data after simulation
+//	priceData := storage.GetValues("prices")
+//	timeData := storage.GetTimes()
+//
+// Memory Management:
+//   - Automatic memory allocation for new partitions
+//   - Efficient storage of sparse time series
+//   - No automatic cleanup (caller responsible for memory management)
+//
+// Error Handling:
+//   - GetValues panics if partition name is not found
+//   - Provides helpful error messages with available partition names
+//   - ConcurrentAppend handles time deduplication automatically
 type StateTimeStorage struct {
 	indexByName map[string]int
 	store       [][][]float64

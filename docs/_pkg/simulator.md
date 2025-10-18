@@ -10,6 +10,134 @@ logo: true
 import "github.com/umbralcalc/stochadex/pkg/simulator"
 ```
 
+Package simulator provides the core simulation engine and infrastructure for stochadex simulations. It includes the main simulation loop, state management, partition coordination, and execution control mechanisms.
+
+Key Features:
+
+- Partition\-based simulation architecture
+- Concurrent execution with goroutine coordination
+- State history management and time tracking
+- Configurable termination and output conditions
+- Flexible timestep control
+- Thread\-safe state storage and communication
+
+Architecture Overview: The simulator uses a partition\-based architecture where each partition represents a component of the simulation state. Partitions can communicate through upstream/downstream channels, enabling complex multi\-component simulations with dependencies between components.
+
+Core Components:
+
+- PartitionCoordinator: Orchestrates execution across all partitions
+- StateIterator: Manages individual partition execution and communication
+- StateTimeStorage: Thread\-safe storage for simulation results
+- ConfigGenerator: Creates simulation configurations from settings
+- TerminationCondition: Controls when simulations stop
+- OutputFunction: Handles result collection and storage
+
+Design Philosophy: The simulator emphasizes modularity, concurrency, and flexibility. It provides a robust foundation for building complex simulations while maintaining good performance characteristics and thread safety.
+
+Usage Patterns:
+
+- Multi\-component system simulation
+- Agent\-based modeling with interactions
+- Monte Carlo simulations with multiple sources of randomness
+- Time\-series analysis and forecasting
+- Parameter estimation and optimization
+
+Package simulator provides the core simulation engine and infrastructure for stochadex simulations. It includes the main simulation loop, state management, partition coordination, and execution control mechanisms.
+
+Key Features:
+
+- Partition\-based simulation architecture
+- Concurrent execution with goroutine coordination
+- State history management and time tracking
+- Configurable termination and output conditions
+- Flexible timestep control
+- Thread\-safe state storage and communication
+
+Architecture Overview: The simulator uses a partition\-based architecture where each partition represents a component of the simulation state. Partitions can communicate through upstream/downstream channels, enabling complex multi\-component simulations with dependencies between components.
+
+Core Components:
+
+- PartitionCoordinator: Orchestrates execution across all partitions
+- StateIterator: Manages individual partition execution and communication
+- StateTimeStorage: Thread\-safe storage for simulation results
+- ConfigGenerator: Creates simulation configurations from settings
+- TerminationCondition: Controls when simulations stop
+- OutputFunction: Handles result collection and storage
+
+Design Philosophy: The simulator emphasizes modularity, concurrency, and flexibility. It provides a robust foundation for building complex simulations while maintaining good performance characteristics and thread safety.
+
+Usage Patterns:
+
+- Multi\-component system simulation
+- Agent\-based modeling with interactions
+- Monte Carlo simulations with multiple sources of randomness
+- Time\-series analysis and forecasting
+- Parameter estimation and optimization
+
+Package simulator provides the core simulation engine and infrastructure for stochadex simulations. It includes the main simulation loop, state management, partition coordination, and execution control mechanisms.
+
+Key Features:
+
+- Partition\-based simulation architecture
+- Concurrent execution with goroutine coordination
+- State history management and time tracking
+- Configurable termination and output conditions
+- Flexible timestep control
+- Thread\-safe state storage and communication
+
+Architecture Overview: The simulator uses a partition\-based architecture where each partition represents a component of the simulation state. Partitions can communicate through upstream/downstream channels, enabling complex multi\-component simulations with dependencies between components.
+
+Core Components:
+
+- PartitionCoordinator: Orchestrates execution across all partitions
+- StateIterator: Manages individual partition execution and communication
+- StateTimeStorage: Thread\-safe storage for simulation results
+- ConfigGenerator: Creates simulation configurations from settings
+- TerminationCondition: Controls when simulations stop
+- OutputFunction: Handles result collection and storage
+
+Design Philosophy: The simulator emphasizes modularity, concurrency, and flexibility. It provides a robust foundation for building complex simulations while maintaining good performance characteristics and thread safety.
+
+Usage Patterns:
+
+- Multi\-component system simulation
+- Agent\-based modeling with interactions
+- Monte Carlo simulations with multiple sources of randomness
+- Time\-series analysis and forecasting
+- Parameter estimation and optimization
+
+Package simulator provides the core simulation engine and infrastructure for stochadex simulations. It includes the main simulation loop, state management, partition coordination, and execution control mechanisms.
+
+Key Features:
+
+- Partition\-based simulation architecture
+- Concurrent execution with goroutine coordination
+- State history management and time tracking
+- Configurable termination and output conditions
+- Flexible timestep control
+- Thread\-safe state storage and communication
+
+Architecture Overview: The simulator uses a partition\-based architecture where each partition represents a component of the simulation state. Partitions can communicate through upstream/downstream channels, enabling complex multi\-component simulations with dependencies between components.
+
+Core Components:
+
+- PartitionCoordinator: Orchestrates execution across all partitions
+- StateIterator: Manages individual partition execution and communication
+- StateTimeStorage: Thread\-safe storage for simulation results
+- ConfigGenerator: Creates simulation configurations from settings
+- TerminationCondition: Controls when simulations stop
+- OutputFunction: Handles result collection and storage
+
+Design Philosophy: The simulator emphasizes modularity, concurrency, and flexibility. It provides a robust foundation for building complex simulations while maintaining good performance characteristics and thread safety.
+
+Usage Patterns:
+
+- Multi\-component system simulation
+- Agent\-based modeling with interactions
+- Monte Carlo simulations with multiple sources of randomness
+- Time\-series analysis and forecasting
+- Parameter estimation and optimization
+
 ## Index
 
 - [Variables](<#variables>)
@@ -257,7 +385,7 @@ SetSimulation sets the current simulation config.
 
 <a name="ConstantTimestepFunction"></a>
 
-## type [ConstantTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L17-L19>)
+## type [ConstantTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L54-L56>)
 
 ConstantTimestepFunction uses a fixed stepsize.
 
@@ -269,7 +397,7 @@ type ConstantTimestepFunction struct {
 
 <a name="ConstantTimestepFunction.NextIncrement"></a>
 
-### func \(\*ConstantTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L21-L23>)
+### func \(\*ConstantTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L58-L60>)
 
 ```go
 func (t *ConstantTimestepFunction) NextIncrement(timestepsHistory *CumulativeTimestepsHistory) float64
@@ -279,7 +407,7 @@ func (t *ConstantTimestepFunction) NextIncrement(timestepsHistory *CumulativeTim
 
 <a name="CumulativeTimestepsHistory"></a>
 
-## type [CumulativeTimestepsHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L41-L46>)
+## type [CumulativeTimestepsHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L78-L83>)
 
 CumulativeTimestepsHistory is a rolling window of cumulative timesteps with NextIncrement and CurrentStepNumber.
 
@@ -294,7 +422,7 @@ type CumulativeTimestepsHistory struct {
 
 <a name="DownstreamStateValues"></a>
 
-## type [DownstreamStateValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L28-L31>)
+## type [DownstreamStateValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L102-L105>)
 
 DownstreamStateValues contains information to broadcast state values to downstream iterators via channel.
 
@@ -350,7 +478,7 @@ func (c *EveryStepOutputCondition) IsOutputStep(partitionName string, state []fl
 
 <a name="ExponentialDistributionTimestepFunction"></a>
 
-## type [ExponentialDistributionTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L29-L33>)
+## type [ExponentialDistributionTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L66-L70>)
 
 ExponentialDistributionTimestepFunction draws dt from an exponential distribution parameterised by Mean and Seed.
 
@@ -364,7 +492,7 @@ type ExponentialDistributionTimestepFunction struct {
 
 <a name="NewExponentialDistributionTimestepFunction"></a>
 
-### func [NewExponentialDistributionTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L43-L46>)
+### func [NewExponentialDistributionTimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L80-L83>)
 
 ```go
 func NewExponentialDistributionTimestepFunction(mean float64, seed uint64) *ExponentialDistributionTimestepFunction
@@ -374,7 +502,7 @@ NewExponentialDistributionTimestepFunction constructs an exponential\-dt timeste
 
 <a name="ExponentialDistributionTimestepFunction.NextIncrement"></a>
 
-### func \(\*ExponentialDistributionTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L35-L37>)
+### func \(\*ExponentialDistributionTimestepFunction\) [NextIncrement](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L72-L74>)
 
 ```go
 func (t *ExponentialDistributionTimestepFunction) NextIncrement(timestepsHistory *CumulativeTimestepsHistory) float64
@@ -400,14 +528,87 @@ type Implementations struct {
 
 <a name="Iteration"></a>
 
-## type [Iteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L9-L17>)
+## type [Iteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L83-L91>)
 
-Iteration defines a per\-partition state update.
+Iteration defines the interface for per\-partition state update functions in stochadex simulations.
 
-Usage hints:
+The Iteration interface is the fundamental building block for defining how simulation state evolves over time. Each partition in a simulation uses an Iteration to compute its next state values based on the current state, parameters, and time information.
 
-- Configure is called once per partition with global Settings.
-- Iterate receives Params, partition index, all state histories, and the timestep history, and must return the next state row.
+Design Philosophy: The Iteration interface emphasizes modularity and composability. By providing a simple, well\-defined interface, it enables the creation of complex simulations through the combination of simple, focused iterations. This design supports both built\-in iteration types and custom user\-defined iterations.
+
+Interface Methods:
+
+- Configure: Initialize the iteration with simulation settings \(called once\)
+- Iterate: Compute the next state values \(called each simulation step\)
+
+Configuration Phase: Configure is called once per partition during simulation setup. It receives:
+
+- partitionIndex: The index of this partition in the simulation
+- settings: Global simulation settings and configuration
+
+This phase is used for:
+
+- Initializing random number generators
+- Setting up internal data structures
+- Configuring iteration\-specific parameters
+- Validating configuration parameters
+
+Iteration Phase: Iterate is called each simulation step to compute the next state values. It receives:
+
+- params: Current simulation parameters for this partition
+- partitionIndex: The index of this partition
+- stateHistories: State histories for all partitions \(for cross\-partition access\)
+- timestepsHistory: Time and timestep information
+
+It must return:
+
+- \[\]float64: The next state values for this partition
+
+Implementation Requirements:
+
+- Configure must be called before Iterate
+- Iterate must return a slice of the correct length \(matching state width\)
+- Iterate should not modify the input parameters or state histories
+- Iterate should be deterministic given the same inputs \(for reproducible simulations\)
+
+Example Usage:
+
+```
+type MyIteration struct {
+    // Internal state
+}
+
+func (m *MyIteration) Configure(partitionIndex int, settings *Settings) {
+    // Initialize iteration
+}
+
+func (m *MyIteration) Iterate(params *Params, partitionIndex int,
+                              stateHistories []*StateHistory,
+                              timestepsHistory *CumulativeTimestepsHistory) []float64 {
+    // Compute next state values
+    return []float64{newValue1, newValue2, ...}
+}
+```
+
+Common Iteration Types:
+
+- Stochastic processes: WienerProcessIteration, PoissonProcessIteration
+- Deterministic functions: ValuesFunctionIteration, ConstantValuesIteration
+- Aggregation functions: VectorMeanIteration, GroupedAggregationIteration
+- User\-defined iterations: Custom implementations for specific needs
+
+Performance Considerations:
+
+- Iterate is called frequently during simulation execution
+- Implementations should be optimized for performance
+- Avoid expensive computations or memory allocations in Iterate
+- Consider caching expensive computations in Configure
+
+Thread Safety:
+
+- Iterate may be called concurrently from multiple goroutines
+- Implementations should be thread\-safe or stateless
+- Shared mutable state should be protected by synchronization primitives
 
 ```go
 type Iteration interface {
@@ -481,7 +682,7 @@ func (h *IterationTestHarness) Iterate(params *Params, partitionIndex int, state
 
 <a name="IteratorInputMessage"></a>
 
-## type [IteratorInputMessage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L49-L52>)
+## type [IteratorInputMessage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L86-L89>)
 
 IteratorInputMessage carries shared histories into iterator jobs.
 
@@ -582,7 +783,7 @@ func (j *JsonLogOutputFunction) Output(partitionName string, state []float64, cu
 
 <a name="NamedPartitionIndex"></a>
 
-## type [NamedPartitionIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L66-L69>)
+## type [NamedPartitionIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L140-L143>)
 
 NamedPartitionIndex pairs the name of a partition with the partition index assigned to it by the PartitionCoordinator.
 
@@ -716,7 +917,7 @@ type OutputFunction interface {
 
 <a name="Params"></a>
 
-## type [Params](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L10-L13>)
+## type [Params](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L47-L50>)
 
 Params stores per\-partition parameter values.
 
@@ -734,7 +935,7 @@ type Params struct {
 
 <a name="NewParams"></a>
 
-### func [NewParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L91>)
+### func [NewParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L128>)
 
 ```go
 func NewParams(params map[string][]float64) Params
@@ -744,7 +945,7 @@ NewParams constructs a Params instance.
 
 <a name="Params.Get"></a>
 
-### func \(\*Params\) [Get](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L33>)
+### func \(\*Params\) [Get](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L70>)
 
 ```go
 func (p *Params) Get(name string) []float64
@@ -754,7 +955,7 @@ Get returns parameter values or panics with a helpful message.
 
 <a name="Params.GetCopy"></a>
 
-### func \(\*Params\) [GetCopy](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L43>)
+### func \(\*Params\) [GetCopy](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L80>)
 
 ```go
 func (p *Params) GetCopy(name string) []float64
@@ -764,7 +965,7 @@ GetCopy returns a copy of parameter values or panics with a helpful message.
 
 <a name="Params.GetCopyOk"></a>
 
-### func \(\*Params\) [GetCopyOk](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L22>)
+### func \(\*Params\) [GetCopyOk](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L59>)
 
 ```go
 func (p *Params) GetCopyOk(name string) ([]float64, bool)
@@ -774,7 +975,7 @@ GetCopyOk returns a copy of parameter values if present along with a flag.
 
 <a name="Params.GetIndex"></a>
 
-### func \(\*Params\) [GetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L55>)
+### func \(\*Params\) [GetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L92>)
 
 ```go
 func (p *Params) GetIndex(name string, index int) float64
@@ -784,7 +985,7 @@ GetIndex returns a single parameter value or panics.
 
 <a name="Params.GetOk"></a>
 
-### func \(\*Params\) [GetOk](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L16>)
+### func \(\*Params\) [GetOk](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L53>)
 
 ```go
 func (p *Params) GetOk(name string) ([]float64, bool)
@@ -794,7 +995,7 @@ GetOk returns parameter values if present along with a boolean flag.
 
 <a name="Params.Set"></a>
 
-### func \(\*Params\) [Set](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L65>)
+### func \(\*Params\) [Set](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L102>)
 
 ```go
 func (p *Params) Set(name string, values []float64)
@@ -804,7 +1005,7 @@ Set creates or updates parameter values by name.
 
 <a name="Params.SetIndex"></a>
 
-### func \(\*Params\) [SetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L70>)
+### func \(\*Params\) [SetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L107>)
 
 ```go
 func (p *Params) SetIndex(name string, index int, value float64)
@@ -814,7 +1015,7 @@ SetIndex updates a single parameter value or panics on invalid index.
 
 <a name="Params.SetPartitionName"></a>
 
-### func \(\*Params\) [SetPartitionName](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L86>)
+### func \(\*Params\) [SetPartitionName](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L123>)
 
 ```go
 func (p *Params) SetPartitionName(name string)
@@ -897,14 +1098,70 @@ Append inserts another partition into the ordering and updates lookups.
 
 <a name="PartitionCoordinator"></a>
 
-## type [PartitionCoordinator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L15-L21>)
+## type [PartitionCoordinator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L107-L113>)
 
-PartitionCoordinator orchestrates iteration work across partitions and applies state/time history updates.
+PartitionCoordinator orchestrates iteration work across partitions and applies state/time history updates in a coordinated manner.
 
-Usage hints:
+The PartitionCoordinator is the central component that manages the execution of all partitions in a simulation. It coordinates the timing, communication, and state updates across all partitions, ensuring proper synchronization and maintaining simulation consistency.
 
-- Call Step in a loop or Run to advance until termination.
-- TimestepFunction determines NextIncrement each step.
+Architecture: The coordinator uses a two\-phase execution model:
+
+1. Iteration Phase: All partitions compute their next state values
+2. Update Phase: State and time histories are updated with new values
+
+This design ensures that all partitions see consistent state information during each iteration, preventing race conditions and maintaining simulation determinism.
+
+Concurrency Model:
+
+- Each partition runs in its own goroutine for parallel execution
+- Channels are used for inter\-partition communication
+- WaitGroups ensure proper synchronization between phases
+- Shared state is protected by the coordinator's control flow
+
+Execution Flow:
+
+1. Compute next timestep increment using TimestepFunction
+2. Request iterations from all partitions \(parallel execution\)
+3. Wait for all iterations to complete
+4. Update state and time histories \(parallel execution\)
+5. Check termination condition
+6. Repeat until termination
+
+Fields:
+
+- Iterators: List of StateIterators, one per partition
+- Shared: Shared state and time information accessible to all partitions
+- TimestepFunction: Function that determines the next timestep increment
+- TerminationCondition: Condition that determines when to stop the simulation
+- newWorkChannels: Communication channels for coordinating partition work
+
+Example Usage:
+
+```
+coordinator := NewPartitionCoordinator(settings, implementations)
+
+// Run simulation until termination
+coordinator.Run()
+
+// Or step-by-step control
+for !coordinator.ReadyToTerminate() {
+    var wg sync.WaitGroup
+    coordinator.Step(&wg)
+}
+```
+
+Performance:
+
+- O\(p\) time complexity where p is the number of partitions
+- Parallel execution of partition iterations
+- Efficient channel\-based communication
+- Memory usage scales with partition count and state size
+
+Thread Safety:
+
+- Safe for concurrent access to coordinator methods
+- Internal synchronization ensures consistent state updates
+- Partition communication is thread\-safe through channels
 
 ```go
 type PartitionCoordinator struct {
@@ -918,7 +1175,7 @@ type PartitionCoordinator struct {
 
 <a name="NewPartitionCoordinator"></a>
 
-### func [NewPartitionCoordinator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L107-L110>)
+### func [NewPartitionCoordinator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L199-L202>)
 
 ```go
 func NewPartitionCoordinator(settings *Settings, implementations *Implementations) *PartitionCoordinator
@@ -928,7 +1185,7 @@ NewPartitionCoordinator wires Settings and Implementations into a runnable coord
 
 <a name="PartitionCoordinator.ReadyToTerminate"></a>
 
-### func \(\*PartitionCoordinator\) [ReadyToTerminate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L88>)
+### func \(\*PartitionCoordinator\) [ReadyToTerminate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L180>)
 
 ```go
 func (c *PartitionCoordinator) ReadyToTerminate() bool
@@ -938,7 +1195,7 @@ ReadyToTerminate returns whether the TerminationCondition is met.
 
 <a name="PartitionCoordinator.RequestMoreIterations"></a>
 
-### func \(\*PartitionCoordinator\) [RequestMoreIterations](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L25>)
+### func \(\*PartitionCoordinator\) [RequestMoreIterations](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L117>)
 
 ```go
 func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup)
@@ -948,7 +1205,7 @@ RequestMoreIterations spawns a goroutine per partition to run ReceiveAndIterateP
 
 <a name="PartitionCoordinator.Run"></a>
 
-### func \(\*PartitionCoordinator\) [Run](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L96>)
+### func \(\*PartitionCoordinator\) [Run](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L188>)
 
 ```go
 func (c *PartitionCoordinator) Run()
@@ -958,7 +1215,7 @@ Run advances by repeatedly calling Step until termination.
 
 <a name="PartitionCoordinator.Step"></a>
 
-### func \(\*PartitionCoordinator\) [Step](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L71>)
+### func \(\*PartitionCoordinator\) [Step](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L163>)
 
 ```go
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup)
@@ -968,7 +1225,7 @@ Step performs one simulation tick: compute dt, request iterations, then apply st
 
 <a name="PartitionCoordinator.UpdateHistory"></a>
 
-### func \(\*PartitionCoordinator\) [UpdateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L43>)
+### func \(\*PartitionCoordinator\) [UpdateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L135>)
 
 ```go
 func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup)
@@ -1153,7 +1410,7 @@ LoadSimulationConfigStringsFromYaml loads SimulationConfigStrings from YAML.
 
 <a name="StateHistory"></a>
 
-## type [StateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L12-L20>)
+## type [StateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L49-L57>)
 
 StateHistory is a rolling window of state vectors.
 
@@ -1176,7 +1433,7 @@ type StateHistory struct {
 
 <a name="StateHistory.CopyStateRow"></a>
 
-### func \(\*StateHistory\) [CopyStateRow](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L23>)
+### func \(\*StateHistory\) [CopyStateRow](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L60>)
 
 ```go
 func (s *StateHistory) CopyStateRow(index int) []float64
@@ -1186,7 +1443,7 @@ CopyStateRow copies a row from the state history given the index.
 
 <a name="StateHistory.GetNextStateRowToUpdate"></a>
 
-### func \(\*StateHistory\) [GetNextStateRowToUpdate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L32>)
+### func \(\*StateHistory\) [GetNextStateRowToUpdate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L69>)
 
 ```go
 func (s *StateHistory) GetNextStateRowToUpdate() []float64
@@ -1196,7 +1453,7 @@ GetNextStateRowToUpdate determines whether or not it is necessary to copy the pr
 
 <a name="StateIterator"></a>
 
-## type [StateIterator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L73-L80>)
+## type [StateIterator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L147-L154>)
 
 StateIterator runs an Iteration for a partition on a goroutine and manages reads/writes to history and output.
 
@@ -1213,7 +1470,7 @@ type StateIterator struct {
 
 <a name="NewStateIterator"></a>
 
-### func [NewStateIterator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L137-L147>)
+### func [NewStateIterator](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L211-L221>)
 
 ```go
 func NewStateIterator(iteration Iteration, params Params, partitionName string, partitionIndex int, valueChannels StateValueChannels, outputCondition OutputCondition, outputFunction OutputFunction, initState []float64, initTime float64) *StateIterator
@@ -1223,7 +1480,7 @@ NewStateIterator creates a StateIterator and may emit initial output if the cond
 
 <a name="StateIterator.Iterate"></a>
 
-### func \(\*StateIterator\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L84-L87>)
+### func \(\*StateIterator\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L158-L161>)
 
 ```go
 func (s *StateIterator) Iterate(stateHistories []*StateHistory, timestepsHistory *CumulativeTimestepsHistory) []float64
@@ -1233,7 +1490,7 @@ Iterate runs the Iteration and optionally triggers output if the condition is me
 
 <a name="StateIterator.ReceiveAndIteratePending"></a>
 
-### func \(\*StateIterator\) [ReceiveAndIteratePending](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L105-L107>)
+### func \(\*StateIterator\) [ReceiveAndIteratePending](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L179-L181>)
 
 ```go
 func (s *StateIterator) ReceiveAndIteratePending(inputChannel <-chan *IteratorInputMessage)
@@ -1243,7 +1500,7 @@ ReceiveAndIteratePending listens for an IteratorInputMessage, updates upstream\-
 
 <a name="StateIterator.UpdateHistory"></a>
 
-### func \(\*StateIterator\) [UpdateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L122>)
+### func \(\*StateIterator\) [UpdateHistory](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L196>)
 
 ```go
 func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage)
@@ -1253,14 +1510,69 @@ UpdateHistory applies the pending state update to the partition history.
 
 <a name="StateTimeStorage"></a>
 
-## type [StateTimeStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L13-L18>)
+## type [StateTimeStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L65-L70>)
 
-StateTimeStorage stores per\-partition time series with minimal contention.
+StateTimeStorage provides thread\-safe storage for simulation time series data with minimal contention and efficient access patterns.
 
-Usage hints:
+StateTimeStorage is designed to handle concurrent access from multiple simulation partitions while maintaining data consistency and performance. It uses a mutex\-protected design optimized for the common case of appending new data points during simulation execution.
 
-- Use ConcurrentAppend to add samples safely; times are deduplicated.
-- GetValues/GetTimes retrieve stored series; Set\* replace series entirely.
+Data Organization:
+
+- Time series are organized by partition name
+- Each partition can have multiple state dimensions
+- Time axis is shared across all partitions
+- Data is stored in row\-major format for efficient access
+
+Thread Safety:
+
+- ConcurrentAppend is safe for concurrent use from multiple goroutines
+- GetValues/GetTimes are safe for concurrent reads
+- SetValues/SetTimes should not be called concurrently with appends
+- Internal mutex protects against race conditions
+
+Performance Characteristics:
+
+- O\(1\) lookup by partition name using hash map
+- O\(1\) append operations with minimal locking
+- Memory usage: O\(total\_samples \* state\_dimensions\)
+- Efficient for high\-frequency data collection
+
+Usage Patterns:
+
+- Real\-time data collection during simulation runs
+- Batch data loading from external sources
+- Result storage for post\-simulation analysis
+- Intermediate storage for multi\-stage simulations
+
+Example Usage:
+
+```
+storage := NewStateTimeStorage()
+
+// Concurrent appends from multiple partitions
+go func() {
+    storage.ConcurrentAppend("prices", 1.0, []float64{100.0, 101.0})
+}()
+go func() {
+    storage.ConcurrentAppend("volumes", 1.0, []float64{1000.0})
+}()
+
+// Retrieve data after simulation
+priceData := storage.GetValues("prices")
+timeData := storage.GetTimes()
+```
+
+Memory Management:
+
+- Automatic memory allocation for new partitions
+- Efficient storage of sparse time series
+- No automatic cleanup \(caller responsible for memory management\)
+
+Error Handling:
+
+- GetValues panics if partition name is not found
+- Provides helpful error messages with available partition names
+- ConcurrentAppend handles time deduplication automatically
 
 ```go
 type StateTimeStorage struct {
@@ -1270,7 +1582,7 @@ type StateTimeStorage struct {
 
 <a name="NewStateTimeStorage"></a>
 
-### func [NewStateTimeStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L100>)
+### func [NewStateTimeStorage](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L152>)
 
 ```go
 func NewStateTimeStorage() *StateTimeStorage
@@ -1280,7 +1592,7 @@ NewStateTimeStorage constructs a new StateTimeStorage.
 
 <a name="StateTimeStorage.ConcurrentAppend"></a>
 
-### func \(\*StateTimeStorage\) [ConcurrentAppend](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L69-L73>)
+### func \(\*StateTimeStorage\) [ConcurrentAppend](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L121-L125>)
 
 ```go
 func (s *StateTimeStorage) ConcurrentAppend(name string, time float64, values []float64)
@@ -1290,7 +1602,7 @@ ConcurrentAppend appends values for name and updates the time axis at most once 
 
 <a name="StateTimeStorage.GetIndex"></a>
 
-### func \(\*StateTimeStorage\) [GetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L21>)
+### func \(\*StateTimeStorage\) [GetIndex](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L73>)
 
 ```go
 func (s *StateTimeStorage) GetIndex(name string) int
@@ -1300,7 +1612,7 @@ GetIndex returns or creates the index for a name.
 
 <a name="StateTimeStorage.GetNames"></a>
 
-### func \(\*StateTimeStorage\) [GetNames](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L33>)
+### func \(\*StateTimeStorage\) [GetNames](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L85>)
 
 ```go
 func (s *StateTimeStorage) GetNames() []string
@@ -1310,7 +1622,7 @@ GetNames returns all partition names present in the store.
 
 <a name="StateTimeStorage.GetTimes"></a>
 
-### func \(\*StateTimeStorage\) [GetTimes](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L58>)
+### func \(\*StateTimeStorage\) [GetTimes](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L110>)
 
 ```go
 func (s *StateTimeStorage) GetTimes() []float64
@@ -1320,7 +1632,7 @@ GetTimes returns the time axis.
 
 <a name="StateTimeStorage.GetValues"></a>
 
-### func \(\*StateTimeStorage\) [GetValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L42>)
+### func \(\*StateTimeStorage\) [GetValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L94>)
 
 ```go
 func (s *StateTimeStorage) GetValues(name string) [][]float64
@@ -1330,7 +1642,7 @@ GetValues returns all time series for name, panicking if absent.
 
 <a name="StateTimeStorage.SetTimes"></a>
 
-### func \(\*StateTimeStorage\) [SetTimes](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L63>)
+### func \(\*StateTimeStorage\) [SetTimes](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L115>)
 
 ```go
 func (s *StateTimeStorage) SetTimes(times []float64)
@@ -1340,7 +1652,7 @@ SetTimes replaces the time axis.
 
 <a name="StateTimeStorage.SetValues"></a>
 
-### func \(\*StateTimeStorage\) [SetValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L53>)
+### func \(\*StateTimeStorage\) [SetValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L105>)
 
 ```go
 func (s *StateTimeStorage) SetValues(name string, values [][]float64)
@@ -1372,7 +1684,7 @@ func (f *StateTimeStorageOutputFunction) Output(partitionName string, state []fl
 
 <a name="StateValueChannels"></a>
 
-## type [StateValueChannels](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L35-L38>)
+## type [StateValueChannels](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L109-L112>)
 
 StateValueChannels provides upstream/downstream channels for inter\-iterator communication.
 
@@ -1385,7 +1697,7 @@ type StateValueChannels struct {
 
 <a name="StateValueChannels.BroadcastDownstream"></a>
 
-### func \(\*StateValueChannels\) [BroadcastDownstream](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L58>)
+### func \(\*StateValueChannels\) [BroadcastDownstream](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L132>)
 
 ```go
 func (s *StateValueChannels) BroadcastDownstream(stateValues []float64)
@@ -1395,7 +1707,7 @@ BroadcastDownstream sends state values to all configured downstream copies.
 
 <a name="StateValueChannels.UpdateUpstreamParams"></a>
 
-### func \(\*StateValueChannels\) [UpdateUpstreamParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L42>)
+### func \(\*StateValueChannels\) [UpdateUpstreamParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L116>)
 
 ```go
 func (s *StateValueChannels) UpdateUpstreamParams(params *Params)
@@ -1462,7 +1774,7 @@ func (t *TimeElapsedTerminationCondition) Terminate(stateHistories []*StateHisto
 
 <a name="TimestepFunction"></a>
 
-## type [TimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L10-L14>)
+## type [TimestepFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L47-L51>)
 
 TimestepFunction computes the next time increment.
 
@@ -1489,7 +1801,7 @@ type UpstreamConfig struct {
 
 <a name="UpstreamStateValues"></a>
 
-## type [UpstreamStateValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L21-L24>)
+## type [UpstreamStateValues](<https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L95-L98>)
 
 UpstreamStateValues contains information to receive state values from an upstream iterator via channel.
 

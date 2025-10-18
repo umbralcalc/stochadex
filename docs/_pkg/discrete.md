@@ -10,6 +10,32 @@ logo: true
 import "github.com/umbralcalc/stochadex/pkg/discrete"
 ```
 
+Package discrete provides implementations of discrete\-time and event\-based stochastic processes for simulation modeling. It includes counting processes, state transition models, and other discrete stochastic dynamics commonly used in queueing theory, epidemiology, finance, and system modeling.
+
+Key Features:
+
+- Poisson processes for event counting and arrival modeling
+- Bernoulli processes for binary outcomes and trials
+- Binomial observation processes for sampling and measurement
+- Categorical state transitions for discrete state spaces
+- Cox processes for intensity\-driven event modeling
+- Hawkes processes for self\-exciting event sequences
+
+Mathematical Background: Discrete stochastic processes typically model events, transitions, or counting phenomena. They are characterized by:
+
+- Discrete state spaces \(integers, categories, binary states\)
+- Event\-driven dynamics \(jumps, arrivals, transitions\)
+- Probability distributions for event occurrence
+- Memory properties \(Markovian vs. non\-Markovian\)
+
+Usage Patterns:
+
+- Queueing systems \(arrival processes, service times\)
+- Epidemiology \(disease spread, infection events\)
+- Finance \(default events, insurance claims\)
+- Network modeling \(packet arrivals, connection events\)
+- Manufacturing \(production events, quality control\)
+
 ## Index
 
 - [type BernoulliProcessIteration](<#BernoulliProcessIteration>)
@@ -252,15 +278,54 @@ func (h *HawkesProcessIteration) Iterate(params *simulator.Params, partitionInde
 
 <a name="PoissonProcessIteration"></a>
 
-## type [PoissonProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L16-L18>)
+## type [PoissonProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L54-L56>)
 
-PoissonProcessIteration steps a simple Poisson counting process.
+PoissonProcessIteration implements a Poisson counting process for event simulation.
 
-Usage hints:
+The Poisson process is a fundamental counting process that models the occurrence of random events in continuous time. It is widely used in queueing theory, reliability analysis, and event\-driven modeling.
 
-- Provide per\-dimension "rates" \(lambda\); event approx. prob is rate\*dt.
-- On an event, the count increments by 1; otherwise it is unchanged.
-- Configure timestep size via the simulator to control event probability.
+Domain Context: Poisson processes model random events occurring independently in time. Common applications include:
+
+- Arrival times in queueing systems \(customers, packets, calls\)
+- Radioactive decay events \(particle emissions, nuclear decay\)
+- Network packet arrivals \(data transmission, network traffic\)
+- Insurance claim arrivals \(accidents, claims processing\)
+- Manufacturing defects \(quality control, failure events\)
+
+Mathematical Properties: The Poisson process N\(t\) with rate λ has the following properties:
+
+- N\(0\) = 0 \(starts at zero\)
+- N\(t\) \- N\(s\) \~ Poisson\(λ\(t\-s\)\) for t \> s \(independent increments\)
+- Inter\-arrival times are exponentially distributed with rate λ
+- Number of events in \[0,t\] follows Poisson\(λt\) distribution
+- Events occur at rate λ per unit time on average
+
+Implementation Details:
+
+- Probability of event in timestep dt ≈ λ \* dt \(for small dt\)
+- Uses uniform random sampling for event detection
+- Maintains cumulative count of events since t=0
+- Each dimension can have different event rates
+
+Configuration:
+
+- Provide "rates" parameter: per\-dimension event rates \(λ values\)
+- Set timestep size via TimestepFunction to control event probability
+- Seed controls reproducibility via partition Settings
+
+Example:
+
+```
+iteration := &PoissonProcessIteration{}
+// Configure with rate = 0.5, dt = 0.01
+// Event probability per step ≈ 0.5 * 0.01 = 0.005 (0.5%)
+```
+
+Performance:
+
+- O\(d\) time complexity where d is the number of dimensions
+- Memory usage: O\(1\) per dimension
+- Efficient for high\-dimensional event modeling
 
 ```go
 type PoissonProcessIteration struct {
@@ -270,7 +335,7 @@ type PoissonProcessIteration struct {
 
 <a name="PoissonProcessIteration.Configure"></a>
 
-### func \(\*PoissonProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L20-L23>)
+### func \(\*PoissonProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L58-L61>)
 
 ```go
 func (p *PoissonProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -280,7 +345,7 @@ func (p *PoissonProcessIteration) Configure(partitionIndex int, settings *simula
 
 <a name="PoissonProcessIteration.Iterate"></a>
 
-### func \(\*PoissonProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L34-L39>)
+### func \(\*PoissonProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/discrete/poisson_process.go#L72-L77>)
 
 ```go
 func (p *PoissonProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64

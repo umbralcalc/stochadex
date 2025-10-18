@@ -10,6 +10,33 @@ logo: true
 import "github.com/umbralcalc/stochadex/pkg/continuous"
 ```
 
+Package continuous provides implementations of continuous\-time stochastic processes for simulation modeling. It includes various diffusion processes, jump\-diffusion models, and other continuous stochastic dynamics commonly used in mathematical finance, physics, and engineering applications.
+
+Key Features:
+
+- Wiener processes \(Brownian motion\)
+- Geometric Brownian motion for asset price modeling
+- Ornstein\-Uhlenbeck processes for mean\-reverting dynamics
+- Drift\-diffusion and jump\-diffusion processes
+- Compound Poisson processes
+- Gradient descent and optimization algorithms
+- Cumulative time tracking utilities
+
+Mathematical Background: Continuous stochastic processes are typically described by stochastic differential equations \(SDEs\) of the form:
+
+```
+dX(t) = μ(X,t)dt + σ(X,t)dW(t)
+```
+
+where μ is the drift, σ is the volatility, and W\(t\) is a Wiener process.
+
+Usage Patterns:
+
+- Financial modeling \(asset prices, interest rates, volatility\)
+- Physics simulation \(particle dynamics, thermal motion\)
+- Engineering applications \(noise modeling, signal processing\)
+- Machine learning \(stochastic optimization, sampling\)
+
 ## Index
 
 - [type CompoundPoissonProcessIteration](<#CompoundPoissonProcessIteration>)
@@ -364,15 +391,53 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(params *simulator.Params, partition
 
 <a name="WienerProcessIteration"></a>
 
-## type [WienerProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L19-L21>)
+## type [WienerProcessIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L55-L57>)
 
-WienerProcessIteration steps a standard Wiener process \(Brownian motion\) per state dimension.
+WienerProcessIteration implements a standard Wiener process \(Brownian motion\) for stochastic simulation.
 
-Usage hints:
+The Wiener process W\(t\) is a fundamental continuous\-time stochastic process that serves as the building block for many other stochastic models. It represents pure random motion with no drift or mean reversion.
 
-- Provide a per\-dimension "variances" param; next increment uses dW \~ N\(0, dt\).
-- Ensure the simulation timestep is set appropriately via the timestep function.
-- Seed is taken from the partition's Settings for reproducibility.
+Mathematical Background: The Wiener process W\(t\) is characterized by:
+
+- W\(0\) = 0 \(starts at zero\)
+- W\(t\) \- W\(s\) \~ N\(0, t\-s\) for t \> s \(independent increments\)
+- W\(t\) has continuous sample paths \(almost surely\)
+- Cov\(W\(s\), W\(t\)\) = min\(s,t\) \(covariance structure\)
+
+Implementation: At each timestep, the process evolves as:
+
+```
+X(t+dt) = X(t) + sqrt(variance * dt) * Z
+```
+
+where Z \~ N\(0,1\) is a standard normal random variable, variance is the per\-dimension variance rate, and dt is the timestep size.
+
+Applications:
+
+- Financial modeling: Asset price dynamics, interest rate modeling
+- Physics: Particle diffusion, thermal motion, quantum mechanics
+- Engineering: Noise modeling, signal processing, control systems
+- Machine learning: Stochastic optimization, sampling algorithms
+
+Configuration:
+
+- Provide "variances" parameter: per\-dimension variance rates
+- Set appropriate timestep size via TimestepFunction
+- Seed controls reproducibility via partition Settings
+
+Example:
+
+```
+iteration := &WienerProcessIteration{}
+// Configure with variance = 0.1, dt = 0.01
+// Results in sqrt(0.1 * 0.01) = 0.0316 standard deviation per step
+```
+
+Performance:
+
+- O\(d\) time complexity where d is the number of dimensions
+- Memory usage: O\(1\) per dimension
+- Efficient for high\-dimensional simulations
 
 ```go
 type WienerProcessIteration struct {
@@ -382,7 +447,7 @@ type WienerProcessIteration struct {
 
 <a name="WienerProcessIteration.Configure"></a>
 
-### func \(\*WienerProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L23-L26>)
+### func \(\*WienerProcessIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L59-L62>)
 
 ```go
 func (w *WienerProcessIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -392,7 +457,7 @@ func (w *WienerProcessIteration) Configure(partitionIndex int, settings *simulat
 
 <a name="WienerProcessIteration.Iterate"></a>
 
-### func \(\*WienerProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L37-L42>)
+### func \(\*WienerProcessIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/continuous/wiener_process.go#L73-L78>)
 
 ```go
 func (w *WienerProcessIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64

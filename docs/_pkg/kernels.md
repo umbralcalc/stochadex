@@ -10,6 +10,30 @@ logo: true
 import "github.com/umbralcalc/stochadex/pkg/kernels"
 ```
 
+Package kernels provides integration kernels for time\-weighted aggregation and state\-distance weighting in stochadex simulations. These kernels define how historical data points are weighted when computing aggregated statistics over time or when measuring similarity between states.
+
+Key Features:
+
+- Time\-based weighting kernels \(exponential, periodic, constant\)
+- State\-distance kernels \(Gaussian, instantaneous\)
+- Custom kernel implementations for specialized weighting schemes
+- Integration with aggregation functions for rolling statistics
+
+Mathematical Background: Integration kernels define weighting functions w\(t\-s\) for aggregating historical data points. Common patterns include:
+
+- Exponential decay: w\(t\-s\) = exp\(\-λ\(t\-s\)\)
+- Gaussian weighting: w\(t\-s\) = exp\(\-\(t\-s\)²/\(2σ²\)\)
+- State distance: w\(x,y\) = exp\(\-||x\-y||²/\(2σ²\)\)
+
+Design Philosophy: Kernels are designed to be composable and efficient, providing standardized interfaces for time and state weighting. They enable flexible aggregation schemes while maintaining good performance characteristics.
+
+Usage Patterns:
+
+- Rolling window statistics with time decay
+- State similarity measurements for clustering
+- Temporal aggregation with customizable weighting
+- Feature engineering with distance\-based weighting
+
 ## Index
 
 - [type BinnedIntegrationKernel](<#BinnedIntegrationKernel>)
@@ -186,14 +210,69 @@ func (e *ExponentialIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="GaussianStateIntegrationKernel"></a>
 
-## type [GaussianStateIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L17-L20>)
+## type [GaussianStateIntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L68-L71>)
 
-GaussianStateIntegrationKernel applies a Gaussian state\-distance kernel using an input covariance matrix.
+GaussianStateIntegrationKernel implements a Gaussian state\-distance kernel for weighting historical samples based on their distance from the current state.
 
-Usage hints:
+This kernel computes weights using a multivariate Gaussian distribution, where the weight decreases exponentially with the Mahalanobis distance between the current and historical states. It's particularly useful for state\-space aggregation and similarity\-based weighting.
 
-- Provide "covariance\_matrix" as a flattened symmetric matrix \(row\-major\).
-- Weights are exp\(\-0.5 \(x\-μ\)^T Σ^\{\-1\} \(x\-μ\)\) / det\(Σ\).
+Mathematical Background: The Gaussian kernel computes weights using the multivariate Gaussian density:
+
+```
+w(x_current, x_past) = exp(-0.5 * (x_current - x_past)^T * Σ^{-1} * (x_current - x_past)) / sqrt(det(Σ))
+```
+
+where Σ is the covariance matrix defining the shape and scale of the weighting.
+
+Key Properties:
+
+- Mahalanobis distance: d² = \(x\_current \- x\_past\)^T \* Σ^\{\-1\} \* \(x\_current \- x\_past\)
+- Weight range: w ∈ \[0, 1/sqrt\(det\(Σ\)\)\]
+- Maximum weight: w\_max = 1/sqrt\(det\(Σ\)\) when states are identical
+- Decay rate: Controlled by eigenvalues of Σ \(larger eigenvalues = slower decay\)
+
+Applications:
+
+- State\-space clustering and similarity weighting
+- Non\-parametric density estimation
+- Adaptive aggregation based on state similarity
+- Anomaly detection through distance weighting
+- Multi\-dimensional state space analysis
+
+Configuration:
+
+- Provide "covariance\_matrix" parameter as a flattened symmetric matrix \(row\-major order\)
+- Matrix must be positive definite \(all eigenvalues \> 0\)
+- Matrix dimension must match state vector dimension
+
+Example:
+
+```
+// Configure kernel for 2D state space with covariance matrix
+// Σ = [[1.0, 0.5], [0.5, 1.0]] (correlated dimensions)
+covariance := []float64{1.0, 0.5, 0.5, 1.0} // row-major flattened
+params.Set("covariance_matrix", covariance)
+
+kernel := &GaussianStateIntegrationKernel{}
+kernel.Configure(0, settings)
+kernel.SetParams(params)
+
+// Weight for similar states will be high, dissimilar states low
+weight := kernel.Evaluate(currentState, pastState, currentTime, pastTime)
+```
+
+Performance:
+
+- O\(d²\) setup cost for Cholesky decomposition where d is state dimension
+- O\(d²\) evaluation cost for matrix\-vector operations
+- Memory usage: O\(d²\) for storing Cholesky decomposition
+- Efficient for moderate dimensions \(\< 100\)
+
+Error Handling:
+
+- Panics if covariance matrix is not positive definite
+- Panics if matrix dimension doesn't match state dimension
+- Panics if matrix is not square or symmetric
 
 ```go
 type GaussianStateIntegrationKernel struct {
@@ -203,7 +282,7 @@ type GaussianStateIntegrationKernel struct {
 
 <a name="GaussianStateIntegrationKernel.Configure"></a>
 
-### func \(\*GaussianStateIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L22-L25>)
+### func \(\*GaussianStateIntegrationKernel\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L73-L76>)
 
 ```go
 func (g *GaussianStateIntegrationKernel) Configure(partitionIndex int, settings *simulator.Settings)
@@ -213,7 +292,7 @@ func (g *GaussianStateIntegrationKernel) Configure(partitionIndex int, settings 
 
 <a name="GaussianStateIntegrationKernel.Evaluate"></a>
 
-### func \(\*GaussianStateIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L40-L45>)
+### func \(\*GaussianStateIntegrationKernel\) [Evaluate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L91-L96>)
 
 ```go
 func (g *GaussianStateIntegrationKernel) Evaluate(currentState []float64, pastState []float64, currentTime float64, pastTime float64) float64
@@ -223,7 +302,7 @@ func (g *GaussianStateIntegrationKernel) Evaluate(currentState []float64, pastSt
 
 <a name="GaussianStateIntegrationKernel.SetParams"></a>
 
-### func \(\*GaussianStateIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L28>)
+### func \(\*GaussianStateIntegrationKernel\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/gaussian_state.go#L79>)
 
 ```go
 func (g *GaussianStateIntegrationKernel) SetParams(params *simulator.Params)
@@ -277,15 +356,61 @@ func (i *InstantaneousIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="IntegrationKernel"></a>
 
-## type [IntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L12-L21>)
+## type [IntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L84-L93>)
 
-IntegrationKernel defines the interface for time/state weighting kernels used when aggregating over history.
+IntegrationKernel defines the interface for time/state weighting kernels used when aggregating over historical data in simulations.
 
-Usage hints:
+Integration kernels provide a standardized way to weight historical data points when computing aggregated statistics. They enable flexible temporal and spatial weighting schemes that can be customized for specific aggregation needs.
 
-- Configure is called once with the simulator settings.
-- SetParams reads per\-step parameters \(e.g., bandwidths, timescales\).
-- Evaluate returns the non\-negative weight for a past sample.
+Mathematical Concept: Integration kernels define weighting functions w\(current, past\) that determine how much influence a historical data point has on the current aggregation. Common patterns include:
+
+- Time\-based weighting: w\(t\_current, t\_past\) = f\(t\_current \- t\_past\)
+- State\-based weighting: w\(x\_current, x\_past\) = f\(||x\_current \- x\_past||\)
+- Hybrid weighting: w\(current, past\) = f\(time\_diff, state\_diff\)
+
+Interface Methods:
+
+- Configure: Initialize kernel with simulation settings \(called once per partition\)
+- SetParams: Update kernel parameters from simulation context \(called each step\)
+- Evaluate: Compute weight for a historical sample \(called for each aggregation\)
+
+Weight Properties:
+
+- Weights must be non\-negative: w\(current, past\) ≥ 0
+- Weights should be normalized for consistent aggregation scales
+- Zero weights indicate no influence from that historical sample
+
+Common Kernel Types:
+
+- ExponentialIntegrationKernel: Exponential time decay w\(t\) = exp\(\-λt\)
+- GaussianStateIntegrationKernel: State distance weighting w\(x,y\) = exp\(\-||x\-y||²/2σ²\)
+- InstantaneousIntegrationKernel: No weighting, w = 1 for current, 0 for past
+- PeriodicIntegrationKernel: Periodic time weighting for seasonal patterns
+
+Example Usage:
+
+```
+kernel := &ExponentialIntegrationKernel{}
+kernel.Configure(0, settings)
+kernel.SetParams(params) // params contains decay rate λ
+
+// Evaluate weight for a sample from 1.0 time units ago
+weight := kernel.Evaluate(currentState, pastState, 5.0, 4.0)
+// weight = exp(-λ * 1.0)
+```
+
+Performance Considerations:
+
+- Evaluate is called frequently during aggregation
+- Implementations should be optimized for repeated calls
+- Consider caching expensive computations in SetParams
+- Avoid memory allocations in Evaluate method
+
+Related Types:
+
+- See analysis.AppliedAggregation for usage in data aggregation
+- See ExponentialIntegrationKernel for exponential decay weighting
+- See GaussianStateIntegrationKernel for state\-distance weighting
 
 ```go
 type IntegrationKernel interface {

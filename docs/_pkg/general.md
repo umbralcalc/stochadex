@@ -10,6 +10,131 @@ logo: true
 import "github.com/umbralcalc/stochadex/pkg/general"
 ```
 
+Package general provides general\-purpose iteration functions and utilities for stochadex simulations. It includes data transformation functions, aggregation utilities, and flexible iteration patterns that can be composed to create complex simulation behaviors.
+
+Key Features:
+
+- Data transformation and reduction functions
+- Flexible function\-based iterations
+- Parameter value management and copying
+- Constant value generation and propagation
+- Cumulative value tracking and accumulation
+- Embedded simulation run support
+- History\-based value extraction
+- Event\-driven value changes
+- Collection and sorting utilities
+- Weighted resampling algorithms
+
+Design Philosophy: This package emphasizes composition and flexibility, providing building blocks that can be combined to create sophisticated simulation behaviors. Functions are designed to be pure \(stateless\) and composable, enabling complex data processing pipelines within simulations.
+
+Usage Patterns:
+
+- Data preprocessing and feature engineering
+- Custom aggregation and transformation logic
+- Parameter management and value propagation
+- Event\-driven simulation dynamics
+- Multi\-scale simulation coordination
+
+Package general provides general\-purpose iteration functions and utilities for stochadex simulations. It includes data transformation functions, aggregation utilities, and flexible iteration patterns that can be composed to create complex simulation behaviors.
+
+Key Features:
+
+- Data transformation and reduction functions
+- Flexible function\-based iterations
+- Parameter value management and copying
+- Constant value generation and propagation
+- Cumulative value tracking and accumulation
+- Embedded simulation run support
+- History\-based value extraction
+- Event\-driven value changes
+- Collection and sorting utilities
+- Weighted resampling algorithms
+
+Design Philosophy: This package emphasizes composition and flexibility, providing building blocks that can be combined to create sophisticated simulation behaviors. Functions are designed to be pure \(stateless\) and composable, enabling complex data processing pipelines within simulations.
+
+Usage Patterns:
+
+- Data preprocessing and feature engineering
+- Custom aggregation and transformation logic
+- Parameter management and value propagation
+- Event\-driven simulation dynamics
+- Multi\-scale simulation coordination
+
+Package general provides general\-purpose iteration functions and utilities for stochadex simulations. It includes data transformation functions, aggregation utilities, and flexible iteration patterns that can be composed to create complex simulation behaviors.
+
+Key Features:
+
+- Data transformation and reduction functions
+- Flexible function\-based iterations
+- Parameter value management and copying
+- Constant value generation and propagation
+- Cumulative value tracking and accumulation
+- Embedded simulation run support
+- History\-based value extraction
+- Event\-driven value changes
+- Collection and sorting utilities
+- Weighted resampling algorithms
+
+Design Philosophy: This package emphasizes composition and flexibility, providing building blocks that can be combined to create sophisticated simulation behaviors. Functions are designed to be pure \(stateless\) and composable, enabling complex data processing pipelines within simulations.
+
+Usage Patterns:
+
+- Data preprocessing and feature engineering
+- Custom aggregation and transformation logic
+- Parameter management and value propagation
+- Event\-driven simulation dynamics
+- Multi\-scale simulation coordination
+
+Package general provides general\-purpose iteration functions and utilities for stochadex simulations. It includes data transformation functions, aggregation utilities, and flexible iteration patterns that can be composed to create complex simulation behaviors.
+
+Key Features:
+
+- Data transformation and reduction functions
+- Flexible function\-based iterations
+- Parameter value management and copying
+- Constant value generation and propagation
+- Cumulative value tracking and accumulation
+- Embedded simulation run support
+- History\-based value extraction
+- Event\-driven value changes
+- Collection and sorting utilities
+- Weighted resampling algorithms
+
+Design Philosophy: This package emphasizes composition and flexibility, providing building blocks that can be combined to create sophisticated simulation behaviors. Functions are designed to be pure \(stateless\) and composable, enabling complex data processing pipelines within simulations.
+
+Usage Patterns:
+
+- Data preprocessing and feature engineering
+- Custom aggregation and transformation logic
+- Parameter management and value propagation
+- Event\-driven simulation dynamics
+- Multi\-scale simulation coordination
+
+Package general provides general\-purpose iteration functions and utilities for stochadex simulations. It includes data transformation functions, aggregation utilities, and flexible iteration patterns that can be composed to create complex simulation behaviors.
+
+Key Features:
+
+- Data transformation and reduction functions
+- Flexible function\-based iterations
+- Parameter value management and copying
+- Constant value generation and propagation
+- Cumulative value tracking and accumulation
+- Embedded simulation run support
+- History\-based value extraction
+- Event\-driven value changes
+- Collection and sorting utilities
+- Weighted resampling algorithms
+
+Design Philosophy: This package emphasizes composition and flexibility, providing building blocks that can be combined to create sophisticated simulation behaviors. Functions are designed to be pure \(stateless\) and composable, enabling complex data processing pipelines within simulations.
+
+Usage Patterns:
+
+- Data preprocessing and feature engineering
+- Custom aggregation and transformation logic
+- Parameter management and value propagation
+- Event\-driven simulation dynamics
+- Multi\-scale simulation coordination
+
 ## Index
 
 - [func AppendFloatToKey\(key string, value float64, precision int\) string](<#AppendFloatToKey>)
@@ -175,7 +300,7 @@ MinAggregation computes the minimum of weighted values per group.
 
 <a name="NewTransformReduceFunction"></a>
 
-## func [NewTransformReduceFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L41-L54>)
+## func [NewTransformReduceFunction](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L70-L83>)
 
 ```go
 func NewTransformReduceFunction(transform func(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) map[string][]float64, reduce func(values map[string][]float64) []float64) func(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -253,7 +378,7 @@ ParamsEventFunction emits an event value from the "event" params.
 
 <a name="ParamsTransform"></a>
 
-## func [ParamsTransform](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L10-L15>)
+## func [ParamsTransform](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L39-L44>)
 
 ```go
 func ParamsTransform(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) map[string][]float64
@@ -322,7 +447,7 @@ SumAggregation computes the weighted sum of values per group.
 
 <a name="SumReduce"></a>
 
-## func [SumReduce](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L24>)
+## func [SumReduce](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L53>)
 
 ```go
 func SumReduce(values map[string][]float64) []float64
@@ -346,7 +471,7 @@ UnitValueFunction returns \[1\]. Combine with "without\_normalisation" to comput
 
 <a name="ConstantValuesIteration"></a>
 
-## type [ConstantValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L11-L12>)
+## type [ConstantValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L40-L41>)
 
 ConstantValuesIteration leaves initial state values unchanged over time.
 
@@ -361,7 +486,7 @@ type ConstantValuesIteration struct {
 
 <a name="ConstantValuesIteration.Configure"></a>
 
-### func \(\*ConstantValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L14-L17>)
+### func \(\*ConstantValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L43-L46>)
 
 ```go
 func (c *ConstantValuesIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -371,7 +496,7 @@ func (c *ConstantValuesIteration) Configure(partitionIndex int, settings *simula
 
 <a name="ConstantValuesIteration.Iterate"></a>
 
-### func \(\*ConstantValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L20-L25>)
+### func \(\*ConstantValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L49-L54>)
 
 ```go
 func (c *ConstantValuesIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -381,7 +506,7 @@ func (c *ConstantValuesIteration) Iterate(params *simulator.Params, partitionInd
 
 <a name="CopyValuesIteration"></a>
 
-## type [CopyValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L12-L13>)
+## type [CopyValuesIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L41-L42>)
 
 CopyValuesIteration copies selected values from other partitions' latest states into its own state.
 
@@ -396,7 +521,7 @@ type CopyValuesIteration struct {
 
 <a name="CopyValuesIteration.Configure"></a>
 
-### func \(\*CopyValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L15-L18>)
+### func \(\*CopyValuesIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L44-L47>)
 
 ```go
 func (c *CopyValuesIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -406,7 +531,7 @@ func (c *CopyValuesIteration) Configure(partitionIndex int, settings *simulator.
 
 <a name="CopyValuesIteration.Iterate"></a>
 
-### func \(\*CopyValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L21-L26>)
+### func \(\*CopyValuesIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L50-L55>)
 
 ```go
 func (c *CopyValuesIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -416,7 +541,7 @@ func (c *CopyValuesIteration) Iterate(params *simulator.Params, partitionIndex i
 
 <a name="CumulativeIteration"></a>
 
-## type [CumulativeIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L12-L14>)
+## type [CumulativeIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L41-L43>)
 
 CumulativeIteration accumulates a provided iteration's outputs over time.
 
@@ -432,7 +557,7 @@ type CumulativeIteration struct {
 
 <a name="CumulativeIteration.Configure"></a>
 
-### func \(\*CumulativeIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L16-L19>)
+### func \(\*CumulativeIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L45-L48>)
 
 ```go
 func (c *CumulativeIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -442,7 +567,7 @@ func (c *CumulativeIteration) Configure(partitionIndex int, settings *simulator.
 
 <a name="CumulativeIteration.Iterate"></a>
 
-### func \(\*CumulativeIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L22-L27>)
+### func \(\*CumulativeIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L51-L56>)
 
 ```go
 func (c *CumulativeIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -452,7 +577,7 @@ func (c *CumulativeIteration) Iterate(params *simulator.Params, partitionIndex i
 
 <a name="EmbeddedSimulationRunIteration"></a>
 
-## type [EmbeddedSimulationRunIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L47-L55>)
+## type [EmbeddedSimulationRunIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L76-L84>)
 
 EmbeddedSimulationRunIteration runs a nested simulation to termination at each outer step.
 
@@ -471,7 +596,7 @@ type EmbeddedSimulationRunIteration struct {
 
 <a name="NewEmbeddedSimulationRunIteration"></a>
 
-### func [NewEmbeddedSimulationRunIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L239-L242>)
+### func [NewEmbeddedSimulationRunIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L268-L271>)
 
 ```go
 func NewEmbeddedSimulationRunIteration(settings *simulator.Settings, implementations *simulator.Implementations) *EmbeddedSimulationRunIteration
@@ -481,7 +606,7 @@ NewEmbeddedSimulationRunIteration constructs an embedded run iteration from prep
 
 <a name="EmbeddedSimulationRunIteration.Configure"></a>
 
-### func \(\*EmbeddedSimulationRunIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L57-L60>)
+### func \(\*EmbeddedSimulationRunIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L86-L89>)
 
 ```go
 func (e *EmbeddedSimulationRunIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -491,7 +616,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(partitionIndex int, settings 
 
 <a name="EmbeddedSimulationRunIteration.Iterate"></a>
 
-### func \(\*EmbeddedSimulationRunIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L156-L161>)
+### func \(\*EmbeddedSimulationRunIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L185-L190>)
 
 ```go
 func (e *EmbeddedSimulationRunIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64
@@ -640,7 +765,7 @@ func (f *FromStorageTimestepFunction) NextIncrement(timestepsHistory *simulator.
 
 <a name="NamedIndexedState"></a>
 
-## type [NamedIndexedState](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L31-L34>)
+## type [NamedIndexedState](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L60-L63>)
 
 NamedIndexedState pairs a partition's name/index with its state history. Useful for initialising inner histories from a chosen outer partition.
 
@@ -729,7 +854,7 @@ Usage hints:
 
 <a name="StateMemoryIteration"></a>
 
-## type [StateMemoryIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L25-L27>)
+## type [StateMemoryIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L54-L56>)
 
 StateMemoryIteration marks iterations that can receive state/time from a parent simulation and store it for later use.
 
@@ -741,7 +866,7 @@ type StateMemoryIteration interface {
 
 <a name="StateMemoryUpdate"></a>
 
-## type [StateMemoryUpdate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L17-L21>)
+## type [StateMemoryUpdate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L46-L50>)
 
 StateMemoryUpdate carries a named partition's state and timestep history from an outer simulation into an inner \(embedded\) simulation.
 
@@ -846,14 +971,72 @@ func (v *ValuesCollectionIteration) Iterate(params *simulator.Params, partitionI
 
 <a name="ValuesFunctionIteration"></a>
 
-## type [ValuesFunctionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L76-L83>)
+## type [ValuesFunctionIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L163-L170>)
 
-ValuesFunctionIteration evaluates a user\-provided function of params, states and time each step.
+ValuesFunctionIteration provides a flexible way to compute derived values from simulation state and parameters using user\-defined functions.
 
-Usage hints:
+This iteration type allows for custom computation logic within simulations, enabling feature engineering, data transformation, and complex derived value calculations. It's particularly useful for creating custom aggregation functions, feature extraction, and data preprocessing.
 
-- Set Function to a pure mapping from the simulation context to values.
-- Useful for feature engineering inside the simulator.
+Design Philosophy: The function\-based approach emphasizes composition and reusability. By providing a pure function interface, this iteration enables:
+
+- Stateless computation \(no side effects\)
+- Easy testing and validation
+- Composition with other iteration types
+- Reusable computation logic across simulations
+
+Function Signature: The Function field must implement a pure mapping from simulation context to output values. It receives:
+
+- params: Current simulation parameters
+- partitionIndex: Index of the current partition
+- stateHistories: All partition state histories
+- timestepsHistory: Time and timestep information
+
+And returns a slice of float64 values representing the computed output.
+
+Applications:
+
+- Feature engineering: Compute derived features from raw simulation data
+- Data transformation: Apply mathematical transformations to state values
+- Custom aggregations: Implement specialized aggregation logic
+- Parameter synthesis: Combine multiple parameters into derived values
+- Event detection: Compute indicators for significant events
+
+Example:
+
+```
+iteration := &ValuesFunctionIteration{
+    Function: func(params *simulator.Params, partitionIndex int,
+                   stateHistories []*simulator.StateHistory,
+                   timestepsHistory *simulator.CumulativeTimestepsHistory) []float64 {
+        // Extract current state from first partition
+        currentState := stateHistories[0].Values.RawRowView(0)
+
+        // Compute derived feature: moving average
+        if len(currentState) >= 2 {
+            return []float64{(currentState[0] + currentState[1]) / 2.0}
+        }
+        return []float64{0.0}
+    },
+}
+```
+
+Performance Considerations:
+
+- Function is called once per simulation step
+- Avoid expensive computations in the function body
+- Consider caching for repeated calculations
+- Memory allocations should be minimized
+
+API Stability:
+
+- This interface is stable and will not change in future versions
+- Function signature is compatible across all stochadex versions
+
+Related Types:
+
+- See NewTransformReduceFunction for composed transform\-reduce operations
+- See ParamsTransform for parameter extraction utilities
+- See SumReduce for simple reduction operations
 
 ```go
 type ValuesFunctionIteration struct {
@@ -868,7 +1051,7 @@ type ValuesFunctionIteration struct {
 
 <a name="ValuesFunctionIteration.Configure"></a>
 
-### func \(\*ValuesFunctionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L85-L88>)
+### func \(\*ValuesFunctionIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L172-L175>)
 
 ```go
 func (v *ValuesFunctionIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -878,7 +1061,7 @@ func (v *ValuesFunctionIteration) Configure(partitionIndex int, settings *simula
 
 <a name="ValuesFunctionIteration.Iterate"></a>
 
-### func \(\*ValuesFunctionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L91-L96>)
+### func \(\*ValuesFunctionIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L178-L183>)
 
 ```go
 func (v *ValuesFunctionIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64

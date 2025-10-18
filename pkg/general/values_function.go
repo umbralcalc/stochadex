@@ -1,3 +1,32 @@
+// Package general provides general-purpose iteration functions and utilities
+// for stochadex simulations. It includes data transformation functions,
+// aggregation utilities, and flexible iteration patterns that can be
+// composed to create complex simulation behaviors.
+//
+// Key Features:
+//   - Data transformation and reduction functions
+//   - Flexible function-based iterations
+//   - Parameter value management and copying
+//   - Constant value generation and propagation
+//   - Cumulative value tracking and accumulation
+//   - Embedded simulation run support
+//   - History-based value extraction
+//   - Event-driven value changes
+//   - Collection and sorting utilities
+//   - Weighted resampling algorithms
+//
+// Design Philosophy:
+// This package emphasizes composition and flexibility, providing building
+// blocks that can be combined to create sophisticated simulation behaviors.
+// Functions are designed to be pure (stateless) and composable, enabling
+// complex data processing pipelines within simulations.
+//
+// Usage Patterns:
+//   - Data preprocessing and feature engineering
+//   - Custom aggregation and transformation logic
+//   - Parameter management and value propagation
+//   - Event-driven simulation dynamics
+//   - Multi-scale simulation coordination
 package general
 
 import (
@@ -67,12 +96,70 @@ func NewTransformReduceFunction(
 	}
 }
 
-// ValuesFunctionIteration evaluates a user-provided function of params,
-// states and time each step.
+// ValuesFunctionIteration provides a flexible way to compute derived values
+// from simulation state and parameters using user-defined functions.
 //
-// Usage hints:
-//   - Set Function to a pure mapping from the simulation context to values.
-//   - Useful for feature engineering inside the simulator.
+// This iteration type allows for custom computation logic within simulations,
+// enabling feature engineering, data transformation, and complex derived
+// value calculations. It's particularly useful for creating custom
+// aggregation functions, feature extraction, and data preprocessing.
+//
+// Design Philosophy:
+// The function-based approach emphasizes composition and reusability. By
+// providing a pure function interface, this iteration enables:
+//   - Stateless computation (no side effects)
+//   - Easy testing and validation
+//   - Composition with other iteration types
+//   - Reusable computation logic across simulations
+//
+// Function Signature:
+// The Function field must implement a pure mapping from simulation context
+// to output values. It receives:
+//   - params: Current simulation parameters
+//   - partitionIndex: Index of the current partition
+//   - stateHistories: All partition state histories
+//   - timestepsHistory: Time and timestep information
+//
+// And returns a slice of float64 values representing the computed output.
+//
+// Applications:
+//   - Feature engineering: Compute derived features from raw simulation data
+//   - Data transformation: Apply mathematical transformations to state values
+//   - Custom aggregations: Implement specialized aggregation logic
+//   - Parameter synthesis: Combine multiple parameters into derived values
+//   - Event detection: Compute indicators for significant events
+//
+// Example:
+//
+//	iteration := &ValuesFunctionIteration{
+//	    Function: func(params *simulator.Params, partitionIndex int,
+//	                   stateHistories []*simulator.StateHistory,
+//	                   timestepsHistory *simulator.CumulativeTimestepsHistory) []float64 {
+//	        // Extract current state from first partition
+//	        currentState := stateHistories[0].Values.RawRowView(0)
+//
+//	        // Compute derived feature: moving average
+//	        if len(currentState) >= 2 {
+//	            return []float64{(currentState[0] + currentState[1]) / 2.0}
+//	        }
+//	        return []float64{0.0}
+//	    },
+//	}
+//
+// Performance Considerations:
+//   - Function is called once per simulation step
+//   - Avoid expensive computations in the function body
+//   - Consider caching for repeated calculations
+//   - Memory allocations should be minimized
+//
+// API Stability:
+//   - This interface is stable and will not change in future versions
+//   - Function signature is compatible across all stochadex versions
+//
+// Related Types:
+//   - See NewTransformReduceFunction for composed transform-reduce operations
+//   - See ParamsTransform for parameter extraction utilities
+//   - See SumReduce for simple reduction operations
 type ValuesFunctionIteration struct {
 	Function func(
 		params *simulator.Params,

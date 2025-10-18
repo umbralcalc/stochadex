@@ -10,9 +10,54 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// NewStateTimeStorageFromCsv creates a new StateTimeStorage based on
-// data that is read in from the provided csv file and some specified
-// columns for time and state.
+// NewStateTimeStorageFromCsv creates a StateTimeStorage from CSV data.
+//
+// This function reads time series data from a CSV file and organizes it into
+// partitions for use in stochadex simulations. It supports multiple partitions
+// with different column configurations.
+//
+// Parameters:
+//   - filePath: Path to the CSV file to read (must exist and be readable)
+//   - timeColumn: Index of the column containing timestamps (0-based indexing)
+//   - stateColumnsByPartition: Map of partition names to column indices for their state values
+//   - skipHeaderRow: Whether to skip the first row as headers (recommended for CSV files with headers)
+//
+// Returns:
+//   - *StateTimeStorage: Storage containing the loaded time series data, organized by partition
+//   - error: Any error encountered during file reading or parsing
+//
+// CSV Format Requirements:
+//   - Time column must contain parseable float64 values
+//   - State columns must contain parseable float64 values
+//   - All rows must have the same number of columns
+//   - Missing or malformed values will cause parsing errors
+//
+// Example:
+//
+//	// Load data from a CSV with time in column 0, prices in columns 1-2, volumes in column 3
+//	storage, err := NewStateTimeStorageFromCsv(
+//	    "market_data.csv",
+//	    0, // time in first column
+//	    map[string][]int{
+//	        "prices": {1, 2}, // prices partition uses columns 1 and 2
+//	        "volumes": {3},   // volumes partition uses column 3
+//	    },
+//	    true, // skip header row
+//	)
+//	if err != nil {
+//	    log.Fatal("Failed to load CSV data:", err)
+//	}
+//
+// Error Handling:
+//   - File not found: Returns error with file path
+//   - CSV parsing errors: Returns error with parsing details
+//   - Invalid numeric values: Returns error with conversion details
+//   - Inconsistent row lengths: Returns error with row information
+//
+// Performance Notes:
+//   - Loads entire file into memory (consider file size for large datasets)
+//   - O(n) time complexity where n is the number of rows
+//   - Memory usage: O(n * m) where m is the total number of state columns
 func NewStateTimeStorageFromCsv(
 	filePath string,
 	timeColumn int,

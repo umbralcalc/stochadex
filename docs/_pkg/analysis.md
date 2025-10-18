@@ -10,6 +10,24 @@ logo: true
 import "github.com/umbralcalc/stochadex/pkg/analysis"
 ```
 
+Package analysis provides data analysis and aggregation utilities for simulation results. It includes functions for computing statistical measures, working with CSV data, creating dataframes, and performing grouped aggregations over time series data.
+
+Key Features:
+
+- Statistical aggregation functions \(mean, variance, covariance\)
+- CSV data import/export capabilities
+- DataFrame integration for data manipulation
+- Grouped aggregations with customizable kernels
+- PostgreSQL integration for data storage
+- Log file parsing and analysis
+
+Usage Patterns:
+
+- Load simulation data from CSV files
+- Compute rolling statistics with time\-weighted kernels
+- Export results to various formats
+- Perform likelihood analysis and inference
+
 ## Index
 
 - [func AddPartitionsToStateTimeStorage\(storage \*simulator.StateTimeStorage, partitions \[\]\*simulator.PartitionConfig, windowSizeByPartition map\[string\]int\) \*simulator.StateTimeStorage](<#AddPartitionsToStateTimeStorage>)
@@ -88,23 +106,141 @@ AddPartitionsToStateTimeStorage extends the state time storage with newly genera
 
 <a name="GetDataFrameFromPartition"></a>
 
-## func [GetDataFrameFromPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/dataframe.go#L15-L18>)
+## func [GetDataFrameFromPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/dataframe.go#L62-L65>)
 
 ```go
 func GetDataFrameFromPartition(storage *simulator.StateTimeStorage, partitionName string) dataframe.DataFrame
 ```
 
-GetDataFrameFromPartition materializes a partition's values and times into a Gota dataframe. The first column is named "time" followed by one column per value index labeled by its integer index.
+GetDataFrameFromPartition converts simulation partition data into a Gota DataFrame for convenient data manipulation and analysis.
+
+This function extracts time series data from a simulation partition and converts it into a structured DataFrame format. The resulting DataFrame has a "time" column followed by columns for each state dimension, making it easy to perform data analysis, visualization, and export operations.
+
+DataFrame Structure:
+
+- Column 0: "time" \- Contains the time axis values
+- Column 1\+: State dimension columns labeled by their integer indices \(0, 1, 2, ...\)
+
+Parameters:
+
+- storage: StateTimeStorage containing the simulation data
+- partitionName: Name of the partition to extract data from
+
+Returns:
+
+- dataframe.DataFrame: Gota DataFrame with time and state columns
+
+Example:
+
+```
+// Extract price data from simulation storage
+df := GetDataFrameFromPartition(storage, "prices")
+
+// Access time column
+timeCol := df.Col("time")
+
+// Access state columns
+price1Col := df.Col("0") // First price dimension
+price2Col := df.Col("1") // Second price dimension
+
+// Perform analysis
+meanPrice1 := price1Col.Mean()
+maxPrice2 := price2Col.Max()
+```
+
+Use Cases:
+
+- Data visualization and plotting
+- Statistical analysis and computation
+- Data export to various formats \(CSV, JSON, etc.\)
+- Integration with data analysis tools
+- Time series analysis and forecasting
+
+Performance:
+
+- O\(n \* m\) time complexity where n is number of samples, m is state dimensions
+- Memory usage: O\(n \* m\) for the resulting DataFrame
+- Efficient for moderate\-sized datasets \(\< 1M samples\)
+
+Error Handling:
+
+- Panics if partition name is not found in storage
+- Provides helpful error messages with available partition names
 
 <a name="NewGroupedAggregationPartition"></a>
 
-## func [NewGroupedAggregationPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L36-L45>)
+## func [NewGroupedAggregationPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L146-L155>)
 
 ```go
 func NewGroupedAggregationPartition(aggregation func(defaultValues []float64, outputIndexByGroup map[string]int, groupings map[string][]float64, weightings map[string][]float64) []float64, applied AppliedAggregation, storage *GroupedStateTimeStorage) *simulator.PartitionConfig
 ```
 
-NewGroupedAggregationPartition constructs a PartitionConfig that applies a caller\-provided grouped aggregation over historical values. Group bins and weighting are derived from the provided GroupedStateTimeStorage, and the output state vector is ordered by the accepted value groups.
+NewGroupedAggregationPartition creates a partition that performs grouped aggregations over historical state values with customizable binning.
+
+This function creates a partition that aggregates data by grouping values into bins and applying custom aggregation functions within each group. It's particularly useful for computing statistics over value ranges or categorical data.
+
+Mathematical Concept: Grouped aggregations compute statistics within value bins:
+
+```
+G_i(t) = aggregate({X(s) : X(s) ∈ bin_i, s ≤ t})
+```
+
+where bin\_i represents a value range or category, and aggregate is the user\-provided function \(e.g., mean, sum, count\).
+
+Parameters:
+
+- aggregation: Function that computes aggregated values from grouped data. Input parameters:
+- defaultValues: Fill values for each group when no data is available
+- outputIndexByGroup: Maps group names to output vector indices
+- groupings: Maps group names to their historical values
+- weightings: Maps group names to their time\-based weights Output: \[\]float64 aggregated results ordered by accepted value groups
+- applied: AppliedAggregation configuration specifying source data and kernel
+- storage: GroupedStateTimeStorage containing group definitions and binning rules
+
+Returns:
+
+- \*PartitionConfig: Configured partition ready for simulation
+
+Example:
+
+```
+// Aggregate price data by volatility bins
+config := NewGroupedAggregationPartition(
+    func(defaults, indices, groups, weights map[string][]float64) []float64 {
+        results := make([]float64, len(indices))
+        for group, idx := range indices {
+            values := groups[group]
+            w := weights[group]
+            // Compute weighted mean
+            sum := 0.0
+            totalWeight := 0.0
+            for i, v := range values {
+                sum += v * w[i]
+                totalWeight += w[i]
+            }
+            if totalWeight > 0 {
+                results[idx] = sum / totalWeight
+            } else {
+                results[idx] = defaults[idx]
+            }
+        }
+        return results
+    },
+    AppliedAggregation{
+        Name: "volatility_aggregates",
+        Data: DataRef{PartitionName: "prices"},
+        Kernel: &kernels.ExponentialIntegrationKernel{},
+        DefaultValue: 0.0,
+    },
+    volatilityStorage,
+)
+```
+
+Performance Notes:
+
+- O\(n \* m\) time complexity where n is history depth, m is number of groups
+- Memory usage scales with group count and history depth
+- Efficient for moderate numbers of groups \(\< 1000\)
 
 <a name="NewLikelihoodComparisonPartition"></a>
 
@@ -196,13 +332,65 @@ Usage hints:
 
 <a name="NewStateTimeStorageFromCsv"></a>
 
-## func [NewStateTimeStorageFromCsv](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/csv.go#L16-L21>)
+## func [NewStateTimeStorageFromCsv](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/csv.go#L61-L66>)
 
 ```go
 func NewStateTimeStorageFromCsv(filePath string, timeColumn int, stateColumnsByPartition map[string][]int, skipHeaderRow bool) (*simulator.StateTimeStorage, error)
 ```
 
-NewStateTimeStorageFromCsv creates a new StateTimeStorage based on data that is read in from the provided csv file and some specified columns for time and state.
+NewStateTimeStorageFromCsv creates a StateTimeStorage from CSV data.
+
+This function reads time series data from a CSV file and organizes it into partitions for use in stochadex simulations. It supports multiple partitions with different column configurations.
+
+Parameters:
+
+- filePath: Path to the CSV file to read \(must exist and be readable\)
+- timeColumn: Index of the column containing timestamps \(0\-based indexing\)
+- stateColumnsByPartition: Map of partition names to column indices for their state values
+- skipHeaderRow: Whether to skip the first row as headers \(recommended for CSV files with headers\)
+
+Returns:
+
+- \*StateTimeStorage: Storage containing the loaded time series data, organized by partition
+- error: Any error encountered during file reading or parsing
+
+CSV Format Requirements:
+
+- Time column must contain parseable float64 values
+- State columns must contain parseable float64 values
+- All rows must have the same number of columns
+- Missing or malformed values will cause parsing errors
+
+Example:
+
+```
+// Load data from a CSV with time in column 0, prices in columns 1-2, volumes in column 3
+storage, err := NewStateTimeStorageFromCsv(
+    "market_data.csv",
+    0, // time in first column
+    map[string][]int{
+        "prices": {1, 2}, // prices partition uses columns 1 and 2
+        "volumes": {3},   // volumes partition uses column 3
+    },
+    true, // skip header row
+)
+if err != nil {
+    log.Fatal("Failed to load CSV data:", err)
+}
+```
+
+Error Handling:
+
+- File not found: Returns error with file path
+- CSV parsing errors: Returns error with parsing details
+- Invalid numeric values: Returns error with conversion details
+- Inconsistent row lengths: Returns error with row information
+
+Performance Notes:
+
+- Loads entire file into memory \(consider file size for large datasets\)
+- O\(n\) time complexity where n is the number of rows
+- Memory usage: O\(n \* m\) where m is the total number of state columns
 
 <a name="NewStateTimeStorageFromJsonLogEntries"></a>
 
@@ -236,7 +424,7 @@ NewStateTimeStorageFromPostgresDb reads from a PostgreSQL database over a pre\-d
 
 <a name="NewVectorCovariancePartition"></a>
 
-## func [NewVectorCovariancePartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L190-L194>)
+## func [NewVectorCovariancePartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L340-L344>)
 
 ```go
 func NewVectorCovariancePartition(mean DataRef, applied AppliedAggregation, storage *simulator.StateTimeStorage) *simulator.PartitionConfig
@@ -246,17 +434,60 @@ NewVectorCovariancePartition constructs a PartitionConfig that computes the roll
 
 <a name="NewVectorMeanPartition"></a>
 
-## func [NewVectorMeanPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L98-L101>)
+## func [NewVectorMeanPartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L248-L251>)
 
 ```go
 func NewVectorMeanPartition(applied AppliedAggregation, storage *simulator.StateTimeStorage) *simulator.PartitionConfig
 ```
 
-NewVectorMeanPartition constructs a PartitionConfig that computes the rolling windowed weighted mean per\-index of the referenced data values.
+NewVectorMeanPartition creates a partition that computes rolling weighted means for each dimension of the referenced data.
+
+This function creates a partition that maintains running weighted averages over historical data using the specified integration kernel for time weighting. Each dimension of the source data is aggregated independently.
+
+Mathematical Concept: Vector mean aggregation computes:
+
+```
+μ_i(t) = Σ w(t-s) * X_i(s) / Σ w(t-s)
+```
+
+where μ\_i\(t\) is the mean for dimension i at time t, w\(t\-s\) is the kernel weight, and X\_i\(s\) is the value of dimension i at historical time s.
+
+Parameters:
+
+- applied: AppliedAggregation specifying source data, kernel, and output name
+- storage: StateTimeStorage containing the source data
+
+Returns:
+
+- \*PartitionConfig: Partition that outputs rolling weighted means
+
+Example:
+
+```
+// Compute exponentially weighted moving averages of price data
+meanPartition := NewVectorMeanPartition(
+    AppliedAggregation{
+        Name: "price_ema",
+        Data: DataRef{
+            PartitionName: "prices",
+            ValueIndices: []int{0, 1, 2}, // Use first 3 price dimensions
+        },
+        Kernel: &kernels.ExponentialIntegrationKernel{},
+        DefaultValue: 100.0, // Initial price assumption
+    },
+    priceStorage,
+)
+```
+
+Performance:
+
+- O\(d \* h\) time complexity where d is data dimensions, h is history depth
+- Memory usage: O\(d\) for output state
+- Efficient for moderate dimensions \(\< 100\)
 
 <a name="NewVectorVariancePartition"></a>
 
-## func [NewVectorVariancePartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L141-L145>)
+## func [NewVectorVariancePartition](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L291-L295>)
 
 ```go
 func NewVectorVariancePartition(mean DataRef, applied AppliedAggregation, storage *simulator.StateTimeStorage) *simulator.PartitionConfig
@@ -266,7 +497,7 @@ NewVectorVariancePartition constructs a PartitionConfig that computes the rollin
 
 <a name="SetPartitionFromDataFrame"></a>
 
-## func [SetPartitionFromDataFrame](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/dataframe.go#L41-L46>)
+## func [SetPartitionFromDataFrame](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/dataframe.go#L88-L93>)
 
 ```go
 func SetPartitionFromDataFrame(storage *simulator.StateTimeStorage, partitionName string, df dataframe.DataFrame, overwriteTime bool)
@@ -286,9 +517,46 @@ WriteStateTimeStorageToPostgresDb writes all of the data in the state time stora
 
 <a name="AppliedAggregation"></a>
 
-## type [AppliedAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L15-L20>)
+## type [AppliedAggregation](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L48-L53>)
 
-AppliedAggregation describes how to aggregate a referenced dataset over time. It names the output partition, points to the source data, specifies the integration kernel \(windowing/weighting\), and provides a default fill value used when the aggregation has insufficient history.
+AppliedAggregation describes how to aggregate a referenced dataset over time using customizable weighting kernels.
+
+This struct configures the aggregation process by specifying the source data, output partition name, weighting scheme, and handling of insufficient history. It serves as a blueprint for creating aggregation partitions in simulations.
+
+Mathematical Concept: Aggregations compute weighted averages over historical data:
+
+```
+A(t) = Σ w(t-s) * f(X(s)) / Σ w(t-s)
+```
+
+where w\(t\-s\) is the kernel weight, f\(X\(s\)\) is the source data, and the sum is over all historical samples s ≤ t.
+
+Fields:
+
+- Name: Output partition name for the aggregated results
+- Data: Reference to the source data partition and value indices
+- Kernel: Integration kernel for time\-based weighting \(nil = instantaneous\)
+- DefaultValue: Fill value when insufficient history is available
+
+Related Types:
+
+- See kernels.IntegrationKernel for available weighting schemes
+- See DataRef for source data configuration
+- See NewGroupedAggregationPartition for grouped aggregations
+
+Example:
+
+```
+aggregation := AppliedAggregation{
+    Name: "rolling_mean",
+    Data: DataRef{
+        PartitionName: "prices",
+        ValueIndices: []int{0, 1}, // Use first two price columns
+    },
+    Kernel: &kernels.ExponentialIntegrationKernel{},
+    DefaultValue: 0.0,
+}
+```
 
 ```go
 type AppliedAggregation struct {
@@ -301,13 +569,31 @@ type AppliedAggregation struct {
 
 <a name="AppliedAggregation.GetKernel"></a>
 
-### func \(\*AppliedAggregation\) [GetKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L25>)
+### func \(\*AppliedAggregation\) [GetKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/aggregation.go#L72>)
 
 ```go
 func (a *AppliedAggregation) GetKernel() kernels.IntegrationKernel
 ```
 
-GetKernel returns the configured integration kernel. If none is set, it falls back to an instantaneous \(no window\) kernel so callers never need to guard against a nil kernel.
+GetKernel returns the configured integration kernel with automatic fallback.
+
+This method ensures that callers never need to handle nil kernels by providing a sensible default. The instantaneous kernel applies no time weighting, effectively using only the most recent value for aggregation.
+
+Returns:
+
+- kernels.IntegrationKernel: The configured kernel, or InstantaneousIntegrationKernel if nil
+
+Usage:
+
+```
+kernel := aggregation.GetKernel()
+// Safe to use kernel without nil checks
+```
+
+Performance:
+
+- O\(1\) time complexity
+- No memory allocation for cached kernels
 
 <a name="AppliedGrouping"></a>
 

@@ -1,11 +1,85 @@
 package simulator
 
-// Iteration defines a per-partition state update.
+// Iteration defines the interface for per-partition state update functions
+// in stochadex simulations.
 //
-// Usage hints:
-//   - Configure is called once per partition with global Settings.
-//   - Iterate receives Params, partition index, all state histories, and
-//     the timestep history, and must return the next state row.
+// The Iteration interface is the fundamental building block for defining
+// how simulation state evolves over time. Each partition in a simulation
+// uses an Iteration to compute its next state values based on the current
+// state, parameters, and time information.
+//
+// Design Philosophy:
+// The Iteration interface emphasizes modularity and composability. By
+// providing a simple, well-defined interface, it enables the creation of
+// complex simulations through the combination of simple, focused iterations.
+// This design supports both built-in iteration types and custom user-defined
+// iterations.
+//
+// Interface Methods:
+//   - Configure: Initialize the iteration with simulation settings (called once)
+//   - Iterate: Compute the next state values (called each simulation step)
+//
+// Configuration Phase:
+// Configure is called once per partition during simulation setup. It receives:
+//   - partitionIndex: The index of this partition in the simulation
+//   - settings: Global simulation settings and configuration
+//
+// This phase is used for:
+//   - Initializing random number generators
+//   - Setting up internal data structures
+//   - Configuring iteration-specific parameters
+//   - Validating configuration parameters
+//
+// Iteration Phase:
+// Iterate is called each simulation step to compute the next state values.
+// It receives:
+//   - params: Current simulation parameters for this partition
+//   - partitionIndex: The index of this partition
+//   - stateHistories: State histories for all partitions (for cross-partition access)
+//   - timestepsHistory: Time and timestep information
+//
+// It must return:
+//   - []float64: The next state values for this partition
+//
+// Implementation Requirements:
+//   - Configure must be called before Iterate
+//   - Iterate must return a slice of the correct length (matching state width)
+//   - Iterate should not modify the input parameters or state histories
+//   - Iterate should be deterministic given the same inputs (for reproducible simulations)
+//
+// Example Usage:
+//
+//	type MyIteration struct {
+//	    // Internal state
+//	}
+//
+//	func (m *MyIteration) Configure(partitionIndex int, settings *Settings) {
+//	    // Initialize iteration
+//	}
+//
+//	func (m *MyIteration) Iterate(params *Params, partitionIndex int,
+//	                              stateHistories []*StateHistory,
+//	                              timestepsHistory *CumulativeTimestepsHistory) []float64 {
+//	    // Compute next state values
+//	    return []float64{newValue1, newValue2, ...}
+//	}
+//
+// Common Iteration Types:
+//   - Stochastic processes: WienerProcessIteration, PoissonProcessIteration
+//   - Deterministic functions: ValuesFunctionIteration, ConstantValuesIteration
+//   - Aggregation functions: VectorMeanIteration, GroupedAggregationIteration
+//   - User-defined iterations: Custom implementations for specific needs
+//
+// Performance Considerations:
+//   - Iterate is called frequently during simulation execution
+//   - Implementations should be optimized for performance
+//   - Avoid expensive computations or memory allocations in Iterate
+//   - Consider caching expensive computations in Configure
+//
+// Thread Safety:
+//   - Iterate may be called concurrently from multiple goroutines
+//   - Implementations should be thread-safe or stateless
+//   - Shared mutable state should be protected by synchronization primitives
 type Iteration interface {
 	Configure(partitionIndex int, settings *Settings)
 	Iterate(

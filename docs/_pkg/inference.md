@@ -10,6 +10,118 @@ logo: true
 import "github.com/umbralcalc/stochadex/pkg/inference"
 ```
 
+Package inference provides statistical inference and likelihood modeling capabilities for stochadex simulations. It includes probability distributions, likelihood functions, gradient computation, and Bayesian inference utilities for parameter estimation and model validation.
+
+Key Features:
+
+- Probability distribution implementations \(Beta, Gamma, Normal, Poisson, etc.\)
+- Likelihood function evaluation and gradient computation
+- Bayesian inference with posterior estimation
+- Parameter estimation and optimization support
+- Statistical testing and validation utilities
+- Gradient\-based optimization algorithms
+
+Mathematical Background: The inference package implements statistical models for:
+
+- Likelihood functions: p\(data | parameters\)
+- Posterior distributions: p\(parameters | data\) ∝ p\(data | parameters\) × p\(parameters\)
+- Gradient computation: ∇\_θ log p\(data | parameters\)
+- Parameter estimation: θ̂ = argmax\_θ p\(data | parameters\)
+
+Design Philosophy: This package emphasizes modularity and composability, providing building blocks for statistical inference that can be combined to create complex inference workflows. All distributions implement standard interfaces for likelihood evaluation and gradient computation.
+
+Usage Patterns:
+
+- Parameter estimation from simulation data
+- Model validation and goodness\-of\-fit testing
+- Bayesian inference with prior distributions
+- Gradient\-based optimization for parameter fitting
+- Statistical hypothesis testing and model comparison
+
+Package inference provides statistical inference and likelihood modeling capabilities for stochadex simulations. It includes probability distributions, likelihood functions, gradient computation, and Bayesian inference utilities for parameter estimation and model validation.
+
+Key Features:
+
+- Probability distribution implementations \(Beta, Gamma, Normal, Poisson, etc.\)
+- Likelihood function evaluation and gradient computation
+- Bayesian inference with posterior estimation
+- Parameter estimation and optimization support
+- Statistical testing and validation utilities
+- Gradient\-based optimization algorithms
+
+Mathematical Background: The inference package implements statistical models for:
+
+- Likelihood functions: p\(data | parameters\)
+- Posterior distributions: p\(parameters | data\) ∝ p\(data | parameters\) × p\(parameters\)
+- Gradient computation: ∇\_θ log p\(data | parameters\)
+- Parameter estimation: θ̂ = argmax\_θ p\(data | parameters\)
+
+Design Philosophy: This package emphasizes modularity and composability, providing building blocks for statistical inference that can be combined to create complex inference workflows. All distributions implement standard interfaces for likelihood evaluation and gradient computation.
+
+Usage Patterns:
+
+- Parameter estimation from simulation data
+- Model validation and goodness\-of\-fit testing
+- Bayesian inference with prior distributions
+- Gradient\-based optimization for parameter fitting
+- Statistical hypothesis testing and model comparison
+
+Package inference provides statistical inference and likelihood modeling capabilities for stochadex simulations. It includes probability distributions, likelihood functions, gradient computation, and Bayesian inference utilities for parameter estimation and model validation.
+
+Key Features:
+
+- Probability distribution implementations \(Beta, Gamma, Normal, Poisson, etc.\)
+- Likelihood function evaluation and gradient computation
+- Bayesian inference with posterior estimation
+- Parameter estimation and optimization support
+- Statistical testing and validation utilities
+- Gradient\-based optimization algorithms
+
+Mathematical Background: The inference package implements statistical models for:
+
+- Likelihood functions: p\(data | parameters\)
+- Posterior distributions: p\(parameters | data\) ∝ p\(data | parameters\) × p\(parameters\)
+- Gradient computation: ∇\_θ log p\(data | parameters\)
+- Parameter estimation: θ̂ = argmax\_θ p\(data | parameters\)
+
+Design Philosophy: This package emphasizes modularity and composability, providing building blocks for statistical inference that can be combined to create complex inference workflows. All distributions implement standard interfaces for likelihood evaluation and gradient computation.
+
+Usage Patterns:
+
+- Parameter estimation from simulation data
+- Model validation and goodness\-of\-fit testing
+- Bayesian inference with prior distributions
+- Gradient\-based optimization for parameter fitting
+- Statistical hypothesis testing and model comparison
+
+Package inference provides statistical inference and likelihood modeling capabilities for stochadex simulations. It includes probability distributions, likelihood functions, gradient computation, and Bayesian inference utilities for parameter estimation and model validation.
+
+Key Features:
+
+- Probability distribution implementations \(Beta, Gamma, Normal, Poisson, etc.\)
+- Likelihood function evaluation and gradient computation
+- Bayesian inference with posterior estimation
+- Parameter estimation and optimization support
+- Statistical testing and validation utilities
+- Gradient\-based optimization algorithms
+
+Mathematical Background: The inference package implements statistical models for:
+
+- Likelihood functions: p\(data | parameters\)
+- Posterior distributions: p\(parameters | data\) ∝ p\(data | parameters\) × p\(parameters\)
+- Gradient computation: ∇\_θ log p\(data | parameters\)
+- Parameter estimation: θ̂ = argmax\_θ p\(data | parameters\)
+
+Design Philosophy: This package emphasizes modularity and composability, providing building blocks for statistical inference that can be combined to create complex inference workflows. All distributions implement standard interfaces for likelihood evaluation and gradient computation.
+
+Usage Patterns:
+
+- Parameter estimation from simulation data
+- Model validation and goodness\-of\-fit testing
+- Bayesian inference with prior distributions
+- Gradient\-based optimization for parameter fitting
+- Statistical hypothesis testing and model comparison
+
 ## Index
 
 - [func CovarianceMatrixFromParams\(params \*simulator.Params\) \*mat.SymDense](<#CovarianceMatrixFromParams>)
@@ -233,9 +345,62 @@ VarianceTransform returns the values needed to compute the variance.
 
 <a name="BetaLikelihoodDistribution"></a>
 
-## type [BetaLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L17-L21>)
+## type [BetaLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L66-L70>)
 
-BetaLikelihoodDistribution assumes the real data are well described by a beta distribution, given the input alpha and beta parameters.
+BetaLikelihoodDistribution implements a Beta distribution likelihood model for bounded continuous data analysis and parameter estimation.
+
+The Beta distribution is particularly useful for modeling data that is bounded between 0 and 1, such as proportions, probabilities, rates, and normalized measurements. It provides flexible shape modeling through its two shape parameters α \(alpha\) and β \(beta\).
+
+Mathematical Background: The Beta distribution Beta\(α, β\) has probability density function:
+
+```
+f(x | α, β) = x^(α-1) * (1-x)^(β-1) / B(α, β)
+```
+
+where B\(α, β\) is the Beta function, and x ∈ \[0, 1\].
+
+Key Properties:
+
+- Support: x ∈ \[0, 1\] \(bounded continuous\)
+- Shape parameters: α \> 0, β \> 0 \(both must be positive\)
+- Mean: E\[X\] = α / \(α \+ β\)
+- Variance: Var\[X\] = \(α \* β\) / \(\(α \+ β\)² \* \(α \+ β \+ 1\)\)
+- Special cases:
+- α = β = 1: Uniform distribution on \[0, 1\]
+- α = 1, β = 1: Uniform distribution
+- α \> 1, β \> 1: Bell\-shaped distribution
+- α \< 1, β \< 1: U\-shaped distribution
+
+Applications:
+
+- Proportion modeling: Success rates, conversion rates, market shares
+- Probability estimation: Bayesian inference with Beta priors
+- Quality control: Defect rates, pass/fail proportions
+- Financial modeling: Recovery rates, default probabilities
+- Machine learning: Classification confidence scores
+
+Parameter Configuration: The distribution can be configured in two ways:
+
+1. Direct parameters: Provide "alpha" and "beta" parameters directly
+2. Mean\-variance: Provide "mean" and "variance" parameters for automatic conversion
+
+Example:
+
+```
+dist := &BetaLikelihoodDistribution{}
+dist.SetSeed(0, settings)
+// Configure with mean=0.3, variance=0.05
+dist.SetParams(params, partitionIndex, stateHistories, timestepsHistory)
+
+// Evaluate likelihood of observed proportions
+logLike := dist.EvaluateLogLike([]float64{0.25, 0.35, 0.28})
+```
+
+Performance:
+
+- O\(d\) time complexity where d is the data dimension
+- Memory usage: O\(d\) for parameter storage
+- Efficient for moderate dimensions \(\< 1000\)
 
 ```go
 type BetaLikelihoodDistribution struct {
@@ -246,7 +411,7 @@ type BetaLikelihoodDistribution struct {
 
 <a name="BetaLikelihoodDistribution.EvaluateLogLike"></a>
 
-### func \(\*BetaLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L60-L62>)
+### func \(\*BetaLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L109-L111>)
 
 ```go
 func (b *BetaLikelihoodDistribution) EvaluateLogLike(data []float64) float64
@@ -256,7 +421,7 @@ func (b *BetaLikelihoodDistribution) EvaluateLogLike(data []float64) float64
 
 <a name="BetaLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a>
 
-### func \(\*BetaLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L84-L86>)
+### func \(\*BetaLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L133-L135>)
 
 ```go
 func (b *BetaLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) []float64
@@ -266,7 +431,7 @@ func (b *BetaLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) []f
 
 <a name="BetaLikelihoodDistribution.GenerateNewSamples"></a>
 
-### func \(\*BetaLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L73>)
+### func \(\*BetaLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L122>)
 
 ```go
 func (b *BetaLikelihoodDistribution) GenerateNewSamples() []float64
@@ -276,7 +441,7 @@ func (b *BetaLikelihoodDistribution) GenerateNewSamples() []float64
 
 <a name="BetaLikelihoodDistribution.SetParams"></a>
 
-### func \(\*BetaLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L33-L38>)
+### func \(\*BetaLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L82-L87>)
 
 ```go
 func (b *BetaLikelihoodDistribution) SetParams(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory)
@@ -286,7 +451,7 @@ func (b *BetaLikelihoodDistribution) SetParams(params *simulator.Params, partiti
 
 <a name="BetaLikelihoodDistribution.SetSeed"></a>
 
-### func \(\*BetaLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L23-L26>)
+### func \(\*BetaLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L72-L75>)
 
 ```go
 func (b *BetaLikelihoodDistribution) SetSeed(partitionIndex int, settings *simulator.Settings)
@@ -409,7 +574,7 @@ func (d *DataGenerationIteration) Iterate(params *simulator.Params, partitionInd
 
 <a name="GammaLikelihoodDistribution"></a>
 
-## type [GammaLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L13-L17>)
+## type [GammaLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L45-L49>)
 
 GammaLikelihoodDistribution assumes the real data are well described by a gamma distribution, given the input mean and variance.
 
@@ -422,7 +587,7 @@ type GammaLikelihoodDistribution struct {
 
 <a name="GammaLikelihoodDistribution.EvaluateLogLike"></a>
 
-### func \(\*GammaLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L43>)
+### func \(\*GammaLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L75>)
 
 ```go
 func (g *GammaLikelihoodDistribution) EvaluateLogLike(data []float64) float64
@@ -432,7 +597,7 @@ func (g *GammaLikelihoodDistribution) EvaluateLogLike(data []float64) float64
 
 <a name="GammaLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a>
 
-### func \(\*GammaLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L71-L73>)
+### func \(\*GammaLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L103-L105>)
 
 ```go
 func (g *GammaLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) []float64
@@ -442,7 +607,7 @@ func (g *GammaLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) []
 
 <a name="GammaLikelihoodDistribution.GenerateNewSamples"></a>
 
-### func \(\*GammaLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L57>)
+### func \(\*GammaLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L89>)
 
 ```go
 func (g *GammaLikelihoodDistribution) GenerateNewSamples() []float64
@@ -452,7 +617,7 @@ func (g *GammaLikelihoodDistribution) GenerateNewSamples() []float64
 
 <a name="GammaLikelihoodDistribution.SetParams"></a>
 
-### func \(\*GammaLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L29-L34>)
+### func \(\*GammaLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L61-L66>)
 
 ```go
 func (g *GammaLikelihoodDistribution) SetParams(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory)
@@ -462,7 +627,7 @@ func (g *GammaLikelihoodDistribution) SetParams(params *simulator.Params, partit
 
 <a name="GammaLikelihoodDistribution.SetSeed"></a>
 
-### func \(\*GammaLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L19-L22>)
+### func \(\*GammaLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L51-L54>)
 
 ```go
 func (g *GammaLikelihoodDistribution) SetSeed(partitionIndex int, settings *simulator.Settings)
@@ -472,15 +637,52 @@ func (g *GammaLikelihoodDistribution) SetSeed(partitionIndex int, settings *simu
 
 <a name="LikelihoodDistribution"></a>
 
-## type [LikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L14-L24>)
+## type [LikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L84-L94>)
 
-LikelihoodDistribution defines a likelihood model over observed data.
+LikelihoodDistribution defines a likelihood model over observed data for statistical inference and parameter estimation.
 
-Usage hints:
+This interface represents a probability distribution that can evaluate the likelihood of observed data given parameters and generate new samples from the distribution. It serves as the foundation for Bayesian inference, parameter estimation, and model validation in stochadex simulations.
 
-- SetSeed is called once per partition to initialise RNG state.
-- SetParams configures the distribution from the current simulation context.
-- EvaluateLogLike computes log p\(data | params\); GenerateNewSamples draws from the current model.
+Mathematical Concept: A likelihood distribution represents the probability model p\(data | parameters\), where the likelihood function measures how well the model explains observed data given specific parameter values. This is fundamental to:
+
+- Maximum likelihood estimation: θ̂ = argmax\_θ p\(data | θ\)
+- Bayesian inference: p\(θ | data\) ∝ p\(data | θ\) × p\(θ\)
+- Model comparison and selection
+- Parameter uncertainty quantification
+
+Interface Methods:
+
+- SetSeed: Initialize random number generator state for reproducible sampling
+- SetParams: Configure distribution parameters from simulation context
+- EvaluateLogLike: Compute log\-likelihood log p\(data | params\) for given data
+- GenerateNewSamples: Draw new samples from the current parameter configuration
+
+Implementation Requirements:
+
+- SetSeed must be called before any other methods
+- SetParams must be called before EvaluateLogLike or GenerateNewSamples
+- EvaluateLogLike should return log\-likelihood \(not raw likelihood\) for numerical stability
+- GenerateNewSamples should return samples consistent with current parameters
+
+Example Usage:
+
+```
+dist := &BetaLikelihoodDistribution{}
+dist.SetSeed(0, settings)
+dist.SetParams(params, partitionIndex, stateHistories, timestepsHistory)
+
+// Evaluate likelihood of observed data
+logLike := dist.EvaluateLogLike(observedData)
+
+// Generate new samples for validation
+newSamples := dist.GenerateNewSamples()
+```
+
+Related Types:
+
+- See LikelihoodDistributionWithGradient for gradient\-based optimization
+- See BetaLikelihoodDistribution for beta distribution implementation
+- See NormalLikelihoodDistribution for normal distribution implementation
 
 ```go
 type LikelihoodDistribution interface {
@@ -498,7 +700,7 @@ type LikelihoodDistribution interface {
 
 <a name="LikelihoodDistributionWithGradient"></a>
 
-## type [LikelihoodDistributionWithGradient](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L28-L31>)
+## type [LikelihoodDistributionWithGradient](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L98-L101>)
 
 LikelihoodDistributionWithGradient extends LikelihoodDistribution with a mean gradient for optimisation.
 
@@ -574,7 +776,7 @@ func (n *NegativeBinomialLikelihoodDistribution) SetSeed(partitionIndex int, set
 
 <a name="NormalLikelihoodDistribution"></a>
 
-## type [NormalLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L18-L23>)
+## type [NormalLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L50-L55>)
 
 NormalLikelihoodDistribution models data with a multivariate normal.
 
@@ -593,7 +795,7 @@ type NormalLikelihoodDistribution struct {
 
 <a name="NormalLikelihoodDistribution.EvaluateLogLike"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L72>)
+### func \(\*NormalLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L104>)
 
 ```go
 func (n *NormalLikelihoodDistribution) EvaluateLogLike(data []float64) float64
@@ -603,7 +805,7 @@ func (n *NormalLikelihoodDistribution) EvaluateLogLike(data []float64) float64
 
 <a name="NormalLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L82-L84>)
+### func \(\*NormalLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L114-L116>)
 
 ```go
 func (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) []float64
@@ -613,7 +815,7 @@ func (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) [
 
 <a name="NormalLikelihoodDistribution.GenerateNewSamples"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L77>)
+### func \(\*NormalLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L109>)
 
 ```go
 func (n *NormalLikelihoodDistribution) GenerateNewSamples() []float64
@@ -623,7 +825,7 @@ func (n *NormalLikelihoodDistribution) GenerateNewSamples() []float64
 
 <a name="NormalLikelihoodDistribution.SetParams"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L35-L40>)
+### func \(\*NormalLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L67-L72>)
 
 ```go
 func (n *NormalLikelihoodDistribution) SetParams(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory)
@@ -633,7 +835,7 @@ func (n *NormalLikelihoodDistribution) SetParams(params *simulator.Params, parti
 
 <a name="NormalLikelihoodDistribution.SetSeed"></a>
 
-### func \(\*NormalLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L25-L28>)
+### func \(\*NormalLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L57-L60>)
 
 ```go
 func (n *NormalLikelihoodDistribution) SetSeed(partitionIndex int, settings *simulator.Settings)
@@ -643,7 +845,7 @@ func (n *NormalLikelihoodDistribution) SetSeed(partitionIndex int, settings *sim
 
 <a name="PoissonLikelihoodDistribution"></a>
 
-## type [PoissonLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L17-L20>)
+## type [PoissonLikelihoodDistribution](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L49-L52>)
 
 PoissonLikelihoodDistribution models count data with a Poisson distribution.
 
@@ -661,7 +863,7 @@ type PoissonLikelihoodDistribution struct {
 
 <a name="PoissonLikelihoodDistribution.EvaluateLogLike"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L41>)
+### func \(\*PoissonLikelihoodDistribution\) [EvaluateLogLike](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L73>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64
@@ -671,7 +873,7 @@ func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64
 
 <a name="PoissonLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L61-L63>)
+### func \(\*PoissonLikelihoodDistribution\) [EvaluateLogLikeMeanGrad](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L93-L95>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) []float64
@@ -681,7 +883,7 @@ func (p *PoissonLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64) 
 
 <a name="PoissonLikelihoodDistribution.GenerateNewSamples"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L51>)
+### func \(\*PoissonLikelihoodDistribution\) [GenerateNewSamples](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L83>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) GenerateNewSamples() []float64
@@ -691,7 +893,7 @@ func (p *PoissonLikelihoodDistribution) GenerateNewSamples() []float64
 
 <a name="PoissonLikelihoodDistribution.SetParams"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L32-L37>)
+### func \(\*PoissonLikelihoodDistribution\) [SetParams](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L64-L69>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) SetParams(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory)
@@ -701,7 +903,7 @@ func (p *PoissonLikelihoodDistribution) SetParams(params *simulator.Params, part
 
 <a name="PoissonLikelihoodDistribution.SetSeed"></a>
 
-### func \(\*PoissonLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L22-L25>)
+### func \(\*PoissonLikelihoodDistribution\) [SetSeed](<https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L54-L57>)
 
 ```go
 func (p *PoissonLikelihoodDistribution) SetSeed(partitionIndex int, settings *simulator.Settings)

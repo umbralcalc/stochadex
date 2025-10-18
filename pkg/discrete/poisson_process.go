@@ -7,12 +7,50 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// PoissonProcessIteration steps a simple Poisson counting process.
+// PoissonProcessIteration implements a Poisson counting process for event simulation.
 //
-// Usage hints:
-//   - Provide per-dimension "rates" (lambda); event approx. prob is rate*dt.
-//   - On an event, the count increments by 1; otherwise it is unchanged.
-//   - Configure timestep size via the simulator to control event probability.
+// The Poisson process is a fundamental counting process that models the occurrence
+// of random events in continuous time. It is widely used in queueing theory,
+// reliability analysis, and event-driven modeling.
+//
+// Domain Context:
+// Poisson processes model random events occurring independently in time.
+// Common applications include:
+//   - Arrival times in queueing systems (customers, packets, calls)
+//   - Radioactive decay events (particle emissions, nuclear decay)
+//   - Network packet arrivals (data transmission, network traffic)
+//   - Insurance claim arrivals (accidents, claims processing)
+//   - Manufacturing defects (quality control, failure events)
+//
+// Mathematical Properties:
+// The Poisson process N(t) with rate λ has the following properties:
+//   - N(0) = 0 (starts at zero)
+//   - N(t) - N(s) ~ Poisson(λ(t-s)) for t > s (independent increments)
+//   - Inter-arrival times are exponentially distributed with rate λ
+//   - Number of events in [0,t] follows Poisson(λt) distribution
+//   - Events occur at rate λ per unit time on average
+//
+// Implementation Details:
+//   - Probability of event in timestep dt ≈ λ * dt (for small dt)
+//   - Uses uniform random sampling for event detection
+//   - Maintains cumulative count of events since t=0
+//   - Each dimension can have different event rates
+//
+// Configuration:
+//   - Provide "rates" parameter: per-dimension event rates (λ values)
+//   - Set timestep size via TimestepFunction to control event probability
+//   - Seed controls reproducibility via partition Settings
+//
+// Example:
+//
+//	iteration := &PoissonProcessIteration{}
+//	// Configure with rate = 0.5, dt = 0.01
+//	// Event probability per step ≈ 0.5 * 0.01 = 0.005 (0.5%)
+//
+// Performance:
+//   - O(d) time complexity where d is the number of dimensions
+//   - Memory usage: O(1) per dimension
+//   - Efficient for high-dimensional event modeling
 type PoissonProcessIteration struct {
 	unitUniformDist *distuv.Uniform
 }

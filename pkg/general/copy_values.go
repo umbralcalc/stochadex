@@ -1,3 +1,32 @@
+// Package general provides general-purpose iteration functions and utilities
+// for stochadex simulations. It includes data transformation functions,
+// aggregation utilities, and flexible iteration patterns that can be
+// composed to create complex simulation behaviors.
+//
+// Key Features:
+//   - Data transformation and reduction functions
+//   - Flexible function-based iterations
+//   - Parameter value management and copying
+//   - Constant value generation and propagation
+//   - Cumulative value tracking and accumulation
+//   - Embedded simulation run support
+//   - History-based value extraction
+//   - Event-driven value changes
+//   - Collection and sorting utilities
+//   - Weighted resampling algorithms
+//
+// Design Philosophy:
+// This package emphasizes composition and flexibility, providing building
+// blocks that can be combined to create sophisticated simulation behaviors.
+// Functions are designed to be pure (stateless) and composable, enabling
+// complex data processing pipelines within simulations.
+//
+// Usage Patterns:
+//   - Data preprocessing and feature engineering
+//   - Custom aggregation and transformation logic
+//   - Parameter management and value propagation
+//   - Event-driven simulation dynamics
+//   - Multi-scale simulation coordination
 package general
 
 import (
