@@ -1,18 +1,18 @@
 ---
-title: "Introducing the 'stochadocs'"
+title: "Introducing the fundamentals"
 logo: true
 ---
 
-# Introducing the 'stochadocs'
+# Introducing the fundamentals
 <div style="height:0.75em;"></div>
 
 ## Who are these docs for?
 
-Welcome to the documentation for [the stochadex project](https://umbralcalc.github.io/stochadex), a.k.a., the 'stochadocs'!
+Welcome to the documentation for [the stochadex project](https://umbralcalc.github.io/stochadex)!
 
 This documentation is aimed at users wanting to get to grips with the software and/or understand more about simulated systems in general.
 
-In the latter case, treat the stochadocs as an opportunity to explore the technical foundations for constructing simulations of the real world.
+In the latter case, treat these docs as an opportunity to explore the technical foundations for constructing simulations of the real world.
 
 You will see the power of stochastic phenomena and probabilistic thinking without mathematical symbols too.
 
@@ -32,4 +32,4 @@ The intention is to transfer some level of analytical power from the world of sy
 
 <img src="../assets/diagrams-vs-symbols.svg" width="700"/>
 
-We've used these diagrams completely in place of any mathematical formalism throughout the stochadocs, where one can rest assured that the mathematical foundations are solid.
+We've used these diagrams completely in place of any mathematical formalism throughout these docs, where one can rest assured that the mathematical foundations are solid.
