@@ -4,7 +4,7 @@ title: "Home"
 
 ![](./assets/logo.png)
 
-<div class="centered"><a href="https://github.com/umbralcalc/stochadex"><img src="https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&amp;logo=github&amp;logoColor=white" class="no-center" alt="Github" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" height="27" class="no-center" alt="MIT" /></a> <a href="https://go.dev/"><img src="https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white" class="no-center" alt="Go" /></a></div>
+<div class="badges"><a href="https://github.com/umbralcalc/stochadex"><img src="https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&amp;logo=github&amp;logoColor=white" alt="Github" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT" /></a> <a href="https://go.dev/"><img src="https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white" alt="Go" /></a></div>
 <div style="height:0.75em;"></div>
 
 ## So what is the 'stochadex' project?
@@ -24,32 +24,6 @@ In other words, if you want to answer questions like 'if I take this action, the
 <img src="./assets/simulations-for-decisions.svg" />
 
 The stochadex can be used to create these simulations and ensure that they behave in a way with closely matches the real data for the system that they are supposed to be modeling.
-
-## Packages within the project
-
-- [github.com/umbralcalc/stochadex/pkg/analysis](https://umbralcalc.github.io/stochadex/pkg/analysis.html)
-- [github.com/umbralcalc/stochadex/pkg/api](https://umbralcalc.github.io/stochadex/pkg/api.html)
-- [github.com/umbralcalc/stochadex/pkg/continuous](https://umbralcalc.github.io/stochadex/pkg/continuous.html)
-- [github.com/umbralcalc/stochadex/pkg/discrete](https://umbralcalc.github.io/stochadex/pkg/discrete.html)
-- [github.com/umbralcalc/stochadex/pkg/general](https://umbralcalc.github.io/stochadex/pkg/general.html)
-- [github.com/umbralcalc/stochadex/pkg/inference](https://umbralcalc.github.io/stochadex/pkg/inference.html)
-- [github.com/umbralcalc/stochadex/pkg/kernels](https://umbralcalc.github.io/stochadex/pkg/kernels.html)
-- [github.com/umbralcalc/stochadex/pkg/keyboard](https://umbralcalc.github.io/stochadex/pkg/keyboard.html)
-- [github.com/umbralcalc/stochadex/pkg/simulator](https://umbralcalc.github.io/stochadex/pkg/simulator.html)
-
-## The fundamentals
-
-- [Introducing the 'stochadocs'](https://umbralcalc.github.io/stochadex/pages/introducing_the_stochadocs.html)
-- [The building blocks of simulations](https://umbralcalc.github.io/stochadex/pages/the_building_blocks_of_simulations.html)
-- [Understanding probabilities in simulations](https://umbralcalc.github.io/stochadex/pages/understanding_probabilities_in_simulations.html)
-
-## Example applications
-
-- [Simulating memoryless phenomena](https://umbralcalc.github.io/stochadex/pages/simulating_memoryless_phenomena.html)
-- [Simulating non-memoryless phenomena](https://umbralcalc.github.io/stochadex/pages/simulating_non_memoryless_phenomena.html)
-- [Machine learning with probabilistic reweighting](https://umbralcalc.github.io/stochadex/pages/machine_learning_with_probabilistic_reweighting.html)
-- [Machine learning with generalised linear models (GLMs)](https://umbralcalc.github.io/stochadex/pages/machine_learning_with_generalised_linear_models.html)
-- [Learning simulations directly with online posterior estimation](https://umbralcalc.github.io/stochadex/pages/learning_simulations_directly_with_online_posterior_estimation.html)
 
 ## Other projects using the software
 

@@ -4,276 +4,568 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <meta name="description" content="Stochadex - A simulation engine for real-world systems" />
+  <meta name="keywords" content="simulation, go, stochastic, modeling, data analysis" />
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  
+  <!-- Custom CSS -->
   <style>
-    .body {
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary-color: #64748b;
+      --accent-color: #f59e0b;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+    }
+
+    * {
       box-sizing: border-box;
-      min-width: 200px;
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 45px;
-      color: #1F2328;
-      background-color: #ffff;
-      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-      line-height: 1.5;
-      word-wrap: break-word;
-      text-align: left;
     }
 
-    .body h1 {
+    body {
       margin: 0;
-      font-size: 200%;
-      color: rgb(42, 65, 83);
-      border-radius: 6px;
-      word-wrap: break-word;
-      text-align: left;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
     }
 
-    .body h2, h3, h4, h5 {
-      margin: 0;
-      font-size: 150%;
-      color: rgb(42, 65, 83);
-      border-radius: 6px;
-      word-wrap: break-word;
-      text-align: left;
+    .container {
+      display: flex;
+      min-height: 100vh;
     }
 
-    .body li {
-      text-align: left;
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 1000;
+      transition: transform 0.3s ease;
     }
 
-    .body strong {
-      color: rgb(42, 65, 83);
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
     }
 
-    .body a {
-      color: #0969da;
-      font-weight: bold;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
       text-decoration: none;
+      color: var(--text-primary);
     }
 
-    .body a:hover {
-      color: LightGrey;
+    .logo img {
+      width: 120px;
+      height: auto;
+    }
+
+
+    .nav-section {
+      margin-bottom: 1rem;
+    }
+
+    .nav-section-title {
+      padding: 0.5rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background-color: var(--bg-tertiary);
+    }
+
+    .nav-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .nav-links li {
+      margin: 0;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 0.5rem 1.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-links a:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-left-color: var(--primary-color);
+    }
+
+    .nav-links a.active {
+      background-color: var(--bg-primary);
+      color: var(--primary-color);
+      border-left-color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+    }
+
+
+    .content-body {
+      padding: 2rem;
+      max-width: 800px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.25rem;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+    }
+
+    h4 {
+      font-size: 1.25rem;
+    }
+
+    h5, h6 {
+      font-size: 1.125rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: #2d3748;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      font-size: 0.875rem;
+      line-height: 1.5;
     }
 
     code {
-      padding: .5em 1em;
-      font-size: 95%;
-      color: #F5F5F5;
-      background-color: rgb(42, 65, 83);
-      border-radius: 6px;
-      overflow: auto;
-      display: block;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background-color: var(--bg-primary);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--bg-secondary);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Blockquotes */
+    blockquote {
+      border-left: 4px solid var(--primary-color);
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Images */
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
     }
 
     .centered {
       text-align: center;
     }
 
-    img:not(.no-center), 
-    svg:not(.no-center) {
-      display: block;
-      margin: 1em auto;
-      max-width: 100%;
-      height: auto;
-    }
-
-    img.no-center, 
-    svg.no-center {
-      display: inline;
-      margin: 0;
-    }
-
-    .otherimgs {
+    .badges {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1rem 0;
     }
 
-    .otherimgs img {
-      display: inline-block;
-      height: auto;
-      margin: 0;
+    .badges img {
+      height: 22px;
+      width: auto;
     }
 
-    .body .navbar {
-      padding:8px 16px;
-      float:right;
-      width:auto;
-      border:none;
-      display:block;
-      outline:0;
-      color: LightGrey;
+    /* Mobile menu toggle */
+    .mobile-menu-toggle {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 1001;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.5rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
     }
 
-    .logofavicon {
-      vertical-align: middle;
-    }
-
-    .body .repotitle {
-      float: left;
-      text-align: left;
-    }
-
-    strong.nameRepo {
-      color: rgb(42, 65, 83);
-    }
-
-    .body .navbar:hover {
-      color: rgb(42, 65, 83);
-    }
-
-    .csl-entry {
-      display: flex;
-      margin-top: 15px;
-    }
-
-    #references {
-      margin-bottom: 0.5em;
-    }
-
-    .csl-left-margin {
-      margin-right: 10px;
-    }
-
-    .custom-spacer {
-      display: block;
-      height: 1em;
-    }
-
-    @media (max-width: 767px) {
-      .body {
-        padding: 15px;
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
       }
-      p {
-        overflow-x: auto;
+
+      .sidebar.open {
+        transform: translateX(0);
       }
-      p span.math.display {
-        display: inline-block;
-        overflow-x: auto;
-        white-space: nowrap;
+
+      .main-content {
+        margin-left: 0;
       }
+
+      .mobile-menu-toggle {
+        display: block;
+      }
+
+
+      .content-body {
+        padding: 1rem;
+      }
+
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.2s ease;
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--primary-hover);
+      transform: scale(1.1);
+    }
+
+    /* Print styles */
+    @media print {
+      .sidebar,
+      .mobile-menu-toggle,
+      .theme-toggle {
+        display: none;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
     }
   </style>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    
+    
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
-<article class="body">
-<a class="navbar" href="https://umbralcalc.github.io/stochadex">
-Home
-</a>
-<a class="navbar" href="https://umbralcalc.github.io/stochadex/pages/quickstart.html">
-Quickstart
-</a>
-<div class="repotitle">
-<span class="logofavicon"> <img src="../assets/logo.png" width="120"></img></span>
-</div>
-</br>
-</br>
-</br>
-<!-- Code generated by gomarkdoc. DO NOT EDIT -->
-<h1 id="keyboard">keyboard</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="st">&quot;github.com/umbralcalc/stochadex/pkg/keyboard&quot;</span></span></code></pre></div>
-<p>Package keyboard provides interactive user input capabilities for
-stochadex simulations. It enables real-time user interaction during
-simulation runs through keyboard events, allowing for dynamic control
-and parameter adjustment during execution.</p>
-<p>Key Features:</p>
-<ul>
-<li>Real-time keyboard event handling</li>
-<li>Configurable key-to-action mapping</li>
-<li>Timeout-based input handling</li>
-<li>Graceful exit and cleanup</li>
-<li>Extensible input channel abstraction</li>
-</ul>
-<p>Usage Patterns:</p>
-<ul>
-<li>Pause/resume simulations with keyboard shortcuts</li>
-<li>Adjust simulation parameters in real-time</li>
-<li>Trigger data export or analysis during runs</li>
-<li>Implement interactive debugging and monitoring</li>
-<li>Create user-controlled simulation scenarios</li>
-</ul>
-<h2 id="index">Index</h2>
-<ul>
-<li><a href="#KeystrokeChannel">type KeystrokeChannel</a></li>
-<li><a href="#StandardKeystrokeChannel">type
-StandardKeystrokeChannel</a>
-<ul>
-<li><a href="#StandardKeystrokeChannel.Get">func (s
-*StandardKeystrokeChannel) Get(partitionIndex int, settings
-*simulator.Settings) (&lt;-chan keyboard.KeyEvent, error)</a></li>
-</ul></li>
-<li><a href="#UserInputIteration">type UserInputIteration</a>
-<ul>
-<li><a href="#UserInputIteration.Configure">func (u *UserInputIteration)
-Configure(partitionIndex int, settings *simulator.Settings)</a></li>
-<li><a href="#UserInputIteration.Iterate">func (u *UserInputIteration)
-Iterate(params *simulator.Params, partitionIndex int, stateHistories
-[]*simulator.StateHistory, timestepsHistory
-*simulator.CumulativeTimestepsHistory) []float64</a></li>
-</ul></li>
-</ul>
-<p><a name="KeystrokeChannel"></a></p>
-<h2 id="type-keystrokechannel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L17-L22">KeystrokeChannel</a></h2>
-<p>KeystrokeChannel abstracts a source of keyboard events.</p>
-<p>Usage hints:</p>
-<ul>
-<li>Implement to inject custom key event sources (e.g., tests or
-GUIs).</li>
-<li>The default StandardKeystrokeChannel reads from the terminal.</li>
-</ul>
-<div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> KeystrokeChannel <span class="kw">interface</span> <span class="op">{</span></span>
+
+<body>
+  <!-- Mobile menu toggle -->
+  <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">
+        <img src="../assets/logo.png" alt="Stochadex Logo">
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Getting Started</div>
+      <ul class="nav-links">
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="../pages/quickstart.html">Quickstart</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Fundamentals</div>
+      <ul class="nav-links">
+        <li><a href="../pages/introducing_the_stochadocs.html">Introducing the Stochadocs</a></li>
+        <li><a href="../pages/the_building_blocks_of_simulations.html">Building Blocks</a></li>
+        <li><a href="../pages/understanding_probabilities_in_simulations.html">Understanding Probabilities</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Examples</div>
+      <ul class="nav-links">
+        <li><a href="../pages/simulating_memoryless_phenomena.html">Memoryless Phenomena</a></li>
+        <li><a href="../pages/simulating_non_memoryless_phenomena.html">Non-Memoryless Phenomena</a></li>
+        <li><a href="../pages/machine_learning_with_probabilistic_reweighting.html">ML with Probabilistic Reweighting</a></li>
+        <li><a href="../pages/machine_learning_with_generalised_linear_models.html">ML with GLMs</a></li>
+        <li><a href="../pages/learning_simulations_directly_with_online_posterior_estimation.html">Online Posterior Estimation</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">API Reference</div>
+      <ul class="nav-links">
+        <li><a href="../pkg/analysis.html">Analysis</a></li>
+        <li><a href="../pkg/api.html">API</a></li>
+        <li><a href="../pkg/continuous.html">Continuous</a></li>
+        <li><a href="../pkg/discrete.html">Discrete</a></li>
+        <li><a href="../pkg/general.html">General</a></li>
+        <li><a href="../pkg/inference.html">Inference</a></li>
+        <li><a href="../pkg/kernels.html">Kernels</a></li>
+        <li><a href="../pkg/keyboard.html">Keyboard</a></li>
+        <li><a href="../pkg/simulator.html">Simulator</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div class="content-body">
+      <!-- Code generated by gomarkdoc. DO NOT EDIT -->
+      <h1 id="keyboard">keyboard</h1>
+      <div class="sourceCode" id="cb1"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="st">&quot;github.com/umbralcalc/stochadex/pkg/keyboard&quot;</span></span></code></pre></div>
+      <p>Package keyboard provides interactive user input capabilities
+      for stochadex simulations. It enables real-time user interaction
+      during simulation runs through keyboard events, allowing for
+      dynamic control and parameter adjustment during execution.</p>
+      <p>Key Features:</p>
+      <ul>
+      <li>Real-time keyboard event handling</li>
+      <li>Configurable key-to-action mapping</li>
+      <li>Timeout-based input handling</li>
+      <li>Graceful exit and cleanup</li>
+      <li>Extensible input channel abstraction</li>
+      </ul>
+      <p>Usage Patterns:</p>
+      <ul>
+      <li>Pause/resume simulations with keyboard shortcuts</li>
+      <li>Adjust simulation parameters in real-time</li>
+      <li>Trigger data export or analysis during runs</li>
+      <li>Implement interactive debugging and monitoring</li>
+      <li>Create user-controlled simulation scenarios</li>
+      </ul>
+      <h2 id="index">Index</h2>
+      <ul>
+      <li><a href="#KeystrokeChannel">type KeystrokeChannel</a></li>
+      <li><a href="#StandardKeystrokeChannel">type
+      StandardKeystrokeChannel</a>
+      <ul>
+      <li><a href="#StandardKeystrokeChannel.Get">func (s
+      *StandardKeystrokeChannel) Get(partitionIndex int, settings
+      *simulator.Settings) (&lt;-chan keyboard.KeyEvent, error)</a></li>
+      </ul></li>
+      <li><a href="#UserInputIteration">type UserInputIteration</a>
+      <ul>
+      <li><a href="#UserInputIteration.Configure">func (u
+      *UserInputIteration) Configure(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      <li><a href="#UserInputIteration.Iterate">func (u
+      *UserInputIteration) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      </ul>
+      <p><a name="KeystrokeChannel"></a></p>
+      <h2 id="type-keystrokechannel">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L17-L22">KeystrokeChannel</a></h2>
+      <p>KeystrokeChannel abstracts a source of keyboard events.</p>
+      <p>Usage hints:</p>
+      <ul>
+      <li>Implement to inject custom key event sources (e.g., tests or
+      GUIs).</li>
+      <li>The default StandardKeystrokeChannel reads from the
+      terminal.</li>
+      </ul>
+      <div class="sourceCode" id="cb2"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> KeystrokeChannel <span class="kw">interface</span> <span class="op">{</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    Get<span class="op">(</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        partitionIndex <span class="dt">int</span><span class="op">,</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">,</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> <span class="op">(&lt;-</span><span class="kw">chan</span> keyboard<span class="op">.</span>KeyEvent<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="StandardKeystrokeChannel"></a></p>
-<h2 id="type-standardkeystrokechannel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L25">StandardKeystrokeChannel</a></h2>
-<p>StandardKeystrokeChannel retrieves keystrokes from the terminal.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> StandardKeystrokeChannel <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
-<p><a name="StandardKeystrokeChannel.Get"></a></p>
-<h3 id="func-standardkeystrokechannel-get">func
-(*StandardKeystrokeChannel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L27-L30">Get</a></h3>
-<div class="sourceCode" id="cb4"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StandardKeystrokeChannel<span class="op">)</span> Get<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span> <span class="op">(&lt;-</span><span class="kw">chan</span> keyboard<span class="op">.</span>KeyEvent<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span></code></pre></div>
-<p><a name="UserInputIteration"></a></p>
-<h2 id="type-userinputiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L93-L99">UserInputIteration</a></h2>
-<p>UserInputIteration provides real-time user interaction during
-simulation runs through keyboard input handling and action mapping.</p>
-<p>This iteration type enables interactive control of simulations by
-mapping keyboard events to simulation actions. It supports configurable
-key mappings, timeout handling, and graceful exit functionality.</p>
-<p>Interactive Features:</p>
-<ul>
-<li>Real-time keyboard event processing</li>
-<li>Configurable key-to-action mapping</li>
-<li>Timeout-based input handling for non-blocking operation</li>
-<li>Graceful exit with ESC key</li>
-<li>Default value fallback for timeouts</li>
-</ul>
-<p>Configuration Parameters:</p>
-<ul>
-<li>“user_input_keystroke_action_&lt;key&gt;”: Maps key characters to
-action IDs</li>
-<li>“wait_milliseconds”: Timeout duration for input waiting
-(optional)</li>
-<li>“default_value”: Default action ID used on timeout or exit</li>
-</ul>
-<p>Key Mapping: Key mappings are configured using parameters named
-“user_input_keystroke_action_&lt;key&gt;” where &lt;key&gt; is the
-character that triggers the action. For example:</p>
-<ul>
-<li>“user_input_keystroke_action_p” =&gt; 1 (pause action)</li>
-<li>“user_input_keystroke_action_r” =&gt; 2 (resume action)</li>
-<li>“user_input_keystroke_action_s” =&gt; 3 (stop action)</li>
-</ul>
-<p>Example Configuration:</p>
-<pre><code>iteration := &amp;UserInputIteration{
+      <p><a name="StandardKeystrokeChannel"></a></p>
+      <h2 id="type-standardkeystrokechannel">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L25">StandardKeystrokeChannel</a></h2>
+      <p>StandardKeystrokeChannel retrieves keystrokes from the
+      terminal.</p>
+      <div class="sourceCode" id="cb3"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> StandardKeystrokeChannel <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
+      <p><a name="StandardKeystrokeChannel.Get"></a></p>
+      <h3 id="func-standardkeystrokechannel-get">func
+      (*StandardKeystrokeChannel) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L27-L30">Get</a></h3>
+      <div class="sourceCode" id="cb4"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StandardKeystrokeChannel<span class="op">)</span> Get<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span> <span class="op">(&lt;-</span><span class="kw">chan</span> keyboard<span class="op">.</span>KeyEvent<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span></code></pre></div>
+      <p><a name="UserInputIteration"></a></p>
+      <h2 id="type-userinputiteration">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L93-L99">UserInputIteration</a></h2>
+      <p>UserInputIteration provides real-time user interaction during
+      simulation runs through keyboard input handling and action
+      mapping.</p>
+      <p>This iteration type enables interactive control of simulations
+      by mapping keyboard events to simulation actions. It supports
+      configurable key mappings, timeout handling, and graceful exit
+      functionality.</p>
+      <p>Interactive Features:</p>
+      <ul>
+      <li>Real-time keyboard event processing</li>
+      <li>Configurable key-to-action mapping</li>
+      <li>Timeout-based input handling for non-blocking operation</li>
+      <li>Graceful exit with ESC key</li>
+      <li>Default value fallback for timeouts</li>
+      </ul>
+      <p>Configuration Parameters:</p>
+      <ul>
+      <li>“user_input_keystroke_action_&lt;key&gt;”: Maps key characters
+      to action IDs</li>
+      <li>“wait_milliseconds”: Timeout duration for input waiting
+      (optional)</li>
+      <li>“default_value”: Default action ID used on timeout or
+      exit</li>
+      </ul>
+      <p>Key Mapping: Key mappings are configured using parameters named
+      “user_input_keystroke_action_&lt;key&gt;” where &lt;key&gt; is the
+      character that triggers the action. For example:</p>
+      <ul>
+      <li>“user_input_keystroke_action_p” =&gt; 1 (pause action)</li>
+      <li>“user_input_keystroke_action_r” =&gt; 2 (resume action)</li>
+      <li>“user_input_keystroke_action_s” =&gt; 3 (stop action)</li>
+      </ul>
+      <p>Example Configuration:</p>
+      <pre><code>iteration := &amp;UserInputIteration{
     Channel: &amp;StandardKeystrokeChannel{},
 }
 
@@ -283,48 +575,101 @@ params.Set(&quot;user_input_keystroke_action_r&quot;, []float64{2}) // resume
 params.Set(&quot;user_input_keystroke_action_s&quot;, []float64{3}) // stop
 params.Set(&quot;wait_milliseconds&quot;, []float64{100})           // 100ms timeout
 params.Set(&quot;default_value&quot;, []float64{0})                 // no action</code></pre>
-<p>Usage Patterns:</p>
-<ul>
-<li>Interactive simulation control: Allow users to pause, resume, or
-stop simulations</li>
-<li>Parameter adjustment: Enable real-time parameter modification</li>
-<li>Monitoring and intervention: Provide manual override
-capabilities</li>
-<li>Educational tools: Create interactive learning experiences</li>
-</ul>
-<p>Thread Safety:</p>
-<ul>
-<li>Safe for concurrent use within simulation partitions</li>
-<li>Uses channels for thread-safe communication</li>
-<li>Automatic cleanup on exit</li>
-</ul>
-<p>Performance:</p>
-<ul>
-<li>Non-blocking operation with timeout support</li>
-<li>Minimal memory overhead</li>
-<li>Efficient event processing</li>
-</ul>
-<p>Error Handling:</p>
-<ul>
-<li>Graceful handling of keyboard initialization errors</li>
-<li>Automatic fallback to default values on timeout</li>
-<li>Clean exit on ESC key press</li>
-</ul>
-<div class="sourceCode" id="cb6"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> UserInputIteration <span class="kw">struct</span> <span class="op">{</span></span>
+      <p>Usage Patterns:</p>
+      <ul>
+      <li>Interactive simulation control: Allow users to pause, resume,
+      or stop simulations</li>
+      <li>Parameter adjustment: Enable real-time parameter
+      modification</li>
+      <li>Monitoring and intervention: Provide manual override
+      capabilities</li>
+      <li>Educational tools: Create interactive learning
+      experiences</li>
+      </ul>
+      <p>Thread Safety:</p>
+      <ul>
+      <li>Safe for concurrent use within simulation partitions</li>
+      <li>Uses channels for thread-safe communication</li>
+      <li>Automatic cleanup on exit</li>
+      </ul>
+      <p>Performance:</p>
+      <ul>
+      <li>Non-blocking operation with timeout support</li>
+      <li>Minimal memory overhead</li>
+      <li>Efficient event processing</li>
+      </ul>
+      <p>Error Handling:</p>
+      <ul>
+      <li>Graceful handling of keyboard initialization errors</li>
+      <li>Automatic fallback to default values on timeout</li>
+      <li>Clean exit on ESC key press</li>
+      </ul>
+      <div class="sourceCode" id="cb6"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> UserInputIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    Channel KeystrokeChannel</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="UserInputIteration.Configure"></a></p>
-<h3 id="func-userinputiteration-configure">func (*UserInputIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L101-L104">Configure</a></h3>
-<div class="sourceCode" id="cb7"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>u <span class="op">*</span>UserInputIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="UserInputIteration.Iterate"></a></p>
-<h3 id="func-userinputiteration-iterate">func (*UserInputIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L129-L134">Iterate</a></h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>u <span class="op">*</span>UserInputIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p>Generated by <a
-href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
-<script type="text/javascript" id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</article>
+      <p><a name="UserInputIteration.Configure"></a></p>
+      <h3 id="func-userinputiteration-configure">func
+      (*UserInputIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L101-L104">Configure</a></h3>
+      <div class="sourceCode" id="cb7"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>u <span class="op">*</span>UserInputIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="UserInputIteration.Iterate"></a></p>
+      <h3 id="func-userinputiteration-iterate">func
+      (*UserInputIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L129-L134">Iterate</a></h3>
+      <div class="sourceCode" id="cb8"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>u <span class="op">*</span>UserInputIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p>Generated by <a
+      href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
+    </div>
+  </main>
+
+  <!-- Theme toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </button>
+
+  <script>
+    // Mobile sidebar toggle
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      document.body.classList.toggle('dark-theme');
+      localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+    }
+
+    // Load saved theme
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('dark-theme');
+    }
+
+    // Set active navigation item
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('.nav-links a');
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && currentPath.includes(href.replace('../', ''))) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
 </html>

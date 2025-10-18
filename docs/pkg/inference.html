@@ -4,652 +4,978 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <meta name="description" content="Stochadex - A simulation engine for real-world systems" />
+  <meta name="keywords" content="simulation, go, stochastic, modeling, data analysis" />
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  
+  <!-- Custom CSS -->
   <style>
-    .body {
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary-color: #64748b;
+      --accent-color: #f59e0b;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+    }
+
+    * {
       box-sizing: border-box;
-      min-width: 200px;
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 45px;
-      color: #1F2328;
-      background-color: #ffff;
-      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-      line-height: 1.5;
-      word-wrap: break-word;
-      text-align: left;
     }
 
-    .body h1 {
+    body {
       margin: 0;
-      font-size: 200%;
-      color: rgb(42, 65, 83);
-      border-radius: 6px;
-      word-wrap: break-word;
-      text-align: left;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
     }
 
-    .body h2, h3, h4, h5 {
-      margin: 0;
-      font-size: 150%;
-      color: rgb(42, 65, 83);
-      border-radius: 6px;
-      word-wrap: break-word;
-      text-align: left;
+    .container {
+      display: flex;
+      min-height: 100vh;
     }
 
-    .body li {
-      text-align: left;
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 1000;
+      transition: transform 0.3s ease;
     }
 
-    .body strong {
-      color: rgb(42, 65, 83);
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
     }
 
-    .body a {
-      color: #0969da;
-      font-weight: bold;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
       text-decoration: none;
+      color: var(--text-primary);
     }
 
-    .body a:hover {
-      color: LightGrey;
+    .logo img {
+      width: 120px;
+      height: auto;
+    }
+
+
+    .nav-section {
+      margin-bottom: 1rem;
+    }
+
+    .nav-section-title {
+      padding: 0.5rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background-color: var(--bg-tertiary);
+    }
+
+    .nav-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .nav-links li {
+      margin: 0;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 0.5rem 1.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-links a:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-left-color: var(--primary-color);
+    }
+
+    .nav-links a.active {
+      background-color: var(--bg-primary);
+      color: var(--primary-color);
+      border-left-color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+    }
+
+
+    .content-body {
+      padding: 2rem;
+      max-width: 800px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.25rem;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+    }
+
+    h4 {
+      font-size: 1.25rem;
+    }
+
+    h5, h6 {
+      font-size: 1.125rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: #2d3748;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      font-size: 0.875rem;
+      line-height: 1.5;
     }
 
     code {
-      padding: .5em 1em;
-      font-size: 95%;
-      color: #F5F5F5;
-      background-color: rgb(42, 65, 83);
-      border-radius: 6px;
-      overflow: auto;
-      display: block;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background-color: var(--bg-primary);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--bg-secondary);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Blockquotes */
+    blockquote {
+      border-left: 4px solid var(--primary-color);
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Images */
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
     }
 
     .centered {
       text-align: center;
     }
 
-    img:not(.no-center), 
-    svg:not(.no-center) {
-      display: block;
-      margin: 1em auto;
-      max-width: 100%;
-      height: auto;
-    }
-
-    img.no-center, 
-    svg.no-center {
-      display: inline;
-      margin: 0;
-    }
-
-    .otherimgs {
+    .badges {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1rem 0;
     }
 
-    .otherimgs img {
-      display: inline-block;
-      height: auto;
-      margin: 0;
+    .badges img {
+      height: 22px;
+      width: auto;
     }
 
-    .body .navbar {
-      padding:8px 16px;
-      float:right;
-      width:auto;
-      border:none;
-      display:block;
-      outline:0;
-      color: LightGrey;
+    /* Mobile menu toggle */
+    .mobile-menu-toggle {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 1001;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.5rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
     }
 
-    .logofavicon {
-      vertical-align: middle;
-    }
-
-    .body .repotitle {
-      float: left;
-      text-align: left;
-    }
-
-    strong.nameRepo {
-      color: rgb(42, 65, 83);
-    }
-
-    .body .navbar:hover {
-      color: rgb(42, 65, 83);
-    }
-
-    .csl-entry {
-      display: flex;
-      margin-top: 15px;
-    }
-
-    #references {
-      margin-bottom: 0.5em;
-    }
-
-    .csl-left-margin {
-      margin-right: 10px;
-    }
-
-    .custom-spacer {
-      display: block;
-      height: 1em;
-    }
-
-    @media (max-width: 767px) {
-      .body {
-        padding: 15px;
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
       }
-      p {
-        overflow-x: auto;
+
+      .sidebar.open {
+        transform: translateX(0);
       }
-      p span.math.display {
-        display: inline-block;
-        overflow-x: auto;
-        white-space: nowrap;
+
+      .main-content {
+        margin-left: 0;
       }
+
+      .mobile-menu-toggle {
+        display: block;
+      }
+
+
+      .content-body {
+        padding: 1rem;
+      }
+
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.2s ease;
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--primary-hover);
+      transform: scale(1.1);
+    }
+
+    /* Print styles */
+    @media print {
+      .sidebar,
+      .mobile-menu-toggle,
+      .theme-toggle {
+        display: none;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
     }
   </style>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    
+    
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
-<article class="body">
-<a class="navbar" href="https://umbralcalc.github.io/stochadex">
-Home
-</a>
-<a class="navbar" href="https://umbralcalc.github.io/stochadex/pages/quickstart.html">
-Quickstart
-</a>
-<div class="repotitle">
-<span class="logofavicon"> <img src="../assets/logo.png" width="120"></img></span>
-</div>
-</br>
-</br>
-</br>
-<!-- Code generated by gomarkdoc. DO NOT EDIT -->
-<h1 id="inference">inference</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="st">&quot;github.com/umbralcalc/stochadex/pkg/inference&quot;</span></span></code></pre></div>
-<p>Package inference provides statistical inference and likelihood
-modeling capabilities for stochadex simulations. It includes probability
-distributions, likelihood functions, gradient computation, and Bayesian
-inference utilities for parameter estimation and model validation.</p>
-<p>Key Features:</p>
-<ul>
-<li>Probability distribution implementations (Beta, Gamma, Normal,
-Poisson, etc.)</li>
-<li>Likelihood function evaluation and gradient computation</li>
-<li>Bayesian inference with posterior estimation</li>
-<li>Parameter estimation and optimization support</li>
-<li>Model comparison and validation utilities</li>
-</ul>
-<p>Mathematical Background: The package implements various probability
-distributions and their associated likelihood functions for use in
-Bayesian inference. Key distributions include:</p>
-<ul>
-<li>Normal distributions for continuous variables</li>
-<li>Poisson distributions for count data</li>
-<li>Gamma distributions for positive continuous variables</li>
-<li>Beta distributions for bounded continuous variables</li>
-</ul>
-<p>Usage Patterns:</p>
-<ul>
-<li>Fit models to observed data using maximum likelihood estimation</li>
-<li>Perform Bayesian parameter estimation with prior distributions</li>
-<li>Compare models using likelihood ratios or information criteria</li>
-<li>Validate model assumptions through posterior predictive checks</li>
-</ul>
-<p>- Statistical hypothesis testing and model comparison</p>
-<p>- Statistical hypothesis testing and model comparison</p>
-<p>- Statistical hypothesis testing and model comparison</p>
-<p>- Statistical hypothesis testing and model comparison</p>
-<h2 id="index">Index</h2>
-<ul>
-<li><a href="#CovarianceMatrixFromParams">func
-CovarianceMatrixFromParams(params *simulator.Params)
-*mat.SymDense</a></li>
-<li><a href="#CovarianceMatrixFromParamsOrPartition">func
-CovarianceMatrixFromParamsOrPartition(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory)
-*mat.SymDense</a></li>
-<li><a href="#CovarianceMatrixFromPartition">func
-CovarianceMatrixFromPartition(params *simulator.Params, partitionIndex
-int, stateHistories []*simulator.StateHistory) *mat.SymDense</a></li>
-<li><a href="#CovarianceMatrixVarianceFromParams">func
-CovarianceMatrixVarianceFromParams(params *simulator.Params)
-*mat.SymDense</a></li>
-<li><a href="#CovarianceMatrixVarianceFromPartition">func
-CovarianceMatrixVarianceFromPartition(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory)
-*mat.SymDense</a></li>
-<li><a href="#MeanFromParams">func MeanFromParams(params
-*simulator.Params) *mat.VecDense</a></li>
-<li><a href="#MeanFromParamsOrPartition">func
-MeanFromParamsOrPartition(params *simulator.Params, partitionIndex int,
-stateHistories []*simulator.StateHistory) *mat.VecDense</a></li>
-<li><a href="#MeanFromPartition">func MeanFromPartition(params
-*simulator.Params, partitionIndex int, stateHistories
-[]*simulator.StateHistory) *mat.VecDense</a></li>
-<li><a href="#MeanGradientFunc">func MeanGradientFunc(params
-*simulator.Params, likeMeanGrad []float64) []float64</a></li>
-<li><a href="#MeanTransform">func MeanTransform(params
-*simulator.Params, values mat.Vector) mat.Vector</a></li>
-<li><a href="#VarianceFromParams">func VarianceFromParams(params
-*simulator.Params) *mat.VecDense</a></li>
-<li><a href="#VarianceFromParamsOrPartition">func
-VarianceFromParamsOrPartition(params *simulator.Params, partitionIndex
-int, stateHistories []*simulator.StateHistory) *mat.VecDense</a></li>
-<li><a href="#VarianceFromPartition">func VarianceFromPartition(params
-*simulator.Params, partitionIndex int, stateHistories
-[]*simulator.StateHistory) *mat.VecDense</a></li>
-<li><a href="#VarianceTransform">func VarianceTransform(params
-*simulator.Params, values mat.Vector) mat.Vector</a></li>
-<li><a href="#BetaLikelihoodDistribution">type
-BetaLikelihoodDistribution</a>
-<ul>
-<li><a href="#BetaLikelihoodDistribution.EvaluateLogLike">func (b
-*BetaLikelihoodDistribution) EvaluateLogLike(data []float64)
-float64</a></li>
-<li><a href="#BetaLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
-(b *BetaLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64)
-[]float64</a></li>
-<li><a href="#BetaLikelihoodDistribution.GenerateNewSamples">func (b
-*BetaLikelihoodDistribution) GenerateNewSamples() []float64</a></li>
-<li><a href="#BetaLikelihoodDistribution.SetParams">func (b
-*BetaLikelihoodDistribution) SetParams(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
-<li><a href="#BetaLikelihoodDistribution.SetSeed">func (b
-*BetaLikelihoodDistribution) SetSeed(partitionIndex int, settings
-*simulator.Settings)</a></li>
-</ul></li>
-<li><a href="#DataComparisonGradientIteration">type
-DataComparisonGradientIteration</a>
-<ul>
-<li><a href="#DataComparisonGradientIteration.Configure">func (d
-*DataComparisonGradientIteration) Configure(partitionIndex int, settings
-*simulator.Settings)</a></li>
-<li><a href="#DataComparisonGradientIteration.Iterate">func (d
-*DataComparisonGradientIteration) Iterate(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)
-[]float64</a></li>
-<li><a href="#DataComparisonGradientIteration.UpdateMemory">func (d
-*DataComparisonGradientIteration) UpdateMemory(params *simulator.Params,
-update general.StateMemoryUpdate)</a></li>
-</ul></li>
-<li><a href="#DataComparisonIteration">type DataComparisonIteration</a>
-<ul>
-<li><a href="#DataComparisonIteration.Configure">func (d
-*DataComparisonIteration) Configure(partitionIndex int, settings
-*simulator.Settings)</a></li>
-<li><a href="#DataComparisonIteration.Iterate">func (d
-*DataComparisonIteration) Iterate(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)
-[]float64</a></li>
-</ul></li>
-<li><a href="#DataGenerationIteration">type DataGenerationIteration</a>
-<ul>
-<li><a href="#DataGenerationIteration.Configure">func (d
-*DataGenerationIteration) Configure(partitionIndex int, settings
-*simulator.Settings)</a></li>
-<li><a href="#DataGenerationIteration.Iterate">func (d
-*DataGenerationIteration) Iterate(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)
-[]float64</a></li>
-</ul></li>
-<li><a href="#GammaLikelihoodDistribution">type
-GammaLikelihoodDistribution</a>
-<ul>
-<li><a href="#GammaLikelihoodDistribution.EvaluateLogLike">func (g
-*GammaLikelihoodDistribution) EvaluateLogLike(data []float64)
-float64</a></li>
-<li><a href="#GammaLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
-(g *GammaLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64)
-[]float64</a></li>
-<li><a href="#GammaLikelihoodDistribution.GenerateNewSamples">func (g
-*GammaLikelihoodDistribution) GenerateNewSamples() []float64</a></li>
-<li><a href="#GammaLikelihoodDistribution.SetParams">func (g
-*GammaLikelihoodDistribution) SetParams(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
-<li><a href="#GammaLikelihoodDistribution.SetSeed">func (g
-*GammaLikelihoodDistribution) SetSeed(partitionIndex int, settings
-*simulator.Settings)</a></li>
-</ul></li>
-<li><a href="#LikelihoodDistribution">type
-LikelihoodDistribution</a></li>
-<li><a href="#LikelihoodDistributionWithGradient">type
-LikelihoodDistributionWithGradient</a></li>
-<li><a href="#NegativeBinomialLikelihoodDistribution">type
-NegativeBinomialLikelihoodDistribution</a>
-<ul>
-<li><a
-href="#NegativeBinomialLikelihoodDistribution.EvaluateLogLike">func (n
-*NegativeBinomialLikelihoodDistribution) EvaluateLogLike(data []float64)
-float64</a></li>
-<li><a
-href="#NegativeBinomialLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
-(n *NegativeBinomialLikelihoodDistribution) EvaluateLogLikeMeanGrad(data
-[]float64) []float64</a></li>
-<li><a
-href="#NegativeBinomialLikelihoodDistribution.GenerateNewSamples">func
-(n *NegativeBinomialLikelihoodDistribution) GenerateNewSamples()
-[]float64</a></li>
-<li><a href="#NegativeBinomialLikelihoodDistribution.SetParams">func (n
-*NegativeBinomialLikelihoodDistribution) SetParams(params
-*simulator.Params, partitionIndex int, stateHistories
-[]*simulator.StateHistory, timestepsHistory
-*simulator.CumulativeTimestepsHistory)</a></li>
-<li><a href="#NegativeBinomialLikelihoodDistribution.SetSeed">func (n
-*NegativeBinomialLikelihoodDistribution) SetSeed(partitionIndex int,
-settings *simulator.Settings)</a></li>
-</ul></li>
-<li><a href="#NormalLikelihoodDistribution">type
-NormalLikelihoodDistribution</a>
-<ul>
-<li><a href="#NormalLikelihoodDistribution.EvaluateLogLike">func (n
-*NormalLikelihoodDistribution) EvaluateLogLike(data []float64)
-float64</a></li>
-<li><a href="#NormalLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
-(n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(data
-[]float64) []float64</a></li>
-<li><a href="#NormalLikelihoodDistribution.GenerateNewSamples">func (n
-*NormalLikelihoodDistribution) GenerateNewSamples() []float64</a></li>
-<li><a href="#NormalLikelihoodDistribution.SetParams">func (n
-*NormalLikelihoodDistribution) SetParams(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
-<li><a href="#NormalLikelihoodDistribution.SetSeed">func (n
-*NormalLikelihoodDistribution) SetSeed(partitionIndex int, settings
-*simulator.Settings)</a></li>
-</ul></li>
-<li><a href="#PoissonLikelihoodDistribution">type
-PoissonLikelihoodDistribution</a>
-<ul>
-<li><a href="#PoissonLikelihoodDistribution.EvaluateLogLike">func (p
-*PoissonLikelihoodDistribution) EvaluateLogLike(data []float64)
-float64</a></li>
-<li><a
-href="#PoissonLikelihoodDistribution.EvaluateLogLikeMeanGrad">func (p
-*PoissonLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64)
-[]float64</a></li>
-<li><a href="#PoissonLikelihoodDistribution.GenerateNewSamples">func (p
-*PoissonLikelihoodDistribution) GenerateNewSamples() []float64</a></li>
-<li><a href="#PoissonLikelihoodDistribution.SetParams">func (p
-*PoissonLikelihoodDistribution) SetParams(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
-<li><a href="#PoissonLikelihoodDistribution.SetSeed">func (p
-*PoissonLikelihoodDistribution) SetSeed(partitionIndex int, settings
-*simulator.Settings)</a></li>
-</ul></li>
-<li><a href="#PosteriorCovarianceIteration">type
-PosteriorCovarianceIteration</a>
-<ul>
-<li><a href="#PosteriorCovarianceIteration.Configure">func (p
-*PosteriorCovarianceIteration) Configure(partitionIndex int, settings
-*simulator.Settings)</a></li>
-<li><a href="#PosteriorCovarianceIteration.Iterate">func (p
-*PosteriorCovarianceIteration) Iterate(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)
-[]float64</a></li>
-</ul></li>
-<li><a href="#PosteriorLogNormalisationIteration">type
-PosteriorLogNormalisationIteration</a>
-<ul>
-<li><a href="#PosteriorLogNormalisationIteration.Configure">func (p
-*PosteriorLogNormalisationIteration) Configure(partitionIndex int,
-settings *simulator.Settings)</a></li>
-<li><a href="#PosteriorLogNormalisationIteration.Iterate">func (p
-*PosteriorLogNormalisationIteration) Iterate(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)
-[]float64</a></li>
-</ul></li>
-<li><a href="#PosteriorMeanIteration">type PosteriorMeanIteration</a>
-<ul>
-<li><a href="#PosteriorMeanIteration.Configure">func (p
-*PosteriorMeanIteration) Configure(partitionIndex int, settings
-*simulator.Settings)</a></li>
-<li><a href="#PosteriorMeanIteration.Iterate">func (p
-*PosteriorMeanIteration) Iterate(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)
-[]float64</a></li>
-</ul></li>
-<li><a href="#TLikelihoodDistribution">type TLikelihoodDistribution</a>
-<ul>
-<li><a href="#TLikelihoodDistribution.EvaluateLogLike">func (t
-*TLikelihoodDistribution) EvaluateLogLike(data []float64)
-float64</a></li>
-<li><a href="#TLikelihoodDistribution.EvaluateLogLikeMeanGrad">func (t
-*TLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64)
-[]float64</a></li>
-<li><a href="#TLikelihoodDistribution.GenerateNewSamples">func (t
-*TLikelihoodDistribution) GenerateNewSamples() []float64</a></li>
-<li><a href="#TLikelihoodDistribution.SetParams">func (t
-*TLikelihoodDistribution) SetParams(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
-<li><a href="#TLikelihoodDistribution.SetSeed">func (t
-*TLikelihoodDistribution) SetSeed(partitionIndex int, settings
-*simulator.Settings)</a></li>
-</ul></li>
-<li><a href="#WishartLikelihoodDistribution">type
-WishartLikelihoodDistribution</a>
-<ul>
-<li><a href="#WishartLikelihoodDistribution.EvaluateLogLike">func (w
-*WishartLikelihoodDistribution) EvaluateLogLike(data []float64)
-float64</a></li>
-<li><a
-href="#WishartLikelihoodDistribution.EvaluateLogLikeMeanGrad">func (w
-*WishartLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64)
-[]float64</a></li>
-<li><a href="#WishartLikelihoodDistribution.GenerateNewSamples">func (w
-*WishartLikelihoodDistribution) GenerateNewSamples() []float64</a></li>
-<li><a href="#WishartLikelihoodDistribution.SetParams">func (w
-*WishartLikelihoodDistribution) SetParams(params *simulator.Params,
-partitionIndex int, stateHistories []*simulator.StateHistory,
-timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
-<li><a href="#WishartLikelihoodDistribution.SetSeed">func (w
-*WishartLikelihoodDistribution) SetSeed(partitionIndex int, settings
-*simulator.Settings)</a></li>
-</ul></li>
-</ul>
-<p><a name="CovarianceMatrixFromParams"></a></p>
-<h2 id="func-covariancematrixfromparams">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L129">CovarianceMatrixFromParams</a></h2>
-<div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixFromParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
-<p>CovarianceMatrixFromParams retrieves the covariance matrix from
-params.</p>
-<p><a name="CovarianceMatrixFromParamsOrPartition"></a></p>
-<h2 id="func-covariancematrixfromparamsorpartition">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L159-L163">CovarianceMatrixFromParamsOrPartition</a></h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixFromParamsOrPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
-<p>CovarianceMatrixFromParamsOrPartition retrieves the covariance matrix
-from params or indexed partition value, depending on which is set.</p>
-<p><a name="CovarianceMatrixFromPartition"></a></p>
-<h2 id="func-covariancematrixfrompartition">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L89-L93">CovarianceMatrixFromPartition</a></h2>
-<div class="sourceCode" id="cb4"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixFromPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
-<p>CovarianceMatrixFromPartition retrieves the covariance matrix from an
-indexed partition value.</p>
-<p><a name="CovarianceMatrixVarianceFromParams"></a></p>
-<h2 id="func-covariancematrixvariancefromparams">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L138">CovarianceMatrixVarianceFromParams</a></h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixVarianceFromParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
-<p>CovarianceMatrixVarianceFromParams retrieves the covariance matrix
-from variance params.</p>
-<p><a name="CovarianceMatrixVarianceFromPartition"></a></p>
-<h2 id="func-covariancematrixvariancefrompartition">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L104-L108">CovarianceMatrixVarianceFromPartition</a></h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixVarianceFromPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
-<p>CovarianceMatrixVarianceFromPartition retrieves the covariance matrix
-from an indexed partition value for the variance.</p>
-<p><a name="MeanFromParams"></a></p>
-<h2 id="func-meanfromparams">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L22">MeanFromParams</a></h2>
-<div class="sourceCode" id="cb7"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanFromParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
-<p>MeanFromParams retrieves the mean from params.</p>
-<p><a name="MeanFromParamsOrPartition"></a></p>
-<h2 id="func-meanfromparamsorpartition">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L29-L33">MeanFromParamsOrPartition</a></h2>
-<div class="sourceCode" id="cb8"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanFromParamsOrPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
-<p>MeanFromParamsOrPartition retrieves the mean from params or indexed
-partition value, depending on which is set.</p>
-<p><a name="MeanFromPartition"></a></p>
-<h2 id="func-meanfrompartition">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L11-L15">MeanFromPartition</a></h2>
-<div class="sourceCode" id="cb9"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanFromPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
-<p>MeanFromPartition retrieves the mean from an indexed partition
-value.</p>
-<p><a name="MeanGradientFunc"></a></p>
-<h2 id="func-meangradientfunc">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L10-L13">MeanGradientFunc</a></h2>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanGradientFunc<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> likeMeanGrad <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p>MeanGradientFunc computes the gradient with respect to the mean
-directly.</p>
-<p><a name="MeanTransform"></a></p>
-<h2 id="func-meantransform">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L26-L29">MeanTransform</a></h2>
-<div class="sourceCode" id="cb11"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanTransform<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> values mat<span class="op">.</span>Vector<span class="op">)</span> mat<span class="op">.</span>Vector</span></code></pre></div>
-<p>MeanTransform returns the values needed to compute the mean.</p>
-<p><a name="VarianceFromParams"></a></p>
-<h2 id="func-variancefromparams">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L61">VarianceFromParams</a></h2>
-<div class="sourceCode" id="cb12"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> VarianceFromParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
-<p>VarianceFromParams retrieves the variance from params.</p>
-<p><a name="VarianceFromParamsOrPartition"></a></p>
-<h2 id="func-variancefromparamsorpartition">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L68-L72">VarianceFromParamsOrPartition</a></h2>
-<div class="sourceCode" id="cb13"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> VarianceFromParamsOrPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
-<p>VarianceFromParamsOrPartition retrieves the variance from params or
-indexed partition value, depending on which is set.</p>
-<p><a name="VarianceFromPartition"></a></p>
-<h2 id="func-variancefrompartition">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L50-L54">VarianceFromPartition</a></h2>
-<div class="sourceCode" id="cb14"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> VarianceFromPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
-<p>VarianceFromPartition retrieves the variance from from an indexed
-partition value.</p>
-<p><a name="VarianceTransform"></a></p>
-<h2 id="func-variancetransform">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L12-L15">VarianceTransform</a></h2>
-<div class="sourceCode" id="cb15"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> VarianceTransform<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> values mat<span class="op">.</span>Vector<span class="op">)</span> mat<span class="op">.</span>Vector</span></code></pre></div>
-<p>VarianceTransform returns the values needed to compute the
-variance.</p>
-<p><a name="BetaLikelihoodDistribution"></a></p>
-<h2 id="type-betalikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L66-L70">BetaLikelihoodDistribution</a></h2>
-<p>BetaLikelihoodDistribution implements a Beta distribution likelihood
-model for bounded continuous data analysis and parameter estimation.</p>
-<p>The Beta distribution is particularly useful for modeling data that
-is bounded between 0 and 1, such as proportions, probabilities, rates,
-and normalized measurements. It provides flexible shape modeling through
-its two shape parameters α (alpha) and β (beta).</p>
-<p>Mathematical Background: The Beta distribution Beta(α, β) has
-probability density function:</p>
-<pre><code>f(x | α, β) = x^(α-1) * (1-x)^(β-1) / B(α, β)</code></pre>
-<p>where B(α, β) is the Beta function, and x ∈ [0, 1].</p>
-<p>Key Properties:</p>
-<ul>
-<li>Support: x ∈ [0, 1] (bounded continuous)</li>
-<li>Shape parameters: α &gt; 0, β &gt; 0 (both must be positive)</li>
-<li>Mean: E[X] = α / (α + β)</li>
-<li>Variance: Var[X] = (α * β) / ((α + β)² * (α + β + 1))</li>
-<li>Special cases:</li>
-<li>α = β = 1: Uniform distribution on [0, 1]</li>
-<li>α = 1, β = 1: Uniform distribution</li>
-<li>α &gt; 1, β &gt; 1: Bell-shaped distribution</li>
-<li>α &lt; 1, β &lt; 1: U-shaped distribution</li>
-</ul>
-<p>Applications:</p>
-<ul>
-<li>Proportion modeling: Success rates, conversion rates, market
-shares</li>
-<li>Probability estimation: Bayesian inference with Beta priors</li>
-<li>Quality control: Defect rates, pass/fail proportions</li>
-<li>Financial modeling: Recovery rates, default probabilities</li>
-<li>Machine learning: Classification confidence scores</li>
-</ul>
-<p>Parameter Configuration: The distribution can be configured in two
-ways:</p>
-<ol type="1">
-<li>Direct parameters: Provide “alpha” and “beta” parameters
-directly</li>
-<li>Mean-variance: Provide “mean” and “variance” parameters for
-automatic conversion</li>
-</ol>
-<p>Example:</p>
-<pre><code>dist := &amp;BetaLikelihoodDistribution{}
+
+<body>
+  <!-- Mobile menu toggle -->
+  <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">
+        <img src="../assets/logo.png" alt="Stochadex Logo">
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Getting Started</div>
+      <ul class="nav-links">
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="../pages/quickstart.html">Quickstart</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Fundamentals</div>
+      <ul class="nav-links">
+        <li><a href="../pages/introducing_the_stochadocs.html">Introducing the Stochadocs</a></li>
+        <li><a href="../pages/the_building_blocks_of_simulations.html">Building Blocks</a></li>
+        <li><a href="../pages/understanding_probabilities_in_simulations.html">Understanding Probabilities</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Examples</div>
+      <ul class="nav-links">
+        <li><a href="../pages/simulating_memoryless_phenomena.html">Memoryless Phenomena</a></li>
+        <li><a href="../pages/simulating_non_memoryless_phenomena.html">Non-Memoryless Phenomena</a></li>
+        <li><a href="../pages/machine_learning_with_probabilistic_reweighting.html">ML with Probabilistic Reweighting</a></li>
+        <li><a href="../pages/machine_learning_with_generalised_linear_models.html">ML with GLMs</a></li>
+        <li><a href="../pages/learning_simulations_directly_with_online_posterior_estimation.html">Online Posterior Estimation</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">API Reference</div>
+      <ul class="nav-links">
+        <li><a href="../pkg/analysis.html">Analysis</a></li>
+        <li><a href="../pkg/api.html">API</a></li>
+        <li><a href="../pkg/continuous.html">Continuous</a></li>
+        <li><a href="../pkg/discrete.html">Discrete</a></li>
+        <li><a href="../pkg/general.html">General</a></li>
+        <li><a href="../pkg/inference.html">Inference</a></li>
+        <li><a href="../pkg/kernels.html">Kernels</a></li>
+        <li><a href="../pkg/keyboard.html">Keyboard</a></li>
+        <li><a href="../pkg/simulator.html">Simulator</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div class="content-body">
+      <!-- Code generated by gomarkdoc. DO NOT EDIT -->
+      <h1 id="inference">inference</h1>
+      <div class="sourceCode" id="cb1"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="st">&quot;github.com/umbralcalc/stochadex/pkg/inference&quot;</span></span></code></pre></div>
+      <p>Package inference provides statistical inference and likelihood
+      modeling capabilities for stochadex simulations. It includes
+      probability distributions, likelihood functions, gradient
+      computation, and Bayesian inference utilities for parameter
+      estimation and model validation.</p>
+      <p>Key Features:</p>
+      <ul>
+      <li>Probability distribution implementations (Beta, Gamma, Normal,
+      Poisson, etc.)</li>
+      <li>Likelihood function evaluation and gradient computation</li>
+      <li>Bayesian inference with posterior estimation</li>
+      <li>Parameter estimation and optimization support</li>
+      <li>Model comparison and validation utilities</li>
+      </ul>
+      <p>Mathematical Background: The package implements various
+      probability distributions and their associated likelihood
+      functions for use in Bayesian inference. Key distributions
+      include:</p>
+      <ul>
+      <li>Normal distributions for continuous variables</li>
+      <li>Poisson distributions for count data</li>
+      <li>Gamma distributions for positive continuous variables</li>
+      <li>Beta distributions for bounded continuous variables</li>
+      </ul>
+      <p>Usage Patterns:</p>
+      <ul>
+      <li>Fit models to observed data using maximum likelihood
+      estimation</li>
+      <li>Perform Bayesian parameter estimation with prior
+      distributions</li>
+      <li>Compare models using likelihood ratios or information
+      criteria</li>
+      <li>Validate model assumptions through posterior predictive
+      checks</li>
+      </ul>
+      <p>- Statistical hypothesis testing and model comparison</p>
+      <p>- Statistical hypothesis testing and model comparison</p>
+      <p>- Statistical hypothesis testing and model comparison</p>
+      <p>- Statistical hypothesis testing and model comparison</p>
+      <h2 id="index">Index</h2>
+      <ul>
+      <li><a href="#CovarianceMatrixFromParams">func
+      CovarianceMatrixFromParams(params *simulator.Params)
+      *mat.SymDense</a></li>
+      <li><a href="#CovarianceMatrixFromParamsOrPartition">func
+      CovarianceMatrixFromParamsOrPartition(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory)
+      *mat.SymDense</a></li>
+      <li><a href="#CovarianceMatrixFromPartition">func
+      CovarianceMatrixFromPartition(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory)
+      *mat.SymDense</a></li>
+      <li><a href="#CovarianceMatrixVarianceFromParams">func
+      CovarianceMatrixVarianceFromParams(params *simulator.Params)
+      *mat.SymDense</a></li>
+      <li><a href="#CovarianceMatrixVarianceFromPartition">func
+      CovarianceMatrixVarianceFromPartition(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory)
+      *mat.SymDense</a></li>
+      <li><a href="#MeanFromParams">func MeanFromParams(params
+      *simulator.Params) *mat.VecDense</a></li>
+      <li><a href="#MeanFromParamsOrPartition">func
+      MeanFromParamsOrPartition(params *simulator.Params, partitionIndex
+      int, stateHistories []*simulator.StateHistory)
+      *mat.VecDense</a></li>
+      <li><a href="#MeanFromPartition">func MeanFromPartition(params
+      *simulator.Params, partitionIndex int, stateHistories
+      []*simulator.StateHistory) *mat.VecDense</a></li>
+      <li><a href="#MeanGradientFunc">func MeanGradientFunc(params
+      *simulator.Params, likeMeanGrad []float64) []float64</a></li>
+      <li><a href="#MeanTransform">func MeanTransform(params
+      *simulator.Params, values mat.Vector) mat.Vector</a></li>
+      <li><a href="#VarianceFromParams">func VarianceFromParams(params
+      *simulator.Params) *mat.VecDense</a></li>
+      <li><a href="#VarianceFromParamsOrPartition">func
+      VarianceFromParamsOrPartition(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory)
+      *mat.VecDense</a></li>
+      <li><a href="#VarianceFromPartition">func
+      VarianceFromPartition(params *simulator.Params, partitionIndex
+      int, stateHistories []*simulator.StateHistory)
+      *mat.VecDense</a></li>
+      <li><a href="#VarianceTransform">func VarianceTransform(params
+      *simulator.Params, values mat.Vector) mat.Vector</a></li>
+      <li><a href="#BetaLikelihoodDistribution">type
+      BetaLikelihoodDistribution</a>
+      <ul>
+      <li><a href="#BetaLikelihoodDistribution.EvaluateLogLike">func (b
+      *BetaLikelihoodDistribution) EvaluateLogLike(data []float64)
+      float64</a></li>
+      <li><a
+      href="#BetaLikelihoodDistribution.EvaluateLogLikeMeanGrad">func (b
+      *BetaLikelihoodDistribution) EvaluateLogLikeMeanGrad(data
+      []float64) []float64</a></li>
+      <li><a href="#BetaLikelihoodDistribution.GenerateNewSamples">func
+      (b *BetaLikelihoodDistribution) GenerateNewSamples()
+      []float64</a></li>
+      <li><a href="#BetaLikelihoodDistribution.SetParams">func (b
+      *BetaLikelihoodDistribution) SetParams(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
+      <li><a href="#BetaLikelihoodDistribution.SetSeed">func (b
+      *BetaLikelihoodDistribution) SetSeed(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      </ul></li>
+      <li><a href="#DataComparisonGradientIteration">type
+      DataComparisonGradientIteration</a>
+      <ul>
+      <li><a href="#DataComparisonGradientIteration.Configure">func (d
+      *DataComparisonGradientIteration) Configure(partitionIndex int,
+      settings *simulator.Settings)</a></li>
+      <li><a href="#DataComparisonGradientIteration.Iterate">func (d
+      *DataComparisonGradientIteration) Iterate(params
+      *simulator.Params, partitionIndex int, stateHistories
+      []*simulator.StateHistory, timestepsHistory
+      *simulator.CumulativeTimestepsHistory) []float64</a></li>
+      <li><a href="#DataComparisonGradientIteration.UpdateMemory">func
+      (d *DataComparisonGradientIteration) UpdateMemory(params
+      *simulator.Params, update general.StateMemoryUpdate)</a></li>
+      </ul></li>
+      <li><a href="#DataComparisonIteration">type
+      DataComparisonIteration</a>
+      <ul>
+      <li><a href="#DataComparisonIteration.Configure">func (d
+      *DataComparisonIteration) Configure(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      <li><a href="#DataComparisonIteration.Iterate">func (d
+      *DataComparisonIteration) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      <li><a href="#DataGenerationIteration">type
+      DataGenerationIteration</a>
+      <ul>
+      <li><a href="#DataGenerationIteration.Configure">func (d
+      *DataGenerationIteration) Configure(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      <li><a href="#DataGenerationIteration.Iterate">func (d
+      *DataGenerationIteration) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      <li><a href="#GammaLikelihoodDistribution">type
+      GammaLikelihoodDistribution</a>
+      <ul>
+      <li><a href="#GammaLikelihoodDistribution.EvaluateLogLike">func (g
+      *GammaLikelihoodDistribution) EvaluateLogLike(data []float64)
+      float64</a></li>
+      <li><a
+      href="#GammaLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
+      (g *GammaLikelihoodDistribution) EvaluateLogLikeMeanGrad(data
+      []float64) []float64</a></li>
+      <li><a href="#GammaLikelihoodDistribution.GenerateNewSamples">func
+      (g *GammaLikelihoodDistribution) GenerateNewSamples()
+      []float64</a></li>
+      <li><a href="#GammaLikelihoodDistribution.SetParams">func (g
+      *GammaLikelihoodDistribution) SetParams(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
+      <li><a href="#GammaLikelihoodDistribution.SetSeed">func (g
+      *GammaLikelihoodDistribution) SetSeed(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      </ul></li>
+      <li><a href="#LikelihoodDistribution">type
+      LikelihoodDistribution</a></li>
+      <li><a href="#LikelihoodDistributionWithGradient">type
+      LikelihoodDistributionWithGradient</a></li>
+      <li><a href="#NegativeBinomialLikelihoodDistribution">type
+      NegativeBinomialLikelihoodDistribution</a>
+      <ul>
+      <li><a
+      href="#NegativeBinomialLikelihoodDistribution.EvaluateLogLike">func
+      (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLike(data
+      []float64) float64</a></li>
+      <li><a
+      href="#NegativeBinomialLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
+      (n *NegativeBinomialLikelihoodDistribution)
+      EvaluateLogLikeMeanGrad(data []float64) []float64</a></li>
+      <li><a
+      href="#NegativeBinomialLikelihoodDistribution.GenerateNewSamples">func
+      (n *NegativeBinomialLikelihoodDistribution) GenerateNewSamples()
+      []float64</a></li>
+      <li><a
+      href="#NegativeBinomialLikelihoodDistribution.SetParams">func (n
+      *NegativeBinomialLikelihoodDistribution) SetParams(params
+      *simulator.Params, partitionIndex int, stateHistories
+      []*simulator.StateHistory, timestepsHistory
+      *simulator.CumulativeTimestepsHistory)</a></li>
+      <li><a href="#NegativeBinomialLikelihoodDistribution.SetSeed">func
+      (n *NegativeBinomialLikelihoodDistribution) SetSeed(partitionIndex
+      int, settings *simulator.Settings)</a></li>
+      </ul></li>
+      <li><a href="#NormalLikelihoodDistribution">type
+      NormalLikelihoodDistribution</a>
+      <ul>
+      <li><a href="#NormalLikelihoodDistribution.EvaluateLogLike">func
+      (n *NormalLikelihoodDistribution) EvaluateLogLike(data []float64)
+      float64</a></li>
+      <li><a
+      href="#NormalLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
+      (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(data
+      []float64) []float64</a></li>
+      <li><a
+      href="#NormalLikelihoodDistribution.GenerateNewSamples">func (n
+      *NormalLikelihoodDistribution) GenerateNewSamples()
+      []float64</a></li>
+      <li><a href="#NormalLikelihoodDistribution.SetParams">func (n
+      *NormalLikelihoodDistribution) SetParams(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
+      <li><a href="#NormalLikelihoodDistribution.SetSeed">func (n
+      *NormalLikelihoodDistribution) SetSeed(partitionIndex int,
+      settings *simulator.Settings)</a></li>
+      </ul></li>
+      <li><a href="#PoissonLikelihoodDistribution">type
+      PoissonLikelihoodDistribution</a>
+      <ul>
+      <li><a href="#PoissonLikelihoodDistribution.EvaluateLogLike">func
+      (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64)
+      float64</a></li>
+      <li><a
+      href="#PoissonLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
+      (p *PoissonLikelihoodDistribution) EvaluateLogLikeMeanGrad(data
+      []float64) []float64</a></li>
+      <li><a
+      href="#PoissonLikelihoodDistribution.GenerateNewSamples">func (p
+      *PoissonLikelihoodDistribution) GenerateNewSamples()
+      []float64</a></li>
+      <li><a href="#PoissonLikelihoodDistribution.SetParams">func (p
+      *PoissonLikelihoodDistribution) SetParams(params
+      *simulator.Params, partitionIndex int, stateHistories
+      []*simulator.StateHistory, timestepsHistory
+      *simulator.CumulativeTimestepsHistory)</a></li>
+      <li><a href="#PoissonLikelihoodDistribution.SetSeed">func (p
+      *PoissonLikelihoodDistribution) SetSeed(partitionIndex int,
+      settings *simulator.Settings)</a></li>
+      </ul></li>
+      <li><a href="#PosteriorCovarianceIteration">type
+      PosteriorCovarianceIteration</a>
+      <ul>
+      <li><a href="#PosteriorCovarianceIteration.Configure">func (p
+      *PosteriorCovarianceIteration) Configure(partitionIndex int,
+      settings *simulator.Settings)</a></li>
+      <li><a href="#PosteriorCovarianceIteration.Iterate">func (p
+      *PosteriorCovarianceIteration) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      <li><a href="#PosteriorLogNormalisationIteration">type
+      PosteriorLogNormalisationIteration</a>
+      <ul>
+      <li><a href="#PosteriorLogNormalisationIteration.Configure">func
+      (p *PosteriorLogNormalisationIteration) Configure(partitionIndex
+      int, settings *simulator.Settings)</a></li>
+      <li><a href="#PosteriorLogNormalisationIteration.Iterate">func (p
+      *PosteriorLogNormalisationIteration) Iterate(params
+      *simulator.Params, partitionIndex int, stateHistories
+      []*simulator.StateHistory, timestepsHistory
+      *simulator.CumulativeTimestepsHistory) []float64</a></li>
+      </ul></li>
+      <li><a href="#PosteriorMeanIteration">type
+      PosteriorMeanIteration</a>
+      <ul>
+      <li><a href="#PosteriorMeanIteration.Configure">func (p
+      *PosteriorMeanIteration) Configure(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      <li><a href="#PosteriorMeanIteration.Iterate">func (p
+      *PosteriorMeanIteration) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      <li><a href="#TLikelihoodDistribution">type
+      TLikelihoodDistribution</a>
+      <ul>
+      <li><a href="#TLikelihoodDistribution.EvaluateLogLike">func (t
+      *TLikelihoodDistribution) EvaluateLogLike(data []float64)
+      float64</a></li>
+      <li><a
+      href="#TLikelihoodDistribution.EvaluateLogLikeMeanGrad">func (t
+      *TLikelihoodDistribution) EvaluateLogLikeMeanGrad(data []float64)
+      []float64</a></li>
+      <li><a href="#TLikelihoodDistribution.GenerateNewSamples">func (t
+      *TLikelihoodDistribution) GenerateNewSamples() []float64</a></li>
+      <li><a href="#TLikelihoodDistribution.SetParams">func (t
+      *TLikelihoodDistribution) SetParams(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)</a></li>
+      <li><a href="#TLikelihoodDistribution.SetSeed">func (t
+      *TLikelihoodDistribution) SetSeed(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      </ul></li>
+      <li><a href="#WishartLikelihoodDistribution">type
+      WishartLikelihoodDistribution</a>
+      <ul>
+      <li><a href="#WishartLikelihoodDistribution.EvaluateLogLike">func
+      (w *WishartLikelihoodDistribution) EvaluateLogLike(data []float64)
+      float64</a></li>
+      <li><a
+      href="#WishartLikelihoodDistribution.EvaluateLogLikeMeanGrad">func
+      (w *WishartLikelihoodDistribution) EvaluateLogLikeMeanGrad(data
+      []float64) []float64</a></li>
+      <li><a
+      href="#WishartLikelihoodDistribution.GenerateNewSamples">func (w
+      *WishartLikelihoodDistribution) GenerateNewSamples()
+      []float64</a></li>
+      <li><a href="#WishartLikelihoodDistribution.SetParams">func (w
+      *WishartLikelihoodDistribution) SetParams(params
+      *simulator.Params, partitionIndex int, stateHistories
+      []*simulator.StateHistory, timestepsHistory
+      *simulator.CumulativeTimestepsHistory)</a></li>
+      <li><a href="#WishartLikelihoodDistribution.SetSeed">func (w
+      *WishartLikelihoodDistribution) SetSeed(partitionIndex int,
+      settings *simulator.Settings)</a></li>
+      </ul></li>
+      </ul>
+      <p><a name="CovarianceMatrixFromParams"></a></p>
+      <h2 id="func-covariancematrixfromparams">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L129">CovarianceMatrixFromParams</a></h2>
+      <div class="sourceCode" id="cb2"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixFromParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
+      <p>CovarianceMatrixFromParams retrieves the covariance matrix from
+      params.</p>
+      <p><a name="CovarianceMatrixFromParamsOrPartition"></a></p>
+      <h2 id="func-covariancematrixfromparamsorpartition">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L159-L163">CovarianceMatrixFromParamsOrPartition</a></h2>
+      <div class="sourceCode" id="cb3"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixFromParamsOrPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
+      <p>CovarianceMatrixFromParamsOrPartition retrieves the covariance
+      matrix from params or indexed partition value, depending on which
+      is set.</p>
+      <p><a name="CovarianceMatrixFromPartition"></a></p>
+      <h2 id="func-covariancematrixfrompartition">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L89-L93">CovarianceMatrixFromPartition</a></h2>
+      <div class="sourceCode" id="cb4"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixFromPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
+      <p>CovarianceMatrixFromPartition retrieves the covariance matrix
+      from an indexed partition value.</p>
+      <p><a name="CovarianceMatrixVarianceFromParams"></a></p>
+      <h2 id="func-covariancematrixvariancefromparams">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L138">CovarianceMatrixVarianceFromParams</a></h2>
+      <div class="sourceCode" id="cb5"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixVarianceFromParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
+      <p>CovarianceMatrixVarianceFromParams retrieves the covariance
+      matrix from variance params.</p>
+      <p><a name="CovarianceMatrixVarianceFromPartition"></a></p>
+      <h2 id="func-covariancematrixvariancefrompartition">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L104-L108">CovarianceMatrixVarianceFromPartition</a></h2>
+      <div class="sourceCode" id="cb6"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> CovarianceMatrixVarianceFromPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>SymDense</span></code></pre></div>
+      <p>CovarianceMatrixVarianceFromPartition retrieves the covariance
+      matrix from an indexed partition value for the variance.</p>
+      <p><a name="MeanFromParams"></a></p>
+      <h2 id="func-meanfromparams">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L22">MeanFromParams</a></h2>
+      <div class="sourceCode" id="cb7"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanFromParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
+      <p>MeanFromParams retrieves the mean from params.</p>
+      <p><a name="MeanFromParamsOrPartition"></a></p>
+      <h2 id="func-meanfromparamsorpartition">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L29-L33">MeanFromParamsOrPartition</a></h2>
+      <div class="sourceCode" id="cb8"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanFromParamsOrPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
+      <p>MeanFromParamsOrPartition retrieves the mean from params or
+      indexed partition value, depending on which is set.</p>
+      <p><a name="MeanFromPartition"></a></p>
+      <h2 id="func-meanfrompartition">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L11-L15">MeanFromPartition</a></h2>
+      <div class="sourceCode" id="cb9"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanFromPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
+      <p>MeanFromPartition retrieves the mean from an indexed partition
+      value.</p>
+      <p><a name="MeanGradientFunc"></a></p>
+      <h2 id="func-meangradientfunc">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L10-L13">MeanGradientFunc</a></h2>
+      <div class="sourceCode" id="cb10"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanGradientFunc<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> likeMeanGrad <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p>MeanGradientFunc computes the gradient with respect to the mean
+      directly.</p>
+      <p><a name="MeanTransform"></a></p>
+      <h2 id="func-meantransform">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L26-L29">MeanTransform</a></h2>
+      <div class="sourceCode" id="cb11"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MeanTransform<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> values mat<span class="op">.</span>Vector<span class="op">)</span> mat<span class="op">.</span>Vector</span></code></pre></div>
+      <p>MeanTransform returns the values needed to compute the
+      mean.</p>
+      <p><a name="VarianceFromParams"></a></p>
+      <h2 id="func-variancefromparams">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L61">VarianceFromParams</a></h2>
+      <div class="sourceCode" id="cb12"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> VarianceFromParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
+      <p>VarianceFromParams retrieves the variance from params.</p>
+      <p><a name="VarianceFromParamsOrPartition"></a></p>
+      <h2 id="func-variancefromparamsorpartition">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L68-L72">VarianceFromParamsOrPartition</a></h2>
+      <div class="sourceCode" id="cb13"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> VarianceFromParamsOrPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
+      <p>VarianceFromParamsOrPartition retrieves the variance from
+      params or indexed partition value, depending on which is set.</p>
+      <p><a name="VarianceFromPartition"></a></p>
+      <h2 id="func-variancefrompartition">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/statistics.go#L50-L54">VarianceFromPartition</a></h2>
+      <div class="sourceCode" id="cb14"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> VarianceFromPartition<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">)</span> <span class="op">*</span>mat<span class="op">.</span>VecDense</span></code></pre></div>
+      <p>VarianceFromPartition retrieves the variance from from an
+      indexed partition value.</p>
+      <p><a name="VarianceTransform"></a></p>
+      <h2 id="func-variancetransform">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L12-L15">VarianceTransform</a></h2>
+      <div class="sourceCode" id="cb15"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> VarianceTransform<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> values mat<span class="op">.</span>Vector<span class="op">)</span> mat<span class="op">.</span>Vector</span></code></pre></div>
+      <p>VarianceTransform returns the values needed to compute the
+      variance.</p>
+      <p><a name="BetaLikelihoodDistribution"></a></p>
+      <h2 id="type-betalikelihooddistribution">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L66-L70">BetaLikelihoodDistribution</a></h2>
+      <p>BetaLikelihoodDistribution implements a Beta distribution
+      likelihood model for bounded continuous data analysis and
+      parameter estimation.</p>
+      <p>The Beta distribution is particularly useful for modeling data
+      that is bounded between 0 and 1, such as proportions,
+      probabilities, rates, and normalized measurements. It provides
+      flexible shape modeling through its two shape parameters α (alpha)
+      and β (beta).</p>
+      <p>Mathematical Background: The Beta distribution Beta(α, β) has
+      probability density function:</p>
+      <pre><code>f(x | α, β) = x^(α-1) * (1-x)^(β-1) / B(α, β)</code></pre>
+      <p>where B(α, β) is the Beta function, and x ∈ [0, 1].</p>
+      <p>Key Properties:</p>
+      <ul>
+      <li>Support: x ∈ [0, 1] (bounded continuous)</li>
+      <li>Shape parameters: α &gt; 0, β &gt; 0 (both must be
+      positive)</li>
+      <li>Mean: E[X] = α / (α + β)</li>
+      <li>Variance: Var[X] = (α * β) / ((α + β)² * (α + β + 1))</li>
+      <li>Special cases:</li>
+      <li>α = β = 1: Uniform distribution on [0, 1]</li>
+      <li>α = 1, β = 1: Uniform distribution</li>
+      <li>α &gt; 1, β &gt; 1: Bell-shaped distribution</li>
+      <li>α &lt; 1, β &lt; 1: U-shaped distribution</li>
+      </ul>
+      <p>Applications:</p>
+      <ul>
+      <li>Proportion modeling: Success rates, conversion rates, market
+      shares</li>
+      <li>Probability estimation: Bayesian inference with Beta
+      priors</li>
+      <li>Quality control: Defect rates, pass/fail proportions</li>
+      <li>Financial modeling: Recovery rates, default probabilities</li>
+      <li>Machine learning: Classification confidence scores</li>
+      </ul>
+      <p>Parameter Configuration: The distribution can be configured in
+      two ways:</p>
+      <ol type="1">
+      <li>Direct parameters: Provide “alpha” and “beta” parameters
+      directly</li>
+      <li>Mean-variance: Provide “mean” and “variance” parameters for
+      automatic conversion</li>
+      </ol>
+      <p>Example:</p>
+      <pre><code>dist := &amp;BetaLikelihoodDistribution{}
 dist.SetSeed(0, settings)
 // Configure with mean=0.3, variance=0.05
 dist.SetParams(params, partitionIndex, stateHistories, timestepsHistory)
 
 // Evaluate likelihood of observed proportions
 logLike := dist.EvaluateLogLike([]float64{0.25, 0.35, 0.28})</code></pre>
-<p>Performance:</p>
-<ul>
-<li>O(d) time complexity where d is the data dimension</li>
-<li>Memory usage: O(d) for parameter storage</li>
-<li>Efficient for moderate dimensions (&lt; 1000)</li>
-</ul>
-<div class="sourceCode" id="cb18"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> BetaLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
+      <p>Performance:</p>
+      <ul>
+      <li>O(d) time complexity where d is the data dimension</li>
+      <li>Memory usage: O(d) for parameter storage</li>
+      <li>Efficient for moderate dimensions (&lt; 1000)</li>
+      </ul>
+      <div class="sourceCode" id="cb18"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> BetaLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    Src rand<span class="op">.</span>Source</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="BetaLikelihoodDistribution.EvaluateLogLike"></a></p>
-<h3 id="func-betalikelihooddistribution-evaluateloglike">func
-(*BetaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L109-L111">EvaluateLogLike</a></h3>
-<div class="sourceCode" id="cb19"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
-<p><a name="BetaLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
-<h3 id="func-betalikelihooddistribution-evaluateloglikemeangrad">func
-(*BetaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L133-L135">EvaluateLogLikeMeanGrad</a></h3>
-<div class="sourceCode" id="cb20"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="BetaLikelihoodDistribution.GenerateNewSamples"></a></p>
-<h3 id="func-betalikelihooddistribution-generatenewsamples">func
-(*BetaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L122">GenerateNewSamples</a></h3>
-<div class="sourceCode" id="cb21"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="BetaLikelihoodDistribution.SetParams"></a></p>
-<h3 id="func-betalikelihooddistribution-setparams">func
-(*BetaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L82-L87">SetParams</a></h3>
-<div class="sourceCode" id="cb22"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
-<p><a name="BetaLikelihoodDistribution.SetSeed"></a></p>
-<h3 id="func-betalikelihooddistribution-setseed">func
-(*BetaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L72-L75">SetSeed</a></h3>
-<div class="sourceCode" id="cb23"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="DataComparisonGradientIteration"></a></p>
-<h2 id="type-datacomparisongradientiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L19-L26">DataComparisonGradientIteration</a></h2>
-<p>DataComparisonGradientIteration allows for any log-likelihood
-gradient to be used in computing the overall comparison distribution
-gradient.</p>
-<div class="sourceCode" id="cb24"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DataComparisonGradientIteration <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="BetaLikelihoodDistribution.EvaluateLogLike"></a></p>
+      <h3 id="func-betalikelihooddistribution-evaluateloglike">func
+      (*BetaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L109-L111">EvaluateLogLike</a></h3>
+      <div class="sourceCode" id="cb19"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
+      <p><a name="BetaLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
+      <h3
+      id="func-betalikelihooddistribution-evaluateloglikemeangrad">func
+      (*BetaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L133-L135">EvaluateLogLikeMeanGrad</a></h3>
+      <div class="sourceCode" id="cb20"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="BetaLikelihoodDistribution.GenerateNewSamples"></a></p>
+      <h3 id="func-betalikelihooddistribution-generatenewsamples">func
+      (*BetaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L122">GenerateNewSamples</a></h3>
+      <div class="sourceCode" id="cb21"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="BetaLikelihoodDistribution.SetParams"></a></p>
+      <h3 id="func-betalikelihooddistribution-setparams">func
+      (*BetaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L82-L87">SetParams</a></h3>
+      <div class="sourceCode" id="cb22"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
+      <p><a name="BetaLikelihoodDistribution.SetSeed"></a></p>
+      <h3 id="func-betalikelihooddistribution-setseed">func
+      (*BetaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/beta.go#L72-L75">SetSeed</a></h3>
+      <div class="sourceCode" id="cb23"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>b <span class="op">*</span>BetaLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="DataComparisonGradientIteration"></a></p>
+      <h2 id="type-datacomparisongradientiteration">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L19-L26">DataComparisonGradientIteration</a></h2>
+      <p>DataComparisonGradientIteration allows for any log-likelihood
+      gradient to be used in computing the overall comparison
+      distribution gradient.</p>
+      <div class="sourceCode" id="cb24"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DataComparisonGradientIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    Likelihood   LikelihoodDistributionWithGradient</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    GradientFunc <span class="kw">func</span><span class="op">(</span></span>
 <span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>        params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span></span>
@@ -657,152 +983,155 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb
 <span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span>
 <span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    Batch <span class="op">*</span>simulator<span class="op">.</span>StateHistory</span>
 <span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="DataComparisonGradientIteration.Configure"></a></p>
-<h3 id="func-datacomparisongradientiteration-configure">func
-(*DataComparisonGradientIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L28-L31">Configure</a></h3>
-<div class="sourceCode" id="cb25"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonGradientIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="DataComparisonGradientIteration.Iterate"></a></p>
-<h3 id="func-datacomparisongradientiteration-iterate">func
-(*DataComparisonGradientIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L35-L40">Iterate</a></h3>
-<div class="sourceCode" id="cb26"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonGradientIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="DataComparisonGradientIteration.UpdateMemory"></a></p>
-<h3 id="func-datacomparisongradientiteration-updatememory">func
-(*DataComparisonGradientIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L57-L60">UpdateMemory</a></h3>
-<div class="sourceCode" id="cb27"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonGradientIteration<span class="op">)</span> UpdateMemory<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> update general<span class="op">.</span>StateMemoryUpdate<span class="op">)</span></span></code></pre></div>
-<p><a name="DataComparisonIteration"></a></p>
-<h2 id="type-datacomparisoniteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison.go#L10-L14">DataComparisonIteration</a></h2>
-<p>DataComparisonIteration allows for any log-likelihood to be used as a
-comparison distribution between data values, a mean vector and
-covariance matrix.</p>
-<div class="sourceCode" id="cb28"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DataComparisonIteration <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="DataComparisonGradientIteration.Configure"></a></p>
+      <h3 id="func-datacomparisongradientiteration-configure">func
+      (*DataComparisonGradientIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L28-L31">Configure</a></h3>
+      <div class="sourceCode" id="cb25"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonGradientIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="DataComparisonGradientIteration.Iterate"></a></p>
+      <h3 id="func-datacomparisongradientiteration-iterate">func
+      (*DataComparisonGradientIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L35-L40">Iterate</a></h3>
+      <div class="sourceCode" id="cb26"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonGradientIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="DataComparisonGradientIteration.UpdateMemory"></a></p>
+      <h3 id="func-datacomparisongradientiteration-updatememory">func
+      (*DataComparisonGradientIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison_gradient.go#L57-L60">UpdateMemory</a></h3>
+      <div class="sourceCode" id="cb27"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonGradientIteration<span class="op">)</span> UpdateMemory<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> update general<span class="op">.</span>StateMemoryUpdate<span class="op">)</span></span></code></pre></div>
+      <p><a name="DataComparisonIteration"></a></p>
+      <h2 id="type-datacomparisoniteration">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison.go#L10-L14">DataComparisonIteration</a></h2>
+      <p>DataComparisonIteration allows for any log-likelihood to be
+      used as a comparison distribution between data values, a mean
+      vector and covariance matrix.</p>
+      <div class="sourceCode" id="cb28"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DataComparisonIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    Likelihood LikelihoodDistribution</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="DataComparisonIteration.Configure"></a></p>
-<h3 id="func-datacomparisoniteration-configure">func
-(*DataComparisonIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison.go#L16-L19">Configure</a></h3>
-<div class="sourceCode" id="cb29"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="DataComparisonIteration.Iterate"></a></p>
-<h3 id="func-datacomparisoniteration-iterate">func
-(*DataComparisonIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison.go#L30-L35">Iterate</a></h3>
-<div class="sourceCode" id="cb30"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="DataGenerationIteration"></a></p>
-<h2 id="type-datagenerationiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_generation.go#L11-L14">DataGenerationIteration</a></h2>
-<p>DataGenerationIteration allows for any likelihood to be used as a
-data generation distribution based on a mean and covariance matrix.</p>
-<div class="sourceCode" id="cb31"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DataGenerationIteration <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="DataComparisonIteration.Configure"></a></p>
+      <h3 id="func-datacomparisoniteration-configure">func
+      (*DataComparisonIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison.go#L16-L19">Configure</a></h3>
+      <div class="sourceCode" id="cb29"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="DataComparisonIteration.Iterate"></a></p>
+      <h3 id="func-datacomparisoniteration-iterate">func
+      (*DataComparisonIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_comparison.go#L30-L35">Iterate</a></h3>
+      <div class="sourceCode" id="cb30"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataComparisonIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="DataGenerationIteration"></a></p>
+      <h2 id="type-datagenerationiteration">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_generation.go#L11-L14">DataGenerationIteration</a></h2>
+      <p>DataGenerationIteration allows for any likelihood to be used as
+      a data generation distribution based on a mean and covariance
+      matrix.</p>
+      <div class="sourceCode" id="cb31"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> DataGenerationIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    Likelihood LikelihoodDistribution</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="DataGenerationIteration.Configure"></a></p>
-<h3 id="func-datagenerationiteration-configure">func
-(*DataGenerationIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_generation.go#L16-L19">Configure</a></h3>
-<div class="sourceCode" id="cb32"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataGenerationIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="DataGenerationIteration.Iterate"></a></p>
-<h3 id="func-datagenerationiteration-iterate">func
-(*DataGenerationIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_generation.go#L29-L34">Iterate</a></h3>
-<div class="sourceCode" id="cb33"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataGenerationIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="GammaLikelihoodDistribution"></a></p>
-<h2 id="type-gammalikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L14-L18">GammaLikelihoodDistribution</a></h2>
-<p>GammaLikelihoodDistribution assumes the real data are well described
-by a gamma distribution, given the input mean and variance.</p>
-<div class="sourceCode" id="cb34"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> GammaLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="DataGenerationIteration.Configure"></a></p>
+      <h3 id="func-datagenerationiteration-configure">func
+      (*DataGenerationIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_generation.go#L16-L19">Configure</a></h3>
+      <div class="sourceCode" id="cb32"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataGenerationIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="DataGenerationIteration.Iterate"></a></p>
+      <h3 id="func-datagenerationiteration-iterate">func
+      (*DataGenerationIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_generation.go#L29-L34">Iterate</a></h3>
+      <div class="sourceCode" id="cb33"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataGenerationIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="GammaLikelihoodDistribution"></a></p>
+      <h2 id="type-gammalikelihooddistribution">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L14-L18">GammaLikelihoodDistribution</a></h2>
+      <p>GammaLikelihoodDistribution assumes the real data are well
+      described by a gamma distribution, given the input mean and
+      variance.</p>
+      <div class="sourceCode" id="cb34"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> GammaLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    Src rand<span class="op">.</span>Source</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="GammaLikelihoodDistribution.EvaluateLogLike"></a></p>
-<h3 id="func-gammalikelihooddistribution-evaluateloglike">func
-(*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L44">EvaluateLogLike</a></h3>
-<div class="sourceCode" id="cb35"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
-<p><a name="GammaLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
-<h3 id="func-gammalikelihooddistribution-evaluateloglikemeangrad">func
-(*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L72-L74">EvaluateLogLikeMeanGrad</a></h3>
-<div class="sourceCode" id="cb36"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="GammaLikelihoodDistribution.GenerateNewSamples"></a></p>
-<h3 id="func-gammalikelihooddistribution-generatenewsamples">func
-(*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L58">GenerateNewSamples</a></h3>
-<div class="sourceCode" id="cb37"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="GammaLikelihoodDistribution.SetParams"></a></p>
-<h3 id="func-gammalikelihooddistribution-setparams">func
-(*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L30-L35">SetParams</a></h3>
-<div class="sourceCode" id="cb38"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
-<p><a name="GammaLikelihoodDistribution.SetSeed"></a></p>
-<h3 id="func-gammalikelihooddistribution-setseed">func
-(*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L20-L23">SetSeed</a></h3>
-<div class="sourceCode" id="cb39"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="LikelihoodDistribution"></a></p>
-<h2 id="type-likelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L53-L63">LikelihoodDistribution</a></h2>
-<p>LikelihoodDistribution defines a likelihood model over observed data
-for statistical inference and parameter estimation.</p>
-<p>This interface represents a probability distribution that can
-evaluate the likelihood of observed data given parameters and generate
-new samples from the distribution. It serves as the foundation for
-Bayesian inference, parameter estimation, and model validation in
-stochadex simulations.</p>
-<p>Mathematical Concept: A likelihood distribution represents the
-probability model p(data | parameters), where the likelihood function
-measures how well the model explains observed data given specific
-parameter values. This is fundamental to:</p>
-<ul>
-<li>Maximum likelihood estimation: θ̂ = argmax_θ p(data | θ)</li>
-<li>Bayesian inference: p(θ | data) ∝ p(data | θ) × p(θ)</li>
-<li>Model comparison and selection</li>
-<li>Parameter uncertainty quantification</li>
-</ul>
-<p>Interface Methods:</p>
-<ul>
-<li>SetSeed: Initialize random number generator state for reproducible
-sampling</li>
-<li>SetParams: Configure distribution parameters from simulation
-context</li>
-<li>EvaluateLogLike: Compute log-likelihood log p(data | params) for
-given data</li>
-<li>GenerateNewSamples: Draw new samples from the current parameter
-configuration</li>
-</ul>
-<p>Implementation Requirements:</p>
-<ul>
-<li>SetSeed must be called before any other methods</li>
-<li>SetParams must be called before EvaluateLogLike or
-GenerateNewSamples</li>
-<li>EvaluateLogLike should return log-likelihood (not raw likelihood)
-for numerical stability</li>
-<li>GenerateNewSamples should return samples consistent with current
-parameters</li>
-</ul>
-<p>Example Usage:</p>
-<pre><code>dist := &amp;BetaLikelihoodDistribution{}
+      <p><a name="GammaLikelihoodDistribution.EvaluateLogLike"></a></p>
+      <h3 id="func-gammalikelihooddistribution-evaluateloglike">func
+      (*GammaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L44">EvaluateLogLike</a></h3>
+      <div class="sourceCode" id="cb35"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
+      <p><a name="GammaLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
+      <h3
+      id="func-gammalikelihooddistribution-evaluateloglikemeangrad">func
+      (*GammaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L72-L74">EvaluateLogLikeMeanGrad</a></h3>
+      <div class="sourceCode" id="cb36"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="GammaLikelihoodDistribution.GenerateNewSamples"></a></p>
+      <h3 id="func-gammalikelihooddistribution-generatenewsamples">func
+      (*GammaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L58">GenerateNewSamples</a></h3>
+      <div class="sourceCode" id="cb37"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="GammaLikelihoodDistribution.SetParams"></a></p>
+      <h3 id="func-gammalikelihooddistribution-setparams">func
+      (*GammaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L30-L35">SetParams</a></h3>
+      <div class="sourceCode" id="cb38"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
+      <p><a name="GammaLikelihoodDistribution.SetSeed"></a></p>
+      <h3 id="func-gammalikelihooddistribution-setseed">func
+      (*GammaLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L20-L23">SetSeed</a></h3>
+      <div class="sourceCode" id="cb39"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="LikelihoodDistribution"></a></p>
+      <h2 id="type-likelihooddistribution">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L53-L63">LikelihoodDistribution</a></h2>
+      <p>LikelihoodDistribution defines a likelihood model over observed
+      data for statistical inference and parameter estimation.</p>
+      <p>This interface represents a probability distribution that can
+      evaluate the likelihood of observed data given parameters and
+      generate new samples from the distribution. It serves as the
+      foundation for Bayesian inference, parameter estimation, and model
+      validation in stochadex simulations.</p>
+      <p>Mathematical Concept: A likelihood distribution represents the
+      probability model p(data | parameters), where the likelihood
+      function measures how well the model explains observed data given
+      specific parameter values. This is fundamental to:</p>
+      <ul>
+      <li>Maximum likelihood estimation: θ̂ = argmax_θ p(data | θ)</li>
+      <li>Bayesian inference: p(θ | data) ∝ p(data | θ) × p(θ)</li>
+      <li>Model comparison and selection</li>
+      <li>Parameter uncertainty quantification</li>
+      </ul>
+      <p>Interface Methods:</p>
+      <ul>
+      <li>SetSeed: Initialize random number generator state for
+      reproducible sampling</li>
+      <li>SetParams: Configure distribution parameters from simulation
+      context</li>
+      <li>EvaluateLogLike: Compute log-likelihood log p(data | params)
+      for given data</li>
+      <li>GenerateNewSamples: Draw new samples from the current
+      parameter configuration</li>
+      </ul>
+      <p>Implementation Requirements:</p>
+      <ul>
+      <li>SetSeed must be called before any other methods</li>
+      <li>SetParams must be called before EvaluateLogLike or
+      GenerateNewSamples</li>
+      <li>EvaluateLogLike should return log-likelihood (not raw
+      likelihood) for numerical stability</li>
+      <li>GenerateNewSamples should return samples consistent with
+      current parameters</li>
+      </ul>
+      <p>Example Usage:</p>
+      <pre><code>dist := &amp;BetaLikelihoodDistribution{}
 dist.SetSeed(0, settings)
 dist.SetParams(params, partitionIndex, stateHistories, timestepsHistory)
 
@@ -811,17 +1140,17 @@ logLike := dist.EvaluateLogLike(observedData)
 
 // Generate new samples for validation
 newSamples := dist.GenerateNewSamples()</code></pre>
-<p>Related Types:</p>
-<ul>
-<li>See LikelihoodDistributionWithGradient for gradient-based
-optimization</li>
-<li>See BetaLikelihoodDistribution for beta distribution
-implementation</li>
-<li>See NormalLikelihoodDistribution for normal distribution
-implementation</li>
-</ul>
-<div class="sourceCode" id="cb41"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> LikelihoodDistribution <span class="kw">interface</span> <span class="op">{</span></span>
+      <p>Related Types:</p>
+      <ul>
+      <li>See LikelihoodDistributionWithGradient for gradient-based
+      optimization</li>
+      <li>See BetaLikelihoodDistribution for beta distribution
+      implementation</li>
+      <li>See NormalLikelihoodDistribution for normal distribution
+      implementation</li>
+      </ul>
+      <div class="sourceCode" id="cb41"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> LikelihoodDistribution <span class="kw">interface</span> <span class="op">{</span></span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    SetParams<span class="op">(</span></span>
 <span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>        params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span></span>
@@ -832,308 +1161,361 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb41-1"><a href="#cb
 <span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>    EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span>
 <span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span>
 <span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="LikelihoodDistributionWithGradient"></a></p>
-<h2 id="type-likelihooddistributionwithgradient">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L67-L70">LikelihoodDistributionWithGradient</a></h2>
-<p>LikelihoodDistributionWithGradient extends LikelihoodDistribution
-with a mean gradient for optimisation.</p>
-<div class="sourceCode" id="cb42"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> LikelihoodDistributionWithGradient <span class="kw">interface</span> <span class="op">{</span></span>
+      <p><a name="LikelihoodDistributionWithGradient"></a></p>
+      <h2 id="type-likelihooddistributionwithgradient">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L67-L70">LikelihoodDistributionWithGradient</a></h2>
+      <p>LikelihoodDistributionWithGradient extends
+      LikelihoodDistribution with a mean gradient for optimisation.</p>
+      <div class="sourceCode" id="cb42"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> LikelihoodDistributionWithGradient <span class="kw">interface</span> <span class="op">{</span></span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    LikelihoodDistribution</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span>
 <span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="NegativeBinomialLikelihoodDistribution"></a></p>
-<h2 id="type-negativebinomiallikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L16-L20">NegativeBinomialLikelihoodDistribution</a></h2>
-<p>NegativeBinomialLikelihoodDistribution assumes the real data are well
-described by a negative binomial distribution, given the input mean and
-variance.</p>
-<div class="sourceCode" id="cb43"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> NegativeBinomialLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="NegativeBinomialLikelihoodDistribution"></a></p>
+      <h2 id="type-negativebinomiallikelihooddistribution">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L16-L20">NegativeBinomialLikelihoodDistribution</a></h2>
+      <p>NegativeBinomialLikelihoodDistribution assumes the real data
+      are well described by a negative binomial distribution, given the
+      input mean and variance.</p>
+      <div class="sourceCode" id="cb43"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> NegativeBinomialLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>    Src rand<span class="op">.</span>Source</span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="NegativeBinomialLikelihoodDistribution.EvaluateLogLike"></a></p>
-<h3
-id="func-negativebinomiallikelihooddistribution-evaluateloglike">func
-(*NegativeBinomialLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L46-L48">EvaluateLogLike</a></h3>
-<div class="sourceCode" id="cb44"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
-<p><a name="NegativeBinomialLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
-<h3
-id="func-negativebinomiallikelihooddistribution-evaluateloglikemeangrad">func
-(*NegativeBinomialLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L78-L80">EvaluateLogLikeMeanGrad</a></h3>
-<div class="sourceCode" id="cb45"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="NegativeBinomialLikelihoodDistribution.GenerateNewSamples"></a></p>
-<h3
-id="func-negativebinomiallikelihooddistribution-generatenewsamples">func
-(*NegativeBinomialLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L64">GenerateNewSamples</a></h3>
-<div class="sourceCode" id="cb46"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="NegativeBinomialLikelihoodDistribution.SetParams"></a></p>
-<h3 id="func-negativebinomiallikelihooddistribution-setparams">func
-(*NegativeBinomialLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L32-L37">SetParams</a></h3>
-<div class="sourceCode" id="cb47"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
-<p><a name="NegativeBinomialLikelihoodDistribution.SetSeed"></a></p>
-<h3 id="func-negativebinomiallikelihooddistribution-setseed">func
-(*NegativeBinomialLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L22-L25">SetSeed</a></h3>
-<div class="sourceCode" id="cb48"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="NormalLikelihoodDistribution"></a></p>
-<h2 id="type-normallikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L19-L24">NormalLikelihoodDistribution</a></h2>
-<p>NormalLikelihoodDistribution models data with a multivariate
-normal.</p>
-<p>Usage hints:</p>
-<ul>
-<li>Provide mean/covariance via params or upstream partition
-outputs.</li>
-<li>Optional: “default_covariance” used if provided covariance is not
-PD.</li>
-<li>GenerateNewSamples draws from the current parameterised
-distribution.</li>
-</ul>
-<div class="sourceCode" id="cb49"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> NormalLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="NegativeBinomialLikelihoodDistribution.EvaluateLogLike"></a></p>
+      <h3
+      id="func-negativebinomiallikelihooddistribution-evaluateloglike">func
+      (*NegativeBinomialLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L46-L48">EvaluateLogLike</a></h3>
+      <div class="sourceCode" id="cb44"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
+      <p><a name="NegativeBinomialLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
+      <h3
+      id="func-negativebinomiallikelihooddistribution-evaluateloglikemeangrad">func
+      (*NegativeBinomialLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L78-L80">EvaluateLogLikeMeanGrad</a></h3>
+      <div class="sourceCode" id="cb45"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="NegativeBinomialLikelihoodDistribution.GenerateNewSamples"></a></p>
+      <h3
+      id="func-negativebinomiallikelihooddistribution-generatenewsamples">func
+      (*NegativeBinomialLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L64">GenerateNewSamples</a></h3>
+      <div class="sourceCode" id="cb46"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="NegativeBinomialLikelihoodDistribution.SetParams"></a></p>
+      <h3
+      id="func-negativebinomiallikelihooddistribution-setparams">func
+      (*NegativeBinomialLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L32-L37">SetParams</a></h3>
+      <div class="sourceCode" id="cb47"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
+      <p><a name="NegativeBinomialLikelihoodDistribution.SetSeed"></a></p>
+      <h3 id="func-negativebinomiallikelihooddistribution-setseed">func
+      (*NegativeBinomialLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_binomial.go#L22-L25">SetSeed</a></h3>
+      <div class="sourceCode" id="cb48"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="NormalLikelihoodDistribution"></a></p>
+      <h2 id="type-normallikelihooddistribution">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L19-L24">NormalLikelihoodDistribution</a></h2>
+      <p>NormalLikelihoodDistribution models data with a multivariate
+      normal.</p>
+      <p>Usage hints:</p>
+      <ul>
+      <li>Provide mean/covariance via params or upstream partition
+      outputs.</li>
+      <li>Optional: “default_covariance” used if provided covariance is
+      not PD.</li>
+      <li>GenerateNewSamples draws from the current parameterised
+      distribution.</li>
+      </ul>
+      <div class="sourceCode" id="cb49"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> NormalLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    Src rand<span class="op">.</span>Source</span>
 <span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="NormalLikelihoodDistribution.EvaluateLogLike"></a></p>
-<h3 id="func-normallikelihooddistribution-evaluateloglike">func
-(*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L73">EvaluateLogLike</a></h3>
-<div class="sourceCode" id="cb50"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
-<p><a name="NormalLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
-<h3 id="func-normallikelihooddistribution-evaluateloglikemeangrad">func
-(*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L83-L85">EvaluateLogLikeMeanGrad</a></h3>
-<div class="sourceCode" id="cb51"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="NormalLikelihoodDistribution.GenerateNewSamples"></a></p>
-<h3 id="func-normallikelihooddistribution-generatenewsamples">func
-(*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L78">GenerateNewSamples</a></h3>
-<div class="sourceCode" id="cb52"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="NormalLikelihoodDistribution.SetParams"></a></p>
-<h3 id="func-normallikelihooddistribution-setparams">func
-(*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L36-L41">SetParams</a></h3>
-<div class="sourceCode" id="cb53"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
-<p><a name="NormalLikelihoodDistribution.SetSeed"></a></p>
-<h3 id="func-normallikelihooddistribution-setseed">func
-(*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L26-L29">SetSeed</a></h3>
-<div class="sourceCode" id="cb54"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="PoissonLikelihoodDistribution"></a></p>
-<h2 id="type-poissonlikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L18-L21">PoissonLikelihoodDistribution</a></h2>
-<p>PoissonLikelihoodDistribution models count data with a Poisson
-distribution.</p>
-<p>Usage hints:</p>
-<ul>
-<li>Provide mean via params or upstream partition outputs.</li>
-<li>GenerateNewSamples draws iid Poisson variates per dimension.</li>
-</ul>
-<div class="sourceCode" id="cb55"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PoissonLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="NormalLikelihoodDistribution.EvaluateLogLike"></a></p>
+      <h3 id="func-normallikelihooddistribution-evaluateloglike">func
+      (*NormalLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L73">EvaluateLogLike</a></h3>
+      <div class="sourceCode" id="cb50"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
+      <p><a name="NormalLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
+      <h3
+      id="func-normallikelihooddistribution-evaluateloglikemeangrad">func
+      (*NormalLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L83-L85">EvaluateLogLikeMeanGrad</a></h3>
+      <div class="sourceCode" id="cb51"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="NormalLikelihoodDistribution.GenerateNewSamples"></a></p>
+      <h3 id="func-normallikelihooddistribution-generatenewsamples">func
+      (*NormalLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L78">GenerateNewSamples</a></h3>
+      <div class="sourceCode" id="cb52"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="NormalLikelihoodDistribution.SetParams"></a></p>
+      <h3 id="func-normallikelihooddistribution-setparams">func
+      (*NormalLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L36-L41">SetParams</a></h3>
+      <div class="sourceCode" id="cb53"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
+      <p><a name="NormalLikelihoodDistribution.SetSeed"></a></p>
+      <h3 id="func-normallikelihooddistribution-setseed">func
+      (*NormalLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L26-L29">SetSeed</a></h3>
+      <div class="sourceCode" id="cb54"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="PoissonLikelihoodDistribution"></a></p>
+      <h2 id="type-poissonlikelihooddistribution">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L18-L21">PoissonLikelihoodDistribution</a></h2>
+      <p>PoissonLikelihoodDistribution models count data with a Poisson
+      distribution.</p>
+      <p>Usage hints:</p>
+      <ul>
+      <li>Provide mean via params or upstream partition outputs.</li>
+      <li>GenerateNewSamples draws iid Poisson variates per
+      dimension.</li>
+      </ul>
+      <div class="sourceCode" id="cb55"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PoissonLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>    Src rand<span class="op">.</span>Source</span>
 <span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="PoissonLikelihoodDistribution.EvaluateLogLike"></a></p>
-<h3 id="func-poissonlikelihooddistribution-evaluateloglike">func
-(*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L42">EvaluateLogLike</a></h3>
-<div class="sourceCode" id="cb56"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
-<p><a name="PoissonLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
-<h3 id="func-poissonlikelihooddistribution-evaluateloglikemeangrad">func
-(*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L62-L64">EvaluateLogLikeMeanGrad</a></h3>
-<div class="sourceCode" id="cb57"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="PoissonLikelihoodDistribution.GenerateNewSamples"></a></p>
-<h3 id="func-poissonlikelihooddistribution-generatenewsamples">func
-(*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L52">GenerateNewSamples</a></h3>
-<div class="sourceCode" id="cb58"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="PoissonLikelihoodDistribution.SetParams"></a></p>
-<h3 id="func-poissonlikelihooddistribution-setparams">func
-(*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L33-L38">SetParams</a></h3>
-<div class="sourceCode" id="cb59"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
-<p><a name="PoissonLikelihoodDistribution.SetSeed"></a></p>
-<h3 id="func-poissonlikelihooddistribution-setseed">func
-(*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L23-L26">SetSeed</a></h3>
-<div class="sourceCode" id="cb60"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="PosteriorCovarianceIteration"></a></p>
-<h2 id="type-posteriorcovarianceiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_covariance.go#L14-L15">PosteriorCovarianceIteration</a></h2>
-<p>PosteriorCovarianceIteration updates an estimate of the covariance
-matrix of the posterior distribution over params using log-likelihood
-and param values given in the state history of other partitions, and a
-mean vector.</p>
-<div class="sourceCode" id="cb61"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PosteriorCovarianceIteration <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="PoissonLikelihoodDistribution.EvaluateLogLike"></a></p>
+      <h3 id="func-poissonlikelihooddistribution-evaluateloglike">func
+      (*PoissonLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L42">EvaluateLogLike</a></h3>
+      <div class="sourceCode" id="cb56"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
+      <p><a name="PoissonLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
+      <h3
+      id="func-poissonlikelihooddistribution-evaluateloglikemeangrad">func
+      (*PoissonLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L62-L64">EvaluateLogLikeMeanGrad</a></h3>
+      <div class="sourceCode" id="cb57"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="PoissonLikelihoodDistribution.GenerateNewSamples"></a></p>
+      <h3
+      id="func-poissonlikelihooddistribution-generatenewsamples">func
+      (*PoissonLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L52">GenerateNewSamples</a></h3>
+      <div class="sourceCode" id="cb58"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="PoissonLikelihoodDistribution.SetParams"></a></p>
+      <h3 id="func-poissonlikelihooddistribution-setparams">func
+      (*PoissonLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L33-L38">SetParams</a></h3>
+      <div class="sourceCode" id="cb59"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
+      <p><a name="PoissonLikelihoodDistribution.SetSeed"></a></p>
+      <h3 id="func-poissonlikelihooddistribution-setseed">func
+      (*PoissonLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L23-L26">SetSeed</a></h3>
+      <div class="sourceCode" id="cb60"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="PosteriorCovarianceIteration"></a></p>
+      <h2 id="type-posteriorcovarianceiteration">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_covariance.go#L14-L15">PosteriorCovarianceIteration</a></h2>
+      <p>PosteriorCovarianceIteration updates an estimate of the
+      covariance matrix of the posterior distribution over params using
+      log-likelihood and param values given in the state history of
+      other partitions, and a mean vector.</p>
+      <div class="sourceCode" id="cb61"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PosteriorCovarianceIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="PosteriorCovarianceIteration.Configure"></a></p>
-<h3 id="func-posteriorcovarianceiteration-configure">func
-(*PosteriorCovarianceIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_covariance.go#L17-L20">Configure</a></h3>
-<div class="sourceCode" id="cb62"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorCovarianceIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="PosteriorCovarianceIteration.Iterate"></a></p>
-<h3 id="func-posteriorcovarianceiteration-iterate">func
-(*PosteriorCovarianceIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_covariance.go#L23-L28">Iterate</a></h3>
-<div class="sourceCode" id="cb63"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorCovarianceIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="PosteriorLogNormalisationIteration"></a></p>
-<h2 id="type-posteriorlognormalisationiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L13-L14">PosteriorLogNormalisationIteration</a></h2>
-<p>PosteriorLogNormalisationIteration updates the cumulative
-normalisation of the posterior distribution over params using
-log-likelihood values given in the state history of other partitions as
-well as a specified past discounting factor.</p>
-<div class="sourceCode" id="cb64"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PosteriorLogNormalisationIteration <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="PosteriorCovarianceIteration.Configure"></a></p>
+      <h3 id="func-posteriorcovarianceiteration-configure">func
+      (*PosteriorCovarianceIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_covariance.go#L17-L20">Configure</a></h3>
+      <div class="sourceCode" id="cb62"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorCovarianceIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="PosteriorCovarianceIteration.Iterate"></a></p>
+      <h3 id="func-posteriorcovarianceiteration-iterate">func
+      (*PosteriorCovarianceIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_covariance.go#L23-L28">Iterate</a></h3>
+      <div class="sourceCode" id="cb63"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorCovarianceIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="PosteriorLogNormalisationIteration"></a></p>
+      <h2 id="type-posteriorlognormalisationiteration">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L13-L14">PosteriorLogNormalisationIteration</a></h2>
+      <p>PosteriorLogNormalisationIteration updates the cumulative
+      normalisation of the posterior distribution over params using
+      log-likelihood values given in the state history of other
+      partitions as well as a specified past discounting factor.</p>
+      <div class="sourceCode" id="cb64"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PosteriorLogNormalisationIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="PosteriorLogNormalisationIteration.Configure"></a></p>
-<h3 id="func-posteriorlognormalisationiteration-configure">func
-(*PosteriorLogNormalisationIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L16-L19">Configure</a></h3>
-<div class="sourceCode" id="cb65"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorLogNormalisationIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="PosteriorLogNormalisationIteration.Iterate"></a></p>
-<h3 id="func-posteriorlognormalisationiteration-iterate">func
-(*PosteriorLogNormalisationIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L22-L27">Iterate</a></h3>
-<div class="sourceCode" id="cb66"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorLogNormalisationIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="PosteriorMeanIteration"></a></p>
-<h2 id="type-posteriormeaniteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L36-L41">PosteriorMeanIteration</a></h2>
-<p>PosteriorMeanIteration updates an estimate of the mean of the
-posterior distribution over params using log-likelihood and param values
-given in the state history of other partitions.</p>
-<div class="sourceCode" id="cb67"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PosteriorMeanIteration <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="PosteriorLogNormalisationIteration.Configure"></a></p>
+      <h3 id="func-posteriorlognormalisationiteration-configure">func
+      (*PosteriorLogNormalisationIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L16-L19">Configure</a></h3>
+      <div class="sourceCode" id="cb65"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorLogNormalisationIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="PosteriorLogNormalisationIteration.Iterate"></a></p>
+      <h3 id="func-posteriorlognormalisationiteration-iterate">func
+      (*PosteriorLogNormalisationIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L22-L27">Iterate</a></h3>
+      <div class="sourceCode" id="cb66"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorLogNormalisationIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="PosteriorMeanIteration"></a></p>
+      <h2 id="type-posteriormeaniteration">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L36-L41">PosteriorMeanIteration</a></h2>
+      <p>PosteriorMeanIteration updates an estimate of the mean of the
+      posterior distribution over params using log-likelihood and param
+      values given in the state history of other partitions.</p>
+      <div class="sourceCode" id="cb67"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PosteriorMeanIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>    Transform <span class="kw">func</span><span class="op">(</span></span>
 <span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>        params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span></span>
 <span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>        values mat<span class="op">.</span>Vector<span class="op">,</span></span>
 <span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> mat<span class="op">.</span>Vector</span>
 <span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="PosteriorMeanIteration.Configure"></a></p>
-<h3 id="func-posteriormeaniteration-configure">func
-(*PosteriorMeanIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L43-L46">Configure</a></h3>
-<div class="sourceCode" id="cb68"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorMeanIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="PosteriorMeanIteration.Iterate"></a></p>
-<h3 id="func-posteriormeaniteration-iterate">func
-(*PosteriorMeanIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L49-L54">Iterate</a></h3>
-<div class="sourceCode" id="cb69"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorMeanIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="TLikelihoodDistribution"></a></p>
-<h2 id="type-tlikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L15-L21">TLikelihoodDistribution</a></h2>
-<p>TLikelihoodDistribution assumes the real data are well described by a
-Student’s t-distribution, given the input degrees of freedom, mean and
-covariance matrix.</p>
-<div class="sourceCode" id="cb70"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> TLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="PosteriorMeanIteration.Configure"></a></p>
+      <h3 id="func-posteriormeaniteration-configure">func
+      (*PosteriorMeanIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L43-L46">Configure</a></h3>
+      <div class="sourceCode" id="cb68"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorMeanIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="PosteriorMeanIteration.Iterate"></a></p>
+      <h3 id="func-posteriormeaniteration-iterate">func
+      (*PosteriorMeanIteration) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_mean.go#L49-L54">Iterate</a></h3>
+      <div class="sourceCode" id="cb69"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorMeanIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="TLikelihoodDistribution"></a></p>
+      <h2 id="type-tlikelihooddistribution">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L15-L21">TLikelihoodDistribution</a></h2>
+      <p>TLikelihoodDistribution assumes the real data are well
+      described by a Student’s t-distribution, given the input degrees
+      of freedom, mean and covariance matrix.</p>
+      <div class="sourceCode" id="cb70"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> TLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>    Src rand<span class="op">.</span>Source</span>
 <span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="TLikelihoodDistribution.EvaluateLogLike"></a></p>
-<h3 id="func-tlikelihooddistribution-evaluateloglike">func
-(*TLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L73">EvaluateLogLike</a></h3>
-<div class="sourceCode" id="cb71"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
-<p><a name="TLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
-<h3 id="func-tlikelihooddistribution-evaluateloglikemeangrad">func
-(*TLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L83-L85">EvaluateLogLikeMeanGrad</a></h3>
-<div class="sourceCode" id="cb72"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="TLikelihoodDistribution.GenerateNewSamples"></a></p>
-<h3 id="func-tlikelihooddistribution-generatenewsamples">func
-(*TLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L78">GenerateNewSamples</a></h3>
-<div class="sourceCode" id="cb73"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="TLikelihoodDistribution.SetParams"></a></p>
-<h3 id="func-tlikelihooddistribution-setparams">func
-(*TLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L33-L38">SetParams</a></h3>
-<div class="sourceCode" id="cb74"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
-<p><a name="TLikelihoodDistribution.SetSeed"></a></p>
-<h3 id="func-tlikelihooddistribution-setseed">func
-(*TLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L23-L26">SetSeed</a></h3>
-<div class="sourceCode" id="cb75"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p><a name="WishartLikelihoodDistribution"></a></p>
-<h2 id="type-wishartlikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L16-L22">WishartLikelihoodDistribution</a></h2>
-<p>WishartLikelihoodDistribution assumes the real data are well
-described by a Wishart distribution, given the input degrees of freedom
-and scale matrix.</p>
-<div class="sourceCode" id="cb76"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> WishartLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="TLikelihoodDistribution.EvaluateLogLike"></a></p>
+      <h3 id="func-tlikelihooddistribution-evaluateloglike">func
+      (*TLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L73">EvaluateLogLike</a></h3>
+      <div class="sourceCode" id="cb71"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
+      <p><a name="TLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
+      <h3 id="func-tlikelihooddistribution-evaluateloglikemeangrad">func
+      (*TLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L83-L85">EvaluateLogLikeMeanGrad</a></h3>
+      <div class="sourceCode" id="cb72"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="TLikelihoodDistribution.GenerateNewSamples"></a></p>
+      <h3 id="func-tlikelihooddistribution-generatenewsamples">func
+      (*TLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L78">GenerateNewSamples</a></h3>
+      <div class="sourceCode" id="cb73"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="TLikelihoodDistribution.SetParams"></a></p>
+      <h3 id="func-tlikelihooddistribution-setparams">func
+      (*TLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L33-L38">SetParams</a></h3>
+      <div class="sourceCode" id="cb74"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
+      <p><a name="TLikelihoodDistribution.SetSeed"></a></p>
+      <h3 id="func-tlikelihooddistribution-setseed">func
+      (*TLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/t_distribution.go#L23-L26">SetSeed</a></h3>
+      <div class="sourceCode" id="cb75"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p><a name="WishartLikelihoodDistribution"></a></p>
+      <h2 id="type-wishartlikelihooddistribution">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L16-L22">WishartLikelihoodDistribution</a></h2>
+      <p>WishartLikelihoodDistribution assumes the real data are well
+      described by a Wishart distribution, given the input degrees of
+      freedom and scale matrix.</p>
+      <div class="sourceCode" id="cb76"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> WishartLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>    Src rand<span class="op">.</span>Source</span>
 <span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
 <span id="cb76-4"><a href="#cb76-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="WishartLikelihoodDistribution.EvaluateLogLike"></a></p>
-<h3 id="func-wishartlikelihooddistribution-evaluateloglike">func
-(*WishartLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L65">EvaluateLogLike</a></h3>
-<div class="sourceCode" id="cb77"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
-<p><a name="WishartLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
-<h3 id="func-wishartlikelihooddistribution-evaluateloglikemeangrad">func
-(*WishartLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L77-L79">EvaluateLogLikeMeanGrad</a></h3>
-<div class="sourceCode" id="cb78"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="WishartLikelihoodDistribution.GenerateNewSamples"></a></p>
-<h3 id="func-wishartlikelihooddistribution-generatenewsamples">func
-(*WishartLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L70">GenerateNewSamples</a></h3>
-<div class="sourceCode" id="cb79"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-<p><a name="WishartLikelihoodDistribution.SetParams"></a></p>
-<h3 id="func-wishartlikelihooddistribution-setparams">func
-(*WishartLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L34-L39">SetParams</a></h3>
-<div class="sourceCode" id="cb80"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
-<p><a name="WishartLikelihoodDistribution.SetSeed"></a></p>
-<h3 id="func-wishartlikelihooddistribution-setseed">func
-(*WishartLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L24-L27">SetSeed</a></h3>
-<div class="sourceCode" id="cb81"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
-<p>Generated by <a
-href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
-<script type="text/javascript" id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</article>
+      <p><a name="WishartLikelihoodDistribution.EvaluateLogLike"></a></p>
+      <h3 id="func-wishartlikelihooddistribution-evaluateloglike">func
+      (*WishartLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L65">EvaluateLogLike</a></h3>
+      <div class="sourceCode" id="cb77"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
+      <p><a name="WishartLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
+      <h3
+      id="func-wishartlikelihooddistribution-evaluateloglikemeangrad">func
+      (*WishartLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L77-L79">EvaluateLogLikeMeanGrad</a></h3>
+      <div class="sourceCode" id="cb78"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="WishartLikelihoodDistribution.GenerateNewSamples"></a></p>
+      <h3
+      id="func-wishartlikelihooddistribution-generatenewsamples">func
+      (*WishartLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L70">GenerateNewSamples</a></h3>
+      <div class="sourceCode" id="cb79"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p><a name="WishartLikelihoodDistribution.SetParams"></a></p>
+      <h3 id="func-wishartlikelihooddistribution-setparams">func
+      (*WishartLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L34-L39">SetParams</a></h3>
+      <div class="sourceCode" id="cb80"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
+      <p><a name="WishartLikelihoodDistribution.SetSeed"></a></p>
+      <h3 id="func-wishartlikelihooddistribution-setseed">func
+      (*WishartLikelihoodDistribution) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/wishart.go#L24-L27">SetSeed</a></h3>
+      <div class="sourceCode" id="cb81"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WishartLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p>Generated by <a
+      href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
+    </div>
+  </main>
+
+  <!-- Theme toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </button>
+
+  <script>
+    // Mobile sidebar toggle
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      document.body.classList.toggle('dark-theme');
+      localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+    }
+
+    // Load saved theme
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('dark-theme');
+    }
+
+    // Set active navigation item
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('.nav-links a');
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && currentPath.includes(href.replace('../', ''))) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
 </html>

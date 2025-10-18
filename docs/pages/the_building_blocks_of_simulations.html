@@ -4,216 +4,543 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <meta name="description" content="Stochadex - A simulation engine for real-world systems" />
+  <meta name="keywords" content="simulation, go, stochastic, modeling, data analysis" />
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  
+  <!-- Custom CSS -->
   <style>
-    .body {
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary-color: #64748b;
+      --accent-color: #f59e0b;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+    }
+
+    * {
       box-sizing: border-box;
-      min-width: 200px;
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 45px;
-      color: #1F2328;
-      background-color: #ffff;
-      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-      line-height: 1.5;
-      word-wrap: break-word;
-      text-align: left;
     }
 
-    .body h1 {
+    body {
       margin: 0;
-      font-size: 200%;
-      color: rgb(42, 65, 83);
-      border-radius: 6px;
-      word-wrap: break-word;
-      text-align: left;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
     }
 
-    .body h2, h3, h4, h5 {
-      margin: 0;
-      font-size: 150%;
-      color: rgb(42, 65, 83);
-      border-radius: 6px;
-      word-wrap: break-word;
-      text-align: left;
+    .container {
+      display: flex;
+      min-height: 100vh;
     }
 
-    .body li {
-      text-align: left;
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 1000;
+      transition: transform 0.3s ease;
     }
 
-    .body strong {
-      color: rgb(42, 65, 83);
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
     }
 
-    .body a {
-      color: #0969da;
-      font-weight: bold;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
       text-decoration: none;
+      color: var(--text-primary);
     }
 
-    .body a:hover {
-      color: LightGrey;
+    .logo img {
+      width: 120px;
+      height: auto;
+    }
+
+
+    .nav-section {
+      margin-bottom: 1rem;
+    }
+
+    .nav-section-title {
+      padding: 0.5rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background-color: var(--bg-tertiary);
+    }
+
+    .nav-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .nav-links li {
+      margin: 0;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 0.5rem 1.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-links a:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-left-color: var(--primary-color);
+    }
+
+    .nav-links a.active {
+      background-color: var(--bg-primary);
+      color: var(--primary-color);
+      border-left-color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+    }
+
+
+    .content-body {
+      padding: 2rem;
+      max-width: 800px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.25rem;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+    }
+
+    h4 {
+      font-size: 1.25rem;
+    }
+
+    h5, h6 {
+      font-size: 1.125rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: #2d3748;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      font-size: 0.875rem;
+      line-height: 1.5;
     }
 
     code {
-      padding: .5em 1em;
-      font-size: 95%;
-      color: #F5F5F5;
-      background-color: rgb(42, 65, 83);
-      border-radius: 6px;
-      overflow: auto;
-      display: block;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background-color: var(--bg-primary);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--bg-secondary);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Blockquotes */
+    blockquote {
+      border-left: 4px solid var(--primary-color);
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Images */
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
     }
 
     .centered {
       text-align: center;
     }
 
-    img:not(.no-center), 
-    svg:not(.no-center) {
-      display: block;
-      margin: 1em auto;
-      max-width: 100%;
-      height: auto;
-    }
-
-    img.no-center, 
-    svg.no-center {
-      display: inline;
-      margin: 0;
-    }
-
-    .otherimgs {
+    .badges {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1rem 0;
     }
 
-    .otherimgs img {
-      display: inline-block;
-      height: auto;
-      margin: 0;
+    .badges img {
+      height: 22px;
+      width: auto;
     }
 
-    .body .navbar {
-      padding:8px 16px;
-      float:right;
-      width:auto;
-      border:none;
-      display:block;
-      outline:0;
-      color: LightGrey;
+    /* Mobile menu toggle */
+    .mobile-menu-toggle {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 1001;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.5rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
     }
 
-    .logofavicon {
-      vertical-align: middle;
-    }
-
-    .body .repotitle {
-      float: left;
-      text-align: left;
-    }
-
-    strong.nameRepo {
-      color: rgb(42, 65, 83);
-    }
-
-    .body .navbar:hover {
-      color: rgb(42, 65, 83);
-    }
-
-    .csl-entry {
-      display: flex;
-      margin-top: 15px;
-    }
-
-    #references {
-      margin-bottom: 0.5em;
-    }
-
-    .csl-left-margin {
-      margin-right: 10px;
-    }
-
-    .custom-spacer {
-      display: block;
-      height: 1em;
-    }
-
-    @media (max-width: 767px) {
-      .body {
-        padding: 15px;
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
       }
-      p {
-        overflow-x: auto;
+
+      .sidebar.open {
+        transform: translateX(0);
       }
-      p span.math.display {
-        display: inline-block;
-        overflow-x: auto;
-        white-space: nowrap;
+
+      .main-content {
+        margin-left: 0;
       }
+
+      .mobile-menu-toggle {
+        display: block;
+      }
+
+
+      .content-body {
+        padding: 1rem;
+      }
+
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.2s ease;
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--primary-hover);
+      transform: scale(1.1);
+    }
+
+    /* Print styles */
+    @media print {
+      .sidebar,
+      .mobile-menu-toggle,
+      .theme-toggle {
+        display: none;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
     }
   </style>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</head>
-<article class="body">
-<a class="navbar" href="https://umbralcalc.github.io/stochadex">
-Home
-</a>
-<a class="navbar" href="https://umbralcalc.github.io/stochadex/pages/quickstart.html">
-Quickstart
-</a>
-<div class="repotitle">
-<span class="logofavicon"> <img src="../assets/logo.png" width="120"></img></span>
-</div>
-</br>
-</br>
-</br>
-<h1 id="the-building-blocks-of-simulations">The building blocks of simulations</h1>
-<div style="height:0.75em;">
 
-</div>
-<h2 id="time-and-its-history">Time and its ‘history’</h2>
-<p>Time is probably the most important variable to track in a simulation. This is because everything that happens within a simulation only has meaning with respect to the real world if we can trace what point in simulated Time that it happened.</p>
-<p>Time is a variable in the simulation which always increases in value. We often want to track how it increases after each discrete simulation ‘step’ in increments which we shall call ‘Timesteps’.</p>
-<p>The first data structure which we shall introduce here is a ‘Cumulative Timesteps History’, which indexes simulated Times that the simulation <em>had</em> according to <em>decreasing recency</em>.</p>
-<p><img src="../assets/cumulative-timesteps-history.svg" /></p>
-<h2 id="state-partitions-and-their-history">State partitions and their history</h2>
-<p>Simulations also have a ‘State’ associated to them for each value of Time.</p>
-<p>A simulation State holds all of the essential information we want to track to make the simulation useful to us which, crucially, includes <em>all of the information that is needed for the simulation to proceed</em>.</p>
-<p>In order to simplify how all of this State data is processed and retrieved, we’re going to <em>partition</em> this simulation State into several ‘State Partition’ data structures.</p>
-<p>For example, one of these partitions might hold all the data associated to a player in a sports team, and the whole simulation needs all of the players within its overall State.</p>
-<p><img src="../assets/state-partitions.svg" /></p>
-<p>Each State Partition carries data that can be different for each moment in Time of the simulation. In order to track this evolution, we create a ‘State Partition History’ data structure for each State Partition.</p>
-<p>Each State Partition History has indices which always match those of the Cumulative Timesteps History, so they are always synchronised with each other.</p>
-<p><img src="../assets/state-partition-history.svg" /></p>
-<h2 id="computing-the-next-timesteps">Computing the Next Timesteps</h2>
-<p>So new States of the simulation may happen at different Times. But what determines when these Times are along the Simulation Timeline?</p>
-<p>When simulating systems in the real world, it can be desireable in some situations to be able to structure the Times along the Timeline at regular intervals.</p>
-<p>In other situations it can be desirable to have an unstructured or randomly-drawn set of Times along the Timeline.</p>
-<p><img src="../assets/timeline.svg" /></p>
-<p>In order to allow this flexibility in choice between situations, let’s specify an ‘Advance Time’ calculation which takes in the current Cumulative Timesteps History and outputs the Next Timestep following the latest Time found in the History (at index 0).</p>
-<p><img src="../assets/advance-time.svg" /></p>
-<h2 id="state-partition-iteration">State partition iteration</h2>
-<p>For an overall simulation data view, we can create a ‘State Partition Histories’ structure. This is a collection of each State Partition History that exists within the simulation.</p>
-<p><img src="../assets/state-partition-histories.svg" /></p>
-<p>How do we determine the ‘Next Values’ of each State Partition in Time?</p>
-<p>This is where we should maintain full flexibility in choice of calculation so that our simulation is able to represent many different real-world systems.</p>
-<p>Each of these calculations for a given Partition specifies how the State Partition Histories and Cumulative Timesteps History data are used to determine the Next Values of the State Partition.</p>
-<p>In order to support even more flexibility in configuration, the calculation should also take in a set of Parameters which are specific to that Partition.</p>
-<p><img src="../assets/partition-iteration.svg" /></p>
-<h2 id="state-partition-and-time-updates">State partition and time updates</h2>
-<p>Having calculated the Next Values of each State Partition and the Next Timestep, we should perform operations over the Cumulative Timesteps History and each State Partition History to Update their structures with this new data.</p>
-<p>This is an important procedure to perform all at once to ensure that the all of the State Partitions in the simulation are synchronised against its virtual clock.</p>
-<p><img src="../assets/update-time-history.svg" /></p>
-<p><img src="../assets/update-state-partition-history.svg" /></p>
-<h2 id="composing-two-partitions">Composing two partitions</h2>
-<h2 id="concurrent-partition-coordination">Concurrent partition coordination</h2>
-<h2 id="embedded-simulations">Embedded simulations</h2>
-<h2 id="parameters-and-configuration">Parameters and configuration</h2>
-<script type="text/javascript" id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</article>
+    
+    
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+<body>
+  <!-- Mobile menu toggle -->
+  <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">
+        <img src="../assets/logo.png" alt="Stochadex Logo">
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Getting Started</div>
+      <ul class="nav-links">
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="../pages/quickstart.html">Quickstart</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Fundamentals</div>
+      <ul class="nav-links">
+        <li><a href="../pages/introducing_the_stochadocs.html">Introducing the Stochadocs</a></li>
+        <li><a href="../pages/the_building_blocks_of_simulations.html">Building Blocks</a></li>
+        <li><a href="../pages/understanding_probabilities_in_simulations.html">Understanding Probabilities</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Examples</div>
+      <ul class="nav-links">
+        <li><a href="../pages/simulating_memoryless_phenomena.html">Memoryless Phenomena</a></li>
+        <li><a href="../pages/simulating_non_memoryless_phenomena.html">Non-Memoryless Phenomena</a></li>
+        <li><a href="../pages/machine_learning_with_probabilistic_reweighting.html">ML with Probabilistic Reweighting</a></li>
+        <li><a href="../pages/machine_learning_with_generalised_linear_models.html">ML with GLMs</a></li>
+        <li><a href="../pages/learning_simulations_directly_with_online_posterior_estimation.html">Online Posterior Estimation</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">API Reference</div>
+      <ul class="nav-links">
+        <li><a href="../pkg/analysis.html">Analysis</a></li>
+        <li><a href="../pkg/api.html">API</a></li>
+        <li><a href="../pkg/continuous.html">Continuous</a></li>
+        <li><a href="../pkg/discrete.html">Discrete</a></li>
+        <li><a href="../pkg/general.html">General</a></li>
+        <li><a href="../pkg/inference.html">Inference</a></li>
+        <li><a href="../pkg/kernels.html">Kernels</a></li>
+        <li><a href="../pkg/keyboard.html">Keyboard</a></li>
+        <li><a href="../pkg/simulator.html">Simulator</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div class="content-body">
+      <h1 id="the-building-blocks-of-simulations">The building blocks of simulations</h1>
+      <div style="height:0.75em;">
+
+      </div>
+      <h2 id="time-and-its-history">Time and its ‘history’</h2>
+      <p>Time is probably the most important variable to track in a simulation. This is because everything that happens within a simulation only has meaning with respect to the real world if we can trace what point in simulated Time that it happened.</p>
+      <p>Time is a variable in the simulation which always increases in value. We often want to track how it increases after each discrete simulation ‘step’ in increments which we shall call ‘Timesteps’.</p>
+      <p>The first data structure which we shall introduce here is a ‘Cumulative Timesteps History’, which indexes simulated Times that the simulation <em>had</em> according to <em>decreasing recency</em>.</p>
+      <p><img src="../assets/cumulative-timesteps-history.svg" /></p>
+      <h2 id="state-partitions-and-their-history">State partitions and their history</h2>
+      <p>Simulations also have a ‘State’ associated to them for each value of Time.</p>
+      <p>A simulation State holds all of the essential information we want to track to make the simulation useful to us which, crucially, includes <em>all of the information that is needed for the simulation to proceed</em>.</p>
+      <p>In order to simplify how all of this State data is processed and retrieved, we’re going to <em>partition</em> this simulation State into several ‘State Partition’ data structures.</p>
+      <p>For example, one of these partitions might hold all the data associated to a player in a sports team, and the whole simulation needs all of the players within its overall State.</p>
+      <p><img src="../assets/state-partitions.svg" /></p>
+      <p>Each State Partition carries data that can be different for each moment in Time of the simulation. In order to track this evolution, we create a ‘State Partition History’ data structure for each State Partition.</p>
+      <p>Each State Partition History has indices which always match those of the Cumulative Timesteps History, so they are always synchronised with each other.</p>
+      <p><img src="../assets/state-partition-history.svg" /></p>
+      <h2 id="computing-the-next-timesteps">Computing the Next Timesteps</h2>
+      <p>So new States of the simulation may happen at different Times. But what determines when these Times are along the Simulation Timeline?</p>
+      <p>When simulating systems in the real world, it can be desireable in some situations to be able to structure the Times along the Timeline at regular intervals.</p>
+      <p>In other situations it can be desirable to have an unstructured or randomly-drawn set of Times along the Timeline.</p>
+      <p><img src="../assets/timeline.svg" /></p>
+      <p>In order to allow this flexibility in choice between situations, let’s specify an ‘Advance Time’ calculation which takes in the current Cumulative Timesteps History and outputs the Next Timestep following the latest Time found in the History (at index 0).</p>
+      <p><img src="../assets/advance-time.svg" /></p>
+      <h2 id="state-partition-iteration">State partition iteration</h2>
+      <p>For an overall simulation data view, we can create a ‘State Partition Histories’ structure. This is a collection of each State Partition History that exists within the simulation.</p>
+      <p><img src="../assets/state-partition-histories.svg" /></p>
+      <p>How do we determine the ‘Next Values’ of each State Partition in Time?</p>
+      <p>This is where we should maintain full flexibility in choice of calculation so that our simulation is able to represent many different real-world systems.</p>
+      <p>Each of these calculations for a given Partition specifies how the State Partition Histories and Cumulative Timesteps History data are used to determine the Next Values of the State Partition.</p>
+      <p>In order to support even more flexibility in configuration, the calculation should also take in a set of Parameters which are specific to that Partition.</p>
+      <p><img src="../assets/partition-iteration.svg" /></p>
+      <h2 id="state-partition-and-time-updates">State partition and time updates</h2>
+      <p>Having calculated the Next Values of each State Partition and the Next Timestep, we should perform operations over the Cumulative Timesteps History and each State Partition History to Update their structures with this new data.</p>
+      <p>This is an important procedure to perform all at once to ensure that the all of the State Partitions in the simulation are synchronised against its virtual clock.</p>
+      <p><img src="../assets/update-time-history.svg" /></p>
+      <p><img src="../assets/update-state-partition-history.svg" /></p>
+      <h2 id="composing-two-partitions">Composing two partitions</h2>
+      <h2 id="concurrent-partition-coordination">Concurrent partition coordination</h2>
+      <h2 id="embedded-simulations">Embedded simulations</h2>
+      <h2 id="parameters-and-configuration">Parameters and configuration</h2>
+    </div>
+  </main>
+
+  <!-- Theme toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </button>
+
+  <script>
+    // Mobile sidebar toggle
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      document.body.classList.toggle('dark-theme');
+      localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+    }
+
+    // Load saved theme
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('dark-theme');
+    }
+
+    // Set active navigation item
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('.nav-links a');
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && currentPath.includes(href.replace('../', ''))) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
 </html>

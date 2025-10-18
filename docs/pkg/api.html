@@ -4,248 +4,533 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <meta name="description" content="Stochadex - A simulation engine for real-world systems" />
+  <meta name="keywords" content="simulation, go, stochastic, modeling, data analysis" />
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  
+  <!-- Custom CSS -->
   <style>
-    .body {
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary-color: #64748b;
+      --accent-color: #f59e0b;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+    }
+
+    * {
       box-sizing: border-box;
-      min-width: 200px;
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 45px;
-      color: #1F2328;
-      background-color: #ffff;
-      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-      line-height: 1.5;
-      word-wrap: break-word;
-      text-align: left;
     }
 
-    .body h1 {
+    body {
       margin: 0;
-      font-size: 200%;
-      color: rgb(42, 65, 83);
-      border-radius: 6px;
-      word-wrap: break-word;
-      text-align: left;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
     }
 
-    .body h2, h3, h4, h5 {
-      margin: 0;
-      font-size: 150%;
-      color: rgb(42, 65, 83);
-      border-radius: 6px;
-      word-wrap: break-word;
-      text-align: left;
+    .container {
+      display: flex;
+      min-height: 100vh;
     }
 
-    .body li {
-      text-align: left;
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 1000;
+      transition: transform 0.3s ease;
     }
 
-    .body strong {
-      color: rgb(42, 65, 83);
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
     }
 
-    .body a {
-      color: #0969da;
-      font-weight: bold;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
       text-decoration: none;
+      color: var(--text-primary);
     }
 
-    .body a:hover {
-      color: LightGrey;
+    .logo img {
+      width: 120px;
+      height: auto;
+    }
+
+
+    .nav-section {
+      margin-bottom: 1rem;
+    }
+
+    .nav-section-title {
+      padding: 0.5rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background-color: var(--bg-tertiary);
+    }
+
+    .nav-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .nav-links li {
+      margin: 0;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 0.5rem 1.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-links a:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-left-color: var(--primary-color);
+    }
+
+    .nav-links a.active {
+      background-color: var(--bg-primary);
+      color: var(--primary-color);
+      border-left-color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+    }
+
+
+    .content-body {
+      padding: 2rem;
+      max-width: 800px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.25rem;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+    }
+
+    h4 {
+      font-size: 1.25rem;
+    }
+
+    h5, h6 {
+      font-size: 1.125rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: #2d3748;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      font-size: 0.875rem;
+      line-height: 1.5;
     }
 
     code {
-      padding: .5em 1em;
-      font-size: 95%;
-      color: #F5F5F5;
-      background-color: rgb(42, 65, 83);
-      border-radius: 6px;
-      overflow: auto;
-      display: block;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background-color: var(--bg-primary);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--bg-secondary);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Blockquotes */
+    blockquote {
+      border-left: 4px solid var(--primary-color);
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Images */
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
     }
 
     .centered {
       text-align: center;
     }
 
-    img:not(.no-center), 
-    svg:not(.no-center) {
-      display: block;
-      margin: 1em auto;
-      max-width: 100%;
-      height: auto;
-    }
-
-    img.no-center, 
-    svg.no-center {
-      display: inline;
-      margin: 0;
-    }
-
-    .otherimgs {
+    .badges {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1rem 0;
     }
 
-    .otherimgs img {
-      display: inline-block;
-      height: auto;
-      margin: 0;
+    .badges img {
+      height: 22px;
+      width: auto;
     }
 
-    .body .navbar {
-      padding:8px 16px;
-      float:right;
-      width:auto;
-      border:none;
-      display:block;
-      outline:0;
-      color: LightGrey;
+    /* Mobile menu toggle */
+    .mobile-menu-toggle {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 1001;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.5rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
     }
 
-    .logofavicon {
-      vertical-align: middle;
-    }
-
-    .body .repotitle {
-      float: left;
-      text-align: left;
-    }
-
-    strong.nameRepo {
-      color: rgb(42, 65, 83);
-    }
-
-    .body .navbar:hover {
-      color: rgb(42, 65, 83);
-    }
-
-    .csl-entry {
-      display: flex;
-      margin-top: 15px;
-    }
-
-    #references {
-      margin-bottom: 0.5em;
-    }
-
-    .csl-left-margin {
-      margin-right: 10px;
-    }
-
-    .custom-spacer {
-      display: block;
-      height: 1em;
-    }
-
-    @media (max-width: 767px) {
-      .body {
-        padding: 15px;
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
       }
-      p {
-        overflow-x: auto;
+
+      .sidebar.open {
+        transform: translateX(0);
       }
-      p span.math.display {
-        display: inline-block;
-        overflow-x: auto;
-        white-space: nowrap;
+
+      .main-content {
+        margin-left: 0;
       }
+
+      .mobile-menu-toggle {
+        display: block;
+      }
+
+
+      .content-body {
+        padding: 1rem;
+      }
+
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      transition: all 0.2s ease;
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      background-color: var(--primary-hover);
+      transform: scale(1.1);
+    }
+
+    /* Print styles */
+    @media print {
+      .sidebar,
+      .mobile-menu-toggle,
+      .theme-toggle {
+        display: none;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
     }
   </style>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    
+    
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
-<article class="body">
-<a class="navbar" href="https://umbralcalc.github.io/stochadex">
-Home
-</a>
-<a class="navbar" href="https://umbralcalc.github.io/stochadex/pages/quickstart.html">
-Quickstart
-</a>
-<div class="repotitle">
-<span class="logofavicon"> <img src="../assets/logo.png" width="120"></img></span>
-</div>
-</br>
-</br>
-</br>
-<!-- Code generated by gomarkdoc. DO NOT EDIT -->
-<h1 id="api">api</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="st">&quot;github.com/umbralcalc/stochadex/pkg/api&quot;</span></span></code></pre></div>
-<p>Package api provides configuration management and program generation
-for stochadex simulations. It handles YAML-based configuration loading,
-code generation, and execution orchestration for complex simulation
-setups including embedded runs and templated configurations.</p>
-<p>Key Features:</p>
-<ul>
-<li>YAML configuration loading and validation</li>
-<li>Code generation from string templates</li>
-<li>Embedded simulation run support</li>
-<li>Socket-based communication configuration</li>
-<li>Runtime program execution</li>
-</ul>
-<p>Usage Patterns:</p>
-<ul>
-<li>Load simulation configurations from YAML files</li>
-<li>Generate executable programs from templates</li>
-<li>Run simulations with embedded sub-simulations</li>
-<li>Configure socket-based data exchange</li>
-</ul>
-<h2 id="index">Index</h2>
-<ul>
-<li><a href="#variables">Variables</a></li>
-<li><a href="#Run">func Run(config *ApiRunConfig, socket
-*SocketConfig)</a></li>
-<li><a href="#RunWithParsedArgs">func RunWithParsedArgs(args
-ParsedArgs)</a></li>
-<li><a href="#StepAndServeWebsocket">func
-StepAndServeWebsocket(generator *simulator.ConfigGenerator, stepDelay
-time.Duration, handle string, address string)</a></li>
-<li><a href="#WriteMainProgram">func WriteMainProgram(args ParsedArgs)
-string</a></li>
-<li><a href="#ApiRunConfig">type ApiRunConfig</a>
-<ul>
-<li><a href="#LoadApiRunConfigFromYaml">func
-LoadApiRunConfigFromYaml(path string) *ApiRunConfig</a></li>
-<li><a href="#ApiRunConfig.GetConfigGenerator">func (a *ApiRunConfig)
-GetConfigGenerator() *simulator.ConfigGenerator</a></li>
-</ul></li>
-<li><a href="#ApiRunConfigStrings">type ApiRunConfigStrings</a>
-<ul>
-<li><a href="#LoadApiRunConfigStringsFromYaml">func
-LoadApiRunConfigStringsFromYaml(path string)
-*ApiRunConfigStrings</a></li>
-</ul></li>
-<li><a href="#EmbeddedRunConfig">type EmbeddedRunConfig</a></li>
-<li><a href="#EmbeddedRunConfigStrings">type
-EmbeddedRunConfigStrings</a></li>
-<li><a href="#ParsedArgs">type ParsedArgs</a>
-<ul>
-<li><a href="#ArgParse">func ArgParse() ParsedArgs</a></li>
-</ul></li>
-<li><a href="#PartitionConfigStrings">type
-PartitionConfigStrings</a></li>
-<li><a href="#RunConfig">type RunConfig</a>
-<ul>
-<li><a href="#RunConfig.GetConfigGenerator">func (r *RunConfig)
-GetConfigGenerator() *simulator.ConfigGenerator</a></li>
-</ul></li>
-<li><a href="#RunConfigStrings">type RunConfigStrings</a></li>
-<li><a href="#SocketConfig">type SocketConfig</a>
-<ul>
-<li><a href="#LoadSocketConfigFromYaml">func
-LoadSocketConfigFromYaml(path string) *SocketConfig</a></li>
-<li><a href="#SocketConfig.Active">func (s *SocketConfig) Active()
-bool</a></li>
-</ul></li>
-</ul>
-<h2 id="variables">Variables</h2>
-<p><a name="ApiCodeTemplate"></a> ApiCodeTemplate is the Go source
-template used to generate a runnable temporary main program that
-executes the requested run configuration.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> ApiCodeTemplate <span class="op">=</span> <span class="st">`package main</span></span>
+
+<body>
+  <!-- Mobile menu toggle -->
+  <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">
+        <img src="../assets/logo.png" alt="Stochadex Logo">
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Getting Started</div>
+      <ul class="nav-links">
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="../pages/quickstart.html">Quickstart</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Fundamentals</div>
+      <ul class="nav-links">
+        <li><a href="../pages/introducing_the_stochadocs.html">Introducing the Stochadocs</a></li>
+        <li><a href="../pages/the_building_blocks_of_simulations.html">Building Blocks</a></li>
+        <li><a href="../pages/understanding_probabilities_in_simulations.html">Understanding Probabilities</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Examples</div>
+      <ul class="nav-links">
+        <li><a href="../pages/simulating_memoryless_phenomena.html">Memoryless Phenomena</a></li>
+        <li><a href="../pages/simulating_non_memoryless_phenomena.html">Non-Memoryless Phenomena</a></li>
+        <li><a href="../pages/machine_learning_with_probabilistic_reweighting.html">ML with Probabilistic Reweighting</a></li>
+        <li><a href="../pages/machine_learning_with_generalised_linear_models.html">ML with GLMs</a></li>
+        <li><a href="../pages/learning_simulations_directly_with_online_posterior_estimation.html">Online Posterior Estimation</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">API Reference</div>
+      <ul class="nav-links">
+        <li><a href="../pkg/analysis.html">Analysis</a></li>
+        <li><a href="../pkg/api.html">API</a></li>
+        <li><a href="../pkg/continuous.html">Continuous</a></li>
+        <li><a href="../pkg/discrete.html">Discrete</a></li>
+        <li><a href="../pkg/general.html">General</a></li>
+        <li><a href="../pkg/inference.html">Inference</a></li>
+        <li><a href="../pkg/kernels.html">Kernels</a></li>
+        <li><a href="../pkg/keyboard.html">Keyboard</a></li>
+        <li><a href="../pkg/simulator.html">Simulator</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div class="content-body">
+      <!-- Code generated by gomarkdoc. DO NOT EDIT -->
+      <h1 id="api">api</h1>
+      <div class="sourceCode" id="cb1"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="st">&quot;github.com/umbralcalc/stochadex/pkg/api&quot;</span></span></code></pre></div>
+      <p>Package api provides configuration management and program
+      generation for stochadex simulations. It handles YAML-based
+      configuration loading, code generation, and execution
+      orchestration for complex simulation setups including embedded
+      runs and templated configurations.</p>
+      <p>Key Features:</p>
+      <ul>
+      <li>YAML configuration loading and validation</li>
+      <li>Code generation from string templates</li>
+      <li>Embedded simulation run support</li>
+      <li>Socket-based communication configuration</li>
+      <li>Runtime program execution</li>
+      </ul>
+      <p>Usage Patterns:</p>
+      <ul>
+      <li>Load simulation configurations from YAML files</li>
+      <li>Generate executable programs from templates</li>
+      <li>Run simulations with embedded sub-simulations</li>
+      <li>Configure socket-based data exchange</li>
+      </ul>
+      <h2 id="index">Index</h2>
+      <ul>
+      <li><a href="#variables">Variables</a></li>
+      <li><a href="#Run">func Run(config *ApiRunConfig, socket
+      *SocketConfig)</a></li>
+      <li><a href="#RunWithParsedArgs">func RunWithParsedArgs(args
+      ParsedArgs)</a></li>
+      <li><a href="#StepAndServeWebsocket">func
+      StepAndServeWebsocket(generator *simulator.ConfigGenerator,
+      stepDelay time.Duration, handle string, address string)</a></li>
+      <li><a href="#WriteMainProgram">func WriteMainProgram(args
+      ParsedArgs) string</a></li>
+      <li><a href="#ApiRunConfig">type ApiRunConfig</a>
+      <ul>
+      <li><a href="#LoadApiRunConfigFromYaml">func
+      LoadApiRunConfigFromYaml(path string) *ApiRunConfig</a></li>
+      <li><a href="#ApiRunConfig.GetConfigGenerator">func (a
+      *ApiRunConfig) GetConfigGenerator()
+      *simulator.ConfigGenerator</a></li>
+      </ul></li>
+      <li><a href="#ApiRunConfigStrings">type ApiRunConfigStrings</a>
+      <ul>
+      <li><a href="#LoadApiRunConfigStringsFromYaml">func
+      LoadApiRunConfigStringsFromYaml(path string)
+      *ApiRunConfigStrings</a></li>
+      </ul></li>
+      <li><a href="#EmbeddedRunConfig">type EmbeddedRunConfig</a></li>
+      <li><a href="#EmbeddedRunConfigStrings">type
+      EmbeddedRunConfigStrings</a></li>
+      <li><a href="#ParsedArgs">type ParsedArgs</a>
+      <ul>
+      <li><a href="#ArgParse">func ArgParse() ParsedArgs</a></li>
+      </ul></li>
+      <li><a href="#PartitionConfigStrings">type
+      PartitionConfigStrings</a></li>
+      <li><a href="#RunConfig">type RunConfig</a>
+      <ul>
+      <li><a href="#RunConfig.GetConfigGenerator">func (r *RunConfig)
+      GetConfigGenerator() *simulator.ConfigGenerator</a></li>
+      </ul></li>
+      <li><a href="#RunConfigStrings">type RunConfigStrings</a></li>
+      <li><a href="#SocketConfig">type SocketConfig</a>
+      <ul>
+      <li><a href="#LoadSocketConfigFromYaml">func
+      LoadSocketConfigFromYaml(path string) *SocketConfig</a></li>
+      <li><a href="#SocketConfig.Active">func (s *SocketConfig) Active()
+      bool</a></li>
+      </ul></li>
+      </ul>
+      <h2 id="variables">Variables</h2>
+      <p><a name="ApiCodeTemplate"></a> ApiCodeTemplate is the Go source
+      template used to generate a runnable temporary main program that
+      executes the requested run configuration.</p>
+      <div class="sourceCode" id="cb2"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> ApiCodeTemplate <span class="op">=</span> <span class="st">`package main</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="st">import (</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;github.com/umbralcalc/stochadex/pkg/api&quot;</span></span>
@@ -260,74 +545,82 @@ executes the requested run configuration.</p>
 <span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="st">    {{.ExtraCode}}</span></span>
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="st">    api.Run(config, socket)</span></span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="st">}`</span></span></code></pre></div>
-<p><a name="Run"></a></p>
-<h2 id="func-run">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L64">Run</a></h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> Run<span class="op">(</span>config <span class="op">*</span>ApiRunConfig<span class="op">,</span> socket <span class="op">*</span>SocketConfig<span class="op">)</span></span></code></pre></div>
-<p>Run executes the configured simulation. If a websocket socket is
-active, it serves real-time updates; otherwise, it runs to completion
-offline.</p>
-<p><a name="RunWithParsedArgs"></a></p>
-<h2 id="func-runwithparsedargs">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L84">RunWithParsedArgs</a></h2>
-<div class="sourceCode" id="cb4"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> RunWithParsedArgs<span class="op">(</span>args ParsedArgs<span class="op">)</span></span></code></pre></div>
-<p>RunWithParsedArgs generates a temporary main program from the
-templated config and executes it via `go run`, enabling dynamic
-iteration wiring.</p>
-<p><a name="StepAndServeWebsocket"></a></p>
-<h2 id="func-stepandservewebsocket">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L21-L26">StepAndServeWebsocket</a></h2>
-<div class="sourceCode" id="cb5"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> StepAndServeWebsocket<span class="op">(</span>generator <span class="op">*</span>simulator<span class="op">.</span>ConfigGenerator<span class="op">,</span> stepDelay time<span class="op">.</span>Duration<span class="op">,</span> handle <span class="dt">string</span><span class="op">,</span> address <span class="dt">string</span><span class="op">)</span></span></code></pre></div>
-<p>StepAndServeWebsocket steps a simulation and streams state updates
-over a websocket using simulator.WebsocketOutputFunction.</p>
-<p>Usage hints:</p>
-<ul>
-<li>The HTTP server mounts the websocket at handle and listens on
-address.</li>
-<li>stepDelay controls the delay between steps in milliseconds.</li>
-</ul>
-<p><a name="WriteMainProgram"></a></p>
-<h2 id="func-writemainprogram">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L397">WriteMainProgram</a></h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> WriteMainProgram<span class="op">(</span>args ParsedArgs<span class="op">)</span> <span class="dt">string</span></span></code></pre></div>
-<p>WriteMainProgram renders ApiCodeTemplate to a /tmp/*main.go and
-returns the file path.</p>
-<p>Usage hints:</p>
-<ul>
-<li>The generated program imports extra packages, declares extra
-variables, and wires iterations per the templated config.</li>
-</ul>
-<p><a name="ApiRunConfig"></a></p>
-<h2 id="type-apirunconfig">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L122-L125">ApiRunConfig</a></h2>
-<p>ApiRunConfig is the concrete, YAML-loadable configuration for an API
-run: a main RunConfig and optional embedded runs.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ApiRunConfig <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="Run"></a></p>
+      <h2 id="func-run">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L64">Run</a></h2>
+      <div class="sourceCode" id="cb3"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> Run<span class="op">(</span>config <span class="op">*</span>ApiRunConfig<span class="op">,</span> socket <span class="op">*</span>SocketConfig<span class="op">)</span></span></code></pre></div>
+      <p>Run executes the configured simulation. If a websocket socket
+      is active, it serves real-time updates; otherwise, it runs to
+      completion offline.</p>
+      <p><a name="RunWithParsedArgs"></a></p>
+      <h2 id="func-runwithparsedargs">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L84">RunWithParsedArgs</a></h2>
+      <div class="sourceCode" id="cb4"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> RunWithParsedArgs<span class="op">(</span>args ParsedArgs<span class="op">)</span></span></code></pre></div>
+      <p>RunWithParsedArgs generates a temporary main program from the
+      templated config and executes it via `go run`, enabling dynamic
+      iteration wiring.</p>
+      <p><a name="StepAndServeWebsocket"></a></p>
+      <h2 id="func-stepandservewebsocket">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/run.go#L21-L26">StepAndServeWebsocket</a></h2>
+      <div class="sourceCode" id="cb5"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> StepAndServeWebsocket<span class="op">(</span>generator <span class="op">*</span>simulator<span class="op">.</span>ConfigGenerator<span class="op">,</span> stepDelay time<span class="op">.</span>Duration<span class="op">,</span> handle <span class="dt">string</span><span class="op">,</span> address <span class="dt">string</span><span class="op">)</span></span></code></pre></div>
+      <p>StepAndServeWebsocket steps a simulation and streams state
+      updates over a websocket using
+      simulator.WebsocketOutputFunction.</p>
+      <p>Usage hints:</p>
+      <ul>
+      <li>The HTTP server mounts the websocket at handle and listens on
+      address.</li>
+      <li>stepDelay controls the delay between steps in
+      milliseconds.</li>
+      </ul>
+      <p><a name="WriteMainProgram"></a></p>
+      <h2 id="func-writemainprogram">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L397">WriteMainProgram</a></h2>
+      <div class="sourceCode" id="cb6"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> WriteMainProgram<span class="op">(</span>args ParsedArgs<span class="op">)</span> <span class="dt">string</span></span></code></pre></div>
+      <p>WriteMainProgram renders ApiCodeTemplate to a /tmp/*main.go and
+      returns the file path.</p>
+      <p>Usage hints:</p>
+      <ul>
+      <li>The generated program imports extra packages, declares extra
+      variables, and wires iterations per the templated config.</li>
+      </ul>
+      <p><a name="ApiRunConfig"></a></p>
+      <h2 id="type-apirunconfig">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L122-L125">ApiRunConfig</a></h2>
+      <p>ApiRunConfig is the concrete, YAML-loadable configuration for
+      an API run: a main RunConfig and optional embedded runs.</p>
+      <div class="sourceCode" id="cb7"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ApiRunConfig <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    Main     RunConfig           <span class="st">`yaml:&quot;main&quot;`</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    Embedded <span class="op">[]</span>EmbeddedRunConfig <span class="st">`yaml:&quot;embedded,omitempty&quot;`</span></span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="LoadApiRunConfigFromYaml"></a></p>
-<h3 id="func-loadapirunconfigfromyaml">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L193">LoadApiRunConfigFromYaml</a></h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> LoadApiRunConfigFromYaml<span class="op">(</span>path <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>ApiRunConfig</span></code></pre></div>
-<p>LoadApiRunConfigFromYaml loads simulation configuration from YAML
-file.</p>
-<p>This function reads a complete API run configuration from a YAML
-file, including main simulation configuration and optional embedded
-runs. It automatically initializes partition defaults and validates the
-configuration.</p>
-<p>Parameters:</p>
-<ul>
-<li>path: Path to the YAML configuration file (must exist and be
-readable)</li>
-</ul>
-<p>Returns:</p>
-<ul>
-<li>*ApiRunConfig: Loaded and initialized configuration ready for
-execution</li>
-</ul>
-<p>YAML File Format: The YAML file must contain:</p>
-<pre><code>main:
+      <p><a name="LoadApiRunConfigFromYaml"></a></p>
+      <h3 id="func-loadapirunconfigfromyaml">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L193">LoadApiRunConfigFromYaml</a></h3>
+      <div class="sourceCode" id="cb8"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> LoadApiRunConfigFromYaml<span class="op">(</span>path <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>ApiRunConfig</span></code></pre></div>
+      <p>LoadApiRunConfigFromYaml loads simulation configuration from
+      YAML file.</p>
+      <p>This function reads a complete API run configuration from a
+      YAML file, including main simulation configuration and optional
+      embedded runs. It automatically initializes partition defaults and
+      validates the configuration.</p>
+      <p>Parameters:</p>
+      <ul>
+      <li>path: Path to the YAML configuration file (must exist and be
+      readable)</li>
+      </ul>
+      <p>Returns:</p>
+      <ul>
+      <li>*ApiRunConfig: Loaded and initialized configuration ready for
+      execution</li>
+      </ul>
+      <p>YAML File Format: The YAML file must contain:</p>
+      <pre><code>main:
   partitions:
     - name: &quot;process1&quot;
       iteration: &quot;&amp;continuous.WienerProcessIteration{}&quot;
@@ -347,112 +640,117 @@ embedded:
   - name: &quot;sub_simulation&quot;
     partitions: [...]
     simulation: [...]</code></pre>
-<p>Error Handling:</p>
-<ul>
-<li>Panics on file read errors (file not found, permission denied)</li>
-<li>Panics on YAML parsing errors (malformed YAML, type mismatches)</li>
-<li>Automatically initializes partition defaults on success</li>
-</ul>
-<p>Example:</p>
-<pre><code>config := LoadApiRunConfigFromYaml(&quot;simulation_config.yaml&quot;)
+      <p>Error Handling:</p>
+      <ul>
+      <li>Panics on file read errors (file not found, permission
+      denied)</li>
+      <li>Panics on YAML parsing errors (malformed YAML, type
+      mismatches)</li>
+      <li>Automatically initializes partition defaults on success</li>
+      </ul>
+      <p>Example:</p>
+      <pre><code>config := LoadApiRunConfigFromYaml(&quot;simulation_config.yaml&quot;)
 generator := config.GetConfigGenerator()
 // Use generator to run the simulation</code></pre>
-<p>Performance Notes:</p>
-<ul>
-<li>Loads entire file into memory</li>
-<li>O(n) time complexity where n is the YAML file size</li>
-<li>Memory usage scales with configuration complexity</li>
-</ul>
-<p><a name="ApiRunConfig.GetConfigGenerator"></a></p>
-<h3 id="func-apirunconfig-getconfiggenerator">func (*ApiRunConfig) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L130">GetConfigGenerator</a></h3>
-<div class="sourceCode" id="cb11"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>a <span class="op">*</span>ApiRunConfig<span class="op">)</span> GetConfigGenerator<span class="op">()</span> <span class="op">*</span>simulator<span class="op">.</span>ConfigGenerator</span></code></pre></div>
-<p>GetConfigGenerator returns a ConfigGenerator for the main run. Any
-partition whose name matches an embedded run is replaced by an embedded
-simulation iteration wired to that embedded run.</p>
-<p><a name="ApiRunConfigStrings"></a></p>
-<h2 id="type-apirunconfigstrings">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L216-L219">ApiRunConfigStrings</a></h2>
-<p>ApiRunConfigStrings is the string-templated configuration used to
-generate code for an API run (imports, variables, iteration
-factories).</p>
-<div class="sourceCode" id="cb12"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ApiRunConfigStrings <span class="kw">struct</span> <span class="op">{</span></span>
+      <p>Performance Notes:</p>
+      <ul>
+      <li>Loads entire file into memory</li>
+      <li>O(n) time complexity where n is the YAML file size</li>
+      <li>Memory usage scales with configuration complexity</li>
+      </ul>
+      <p><a name="ApiRunConfig.GetConfigGenerator"></a></p>
+      <h3 id="func-apirunconfig-getconfiggenerator">func (*ApiRunConfig)
+      <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L130">GetConfigGenerator</a></h3>
+      <div class="sourceCode" id="cb11"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>a <span class="op">*</span>ApiRunConfig<span class="op">)</span> GetConfigGenerator<span class="op">()</span> <span class="op">*</span>simulator<span class="op">.</span>ConfigGenerator</span></code></pre></div>
+      <p>GetConfigGenerator returns a ConfigGenerator for the main run.
+      Any partition whose name matches an embedded run is replaced by an
+      embedded simulation iteration wired to that embedded run.</p>
+      <p><a name="ApiRunConfigStrings"></a></p>
+      <h2 id="type-apirunconfigstrings">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L216-L219">ApiRunConfigStrings</a></h2>
+      <p>ApiRunConfigStrings is the string-templated configuration used
+      to generate code for an API run (imports, variables, iteration
+      factories).</p>
+      <div class="sourceCode" id="cb12"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ApiRunConfigStrings <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    Main     RunConfigStrings           <span class="st">`yaml:&quot;main&quot;`</span></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    Embedded <span class="op">[]</span>EmbeddedRunConfigStrings <span class="st">`yaml:&quot;embedded,omitempty&quot;`</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="LoadApiRunConfigStringsFromYaml"></a></p>
-<h3 id="func-loadapirunconfigstringsfromyaml">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L242">LoadApiRunConfigStringsFromYaml</a></h3>
-<div class="sourceCode" id="cb13"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> LoadApiRunConfigStringsFromYaml<span class="op">(</span>path <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>ApiRunConfigStrings</span></code></pre></div>
-<p>LoadApiRunConfigStringsFromYaml loads the templated config from YAML
-and validates it for code generation.</p>
-<p><a name="EmbeddedRunConfig"></a></p>
-<h2 id="type-embeddedrunconfig">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L101-L104">EmbeddedRunConfig</a></h2>
-<p>EmbeddedRunConfig names and embeds an additional RunConfig that can
-be wired into a partition in the main run.</p>
-<div class="sourceCode" id="cb14"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> EmbeddedRunConfig <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="LoadApiRunConfigStringsFromYaml"></a></p>
+      <h3 id="func-loadapirunconfigstringsfromyaml">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L242">LoadApiRunConfigStringsFromYaml</a></h3>
+      <div class="sourceCode" id="cb13"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> LoadApiRunConfigStringsFromYaml<span class="op">(</span>path <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>ApiRunConfigStrings</span></code></pre></div>
+      <p>LoadApiRunConfigStringsFromYaml loads the templated config from
+      YAML and validates it for code generation.</p>
+      <p><a name="EmbeddedRunConfig"></a></p>
+      <h2 id="type-embeddedrunconfig">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L101-L104">EmbeddedRunConfig</a></h2>
+      <p>EmbeddedRunConfig names and embeds an additional RunConfig that
+      can be wired into a partition in the main run.</p>
+      <div class="sourceCode" id="cb14"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> EmbeddedRunConfig <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    Name <span class="dt">string</span>    <span class="st">`yaml:&quot;name&quot;`</span></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    Run  RunConfig <span class="st">`yaml:&quot;,inline&quot;`</span></span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="EmbeddedRunConfigStrings"></a></p>
-<h2 id="type-embeddedrunconfigstrings">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L115-L118">EmbeddedRunConfigStrings</a></h2>
-<p>EmbeddedRunConfigStrings names and provides string-templated inputs
-for an embedded simulation run.</p>
-<div class="sourceCode" id="cb15"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> EmbeddedRunConfigStrings <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="EmbeddedRunConfigStrings"></a></p>
+      <h2 id="type-embeddedrunconfigstrings">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L115-L118">EmbeddedRunConfigStrings</a></h2>
+      <p>EmbeddedRunConfigStrings names and provides string-templated
+      inputs for an embedded simulation run.</p>
+      <div class="sourceCode" id="cb15"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> EmbeddedRunConfigStrings <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    Name <span class="dt">string</span>           <span class="st">`yaml:&quot;name&quot;`</span></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    Run  RunConfigStrings <span class="st">`yaml:&quot;,inline&quot;`</span></span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="ParsedArgs"></a></p>
-<h2 id="type-parsedargs">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/parsing.go#L13-L17">ParsedArgs</a></h2>
-<p>ParsedArgs bundles CLI-derived inputs for running the API. Includes
-the YAML config path, optional socket config path, and the
-string-templated configuration used to generate a runnable main.</p>
-<div class="sourceCode" id="cb16"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ParsedArgs <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="ParsedArgs"></a></p>
+      <h2 id="type-parsedargs">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/parsing.go#L13-L17">ParsedArgs</a></h2>
+      <p>ParsedArgs bundles CLI-derived inputs for running the API.
+      Includes the YAML config path, optional socket config path, and
+      the string-templated configuration used to generate a runnable
+      main.</p>
+      <div class="sourceCode" id="cb16"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ParsedArgs <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    ConfigStrings <span class="op">*</span>ApiRunConfigStrings</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    ConfigFile    <span class="dt">string</span></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    SocketFile    <span class="dt">string</span></span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="ArgParse"></a></p>
-<h3 id="func-argparse">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/parsing.go#L21">ArgParse</a></h3>
-<div class="sourceCode" id="cb17"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> ArgParse<span class="op">()</span> ParsedArgs</span></code></pre></div>
-<p>ArgParse parses CLI flags into a ParsedArgs, loading
-ApiRunConfigStrings from the provided YAML path for template
-hydration.</p>
-<p><a name="PartitionConfigStrings"></a></p>
-<h2 id="type-partitionconfigstrings">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L47-L52">PartitionConfigStrings</a></h2>
-<p>PartitionConfigStrings describes a partition in its string-templated
-form for code generation and dynamic program construction.</p>
-<p>This struct is used to generate Go code from YAML configurations,
-allowing for flexible simulation setups without hardcoded partition
-types. It supports dynamic iteration creation, package imports, and
-variable injection.</p>
-<p>Fields:</p>
-<ul>
-<li>Name: Partition name (must be unique within a simulation)</li>
-<li>Iteration: Go expression that constructs the iteration (e.g.,
-“&amp;continuous.WienerProcessIteration{}”)</li>
-<li>ExtraPackages: Import paths required by the Iteration expression or
-ExtraVars</li>
-<li>ExtraVars: Ad-hoc variable declarations injected into the generated
-main function</li>
-</ul>
-<p>Code Generation: The Iteration field is evaluated as Go code,
-allowing for parameterized iteration construction. ExtraVars provide
-additional context for the generated code.</p>
-<p>Example:</p>
-<pre><code>config := PartitionConfigStrings{
+      <p><a name="ArgParse"></a></p>
+      <h3 id="func-argparse">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/parsing.go#L21">ArgParse</a></h3>
+      <div class="sourceCode" id="cb17"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> ArgParse<span class="op">()</span> ParsedArgs</span></code></pre></div>
+      <p>ArgParse parses CLI flags into a ParsedArgs, loading
+      ApiRunConfigStrings from the provided YAML path for template
+      hydration.</p>
+      <p><a name="PartitionConfigStrings"></a></p>
+      <h2 id="type-partitionconfigstrings">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L47-L52">PartitionConfigStrings</a></h2>
+      <p>PartitionConfigStrings describes a partition in its
+      string-templated form for code generation and dynamic program
+      construction.</p>
+      <p>This struct is used to generate Go code from YAML
+      configurations, allowing for flexible simulation setups without
+      hardcoded partition types. It supports dynamic iteration creation,
+      package imports, and variable injection.</p>
+      <p>Fields:</p>
+      <ul>
+      <li>Name: Partition name (must be unique within a simulation)</li>
+      <li>Iteration: Go expression that constructs the iteration (e.g.,
+      “&amp;continuous.WienerProcessIteration{}”)</li>
+      <li>ExtraPackages: Import paths required by the Iteration
+      expression or ExtraVars</li>
+      <li>ExtraVars: Ad-hoc variable declarations injected into the
+      generated main function</li>
+      </ul>
+      <p>Code Generation: The Iteration field is evaluated as Go code,
+      allowing for parameterized iteration construction. ExtraVars
+      provide additional context for the generated code.</p>
+      <p>Example:</p>
+      <pre><code>config := PartitionConfigStrings{
     Name: &quot;brownian_motion&quot;,
     Iteration: &quot;&amp;continuous.WienerProcessIteration{}&quot;,
     ExtraPackages: []string{&quot;github.com/umbralcalc/stochadex/pkg/continuous&quot;},
@@ -461,36 +759,37 @@ additional context for the generated code.</p>
         {&quot;dimensions&quot;: &quot;2&quot;},
     },
 }</code></pre>
-<p>Validation:</p>
-<ul>
-<li>Iteration must be a valid Go expression</li>
-<li>ExtraPackages must be valid import paths</li>
-<li>ExtraVars must be valid Go variable declarations</li>
-</ul>
-<div class="sourceCode" id="cb19"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PartitionConfigStrings <span class="kw">struct</span> <span class="op">{</span></span>
+      <p>Validation:</p>
+      <ul>
+      <li>Iteration must be a valid Go expression</li>
+      <li>ExtraPackages must be valid import paths</li>
+      <li>ExtraVars must be valid Go variable declarations</li>
+      </ul>
+      <div class="sourceCode" id="cb19"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PartitionConfigStrings <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    Name          <span class="dt">string</span>              <span class="st">`yaml:&quot;name&quot;`</span></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    Iteration     <span class="dt">string</span>              <span class="st">`yaml:&quot;iteration,omitempty&quot;`</span></span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    ExtraPackages <span class="op">[]</span><span class="dt">string</span>            <span class="st">`yaml:&quot;extra_packages,omitempty&quot;`</span></span>
 <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    ExtraVars     <span class="op">[]</span><span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">]</span><span class="dt">string</span> <span class="st">`yaml:&quot;extra_vars,omitempty&quot;`</span></span>
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="RunConfig"></a></p>
-<h2 id="type-runconfig">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L83-L86">RunConfig</a></h2>
-<p>RunConfig represents a complete simulation run configuration with
-partitions and simulation settings.</p>
-<p>This struct combines partition configurations with simulation control
-parameters to define a complete simulation run. It serves as the primary
-configuration structure for YAML-based simulation setup.</p>
-<p>Fields:</p>
-<ul>
-<li>Partitions: List of partition configurations defining the simulation
-state</li>
-<li>Simulation: Simulation control parameters (not loaded from YAML
-directly)</li>
-</ul>
-<p>YAML Structure:</p>
-<pre><code>partitions:
+      <p><a name="RunConfig"></a></p>
+      <h2 id="type-runconfig">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L83-L86">RunConfig</a></h2>
+      <p>RunConfig represents a complete simulation run configuration
+      with partitions and simulation settings.</p>
+      <p>This struct combines partition configurations with simulation
+      control parameters to define a complete simulation run. It serves
+      as the primary configuration structure for YAML-based simulation
+      setup.</p>
+      <p>Fields:</p>
+      <ul>
+      <li>Partitions: List of partition configurations defining the
+      simulation state</li>
+      <li>Simulation: Simulation control parameters (not loaded from
+      YAML directly)</li>
+      </ul>
+      <p>YAML Structure:</p>
+      <pre><code>partitions:
   - name: &quot;process1&quot;
     iteration: &quot;&amp;continuous.WienerProcessIteration{}&quot;
     params:
@@ -501,64 +800,112 @@ directly)</li>
     params:
       rates: [0.5, 1.0]
     init_state_values: [0.0, 0.0]</code></pre>
-<p>Related Types:</p>
-<ul>
-<li>See simulator.PartitionConfig for partition configuration
-details</li>
-<li>See simulator.SimulationConfig for simulation control
-parameters</li>
-<li>See ApiRunConfig for API-level configuration with embedded runs</li>
-</ul>
-<div class="sourceCode" id="cb21"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> RunConfig <span class="kw">struct</span> <span class="op">{</span></span>
+      <p>Related Types:</p>
+      <ul>
+      <li>See simulator.PartitionConfig for partition configuration
+      details</li>
+      <li>See simulator.SimulationConfig for simulation control
+      parameters</li>
+      <li>See ApiRunConfig for API-level configuration with embedded
+      runs</li>
+      </ul>
+      <div class="sourceCode" id="cb21"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> RunConfig <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    Partitions <span class="op">[]</span>simulator<span class="op">.</span>PartitionConfig <span class="st">`yaml:&quot;partitions&quot;`</span></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    Simulation simulator<span class="op">.</span>SimulationConfig  <span class="st">`yaml:&quot;-&quot;`</span></span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="RunConfig.GetConfigGenerator"></a></p>
-<h3 id="func-runconfig-getconfiggenerator">func (*RunConfig) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L90">GetConfigGenerator</a></h3>
-<div class="sourceCode" id="cb22"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>r <span class="op">*</span>RunConfig<span class="op">)</span> GetConfigGenerator<span class="op">()</span> <span class="op">*</span>simulator<span class="op">.</span>ConfigGenerator</span></code></pre></div>
-<p>GetConfigGenerator constructs a ConfigGenerator preloaded with the
-run’s SimulationConfig and Partitions.</p>
-<p><a name="RunConfigStrings"></a></p>
-<h2 id="type-runconfigstrings">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L108-L111">RunConfigStrings</a></h2>
-<p>RunConfigStrings provides the string-templated inputs required to
-generate a runnable main for a simulation run.</p>
-<div class="sourceCode" id="cb23"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> RunConfigStrings <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="RunConfig.GetConfigGenerator"></a></p>
+      <h3 id="func-runconfig-getconfiggenerator">func (*RunConfig) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L90">GetConfigGenerator</a></h3>
+      <div class="sourceCode" id="cb22"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>r <span class="op">*</span>RunConfig<span class="op">)</span> GetConfigGenerator<span class="op">()</span> <span class="op">*</span>simulator<span class="op">.</span>ConfigGenerator</span></code></pre></div>
+      <p>GetConfigGenerator constructs a ConfigGenerator preloaded with
+      the run’s SimulationConfig and Partitions.</p>
+      <p><a name="RunConfigStrings"></a></p>
+      <h2 id="type-runconfigstrings">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/program.go#L108-L111">RunConfigStrings</a></h2>
+      <p>RunConfigStrings provides the string-templated inputs required
+      to generate a runnable main for a simulation run.</p>
+      <div class="sourceCode" id="cb23"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> RunConfigStrings <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    Partitions <span class="op">[]</span>PartitionConfigStrings          <span class="st">`yaml:&quot;partitions&quot;`</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    Simulation simulator<span class="op">.</span>SimulationConfigStrings <span class="st">`yaml:&quot;simulation&quot;`</span></span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="SocketConfig"></a></p>
-<h2 id="type-socketconfig">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/socket.go#L12-L16">SocketConfig</a></h2>
-<p>SocketConfig configures an optional real-time websocket used to
-stream simulation updates.</p>
-<div class="sourceCode" id="cb24"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SocketConfig <span class="kw">struct</span> <span class="op">{</span></span>
+      <p><a name="SocketConfig"></a></p>
+      <h2 id="type-socketconfig">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/socket.go#L12-L16">SocketConfig</a></h2>
+      <p>SocketConfig configures an optional real-time websocket used to
+      stream simulation updates.</p>
+      <div class="sourceCode" id="cb24"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SocketConfig <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    Address          <span class="dt">string</span> <span class="st">`yaml:&quot;address&quot;`</span></span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    Handle           <span class="dt">string</span> <span class="st">`yaml:&quot;handle&quot;`</span></span>
 <span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    MillisecondDelay <span class="dt">uint64</span> <span class="st">`yaml:&quot;millisecond_delay&quot;`</span></span>
 <span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-<p><a name="LoadSocketConfigFromYaml"></a></p>
-<h3 id="func-loadsocketconfigfromyaml">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/socket.go#L26">LoadSocketConfigFromYaml</a></h3>
-<div class="sourceCode" id="cb25"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> LoadSocketConfigFromYaml<span class="op">(</span>path <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>SocketConfig</span></code></pre></div>
-<p>LoadSocketConfigFromYaml loads a SocketConfig from YAML. If the path
-is empty, it returns a zero-valued config and logs that sockets are
-disabled.</p>
-<p><a name="SocketConfig.Active"></a></p>
-<h3 id="func-socketconfig-active">func (*SocketConfig) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/socket.go#L19">Active</a></h3>
-<div class="sourceCode" id="cb26"><pre
-class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>SocketConfig<span class="op">)</span> Active<span class="op">()</span> <span class="dt">bool</span></span></code></pre></div>
-<p>Active reports whether the websocket server should be started.</p>
-<p>Generated by <a
-href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
-<script type="text/javascript" id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</article>
+      <p><a name="LoadSocketConfigFromYaml"></a></p>
+      <h3 id="func-loadsocketconfigfromyaml">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/socket.go#L26">LoadSocketConfigFromYaml</a></h3>
+      <div class="sourceCode" id="cb25"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> LoadSocketConfigFromYaml<span class="op">(</span>path <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>SocketConfig</span></code></pre></div>
+      <p>LoadSocketConfigFromYaml loads a SocketConfig from YAML. If the
+      path is empty, it returns a zero-valued config and logs that
+      sockets are disabled.</p>
+      <p><a name="SocketConfig.Active"></a></p>
+      <h3 id="func-socketconfig-active">func (*SocketConfig) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/api/socket.go#L19">Active</a></h3>
+      <div class="sourceCode" id="cb26"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>SocketConfig<span class="op">)</span> Active<span class="op">()</span> <span class="dt">bool</span></span></code></pre></div>
+      <p>Active reports whether the websocket server should be
+      started.</p>
+      <p>Generated by <a
+      href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
+    </div>
+  </main>
+
+  <!-- Theme toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </button>
+
+  <script>
+    // Mobile sidebar toggle
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      document.body.classList.toggle('dark-theme');
+      localStorage.setItem('theme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+    }
+
+    // Load saved theme
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('dark-theme');
+    }
+
+    // Set active navigation item
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('.nav-links a');
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && currentPath.includes(href.replace('../', ''))) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
 </html>
