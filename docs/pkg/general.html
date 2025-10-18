@@ -184,145 +184,16 @@ can be composed to create complex simulation behaviors.</p>
 <li>Flexible function-based iterations</li>
 <li>Parameter value management and copying</li>
 <li>Constant value generation and propagation</li>
-<li>Cumulative value tracking and accumulation</li>
+<li>Cumulative computation utilities</li>
 <li>Embedded simulation run support</li>
-<li>History-based value extraction</li>
-<li>Event-driven value changes</li>
-<li>Collection and sorting utilities</li>
-<li>Weighted resampling algorithms</li>
 </ul>
-<p>Design Philosophy: This package emphasizes composition and
-flexibility, providing building blocks that can be combined to create
-sophisticated simulation behaviors. Functions are designed to be pure
-(stateless) and composable, enabling complex data processing pipelines
-within simulations.</p>
 <p>Usage Patterns:</p>
 <ul>
-<li>Data preprocessing and feature engineering</li>
-<li>Custom aggregation and transformation logic</li>
-<li>Parameter management and value propagation</li>
-<li>Event-driven simulation dynamics</li>
-<li>Multi-scale simulation coordination</li>
-</ul>
-<p>Package general provides general-purpose iteration functions and
-utilities for stochadex simulations. It includes data transformation
-functions, aggregation utilities, and flexible iteration patterns that
-can be composed to create complex simulation behaviors.</p>
-<p>Key Features:</p>
-<ul>
-<li>Data transformation and reduction functions</li>
-<li>Flexible function-based iterations</li>
-<li>Parameter value management and copying</li>
-<li>Constant value generation and propagation</li>
-<li>Cumulative value tracking and accumulation</li>
-<li>Embedded simulation run support</li>
-<li>History-based value extraction</li>
-<li>Event-driven value changes</li>
-<li>Collection and sorting utilities</li>
-<li>Weighted resampling algorithms</li>
-</ul>
-<p>Design Philosophy: This package emphasizes composition and
-flexibility, providing building blocks that can be combined to create
-sophisticated simulation behaviors. Functions are designed to be pure
-(stateless) and composable, enabling complex data processing pipelines
-within simulations.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Data preprocessing and feature engineering</li>
-<li>Custom aggregation and transformation logic</li>
-<li>Parameter management and value propagation</li>
-<li>Event-driven simulation dynamics</li>
-<li>Multi-scale simulation coordination</li>
-</ul>
-<p>Package general provides general-purpose iteration functions and
-utilities for stochadex simulations. It includes data transformation
-functions, aggregation utilities, and flexible iteration patterns that
-can be composed to create complex simulation behaviors.</p>
-<p>Key Features:</p>
-<ul>
-<li>Data transformation and reduction functions</li>
-<li>Flexible function-based iterations</li>
-<li>Parameter value management and copying</li>
-<li>Constant value generation and propagation</li>
-<li>Cumulative value tracking and accumulation</li>
-<li>Embedded simulation run support</li>
-<li>History-based value extraction</li>
-<li>Event-driven value changes</li>
-<li>Collection and sorting utilities</li>
-<li>Weighted resampling algorithms</li>
-</ul>
-<p>Design Philosophy: This package emphasizes composition and
-flexibility, providing building blocks that can be combined to create
-sophisticated simulation behaviors. Functions are designed to be pure
-(stateless) and composable, enabling complex data processing pipelines
-within simulations.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Data preprocessing and feature engineering</li>
-<li>Custom aggregation and transformation logic</li>
-<li>Parameter management and value propagation</li>
-<li>Event-driven simulation dynamics</li>
-<li>Multi-scale simulation coordination</li>
-</ul>
-<p>Package general provides general-purpose iteration functions and
-utilities for stochadex simulations. It includes data transformation
-functions, aggregation utilities, and flexible iteration patterns that
-can be composed to create complex simulation behaviors.</p>
-<p>Key Features:</p>
-<ul>
-<li>Data transformation and reduction functions</li>
-<li>Flexible function-based iterations</li>
-<li>Parameter value management and copying</li>
-<li>Constant value generation and propagation</li>
-<li>Cumulative value tracking and accumulation</li>
-<li>Embedded simulation run support</li>
-<li>History-based value extraction</li>
-<li>Event-driven value changes</li>
-<li>Collection and sorting utilities</li>
-<li>Weighted resampling algorithms</li>
-</ul>
-<p>Design Philosophy: This package emphasizes composition and
-flexibility, providing building blocks that can be combined to create
-sophisticated simulation behaviors. Functions are designed to be pure
-(stateless) and composable, enabling complex data processing pipelines
-within simulations.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Data preprocessing and feature engineering</li>
-<li>Custom aggregation and transformation logic</li>
-<li>Parameter management and value propagation</li>
-<li>Event-driven simulation dynamics</li>
-<li>Multi-scale simulation coordination</li>
-</ul>
-<p>Package general provides general-purpose iteration functions and
-utilities for stochadex simulations. It includes data transformation
-functions, aggregation utilities, and flexible iteration patterns that
-can be composed to create complex simulation behaviors.</p>
-<p>Key Features:</p>
-<ul>
-<li>Data transformation and reduction functions</li>
-<li>Flexible function-based iterations</li>
-<li>Parameter value management and copying</li>
-<li>Constant value generation and propagation</li>
-<li>Cumulative value tracking and accumulation</li>
-<li>Embedded simulation run support</li>
-<li>History-based value extraction</li>
-<li>Event-driven value changes</li>
-<li>Collection and sorting utilities</li>
-<li>Weighted resampling algorithms</li>
-</ul>
-<p>Design Philosophy: This package emphasizes composition and
-flexibility, providing building blocks that can be combined to create
-sophisticated simulation behaviors. Functions are designed to be pure
-(stateless) and composable, enabling complex data processing pipelines
-within simulations.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Data preprocessing and feature engineering</li>
-<li>Custom aggregation and transformation logic</li>
-<li>Parameter management and value propagation</li>
-<li>Event-driven simulation dynamics</li>
-<li>Multi-scale simulation coordination</li>
+<li>Create reusable iteration functions for common simulation
+patterns</li>
+<li>Transform and aggregate simulation data</li>
+<li>Manage parameter values across simulation runs</li>
+<li>Implement custom computation logic with flexible interfaces</li>
 </ul>
 <h2 id="index">Index</h2>
 <ul>
@@ -665,7 +536,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_group
 <p>MinAggregation computes the minimum of weighted values per group.</p>
 <p><a name="NewTransformReduceFunction"></a></p>
 <h2 id="func-newtransformreducefunction">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L70-L83">NewTransformReduceFunction</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L41-L54">NewTransformReduceFunction</a></h2>
 <div class="sourceCode" id="cb10"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewTransformReduceFunction<span class="op">(</span>transform <span class="kw">func</span><span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">float64</span><span class="op">,</span> reduce <span class="kw">func</span><span class="op">(</span>values <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="kw">func</span><span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p>NewTransformReduceFunction returns a function that first transforms
@@ -727,7 +598,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb
 <p>ParamsEventFunction emits an event value from the “event” params.</p>
 <p><a name="ParamsTransform"></a></p>
 <h2 id="func-paramstransform">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L39-L44">ParamsTransform</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L10-L15">ParamsTransform</a></h2>
 <div class="sourceCode" id="cb16"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> ParamsTransform<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">float64</span></span></code></pre></div>
 <p>ParamsTransform is a convenience transform that returns the current
@@ -781,7 +652,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb
 <p>SumAggregation computes the weighted sum of values per group.</p>
 <p><a name="SumReduce"></a></p>
 <h2 id="func-sumreduce">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L53">SumReduce</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L24">SumReduce</a></h2>
 <div class="sourceCode" id="cb22"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> SumReduce<span class="op">(</span>values <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p>SumReduce reduces a map of equally sized vectors by summing them
@@ -800,7 +671,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb
 to compute a kernel density (sum of weights) directly.</p>
 <p><a name="ConstantValuesIteration"></a></p>
 <h2 id="type-constantvaluesiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L40-L41">ConstantValuesIteration</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L11-L12">ConstantValuesIteration</a></h2>
 <p>ConstantValuesIteration leaves initial state values unchanged over
 time.</p>
 <p>Usage hints:</p>
@@ -813,18 +684,18 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb
 <p><a name="ConstantValuesIteration.Configure"></a></p>
 <h3 id="func-constantvaluesiteration-configure">func
 (*ConstantValuesIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L43-L46">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L14-L17">Configure</a></h3>
 <div class="sourceCode" id="cb25"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConstantValuesIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="ConstantValuesIteration.Iterate"></a></p>
 <h3 id="func-constantvaluesiteration-iterate">func
 (*ConstantValuesIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L49-L54">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/constant_values.go#L20-L25">Iterate</a></h3>
 <div class="sourceCode" id="cb26"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConstantValuesIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="CopyValuesIteration"></a></p>
 <h2 id="type-copyvaluesiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L41-L42">CopyValuesIteration</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L12-L13">CopyValuesIteration</a></h2>
 <p>CopyValuesIteration copies selected values from other partitions’
 latest states into its own state.</p>
 <p>Usage hints:</p>
@@ -838,17 +709,17 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb
 <p><a name="CopyValuesIteration.Configure"></a></p>
 <h3 id="func-copyvaluesiteration-configure">func (*CopyValuesIteration)
 <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L44-L47">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L15-L18">Configure</a></h3>
 <div class="sourceCode" id="cb28"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>CopyValuesIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="CopyValuesIteration.Iterate"></a></p>
 <h3 id="func-copyvaluesiteration-iterate">func (*CopyValuesIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L50-L55">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/copy_values.go#L21-L26">Iterate</a></h3>
 <div class="sourceCode" id="cb29"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>CopyValuesIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="CumulativeIteration"></a></p>
 <h2 id="type-cumulativeiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L41-L43">CumulativeIteration</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L12-L14">CumulativeIteration</a></h2>
 <p>CumulativeIteration accumulates a provided iteration’s outputs over
 time.</p>
 <p>Usage hints:</p>
@@ -862,17 +733,17 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb30-1"><a href="#cb
 <p><a name="CumulativeIteration.Configure"></a></p>
 <h3 id="func-cumulativeiteration-configure">func (*CumulativeIteration)
 <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L45-L48">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L16-L19">Configure</a></h3>
 <div class="sourceCode" id="cb31"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>CumulativeIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="CumulativeIteration.Iterate"></a></p>
 <h3 id="func-cumulativeiteration-iterate">func (*CumulativeIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L51-L56">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/cumulative.go#L22-L27">Iterate</a></h3>
 <div class="sourceCode" id="cb32"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>CumulativeIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="EmbeddedSimulationRunIteration"></a></p>
 <h2 id="type-embeddedsimulationruniteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L76-L84">EmbeddedSimulationRunIteration</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L47-L55">EmbeddedSimulationRunIteration</a></h2>
 <p>EmbeddedSimulationRunIteration runs a nested simulation to
 termination at each outer step.</p>
 <p>Usage hints:</p>
@@ -895,7 +766,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb33-1"><a href="#cb
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="NewEmbeddedSimulationRunIteration"></a></p>
 <h3 id="func-newembeddedsimulationruniteration">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L268-L271">NewEmbeddedSimulationRunIteration</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L239-L242">NewEmbeddedSimulationRunIteration</a></h3>
 <div class="sourceCode" id="cb34"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewEmbeddedSimulationRunIteration<span class="op">(</span>settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">,</span> implementations <span class="op">*</span>simulator<span class="op">.</span>Implementations<span class="op">)</span> <span class="op">*</span>EmbeddedSimulationRunIteration</span></code></pre></div>
 <p>NewEmbeddedSimulationRunIteration constructs an embedded run
@@ -903,13 +774,13 @@ iteration from prepared settings and implementations.</p>
 <p><a name="EmbeddedSimulationRunIteration.Configure"></a></p>
 <h3 id="func-embeddedsimulationruniteration-configure">func
 (*EmbeddedSimulationRunIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L86-L89">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L57-L60">Configure</a></h3>
 <div class="sourceCode" id="cb35"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>e <span class="op">*</span>EmbeddedSimulationRunIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="EmbeddedSimulationRunIteration.Iterate"></a></p>
 <h3 id="func-embeddedsimulationruniteration-iterate">func
 (*EmbeddedSimulationRunIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L185-L190">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L156-L161">Iterate</a></h3>
 <div class="sourceCode" id="cb36"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>e <span class="op">*</span>EmbeddedSimulationRunIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="FromHistoryIteration"></a></p>
@@ -1015,7 +886,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/from_storage
 class="sourceCode go"><code class="sourceCode go"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>f <span class="op">*</span>FromStorageTimestepFunction<span class="op">)</span> NextIncrement<span class="op">(</span>timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="NamedIndexedState"></a></p>
 <h2 id="type-namedindexedstate">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L60-L63">NamedIndexedState</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L31-L34">NamedIndexedState</a></h2>
 <p>NamedIndexedState pairs a partition’s name/index with its state
 history. Useful for initialising inner histories from a chosen outer
 partition.</p>
@@ -1085,7 +956,7 @@ key.</p>
 </ul>
 <p><a name="StateMemoryIteration"></a></p>
 <h2 id="type-statememoryiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L54-L56">StateMemoryIteration</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L25-L27">StateMemoryIteration</a></h2>
 <p>StateMemoryIteration marks iterations that can receive state/time
 from a parent simulation and store it for later use.</p>
 <div class="sourceCode" id="cb55"><pre
@@ -1094,7 +965,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb55-1"><a href="#cb
 <span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="StateMemoryUpdate"></a></p>
 <h2 id="type-statememoryupdate">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L46-L50">StateMemoryUpdate</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L17-L21">StateMemoryUpdate</a></h2>
 <p>StateMemoryUpdate carries a named partition’s state and timestep
 history from an outer simulation into an inner (embedded)
 simulation.</p>
@@ -1180,7 +1051,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_colle
 class="sourceCode go"><code class="sourceCode go"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>v <span class="op">*</span>ValuesCollectionIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="ValuesFunctionIteration"></a></p>
 <h2 id="type-valuesfunctioniteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L163-L170">ValuesFunctionIteration</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L134-L141">ValuesFunctionIteration</a></h2>
 <p>ValuesFunctionIteration provides a flexible way to compute derived
 values from simulation state and parameters using user-defined
 functions.</p>
@@ -1265,13 +1136,13 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb64-1"><a href="#cb
 <p><a name="ValuesFunctionIteration.Configure"></a></p>
 <h3 id="func-valuesfunctioniteration-configure">func
 (*ValuesFunctionIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L172-L175">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L143-L146">Configure</a></h3>
 <div class="sourceCode" id="cb65"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>v <span class="op">*</span>ValuesFunctionIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="ValuesFunctionIteration.Iterate"></a></p>
 <h3 id="func-valuesfunctioniteration-iterate">func
 (*ValuesFunctionIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L178-L183">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/values_function.go#L149-L154">Iterate</a></h3>
 <div class="sourceCode" id="cb66"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>v <span class="op">*</span>ValuesFunctionIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="ValuesFunctionVectorCovarianceIteration"></a></p>

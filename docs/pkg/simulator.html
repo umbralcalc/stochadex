@@ -185,162 +185,19 @@ control mechanisms.</p>
 <li>State history management and time tracking</li>
 <li>Configurable termination and output conditions</li>
 <li>Flexible timestep control</li>
-<li>Thread-safe state storage and communication</li>
+<li>Storage and persistence utilities</li>
 </ul>
-<p>Architecture Overview: The simulator uses a partition-based
-architecture where each partition represents a component of the
-simulation state. Partitions can communicate through upstream/downstream
-channels, enabling complex multi-component simulations with dependencies
-between components.</p>
-<p>Core Components:</p>
-<ul>
-<li>PartitionCoordinator: Orchestrates execution across all
-partitions</li>
-<li>StateIterator: Manages individual partition execution and
-communication</li>
-<li>StateTimeStorage: Thread-safe storage for simulation results</li>
-<li>ConfigGenerator: Creates simulation configurations from
-settings</li>
-<li>TerminationCondition: Controls when simulations stop</li>
-<li>OutputFunction: Handles result collection and storage</li>
-</ul>
-<p>Design Philosophy: The simulator emphasizes modularity, concurrency,
-and flexibility. It provides a robust foundation for building complex
-simulations while maintaining good performance characteristics and
-thread safety.</p>
+<p>Architecture: The simulator uses a partition-based approach where
+simulations are divided into independent partitions that can be executed
+concurrently. Each partition maintains its own state history and can
+communicate with other partitions through defined interfaces.</p>
 <p>Usage Patterns:</p>
 <ul>
-<li>Multi-component system simulation</li>
-<li>Agent-based modeling with interactions</li>
-<li>Monte Carlo simulations with multiple sources of randomness</li>
-<li>Time-series analysis and forecasting</li>
-<li>Parameter estimation and optimization</li>
-</ul>
-<p>Package simulator provides the core simulation engine and
-infrastructure for stochadex simulations. It includes the main
-simulation loop, state management, partition coordination, and execution
-control mechanisms.</p>
-<p>Key Features:</p>
-<ul>
-<li>Partition-based simulation architecture</li>
-<li>Concurrent execution with goroutine coordination</li>
-<li>State history management and time tracking</li>
-<li>Configurable termination and output conditions</li>
-<li>Flexible timestep control</li>
-<li>Thread-safe state storage and communication</li>
-</ul>
-<p>Architecture Overview: The simulator uses a partition-based
-architecture where each partition represents a component of the
-simulation state. Partitions can communicate through upstream/downstream
-channels, enabling complex multi-component simulations with dependencies
-between components.</p>
-<p>Core Components:</p>
-<ul>
-<li>PartitionCoordinator: Orchestrates execution across all
-partitions</li>
-<li>StateIterator: Manages individual partition execution and
-communication</li>
-<li>StateTimeStorage: Thread-safe storage for simulation results</li>
-<li>ConfigGenerator: Creates simulation configurations from
-settings</li>
-<li>TerminationCondition: Controls when simulations stop</li>
-<li>OutputFunction: Handles result collection and storage</li>
-</ul>
-<p>Design Philosophy: The simulator emphasizes modularity, concurrency,
-and flexibility. It provides a robust foundation for building complex
-simulations while maintaining good performance characteristics and
-thread safety.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Multi-component system simulation</li>
-<li>Agent-based modeling with interactions</li>
-<li>Monte Carlo simulations with multiple sources of randomness</li>
-<li>Time-series analysis and forecasting</li>
-<li>Parameter estimation and optimization</li>
-</ul>
-<p>Package simulator provides the core simulation engine and
-infrastructure for stochadex simulations. It includes the main
-simulation loop, state management, partition coordination, and execution
-control mechanisms.</p>
-<p>Key Features:</p>
-<ul>
-<li>Partition-based simulation architecture</li>
-<li>Concurrent execution with goroutine coordination</li>
-<li>State history management and time tracking</li>
-<li>Configurable termination and output conditions</li>
-<li>Flexible timestep control</li>
-<li>Thread-safe state storage and communication</li>
-</ul>
-<p>Architecture Overview: The simulator uses a partition-based
-architecture where each partition represents a component of the
-simulation state. Partitions can communicate through upstream/downstream
-channels, enabling complex multi-component simulations with dependencies
-between components.</p>
-<p>Core Components:</p>
-<ul>
-<li>PartitionCoordinator: Orchestrates execution across all
-partitions</li>
-<li>StateIterator: Manages individual partition execution and
-communication</li>
-<li>StateTimeStorage: Thread-safe storage for simulation results</li>
-<li>ConfigGenerator: Creates simulation configurations from
-settings</li>
-<li>TerminationCondition: Controls when simulations stop</li>
-<li>OutputFunction: Handles result collection and storage</li>
-</ul>
-<p>Design Philosophy: The simulator emphasizes modularity, concurrency,
-and flexibility. It provides a robust foundation for building complex
-simulations while maintaining good performance characteristics and
-thread safety.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Multi-component system simulation</li>
-<li>Agent-based modeling with interactions</li>
-<li>Monte Carlo simulations with multiple sources of randomness</li>
-<li>Time-series analysis and forecasting</li>
-<li>Parameter estimation and optimization</li>
-</ul>
-<p>Package simulator provides the core simulation engine and
-infrastructure for stochadex simulations. It includes the main
-simulation loop, state management, partition coordination, and execution
-control mechanisms.</p>
-<p>Key Features:</p>
-<ul>
-<li>Partition-based simulation architecture</li>
-<li>Concurrent execution with goroutine coordination</li>
-<li>State history management and time tracking</li>
-<li>Configurable termination and output conditions</li>
-<li>Flexible timestep control</li>
-<li>Thread-safe state storage and communication</li>
-</ul>
-<p>Architecture Overview: The simulator uses a partition-based
-architecture where each partition represents a component of the
-simulation state. Partitions can communicate through upstream/downstream
-channels, enabling complex multi-component simulations with dependencies
-between components.</p>
-<p>Core Components:</p>
-<ul>
-<li>PartitionCoordinator: Orchestrates execution across all
-partitions</li>
-<li>StateIterator: Manages individual partition execution and
-communication</li>
-<li>StateTimeStorage: Thread-safe storage for simulation results</li>
-<li>ConfigGenerator: Creates simulation configurations from
-settings</li>
-<li>TerminationCondition: Controls when simulations stop</li>
-<li>OutputFunction: Handles result collection and storage</li>
-</ul>
-<p>Design Philosophy: The simulator emphasizes modularity, concurrency,
-and flexibility. It provides a robust foundation for building complex
-simulations while maintaining good performance characteristics and
-thread safety.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Multi-component system simulation</li>
-<li>Agent-based modeling with interactions</li>
-<li>Monte Carlo simulations with multiple sources of randomness</li>
-<li>Time-series analysis and forecasting</li>
-<li>Parameter estimation and optimization</li>
+<li>Configure and run complex multi-partition simulations</li>
+<li>Manage simulation state across multiple timesteps</li>
+<li>Coordinate concurrent execution of simulation components</li>
+<li>Store and retrieve simulation results and intermediate states</li>
+<li>Implement custom termination and output conditions</li>
 </ul>
 <h2 id="index">Index</h2>
 <ul>
@@ -710,7 +567,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb
 <p>SetSimulation sets the current simulation config.</p>
 <p><a name="ConstantTimestepFunction"></a></p>
 <h2 id="type-constanttimestepfunction">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L54-L56">ConstantTimestepFunction</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L17-L19">ConstantTimestepFunction</a></h2>
 <p>ConstantTimestepFunction uses a fixed stepsize.</p>
 <div class="sourceCode" id="cb14"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ConstantTimestepFunction <span class="kw">struct</span> <span class="op">{</span></span>
@@ -719,12 +576,12 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb
 <p><a name="ConstantTimestepFunction.NextIncrement"></a></p>
 <h3 id="func-constanttimestepfunction-nextincrement">func
 (*ConstantTimestepFunction) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L58-L60">NextIncrement</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L21-L23">NextIncrement</a></h3>
 <div class="sourceCode" id="cb15"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>ConstantTimestepFunction<span class="op">)</span> NextIncrement<span class="op">(</span>timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="CumulativeTimestepsHistory"></a></p>
 <h2 id="type-cumulativetimestepshistory">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L78-L83">CumulativeTimestepsHistory</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L41-L46">CumulativeTimestepsHistory</a></h2>
 <p>CumulativeTimestepsHistory is a rolling window of cumulative
 timesteps with NextIncrement and CurrentStepNumber.</p>
 <div class="sourceCode" id="cb16"><pre
@@ -773,7 +630,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#
 class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>EveryStepOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
 <p><a name="ExponentialDistributionTimestepFunction"></a></p>
 <h2 id="type-exponentialdistributiontimestepfunction">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L66-L70">ExponentialDistributionTimestepFunction</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L29-L33">ExponentialDistributionTimestepFunction</a></h2>
 <p>ExponentialDistributionTimestepFunction draws dt from an exponential
 distribution parameterised by Mean and Seed.</p>
 <div class="sourceCode" id="cb22"><pre
@@ -784,7 +641,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb
 <span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="NewExponentialDistributionTimestepFunction"></a></p>
 <h3 id="func-newexponentialdistributiontimestepfunction">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L80-L83">NewExponentialDistributionTimestepFunction</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L43-L46">NewExponentialDistributionTimestepFunction</a></h3>
 <div class="sourceCode" id="cb23"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewExponentialDistributionTimestepFunction<span class="op">(</span>mean <span class="dt">float64</span><span class="op">,</span> seed <span class="dt">uint64</span><span class="op">)</span> <span class="op">*</span>ExponentialDistributionTimestepFunction</span></code></pre></div>
 <p>NewExponentialDistributionTimestepFunction constructs an
@@ -792,7 +649,7 @@ exponential-dt timestep function given mean and seed.</p>
 <p><a name="ExponentialDistributionTimestepFunction.NextIncrement"></a></p>
 <h3 id="func-exponentialdistributiontimestepfunction-nextincrement">func
 (*ExponentialDistributionTimestepFunction) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L72-L74">NextIncrement</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L35-L37">NextIncrement</a></h3>
 <div class="sourceCode" id="cb24"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>ExponentialDistributionTimestepFunction<span class="op">)</span> NextIncrement<span class="op">(</span>timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="Implementations"></a></p>
@@ -964,7 +821,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go
 class="sourceCode go"><code class="sourceCode go"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>h <span class="op">*</span>IterationTestHarness<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="IteratorInputMessage"></a></p>
 <h2 id="type-iteratorinputmessage">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L86-L89">IteratorInputMessage</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L49-L52">IteratorInputMessage</a></h2>
 <p>IteratorInputMessage carries shared histories into iterator jobs.</p>
 <div class="sourceCode" id="cb32"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> IteratorInputMessage <span class="kw">struct</span> <span class="op">{</span></span>
@@ -1125,7 +982,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb52-1"><a href="#cb
 <span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="Params"></a></p>
 <h2 id="type-params">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L47-L50">Params</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L10-L13">Params</a></h2>
 <p>Params stores per-partition parameter values.</p>
 <p>Usage hints:</p>
 <ul>
@@ -1139,59 +996,59 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb53-1"><a href="#cb
 <span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="NewParams"></a></p>
 <h3 id="func-newparams">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L128">NewParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L91">NewParams</a></h3>
 <div class="sourceCode" id="cb54"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewParams<span class="op">(</span>params <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">float64</span><span class="op">)</span> Params</span></code></pre></div>
 <p>NewParams constructs a Params instance.</p>
 <p><a name="Params.Get"></a></p>
 <h3 id="func-params-get">func (*Params) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L70">Get</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L33">Get</a></h3>
 <div class="sourceCode" id="cb55"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>Params<span class="op">)</span> Get<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p>Get returns parameter values or panics with a helpful message.</p>
 <p><a name="Params.GetCopy"></a></p>
 <h3 id="func-params-getcopy">func (*Params) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L80">GetCopy</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L43">GetCopy</a></h3>
 <div class="sourceCode" id="cb56"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>Params<span class="op">)</span> GetCopy<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p>GetCopy returns a copy of parameter values or panics with a helpful
 message.</p>
 <p><a name="Params.GetCopyOk"></a></p>
 <h3 id="func-params-getcopyok">func (*Params) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L59">GetCopyOk</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L22">GetCopyOk</a></h3>
 <div class="sourceCode" id="cb57"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>Params<span class="op">)</span> GetCopyOk<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span> <span class="op">([]</span><span class="dt">float64</span><span class="op">,</span> <span class="dt">bool</span><span class="op">)</span></span></code></pre></div>
 <p>GetCopyOk returns a copy of parameter values if present along with a
 flag.</p>
 <p><a name="Params.GetIndex"></a></p>
 <h3 id="func-params-getindex">func (*Params) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L92">GetIndex</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L55">GetIndex</a></h3>
 <div class="sourceCode" id="cb58"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>Params<span class="op">)</span> GetIndex<span class="op">(</span>name <span class="dt">string</span><span class="op">,</span> index <span class="dt">int</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p>GetIndex returns a single parameter value or panics.</p>
 <p><a name="Params.GetOk"></a></p>
 <h3 id="func-params-getok">func (*Params) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L53">GetOk</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L16">GetOk</a></h3>
 <div class="sourceCode" id="cb59"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>Params<span class="op">)</span> GetOk<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span> <span class="op">([]</span><span class="dt">float64</span><span class="op">,</span> <span class="dt">bool</span><span class="op">)</span></span></code></pre></div>
 <p>GetOk returns parameter values if present along with a boolean
 flag.</p>
 <p><a name="Params.Set"></a></p>
 <h3 id="func-params-set">func (*Params) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L102">Set</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L65">Set</a></h3>
 <div class="sourceCode" id="cb60"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>Params<span class="op">)</span> Set<span class="op">(</span>name <span class="dt">string</span><span class="op">,</span> values <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
 <p>Set creates or updates parameter values by name.</p>
 <p><a name="Params.SetIndex"></a></p>
 <h3 id="func-params-setindex">func (*Params) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L107">SetIndex</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L70">SetIndex</a></h3>
 <div class="sourceCode" id="cb61"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>Params<span class="op">)</span> SetIndex<span class="op">(</span>name <span class="dt">string</span><span class="op">,</span> index <span class="dt">int</span><span class="op">,</span> value <span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
 <p>SetIndex updates a single parameter value or panics on invalid
 index.</p>
 <p><a name="Params.SetPartitionName"></a></p>
 <h3 id="func-params-setpartitionname">func (*Params) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L123">SetPartitionName</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/params.go#L86">SetPartitionName</a></h3>
 <div class="sourceCode" id="cb62"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>Params<span class="op">)</span> SetPartitionName<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span></span></code></pre></div>
 <p>SetPartitionName attaches the owning partition name for better
@@ -1258,7 +1115,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb67-1"><a href="#cb
 lookups.</p>
 <p><a name="PartitionCoordinator"></a></p>
 <h2 id="type-partitioncoordinator">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L107-L113">PartitionCoordinator</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L70-L76">PartitionCoordinator</a></h2>
 <p>PartitionCoordinator orchestrates iteration work across partitions
 and applies state/time history updates in a coordinated manner.</p>
 <p>The PartitionCoordinator is the central component that manages the
@@ -1336,7 +1193,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb69-1"><a href="#cb
 <span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="NewPartitionCoordinator"></a></p>
 <h3 id="func-newpartitioncoordinator">func <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L199-L202">NewPartitionCoordinator</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L162-L165">NewPartitionCoordinator</a></h3>
 <div class="sourceCode" id="cb70"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewPartitionCoordinator<span class="op">(</span>settings <span class="op">*</span>Settings<span class="op">,</span> implementations <span class="op">*</span>Implementations<span class="op">)</span> <span class="op">*</span>PartitionCoordinator</span></code></pre></div>
 <p>NewPartitionCoordinator wires Settings and Implementations into a
@@ -1344,27 +1201,27 @@ runnable coordinator with initial state/time histories and channels.</p>
 <p><a name="PartitionCoordinator.ReadyToTerminate"></a></p>
 <h3 id="func-partitioncoordinator-readytoterminate">func
 (*PartitionCoordinator) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L180">ReadyToTerminate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L143">ReadyToTerminate</a></h3>
 <div class="sourceCode" id="cb71"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>PartitionCoordinator<span class="op">)</span> ReadyToTerminate<span class="op">()</span> <span class="dt">bool</span></span></code></pre></div>
 <p>ReadyToTerminate returns whether the TerminationCondition is met.</p>
 <p><a name="PartitionCoordinator.RequestMoreIterations"></a></p>
 <h3 id="func-partitioncoordinator-requestmoreiterations">func
 (*PartitionCoordinator) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L117">RequestMoreIterations</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L80">RequestMoreIterations</a></h3>
 <div class="sourceCode" id="cb72"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>PartitionCoordinator<span class="op">)</span> RequestMoreIterations<span class="op">(</span>wg <span class="op">*</span>sync<span class="op">.</span>WaitGroup<span class="op">)</span></span></code></pre></div>
 <p>RequestMoreIterations spawns a goroutine per partition to run
 ReceiveAndIteratePending.</p>
 <p><a name="PartitionCoordinator.Run"></a></p>
 <h3 id="func-partitioncoordinator-run">func (*PartitionCoordinator) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L188">Run</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L151">Run</a></h3>
 <div class="sourceCode" id="cb73"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>PartitionCoordinator<span class="op">)</span> Run<span class="op">()</span></span></code></pre></div>
 <p>Run advances by repeatedly calling Step until termination.</p>
 <p><a name="PartitionCoordinator.Step"></a></p>
 <h3 id="func-partitioncoordinator-step">func (*PartitionCoordinator) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L163">Step</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L126">Step</a></h3>
 <div class="sourceCode" id="cb74"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>PartitionCoordinator<span class="op">)</span> Step<span class="op">(</span>wg <span class="op">*</span>sync<span class="op">.</span>WaitGroup<span class="op">)</span></span></code></pre></div>
 <p>Step performs one simulation tick: compute dt, request iterations,
@@ -1372,7 +1229,7 @@ then apply state/time updates.</p>
 <p><a name="PartitionCoordinator.UpdateHistory"></a></p>
 <h3 id="func-partitioncoordinator-updatehistory">func
 (*PartitionCoordinator) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L135">UpdateHistory</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/coordinator.go#L98">UpdateHistory</a></h3>
 <div class="sourceCode" id="cb75"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>PartitionCoordinator<span class="op">)</span> UpdateHistory<span class="op">(</span>wg <span class="op">*</span>sync<span class="op">.</span>WaitGroup<span class="op">)</span></span></code></pre></div>
 <p>UpdateHistory spawns a goroutine per partition to run UpdateHistory
@@ -1491,7 +1348,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb90-1"><a href="#cb
 from YAML.</p>
 <p><a name="StateHistory"></a></p>
 <h2 id="type-statehistory">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L49-L57">StateHistory</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L12-L20">StateHistory</a></h2>
 <p>StateHistory is a rolling window of state vectors.</p>
 <p>Usage hints:</p>
 <ul>
@@ -1512,14 +1369,14 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb91-1"><a href="#cb
 <span id="cb91-9"><a href="#cb91-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="StateHistory.CopyStateRow"></a></p>
 <h3 id="func-statehistory-copystaterow">func (*StateHistory) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L60">CopyStateRow</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L23">CopyStateRow</a></h3>
 <div class="sourceCode" id="cb92"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateHistory<span class="op">)</span> CopyStateRow<span class="op">(</span>index <span class="dt">int</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p>CopyStateRow copies a row from the state history given the index.</p>
 <p><a name="StateHistory.GetNextStateRowToUpdate"></a></p>
 <h3 id="func-statehistory-getnextstaterowtoupdate">func (*StateHistory)
 <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L69">GetNextStateRowToUpdate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L32">GetNextStateRowToUpdate</a></h3>
 <div class="sourceCode" id="cb93"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateHistory<span class="op">)</span> GetNextStateRowToUpdate<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p>GetNextStateRowToUpdate determines whether or not it is necessary to
@@ -1768,7 +1625,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/terminatio
 class="sourceCode go"><code class="sourceCode go"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>TimeElapsedTerminationCondition<span class="op">)</span> Terminate<span class="op">(</span>stateHistories <span class="op">[]*</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
 <p><a name="TimestepFunction"></a></p>
 <h2 id="type-timestepfunction">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L47-L51">TimestepFunction</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L10-L14">TimestepFunction</a></h2>
 <p>TimestepFunction computes the next time increment.</p>
 <div class="sourceCode" id="cb119"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> TimestepFunction <span class="kw">interface</span> <span class="op">{</span></span>

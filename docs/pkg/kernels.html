@@ -186,24 +186,23 @@ states.</p>
 <li>Custom kernel implementations for specialized weighting schemes</li>
 <li>Integration with aggregation functions for rolling statistics</li>
 </ul>
-<p>Mathematical Background: Integration kernels define weighting
-functions w(t-s) for aggregating historical data points. Common patterns
-include:</p>
+<p>Mathematical Background: Kernels define weighting functions K(t, s)
+that determine how much influence a data point at time s has on the
+aggregated value at time t. Common patterns:</p>
 <ul>
-<li>Exponential decay: w(t-s) = exp(-λ(t-s))</li>
-<li>Gaussian weighting: w(t-s) = exp(-(t-s)²/(2σ²))</li>
-<li>State distance: w(x,y) = exp(-||x-y||²/(2σ²))</li>
+<li>Exponential kernels: K(t, s) = exp(-λ(t-s)) for time decay</li>
+<li>Gaussian kernels: K(x, y) = exp(-||x-y||²/2σ²) for state
+similarity</li>
+<li>Periodic kernels: K(t, s) = cos(2π(t-s)/T) for cyclical
+patterns</li>
 </ul>
-<p>Design Philosophy: Kernels are designed to be composable and
-efficient, providing standardized interfaces for time and state
-weighting. They enable flexible aggregation schemes while maintaining
-good performance characteristics.</p>
 <p>Usage Patterns:</p>
 <ul>
-<li>Rolling window statistics with time decay</li>
-<li>State similarity measurements for clustering</li>
-<li>Temporal aggregation with customizable weighting</li>
-<li>Feature engineering with distance-based weighting</li>
+<li>Weight historical data for rolling window statistics</li>
+<li>Define similarity measures between simulation states</li>
+<li>Implement custom aggregation schemes with domain-specific
+weighting</li>
+<li>Create time-decay functions for forgetting old information</li>
 </ul>
 <h2 id="index">Index</h2>
 <ul>
@@ -516,7 +515,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/instantaneou
 class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>i <span class="op">*</span>InstantaneousIntegrationKernel<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">)</span></span></code></pre></div>
 <p><a name="IntegrationKernel"></a></p>
 <h2 id="type-integrationkernel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L84-L93">IntegrationKernel</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L56-L65">IntegrationKernel</a></h2>
 <p>IntegrationKernel defines the interface for time/state weighting
 kernels used when aggregating over historical data in simulations.</p>
 <p>Integration kernels provide a standardized way to weight historical

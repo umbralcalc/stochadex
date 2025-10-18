@@ -1,31 +1,3 @@
-// Package kernels provides integration kernels for time-weighted aggregation
-// and state-distance weighting in stochadex simulations. These kernels define
-// how historical data points are weighted when computing aggregated statistics
-// over time or when measuring similarity between states.
-//
-// Key Features:
-//   - Time-based weighting kernels (exponential, periodic, constant)
-//   - State-distance kernels (Gaussian, instantaneous)
-//   - Custom kernel implementations for specialized weighting schemes
-//   - Integration with aggregation functions for rolling statistics
-//
-// Mathematical Background:
-// Integration kernels define weighting functions w(t-s) for aggregating
-// historical data points. Common patterns include:
-//   - Exponential decay: w(t-s) = exp(-λ(t-s))
-//   - Gaussian weighting: w(t-s) = exp(-(t-s)²/(2σ²))
-//   - State distance: w(x,y) = exp(-||x-y||²/(2σ²))
-//
-// Design Philosophy:
-// Kernels are designed to be composable and efficient, providing standardized
-// interfaces for time and state weighting. They enable flexible aggregation
-// schemes while maintaining good performance characteristics.
-//
-// Usage Patterns:
-//   - Rolling window statistics with time decay
-//   - State similarity measurements for clustering
-//   - Temporal aggregation with customizable weighting
-//   - Feature engineering with distance-based weighting
 package kernels
 
 import "github.com/umbralcalc/stochadex/pkg/simulator"

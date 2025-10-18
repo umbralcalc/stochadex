@@ -20,14 +20,13 @@ Key Features:
 - Graceful exit and cleanup
 - Extensible input channel abstraction
 
-Design Philosophy: This package provides a clean abstraction for user input that can be easily integrated into simulation workflows. It supports both interactive and non\-interactive modes, making it suitable for both development and production use.
-
 Usage Patterns:
 
-- Interactive simulation control \(pause, resume, parameter adjustment\)
-- Real\-time monitoring and intervention
-- Development and debugging tools
-- Educational and demonstration applications
+- Pause/resume simulations with keyboard shortcuts
+- Adjust simulation parameters in real\-time
+- Trigger data export or analysis during runs
+- Implement interactive debugging and monitoring
+- Create user\-controlled simulation scenarios
 
 ## Index
 
@@ -41,7 +40,7 @@ Usage Patterns:
 
 <a name="KeystrokeChannel"></a>
 
-## type [KeystrokeChannel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L38-L43>)
+## type [KeystrokeChannel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L17-L22>)
 
 KeystrokeChannel abstracts a source of keyboard events.
 
@@ -61,7 +60,7 @@ type KeystrokeChannel interface {
 
 <a name="StandardKeystrokeChannel"></a>
 
-## type [StandardKeystrokeChannel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L46>)
+## type [StandardKeystrokeChannel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L25>)
 
 StandardKeystrokeChannel retrieves keystrokes from the terminal.
 
@@ -71,7 +70,7 @@ type StandardKeystrokeChannel struct{}
 
 <a name="StandardKeystrokeChannel.Get"></a>
 
-### func \(\*StandardKeystrokeChannel\) [Get](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L48-L51>)
+### func \(\*StandardKeystrokeChannel\) [Get](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L27-L30>)
 
 ```go
 func (s *StandardKeystrokeChannel) Get(partitionIndex int, settings *simulator.Settings) (<-chan keyboard.KeyEvent, error)
@@ -81,7 +80,7 @@ func (s *StandardKeystrokeChannel) Get(partitionIndex int, settings *simulator.S
 
 <a name="UserInputIteration"></a>
 
-## type [UserInputIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L114-L120>)
+## type [UserInputIteration](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L93-L99>)
 
 UserInputIteration provides real\-time user interaction during simulation runs through keyboard input handling and action mapping.
 
@@ -156,7 +155,7 @@ type UserInputIteration struct {
 
 <a name="UserInputIteration.Configure"></a>
 
-### func \(\*UserInputIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L122-L125>)
+### func \(\*UserInputIteration\) [Configure](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L101-L104>)
 
 ```go
 func (u *UserInputIteration) Configure(partitionIndex int, settings *simulator.Settings)
@@ -166,7 +165,7 @@ func (u *UserInputIteration) Configure(partitionIndex int, settings *simulator.S
 
 <a name="UserInputIteration.Iterate"></a>
 
-### func \(\*UserInputIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L150-L155>)
+### func \(\*UserInputIteration\) [Iterate](<https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L129-L134>)
 
 ```go
 func (u *UserInputIteration) Iterate(params *simulator.Params, partitionIndex int, stateHistories []*simulator.StateHistory, timestepsHistory *simulator.CumulativeTimestepsHistory) []float64

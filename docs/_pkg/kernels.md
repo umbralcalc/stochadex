@@ -19,20 +19,18 @@ Key Features:
 - Custom kernel implementations for specialized weighting schemes
 - Integration with aggregation functions for rolling statistics
 
-Mathematical Background: Integration kernels define weighting functions w\(t\-s\) for aggregating historical data points. Common patterns include:
+Mathematical Background: Kernels define weighting functions K\(t, s\) that determine how much influence a data point at time s has on the aggregated value at time t. Common patterns:
 
-- Exponential decay: w\(t\-s\) = exp\(\-λ\(t\-s\)\)
-- Gaussian weighting: w\(t\-s\) = exp\(\-\(t\-s\)²/\(2σ²\)\)
-- State distance: w\(x,y\) = exp\(\-||x\-y||²/\(2σ²\)\)
-
-Design Philosophy: Kernels are designed to be composable and efficient, providing standardized interfaces for time and state weighting. They enable flexible aggregation schemes while maintaining good performance characteristics.
+- Exponential kernels: K\(t, s\) = exp\(\-λ\(t\-s\)\) for time decay
+- Gaussian kernels: K\(x, y\) = exp\(\-||x\-y||²/2σ²\) for state similarity
+- Periodic kernels: K\(t, s\) = cos\(2π\(t\-s\)/T\) for cyclical patterns
 
 Usage Patterns:
 
-- Rolling window statistics with time decay
-- State similarity measurements for clustering
-- Temporal aggregation with customizable weighting
-- Feature engineering with distance\-based weighting
+- Weight historical data for rolling window statistics
+- Define similarity measures between simulation states
+- Implement custom aggregation schemes with domain\-specific weighting
+- Create time\-decay functions for forgetting old information
 
 ## Index
 
@@ -356,7 +354,7 @@ func (i *InstantaneousIntegrationKernel) SetParams(params *simulator.Params)
 
 <a name="IntegrationKernel"></a>
 
-## type [IntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L84-L93>)
+## type [IntegrationKernel](<https://github.com/umbralcalc/stochadex/blob/main/pkg/kernels/interface.go#L56-L65>)
 
 IntegrationKernel defines the interface for time/state weighting kernels used when aggregating over historical data in simulations.
 

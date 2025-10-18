@@ -1,24 +1,3 @@
-// Package keyboard provides interactive user input capabilities for stochadex simulations.
-// It enables real-time user interaction during simulation runs through keyboard events,
-// allowing for dynamic control and parameter adjustment during execution.
-//
-// Key Features:
-//   - Real-time keyboard event handling
-//   - Configurable key-to-action mapping
-//   - Timeout-based input handling
-//   - Graceful exit and cleanup
-//   - Extensible input channel abstraction
-//
-// Design Philosophy:
-// This package provides a clean abstraction for user input that can be easily
-// integrated into simulation workflows. It supports both interactive and
-// non-interactive modes, making it suitable for both development and production use.
-//
-// Usage Patterns:
-//   - Interactive simulation control (pause, resume, parameter adjustment)
-//   - Real-time monitoring and intervention
-//   - Development and debugging tools
-//   - Educational and demonstration applications
 package keyboard
 
 import (

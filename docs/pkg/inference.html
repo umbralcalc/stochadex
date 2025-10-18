@@ -185,139 +185,28 @@ Poisson, etc.)</li>
 <li>Likelihood function evaluation and gradient computation</li>
 <li>Bayesian inference with posterior estimation</li>
 <li>Parameter estimation and optimization support</li>
-<li>Statistical testing and validation utilities</li>
-<li>Gradient-based optimization algorithms</li>
+<li>Model comparison and validation utilities</li>
 </ul>
-<p>Mathematical Background: The inference package implements statistical
-models for:</p>
+<p>Mathematical Background: The package implements various probability
+distributions and their associated likelihood functions for use in
+Bayesian inference. Key distributions include:</p>
 <ul>
-<li>Likelihood functions: p(data | parameters)</li>
-<li>Posterior distributions: p(parameters | data) ∝ p(data | parameters)
-× p(parameters)</li>
-<li>Gradient computation: ∇_θ log p(data | parameters)</li>
-<li>Parameter estimation: θ̂ = argmax_θ p(data | parameters)</li>
+<li>Normal distributions for continuous variables</li>
+<li>Poisson distributions for count data</li>
+<li>Gamma distributions for positive continuous variables</li>
+<li>Beta distributions for bounded continuous variables</li>
 </ul>
-<p>Design Philosophy: This package emphasizes modularity and
-composability, providing building blocks for statistical inference that
-can be combined to create complex inference workflows. All distributions
-implement standard interfaces for likelihood evaluation and gradient
-computation.</p>
 <p>Usage Patterns:</p>
 <ul>
-<li>Parameter estimation from simulation data</li>
-<li>Model validation and goodness-of-fit testing</li>
-<li>Bayesian inference with prior distributions</li>
-<li>Gradient-based optimization for parameter fitting</li>
-<li>Statistical hypothesis testing and model comparison</li>
+<li>Fit models to observed data using maximum likelihood estimation</li>
+<li>Perform Bayesian parameter estimation with prior distributions</li>
+<li>Compare models using likelihood ratios or information criteria</li>
+<li>Validate model assumptions through posterior predictive checks</li>
 </ul>
-<p>Package inference provides statistical inference and likelihood
-modeling capabilities for stochadex simulations. It includes probability
-distributions, likelihood functions, gradient computation, and Bayesian
-inference utilities for parameter estimation and model validation.</p>
-<p>Key Features:</p>
-<ul>
-<li>Probability distribution implementations (Beta, Gamma, Normal,
-Poisson, etc.)</li>
-<li>Likelihood function evaluation and gradient computation</li>
-<li>Bayesian inference with posterior estimation</li>
-<li>Parameter estimation and optimization support</li>
-<li>Statistical testing and validation utilities</li>
-<li>Gradient-based optimization algorithms</li>
-</ul>
-<p>Mathematical Background: The inference package implements statistical
-models for:</p>
-<ul>
-<li>Likelihood functions: p(data | parameters)</li>
-<li>Posterior distributions: p(parameters | data) ∝ p(data | parameters)
-× p(parameters)</li>
-<li>Gradient computation: ∇_θ log p(data | parameters)</li>
-<li>Parameter estimation: θ̂ = argmax_θ p(data | parameters)</li>
-</ul>
-<p>Design Philosophy: This package emphasizes modularity and
-composability, providing building blocks for statistical inference that
-can be combined to create complex inference workflows. All distributions
-implement standard interfaces for likelihood evaluation and gradient
-computation.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Parameter estimation from simulation data</li>
-<li>Model validation and goodness-of-fit testing</li>
-<li>Bayesian inference with prior distributions</li>
-<li>Gradient-based optimization for parameter fitting</li>
-<li>Statistical hypothesis testing and model comparison</li>
-</ul>
-<p>Package inference provides statistical inference and likelihood
-modeling capabilities for stochadex simulations. It includes probability
-distributions, likelihood functions, gradient computation, and Bayesian
-inference utilities for parameter estimation and model validation.</p>
-<p>Key Features:</p>
-<ul>
-<li>Probability distribution implementations (Beta, Gamma, Normal,
-Poisson, etc.)</li>
-<li>Likelihood function evaluation and gradient computation</li>
-<li>Bayesian inference with posterior estimation</li>
-<li>Parameter estimation and optimization support</li>
-<li>Statistical testing and validation utilities</li>
-<li>Gradient-based optimization algorithms</li>
-</ul>
-<p>Mathematical Background: The inference package implements statistical
-models for:</p>
-<ul>
-<li>Likelihood functions: p(data | parameters)</li>
-<li>Posterior distributions: p(parameters | data) ∝ p(data | parameters)
-× p(parameters)</li>
-<li>Gradient computation: ∇_θ log p(data | parameters)</li>
-<li>Parameter estimation: θ̂ = argmax_θ p(data | parameters)</li>
-</ul>
-<p>Design Philosophy: This package emphasizes modularity and
-composability, providing building blocks for statistical inference that
-can be combined to create complex inference workflows. All distributions
-implement standard interfaces for likelihood evaluation and gradient
-computation.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Parameter estimation from simulation data</li>
-<li>Model validation and goodness-of-fit testing</li>
-<li>Bayesian inference with prior distributions</li>
-<li>Gradient-based optimization for parameter fitting</li>
-<li>Statistical hypothesis testing and model comparison</li>
-</ul>
-<p>Package inference provides statistical inference and likelihood
-modeling capabilities for stochadex simulations. It includes probability
-distributions, likelihood functions, gradient computation, and Bayesian
-inference utilities for parameter estimation and model validation.</p>
-<p>Key Features:</p>
-<ul>
-<li>Probability distribution implementations (Beta, Gamma, Normal,
-Poisson, etc.)</li>
-<li>Likelihood function evaluation and gradient computation</li>
-<li>Bayesian inference with posterior estimation</li>
-<li>Parameter estimation and optimization support</li>
-<li>Statistical testing and validation utilities</li>
-<li>Gradient-based optimization algorithms</li>
-</ul>
-<p>Mathematical Background: The inference package implements statistical
-models for:</p>
-<ul>
-<li>Likelihood functions: p(data | parameters)</li>
-<li>Posterior distributions: p(parameters | data) ∝ p(data | parameters)
-× p(parameters)</li>
-<li>Gradient computation: ∇_θ log p(data | parameters)</li>
-<li>Parameter estimation: θ̂ = argmax_θ p(data | parameters)</li>
-</ul>
-<p>Design Philosophy: This package emphasizes modularity and
-composability, providing building blocks for statistical inference that
-can be combined to create complex inference workflows. All distributions
-implement standard interfaces for likelihood evaluation and gradient
-computation.</p>
-<p>Usage Patterns:</p>
-<ul>
-<li>Parameter estimation from simulation data</li>
-<li>Model validation and goodness-of-fit testing</li>
-<li>Bayesian inference with prior distributions</li>
-<li>Gradient-based optimization for parameter fitting</li>
-<li>Statistical hypothesis testing and model comparison</li>
-</ul>
+<p>- Statistical hypothesis testing and model comparison</p>
+<p>- Statistical hypothesis testing and model comparison</p>
+<p>- Statistical hypothesis testing and model comparison</p>
+<p>- Statistical hypothesis testing and model comparison</p>
 <h2 id="index">Index</h2>
 <ul>
 <li><a href="#CovarianceMatrixFromParams">func
@@ -833,7 +722,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/data_gener
 class="sourceCode go"><code class="sourceCode go"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DataGenerationIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="GammaLikelihoodDistribution"></a></p>
 <h2 id="type-gammalikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L45-L49">GammaLikelihoodDistribution</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L14-L18">GammaLikelihoodDistribution</a></h2>
 <p>GammaLikelihoodDistribution assumes the real data are well described
 by a gamma distribution, given the input mean and variance.</p>
 <div class="sourceCode" id="cb34"><pre
@@ -844,36 +733,36 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb34-1"><a href="#cb
 <p><a name="GammaLikelihoodDistribution.EvaluateLogLike"></a></p>
 <h3 id="func-gammalikelihooddistribution-evaluateloglike">func
 (*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L75">EvaluateLogLike</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L44">EvaluateLogLike</a></h3>
 <div class="sourceCode" id="cb35"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="GammaLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
 <h3 id="func-gammalikelihooddistribution-evaluateloglikemeangrad">func
 (*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L103-L105">EvaluateLogLikeMeanGrad</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L72-L74">EvaluateLogLikeMeanGrad</a></h3>
 <div class="sourceCode" id="cb36"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="GammaLikelihoodDistribution.GenerateNewSamples"></a></p>
 <h3 id="func-gammalikelihooddistribution-generatenewsamples">func
 (*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L89">GenerateNewSamples</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L58">GenerateNewSamples</a></h3>
 <div class="sourceCode" id="cb37"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="GammaLikelihoodDistribution.SetParams"></a></p>
 <h3 id="func-gammalikelihooddistribution-setparams">func
 (*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L61-L66">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L30-L35">SetParams</a></h3>
 <div class="sourceCode" id="cb38"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
 <p><a name="GammaLikelihoodDistribution.SetSeed"></a></p>
 <h3 id="func-gammalikelihooddistribution-setseed">func
 (*GammaLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L51-L54">SetSeed</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/gamma.go#L20-L23">SetSeed</a></h3>
 <div class="sourceCode" id="cb39"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>GammaLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="LikelihoodDistribution"></a></p>
 <h2 id="type-likelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L84-L94">LikelihoodDistribution</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L53-L63">LikelihoodDistribution</a></h2>
 <p>LikelihoodDistribution defines a likelihood model over observed data
 for statistical inference and parameter estimation.</p>
 <p>This interface represents a probability distribution that can
@@ -945,7 +834,7 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb41-1"><a href="#cb
 <span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="LikelihoodDistributionWithGradient"></a></p>
 <h2 id="type-likelihooddistributionwithgradient">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L98-L101">LikelihoodDistributionWithGradient</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/interfaces.go#L67-L70">LikelihoodDistributionWithGradient</a></h2>
 <p>LikelihoodDistributionWithGradient extends LikelihoodDistribution
 with a mean gradient for optimisation.</p>
 <div class="sourceCode" id="cb42"><pre
@@ -999,7 +888,7 @@ href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/negative_b
 class="sourceCode go"><code class="sourceCode go"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="NormalLikelihoodDistribution"></a></p>
 <h2 id="type-normallikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L50-L55">NormalLikelihoodDistribution</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L19-L24">NormalLikelihoodDistribution</a></h2>
 <p>NormalLikelihoodDistribution models data with a multivariate
 normal.</p>
 <p>Usage hints:</p>
@@ -1019,36 +908,36 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb49-1"><a href="#cb
 <p><a name="NormalLikelihoodDistribution.EvaluateLogLike"></a></p>
 <h3 id="func-normallikelihooddistribution-evaluateloglike">func
 (*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L104">EvaluateLogLike</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L73">EvaluateLogLike</a></h3>
 <div class="sourceCode" id="cb50"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="NormalLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
 <h3 id="func-normallikelihooddistribution-evaluateloglikemeangrad">func
 (*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L114-L116">EvaluateLogLikeMeanGrad</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L83-L85">EvaluateLogLikeMeanGrad</a></h3>
 <div class="sourceCode" id="cb51"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="NormalLikelihoodDistribution.GenerateNewSamples"></a></p>
 <h3 id="func-normallikelihooddistribution-generatenewsamples">func
 (*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L109">GenerateNewSamples</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L78">GenerateNewSamples</a></h3>
 <div class="sourceCode" id="cb52"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="NormalLikelihoodDistribution.SetParams"></a></p>
 <h3 id="func-normallikelihooddistribution-setparams">func
 (*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L67-L72">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L36-L41">SetParams</a></h3>
 <div class="sourceCode" id="cb53"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
 <p><a name="NormalLikelihoodDistribution.SetSeed"></a></p>
 <h3 id="func-normallikelihooddistribution-setseed">func
 (*NormalLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L57-L60">SetSeed</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L26-L29">SetSeed</a></h3>
 <div class="sourceCode" id="cb54"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="PoissonLikelihoodDistribution"></a></p>
 <h2 id="type-poissonlikelihooddistribution">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L49-L52">PoissonLikelihoodDistribution</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L18-L21">PoissonLikelihoodDistribution</a></h2>
 <p>PoissonLikelihoodDistribution models count data with a Poisson
 distribution.</p>
 <p>Usage hints:</p>
@@ -1064,31 +953,31 @@ class="sourceCode go"><code class="sourceCode go"><span id="cb55-1"><a href="#cb
 <p><a name="PoissonLikelihoodDistribution.EvaluateLogLike"></a></p>
 <h3 id="func-poissonlikelihooddistribution-evaluateloglike">func
 (*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L73">EvaluateLogLike</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L42">EvaluateLogLike</a></h3>
 <div class="sourceCode" id="cb56"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
 <p><a name="PoissonLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
 <h3 id="func-poissonlikelihooddistribution-evaluateloglikemeangrad">func
 (*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L93-L95">EvaluateLogLikeMeanGrad</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L62-L64">EvaluateLogLikeMeanGrad</a></h3>
 <div class="sourceCode" id="cb57"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="PoissonLikelihoodDistribution.GenerateNewSamples"></a></p>
 <h3 id="func-poissonlikelihooddistribution-generatenewsamples">func
 (*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L83">GenerateNewSamples</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L52">GenerateNewSamples</a></h3>
 <div class="sourceCode" id="cb58"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p><a name="PoissonLikelihoodDistribution.SetParams"></a></p>
 <h3 id="func-poissonlikelihooddistribution-setparams">func
 (*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L64-L69">SetParams</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L33-L38">SetParams</a></h3>
 <div class="sourceCode" id="cb59"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
 <p><a name="PoissonLikelihoodDistribution.SetSeed"></a></p>
 <h3 id="func-poissonlikelihooddistribution-setseed">func
 (*PoissonLikelihoodDistribution) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L54-L57">SetSeed</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/poisson.go#L23-L26">SetSeed</a></h3>
 <div class="sourceCode" id="cb60"><pre
 class="sourceCode go"><code class="sourceCode go"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PoissonLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="PosteriorCovarianceIteration"></a></p>

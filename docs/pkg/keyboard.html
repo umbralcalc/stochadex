@@ -186,17 +186,13 @@ and parameter adjustment during execution.</p>
 <li>Graceful exit and cleanup</li>
 <li>Extensible input channel abstraction</li>
 </ul>
-<p>Design Philosophy: This package provides a clean abstraction for user
-input that can be easily integrated into simulation workflows. It
-supports both interactive and non-interactive modes, making it suitable
-for both development and production use.</p>
 <p>Usage Patterns:</p>
 <ul>
-<li>Interactive simulation control (pause, resume, parameter
-adjustment)</li>
-<li>Real-time monitoring and intervention</li>
-<li>Development and debugging tools</li>
-<li>Educational and demonstration applications</li>
+<li>Pause/resume simulations with keyboard shortcuts</li>
+<li>Adjust simulation parameters in real-time</li>
+<li>Trigger data export or analysis during runs</li>
+<li>Implement interactive debugging and monitoring</li>
+<li>Create user-controlled simulation scenarios</li>
 </ul>
 <h2 id="index">Index</h2>
 <ul>
@@ -220,7 +216,7 @@ Iterate(params *simulator.Params, partitionIndex int, stateHistories
 </ul>
 <p><a name="KeystrokeChannel"></a></p>
 <h2 id="type-keystrokechannel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L38-L43">KeystrokeChannel</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L17-L22">KeystrokeChannel</a></h2>
 <p>KeystrokeChannel abstracts a source of keyboard events.</p>
 <p>Usage hints:</p>
 <ul>
@@ -236,17 +232,17 @@ GUIs).</li>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="StandardKeystrokeChannel"></a></p>
 <h2 id="type-standardkeystrokechannel">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L46">StandardKeystrokeChannel</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L25">StandardKeystrokeChannel</a></h2>
 <p>StandardKeystrokeChannel retrieves keystrokes from the terminal.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> StandardKeystrokeChannel <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
 <p><a name="StandardKeystrokeChannel.Get"></a></p>
 <h3 id="func-standardkeystrokechannel-get">func
 (*StandardKeystrokeChannel) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L48-L51">Get</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L27-L30">Get</a></h3>
 <div class="sourceCode" id="cb4"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StandardKeystrokeChannel<span class="op">)</span> Get<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span> <span class="op">(&lt;-</span><span class="kw">chan</span> keyboard<span class="op">.</span>KeyEvent<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span></code></pre></div>
 <p><a name="UserInputIteration"></a></p>
 <h2 id="type-userinputiteration">type <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L114-L120">UserInputIteration</a></h2>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L93-L99">UserInputIteration</a></h2>
 <p>UserInputIteration provides real-time user interaction during
 simulation runs through keyboard input handling and action mapping.</p>
 <p>This iteration type enables interactive control of simulations by
@@ -320,11 +316,11 @@ capabilities</li>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p><a name="UserInputIteration.Configure"></a></p>
 <h3 id="func-userinputiteration-configure">func (*UserInputIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L122-L125">Configure</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L101-L104">Configure</a></h3>
 <div class="sourceCode" id="cb7"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>u <span class="op">*</span>UserInputIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
 <p><a name="UserInputIteration.Iterate"></a></p>
 <h3 id="func-userinputiteration-iterate">func (*UserInputIteration) <a
-href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L150-L155">Iterate</a></h3>
+href="https://github.com/umbralcalc/stochadex/blob/main/pkg/keyboard/user_input.go#L129-L134">Iterate</a></h3>
 <div class="sourceCode" id="cb8"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>u <span class="op">*</span>UserInputIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
 <p>Generated by <a
 href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
