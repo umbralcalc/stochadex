@@ -34,7 +34,7 @@ Each State Partition History has indices which always match those of the Cumulat
 
 <img src="../assets/state-partition-history.svg" />
 
-## Computing the Next Timesteps
+## Computing the next timesteps
 
 So new States of the simulation may happen at different Times. But what determines when these Times are along the Simulation Timeline?
 
