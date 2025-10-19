@@ -315,7 +315,7 @@ Configuration:
 
 Example:
 
-```
+```go
 iteration := &PoissonProcessIteration{}
 // Configure with rate = 0.5, dt = 0.01
 // Event probability per step ≈ 0.5 * 0.01 = 0.005 (0.5%)

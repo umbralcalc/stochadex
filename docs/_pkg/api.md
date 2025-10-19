@@ -190,7 +190,7 @@ Error Handling:
 
 Example:
 
-```
+```go
 config := LoadApiRunConfigFromYaml("simulation_config.yaml")
 generator := config.GetConfigGenerator()
 // Use generator to run the simulation
@@ -304,7 +304,7 @@ Code Generation: The Iteration field is evaluated as Go code, allowing for param
 
 Example:
 
-```
+```go
 config := PartitionConfigStrings{
     Name: "brownian_motion",
     Iteration: "&continuous.WienerProcessIteration{}",

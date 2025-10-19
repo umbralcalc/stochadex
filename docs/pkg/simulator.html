@@ -16,9 +16,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Prism.js for syntax highlighting -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-vs.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-shell-session.min.js"></script>
   
   <!-- Custom CSS -->
   <style>
@@ -204,14 +207,16 @@
 
     /* Code blocks */
     pre {
-      background-color: #2d3748;
-      color: #e2e8f0;
+      background-color: #1e1e1e;
+      color: #d4d4d4;
       padding: 1.5rem;
       border-radius: var(--radius-md);
       overflow-x: auto;
       margin: 1.5rem 0;
       font-size: 0.875rem;
       line-height: 1.5;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
     }
 
     code {
@@ -220,13 +225,171 @@
       padding: 0.125rem 0.375rem;
       border-radius: var(--radius-sm);
       font-size: 0.875rem;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
     }
 
     pre code {
       background-color: transparent;
       color: inherit;
       padding: 0;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
+    }
+
+    /* Go-specific syntax highlighting improvements */
+    pre[class*="language-go"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Shell/Bash-specific syntax highlighting */
+    pre[class*="language-bash"],
+    pre[class*="language-shell"],
+    pre[class*="language-sh"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Shell session highlighting */
+    pre[class*="language-shell-session"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Enhanced Go syntax highlighting - Pandoc/Pygments classes */
+    .kw {
+      color: #569cd6;
+      font-weight: 500;
+    }
+
+    .st {
+      color: #ce9178;
+    }
+
+    .co {
+      color: #6a9955;
+      font-style: italic;
+    }
+
+    .cf {
+      color: #dcdcaa;
+      font-weight: 500;
+    }
+
+    .dt {
+      color: #4ec9b0;
+    }
+
+    .op {
+      color: #d4d4d4;
+    }
+
+    .ot {
+      color: #d4d4d4;
+    }
+
+    .fl {
+      color: #b5cea8;
+    }
+
+    .dv {
+      color: #b5cea8;
+    }
+
+    .ch {
+      color: #ce9178;
+    }
+
+    .bu {
+      color: #dcdcaa;
+    }
+
+    /* Shell/Bash syntax highlighting - Pandoc/Pygments classes */
+    .sh {
+      color: #d4d4d4; /* Default shell text */
+    }
+
+    .sh .kw {
+      color: #569cd6; /* Shell keywords like if, for, while */
+      font-weight: 500;
+    }
+
+    .sh .st {
+      color: #ce9178; /* Strings in shell */
+    }
+
+    .sh .co {
+      color: #6a9955; /* Comments in shell */
+      font-style: italic;
+    }
+
+    .sh .op {
+      color: #d4d4d4; /* Operators like |, >, < */
+    }
+
+    .sh .va {
+      color: #9cdcfe; /* Variables like HOME, PATH */
+    }
+
+    .sh .fu {
+      color: #dcdcaa; /* Functions */
+    }
+
+    /* Shell session specific styling */
+    .sh .prompt {
+      color: #4ec9b0; /* Shell prompt like dollar, hash */
+    }
+
+    /* Prism.js fallback classes */
+    .token.keyword {
+      color: #569cd6;
+      font-weight: 500;
+    }
+
+    .token.string {
+      color: #ce9178;
+    }
+
+    .token.comment {
+      color: #6a9955;
+      font-style: italic;
+    }
+
+    .token.function {
+      color: #dcdcaa;
+    }
+
+    .token.type {
+      color: #4ec9b0;
+    }
+
+    .token.operator {
+      color: #d4d4d4;
+    }
+
+    .token.punctuation {
+      color: #d4d4d4;
+    }
+
+    .token.number {
+      color: #b5cea8;
+    }
+
+    /* Prism.js shell/bash token classes */
+    .token.function {
+      color: #dcdcaa;
+    }
+
+    .token.variable {
+      color: #9cdcfe;
+    }
+
+    .token.parameter {
+      color: #9cdcfe;
+    }
+
+    .token.prompt {
+      color: #4ec9b0;
+    }
+
+    .token.command {
+      color: #dcdcaa;
     }
 
     /* Lists */
@@ -1047,20 +1210,21 @@
       reproducible simulations)</li>
       </ul>
       <p>Example Usage:</p>
-      <pre><code>type MyIteration struct {
-    // Internal state
-}
-
-func (m *MyIteration) Configure(partitionIndex int, settings *Settings) {
-    // Initialize iteration
-}
-
-func (m *MyIteration) Iterate(params *Params, partitionIndex int,
-                              stateHistories []*StateHistory,
-                              timestepsHistory *CumulativeTimestepsHistory) []float64 {
-    // Compute next state values
-    return []float64{newValue1, newValue2, ...}
-}</code></pre>
+      <div class="sourceCode" id="cb26"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MyIteration <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Internal state</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MyIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>Settings<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize iteration</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MyIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>                              stateHistories <span class="op">[]*</span>StateHistory<span class="op">,</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>                              timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span> <span class="op">{</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Compute next state values</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">[]</span><span class="dt">float64</span><span class="op">{</span>newValue1<span class="op">,</span> newValue2<span class="op">,</span> <span class="op">...}</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p>Common Iteration Types:</p>
       <ul>
       <li>Stochastic processes: WienerProcessIteration,
@@ -1503,16 +1667,17 @@ func (m *MyIteration) Iterate(params *Params, partitionIndex int,
       partition work</li>
       </ul>
       <p>Example Usage:</p>
-      <pre><code>coordinator := NewPartitionCoordinator(settings, implementations)
-
-// Run simulation until termination
-coordinator.Run()
-
-// Or step-by-step control
-for !coordinator.ReadyToTerminate() {
-    var wg sync.WaitGroup
-    coordinator.Step(&amp;wg)
-}</code></pre>
+      <div class="sourceCode" id="cb68"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>coordinator <span class="op">:=</span> NewPartitionCoordinator<span class="op">(</span>settings<span class="op">,</span> implementations<span class="op">)</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Run simulation until termination</span></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>coordinator<span class="op">.</span>Run<span class="op">()</span></span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Or step-by-step control</span></span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">!</span>coordinator<span class="op">.</span>ReadyToTerminate<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">var</span> wg sync<span class="op">.</span>WaitGroup</span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true" tabindex="-1"></a>    coordinator<span class="op">.</span>Step<span class="op">(&amp;</span>wg<span class="op">)</span></span>
+<span id="cb68-10"><a href="#cb68-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p>Performance:</p>
       <ul>
       <li>O(p) time complexity where p is the number of partitions</li>
@@ -1824,19 +1989,20 @@ for !coordinator.ReadyToTerminate() {
       <li>Intermediate storage for multi-stage simulations</li>
       </ul>
       <p>Example Usage:</p>
-      <pre><code>storage := NewStateTimeStorage()
-
-// Concurrent appends from multiple partitions
-go func() {
-    storage.ConcurrentAppend(&quot;prices&quot;, 1.0, []float64{100.0, 101.0})
-}()
-go func() {
-    storage.ConcurrentAppend(&quot;volumes&quot;, 1.0, []float64{1000.0})
-}()
-
-// Retrieve data after simulation
-priceData := storage.GetValues(&quot;prices&quot;)
-timeData := storage.GetTimes()</code></pre>
+      <div class="sourceCode" id="cb99"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>storage <span class="op">:=</span> NewStateTimeStorage<span class="op">()</span></span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a><span class="co">// Concurrent appends from multiple partitions</span></span>
+<span id="cb99-4"><a href="#cb99-4" aria-hidden="true" tabindex="-1"></a><span class="cf">go</span> <span class="kw">func</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb99-5"><a href="#cb99-5" aria-hidden="true" tabindex="-1"></a>    storage<span class="op">.</span>ConcurrentAppend<span class="op">(</span><span class="st">&quot;prices&quot;</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">,</span> <span class="op">[]</span><span class="dt">float64</span><span class="op">{</span><span class="fl">100.0</span><span class="op">,</span> <span class="fl">101.0</span><span class="op">})</span></span>
+<span id="cb99-6"><a href="#cb99-6" aria-hidden="true" tabindex="-1"></a><span class="op">}()</span></span>
+<span id="cb99-7"><a href="#cb99-7" aria-hidden="true" tabindex="-1"></a><span class="cf">go</span> <span class="kw">func</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb99-8"><a href="#cb99-8" aria-hidden="true" tabindex="-1"></a>    storage<span class="op">.</span>ConcurrentAppend<span class="op">(</span><span class="st">&quot;volumes&quot;</span><span class="op">,</span> <span class="fl">1.0</span><span class="op">,</span> <span class="op">[]</span><span class="dt">float64</span><span class="op">{</span><span class="fl">1000.0</span><span class="op">})</span></span>
+<span id="cb99-9"><a href="#cb99-9" aria-hidden="true" tabindex="-1"></a><span class="op">}()</span></span>
+<span id="cb99-10"><a href="#cb99-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-11"><a href="#cb99-11" aria-hidden="true" tabindex="-1"></a><span class="co">// Retrieve data after simulation</span></span>
+<span id="cb99-12"><a href="#cb99-12" aria-hidden="true" tabindex="-1"></a>priceData <span class="op">:=</span> storage<span class="op">.</span>GetValues<span class="op">(</span><span class="st">&quot;prices&quot;</span><span class="op">)</span></span>
+<span id="cb99-13"><a href="#cb99-13" aria-hidden="true" tabindex="-1"></a>timeData <span class="op">:=</span> storage<span class="op">.</span>GetTimes<span class="op">()</span></span></code></pre></div>
       <p>Memory Management:</p>
       <ul>
       <li>Automatic memory allocation for new partitions</li>

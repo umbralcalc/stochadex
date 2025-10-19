@@ -16,9 +16,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Prism.js for syntax highlighting -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-vs.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-shell-session.min.js"></script>
   
   <!-- Custom CSS -->
   <style>
@@ -204,14 +207,16 @@
 
     /* Code blocks */
     pre {
-      background-color: #2d3748;
-      color: #e2e8f0;
+      background-color: #1e1e1e;
+      color: #d4d4d4;
       padding: 1.5rem;
       border-radius: var(--radius-md);
       overflow-x: auto;
       margin: 1.5rem 0;
       font-size: 0.875rem;
       line-height: 1.5;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
     }
 
     code {
@@ -220,13 +225,171 @@
       padding: 0.125rem 0.375rem;
       border-radius: var(--radius-sm);
       font-size: 0.875rem;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
     }
 
     pre code {
       background-color: transparent;
       color: inherit;
       padding: 0;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
+    }
+
+    /* Go-specific syntax highlighting improvements */
+    pre[class*="language-go"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Shell/Bash-specific syntax highlighting */
+    pre[class*="language-bash"],
+    pre[class*="language-shell"],
+    pre[class*="language-sh"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Shell session highlighting */
+    pre[class*="language-shell-session"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Enhanced Go syntax highlighting - Pandoc/Pygments classes */
+    .kw {
+      color: #569cd6;
+      font-weight: 500;
+    }
+
+    .st {
+      color: #ce9178;
+    }
+
+    .co {
+      color: #6a9955;
+      font-style: italic;
+    }
+
+    .cf {
+      color: #dcdcaa;
+      font-weight: 500;
+    }
+
+    .dt {
+      color: #4ec9b0;
+    }
+
+    .op {
+      color: #d4d4d4;
+    }
+
+    .ot {
+      color: #d4d4d4;
+    }
+
+    .fl {
+      color: #b5cea8;
+    }
+
+    .dv {
+      color: #b5cea8;
+    }
+
+    .ch {
+      color: #ce9178;
+    }
+
+    .bu {
+      color: #dcdcaa;
+    }
+
+    /* Shell/Bash syntax highlighting - Pandoc/Pygments classes */
+    .sh {
+      color: #d4d4d4; /* Default shell text */
+    }
+
+    .sh .kw {
+      color: #569cd6; /* Shell keywords like if, for, while */
+      font-weight: 500;
+    }
+
+    .sh .st {
+      color: #ce9178; /* Strings in shell */
+    }
+
+    .sh .co {
+      color: #6a9955; /* Comments in shell */
+      font-style: italic;
+    }
+
+    .sh .op {
+      color: #d4d4d4; /* Operators like |, >, < */
+    }
+
+    .sh .va {
+      color: #9cdcfe; /* Variables like HOME, PATH */
+    }
+
+    .sh .fu {
+      color: #dcdcaa; /* Functions */
+    }
+
+    /* Shell session specific styling */
+    .sh .prompt {
+      color: #4ec9b0; /* Shell prompt like dollar, hash */
+    }
+
+    /* Prism.js fallback classes */
+    .token.keyword {
+      color: #569cd6;
+      font-weight: 500;
+    }
+
+    .token.string {
+      color: #ce9178;
+    }
+
+    .token.comment {
+      color: #6a9955;
+      font-style: italic;
+    }
+
+    .token.function {
+      color: #dcdcaa;
+    }
+
+    .token.type {
+      color: #4ec9b0;
+    }
+
+    .token.operator {
+      color: #d4d4d4;
+    }
+
+    .token.punctuation {
+      color: #d4d4d4;
+    }
+
+    .token.number {
+      color: #b5cea8;
+    }
+
+    /* Prism.js shell/bash token classes */
+    .token.function {
+      color: #dcdcaa;
+    }
+
+    .token.variable {
+      color: #9cdcfe;
+    }
+
+    .token.parameter {
+      color: #9cdcfe;
+    }
+
+    .token.prompt {
+      color: #4ec9b0;
+    }
+
+    .token.command {
+      color: #dcdcaa;
     }
 
     /* Lists */
@@ -698,19 +861,20 @@
       columns</li>
       </ul>
       <p>Example:</p>
-      <pre><code>// Extract price data from simulation storage
-df := GetDataFrameFromPartition(storage, &quot;prices&quot;)
-
-// Access time column
-timeCol := df.Col(&quot;time&quot;)
-
-// Access state columns
-price1Col := df.Col(&quot;0&quot;) // First price dimension
-price2Col := df.Col(&quot;1&quot;) // Second price dimension
-
-// Perform analysis
-meanPrice1 := price1Col.Mean()
-maxPrice2 := price2Col.Max()</code></pre>
+      <div class="sourceCode" id="cb4"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Extract price data from simulation storage</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">:=</span> GetDataFrameFromPartition<span class="op">(</span>storage<span class="op">,</span> <span class="st">&quot;prices&quot;</span><span class="op">)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Access time column</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>timeCol <span class="op">:=</span> df<span class="op">.</span>Col<span class="op">(</span><span class="st">&quot;time&quot;</span><span class="op">)</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Access state columns</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>price1Col <span class="op">:=</span> df<span class="op">.</span>Col<span class="op">(</span><span class="st">&quot;0&quot;</span><span class="op">)</span> <span class="co">// First price dimension</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>price2Col <span class="op">:=</span> df<span class="op">.</span>Col<span class="op">(</span><span class="st">&quot;1&quot;</span><span class="op">)</span> <span class="co">// Second price dimension</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">// Perform analysis</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>meanPrice1 <span class="op">:=</span> price1Col<span class="op">.</span>Mean<span class="op">()</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>maxPrice2 <span class="op">:=</span> price2Col<span class="op">.</span>Max<span class="op">()</span></span></code></pre></div>
       <p>Use Cases:</p>
       <ul>
       <li>Data visualization and plotting</li>
@@ -746,7 +910,8 @@ maxPrice2 := price2Col.Max()</code></pre>
       computing statistics over value ranges or categorical data.</p>
       <p>Mathematical Concept: Grouped aggregations compute statistics
       within value bins:</p>
-      <pre><code>G_i(t) = aggregate({X(s) : X(s) ∈ bin_i, s ≤ t})</code></pre>
+      <div class="sourceCode" id="cb6"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>G_i<span class="op">(</span>t<span class="op">)</span> <span class="op">=</span> aggregate<span class="op">({</span>X<span class="op">(</span>s<span class="op">)</span> <span class="op">:</span> X<span class="op">(</span>s<span class="op">)</span> ∈ bin_i<span class="op">,</span> s ≤ t<span class="op">})</span></span></code></pre></div>
       <p>where bin_i represents a value range or category, and aggregate
       is the user-provided function (e.g., mean, sum, count).</p>
       <p>Parameters:</p>
@@ -772,36 +937,37 @@ maxPrice2 := price2Col.Max()</code></pre>
       simulation</li>
       </ul>
       <p>Example:</p>
-      <pre><code>// Aggregate price data by volatility bins
-config := NewGroupedAggregationPartition(
-    func(defaults, indices, groups, weights map[string][]float64) []float64 {
-        results := make([]float64, len(indices))
-        for group, idx := range indices {
-            values := groups[group]
-            w := weights[group]
-            // Compute weighted mean
-            sum := 0.0
-            totalWeight := 0.0
-            for i, v := range values {
-                sum += v * w[i]
-                totalWeight += w[i]
-            }
-            if totalWeight &gt; 0 {
-                results[idx] = sum / totalWeight
-            } else {
-                results[idx] = defaults[idx]
-            }
-        }
-        return results
-    },
-    AppliedAggregation{
-        Name: &quot;volatility_aggregates&quot;,
-        Data: DataRef{PartitionName: &quot;prices&quot;},
-        Kernel: &amp;kernels.ExponentialIntegrationKernel{},
-        DefaultValue: 0.0,
-    },
-    volatilityStorage,
-)</code></pre>
+      <div class="sourceCode" id="cb7"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Aggregate price data by volatility bins</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>config <span class="op">:=</span> NewGroupedAggregationPartition<span class="op">(</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">func</span><span class="op">(</span>defaults<span class="op">,</span> indices<span class="op">,</span> groups<span class="op">,</span> weights <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span> <span class="op">{</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        results <span class="op">:=</span> <span class="bu">make</span><span class="op">([]</span><span class="dt">float64</span><span class="op">,</span> <span class="bu">len</span><span class="op">(</span>indices<span class="op">))</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> group<span class="op">,</span> idx <span class="op">:=</span> <span class="kw">range</span> indices <span class="op">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>            values <span class="op">:=</span> groups<span class="op">[</span>group<span class="op">]</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>            w <span class="op">:=</span> weights<span class="op">[</span>group<span class="op">]</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Compute weighted mean</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>            sum <span class="op">:=</span> <span class="fl">0.0</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>            totalWeight <span class="op">:=</span> <span class="fl">0.0</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> i<span class="op">,</span> v <span class="op">:=</span> <span class="kw">range</span> values <span class="op">{</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                sum <span class="op">+=</span> v <span class="op">*</span> w<span class="op">[</span>i<span class="op">]</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>                totalWeight <span class="op">+=</span> w<span class="op">[</span>i<span class="op">]</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> totalWeight <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">{</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>                results<span class="op">[</span>idx<span class="op">]</span> <span class="op">=</span> sum <span class="op">/</span> totalWeight</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>                results<span class="op">[</span>idx<span class="op">]</span> <span class="op">=</span> defaults<span class="op">[</span>idx<span class="op">]</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> results</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    AppliedAggregation<span class="op">{</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        Name<span class="op">:</span> <span class="st">&quot;volatility_aggregates&quot;</span><span class="op">,</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>        Data<span class="op">:</span> DataRef<span class="op">{</span>PartitionName<span class="op">:</span> <span class="st">&quot;prices&quot;</span><span class="op">},</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>        Kernel<span class="op">:</span> <span class="op">&amp;</span>kernels<span class="op">.</span>ExponentialIntegrationKernel<span class="op">{},</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>        DefaultValue<span class="op">:</span> <span class="fl">0.0</span><span class="op">,</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    volatilityStorage<span class="op">,</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
       <p>Performance Notes:</p>
       <ul>
       <li>O(n * m) time complexity where n is history depth, m is number
@@ -920,19 +1086,20 @@ config := NewGroupedAggregationPartition(
       <li>Missing or malformed values will cause parsing errors</li>
       </ul>
       <p>Example:</p>
-      <pre><code>// Load data from a CSV with time in column 0, prices in columns 1-2, volumes in column 3
-storage, err := NewStateTimeStorageFromCsv(
-    &quot;market_data.csv&quot;,
-    0, // time in first column
-    map[string][]int{
-        &quot;prices&quot;: {1, 2}, // prices partition uses columns 1 and 2
-        &quot;volumes&quot;: {3},   // volumes partition uses column 3
-    },
-    true, // skip header row
-)
-if err != nil {
-    log.Fatal(&quot;Failed to load CSV data:&quot;, err)
-}</code></pre>
+      <div class="sourceCode" id="cb16"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Load data from a CSV with time in column 0, prices in columns 1-2, volumes in column 3</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>storage<span class="op">,</span> err <span class="op">:=</span> NewStateTimeStorageFromCsv<span class="op">(</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;market_data.csv&quot;</span><span class="op">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="dv">0</span><span class="op">,</span> <span class="co">// time in first column</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">int</span><span class="op">{</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;prices&quot;</span><span class="op">:</span> <span class="op">{</span><span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">},</span> <span class="co">// prices partition uses columns 1 and 2</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;volumes&quot;</span><span class="op">:</span> <span class="op">{</span><span class="dv">3</span><span class="op">},</span>   <span class="co">// volumes partition uses column 3</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="ot">true</span><span class="op">,</span> <span class="co">// skip header row</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> err <span class="op">!=</span> <span class="ot">nil</span> <span class="op">{</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    log<span class="op">.</span>Fatal<span class="op">(</span><span class="st">&quot;Failed to load CSV data:&quot;</span><span class="op">,</span> err<span class="op">)</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p>Error Handling:</p>
       <ul>
       <li>File not found: Returns error with file path</li>
@@ -996,7 +1163,8 @@ if err != nil {
       integration kernel for time weighting. Each dimension of the
       source data is aggregated independently.</p>
       <p>Mathematical Concept: Vector mean aggregation computes:</p>
-      <pre><code>μ_i(t) = Σ w(t-s) * X_i(s) / Σ w(t-s)</code></pre>
+      <div class="sourceCode" id="cb22"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>μ_i<span class="op">(</span>t<span class="op">)</span> <span class="op">=</span> Σ w<span class="op">(</span>t<span class="op">-</span>s<span class="op">)</span> <span class="op">*</span> X_i<span class="op">(</span>s<span class="op">)</span> <span class="op">/</span> Σ w<span class="op">(</span>t<span class="op">-</span>s<span class="op">)</span></span></code></pre></div>
       <p>where μ_i(t) is the mean for dimension i at time t, w(t-s) is
       the kernel weight, and X_i(s) is the value of dimension i at
       historical time s.</p>
@@ -1012,19 +1180,20 @@ if err != nil {
       means</li>
       </ul>
       <p>Example:</p>
-      <pre><code>// Compute exponentially weighted moving averages of price data
-meanPartition := NewVectorMeanPartition(
-    AppliedAggregation{
-        Name: &quot;price_ema&quot;,
-        Data: DataRef{
-            PartitionName: &quot;prices&quot;,
-            ValueIndices: []int{0, 1, 2}, // Use first 3 price dimensions
-        },
-        Kernel: &amp;kernels.ExponentialIntegrationKernel{},
-        DefaultValue: 100.0, // Initial price assumption
-    },
-    priceStorage,
-)</code></pre>
+      <div class="sourceCode" id="cb23"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Compute exponentially weighted moving averages of price data</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>meanPartition <span class="op">:=</span> NewVectorMeanPartition<span class="op">(</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    AppliedAggregation<span class="op">{</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>        Name<span class="op">:</span> <span class="st">&quot;price_ema&quot;</span><span class="op">,</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>        Data<span class="op">:</span> DataRef<span class="op">{</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>            PartitionName<span class="op">:</span> <span class="st">&quot;prices&quot;</span><span class="op">,</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>            ValueIndices<span class="op">:</span> <span class="op">[]</span><span class="dt">int</span><span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">,</span> <span class="dv">2</span><span class="op">},</span> <span class="co">// Use first 3 price dimensions</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">},</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>        Kernel<span class="op">:</span> <span class="op">&amp;</span>kernels<span class="op">.</span>ExponentialIntegrationKernel<span class="op">{},</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>        DefaultValue<span class="op">:</span> <span class="fl">100.0</span><span class="op">,</span> <span class="co">// Initial price assumption</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    priceStorage<span class="op">,</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
       <p>Performance:</p>
       <ul>
       <li>O(d * h) time complexity where d is data dimensions, h is
@@ -1068,7 +1237,8 @@ meanPartition := NewVectorMeanPartition(
       creating aggregation partitions in simulations.</p>
       <p>Mathematical Concept: Aggregations compute weighted averages
       over historical data:</p>
-      <pre><code>A(t) = Σ w(t-s) * f(X(s)) / Σ w(t-s)</code></pre>
+      <div class="sourceCode" id="cb27"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>A<span class="op">(</span>t<span class="op">)</span> <span class="op">=</span> Σ w<span class="op">(</span>t<span class="op">-</span>s<span class="op">)</span> <span class="op">*</span> f<span class="op">(</span>X<span class="op">(</span>s<span class="op">))</span> <span class="op">/</span> Σ w<span class="op">(</span>t<span class="op">-</span>s<span class="op">)</span></span></code></pre></div>
       <p>where w(t-s) is the kernel weight, f(X(s)) is the source data,
       and the sum is over all historical samples s ≤ t.</p>
       <p>Fields:</p>
@@ -1090,15 +1260,16 @@ meanPartition := NewVectorMeanPartition(
       aggregations</li>
       </ul>
       <p>Example:</p>
-      <pre><code>aggregation := AppliedAggregation{
-    Name: &quot;rolling_mean&quot;,
-    Data: DataRef{
-        PartitionName: &quot;prices&quot;,
-        ValueIndices: []int{0, 1}, // Use first two price columns
-    },
-    Kernel: &amp;kernels.ExponentialIntegrationKernel{},
-    DefaultValue: 0.0,
-}</code></pre>
+      <div class="sourceCode" id="cb28"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>aggregation <span class="op">:=</span> AppliedAggregation<span class="op">{</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    Name<span class="op">:</span> <span class="st">&quot;rolling_mean&quot;</span><span class="op">,</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    Data<span class="op">:</span> DataRef<span class="op">{</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>        PartitionName<span class="op">:</span> <span class="st">&quot;prices&quot;</span><span class="op">,</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>        ValueIndices<span class="op">:</span> <span class="op">[]</span><span class="dt">int</span><span class="op">{</span><span class="dv">0</span><span class="op">,</span> <span class="dv">1</span><span class="op">},</span> <span class="co">// Use first two price columns</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    Kernel<span class="op">:</span> <span class="op">&amp;</span>kernels<span class="op">.</span>ExponentialIntegrationKernel<span class="op">{},</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    DefaultValue<span class="op">:</span> <span class="fl">0.0</span><span class="op">,</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <div class="sourceCode" id="cb29"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> AppliedAggregation <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    Name         <span class="dt">string</span></span>
@@ -1124,8 +1295,9 @@ meanPartition := NewVectorMeanPartition(
       InstantaneousIntegrationKernel if nil</li>
       </ul>
       <p>Usage:</p>
-      <pre><code>kernel := aggregation.GetKernel()
-// Safe to use kernel without nil checks</code></pre>
+      <div class="sourceCode" id="cb31"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>kernel <span class="op">:=</span> aggregation<span class="op">.</span>GetKernel<span class="op">()</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="co">// Safe to use kernel without nil checks</span></span></code></pre></div>
       <p>Performance:</p>
       <ul>
       <li>O(1) time complexity</li>

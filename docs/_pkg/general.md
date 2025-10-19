@@ -896,7 +896,7 @@ Applications:
 
 Example:
 
-```
+```go
 iteration := &ValuesFunctionIteration{
     Function: func(params *simulator.Params, partitionIndex int,
                    stateHistories []*simulator.StateHistory,

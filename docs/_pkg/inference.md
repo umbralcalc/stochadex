@@ -306,7 +306,7 @@ Parameter Configuration: The distribution can be configured in two ways:
 
 Example:
 
-```
+```go
 dist := &BetaLikelihoodDistribution{}
 dist.SetSeed(0, settings)
 // Configure with mean=0.3, variance=0.05

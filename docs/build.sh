@@ -126,6 +126,7 @@ generate_html_pages() {
         --csl="$DOCS_DIR/ieee.csl" \
         --bibliography="$DOCS_DIR/biblio.bib" \
         --mathjax \
+        --syntax-highlighting=pygments \
         --metadata="is-home:true" \
         -f markdown \
         -t html \
@@ -145,6 +146,7 @@ generate_html_pages() {
                 --csl="$DOCS_DIR/ieee.csl" \
                 --bibliography="$DOCS_DIR/biblio.bib" \
                 --mathjax \
+                --syntax-highlighting=pygments \
                 --metadata="title:$title" \
                 -f markdown \
                 -t html \
@@ -170,12 +172,39 @@ generate_package_docs() {
         
         log_info "Generating package: $pkg_name"
         
-        # Generate markdown
-        gomarkdoc "$pkg" --output "$TEMP_DIR/${pkg_name}.md"
+        # Generate markdown with better formatting
+        gomarkdoc "$pkg" --output "$TEMP_DIR/${pkg_name}.md" --format github --verbose
         
         # Fix headings and add metadata
         sed -i '' 's#</a>#</a>\
 #g' "$TEMP_DIR/${pkg_name}.md"
+        
+        # Post-process to fix Example code blocks in docstrings
+        # Only convert opening ``` that are not already followed by a language tag
+        # Use awk to be more precise about which code blocks to convert
+        awk '
+        BEGIN { in_code_block = 0; }
+        /^```$/ && !in_code_block { 
+            # This is an opening code block without language tag
+            in_code_block = 1; 
+            print "```go";
+            next;
+        }
+        /^```$/ && in_code_block { 
+            # This is a closing code block
+            in_code_block = 0; 
+            print "```";
+            next;
+        }
+        /^```[a-zA-Z]/ {
+            # This is already a code block with language tag, leave it alone
+            in_code_block = 1;
+            print;
+            next;
+        }
+        { print; }
+        ' "$TEMP_DIR/${pkg_name}.md" > "$TEMP_DIR/${pkg_name}_processed.md"
+        mv "$TEMP_DIR/${pkg_name}_processed.md" "$TEMP_DIR/${pkg_name}.md"
         
         # Add frontmatter
         cat > "$TEMP_DIR/${pkg_name}_with_meta.md" << EOF
@@ -191,7 +220,8 @@ EOF
         pandoc "$TEMP_DIR/${pkg_name}_with_meta.md" \
             -o "$DOCS_DIR/pkg/${pkg_name}.html" \
             --template="$DOCS_DIR/template.html" \
-            --mathjax
+            --mathjax \
+            --syntax-highlighting=pygments
     done
     
     log_success "Package documentation generated"

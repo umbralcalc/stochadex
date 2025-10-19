@@ -427,7 +427,7 @@ Configuration:
 
 Example:
 
-```
+```go
 iteration := &WienerProcessIteration{}
 // Configure with variance = 0.1, dt = 0.01
 // Results in sqrt(0.1 * 0.01) = 0.0316 standard deviation per step

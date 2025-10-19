@@ -132,7 +132,7 @@ Returns:
 
 Example:
 
-```
+```go
 // Extract price data from simulation storage
 df := GetDataFrameFromPartition(storage, "prices")
 
@@ -203,7 +203,7 @@ Returns:
 
 Example:
 
-```
+```go
 // Aggregate price data by volatility bins
 config := NewGroupedAggregationPartition(
     func(defaults, indices, groups, weights map[string][]float64) []float64 {
@@ -363,7 +363,7 @@ CSV Format Requirements:
 
 Example:
 
-```
+```go
 // Load data from a CSV with time in column 0, prices in columns 1-2, volumes in column 3
 storage, err := NewStateTimeStorageFromCsv(
     "market_data.csv",
@@ -463,7 +463,7 @@ Returns:
 
 Example:
 
-```
+```go
 // Compute exponentially weighted moving averages of price data
 meanPartition := NewVectorMeanPartition(
     AppliedAggregation{
@@ -546,7 +546,7 @@ Related Types:
 
 Example:
 
-```
+```go
 aggregation := AppliedAggregation{
     Name: "rolling_mean",
     Data: DataRef{

@@ -8,40 +8,41 @@ logo: true
 
 ## Cloning the repository
 
-```shell
+```bash
 git clone git@github.com:umbralcalc/stochadex.git
+cd stochadex
 ```
 
 ## Building and running the binary
 
-```shell
-# update the go modules
+```bash
+# Update the go modules
 go mod tidy
 
-# build the binary
+# Build the binary
 go build -o bin/ ./cmd/stochadex
 
-# run your config
+# Run your config
 ./bin/stochadex --config ./cfg/example_config.yaml
 ```
 
 ## Running over websocket
 
-```shell
-# run the stochadex with a socket config
+```bash
+# Run the stochadex with a socket config
 ./bin/stochadex --config ./cfg/example_config.yaml \
---socket ./cfg/socket.yaml
+    --socket ./cfg/socket.yaml
 ```
 
 ## Building and running the containerised version (may need sudo)
 
-```shell
-# build the stochadex container
+```bash
+# Build the stochadex container
 docker build -t stochadex -f Dockerfile.stochadex .
 
-# run the binary in the container with your configs
+# Run the binary in the container with your configs
 docker run -p 2112:2112 stochadex --config ./cfg/example_config.yaml \
---socket ./cfg/socket.yaml
+    --socket ./cfg/socket.yaml
 ```
 
 ## Developing the code
