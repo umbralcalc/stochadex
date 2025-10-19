@@ -32,4 +32,4 @@ The intention is to transfer some level of analytical power from the world of sy
 
 <img src="../assets/diagrams-vs-symbols.svg" width="700"/>
 
-We've used these diagrams completely in place of any mathematical formalism throughout these docs, where one can rest assured that the mathematical foundations are solid.
+We've used these diagrams instead of any mathematical formalism throughout these docs, where one can rest assured that the mathematical foundations are solid.
