@@ -74,9 +74,21 @@ This is an important procedure to perform all at once to ensure that the all of 
 
 <img src="../assets/update-state-partition-history.svg" />
 
-## Composing two partitions
+## Composing partitions
 
-## Concurrent partition coordination
+So far we have considered Partition Iterations as occurring seperately within the simulation. But it is important for these separate Partitions to be able to pass information to each other. 
+
+To understand why this is important, think of our sports team example earlier and how a each player will change their behaviour depending on the positions of other players on the field. They need to know about each other.
+
+So how do we compose Partitions together so that information may be passed between them? 
+
+In some sense, this happens already. Each Partition may read information from the State Partition Histories in the Iteration to its Next Values.
+
+<img src="../assets/partition-timeline-composition.svg" />
+
+<img src="../assets/partition-dependencies.svg" />
+
+<img src="../assets/composing-partitions.svg" />
 
 ## Embedded simulations
 
