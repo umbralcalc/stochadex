@@ -653,13 +653,17 @@
       <p>This is an important procedure to perform all at once to ensure that the all of the State Partitions in the simulation are synchronised against its virtual clock.</p>
       <p><img src="../assets/update-time-history.svg" /></p>
       <p><img src="../assets/update-state-partition-history.svg" /></p>
-      <h2 id="composing-partitions">Composing partitions</h2>
+      <h2 id="composing-and-coordinating-partitions">Composing and coordinating partitions</h2>
       <p>So far we have considered Partition Iterations as occurring seperately within the simulation. But it is important for these separate Partitions to be able to pass information to each other.</p>
-      <p>To understand why this is important, think of our sports team example earlier and how a each player will change their behaviour depending on the positions of other players on the field. They need to know about each other.</p>
+      <p>To understand why this is important, think of our sports team example earlier and how each player might change their behaviour depending on the positions of other players on the field. They need to know about each other.</p>
       <p>So how do we compose Partitions together so that information may be passed between them?</p>
       <p>In some sense, this happens already. Each Partition may read information from the State Partition Histories in the Iteration to its Next Values.</p>
       <p><img src="../assets/partition-timeline-composition.svg" /></p>
+      <p>This composition allows us to correlate the behaviour of Partitions in Time.</p>
+      <p>We might also want to coordinate the Iterations of Partitions to occur in a particular order, where the first Iteration may then pass its calculated Next Values immediately into the second.</p>
       <p><img src="../assets/partition-dependencies.svg" /></p>
+      <p>For example, an Iteration might calculate the Mean statistic from some data and another might calculate the Variance. The Variance depends on the Mean so we need the Mean Next Values to be passed directly into the Variance to make sure these are always aligned in Time.</p>
+      <p>To enable coordination, all we need is for a ‘Computationally Upstream’ Iteration to be allowed to pass its Next Values into the Parameters of a ‘Computationally Downstream’ Iteration.</p>
       <p><img src="../assets/composing-partitions.svg" /></p>
       <h2 id="embedded-simulations">Embedded simulations</h2>
       <h2 id="parameters-and-configuration">Parameters and configuration</h2>
