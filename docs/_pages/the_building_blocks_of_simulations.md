@@ -98,10 +98,10 @@ To enable coordination, all we need is for a 'Computationally Upstream' Iteratio
 
 <img src="../assets/composing-partitions.svg" />
 
+## Simulation runs
+
 ## Embedded simulation runs
 
 <img src="../assets/embedded-sim-iterate.svg" width=600/>
 
 <img src="../assets/embedded-sim-from-history.svg" width=600/>
-
-## Parameters and configuration
