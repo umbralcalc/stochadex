@@ -100,7 +100,19 @@ To enable coordination, all we need is for a 'Computationally Upstream' Iteratio
 
 ## Simulation runs
 
+A simulation must evaluate its state updates between some specified period in Time, which we shall call a 'Simulation Run'. 
+
+We should always know what the Initial Time of a Simulation Run is, but we might not initially know when it should _end_ until... 
+
+To handle all situations, we can specify a Termination Condition which logically determines when the simulation should end....
+
+<img src="../assets/simulation-run.svg"/>
+
+Termination Condition function diagram here...
+
 ## Embedded simulation runs
+
+<img src="../assets/embedded-simulation-run.svg"/>
 
 <img src="../assets/embedded-sim-iterate.svg" width=600/>
 
