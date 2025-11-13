@@ -45,7 +45,7 @@ package simulator
 //   - Configure must be called before Iterate
 //   - Iterate must return a slice of the correct length (matching state width)
 //   - Iterate should not modify the input parameters or state histories
-//   - Iterate should be deterministic given the same inputs (for reproducible simulations)
+//   - Iterate should be deterministic given the same inputs and initial seed (for reproducible simulations)
 //
 // Example Usage:
 //
@@ -79,7 +79,6 @@ package simulator
 // Thread Safety:
 //   - Iterate may be called concurrently from multiple goroutines
 //   - Implementations should be thread-safe or stateless
-//   - Shared mutable state should be protected by synchronization primitives
 type Iteration interface {
 	Configure(partitionIndex int, settings *Settings)
 	Iterate(
