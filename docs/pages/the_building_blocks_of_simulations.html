@@ -665,11 +665,11 @@
       <p>To enable coordination, all we need is for a ‘Computationally Upstream’ Iteration to be allowed to pass its Next Values into the Parameters of a ‘Computationally Downstream’ Iteration.</p>
       <p><img src="../assets/composing-partitions.svg" /></p>
       <h2 id="simulation-runs">Simulation runs</h2>
-      <p>A simulation must evaluate its state updates between some specified period in Time, which we shall call a ‘Simulation Run’.</p>
-      <p>We should always know what the Initial Time of a Simulation Run is, but we might not initially know when it should <em>end</em> until…</p>
-      <p>To handle all situations, we can specify a Termination Condition which logically determines when the simulation should end….</p>
+      <p>A ‘Simulation Run’ defines the evolution of a simulation State over some specified period in Time.</p>
+      <p>Each Simulation Run has an Initial Time defined by an exact value, but the <em>end</em> Time may not be known exactly until the simulation has evolved to meet some Termination Condition.</p>
       <p><img src="../assets/simulation-run.svg"/></p>
-      <p>Termination Condition function diagram here…</p>
+      <p>The Termination Condition logically determines when the Simulation Run should end according to a pre-defined calculation.</p>
+      <p><img src="../assets/termination-condition.svg"/></p>
       <h2 id="embedded-simulation-runs">Embedded simulation runs</h2>
       <p><img src="../assets/embedded-simulation-run.svg"/></p>
       <p><img src="../assets/embedded-sim-iterate.svg" width=600/></p>

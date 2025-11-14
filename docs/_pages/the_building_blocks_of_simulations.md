@@ -100,15 +100,15 @@ To enable coordination, all we need is for a 'Computationally Upstream' Iteratio
 
 ## Simulation runs
 
-A simulation must evaluate its state updates between some specified period in Time, which we shall call a 'Simulation Run'. 
+A 'Simulation Run' defines the evolution of a simulation State over some specified period in Time. 
 
-We should always know what the Initial Time of a Simulation Run is, but we might not initially know when it should _end_ until... 
-
-To handle all situations, we can specify a Termination Condition which logically determines when the simulation should end....
+Each Simulation Run has an Initial Time defined by an exact value, but the _end_ Time may not be known exactly until the simulation has evolved to meet some Termination Condition.
 
 <img src="../assets/simulation-run.svg"/>
 
-Termination Condition function diagram here...
+The Termination Condition logically determines when the Simulation Run should end according to a pre-defined calculation.
+
+<img src="../assets/termination-condition.svg"/>
 
 ## Embedded simulation runs
 
