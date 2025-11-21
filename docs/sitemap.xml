@@ -7,7 +7,7 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://umbralcalc.github.io/stochadex/quickstart.html</loc>
+    <loc>https://umbralcalc.github.io/stochadex/pkg/quickstart.html</loc>
     <lastmod>2025-11-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
@@ -56,6 +56,12 @@
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/keyboard.html</loc>
+    <lastmod>2025-11-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://umbralcalc.github.io/stochadex/pkg/quickstart.html</loc>
     <lastmod>2025-11-21</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

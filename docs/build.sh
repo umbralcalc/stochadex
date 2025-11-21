@@ -143,7 +143,7 @@ generate_html_pages() {
             --metadata="title:$title" \
             -f markdown \
             -t html \
-            -o "$DOCS_DIR/quickstart.html" \
+            -o "$DOCS_DIR/pkg/quickstart.html" \
             "$DOCS_DIR/quickstart.md"
     fi
     
@@ -237,10 +237,10 @@ generate_sitemap() {
 EOF
     
     # Add quickstart page
-    if [ -f "$DOCS_DIR/quickstart.html" ]; then
+    if [ -f "$DOCS_DIR/pkg/quickstart.html" ]; then
         cat >> "$DOCS_DIR/sitemap.xml" << EOF
   <url>
-    <loc>$base_url/quickstart.html</loc>
+    <loc>$base_url/pkg/quickstart.html</loc>
     <lastmod>$(date -u +%Y-%m-%d)</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
