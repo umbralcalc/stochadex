@@ -15,16 +15,6 @@ For software engineers, the stochadex simulation framework abstracts away many o
 
 While the concept of a 'generalised simulation engine' isn't new (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), this simulation engine is designed based on deep research into [simulating a wide variety of real world systems over many years](https://github.com/umbralcalc) and has a structure which allows for a lot of cool applications.
 
-## What can you do with this software?
-
-One of the most compelling uses for simulation engines is to empower decision-making technologies.
-
-In other words, if you want to answer questions like 'if I take this action, then what will happen in my system?', then it is often essential to build a simulation of your system and use this to simulate what might happen in the future.
-
-<img src="./assets/simulations-for-decisions.svg" />
-
-The stochadex can be used to create these simulations and ensure that they behave in a way with closely matches the real data for the system that they are supposed to be modeling.
-
 ## Other projects using the software
 
 - [Event-based rugby match simulations to evaluate manager decision-making](https://github.com/umbralcalc/trywizard)

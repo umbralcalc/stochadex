@@ -73,10 +73,6 @@ clean_build() {
     log_info "Cleaning previous build..."
     
     # Remove only generated HTML files, not source files
-    if [ -d "$DOCS_DIR/pages" ]; then
-        rm -rf "$DOCS_DIR/pages"
-    fi
-    
     if [ -d "$DOCS_DIR/pkg" ]; then
         rm -rf "$DOCS_DIR/pkg"
     fi
@@ -133,27 +129,23 @@ generate_html_pages() {
         -o "$DOCS_DIR/index.html" \
         "$DOCS_DIR/README.md"
     
-    # Generate other pages
-    for filename in "$DOCS_DIR"/_pages/*.md; do
-        if [ -f "$filename" ]; then
-            local basename=$(basename "$filename" .md)
-            local title=$(grep -E '^title:' "$filename" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "$basename")
-            log_info "Generating page: $basename"
-            
-            pandoc --template "$DOCS_DIR/template.html" \
-                --wrap=preserve \
-                --citeproc \
-                --csl="$DOCS_DIR/ieee.csl" \
-                --bibliography="$DOCS_DIR/biblio.bib" \
-                --mathjax \
-                --syntax-highlighting=pygments \
-                --metadata="title:$title" \
-                -f markdown \
-                -t html \
-                -o "$DOCS_DIR/pages/${basename}.html" \
-                "$filename"
-        fi
-    done
+    # Generate quickstart page
+    if [ -f "$DOCS_DIR/quickstart.md" ]; then
+        log_info "Generating quickstart page..."
+        local title=$(grep -E '^title:' "$DOCS_DIR/quickstart.md" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "Quickstart")
+        pandoc --template "$DOCS_DIR/template.html" \
+            --wrap=preserve \
+            --citeproc \
+            --csl="$DOCS_DIR/ieee.csl" \
+            --bibliography="$DOCS_DIR/biblio.bib" \
+            --mathjax \
+            --syntax-highlighting=pygments \
+            --metadata="title:$title" \
+            -f markdown \
+            -t html \
+            -o "$DOCS_DIR/quickstart.html" \
+            "$DOCS_DIR/quickstart.md"
+    fi
     
     log_success "HTML pages generated"
 }
@@ -244,20 +236,17 @@ generate_sitemap() {
   </url>
 EOF
     
-    # Add pages
-    for file in "$DOCS_DIR"/pages/*.html; do
-        if [ -f "$file" ]; then
-            local filename=$(basename "$file")
-            cat >> "$DOCS_DIR/sitemap.xml" << EOF
+    # Add quickstart page
+    if [ -f "$DOCS_DIR/quickstart.html" ]; then
+        cat >> "$DOCS_DIR/sitemap.xml" << EOF
   <url>
-    <loc>$base_url/pages/$filename</loc>
+    <loc>$base_url/quickstart.html</loc>
     <lastmod>$(date -u +%Y-%m-%d)</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
 EOF
-        fi
-    done
+    fi
     
     # Add package docs
     for file in "$DOCS_DIR"/pkg/*.html; do
@@ -313,7 +302,10 @@ validate_build() {
     fi
     
     # Check for broken links (basic check)
-    for html_file in "$DOCS_DIR"/*.html "$DOCS_DIR"/pages/*.html "$DOCS_DIR"/pkg/*.html; do
+    for html_file in "$DOCS_DIR"/*.html "$DOCS_DIR"/pkg/*.html; do
+        if [ ! -f "$html_file" ]; then
+            continue
+        fi
         if [ -f "$html_file" ]; then
             # This is a basic check - in production you might want to use a proper link checker
             if grep -q "href=\"#" "$html_file"; then
