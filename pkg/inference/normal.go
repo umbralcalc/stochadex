@@ -1,4 +1,3 @@
-// - Statistical hypothesis testing and model comparison
 package inference
 
 import (
