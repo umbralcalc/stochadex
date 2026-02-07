@@ -301,17 +301,21 @@ validate_build() {
         ((errors++))
     fi
     
-    # Check for broken links (basic check)
+    # Check for broken anchor links (verify href="#id" targets exist in the same file)
+    # Pandoc lowercases IDs and may add prefixes (e.g., func-, type-), so we check
+    # case-insensitively whether the anchor appears as a suffix of any id in the file.
     for html_file in "$DOCS_DIR"/*.html "$DOCS_DIR"/pkg/*.html; do
         if [ ! -f "$html_file" ]; then
             continue
         fi
-        if [ -f "$html_file" ]; then
-            # This is a basic check - in production you might want to use a proper link checker
-            if grep -q "href=\"#" "$html_file"; then
-                log_warning "Potential broken internal links in $(basename "$html_file")"
+        local ids=$(grep -oE 'id="[^"]+' "$html_file" | sed 's/id="//' | tr '[:upper:]' '[:lower:]' | sort -u)
+        local anchors=$(grep -oE 'href="#[^"]+' "$html_file" | sed 's/href="#//' | sort -u)
+        for anchor in $anchors; do
+            local anchor_lower=$(echo "$anchor" | tr '[:upper:]' '[:lower:]')
+            if ! echo "$ids" | grep -q "$anchor_lower"; then
+                log_warning "Broken anchor link #$anchor in $(basename "$html_file")"
             fi
-        fi
+        done
     done
     
     if [ $errors -eq 0 ]; then

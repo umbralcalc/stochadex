@@ -2,73 +2,73 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://umbralcalc.github.io/stochadex/</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/quickstart.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/analysis.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/api.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/continuous.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/discrete.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/general.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/inference.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/kernels.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/keyboard.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/quickstart.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/simulator.html</loc>
-    <lastmod>2025-12-21</lastmod>
+    <lastmod>2026-02-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

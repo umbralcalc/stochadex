@@ -18,7 +18,5 @@ While the concept of a 'generalised simulation engine' isn't new (see, e.g., [Si
 ## Other projects using the software
 
 - [Event-based rugby match simulations to evaluate manager decision-making](https://github.com/umbralcalc/trywizard)
-- [Inferring simulations of stock market data for backtesting portfolios](https://github.com/umbralcalc/qwakes)
 - [Fish ecosystem simulations using environment data to evaluate sustanability policies](https://github.com/umbralcalc/anglersim)
-- [Data-driven simulations for UK woodland health monitoring and forecasting](https://github.com/umbralcalc/forecastree)
 - [Decision-making games for the python programmer](https://github.com/umbralcalc/dexetera)
