@@ -1,0 +1,39 @@
+iterations:
+- name: sorting_collection
+  params:
+    next_values_push: [3.0, 1.0]
+    next_values_sort_by: [5.0]
+    empty_value: [-1]
+    values_state_width: [2]
+  init_state_values: [10.0, 5.0, 2.0, 8.0, 3.0, 1.0, 6.0, 1.0, 0.0]
+  seed: 0
+  state_width: 9
+  state_history_depth: 2
+- name: mean_update
+  params:
+    weights: [0.6, 0.4]
+    learning_rate: [0.5]
+    values_state_width: [2]
+  params_from_upstream:
+    sorted_collection:
+      upstream: 0
+  init_state_values: [0.0, 0.0]
+  seed: 0
+  state_width: 2
+  state_history_depth: 2
+- name: covariance_update
+  params:
+    weights: [0.6, 0.4]
+    learning_rate: [0.5]
+    values_state_width: [2]
+  params_from_upstream:
+    sorted_collection:
+      upstream: 0
+    mean:
+      upstream: 1
+  init_state_values: [1.0, 0.0, 0.0, 1.0]
+  seed: 0
+  state_width: 4
+  state_history_depth: 2
+init_time_value: 0.0
+timesteps_history_depth: 1
