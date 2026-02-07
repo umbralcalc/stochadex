@@ -1,0 +1,36 @@
+main:
+  partitions:
+
+  # Upstream: a Wiener process generating noisy signal data
+  - name: signal
+    iteration: signal
+    params:
+      variances: [1.0, 1.0]
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 1
+    seed: 5431
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/continuous
+    extra_vars:
+    - signal: "&continuous.WienerProcessIteration{}"
+
+  # Downstream: exponential moving average of the signal
+  - name: moving_average
+    iteration: movingAverage
+    params:
+      alpha: [0.3]
+      upstream_partition: [0]
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+    extra_packages:
+    - github.com/example/my-stochadex-project/pkg/custom
+    extra_vars:
+    - movingAverage: "&custom.MovingAverageIteration{}"
+
+  simulation:
+    output_condition: "&simulator.EveryStepOutputCondition{}"
+    output_function: "&simulator.StdoutOutputFunction{}"
+    termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 200}"
+    timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
+    init_time_value: 0.0

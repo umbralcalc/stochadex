@@ -1,0 +1,18 @@
+iterations:
+- name: signal
+  params:
+    variances: [1.0, 1.0]
+  init_state_values: [0.0, 0.0]
+  seed: 5431
+  state_width: 2
+  state_history_depth: 2
+- name: moving_average
+  params:
+    alpha: [0.3]
+    upstream_partition: [0]
+  init_state_values: [0.0, 0.0]
+  seed: 0
+  state_width: 2
+  state_history_depth: 2
+init_time_value: 0.0
+timesteps_history_depth: 2

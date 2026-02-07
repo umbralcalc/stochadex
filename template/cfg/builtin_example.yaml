@@ -1,0 +1,35 @@
+main:
+  partitions:
+
+  - name: wiener_process
+    iteration: wienerProcess
+    params:
+      variances: [1.0, 1.0, 1.0]
+    init_state_values: [0.0, 0.0, 0.0]
+    state_history_depth: 1
+    seed: 7832
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/continuous
+    extra_vars:
+    - wienerProcess: "&continuous.WienerProcessIteration{}"
+
+  - name: ornstein_uhlenbeck
+    iteration: ouProcess
+    params:
+      thetas: [0.5, 0.5, 0.5]
+      mus: [1.0, -1.0, 0.0]
+      sigmas: [0.3, 0.3, 0.3]
+    init_state_values: [0.0, 0.0, 0.0]
+    state_history_depth: 1
+    seed: 4591
+    extra_packages:
+    - github.com/umbralcalc/stochadex/pkg/continuous
+    extra_vars:
+    - ouProcess: "&continuous.OrnsteinUhlenbeckIteration{}"
+
+  simulation:
+    output_condition: "&simulator.EveryStepOutputCondition{}"
+    output_function: "&simulator.StdoutOutputFunction{}"
+    termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
+    timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 0.1}"
+    init_time_value: 0.0
