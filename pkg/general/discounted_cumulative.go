@@ -28,12 +28,14 @@ func (d *DiscountedCumulativeIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	outputValues := d.Iteration.Iterate(
+	innerOutput := d.Iteration.Iterate(
 		params,
 		partitionIndex,
 		stateHistories,
 		timestepsHistory,
 	)
+	outputValues := make([]float64, len(innerOutput))
+	copy(outputValues, innerOutput)
 	discountFactor := params.GetIndex("discount_factor", 0)
 	previousState := stateHistories[partitionIndex].Values.RawRowView(0)
 	for i := range outputValues {
