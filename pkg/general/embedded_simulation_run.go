@@ -43,6 +43,10 @@ type NamedIndexedState struct {
 //     inner initial states from an outer partition's history.
 //   - Use "<innerPartitionName>/update_from_partition_history" to stream
 //     outer histories into inner iterations that implement StateMemoryIteration.
+//   - Use "<innerPartitionName>/init_state_values_from_outer" with value
+//     [offset, width] to seed the named inner partition's InitStateValues from
+//     a slice of the outer partition's previous state at each step. Enables
+//     warm-starting inner optimisers across outer steps.
 //   - Optional "burn_in_steps" skips initial outer steps before running inner sim.
 type EmbeddedSimulationRunIteration struct {
 	settings              *simulator.Settings
@@ -50,6 +54,7 @@ type EmbeddedSimulationRunIteration struct {
 	partitionNameToIndex  map[string]int
 	updateFromHistories   map[int][]simulator.NamedPartitionIndex
 	initStatesFromHistory map[int]NamedIndexedState
+	warmStartConfigs      map[int][2]int
 	timestepFunction      *FromHistoryTimestepFunction
 	burnInSteps           int
 }
@@ -71,6 +76,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	}
 	e.updateFromHistories = make(map[int][]simulator.NamedPartitionIndex)
 	e.initStatesFromHistory = make(map[int]NamedIndexedState)
+	e.warmStartConfigs = make(map[int][2]int)
 	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
 	for outParamsName, paramsValues := range settings.
 		Iterations[partitionIndex].Params.Map {
@@ -114,6 +120,14 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 					)
 				}
 				e.updateFromHistories[inPartition] = partitionNames
+			case "init_state_values_from_outer":
+				inPartition, ok := e.partitionNameToIndex[matches[1]]
+				if !ok {
+					panic("input partition was not found in embedded sim")
+				}
+				e.warmStartConfigs[inPartition] = [2]int{
+					int(paramsValues[0]), int(paramsValues[1]),
+				}
 			default:
 				continue
 			}
@@ -187,6 +201,16 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 				e.settings.Iterations[inPartition].Params.Set(
 					inParamsName, paramsValues)
 			}
+		}
+	}
+
+	// seed inner partition init states from the outer partition's previous state
+	if len(e.warmStartConfigs) > 0 {
+		prevState := stateHistories[partitionIndex].Values.RawRowView(0)
+		for inIdx, ow := range e.warmStartConfigs {
+			init := make([]float64, ow[1])
+			copy(init, prevState[ow[0]:ow[0]+ow[1]])
+			e.settings.Iterations[inIdx].InitStateValues = init
 		}
 	}
 

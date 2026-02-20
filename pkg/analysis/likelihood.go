@@ -198,6 +198,11 @@ type AppliedLikelihoodMeanFunctionFit struct {
 	Window            WindowedPartitions
 	LearningRate      float64
 	DescentIterations int
+	// WarmStart, if true, seeds each outer step's inner gradient descent from
+	// the previous outer step's output rather than from a fixed param. Enables
+	// convergence to a global MLE over the full data window as outer steps
+	// accumulate (standard online SGD behaviour).
+	WarmStart bool
 }
 
 // NewLikelihoodMeanFunctionFitPartition builds a PartitionConfig embedding an
@@ -281,6 +286,7 @@ func NewLikelihoodMeanFunctionFitPartition(
 		simulator.NamedUpstreamConfig{Upstream: applied.Data.PartitionName}
 	simInitStateValues = append(
 		simInitStateValues, make([]float64, applied.Gradient.Width)...)
+	gradientDescentOffset := len(simInitStateValues)
 	gradientDescentParams := simulator.NewParams(make(map[string][]float64))
 	gradientDescentParams.Set("learning_rate", []float64{applied.LearningRate})
 	generator.SetPartition(&simulator.PartitionConfig{
@@ -299,6 +305,12 @@ func NewLikelihoodMeanFunctionFitPartition(
 	simParams := simulator.NewParams(map[string][]float64{
 		"burn_in_steps": {float64(applied.Window.Depth)},
 	})
+	if applied.WarmStart {
+		simParams.Set(
+			"gradient_descent/init_state_values_from_outer",
+			[]float64{float64(gradientDescentOffset), float64(applied.Gradient.Width)},
+		)
+	}
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(
