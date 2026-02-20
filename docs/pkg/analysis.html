@@ -996,7 +996,7 @@
       over a rolling window, producing a per-step comparison score.</p>
       <p><a name="NewLikelihoodMeanFunctionFitPartition"></a></p>
       <h2 id="func-newlikelihoodmeanfunctionfitpartition">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L206-L209">NewLikelihoodMeanFunctionFitPartition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L211-L214">NewLikelihoodMeanFunctionFitPartition</a></h2>
       <div class="sourceCode" id="cb10"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewLikelihoodMeanFunctionFitPartition<span class="op">(</span>applied AppliedLikelihoodMeanFunctionFit<span class="op">,</span> storage <span class="op">*</span>simulator<span class="op">.</span>StateTimeStorage<span class="op">)</span> <span class="op">*</span>simulator<span class="op">.</span>PartitionConfig</span></code></pre></div>
       <p>NewLikelihoodMeanFunctionFitPartition builds a PartitionConfig
@@ -1355,7 +1355,7 @@
 <span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="AppliedLikelihoodMeanFunctionFit"></a></p>
       <h2 id="type-appliedlikelihoodmeanfunctionfit">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L193-L201">AppliedLikelihoodMeanFunctionFit</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L193-L206">AppliedLikelihoodMeanFunctionFit</a></h2>
       <p>AppliedLikelihoodMeanFunctionFit configures online fitting of
       the model’s likelihood mean to data using a gradient function and
       learning rate over a finite descent schedule.</p>
@@ -1368,7 +1368,12 @@
 <span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    Window            WindowedPartitions</span>
 <span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    LearningRate      <span class="dt">float64</span></span>
 <span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    DescentIterations <span class="dt">int</span></span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// WarmStart, if true, seeds each outer step&#39;s inner gradient descent from</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// the previous outer step&#39;s output rather than from a fixed param. Enables</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// convergence to a global MLE over the full data window as outer steps</span></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// accumulate (standard online SGD behaviour).</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>    WarmStart <span class="dt">bool</span></span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="AppliedPosteriorEstimation"></a></p>
       <h2 id="type-appliedposteriorestimation">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/inference.go#L41-L50">AppliedPosteriorEstimation</a></h2>

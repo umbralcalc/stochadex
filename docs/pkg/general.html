@@ -1276,7 +1276,7 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>d <span class="op">*</span>DiscountedCumulativeIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p><a name="EmbeddedSimulationRunIteration"></a></p>
       <h2 id="type-embeddedsimulationruniteration">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L47-L55">EmbeddedSimulationRunIteration</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L51-L60">EmbeddedSimulationRunIteration</a></h2>
       <p>EmbeddedSimulationRunIteration runs a nested simulation to
       termination at each outer step.</p>
       <p>Usage hints:</p>
@@ -1291,6 +1291,11 @@
       <li>Use “&lt;innerPartitionName&gt;/update_from_partition_history”
       to stream outer histories into inner iterations that implement
       StateMemoryIteration.</li>
+      <li>Use “&lt;innerPartitionName&gt;/init_state_values_from_outer”
+      with value [offset, width] to seed the named inner partition’s
+      InitStateValues from a slice of the outer partition’s previous
+      state at each step. Enables warm-starting inner optimisers across
+      outer steps.</li>
       <li>Optional “burn_in_steps” skips initial outer steps before
       running inner sim.</li>
       </ul>
@@ -1300,7 +1305,7 @@
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewEmbeddedSimulationRunIteration"></a></p>
       <h3 id="func-newembeddedsimulationruniteration">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L239-L242">NewEmbeddedSimulationRunIteration</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L263-L266">NewEmbeddedSimulationRunIteration</a></h3>
       <div class="sourceCode" id="cb37"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewEmbeddedSimulationRunIteration<span class="op">(</span>settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">,</span> implementations <span class="op">*</span>simulator<span class="op">.</span>Implementations<span class="op">)</span> <span class="op">*</span>EmbeddedSimulationRunIteration</span></code></pre></div>
       <p>NewEmbeddedSimulationRunIteration constructs an embedded run
@@ -1308,13 +1313,13 @@
       <p><a name="EmbeddedSimulationRunIteration.Configure"></a></p>
       <h3 id="func-embeddedsimulationruniteration-configure">func
       (*EmbeddedSimulationRunIteration) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L57-L60">Configure</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L62-L65">Configure</a></h3>
       <div class="sourceCode" id="cb38"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>e <span class="op">*</span>EmbeddedSimulationRunIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
       <p><a name="EmbeddedSimulationRunIteration.Iterate"></a></p>
       <h3 id="func-embeddedsimulationruniteration-iterate">func
       (*EmbeddedSimulationRunIteration) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L156-L161">Iterate</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/general/embedded_simulation_run.go#L170-L175">Iterate</a></h3>
       <div class="sourceCode" id="cb39"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>e <span class="op">*</span>EmbeddedSimulationRunIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p><a name="FromHistoryIteration"></a></p>
