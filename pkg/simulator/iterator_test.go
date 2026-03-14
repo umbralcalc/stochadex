@@ -82,4 +82,43 @@ func TestStateIterator(t *testing.T) {
 			iterator.UpdateHistory(inputChannel)
 		},
 	)
+	t.Run(
+		"test indexed upstream params from same source don't corrupt each other",
+		func(t *testing.T) {
+			params := NewParams(make(map[string][]float64))
+			values := []float64{10.0, 20.0, 30.0, 40.0}
+			downstream := &DownstreamStateValues{
+				Channel: make(chan []float64, 10),
+				Copies:  2,
+			}
+			// two upstream readers index different elements
+			// from the same downstream channel
+			stateValueChannels := StateValueChannels{
+				Upstreams: map[string]*UpstreamStateValues{
+					"reader_a": {
+						Channel: downstream.Channel,
+						Indices: []int{0, 2},
+					},
+					"reader_b": {
+						Channel: downstream.Channel,
+						Indices: []int{1, 3},
+					},
+				},
+				Downstream: downstream,
+			}
+			stateValueChannels.BroadcastDownstream(values)
+			stateValueChannels.UpdateUpstreamParams(&params)
+
+			// reader_a should see [10.0, 30.0]
+			readerA := params.Get("reader_a")
+			if len(readerA) != 2 || readerA[0] != 10.0 || readerA[1] != 30.0 {
+				t.Errorf("reader_a got %v, want [10 30]", readerA)
+			}
+			// reader_b should see [20.0, 40.0]
+			readerB := params.Get("reader_b")
+			if len(readerB) != 2 || readerB[0] != 20.0 || readerB[1] != 40.0 {
+				t.Errorf("reader_b got %v, want [20 40]", readerB)
+			}
+		},
+	)
 }

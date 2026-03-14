@@ -119,10 +119,11 @@ func (s *StateValueChannels) UpdateUpstreamParams(params *Params) {
 			params.Set(name, <-upstream.Channel)
 		default:
 			values := <-upstream.Channel
+			indexedValues := make([]float64, len(indices))
 			for i, index := range indices {
-				values[i] = values[index]
+				indexedValues[i] = values[index]
 			}
-			params.Set(name, values[:len(indices)])
+			params.Set(name, indexedValues)
 		}
 	}
 }
