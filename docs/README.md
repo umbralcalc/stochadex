@@ -19,6 +19,7 @@ This simulation engine is designed based on the simulation software design funda
 
 - [Event-based rugby match simulations to evaluate manager decision-making](https://github.com/umbralcalc/trywizard)
 - [Fish ecosystem simulations using environment data to evaluate sustanability policies](https://github.com/umbralcalc/anglersim)
+- [Antimicrobial resistance (AMR) stewardship simulations to evaluate hospital guidelines](https://github.com/umbralcalc/antimicrobial-resistance)
 - [Decision-making games for the python programmer](https://github.com/umbralcalc/dexetera)
 
 ## Other cool engines
