@@ -13,10 +13,16 @@ It's a simulation engine written in Go which can be used to sample from, and lea
 
 For software engineers, the stochadex simulation framework abstracts away many of the common features that sampling algorithms have for performing these computations behind a highly-configurable interface.
 
-While the concept of a 'generalised simulation engine' isn't new (see, e.g., [SimPy](https://gitlab.com/team-simpy/simpy/), [StoSpa](https://github.com/BartoszBartmanski/StoSpa), [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/) and loads more), this simulation engine is designed based on deep research into [simulating a wide variety of real world systems over many years](https://github.com/umbralcalc) and has a structure which allows for a lot of cool applications.
+This simulation engine is designed based on the simulation software design fundamentals described in [this collection of blog posts](https://umbralcalc.github.io/posts/why_simulate_real_world_systems.html).
 
-## Other projects using the software
+## Projects using the software
 
 - [Event-based rugby match simulations to evaluate manager decision-making](https://github.com/umbralcalc/trywizard)
 - [Fish ecosystem simulations using environment data to evaluate sustanability policies](https://github.com/umbralcalc/anglersim)
 - [Decision-making games for the python programmer](https://github.com/umbralcalc/dexetera)
+
+## Other cool engines
+
+- [SimPy](https://gitlab.com/team-simpy/simpy/)
+- [StoSpa](https://github.com/BartoszBartmanski/StoSpa)
+- [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/)
