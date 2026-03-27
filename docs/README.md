@@ -21,7 +21,7 @@ This simulation engine is designed based on the simulation software design funda
 - [Fish ecosystem simulations using environment data to evaluate sustanability policies](https://github.com/umbralcalc/anglersim)
 - [Antimicrobial resistance (AMR) stewardship simulations to evaluate hospital guidelines](https://github.com/umbralcalc/antimicrobial-resistance)
 - [Stochastic simulations of catchment-scale flood dynamics under climate change](https://github.com/umbralcalc/floodrisk)
-- [18xx gameplay design tool powered by Monte Carlo Tree Search (MCTS)](https://github.com/umbralcalc/18xxdesigner)
+- [18xx gameplay design tool and Monte Carlo Tree Search (MCTS)](https://github.com/umbralcalc/18xxdesigner)
 - [Decision-making games for the python programmer](https://github.com/umbralcalc/dexetera)
 
 ## Other cool engines
