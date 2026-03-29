@@ -12,7 +12,7 @@ main:
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
-    - likelihoodForGen: "&inference.NormalLikelihoodDistribution{}"
+    - likelihoodForGen: "&inference.NormalLikelihoodDistribution{AllowDefaultCovarianceFallback: true}"
     - dataStream: "&inference.DataGenerationIteration{Likelihood: likelihoodForGen}"
 
   - name: data_rolling_mean
@@ -123,7 +123,7 @@ main:
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
-    - likelihoodForParamsGen: "&inference.NormalLikelihoodDistribution{}"
+    - likelihoodForParamsGen: "&inference.NormalLikelihoodDistribution{AllowDefaultCovarianceFallback: true}"
     - paramsGeneratingProcess: "&inference.DataGenerationIteration{Likelihood: likelihoodForParamsGen}"
 
   - name: ornstein_uhlenbeck_simulation
@@ -208,7 +208,7 @@ embedded:
     extra_packages:
     - github.com/umbralcalc/stochadex/pkg/inference
     extra_vars:
-    - likelihoodForComp: "&inference.NormalLikelihoodDistribution{}"
+    - likelihoodForComp: "&inference.NormalLikelihoodDistribution{AllowDefaultCovarianceFallback: true}"
     - dataComparisonToSimulation: "&inference.DataComparisonIteration{Likelihood: likelihoodForComp}"
 
   simulation:

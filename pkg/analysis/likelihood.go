@@ -1,6 +1,15 @@
+// Package analysis builds rolling likelihood windows, posterior partitions,
+// and storage-backed replays. Windowed likelihoods embed a short simulation
+// whose length is Window.Depth; outer burn_in_steps on that embedding default
+// to Window.Depth so inner timesteps align with available history (see
+// EmbeddedBurnInSteps to decouple). Use ValidateWindowDataHistoryDepth with
+// AddPartitionsToStateTimeStorage window sizes to fail fast if history is
+// too shallow for FromHistoryIteration.
 package analysis
 
 import (
+	"fmt"
+
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
@@ -57,6 +66,14 @@ type AppliedLikelihoodComparison struct {
 	Model  ParameterisedModel
 	Data   DataRef
 	Window WindowedPartitions
+	// EmbeddedBurnInSteps, if non-nil, sets outer burn-in steps before the
+	// embedded window runs (see general.EmbeddedSimulationRunIteration). If
+	// nil, defaults to Window.Depth so the inner replay starts with a full window.
+	EmbeddedBurnInSteps *int
+	// WindowDataHistoryDepth, if non-nil, must map every Window.Data
+	// PartitionName to that partition’s StateHistoryDepth in the outer
+	// simulation; each value must be >= Window.Depth.
+	WindowDataHistoryDepth map[string]int
 }
 
 // NewLikelihoodComparisonPartition builds a PartitionConfig embedding an
@@ -66,6 +83,14 @@ func NewLikelihoodComparisonPartition(
 	applied AppliedLikelihoodComparison,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
+	if applied.Window.Depth < 1 {
+		panic(fmt.Sprintf("analysis: Window.Depth must be >= 1, got %d", applied.Window.Depth))
+	}
+	assertWindowDataSourcesDeepEnough(
+		applied.Window.Depth,
+		applied.Window.Data,
+		applied.WindowDataHistoryDepth,
+	)
 	generator := simulator.NewConfigGenerator()
 	generator.SetSimulation(&simulator.SimulationConfig{
 		OutputCondition: &simulator.NilOutputCondition{},
@@ -140,8 +165,15 @@ func NewLikelihoodComparisonPartition(
 		Seed:               0,
 	})
 	simInitStateValues = append(simInitStateValues, 0.0)
+	burnIn := applied.Window.Depth
+	if applied.EmbeddedBurnInSteps != nil {
+		burnIn = *applied.EmbeddedBurnInSteps
+	}
+	if burnIn < 0 {
+		panic(fmt.Sprintf("analysis: EmbeddedBurnInSteps must be >= 0, got %d", burnIn))
+	}
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(applied.Window.Depth)},
+		"burn_in_steps": {float64(burnIn)},
 	})
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
@@ -191,13 +223,17 @@ type LikelihoodMeanGradient struct {
 // likelihood mean to data using a gradient function and learning rate over a
 // finite descent schedule.
 type AppliedLikelihoodMeanFunctionFit struct {
-	Name              string
-	Model             ParameterisedModelWithGradient
-	Gradient          LikelihoodMeanGradient
-	Data              DataRef
-	Window            WindowedPartitions
-	LearningRate      float64
-	DescentIterations int
+	Name     string
+	Model    ParameterisedModelWithGradient
+	Gradient LikelihoodMeanGradient
+	Data     DataRef
+	Window   WindowedPartitions
+	// EmbeddedBurnInSteps mirrors AppliedLikelihoodComparison.EmbeddedBurnInSteps.
+	EmbeddedBurnInSteps *int
+	// WindowDataHistoryDepth mirrors AppliedLikelihoodComparison.WindowDataHistoryDepth.
+	WindowDataHistoryDepth map[string]int
+	LearningRate           float64
+	DescentIterations      int
 	// WarmStart, if true, seeds each outer step's inner gradient descent from
 	// the previous outer step's output rather than from a fixed param. Enables
 	// convergence to a global MLE over the full data window as outer steps
@@ -212,6 +248,14 @@ func NewLikelihoodMeanFunctionFitPartition(
 	applied AppliedLikelihoodMeanFunctionFit,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
+	if applied.Window.Depth < 1 {
+		panic(fmt.Sprintf("analysis: Window.Depth must be >= 1, got %d", applied.Window.Depth))
+	}
+	assertWindowDataSourcesDeepEnough(
+		applied.Window.Depth,
+		applied.Window.Data,
+		applied.WindowDataHistoryDepth,
+	)
 	generator := simulator.NewConfigGenerator()
 	generator.SetSimulation(&simulator.SimulationConfig{
 		OutputCondition: &simulator.NilOutputCondition{},
@@ -302,8 +346,15 @@ func NewLikelihoodMeanFunctionFitPartition(
 	})
 	simInitStateValues = append(
 		simInitStateValues, make([]float64, applied.Gradient.Width)...)
+	burnInFit := applied.Window.Depth
+	if applied.EmbeddedBurnInSteps != nil {
+		burnInFit = *applied.EmbeddedBurnInSteps
+	}
+	if burnInFit < 0 {
+		panic(fmt.Sprintf("analysis: EmbeddedBurnInSteps must be >= 0, got %d", burnInFit))
+	}
 	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(applied.Window.Depth)},
+		"burn_in_steps": {float64(burnInFit)},
 	})
 	if applied.WarmStart {
 		simParams.Set(

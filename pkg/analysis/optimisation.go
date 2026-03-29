@@ -78,8 +78,8 @@ func NewEvolutionStrategyOptimisationPartitions(
 	// and a discounted reward accumulation
 	generator := simulator.NewConfigGenerator()
 	generator.SetSimulation(&simulator.SimulationConfig{
-		OutputCondition:  &simulator.NilOutputCondition{},
-		OutputFunction:   &simulator.NilOutputFunction{},
+		OutputCondition: &simulator.NilOutputCondition{},
+		OutputFunction:  &simulator.NilOutputFunction{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: applied.Window.Depth,
 		},
@@ -197,7 +197,9 @@ func NewEvolutionStrategyOptimisationPartitions(
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name: applied.Sampler.Name,
 		Iteration: &inference.DataGenerationIteration{
-			Likelihood: &inference.NormalLikelihoodDistribution{},
+			Likelihood: &inference.NormalLikelihoodDistribution{
+				AllowDefaultCovarianceFallback: true,
+			},
 		},
 		Params: simulator.NewParams(map[string][]float64{
 			"default_covariance": applied.Covariance.Default,
@@ -228,10 +230,10 @@ func NewEvolutionStrategyOptimisationPartitions(
 			PushAndSort: general.OtherPartitionsPushAndSortFunction,
 		},
 		Params: simulator.NewParams(map[string][]float64{
-			"value_indices":      sampleValueIndices,
+			"value_indices":       sampleValueIndices,
 			"value_index_sort_by": {float64(sortByIndex)},
-			"empty_value":        {applied.Sorting.EmptyValue},
-			"values_state_width": {float64(sampleDim)},
+			"empty_value":         {applied.Sorting.EmptyValue},
+			"values_state_width":  {float64(sampleDim)},
 		}),
 		ParamsAsPartitions: map[string][]string{
 			"other_partition":         {applied.Sampler.Name},
@@ -248,8 +250,8 @@ func NewEvolutionStrategyOptimisationPartitions(
 		Name:      applied.Mean.Name,
 		Iteration: &general.ValuesSortedCollectionMeanIteration{},
 		Params: simulator.NewParams(map[string][]float64{
-			"weights":           applied.Mean.Weights,
-			"learning_rate":     {applied.Mean.LearningRate},
+			"weights":            applied.Mean.Weights,
+			"learning_rate":      {applied.Mean.LearningRate},
 			"values_state_width": {float64(sampleDim)},
 		}),
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
@@ -266,8 +268,8 @@ func NewEvolutionStrategyOptimisationPartitions(
 		Name:      applied.Covariance.Name,
 		Iteration: &general.ValuesSortedCollectionCovarianceIteration{},
 		Params: simulator.NewParams(map[string][]float64{
-			"weights":           applied.Mean.Weights,
-			"learning_rate":     {applied.Covariance.LearningRate},
+			"weights":            applied.Mean.Weights,
+			"learning_rate":      {applied.Covariance.LearningRate},
 			"values_state_width": {float64(sampleDim)},
 		}),
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{

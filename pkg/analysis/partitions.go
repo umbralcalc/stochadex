@@ -34,6 +34,11 @@ func NewStateTimeStorageFromPartitions(
 
 // AddPartitionsToStateTimeStorage extends the state time storage with newly
 // generated values from the specified partitions.
+//
+// For each existing partition name, windowSizeByPartition[name] sets
+// StateHistoryDepth for the FromStorageIteration replay (default 1). Windowed
+// likelihood helpers need depth ≥ window length; use
+// ValidateWindowDataHistoryDepth with the same map before running.
 func AddPartitionsToStateTimeStorage(
 	storage *simulator.StateTimeStorage,
 	partitions []*simulator.PartitionConfig,

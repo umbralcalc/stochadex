@@ -1,6 +1,7 @@
 package inference
 
 import (
+	"math"
 	"math/rand/v2"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -13,13 +14,26 @@ import (
 //
 // Usage hints:
 //   - Provide mean/covariance via params or upstream partition outputs.
-//   - Optional: "default_covariance" used if provided covariance is not PD.
+//   - Optional "default_covariance" used if provided covariance is not PD
+//     only when AllowDefaultCovarianceFallback is true (otherwise this
+//     situation panics with an explicit message).
+//   - Optional "cov_burn_in_steps": for outer step counts ≤ this value, the
+//     covariance is taken from default_covariance when that param is set,
+//     ignoring streamed covariance from upstream (fixed proposal / prior phase).
+//     If default_covariance is absent during burn-in, behaviour falls back to
+//     CovarianceMatrixFromParamsOrPartition as usual.
+//   - For diagonal Gaussian proposals without full covariance conditioning,
+//     supply "variance" (diagonal) or wire a variance partition instead of a
+//     dense covariance_matrix upstream.
 //   - GenerateNewSamples draws from the current parameterised distribution.
 type NormalLikelihoodDistribution struct {
 	Src        rand.Source
 	mean       *mat.VecDense
 	covariance *mat.SymDense
 	defaultCov []float64
+	// AllowDefaultCovarianceFallback must be true to substitute
+	// default_covariance when the primary matrix is not positive-definite.
+	AllowDefaultCovarianceFallback bool
 }
 
 func (n *NormalLikelihoodDistribution) SetSeed(
@@ -39,11 +53,30 @@ func (n *NormalLikelihoodDistribution) SetParams(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) {
 	n.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
-	n.covariance = CovarianceMatrixFromParamsOrPartition(
-		params,
-		partitionIndex,
-		stateHistories,
-	)
+	burnK := 0
+	if b, ok := params.GetOk("cov_burn_in_steps"); ok && timestepsHistory != nil {
+		burnK = int(b[0])
+	}
+	inBurn := burnK > 0 && timestepsHistory != nil &&
+		timestepsHistory.CurrentStepNumber <= burnK
+	if inBurn {
+		if dc, ok := params.GetOk("default_covariance"); ok {
+			dim := int(math.Sqrt(float64(len(dc))))
+			n.covariance = mat.NewSymDense(dim, dc)
+		} else {
+			n.covariance = CovarianceMatrixFromParamsOrPartition(
+				params,
+				partitionIndex,
+				stateHistories,
+			)
+		}
+	} else {
+		n.covariance = CovarianceMatrixFromParamsOrPartition(
+			params,
+			partitionIndex,
+			stateHistories,
+		)
+	}
 	if c, ok := params.GetOk("default_covariance"); ok {
 		n.defaultCov = c
 	}
@@ -57,11 +90,17 @@ func (n *NormalLikelihoodDistribution) getDist() *distmv.Normal {
 	)
 	if !ok {
 		if n.defaultCov != nil {
-			dist, _ = distmv.NewNormal(
+			if !n.AllowDefaultCovarianceFallback {
+				panic("inference.NormalLikelihoodDistribution: covariance not positive-definite; set AllowDefaultCovarianceFallback to use default_covariance or fix the streamed matrix")
+			}
+			dist, ok = distmv.NewNormal(
 				n.mean.RawVector().Data,
 				mat.NewSymDense(n.mean.Len(), n.defaultCov),
 				n.Src,
 			)
+			if !ok {
+				panic("inference.NormalLikelihoodDistribution: default_covariance is also not positive-definite")
+			}
 		} else {
 			panic("covariance matrix is not positive-definite")
 		}

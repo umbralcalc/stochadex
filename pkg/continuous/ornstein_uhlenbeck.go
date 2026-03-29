@@ -10,12 +10,15 @@ import (
 )
 
 // OrnsteinUhlenbeckIteration steps an Ornstein–Uhlenbeck mean-reverting
-// process per dimension.
+// process per dimension using an Euler–Maruyama discretisation.
 //
 // Usage hints:
 //   - Required params per dimension: "thetas" (reversion speed), "mus" (long-run mean),
 //     and "sigmas" (volatility).
 //   - Timestep size influences both drift and diffusion terms; ensure dt is configured.
+//   - Stability: keep θ·Δt modest—large θΔt with EM can bias paths and distort
+//     likelihoods versus the continuous-time OU. For inference with stiff θ,
+//     prefer OrnsteinUhlenbeckExactGaussianIteration or a smaller Δt.
 //   - Seed is taken from the partition's Settings for reproducibility.
 type OrnsteinUhlenbeckIteration struct {
 	unitNormalDist *distuv.Normal

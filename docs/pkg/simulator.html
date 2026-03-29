@@ -953,7 +953,7 @@
       run twice to check for statefulness residues.</p>
       <p><a name="ConfigGenerator"></a></p>
       <h2 id="type-configgenerator">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L144-L148">ConfigGenerator</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L145-L149">ConfigGenerator</a></h2>
       <p>ConfigGenerator builds Settings and Implementations
       programmatically and can generate runnable configs on demand.</p>
       <div class="sourceCode" id="cb4"><pre
@@ -962,7 +962,7 @@
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewConfigGenerator"></a></p>
       <h3 id="func-newconfiggenerator">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L269">NewConfigGenerator</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L280">NewConfigGenerator</a></h3>
       <div class="sourceCode" id="cb5"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewConfigGenerator<span class="op">()</span> <span class="op">*</span>ConfigGenerator</span></code></pre></div>
       <p>NewConfigGenerator creates a new ConfigGenerator with empty
@@ -970,7 +970,7 @@
       <p><a name="ConfigGenerator.GenerateConfigs"></a></p>
       <h3 id="func-configgenerator-generateconfigs">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L199">GenerateConfigs</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L200">GenerateConfigs</a></h3>
       <div class="sourceCode" id="cb6"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> GenerateConfigs<span class="op">()</span> <span class="op">(*</span>Settings<span class="op">,</span> <span class="op">*</span>Implementations<span class="op">)</span></span></code></pre></div>
       <p>GenerateConfigs constructs Settings and Implementations ready
@@ -979,35 +979,35 @@
       <p><a name="ConfigGenerator.GetGlobalSeed"></a></p>
       <h3 id="func-configgenerator-getglobalseed">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L151">GetGlobalSeed</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L152">GetGlobalSeed</a></h3>
       <div class="sourceCode" id="cb7"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> GetGlobalSeed<span class="op">()</span> <span class="dt">uint64</span></span></code></pre></div>
       <p>GetGlobalSeed returns the current global seed.</p>
       <p><a name="ConfigGenerator.GetPartition"></a></p>
       <h3 id="func-configgenerator-getpartition">func (*ConfigGenerator)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L176">GetPartition</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L177">GetPartition</a></h3>
       <div class="sourceCode" id="cb8"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> GetPartition<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>PartitionConfig</span></code></pre></div>
       <p>GetPartition retrieves a partition config by name.</p>
       <p><a name="ConfigGenerator.GetSimulation"></a></p>
       <h3 id="func-configgenerator-getsimulation">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L166">GetSimulation</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L167">GetSimulation</a></h3>
       <div class="sourceCode" id="cb9"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> GetSimulation<span class="op">()</span> <span class="op">*</span>SimulationConfig</span></code></pre></div>
       <p>GetSimulation returns the current simulation config.</p>
       <p><a name="ConfigGenerator.ResetPartition"></a></p>
       <h3 id="func-configgenerator-resetpartition">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L187">ResetPartition</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L188">ResetPartition</a></h3>
       <div class="sourceCode" id="cb10"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> ResetPartition<span class="op">(</span>name <span class="dt">string</span><span class="op">,</span> config <span class="op">*</span>PartitionConfig<span class="op">)</span></span></code></pre></div>
       <p>ResetPartition replaces the config for a partition by name.</p>
       <p><a name="ConfigGenerator.SetGlobalSeed"></a></p>
       <h3 id="func-configgenerator-setglobalseed">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L157">SetGlobalSeed</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L158">SetGlobalSeed</a></h3>
       <div class="sourceCode" id="cb11"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> SetGlobalSeed<span class="op">(</span>seed <span class="dt">uint64</span><span class="op">)</span></span></code></pre></div>
       <p>SetGlobalSeed assigns a random seed to each partition derived
@@ -1015,7 +1015,7 @@
       <p><a name="ConfigGenerator.SetPartition"></a></p>
       <h3 id="func-configgenerator-setpartition">func (*ConfigGenerator)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L181">SetPartition</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L182">SetPartition</a></h3>
       <div class="sourceCode" id="cb12"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> SetPartition<span class="op">(</span>config <span class="op">*</span>PartitionConfig<span class="op">)</span></span></code></pre></div>
       <p>SetPartition adds a new partition config. Names must be
@@ -1023,7 +1023,7 @@
       <p><a name="ConfigGenerator.SetSimulation"></a></p>
       <h3 id="func-configgenerator-setsimulation">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L171">SetSimulation</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L172">SetSimulation</a></h3>
       <div class="sourceCode" id="cb13"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> SetSimulation<span class="op">(</span>config <span class="op">*</span>SimulationConfig<span class="op">)</span></span></code></pre></div>
       <p>SetSimulation sets the current simulation config.</p>
@@ -1118,7 +1118,7 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>ExponentialDistributionTimestepFunction<span class="op">)</span> NextIncrement<span class="op">(</span>timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
       <p><a name="Implementations"></a></p>
       <h2 id="type-implementations">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L60-L66">Implementations</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L61-L67">Implementations</a></h2>
       <p>Implementations provides concrete implementations for a
       simulation run.</p>
       <div class="sourceCode" id="cb25"><pre
@@ -1241,7 +1241,7 @@
 <span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="IterationSettings"></a></p>
       <h2 id="type-iterationsettings">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L22-L30">IterationSettings</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L23-L31">IterationSettings</a></h2>
       <p>IterationSettings is the YAML-loadable per-partition
       configuration.</p>
       <p>Usage hints:</p>
@@ -1372,7 +1372,7 @@
 <span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NamedUpstreamConfig"></a></p>
       <h2 id="type-namedupstreamconfig">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L69-L72">NamedUpstreamConfig</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L70-L73">NamedUpstreamConfig</a></h2>
       <p>NamedUpstreamConfig is like UpstreamConfig but refers to
       upstream by name.</p>
       <div class="sourceCode" id="cb42"><pre
@@ -1530,7 +1530,7 @@
       errors.</p>
       <p><a name="PartitionConfig"></a></p>
       <h2 id="type-partitionconfig">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L80-L89">PartitionConfig</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L81-L90">PartitionConfig</a></h2>
       <p>PartitionConfig defines a partition to add to a simulation.</p>
       <p>Usage hints:</p>
       <ul>
@@ -1566,14 +1566,14 @@
       </ul>
       <p><a name="PartitionConfig.Init"></a></p>
       <h3 id="func-partitionconfig-init">func (*PartitionConfig) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L92">Init</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L93">Init</a></h3>
       <div class="sourceCode" id="cb65"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PartitionConfig<span class="op">)</span> Init<span class="op">()</span></span></code></pre></div>
       <p>Init ensures params maps are initialised; call after
       unmarshalling YAML.</p>
       <p><a name="PartitionConfigOrdering"></a></p>
       <h2 id="type-partitionconfigordering">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L125-L129">PartitionConfigOrdering</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L126-L130">PartitionConfigOrdering</a></h2>
       <p>PartitionConfigOrdering maintains the ordering and lookup for
       partitions. Can be updated dynamically via Append.</p>
       <div class="sourceCode" id="cb66"><pre
@@ -1585,7 +1585,7 @@
       <p><a name="PartitionConfigOrdering.Append"></a></p>
       <h3 id="func-partitionconfigordering-append">func
       (*PartitionConfigOrdering) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L132">Append</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L133">Append</a></h3>
       <div class="sourceCode" id="cb67"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PartitionConfigOrdering<span class="op">)</span> Append<span class="op">(</span>config <span class="op">*</span>PartitionConfig<span class="op">)</span></span></code></pre></div>
       <p>Append inserts another partition into the ordering and updates
@@ -1782,7 +1782,7 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>x <span class="op">*</span>PartitionState<span class="op">)</span> String<span class="op">()</span> <span class="dt">string</span></span></code></pre></div>
       <p><a name="Settings"></a></p>
       <h2 id="type-settings">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L33-L37">Settings</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L34-L38">Settings</a></h2>
       <p>Settings is the YAML-loadable top-level simulation
       configuration.</p>
       <div class="sourceCode" id="cb85"><pre
@@ -1804,14 +1804,14 @@
       </ul>
       <p><a name="Settings.Init"></a></p>
       <h3 id="func-settings-init">func (*Settings) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L41">Init</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L42">Init</a></h3>
       <div class="sourceCode" id="cb87"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>Settings<span class="op">)</span> Init<span class="op">()</span></span></code></pre></div>
       <p>Init fills in defaults and ensures maps are initialised. Call
       immediately after unmarshalling from YAML.</p>
       <p><a name="SimulationConfig"></a></p>
       <h2 id="type-simulationconfig">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L105-L111">SimulationConfig</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L106-L112">SimulationConfig</a></h2>
       <p>SimulationConfig defines additional run-level
       configuration.</p>
       <div class="sourceCode" id="cb88"><pre
@@ -1824,7 +1824,7 @@
 <span id="cb88-7"><a href="#cb88-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="SimulationConfigStrings"></a></p>
       <h2 id="type-simulationconfigstrings">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L115-L121">SimulationConfigStrings</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L116-L122">SimulationConfigStrings</a></h2>
       <p>SimulationConfigStrings is the YAML-loadable version of
       SimulationConfig, referring to implementations by type names for
       templating.</p>
@@ -2148,7 +2148,7 @@
 <span id="cb119-5"><a href="#cb119-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="UpstreamConfig"></a></p>
       <h2 id="type-upstreamconfig">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L11-L14">UpstreamConfig</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L12-L15">UpstreamConfig</a></h2>
       <p>UpstreamConfig is the YAML-loadable representation of a slice
       of data from the output of a partition which is computationally
       upstream.</p>

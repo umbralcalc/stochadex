@@ -18,7 +18,7 @@ pkg/
   general/     — General-purpose iterations (constant values, copy, cumulative, embedded simulation, sorting, resampling, etc.)
   kernels/     — Integration kernels for time-weighted aggregation (exponential, periodic, Gaussian, etc.)
   inference/   — Parameter estimation: likelihood distributions, posterior mean/covariance iterations
-  analysis/    — Post-simulation: CSV/DataFrame I/O, PostgreSQL, grouped aggregations, plotting
+  analysis/    — Post-simulation: CSV/DataFrame I/O, PostgreSQL, grouped aggregations, plotting, rolling likelihood windows, posterior estimation helpers
   keyboard/    — Real-time keyboard input for interactive simulations
 cmd/stochadex/ — CLI binary
 cfg/           — Example YAML configs
@@ -71,6 +71,19 @@ Two ways to set up simulations:
 1. **Programmatic Go** — Build `Settings` and `Implementations` structs directly in Go code. Used in unit tests and when embedding stochadex as a library.
 
 2. **YAML API path** — Define simulations in YAML (`ApiRunConfig`). Iteration types are Go expressions as strings (e.g., `"&continuous.WienerProcessIteration{}"`). The API generates and runs Go code from a template. Config files use `extra_packages` and `extra_vars` to declare imports and variables.
+
+## Inference and analysis (`pkg/analysis`)
+
+Online posterior stacks are usually built with `NewPosteriorEstimationPartitions`, `NewLikelihoodComparisonPartition`, and storage from `NewStateTimeStorageFromPartitions` / `AddPartitionsToStateTimeStorage`.
+
+- **State history depth**: Windowed likelihoods replay data through `general.FromHistoryIteration`. Each `Window.Data` source partition needs `StateHistoryDepth` at least `Window.Depth` (set `windowSizeByPartition` in `AddPartitionsToStateTimeStorage` accordingly). Optionally set `AppliedLikelihoodComparison.WindowDataHistoryDepth` for a setup-time check, or call `ValidateWindowDataHistoryDepth` with the same map you pass to `AddPartitionsToStateTimeStorage`.
+- **Embedded burn-in**: The comparison partition defaults `burn_in_steps` to `Window.Depth` so the inner run aligns with available history; the first outer steps can repeat the same inner log-likelihood. Override with `EmbeddedBurnInSteps` to decouple from window size. `PosteriorLogNormalisationIteration` discounts all rolling history rows—including that padding—via `past_discounting_factor`.
+- **MemoryDepth**: Depth of the likelihood partition’s state history used by the posterior log-normalisation rolling window; keep it consistent with how much past you intend to aggregate.
+- **Posterior covariance**: `PosteriorCovariance.JustVariance` uses diagonal variances (length N); `NewPosteriorEstimationPartitions` wires the sampler to `variance_partition` automatically. Full covariance defaults must have length N².
+- **Normal sampler**: `NormalLikelihoodDistribution.AllowDefaultCovarianceFallback` must be true to substitute `default_covariance` when the streamed matrix is not PD. `cov_burn_in_steps` fixes the proposal covariance to `default_covariance` for the first K outer steps when that param is set.
+- **Upstream indices**: `params_from_upstream.indices` are validated against the upstream partition’s state width when `ConfigGenerator.GenerateConfigs` runs.
+
+For stiff OU mean-reversion with large θΔt, prefer `continuous.OrnsteinUhlenbeckExactGaussianIteration` over Euler–Maruyama `OrnsteinUhlenbeckIteration` when modeling should match the Gaussian transition.
 
 ## Documentation
 

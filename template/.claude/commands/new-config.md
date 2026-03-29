@@ -19,7 +19,7 @@ main:
     params_from_upstream:                    # optional: wire upstream output → params
       <param_name>:
         upstream: <upstream_partition_name>
-        indices: [0, 1]                     # optional: select specific state indices
+        indices: [0, 1]                     # optional: select state indices (each must be < upstream state width)
     params_as_partitions:                    # optional: reference partition names
       <param_name>: [<partition_name>]
     init_state_values: [<float64 values>]   # determines state_width
@@ -54,6 +54,8 @@ main:
    - Timestep: `ConstantTimestepFunction` for fixed steps, `ExponentialDistributionTimestepFunction` for event-driven.
 
 5. Add YAML comments explaining what each partition models and why params are set to their values.
+
+6. If the config uses `inference.NormalLikelihoodDistribution` with `default_covariance` and a covariance that may not stay positive-definite (e.g. from another partition), set `AllowDefaultCovarianceFallback: true` in the `extra_vars` struct literal. See template `CLAUDE.md` inference notes.
 
 ## Reference configs
 

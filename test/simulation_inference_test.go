@@ -107,7 +107,9 @@ func TestSimulationInference(t *testing.T) {
 						Name:    "posterior_sampler",
 						Default: []float64{0.0, 0.0, 0.0, 0.0},
 						Distribution: analysis.ParameterisedModel{
-							Likelihood: &inference.NormalLikelihoodDistribution{},
+							Likelihood: &inference.NormalLikelihoodDistribution{
+								AllowDefaultCovarianceFallback: true,
+							},
 							Params: simulator.NewParams(map[string][]float64{
 								"default_covariance": {5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0},
 								"cov_burn_in_steps":  {300},
@@ -134,6 +136,10 @@ func TestSimulationInference(t *testing.T) {
 								{PartitionName: "variance"},
 							},
 							Depth: 200,
+						},
+						WindowDataHistoryDepth: map[string]int{
+							"mean":     200,
+							"variance": 200,
 						},
 					},
 					PastDiscount: 1.0,

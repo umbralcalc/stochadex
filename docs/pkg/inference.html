@@ -1534,52 +1534,66 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NegativeBinomialLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
       <p><a name="NormalLikelihoodDistribution"></a></p>
       <h2 id="type-normallikelihooddistribution">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L18-L23">NormalLikelihoodDistribution</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L29-L37">NormalLikelihoodDistribution</a></h2>
       <p>NormalLikelihoodDistribution models data with a multivariate
       normal.</p>
       <p>Usage hints:</p>
       <ul>
       <li>Provide mean/covariance via params or upstream partition
       outputs.</li>
-      <li>Optional: “default_covariance” used if provided covariance is
-      not PD.</li>
+      <li>Optional “default_covariance” used if provided covariance is
+      not PD only when AllowDefaultCovarianceFallback is true (otherwise
+      this situation panics with an explicit message).</li>
+      <li>Optional “cov_burn_in_steps”: for outer step counts ≤ this
+      value, the covariance is taken from default_covariance when that
+      param is set, ignoring streamed covariance from upstream (fixed
+      proposal / prior phase). If default_covariance is absent during
+      burn-in, behaviour falls back to
+      CovarianceMatrixFromParamsOrPartition as usual.</li>
+      <li>For diagonal Gaussian proposals without full covariance
+      conditioning, supply “variance” (diagonal) or wire a variance
+      partition instead of a dense covariance_matrix upstream.</li>
       <li>GenerateNewSamples draws from the current parameterised
       distribution.</li>
       </ul>
       <div class="sourceCode" id="cb64"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> NormalLikelihoodDistribution <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>    Src rand<span class="op">.</span>Source</span>
-<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
-<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// AllowDefaultCovarianceFallback must be true to substitute</span></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// default_covariance when the primary matrix is not positive-definite.</span></span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>    AllowDefaultCovarianceFallback <span class="dt">bool</span></span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NormalLikelihoodDistribution.EvaluateLogLike"></a></p>
       <h3 id="func-normallikelihooddistribution-evaluateloglike">func
       (*NormalLikelihoodDistribution) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L72">EvaluateLogLike</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L111">EvaluateLogLike</a></h3>
       <div class="sourceCode" id="cb65"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> EvaluateLogLike<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
       <p><a name="NormalLikelihoodDistribution.EvaluateLogLikeMeanGrad"></a></p>
       <h3
       id="func-normallikelihooddistribution-evaluateloglikemeangrad">func
       (*NormalLikelihoodDistribution) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L82-L84">EvaluateLogLikeMeanGrad</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L121-L123">EvaluateLogLikeMeanGrad</a></h3>
       <div class="sourceCode" id="cb66"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> EvaluateLogLikeMeanGrad<span class="op">(</span>data <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p><a name="NormalLikelihoodDistribution.GenerateNewSamples"></a></p>
       <h3 id="func-normallikelihooddistribution-generatenewsamples">func
       (*NormalLikelihoodDistribution) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L77">GenerateNewSamples</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L116">GenerateNewSamples</a></h3>
       <div class="sourceCode" id="cb67"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> GenerateNewSamples<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p><a name="NormalLikelihoodDistribution.SetParams"></a></p>
       <h3 id="func-normallikelihooddistribution-setparams">func
       (*NormalLikelihoodDistribution) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L35-L40">SetParams</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L49-L54">SetParams</a></h3>
       <div class="sourceCode" id="cb68"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> SetParams<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span></span></code></pre></div>
       <p><a name="NormalLikelihoodDistribution.SetSeed"></a></p>
       <h3 id="func-normallikelihooddistribution-setseed">func
       (*NormalLikelihoodDistribution) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L25-L28">SetSeed</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/normal.go#L39-L42">SetSeed</a></h3>
       <div class="sourceCode" id="cb69"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>n <span class="op">*</span>NormalLikelihoodDistribution<span class="op">)</span> SetSeed<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
       <p><a name="PoissonLikelihoodDistribution"></a></p>
@@ -1654,24 +1668,32 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorCovarianceIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p><a name="PosteriorLogNormalisationIteration"></a></p>
       <h2 id="type-posteriorlognormalisationiteration">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L13-L14">PosteriorLogNormalisationIteration</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L21-L22">PosteriorLogNormalisationIteration</a></h2>
       <p>PosteriorLogNormalisationIteration updates the cumulative
       normalisation of the posterior distribution over params using
       log-likelihood values given in the state history of other
       partitions as well as a specified past discounting factor.</p>
+      <p>Rolling history: each row i of the log-likelihood partition’s
+      history is weighted by past_discounting_factor^i inside the inner
+      LogSumExp. During an embedded likelihood burn-in, early outer
+      steps often repeat the same inner score (e.g. 0); those rows
+      remain in history until they roll off, so discounting applies to
+      them as well—prefer aligning embedded burn-in with window depth or
+      overriding EmbeddedBurnInSteps when building comparison partitions
+      (see analysis.AppliedLikelihoodComparison).</p>
       <div class="sourceCode" id="cb79"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> PosteriorLogNormalisationIteration <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="PosteriorLogNormalisationIteration.Configure"></a></p>
       <h3 id="func-posteriorlognormalisationiteration-configure">func
       (*PosteriorLogNormalisationIteration) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L16-L19">Configure</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L24-L27">Configure</a></h3>
       <div class="sourceCode" id="cb80"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorLogNormalisationIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
       <p><a name="PosteriorLogNormalisationIteration.Iterate"></a></p>
       <h3 id="func-posteriorlognormalisationiteration-iterate">func
       (*PosteriorLogNormalisationIteration) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L22-L27">Iterate</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/inference/posterior_log_normalisation.go#L30-L35">Iterate</a></h3>
       <div class="sourceCode" id="cb81"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PosteriorLogNormalisationIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p><a name="PosteriorMeanIteration"></a></p>

@@ -68,12 +68,23 @@ func (p *PosteriorMeanIteration) Iterate(
 	logNormLatest := floats.LogSumExp(logLikes)
 	logNormPast := params.GetIndex("posterior_log_normalisation", 0)
 	logNormTotal := floats.LogSumExp([]float64{logNormLatest, logNormPast})
+	if math.IsNaN(logNormTotal) || math.IsInf(logNormTotal, 0) {
+		return stateHistories[partitionIndex].CopyStateRow(0)
+	}
 	mean := mat.VecDenseCopyOf(stateHistories[partitionIndex].Values.RowView(0))
-	mean.ScaleVec(math.Exp(logNormPast-logNormTotal), mean)
+	scalePast := math.Exp(logNormPast - logNormTotal)
+	if math.IsNaN(scalePast) || math.IsInf(scalePast, 0) {
+		scalePast = 0
+	}
+	mean.ScaleVec(scalePast, mean)
 	for i, paramsPartition := range params.Get("param_partitions") {
+		w := math.Exp(logLikes[i] - logNormTotal)
+		if math.IsNaN(w) || math.IsInf(w, 0) {
+			continue
+		}
 		mean.AddScaledVec(
 			mean,
-			math.Exp(logLikes[i]-logNormTotal),
+			w,
 			p.Transform(
 				params,
 				stateHistories[int(paramsPartition)].Values.RowView(0),

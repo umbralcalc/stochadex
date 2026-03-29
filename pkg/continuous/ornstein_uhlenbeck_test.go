@@ -58,4 +58,28 @@ func TestOrnsteinUhlenbeckProcess(t *testing.T) {
 			}
 		},
 	)
+	t.Run(
+		"exact Gaussian OU step runs with harnesses",
+		func(t *testing.T) {
+			settings := simulator.LoadSettingsFromYaml(
+				"./ornstein_uhlenbeck_exact_settings.yaml",
+			)
+			iterations := []simulator.Iteration{
+				&OrnsteinUhlenbeckExactGaussianIteration{},
+			}
+			iterations[0].Configure(0, settings)
+			implementations := &simulator.Implementations{
+				Iterations:      iterations,
+				OutputCondition: &simulator.EveryStepOutputCondition{},
+				OutputFunction:  &simulator.NilOutputFunction{},
+				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
+					MaxNumberOfSteps: 50,
+				},
+				TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 0.1},
+			}
+			if err := simulator.RunWithHarnesses(settings, implementations); err != nil {
+				t.Errorf("test harness failed: %v", err)
+			}
+		},
+	)
 }

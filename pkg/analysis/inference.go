@@ -1,6 +1,8 @@
 package analysis
 
 import (
+	"fmt"
+
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -21,6 +23,10 @@ type PosteriorMean struct {
 
 // PosteriorCovariance defines the configuration needed to specify
 // the posterior covariance in the AppliedPosteriorEstimation.
+//
+// When JustVariance is true, Default has length N (per-dimension variance)
+// and NewPosteriorEstimationPartitions wires the sampler to use
+// variance_partition for the posterior output (not a dense covariance).
 type PosteriorCovariance struct {
 	Name         string
 	Default      []float64
@@ -38,6 +44,15 @@ type PosteriorSampler struct {
 // AppliedPosteriorEstimation is the base configuration for an online
 // inference of a simulation (specified by partition configs) from a
 // referenced dataset.
+//
+// Windowed likelihood comparison: the embedded partition uses burn_in_steps
+// equal to Window.Depth by default so the inner FromHistory replay has a
+// full window before the first meaningful likelihood (earlier outer steps
+// repeat the same inner log-likelihood, often 0, which can dominate
+// PosteriorLogNormalisationIteration until history rolls). Override with
+// Comparison.EmbeddedBurnInSteps. Optional Comparison.WindowDataHistoryDepth
+// opts into a setup-time check that each Window.Data source partition’s
+// StateHistoryDepth is at least Window.Depth.
 type AppliedPosteriorEstimation struct {
 	LogNorm      PosteriorLogNorm
 	Mean         PosteriorMean
@@ -55,6 +70,10 @@ func NewPosteriorEstimationPartitions(
 	applied AppliedPosteriorEstimation,
 	storage *simulator.StateTimeStorage,
 ) []*simulator.PartitionConfig {
+	validateAppliedPosteriorWidths(applied)
+	if applied.MemoryDepth < 1 {
+		panic(fmt.Sprintf("analysis: MemoryDepth must be >= 1, got %d", applied.MemoryDepth))
+	}
 	compPartition := NewLikelihoodComparisonPartition(
 		applied.Comparison,
 		storage,
@@ -141,6 +160,22 @@ func NewPosteriorEstimationPartitions(
 		})
 	}
 	applied.Sampler.Distribution.Init()
+	if applied.Covariance.JustVariance {
+		pas := make(map[string][]string)
+		for k, v := range applied.Sampler.Distribution.ParamsAsPartitions {
+			pas[k] = v
+		}
+		pas["variance_partition"] = []string{applied.Covariance.Name}
+		applied.Sampler.Distribution.ParamsAsPartitions = pas
+		pfu := make(map[string]simulator.NamedUpstreamConfig)
+		for k, v := range applied.Sampler.Distribution.ParamsFromUpstream {
+			if k == "covariance_matrix" {
+				continue
+			}
+			pfu[k] = v
+		}
+		applied.Sampler.Distribution.ParamsFromUpstream = pfu
+	}
 	partitions = append(partitions, &simulator.PartitionConfig{
 		Name: applied.Sampler.Name,
 		Iteration: &inference.DataGenerationIteration{

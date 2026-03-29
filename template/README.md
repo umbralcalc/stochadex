@@ -37,7 +37,7 @@ go test -count=1 ./...
 .claude/commands/       Claude Code skills for development
   new-iteration.md      /new-iteration — scaffold a new Iteration implementation
   new-config.md         /new-config — scaffold a new simulation config
-CLAUDE.md               Project conventions for Claude Code (loaded automatically)
+CLAUDE.md               Project conventions for Claude Code (inference/likelihood YAML gotchas, built-in reference)
 pkg/custom/             Example custom iteration (MovingAverageIteration)
 cfg/                    Simulation configs (YAML, for the API code-generation path)
 ```

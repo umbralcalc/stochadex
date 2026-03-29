@@ -13,6 +13,7 @@ main:
     extra_vars:
     - wienerProcess: "&continuous.WienerProcessIteration{}"
 
+  # Euler–Maruyama OU; for large theta*dt consider OrnsteinUhlenbeckExactGaussianIteration (see template CLAUDE.md).
   - name: ornstein_uhlenbeck
     iteration: ouProcess
     params:

@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"fmt"
 	"strconv"
 
 	"math/rand/v2"
@@ -232,6 +233,16 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 		for paramsName, partitionValues := range config.ParamsFromUpstream {
 			if index, ok := c.partitionConfigOrdering.
 				IndexByName[partitionValues.Upstream]; ok {
+				upstreamCfg := c.partitionConfigOrdering.ConfigByName[partitionValues.Upstream]
+				upstreamWidth := len(upstreamCfg.InitStateValues)
+				for _, idx := range partitionValues.Indices {
+					if idx < 0 || idx >= upstreamWidth {
+						panic(fmt.Sprintf(
+							"params_from_upstream %q -> upstream %q: index %d out of range (state width %d)",
+							paramsName, partitionValues.Upstream, idx, upstreamWidth,
+						))
+					}
+				}
 				paramsFromUpstream[paramsName] = UpstreamConfig{
 					Upstream: index,
 					Indices:  partitionValues.Indices,

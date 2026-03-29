@@ -42,19 +42,26 @@ func (p *PosteriorCovarianceIteration) Iterate(
 	logNormLatest := floats.LogSumExp(logLikes)
 	logNormPast := params.GetIndex("posterior_log_normalisation", 0)
 	logNormTotal := floats.LogSumExp([]float64{logNormLatest, logNormPast})
+	if math.IsNaN(logNormTotal) || math.IsInf(logNormTotal, 0) {
+		return stateHistories[partitionIndex].CopyStateRow(0)
+	}
 	dims := len(params.Get("mean"))
 	covMatValues := stateHistories[partitionIndex].CopyStateRow(0)
 	covMat := mat.NewSymDense(dims, covMatValues)
-	covMat.ScaleSym(math.Exp(logNormPast-logNormTotal), covMat)
+	scalePast := math.Exp(logNormPast - logNormTotal)
+	if math.IsNaN(scalePast) || math.IsInf(scalePast, 0) {
+		scalePast = 0
+	}
+	covMat.ScaleSym(scalePast, covMat)
 	mean := mat.NewVecDense(dims, params.Get("mean"))
 	diffs := mat.NewVecDense(dims, nil)
 	for i, paramsPartition := range params.Get("param_partitions") {
+		w := math.Exp(logLikes[i] - logNormTotal)
+		if math.IsNaN(w) || math.IsInf(w, 0) {
+			continue
+		}
 		diffs.SubVec(mean, stateHistories[int(paramsPartition)].Values.RowView(0))
-		covMat.SymRankOne(
-			covMat,
-			math.Exp(logLikes[i]-logNormTotal),
-			diffs,
-		)
+		covMat.SymRankOne(covMat, w, diffs)
 	}
 	return covMat.RawSymmetric().Data
 }

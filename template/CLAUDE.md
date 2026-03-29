@@ -20,6 +20,7 @@ type Iteration interface {
 - `stateHistories` gives access to all partitions' rolling state windows. `stateHistories[i].Values.At(row, col)` where row=0 is the latest state.
 - `timestepsHistory.Values.AtVec(0)` is the current time. `timestepsHistory.NextIncrement` is the upcoming time step.
 - Partitions communicate by wiring one partition's output state into another's params via `params_from_upstream` in config.
+- If `params_from_upstream` uses `indices`, each index must be valid for the upstream partition’s state width; invalid indices fail at config generation time.
 
 ## YAML Config Format (API Code-Generation Path)
 
@@ -35,6 +36,7 @@ main:
     params_from_upstream:           # wire upstream partition output → this partition's params
       latest_values:
         upstream: other_partition   # name of the upstream partition
+        indices: [0, 2]             # optional: subset of upstream state indices (must be in range)
     params_as_partitions:           # reference partition names as param values (resolved to indices)
       data_partition: [some_partition]
     init_state_values: [0.0, 0.0]  # initial state (determines state_width)
@@ -91,7 +93,8 @@ go run github.com/umbralcalc/stochadex/cmd/stochadex --config cfg/builtin_exampl
 |-----------|--------|-------------|
 | `WienerProcessIteration` | `variances` | Brownian motion |
 | `GeometricBrownianMotionIteration` | `variances` | Multiplicative Brownian motion |
-| `OrnsteinUhlenbeckIteration` | `thetas`, `mus`, `sigmas` | Mean-reverting process |
+| `OrnsteinUhlenbeckIteration` | `thetas`, `mus`, `sigmas` | Mean-reverting process (Euler–Maruyama; keep θ·Δt modest) |
+| `OrnsteinUhlenbeckExactGaussianIteration` | `thetas`, `mus`, `sigmas` | Exact Gaussian OU step per dimension (alternative when EM bias matters) |
 | `DriftDiffusionIteration` | `drift_coefficients`, `diffusion_coefficients` | General drift-diffusion SDE |
 | `DriftJumpDiffusionIteration` | `drift_coefficients`, `diffusion_coefficients`, `jump_rates` | Drift-diffusion with Poisson jumps |
 | `CompoundPoissonProcessIteration` | `rates` | Compound Poisson process |
@@ -137,6 +140,10 @@ go run github.com/umbralcalc/stochadex/cmd/stochadex --config cfg/builtin_exampl
 | `PosteriorMeanIteration` | `loglike_partitions`, `param_partitions`, `posterior_log_normalisation` | Posterior mean estimation |
 | `PosteriorCovarianceIteration` | `loglike_partitions`, `param_partitions`, `posterior_log_normalisation`, `mean` | Posterior covariance estimation |
 | `PosteriorLogNormalisationIteration` | `loglike_partitions`, `past_discounting_factor` | Log-normalisation tracking |
+
+**`NormalLikelihoodDistribution` (used inside `DataGenerationIteration` / `DataComparisonIteration`):** In `extra_vars`, if you set `default_covariance` in params and the primary covariance can become non–positive-definite (e.g. streamed from an online posterior), use `&inference.NormalLikelihoodDistribution{AllowDefaultCovarianceFallback: true}`. Optional `cov_burn_in_steps` in params keeps the proposal on `default_covariance` for the first K outer steps when that param is set. For diagonal proposals, prefer `variance` / `variance_partition` wiring instead of a full matrix.
+
+**Rolling likelihoods and `pkg/analysis`:** Windowed likelihoods, storage replay, and `NewPosteriorEstimationPartitions` live in `github.com/umbralcalc/stochadex/pkg/analysis`. See the main [stochadex CLAUDE.md](https://github.com/umbralcalc/stochadex/blob/main/CLAUDE.md) *Inference and analysis* section for depth/burn-in conventions.
 
 ### kernels (github.com/umbralcalc/stochadex/pkg/kernels)
 

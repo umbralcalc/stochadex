@@ -1,0 +1,12 @@
+iterations:
+- name: partition_0
+  params:
+    mus: [0.0]
+    sigmas: [1.0]
+    thetas: [2.0]
+  init_state_values: [0.0]
+  seed: 42
+  state_width: 1
+  state_history_depth: 2
+init_time_value: 0.0
+timesteps_history_depth: 2
