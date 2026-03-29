@@ -79,6 +79,8 @@ func (n *NormalLikelihoodDistribution) SetParams(
 	}
 	if c, ok := params.GetOk("default_covariance"); ok {
 		n.defaultCov = c
+	} else {
+		n.defaultCov = nil
 	}
 }
 

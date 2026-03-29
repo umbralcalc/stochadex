@@ -121,4 +121,25 @@ func TestStateIterator(t *testing.T) {
 			}
 		},
 	)
+	t.Run(
+		"broadcast sends independent buffers per downstream listener",
+		func(t *testing.T) {
+			downstream := &DownstreamStateValues{
+				Channel: make(chan []float64, 10),
+				Copies:  2,
+			}
+			original := []float64{1.0, 2.0}
+			ch := StateValueChannels{Downstream: downstream}
+			ch.BroadcastDownstream(original)
+			a := <-downstream.Channel
+			b := <-downstream.Channel
+			if len(a) != 2 || len(b) != 2 {
+				t.Fatalf("unexpected lengths a=%d b=%d", len(a), len(b))
+			}
+			a[0] = 99.0
+			if b[0] == 99.0 {
+				t.Error("downstream copies share backing array")
+			}
+		},
+	)
 }

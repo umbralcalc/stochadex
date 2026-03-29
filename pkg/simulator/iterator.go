@@ -129,9 +129,11 @@ func (s *StateValueChannels) UpdateUpstreamParams(params *Params) {
 }
 
 // BroadcastDownstream sends state values to all configured downstream copies.
+// Each listener receives an independent copy so params wiring cannot mutate
+// a slice shared with other partitions or with the producer's state buffer.
 func (s *StateValueChannels) BroadcastDownstream(stateValues []float64) {
 	for range s.Downstream.Copies {
-		s.Downstream.Channel <- stateValues
+		s.Downstream.Channel <- append([]float64(nil), stateValues...)
 	}
 }
 
