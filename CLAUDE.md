@@ -54,8 +54,6 @@ go build -o bin/ ./cmd/stochadex        # build the CLI binary
 ./bin/stochadex --config cfg/example_config.yaml   # run a simulation
 ```
 
-Optional **git hook** to keep `template/go.mod` / `template/go.sum` pinned to the current `HEAD` after other changes: set `core.hooksPath` and mark the hook executable — see `scripts/git-hooks/README.md`.
-
 ## Testing Conventions
 
 - **Unit tests** live alongside source in `pkg/*/` as `*_test.go` files.
