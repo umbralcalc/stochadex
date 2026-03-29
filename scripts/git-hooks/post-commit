@@ -1,0 +1,53 @@
+#!/bin/sh
+# After commits that change more than template/go.{mod,sum}, bump the template
+# module to the latest published github.com/umbralcalc/stochadex@main.
+#
+# Disable: SKIP_TEMPLATE_BUMP_HOOK=1 git commit ...
+# Install:  git config core.hooksPath scripts/git-hooks
+#           chmod +x scripts/git-hooks/post-commit
+
+set -e
+
+if [ -n "$SKIP_TEMPLATE_BUMP_HOOK" ]; then
+	exit 0
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel) || exit 0
+cd "$REPO_ROOT" || exit 0
+
+FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
+if [ -z "$FILES" ]; then
+	exit 0
+fi
+
+NON_PIN=
+for f in $FILES; do
+	case "$f" in
+	template/go.mod|template/go.sum) ;;
+	*) NON_PIN=1; break ;;
+	esac
+done
+
+if [ -z "$NON_PIN" ]; then
+	exit 0
+fi
+
+cd "$REPO_ROOT/template" || exit 0
+
+if ! go get github.com/umbralcalc/stochadex@main; then
+	echo "post-commit: go get stochadex@main failed (network or proxy); template unchanged" >&2
+	exit 0
+fi
+
+go mod tidy
+
+cd "$REPO_ROOT" || exit 0
+
+if git diff --quiet -- template/go.mod template/go.sum; then
+	exit 0
+fi
+
+git add template/go.mod template/go.sum
+git commit --no-verify -m "chore(template): bump stochadex to main"
+
+exit 0

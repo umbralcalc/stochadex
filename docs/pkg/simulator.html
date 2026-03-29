@@ -1362,7 +1362,7 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>j <span class="op">*</span>JsonLogOutputFunction<span class="op">)</span> Output<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
       <p><a name="NamedPartitionIndex"></a></p>
       <h2 id="type-namedpartitionindex">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L140-L143">NamedPartitionIndex</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L142-L145">NamedPartitionIndex</a></h2>
       <p>NamedPartitionIndex pairs the name of a partition with the
       partition index assigned to it by the PartitionCoordinator.</p>
       <div class="sourceCode" id="cb41"><pre
@@ -1882,7 +1882,7 @@
       whether a history longer than 1 is needed.</p>
       <p><a name="StateIterator"></a></p>
       <h2 id="type-stateiterator">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L147-L154">StateIterator</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L149-L156">StateIterator</a></h2>
       <p>StateIterator runs an Iteration for a partition on a goroutine
       and manages reads/writes to history and output.</p>
       <div class="sourceCode" id="cb94"><pre
@@ -1896,14 +1896,14 @@
 <span id="cb94-8"><a href="#cb94-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewStateIterator"></a></p>
       <h3 id="func-newstateiterator">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L211-L221">NewStateIterator</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L213-L223">NewStateIterator</a></h3>
       <div class="sourceCode" id="cb95"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewStateIterator<span class="op">(</span>iteration Iteration<span class="op">,</span> params Params<span class="op">,</span> partitionName <span class="dt">string</span><span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> valueChannels StateValueChannels<span class="op">,</span> outputCondition OutputCondition<span class="op">,</span> outputFunction OutputFunction<span class="op">,</span> initState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> initTime <span class="dt">float64</span><span class="op">)</span> <span class="op">*</span>StateIterator</span></code></pre></div>
       <p>NewStateIterator creates a StateIterator and may emit initial
       output if the condition is met by the initial state/time.</p>
       <p><a name="StateIterator.Iterate"></a></p>
       <h3 id="func-stateiterator-iterate">func (*StateIterator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L158-L161">Iterate</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L160-L163">Iterate</a></h3>
       <div class="sourceCode" id="cb96"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateIterator<span class="op">)</span> Iterate<span class="op">(</span>stateHistories <span class="op">[]*</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p>Iterate runs the Iteration and optionally triggers output if
@@ -1911,7 +1911,7 @@
       <p><a name="StateIterator.ReceiveAndIteratePending"></a></p>
       <h3 id="func-stateiterator-receiveanditeratepending">func
       (*StateIterator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L179-L181">ReceiveAndIteratePending</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L181-L183">ReceiveAndIteratePending</a></h3>
       <div class="sourceCode" id="cb97"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateIterator<span class="op">)</span> ReceiveAndIteratePending<span class="op">(</span>inputChannel <span class="op">&lt;-</span><span class="kw">chan</span> <span class="op">*</span>IteratorInputMessage<span class="op">)</span></span></code></pre></div>
       <p>ReceiveAndIteratePending listens for an IteratorInputMessage,
@@ -1919,7 +1919,7 @@
       state update.</p>
       <p><a name="StateIterator.UpdateHistory"></a></p>
       <h3 id="func-stateiterator-updatehistory">func (*StateIterator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L196">UpdateHistory</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L198">UpdateHistory</a></h3>
       <div class="sourceCode" id="cb98"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateIterator<span class="op">)</span> UpdateHistory<span class="op">(</span>inputChannel <span class="op">&lt;-</span><span class="kw">chan</span> <span class="op">*</span>IteratorInputMessage<span class="op">)</span></span></code></pre></div>
       <p>UpdateHistory applies the pending state update to the partition
@@ -2084,11 +2084,13 @@
       <p><a name="StateValueChannels.BroadcastDownstream"></a></p>
       <h3 id="func-statevaluechannels-broadcastdownstream">func
       (*StateValueChannels) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L132">BroadcastDownstream</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L134">BroadcastDownstream</a></h3>
       <div class="sourceCode" id="cb112"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateValueChannels<span class="op">)</span> BroadcastDownstream<span class="op">(</span>stateValues <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
       <p>BroadcastDownstream sends state values to all configured
-      downstream copies.</p>
+      downstream copies. Each listener receives an independent copy so
+      params wiring cannot mutate a slice shared with other partitions
+      or with the producer’s state buffer.</p>
       <p><a name="StateValueChannels.UpdateUpstreamParams"></a></p>
       <h3 id="func-statevaluechannels-updateupstreamparams">func
       (*StateValueChannels) <a

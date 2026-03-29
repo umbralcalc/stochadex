@@ -54,6 +54,8 @@ go build -o bin/ ./cmd/stochadex        # build the CLI binary
 ./bin/stochadex --config cfg/example_config.yaml   # run a simulation
 ```
 
+Optional: set `core.hooksPath` to `scripts/git-hooks` so each commit (except template-only pin commits) bumps `template/` to `github.com/umbralcalc/stochadex@main`. See `scripts/git-hooks/README.md`.
+
 ## Testing Conventions
 
 - **Unit tests** live alongside source in `pkg/*/` as `*_test.go` files.
