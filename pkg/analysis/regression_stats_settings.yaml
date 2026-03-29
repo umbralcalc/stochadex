@@ -1,0 +1,32 @@
+iterations:
+  - name: x_part
+    params: {}
+    init_state_values: [0.0]
+    seed: 0
+    state_width: 1
+    state_history_depth: 1
+  - name: y_part
+    params: {}
+    init_state_values: [0.0]
+    seed: 0
+    state_width: 1
+    state_history_depth: 1
+  - name: reg_part
+    params:
+      scalar_regression_intercept: [0.0]
+      scalar_regression_mode: [0.0]
+      scalar_regression_window_length: [0.0]
+      scalar_regression_min_denominator: [1.0e-12]
+    params_from_upstream:
+      x:
+        upstream: 0
+        indices: [0]
+      y:
+        upstream: 1
+        indices: [0]
+    init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    seed: 0
+    state_width: 6
+    state_history_depth: 1
+init_time_value: 0.0
+timesteps_history_depth: 1

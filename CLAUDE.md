@@ -18,7 +18,7 @@ pkg/
   general/     — General-purpose iterations (constant values, copy, cumulative, embedded simulation, sorting, resampling, etc.)
   kernels/     — Integration kernels for time-weighted aggregation (exponential, periodic, Gaussian, etc.)
   inference/   — Parameter estimation: likelihood distributions, posterior mean/covariance iterations
-  analysis/    — Post-simulation: CSV/DataFrame I/O, PostgreSQL, grouped aggregations, plotting, rolling likelihood windows, posterior estimation helpers
+  analysis/    — Post-simulation: CSV/DataFrame I/O, PostgreSQL, grouped aggregations, plotting, rolling likelihood windows, posterior estimation helpers, online scalar OLS (`ScalarRegressionStatsIteration`, `NewScalarRegressionStatsPartition`)
   keyboard/    — Real-time keyboard input for interactive simulations
 cmd/stochadex/ — CLI binary
 cfg/           — Example YAML configs
@@ -84,6 +84,7 @@ Online posterior stacks are usually built with `NewPosteriorEstimationPartitions
 - **Posterior covariance**: `PosteriorCovariance.JustVariance` uses diagonal variances (length N); `NewPosteriorEstimationPartitions` wires the sampler to `variance_partition` automatically. Full covariance defaults must have length N².
 - **Normal sampler**: `NormalLikelihoodDistribution.AllowDefaultCovarianceFallback` must be true to substitute `default_covariance` when the streamed matrix is not PD. `cov_burn_in_steps` fixes the proposal covariance to `default_covariance` for the first K outer steps when that param is set.
 - **Upstream indices**: `params_from_upstream.indices` are validated against the upstream partition’s state width when `ConfigGenerator.GenerateConfigs` runs.
+- **Regression stats**: `analysis.ScalarRegressionStatsIteration` with `NewScalarRegressionStatsPartition` streams through-origin or intercept OLS sufficient statistics and closed-form estimates; use `params_from_upstream` keys `y` and `x` for scalar series. `RegressionStatsWindow` uses a fixed-length buffer (state width O(W)), not exponential forgetting.
 
 For stiff OU mean-reversion with large θΔt, prefer `continuous.OrnsteinUhlenbeckExactGaussianIteration` over Euler–Maruyama `OrnsteinUhlenbeckIteration` when modeling should match the Gaussian transition.
 
