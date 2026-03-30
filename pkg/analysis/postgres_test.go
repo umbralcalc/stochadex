@@ -49,7 +49,8 @@ func TestPostgresDb(t *testing.T) {
 				if err := data.Scan(&time, pq.Array(&state)); err != nil {
 					t.Errorf("failed to scan row: %v", err)
 				}
-				if i == 0 {
+				switch i {
+				case 0:
 					if time != 1235.0 || state[0] != 1.0 || state[1] != 2.0 ||
 						state[2] != 3.0 || len(state) != 3 {
 						t.Errorf(
@@ -58,7 +59,7 @@ func TestPostgresDb(t *testing.T) {
 							state,
 						)
 					}
-				} else if i == 1 {
+				case 1:
 					if time != 5677.0 || state[0] != 4.0 || state[1] != 5.0 ||
 						state[2] != 6.0 || len(state) != 3 {
 						t.Errorf(
@@ -67,7 +68,7 @@ func TestPostgresDb(t *testing.T) {
 							state,
 						)
 					}
-				} else {
+				default:
 					t.Error("too much data")
 				}
 				i += 1
