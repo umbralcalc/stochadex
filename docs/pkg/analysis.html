@@ -825,6 +825,8 @@
       <li><a href="#NewPostgresDbOutputFunction">func
       NewPostgresDbOutputFunction(db *PostgresDb)
       *PostgresDbOutputFunction</a></li>
+      <li><a href="#PostgresDbOutputFunction.Configure">func (p
+      *PostgresDbOutputFunction) Configure(*simulator.Settings)</a></li>
       <li><a href="#PostgresDbOutputFunction.Output">func (p
       *PostgresDbOutputFunction) Output(partitionName string, state
       []float64, cumulativeTimesteps float64)</a></li>
@@ -1207,7 +1209,7 @@
       specified partitions configured.</p>
       <p><a name="NewStateTimeStorageFromPostgresDb"></a></p>
       <h2 id="func-newstatetimestoragefrompostgresdb">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L128-L133">NewStateTimeStorageFromPostgresDb</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L130-L135">NewStateTimeStorageFromPostgresDb</a></h2>
       <div class="sourceCode" id="cb23"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewStateTimeStorageFromPostgresDb<span class="op">(</span>db <span class="op">*</span>PostgresDb<span class="op">,</span> partitionNames <span class="op">[]</span><span class="dt">string</span><span class="op">,</span> startTime <span class="dt">float64</span><span class="op">,</span> endTime <span class="dt">float64</span><span class="op">)</span> <span class="op">(*</span>simulator<span class="op">.</span>StateTimeStorage<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span></code></pre></div>
       <p>NewStateTimeStorageFromPostgresDb reads from a PostgreSQL
@@ -1318,7 +1320,7 @@
       passed to AddPartitionsToStateTimeStorage.</p>
       <p><a name="WriteStateTimeStorageToPostgresDb"></a></p>
       <h2 id="func-writestatetimestoragetopostgresdb">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L166-L169">WriteStateTimeStorageToPostgresDb</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L168-L171">WriteStateTimeStorageToPostgresDb</a></h2>
       <div class="sourceCode" id="cb33"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> WriteStateTimeStorageToPostgresDb<span class="op">(</span>db <span class="op">*</span>PostgresDb<span class="op">,</span> storage <span class="op">*</span>simulator<span class="op">.</span>StateTimeStorage<span class="op">)</span></span></code></pre></div>
       <p>WriteStateTimeStorageToPostgresDb writes all of the data in the
@@ -1918,65 +1920,71 @@
 <span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewPostgresDbOutputFunction"></a></p>
       <h3 id="func-newpostgresdboutputfunction">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L116-L118">NewPostgresDbOutputFunction</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L118-L120">NewPostgresDbOutputFunction</a></h3>
       <div class="sourceCode" id="cb84"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewPostgresDbOutputFunction<span class="op">(</span>db <span class="op">*</span>PostgresDb<span class="op">)</span> <span class="op">*</span>PostgresDbOutputFunction</span></code></pre></div>
       <p>NewPostgresDbOutputFunction creates a new
       PostgresDbOutputFunction.</p>
+      <p><a name="PostgresDbOutputFunction.Configure"></a></p>
+      <h3 id="func-postgresdboutputfunction-configure">func
+      (*PostgresDbOutputFunction) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L107">Configure</a></h3>
+      <div class="sourceCode" id="cb85"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PostgresDbOutputFunction<span class="op">)</span> Configure<span class="op">(*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
       <p><a name="PostgresDbOutputFunction.Output"></a></p>
       <h3 id="func-postgresdboutputfunction-output">func
       (*PostgresDbOutputFunction) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L107-L111">Output</a></h3>
-      <div class="sourceCode" id="cb85"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PostgresDbOutputFunction<span class="op">)</span> Output<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/postgres.go#L109-L113">Output</a></h3>
+      <div class="sourceCode" id="cb86"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>p <span class="op">*</span>PostgresDbOutputFunction<span class="op">)</span> Output<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
       <p><a name="RegressionStatsMode"></a></p>
       <h2 id="type-regressionstatsmode">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/regression.go#L26">RegressionStatsMode</a></h2>
       <p>RegressionStatsMode selects cumulative vs sliding-window
       sufficient statistics.</p>
-      <div class="sourceCode" id="cb86"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> RegressionStatsMode <span class="dt">int</span></span></code></pre></div>
-      <p><a name="RegressionStatsCumulative"></a></p>
       <div class="sourceCode" id="cb87"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> <span class="op">(</span></span>
-<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// RegressionStatsCumulative accumulates (x, y) sums over all prior steps.</span></span>
-<span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a>    RegressionStatsCumulative RegressionStatsMode <span class="op">=</span> <span class="ot">iota</span></span>
-<span id="cb87-4"><a href="#cb87-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// RegressionStatsWindow keeps the last WindowLength pairs and recomputes sums.</span></span>
-<span id="cb87-5"><a href="#cb87-5" aria-hidden="true" tabindex="-1"></a>    RegressionStatsWindow</span>
-<span id="cb87-6"><a href="#cb87-6" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+      class="sourceCode go"><code class="sourceCode go"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> RegressionStatsMode <span class="dt">int</span></span></code></pre></div>
+      <p><a name="RegressionStatsCumulative"></a></p>
+      <div class="sourceCode" id="cb88"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> <span class="op">(</span></span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// RegressionStatsCumulative accumulates (x, y) sums over all prior steps.</span></span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>    RegressionStatsCumulative RegressionStatsMode <span class="op">=</span> <span class="ot">iota</span></span>
+<span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// RegressionStatsWindow keeps the last WindowLength pairs and recomputes sums.</span></span>
+<span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a>    RegressionStatsWindow</span>
+<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
       <p><a name="SMCInnerSimConfig"></a></p>
       <h2 id="type-smcinnersimconfig">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/smc.go#L13-L28">SMCInnerSimConfig</a></h2>
       <p>SMCInnerSimConfig describes the inner simulation that evaluates
       N particles through data.</p>
-      <div class="sourceCode" id="cb88"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SMCInnerSimConfig <span class="kw">struct</span> <span class="op">{</span></span>
-<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Partitions for the inner simulation (data, model, loglike, etc.).</span></span>
-<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// They are registered in the order given.</span></span>
-<span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>    Partitions <span class="op">[]*</span>simulator<span class="op">.</span>PartitionConfig</span>
-<span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Simulation config for the inner simulation.</span></span>
-<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a>    Simulation <span class="op">*</span>simulator<span class="op">.</span>SimulationConfig</span>
-<span id="cb88-7"><a href="#cb88-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// LoglikePartitions lists, for each particle p (length N), the name</span></span>
-<span id="cb88-8"><a href="#cb88-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// of the inner partition whose state[0] is the cumulative</span></span>
-<span id="cb88-9"><a href="#cb88-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// log-likelihood for that particle.</span></span>
-<span id="cb88-10"><a href="#cb88-10" aria-hidden="true" tabindex="-1"></a>    LoglikePartitions <span class="op">[]</span><span class="dt">string</span></span>
-<span id="cb88-11"><a href="#cb88-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ParamForwarding maps &quot;innerPartitionName/paramName&quot; to indices</span></span>
-<span id="cb88-12"><a href="#cb88-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// into the N*d flat proposal state. These are forwarded from the</span></span>
-<span id="cb88-13"><a href="#cb88-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// proposal partition to inner partitions via the embedded sim.</span></span>
-<span id="cb88-14"><a href="#cb88-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Partition and param names must be alphanumeric+underscore only.</span></span>
-<span id="cb88-15"><a href="#cb88-15" aria-hidden="true" tabindex="-1"></a>    ParamForwarding <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">int</span></span>
-<span id="cb88-16"><a href="#cb88-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <div class="sourceCode" id="cb89"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SMCInnerSimConfig <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Partitions for the inner simulation (data, model, loglike, etc.).</span></span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// They are registered in the order given.</span></span>
+<span id="cb89-4"><a href="#cb89-4" aria-hidden="true" tabindex="-1"></a>    Partitions <span class="op">[]*</span>simulator<span class="op">.</span>PartitionConfig</span>
+<span id="cb89-5"><a href="#cb89-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Simulation config for the inner simulation.</span></span>
+<span id="cb89-6"><a href="#cb89-6" aria-hidden="true" tabindex="-1"></a>    Simulation <span class="op">*</span>simulator<span class="op">.</span>SimulationConfig</span>
+<span id="cb89-7"><a href="#cb89-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// LoglikePartitions lists, for each particle p (length N), the name</span></span>
+<span id="cb89-8"><a href="#cb89-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// of the inner partition whose state[0] is the cumulative</span></span>
+<span id="cb89-9"><a href="#cb89-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// log-likelihood for that particle.</span></span>
+<span id="cb89-10"><a href="#cb89-10" aria-hidden="true" tabindex="-1"></a>    LoglikePartitions <span class="op">[]</span><span class="dt">string</span></span>
+<span id="cb89-11"><a href="#cb89-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ParamForwarding maps &quot;innerPartitionName/paramName&quot; to indices</span></span>
+<span id="cb89-12"><a href="#cb89-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// into the N*d flat proposal state. These are forwarded from the</span></span>
+<span id="cb89-13"><a href="#cb89-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// proposal partition to inner partitions via the embedded sim.</span></span>
+<span id="cb89-14"><a href="#cb89-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Partition and param names must be alphanumeric+underscore only.</span></span>
+<span id="cb89-15"><a href="#cb89-15" aria-hidden="true" tabindex="-1"></a>    ParamForwarding <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">][]</span><span class="dt">int</span></span>
+<span id="cb89-16"><a href="#cb89-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="SMCParticleModel"></a></p>
       <h2 id="type-smcparticlemodel">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/smc.go#L32-L36">SMCParticleModel</a></h2>
       <p>SMCParticleModel describes a user-defined model for particle
       evaluation inside the SMC inner simulation.</p>
-      <div class="sourceCode" id="cb89"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SMCParticleModel <span class="kw">struct</span> <span class="op">{</span></span>
-<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Build creates the inner simulation configuration for N particles</span></span>
-<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// with nParams parameters each.</span></span>
-<span id="cb89-4"><a href="#cb89-4" aria-hidden="true" tabindex="-1"></a>    Build <span class="kw">func</span><span class="op">(</span>N <span class="dt">int</span><span class="op">,</span> nParams <span class="dt">int</span><span class="op">)</span> <span class="op">*</span>SMCInnerSimConfig</span>
-<span id="cb89-5"><a href="#cb89-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <div class="sourceCode" id="cb90"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> SMCParticleModel <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Build creates the inner simulation configuration for N particles</span></span>
+<span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// with nParams parameters each.</span></span>
+<span id="cb90-4"><a href="#cb90-4" aria-hidden="true" tabindex="-1"></a>    Build <span class="kw">func</span><span class="op">(</span>N <span class="dt">int</span><span class="op">,</span> nParams <span class="dt">int</span><span class="op">)</span> <span class="op">*</span>SMCInnerSimConfig</span>
+<span id="cb90-5"><a href="#cb90-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="ScalarRegressionStatsIteration"></a></p>
       <h2 id="type-scalarregressionstatsiteration">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/regression.go#L44-L50">ScalarRegressionStatsIteration</a></h2>
@@ -1990,24 +1998,24 @@
       Sxy, Syy, alpha, beta, sigma2] (width 9). Window modes prefix a
       packed ring of the last W (x, y) pairs plus a count slot, then the
       same trailing statistic/estimate block.</p>
-      <div class="sourceCode" id="cb90"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ScalarRegressionStatsIteration <span class="kw">struct</span> <span class="op">{</span></span>
-<span id="cb90-2"><a href="#cb90-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
-<span id="cb90-3"><a href="#cb90-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <div class="sourceCode" id="cb91"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ScalarRegressionStatsIteration <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="ScalarRegressionStatsIteration.Configure"></a></p>
       <h3 id="func-scalarregressionstatsiteration-configure">func
       (*ScalarRegressionStatsIteration) <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/regression.go#L83-L86">Configure</a></h3>
-      <div class="sourceCode" id="cb91"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>ScalarRegressionStatsIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <div class="sourceCode" id="cb92"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>ScalarRegressionStatsIteration<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
       <p>Configure reads scalar_regression_* params from the partition
       settings.</p>
       <p><a name="ScalarRegressionStatsIteration.Iterate"></a></p>
       <h3 id="func-scalarregressionstatsiteration-iterate">func
       (*ScalarRegressionStatsIteration) <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/regression.go#L126-L131">Iterate</a></h3>
-      <div class="sourceCode" id="cb92"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>ScalarRegressionStatsIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <div class="sourceCode" id="cb93"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>ScalarRegressionStatsIteration<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p>Iterate updates sufficient statistics and returns the next
       state vector.</p>
       <p><a name="WindowedPartition"></a></p>
@@ -2021,11 +2029,11 @@
       <li>OutsideUpstreams map allows wiring upstreams from outside the
       window.</li>
       </ul>
-      <div class="sourceCode" id="cb93"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> WindowedPartition <span class="kw">struct</span> <span class="op">{</span></span>
-<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a>    Partition        <span class="op">*</span>simulator<span class="op">.</span>PartitionConfig</span>
-<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>    OutsideUpstreams <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">]</span>simulator<span class="op">.</span>NamedUpstreamConfig</span>
-<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <div class="sourceCode" id="cb94"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> WindowedPartition <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a>    Partition        <span class="op">*</span>simulator<span class="op">.</span>PartitionConfig</span>
+<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a>    OutsideUpstreams <span class="kw">map</span><span class="op">[</span><span class="dt">string</span><span class="op">]</span>simulator<span class="op">.</span>NamedUpstreamConfig</span>
+<span id="cb94-4"><a href="#cb94-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="WindowedPartitions"></a></p>
       <h2 id="type-windowedpartitions">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/likelihood.go#L36-L40">WindowedPartitions</a></h2>
@@ -2038,12 +2046,12 @@
       window.</li>
       <li>Depth is the number of steps in the window.</li>
       </ul>
-      <div class="sourceCode" id="cb94"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> WindowedPartitions <span class="kw">struct</span> <span class="op">{</span></span>
-<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a>    Partitions <span class="op">[]</span>WindowedPartition</span>
-<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a>    Data       <span class="op">[]</span>DataRef</span>
-<span id="cb94-4"><a href="#cb94-4" aria-hidden="true" tabindex="-1"></a>    Depth      <span class="dt">int</span></span>
-<span id="cb94-5"><a href="#cb94-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <div class="sourceCode" id="cb95"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> WindowedPartitions <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>    Partitions <span class="op">[]</span>WindowedPartition</span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>    Data       <span class="op">[]</span>DataRef</span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>    Depth      <span class="dt">int</span></span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p>Generated by <a
       href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
     </div>

@@ -32,7 +32,7 @@ func NewStateTimeStorageFromJsonLogEntries(
 			fmt.Println("Error decoding JSON")
 			return nil, err
 		}
-		storage.ConcurrentAppend(
+		storage.Append(
 			logEntry.PartitionName,
 			logEntry.CumulativeTimesteps,
 			logEntry.State,

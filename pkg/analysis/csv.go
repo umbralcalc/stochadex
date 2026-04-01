@@ -97,7 +97,7 @@ func NewStateTimeStorageFromCsv(
 				}
 				data = append(data, dataPoint)
 			}
-			storage.ConcurrentAppend(partition, time, data)
+			storage.Append(partition, time, data)
 		}
 	}
 	return storage, nil

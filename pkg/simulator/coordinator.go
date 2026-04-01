@@ -185,6 +185,7 @@ func NewPartitionCoordinator(
 			listenersByPartition[values.Upstream] += 1
 		}
 	}
+	implementations.OutputFunction.Configure(settings)
 	for index, iteration := range settings.Iterations {
 		stateHistoryValues := mat.NewDense(
 			iteration.StateHistoryDepth,

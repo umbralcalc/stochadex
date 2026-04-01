@@ -104,6 +104,8 @@ type PostgresDbOutputFunction struct {
 	db *PostgresDb
 }
 
+func (p *PostgresDbOutputFunction) Configure(*simulator.Settings) {}
+
 func (p *PostgresDbOutputFunction) Output(
 	partitionName string,
 	state []float64,
@@ -152,7 +154,7 @@ func NewStateTimeStorageFromPostgresDb(
 			if err := rows.Scan(&time, pq.Array(&state)); err != nil {
 				return nil, fmt.Errorf("failed to scan row: %v", err)
 			}
-			storage.ConcurrentAppend(partitionName, time, state)
+			storage.Append(partitionName, time, state)
 		}
 		if err := rows.Err(); err != nil {
 			return nil, fmt.Errorf("error iterating rows: %v", err)

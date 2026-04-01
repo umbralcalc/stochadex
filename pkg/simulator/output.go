@@ -13,12 +13,20 @@ import (
 
 // OutputFunction writes state/time to an output sink when the OutputCondition
 // is met.
+//
+// Configure is called once before parallel output begins (from
+// NewPartitionCoordinator). Use it to pre-register partition names, cache
+// indices, or open resources. Implementations that need no setup can leave
+// it empty.
 type OutputFunction interface {
+	Configure(settings *Settings)
 	Output(partitionName string, state []float64, cumulativeTimesteps float64)
 }
 
 // NilOutputFunction outputs nothing from the simulation.
 type NilOutputFunction struct{}
+
+func (f *NilOutputFunction) Configure(*Settings) {}
 
 func (f *NilOutputFunction) Output(
 	partitionName string,
@@ -29,6 +37,8 @@ func (f *NilOutputFunction) Output(
 
 // StdoutOutputFunction outputs the state to the terminal.
 type StdoutOutputFunction struct{}
+
+func (s *StdoutOutputFunction) Configure(*Settings) {}
 
 func (s *StdoutOutputFunction) Output(
 	partitionName string,
@@ -41,7 +51,28 @@ func (s *StdoutOutputFunction) Output(
 // StateTimeStorageOutputFunction stores output into StateTimeStorage when the
 // condition is met.
 type StateTimeStorageOutputFunction struct {
-	Store *StateTimeStorage
+	Store       *StateTimeStorage
+	nameToIndex map[string]int // populated by Configure; read-only during Output
+}
+
+// Configure pre-registers all partition names on Store and caches their
+// indices for lock-free lookup in Output. Safe to call multiple times.
+func (f *StateTimeStorageOutputFunction) Configure(settings *Settings) {
+	if f == nil || f.Store == nil || settings == nil {
+		return
+	}
+	names := make([]string, 0, len(settings.Iterations))
+	for _, it := range settings.Iterations {
+		names = append(names, it.Name)
+	}
+	f.Store.PreRegisterPartitions(names)
+	nameToIndex := make(map[string]int, len(names))
+	for _, name := range names {
+		if index, ok := f.Store.IndexOf(name); ok {
+			nameToIndex[name] = index
+		}
+	}
+	f.nameToIndex = nameToIndex
 }
 
 func (f *StateTimeStorageOutputFunction) Output(
@@ -49,7 +80,7 @@ func (f *StateTimeStorageOutputFunction) Output(
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
-	f.Store.ConcurrentAppend(partitionName, cumulativeTimesteps, state)
+	f.Store.AppendByIndex(f.nameToIndex[partitionName], cumulativeTimesteps, state)
 }
 
 // JsonLogEntry is the serialised record format used by JSON log outputs.
@@ -64,6 +95,8 @@ type JsonLogOutputFunction struct {
 	file  *os.File
 	mutex *sync.Mutex
 }
+
+func (j *JsonLogOutputFunction) Configure(*Settings) {}
 
 func (j *JsonLogOutputFunction) Output(
 	partitionName string,
@@ -108,6 +141,8 @@ func NewJsonLogOutputFunction(
 type JsonLogChannelOutputFunction struct {
 	logChannel chan JsonLogEntry
 }
+
+func (j *JsonLogChannelOutputFunction) Configure(*Settings) {}
 
 func (j *JsonLogChannelOutputFunction) Output(
 	partitionName string,
@@ -171,6 +206,8 @@ type WebsocketOutputFunction struct {
 	connection *websocket.Conn
 	mutex      *sync.Mutex
 }
+
+func (w *WebsocketOutputFunction) Configure(*Settings) {}
 
 func (w *WebsocketOutputFunction) Output(
 	partitionName string,
