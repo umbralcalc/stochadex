@@ -225,7 +225,7 @@ func NewPartitionCoordinator(
 				implementations.OutputCondition,
 				implementations.OutputFunction,
 				iteration.InitStateValues,
-				settings.InitTimeValue,
+				timestepsHistory,
 			),
 		)
 		newWorkChannels = append(

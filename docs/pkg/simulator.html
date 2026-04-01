@@ -647,14 +647,16 @@
       <ul>
       <li><a href="#EveryNStepsOutputCondition.IsOutputStep">func (c
       *EveryNStepsOutputCondition) IsOutputStep(partitionName string,
-      state []float64, cumulativeTimesteps float64) bool</a></li>
+      state []float64, timestepsHistory *CumulativeTimestepsHistory)
+      bool</a></li>
       </ul></li>
       <li><a href="#EveryStepOutputCondition">type
       EveryStepOutputCondition</a>
       <ul>
       <li><a href="#EveryStepOutputCondition.IsOutputStep">func (c
       *EveryStepOutputCondition) IsOutputStep(partitionName string,
-      state []float64, cumulativeTimesteps float64) bool</a></li>
+      state []float64, timestepsHistory *CumulativeTimestepsHistory)
+      bool</a></li>
       </ul></li>
       <li><a href="#ExponentialDistributionTimestepFunction">type
       ExponentialDistributionTimestepFunction</a>
@@ -718,7 +720,8 @@
       <ul>
       <li><a href="#NilOutputCondition.IsOutputStep">func (c
       *NilOutputCondition) IsOutputStep(partitionName string, state
-      []float64, cumulativeTimesteps float64) bool</a></li>
+      []float64, timestepsHistory *CumulativeTimestepsHistory)
+      bool</a></li>
       </ul></li>
       <li><a href="#NilOutputFunction">type NilOutputFunction</a>
       <ul>
@@ -742,8 +745,8 @@
       <li><a
       href="#OnlyGivenPartitionsOutputCondition.IsOutputStep">func (o
       *OnlyGivenPartitionsOutputCondition) IsOutputStep(partitionName
-      string, state []float64, cumulativeTimesteps float64)
-      bool</a></li>
+      string, state []float64, timestepsHistory
+      *CumulativeTimestepsHistory) bool</a></li>
       </ul></li>
       <li><a href="#OutputCondition">type OutputCondition</a></li>
       <li><a href="#OutputFunction">type OutputFunction</a></li>
@@ -844,7 +847,8 @@
       Iteration, params Params, partitionName string, partitionIndex
       int, valueChannels StateValueChannels, outputCondition
       OutputCondition, outputFunction OutputFunction, initState
-      []float64, initTime float64) *StateIterator</a></li>
+      []float64, timestepsHistory *CumulativeTimestepsHistory)
+      *StateIterator</a></li>
       <li><a href="#StateIterator.Iterate">func (s *StateIterator)
       Iterate(stateHistories []*StateHistory, timestepsHistory
       *CumulativeTimestepsHistory) []float64</a></li>
@@ -1061,22 +1065,21 @@
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="EveryNStepsOutputCondition"></a></p>
       <h2 id="type-everynstepsoutputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L286-L289">EveryNStepsOutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L274-L276">EveryNStepsOutputCondition</a></h2>
       <p>EveryNStepsOutputCondition emits output once every N steps.</p>
       <div class="sourceCode" id="cb18"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> EveryNStepsOutputCondition <span class="kw">struct</span> <span class="op">{</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    N <span class="dt">int</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="EveryNStepsOutputCondition.IsOutputStep"></a></p>
       <h3 id="func-everynstepsoutputcondition-isoutputstep">func
       (*EveryNStepsOutputCondition) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L291-L295">IsOutputStep</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L278-L282">IsOutputStep</a></h3>
       <div class="sourceCode" id="cb19"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>EveryNStepsOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
+      class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>EveryNStepsOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="EveryStepOutputCondition"></a></p>
       <h2 id="type-everystepoutputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L275">EveryStepOutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L263">EveryStepOutputCondition</a></h2>
       <p>EveryStepOutputCondition calls the OutputFunction at every
       step.</p>
       <div class="sourceCode" id="cb20"><pre
@@ -1084,9 +1087,9 @@
       <p><a name="EveryStepOutputCondition.IsOutputStep"></a></p>
       <h3 id="func-everystepoutputcondition-isoutputstep">func
       (*EveryStepOutputCondition) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L277-L281">IsOutputStep</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L265-L269">IsOutputStep</a></h3>
       <div class="sourceCode" id="cb21"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>EveryStepOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
+      class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>EveryStepOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="ExponentialDistributionTimestepFunction"></a></p>
       <h2 id="type-exponentialdistributiontimestepfunction">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/timesteps.go#L29-L33">ExponentialDistributionTimestepFunction</a></h2>
@@ -1303,7 +1306,7 @@
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewJsonLogChannelOutputFunction"></a></p>
       <h3 id="func-newjsonlogchanneloutputfunction">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L167-L169">NewJsonLogChannelOutputFunction</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L166-L168">NewJsonLogChannelOutputFunction</a></h3>
       <div class="sourceCode" id="cb34"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewJsonLogChannelOutputFunction<span class="op">(</span>filePath <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>JsonLogChannelOutputFunction</span></code></pre></div>
       <p>NewJsonLogChannelOutputFunction creates a
@@ -1312,11 +1315,11 @@
       <p><a name="JsonLogChannelOutputFunction.Close"></a></p>
       <h3 id="func-jsonlogchanneloutputfunction-close">func
       (*JsonLogChannelOutputFunction) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L161">Close</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L160">Close</a></h3>
       <div class="sourceCode" id="cb35"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>j <span class="op">*</span>JsonLogChannelOutputFunction<span class="op">)</span> Close<span class="op">()</span></span></code></pre></div>
-      <p>Close ensures that the log channel flushes at the end of a
-      run.</p>
+      <p>Close flushes and stops the background writer. Defer it after
+      construction.</p>
       <p><a name="JsonLogChannelOutputFunction.Configure"></a></p>
       <h3 id="func-jsonlogchanneloutputfunction-configure">func
       (*JsonLogChannelOutputFunction) <a
@@ -1390,16 +1393,16 @@
 <span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NilOutputCondition"></a></p>
       <h2 id="type-niloutputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L264">NilOutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L252">NilOutputCondition</a></h2>
       <p>NilOutputCondition never outputs.</p>
       <div class="sourceCode" id="cb45"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> NilOutputCondition <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
       <p><a name="NilOutputCondition.IsOutputStep"></a></p>
       <h3 id="func-niloutputcondition-isoutputstep">func
       (*NilOutputCondition) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L266-L270">IsOutputStep</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L254-L258">IsOutputStep</a></h3>
       <div class="sourceCode" id="cb46"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>NilOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
+      class="sourceCode go"><code class="sourceCode go"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>NilOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="NilOutputFunction"></a></p>
       <h2 id="type-niloutputfunction">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L27">NilOutputFunction</a></h2>
@@ -1435,7 +1438,7 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>NumberOfStepsTerminationCondition<span class="op">)</span> Terminate<span class="op">(</span>stateHistories <span class="op">[]*</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="OnlyGivenPartitionsOutputCondition"></a></p>
       <h2 id="type-onlygivenpartitionsoutputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L305-L307">OnlyGivenPartitionsOutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L287-L289">OnlyGivenPartitionsOutputCondition</a></h2>
       <p>OnlyGivenPartitionsOutputCondition emits output only for listed
       partitions.</p>
       <div class="sourceCode" id="cb52"><pre
@@ -1445,17 +1448,17 @@
       <p><a name="OnlyGivenPartitionsOutputCondition.IsOutputStep"></a></p>
       <h3 id="func-onlygivenpartitionsoutputcondition-isoutputstep">func
       (*OnlyGivenPartitionsOutputCondition) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L309-L313">IsOutputStep</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L291-L295">IsOutputStep</a></h3>
       <div class="sourceCode" id="cb53"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>o <span class="op">*</span>OnlyGivenPartitionsOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
+      class="sourceCode go"><code class="sourceCode go"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>o <span class="op">*</span>OnlyGivenPartitionsOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="OutputCondition"></a></p>
       <h2 id="type-outputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L259-L261">OutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L247-L249">OutputCondition</a></h2>
       <p>OutputCondition decides whether an output should be emitted
       this step.</p>
       <div class="sourceCode" id="cb54"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> OutputCondition <span class="kw">interface</span> <span class="op">{</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>    IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span> <span class="dt">bool</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>    IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span>
 <span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="OutputFunction"></a></p>
       <h2 id="type-outputfunction">type <a
@@ -1917,7 +1920,7 @@
       <h3 id="func-newstateiterator">func <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L213-L223">NewStateIterator</a></h3>
       <div class="sourceCode" id="cb98"><pre
-      class="sourceCode go"><code class="sourceCode go"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewStateIterator<span class="op">(</span>iteration Iteration<span class="op">,</span> params Params<span class="op">,</span> partitionName <span class="dt">string</span><span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> valueChannels StateValueChannels<span class="op">,</span> outputCondition OutputCondition<span class="op">,</span> outputFunction OutputFunction<span class="op">,</span> initState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> initTime <span class="dt">float64</span><span class="op">)</span> <span class="op">*</span>StateIterator</span></code></pre></div>
+      class="sourceCode go"><code class="sourceCode go"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewStateIterator<span class="op">(</span>iteration Iteration<span class="op">,</span> params Params<span class="op">,</span> partitionName <span class="dt">string</span><span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> valueChannels StateValueChannels<span class="op">,</span> outputCondition OutputCondition<span class="op">,</span> outputFunction OutputFunction<span class="op">,</span> initState <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">*</span>StateIterator</span></code></pre></div>
       <p>NewStateIterator creates a StateIterator and may emit initial
       output if the condition is met by the initial state/time.</p>
       <p><a name="StateIterator.Iterate"></a></p>
@@ -2188,7 +2191,7 @@
 <span id="cb128-4"><a href="#cb128-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="WebsocketOutputFunction"></a></p>
       <h2 id="type-websocketoutputfunction">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L205-L208">WebsocketOutputFunction</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L193-L196">WebsocketOutputFunction</a></h2>
       <p>WebsocketOutputFunction serialises and sends outputs via a
       websocket connection when the condition is met.</p>
       <div class="sourceCode" id="cb129"><pre
@@ -2197,7 +2200,7 @@
 <span id="cb129-3"><a href="#cb129-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewWebsocketOutputFunction"></a></p>
       <h3 id="func-newwebsocketoutputfunction">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L251-L254">NewWebsocketOutputFunction</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L239-L242">NewWebsocketOutputFunction</a></h3>
       <div class="sourceCode" id="cb130"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb130-1"><a href="#cb130-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewWebsocketOutputFunction<span class="op">(</span>connection <span class="op">*</span>websocket<span class="op">.</span>Conn<span class="op">,</span> mutex <span class="op">*</span>sync<span class="op">.</span>Mutex<span class="op">)</span> <span class="op">*</span>WebsocketOutputFunction</span></code></pre></div>
       <p>NewWebsocketOutputFunction constructs a WebsocketOutputFunction
@@ -2205,13 +2208,13 @@
       <p><a name="WebsocketOutputFunction.Configure"></a></p>
       <h3 id="func-websocketoutputfunction-configure">func
       (*WebsocketOutputFunction) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L210">Configure</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L198">Configure</a></h3>
       <div class="sourceCode" id="cb131"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WebsocketOutputFunction<span class="op">)</span> Configure<span class="op">(*</span>Settings<span class="op">)</span></span></code></pre></div>
       <p><a name="WebsocketOutputFunction.Output"></a></p>
       <h3 id="func-websocketoutputfunction-output">func
       (*WebsocketOutputFunction) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L212-L216">Output</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L200-L204">Output</a></h3>
       <div class="sourceCode" id="cb132"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WebsocketOutputFunction<span class="op">)</span> Output<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
       <p>Generated by <a

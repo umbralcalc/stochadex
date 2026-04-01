@@ -149,15 +149,14 @@ func (j *JsonLogChannelOutputFunction) Output(
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
-	logEntry := JsonLogEntry{
+	j.logChannel <- JsonLogEntry{
 		PartitionName:       partitionName,
 		State:               state,
 		CumulativeTimesteps: cumulativeTimesteps,
 	}
-	j.logChannel <- logEntry
 }
 
-// Close ensures that the log channel flushes at the end of a run.
+// Close flushes and stops the background writer. Defer it after construction.
 func (j *JsonLogChannelOutputFunction) Close() {
 	close(j.logChannel)
 }
@@ -174,26 +173,15 @@ func NewJsonLogChannelOutputFunction(
 		panic(err)
 	}
 	go func() {
-		for {
-			select {
-			case logEntry := <-logChannel:
-				if logEntry.State == nil {
-					// covers the case with initialisation nil input
-					continue
-				}
-				jsonData, err := json.Marshal(logEntry)
-				if err != nil {
-					log.Printf("Error encoding JSON: %s\n", err)
-					panic(err)
-				}
-				jsonData = append(jsonData, '\n')
-
-				_, err = file.Write(jsonData)
-				if err != nil {
-					panic(err)
-				}
-			default:
-				continue
+		for logEntry := range logChannel {
+			jsonData, err := json.Marshal(logEntry)
+			if err != nil {
+				log.Printf("Error encoding JSON: %s\n", err)
+				panic(err)
+			}
+			_, err = file.Write(append(jsonData, '\n'))
+			if err != nil {
+				panic(err)
 			}
 		}
 	}()
@@ -257,7 +245,7 @@ func NewWebsocketOutputFunction(
 
 // OutputCondition decides whether an output should be emitted this step.
 type OutputCondition interface {
-	IsOutputStep(partitionName string, state []float64, cumulativeTimesteps float64) bool
+	IsOutputStep(partitionName string, state []float64, timestepsHistory *CumulativeTimestepsHistory) bool
 }
 
 // NilOutputCondition never outputs.
@@ -266,7 +254,7 @@ type NilOutputCondition struct{}
 func (c *NilOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,
-	cumulativeTimesteps float64,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) bool {
 	return false
 }
@@ -277,28 +265,22 @@ type EveryStepOutputCondition struct{}
 func (c *EveryStepOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,
-	cumulativeTimesteps float64,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) bool {
 	return true
 }
 
 // EveryNStepsOutputCondition emits output once every N steps.
 type EveryNStepsOutputCondition struct {
-	N      int
-	ticker int
+	N int
 }
 
 func (c *EveryNStepsOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,
-	cumulativeTimesteps float64,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) bool {
-	c.ticker += 1
-	if c.ticker == c.N {
-		c.ticker = 0
-		return true
-	}
-	return false
+	return timestepsHistory.CurrentStepNumber%c.N == 0
 }
 
 // OnlyGivenPartitionsOutputCondition emits output only for listed partitions.
@@ -309,10 +291,7 @@ type OnlyGivenPartitionsOutputCondition struct {
 func (o *OnlyGivenPartitionsOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,
-	cumulativeTimesteps float64,
+	timestepsHistory *CumulativeTimestepsHistory,
 ) bool {
-	if v, ok := o.Partitions[partitionName]; ok && v {
-		return true
-	}
-	return false
+	return o.Partitions[partitionName]
 }
