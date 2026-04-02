@@ -596,14 +596,8 @@
       <li>Compute rolling statistics with time-weighted kernels</li>
       <li>Export results to various formats</li>
       <li>Perform likelihood analysis and inference</li>
-      <li>Online scalar OLS: ScalarRegressionStatsIteration and
-      NewScalarRegressionStatsPartition maintain sufficient statistics
-      (and closed-form α, β, σ²) for y on x with optional intercept; use
-      RegressionStatsCumulative or RegressionStatsWindow (fixed-length
-      buffer). Wire upstream scalars via ParamsFromUpstream keys
-      ScalarRegressionParamY and ScalarRegressionParamX. Row 0 of state
-      history is the latest values, consistent with other analysis
-      replay partitions.</li>
+      <li>Stream online scalar regression statistics alongside
+      simulation outputs</li>
       </ul>
       <p>Package analysis builds rolling likelihood windows, posterior
       partitions, and storage-backed replays. Windowed likelihoods embed
