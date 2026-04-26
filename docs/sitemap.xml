@@ -19,12 +19,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://umbralcalc.github.io/stochadex/pkg/agentstest.html</loc>
-    <lastmod>2026-04-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://umbralcalc.github.io/stochadex/pkg/analysis.html</loc>
     <lastmod>2026-04-26</lastmod>
     <changefreq>monthly</changefreq>
