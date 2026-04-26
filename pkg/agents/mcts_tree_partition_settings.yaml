@@ -1,0 +1,22 @@
+iterations:
+  - name: tree
+    params: {}
+    init_state_values:
+      # TreeRowWidth(W=10, K=9) = 30 floats:
+      #   [0]            best_root_idx (init: -1, but we put 0 here; tree
+      #                  Configure replaces it correctly on first iter)
+      #   [1..10]        encoded leaf state — empty tic-tac-toe board with
+      #                  X to move (10 floats: 9 cells + current player)
+      #   [11]           has_leaf (0 = no leaf selected yet)
+      #   [12..20]       per-action root visit counts (K=9, all 0)
+      #   [21..29]       per-action root win sums (K=9, all 0)
+      [0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0]
+    seed: 4242
+    state_width: 30
+    state_history_depth: 1
+init_time_value: 0.0
+timesteps_history_depth: 1

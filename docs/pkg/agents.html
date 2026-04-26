@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="description" content="Stochadex - A simulation engine for real-world systems" />
+  <meta name="keywords" content="simulation, go, stochastic, modeling, data analysis" />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-vs.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-shell-session.min.js"></script>
+  
+  <!-- Custom CSS -->
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --secondary-color: #64748b;
+      --accent-color: #f59e0b;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background-color: var(--bg-primary);
+    }
+
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 1000;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .logo img {
+      width: 120px;
+      height: auto;
+    }
+
+
+    .nav-section {
+      margin-bottom: 1rem;
+    }
+
+    .nav-section-title {
+      padding: 0.5rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background-color: var(--bg-tertiary);
+    }
+
+    .nav-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .nav-links li {
+      margin: 0;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 0.5rem 1.5rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-links a:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-left-color: var(--primary-color);
+    }
+
+    .nav-links a.active {
+      background-color: var(--bg-primary);
+      color: var(--primary-color);
+      border-left-color: var(--primary-color);
+      font-weight: 500;
+    }
+
+    /* Main content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+    }
+
+
+    .content-body {
+      padding: 2rem;
+      max-width: 800px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--text-primary);
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.25rem;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+    }
+
+    h4 {
+      font-size: 1.25rem;
+    }
+
+    h5, h6 {
+      font-size: 1.125rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
+    }
+
+    /* Code blocks */
+    pre {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    code {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
+    }
+
+    /* Go-specific syntax highlighting improvements */
+    pre[class*="language-go"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Shell/Bash-specific syntax highlighting */
+    pre[class*="language-bash"],
+    pre[class*="language-shell"],
+    pre[class*="language-sh"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Shell session highlighting */
+    pre[class*="language-shell-session"] {
+      background-color: #1e1e1e;
+    }
+
+    /* Enhanced Go syntax highlighting - Pandoc/Pygments classes */
+    .kw {
+      color: #569cd6;
+      font-weight: 500;
+    }
+
+    .st {
+      color: #ce9178;
+    }
+
+    .co {
+      color: #6a9955;
+      font-style: italic;
+    }
+
+    .cf {
+      color: #dcdcaa;
+      font-weight: 500;
+    }
+
+    .dt {
+      color: #4ec9b0;
+    }
+
+    .op {
+      color: #d4d4d4;
+    }
+
+    .ot {
+      color: #d4d4d4;
+    }
+
+    .fl {
+      color: #b5cea8;
+    }
+
+    .dv {
+      color: #b5cea8;
+    }
+
+    .ch {
+      color: #ce9178;
+    }
+
+    .bu {
+      color: #dcdcaa;
+    }
+
+    /* Shell/Bash syntax highlighting - Pandoc/Pygments classes */
+    .sh {
+      color: #d4d4d4; /* Default shell text */
+    }
+
+    .sh .kw {
+      color: #569cd6; /* Shell keywords like if, for, while */
+      font-weight: 500;
+    }
+
+    .sh .st {
+      color: #ce9178; /* Strings in shell */
+    }
+
+    .sh .co {
+      color: #6a9955; /* Comments in shell */
+      font-style: italic;
+    }
+
+    .sh .op {
+      color: #d4d4d4; /* Operators like |, >, < */
+    }
+
+    .sh .va {
+      color: #9cdcfe; /* Variables like HOME, PATH */
+    }
+
+    .sh .fu {
+      color: #dcdcaa; /* Functions */
+    }
+
+    /* Shell session specific styling */
+    .sh .prompt {
+      color: #4ec9b0; /* Shell prompt like dollar, hash */
+    }
+
+    /* Prism.js fallback classes */
+    .token.keyword {
+      color: #569cd6;
+      font-weight: 500;
+    }
+
+    .token.string {
+      color: #ce9178;
+    }
+
+    .token.comment {
+      color: #6a9955;
+      font-style: italic;
+    }
+
+    .token.function {
+      color: #dcdcaa;
+    }
+
+    .token.type {
+      color: #4ec9b0;
+    }
+
+    .token.operator {
+      color: #d4d4d4;
+    }
+
+    .token.punctuation {
+      color: #d4d4d4;
+    }
+
+    .token.number {
+      color: #b5cea8;
+    }
+
+    /* Prism.js shell/bash token classes */
+    .token.function {
+      color: #dcdcaa;
+    }
+
+    .token.variable {
+      color: #9cdcfe;
+    }
+
+    .token.parameter {
+      color: #9cdcfe;
+    }
+
+    .token.prompt {
+      color: #4ec9b0;
+    }
+
+    .token.command {
+      color: #dcdcaa;
+    }
+
+    /* Lists */
+    ul, ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background-color: var(--bg-primary);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--bg-secondary);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Blockquotes */
+    blockquote {
+      border-left: 4px solid var(--primary-color);
+      padding-left: 1rem;
+      margin: 1.5rem 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+
+    /* Images */
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-md);
+    }
+
+    .centered {
+      text-align: center;
+    }
+
+    .badges {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    .badges img {
+      height: 22px;
+      width: auto;
+    }
+
+    /* Mobile menu toggle */
+    .mobile-menu-toggle {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 1001;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 0.5rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
+      .mobile-menu-toggle {
+        display: block;
+      }
+
+
+      .content-body {
+        padding: 1rem;
+      }
+
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Print styles */
+    @media print {
+      .sidebar,
+      .mobile-menu-toggle {
+        display: none;
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
+    }
+  </style>
+
+    
+    
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+<body>
+  <!-- Mobile menu toggle -->
+  <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="../index.html" class="logo">
+        <img src="../assets/logo.svg" alt="Stochadex Logo">
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Getting Started</div>
+      <ul class="nav-links">
+        <li><a href="../index.html">Home</a></li>
+        <li><a href="../pkg/quickstart.html">Quickstart</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-title">Packages</div>
+      <ul class="nav-links">
+        <li><a href="../pkg/agents.html">Agents</a></li>
+        <li><a href="../pkg/analysis.html">Analysis</a></li>
+        <li><a href="../pkg/api.html">API</a></li>
+        <li><a href="../pkg/continuous.html">Continuous</a></li>
+        <li><a href="../pkg/discrete.html">Discrete</a></li>
+        <li><a href="../pkg/general.html">General</a></li>
+        <li><a href="../pkg/inference.html">Inference</a></li>
+        <li><a href="../pkg/kernels.html">Kernels</a></li>
+        <li><a href="../pkg/keyboard.html">Keyboard</a></li>
+        <li><a href="../pkg/simulator.html">Simulator</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div class="content-body">
+      <!-- Code generated by gomarkdoc. DO NOT EDIT -->
+      <h1 id="agents">agents</h1>
+      <div class="sourceCode" id="cb1"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="st">&quot;github.com/umbralcalc/stochadex/pkg/agents&quot;</span></span></code></pre></div>
+      <p>Package agents provides decision-making agents that operate
+      over a generic Environment[S, A] interface. The package is
+      intended to host any agent built on the same environment framework
+      — currently it ships MCTS (UCT) as the only agent, with MAST as an
+      optional rollout strategy on top.</p>
+      <p>Per-player terminal scores are []float64 in [0,1] (the
+      established stochadex value convention). Codecs (encoder/decoder
+      for S into the stochadex row’s []float64) are supplied by the
+      caller as function fields on each partition — this package does
+      not depend on any encoding protocol.</p>
+      <p>Key Features:</p>
+      <ul>
+      <li>Generic Environment[S, A] interface
+      (Legal/Apply/Terminal/Actor/Players)</li>
+      <li>MCTS decomposed as three partitions: tree (selection +
+      backup), rollout (one playout per step), and apply (state
+      advancer)</li>
+      <li>Pluggable rollout functions (UniformRandomRollout,
+      FromProgress, WinnerToTerminal)</li>
+      <li>MAST as an optional rollout strategy: a learning rollout
+      policy backed by a separate aggregation partition holding running
+      per-action-key (count, sum) state</li>
+      <li>Cycle-breaking by mixing within-step params_from_upstream with
+      lag-1 state-history reads, so tree ↔︎ rollout and apply ↔︎ search
+      both compose without deadlock</li>
+      <li>One-shot helper RunMCTSSearch for ad-hoc searches outside a
+      coordinator</li>
+      </ul>
+      <p>Usage Patterns:</p>
+      <ul>
+      <li>Self-play: compose ApplyPartition + an embedded search sim
+      (analysis.NewMCTSSelfPlayPartitions wires this up)</li>
+      <li>Per-simulation telemetry: run MCTSTreePartition +
+      MCTSRolloutPartition directly without the apply layer, then read
+      the tree’s row</li>
+      <li>YAML / pkg/api use: ship non-generic façade types per
+      environment family that bake in the type parameters, since generic
+      types in YAML iteration strings are awkward</li>
+      </ul>
+      <h2 id="index">Index</h2>
+      <ul>
+      <li><a href="#constants">Constants</a></li>
+      <li><a href="#MASTAggregationCountSlot">func
+      MASTAggregationCountSlot(k int) int</a></li>
+      <li><a href="#MASTAggregationRowWidth">func
+      MASTAggregationRowWidth(maxKeys int) int</a></li>
+      <li><a href="#MASTAggregationSumSlot">func
+      MASTAggregationSumSlot(k int) int</a></li>
+      <li><a href="#MASTMeanForKey">func MASTMeanForKey(row []float64, k
+      int) (mean float64, count int)</a></li>
+      <li><a href="#MASTRolloutNumPathOffset">func
+      MASTRolloutNumPathOffset(players int) int</a></li>
+      <li><a href="#MASTRolloutOkOffset">func
+      MASTRolloutOkOffset(players int) int</a></li>
+      <li><a href="#MASTRolloutPathOffset">func
+      MASTRolloutPathOffset(players int) int</a></li>
+      <li><a href="#MASTRolloutRowWidth">func
+      MASTRolloutRowWidth(players, maxPath int) int</a></li>
+      <li><a href="#MASTRolloutScoresOffset">func
+      MASTRolloutScoresOffset(i int) int</a></li>
+      <li><a href="#MCTSRolloutRowWidth">func
+      MCTSRolloutRowWidth(players int) int</a></li>
+      <li><a href="#MCTSTreeRowHasLeafOffset">func
+      MCTSTreeRowHasLeafOffset(stateWidth int) int</a></li>
+      <li><a href="#MCTSTreeRowVisitsOffset">func
+      MCTSTreeRowVisitsOffset(stateWidth int) int</a></li>
+      <li><a href="#MCTSTreeRowWidth">func MCTSTreeRowWidth(stateWidth,
+      maxLegalActions int) int</a></li>
+      <li><a href="#MCTSTreeRowWinsOffset">func
+      MCTSTreeRowWinsOffset(stateWidth, maxLegalActions int)
+      int</a></li>
+      <li><a href="#WinnerToTerminal">func WinnerToTerminal(winner,
+      players int, done bool) []float64</a></li>
+      <li><a href="#ApplyPartition">type ApplyPartition</a>
+      <ul>
+      <li><a href="#ApplyPartition%5BS,%20A%5D.Configure">func (m
+      *ApplyPartition[S, A]) Configure(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      <li><a href="#ApplyPartition%5BS,%20A%5D.Iterate">func (m
+      *ApplyPartition[S, A]) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      <li><a href="#Environment">type Environment</a></li>
+      <li><a href="#MASTAggregationPartition">type
+      MASTAggregationPartition</a>
+      <ul>
+      <li><a href="#MASTAggregationPartition%5BA%5D.Configure">func (m
+      *MASTAggregationPartition[A]) Configure(partitionIndex int,
+      settings *simulator.Settings)</a></li>
+      <li><a href="#MASTAggregationPartition%5BA%5D.Iterate">func (m
+      *MASTAggregationPartition[A]) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      <li><a href="#MASTRolloutPartition">type MASTRolloutPartition</a>
+      <ul>
+      <li><a href="#MASTRolloutPartition%5BS,%20A%5D.Configure">func (m
+      *MASTRolloutPartition[S, A]) Configure(partitionIndex int,
+      settings *simulator.Settings)</a></li>
+      <li><a href="#MASTRolloutPartition%5BS,%20A%5D.Iterate">func (m
+      *MASTRolloutPartition[S, A]) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      <li><a href="#MCTSConfig">type MCTSConfig</a>
+      <ul>
+      <li><a href="#MCTSConfig%5BS,%20A%5D.ApplyDefaults">func (c
+      *MCTSConfig[S, A]) ApplyDefaults()</a></li>
+      </ul></li>
+      <li><a href="#MCTSEdgeStat">type MCTSEdgeStat</a>
+      <ul>
+      <li><a href="#RunMCTSSearch">func RunMCTSSearch[S any, A any](env
+      Environment[S, A], root S, cfg MCTSConfig[S, A], baseSeed uint64,
+      sims int) (A, []MCTSEdgeStat[A], error)</a></li>
+      </ul></li>
+      <li><a href="#MCTSRolloutFn">type MCTSRolloutFn</a>
+      <ul>
+      <li><a href="#FromProgress">func FromProgress[S any, A any](inner
+      MCTSRolloutFn[S, A], progress func(s S, player int) (float64,
+      bool)) MCTSRolloutFn[S, A]</a></li>
+      <li><a href="#UniformRandomRollout">func UniformRandomRollout[S
+      any, A any]() MCTSRolloutFn[S, A]</a></li>
+      </ul></li>
+      <li><a href="#MCTSRolloutPartition">type MCTSRolloutPartition</a>
+      <ul>
+      <li><a href="#MCTSRolloutPartition%5BS,%20A%5D.Configure">func (m
+      *MCTSRolloutPartition[S, A]) Configure(partitionIndex int,
+      settings *simulator.Settings)</a></li>
+      <li><a href="#MCTSRolloutPartition%5BS,%20A%5D.Iterate">func (m
+      *MCTSRolloutPartition[S, A]) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      </ul></li>
+      <li><a href="#MCTSTree">type MCTSTree</a>
+      <ul>
+      <li><a href="#NewMCTSTree">func NewMCTSTree[S any, A any](root S)
+      *MCTSTree[S, A]</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.AdvanceRoot">func (t
+      *MCTSTree[S, A]) AdvanceRoot(env Environment[S, A], legalIdx
+      int)</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.BackupScores">func (t
+      *MCTSTree[S, A]) BackupScores(path []int, scores
+      []float64)</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.BackupVisits">func (t
+      *MCTSTree[S, A]) BackupVisits(path []int, scores
+      []float64)</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.NodeCount">func (t *MCTSTree[S,
+      A]) NodeCount() int</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.Reset">func (t *MCTSTree[S, A])
+      Reset(root S)</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.Root">func (t *MCTSTree[S, A])
+      Root() S</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.RootBestLegalIdx">func (t
+      *MCTSTree[S, A]) RootBestLegalIdx() (int, bool)</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.RootEdgeStats">func (t
+      *MCTSTree[S, A]) RootEdgeStats(legal []A)
+      []MCTSEdgeStat[A]</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.RootStatsByLegalIdx">func (t
+      *MCTSTree[S, A]) RootStatsByLegalIdx(maxLegalActions int) (visits,
+      wins []float64)</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.RunOne">func (t *MCTSTree[S,
+      A]) RunOne(env Environment[S, A], cfg *MCTSConfig[S, A], rng
+      *rand.Rand)</a></li>
+      <li><a href="#MCTSTree%5BS,%20A%5D.SelectLeaf">func (t
+      *MCTSTree[S, A]) SelectLeaf(env Environment[S, A], cfg
+      *MCTSConfig[S, A], rng *rand.Rand) (path []int, leafState S,
+      leafIdx int, ok bool)</a></li>
+      </ul></li>
+      <li><a href="#MCTSTreePartition">type MCTSTreePartition</a>
+      <ul>
+      <li><a href="#MCTSTreePartition%5BS,%20A%5D.Configure">func (m
+      *MCTSTreePartition[S, A]) Configure(partitionIndex int, settings
+      *simulator.Settings)</a></li>
+      <li><a href="#MCTSTreePartition%5BS,%20A%5D.Iterate">func (m
+      *MCTSTreePartition[S, A]) Iterate(params *simulator.Params,
+      partitionIndex int, stateHistories []*simulator.StateHistory,
+      timestepsHistory *simulator.CumulativeTimestepsHistory)
+      []float64</a></li>
+      <li><a href="#MCTSTreePartition%5BS,%20A%5D.MCTSTree">func (m
+      *MCTSTreePartition[S, A]) MCTSTree() *MCTSTree[S, A]</a></li>
+      </ul></li>
+      </ul>
+      <h2 id="constants">Constants</h2>
+      <p><a name="MCTSDefaultSimulations"></a> Default hyperparameters
+      used when MCTSConfig fields are zero.</p>
+      <div class="sourceCode" id="cb2"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> <span class="op">(</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    MCTSDefaultSimulations     <span class="op">=</span> <span class="dv">120</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    MCTSDefaultRolloutMaxSteps <span class="op">=</span> <span class="dv">220</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    MCTSDefaultMaxTreeDepth    <span class="op">=</span> <span class="dv">14</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    MCTSDefaultExploration     <span class="op">=</span> <span class="fl">1.41</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
+      <p><a name="ApplyParamBestIdx"></a> Param key for direct
+      (within-step) best-action input. The value should be a 1-element
+      slice — the legal-action index. A negative value (e.g. the -1
+      sentinel) leaves the state unchanged.</p>
+      <div class="sourceCode" id="cb3"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> ApplyParamBestIdx <span class="op">=</span> <span class="st">&quot;best_legal_idx&quot;</span></span></code></pre></div>
+      <p><a name="ApplyParamBestIdxPartition"></a> Param key for
+      state-history (lag-1) best-action input. The value (set via
+      ParamsAsPartitions) is a 1-element slice containing the partition
+      index of the upstream partition whose row[BestIdxSlot] holds the
+      best-action index.</p>
+      <div class="sourceCode" id="cb4"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> ApplyParamBestIdxPartition <span class="op">=</span> <span class="st">&quot;best_idx_partition&quot;</span></span></code></pre></div>
+      <p><a name="MASTAggregationParamPartition"></a>
+      MASTAggregationParamPartition is the params_as_partitions key used
+      by downstream samplers to learn this partition’s index for
+      state-history reads. The value is a 1-element slice containing the
+      partition index.</p>
+      <div class="sourceCode" id="cb5"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MASTAggregationParamPartition <span class="op">=</span> <span class="st">&quot;mast_aggregates_partition&quot;</span></span></code></pre></div>
+      <p><a name="MASTAggregationParamUpdates"></a>
+      MASTAggregationParamUpdates is the params_from_upstream key used
+      to read the variable-length update batch from an upstream rollout
+      partition.</p>
+      <div class="sourceCode" id="cb6"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MASTAggregationParamUpdates <span class="op">=</span> <span class="st">&quot;mast_updates&quot;</span></span></code></pre></div>
+      <p><a name="MASTDefaultTau"></a> MASTDefaultTau is the softmax
+      temperature applied to MAST means when sampling. Smaller → more
+      exploitative; larger → closer to uniform. 1.0 diverges from
+      uniform within ~50 updates per key in practice.</p>
+      <div class="sourceCode" id="cb7"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MASTDefaultTau <span class="op">=</span> <span class="fl">1.0</span></span></code></pre></div>
+      <p><a name="MASTSamplePrior"></a> MASTSamplePrior is the score
+      assigned to actions whose key has not yet been observed, so they
+      retain selection probability early in search. 0.5 sits at the
+      midpoint of the [0, 1] reward range — neither encouraged nor
+      discouraged.</p>
+      <div class="sourceCode" id="cb8"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MASTSamplePrior <span class="op">=</span> <span class="fl">0.5</span></span></code></pre></div>
+      <p><a name="MCTSRolloutParamLeaf"></a> Param key used by
+      MCTSRolloutPartition.Iterate to read the leaf state from an
+      upstream MCTSTreePartition via params_from_upstream. The slice
+      should be of length StateWidth followed by a single has_leaf flag
+      (matching MCTSTreePartition’s row layout: leaf_state then
+      has_leaf). Use Indices on the NamedUpstreamConfig to slice out the
+      leaf_state + has_leaf section of the tree’s row.</p>
+      <div class="sourceCode" id="cb9"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MCTSRolloutParamLeaf <span class="op">=</span> <span class="st">&quot;leaf&quot;</span></span></code></pre></div>
+      <p><a name="MCTSTreeParamRolloutScores"></a> Param key used by
+      MCTSTreePartition.Iterate to read rollout scores from an upstream
+      MCTSRolloutPartition via params_from_upstream (within-step). The
+      slice should be of length Players + 1 (P scores + ok flag) — the
+      layout produced by MCTSRolloutPartition.</p>
+      <p>This mode creates a within-step dependency that breaks if the
+      rollout partition also depends on the tree (the standard MCTS
+      pipeline does). Use MCTSTreeParamRolloutScoresPartition for the
+      lag-1 state-history mode instead when wiring the tree + rollout
+      pipeline.</p>
+      <div class="sourceCode" id="cb10"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MCTSTreeParamRolloutScores <span class="op">=</span> <span class="st">&quot;rollout_scores&quot;</span></span></code></pre></div>
+      <p><a name="MCTSTreeParamRolloutScoresPartition"></a> Param key
+      used by MCTSTreePartition.Iterate to read rollout scores from an
+      upstream MCTSRolloutPartition via params_as_partitions
+      (state-history, lag-1). The value is a 1-element slice containing
+      the rollout partition’s index; the tree reads
+      stateHistories[idx].Values row 0 (= the previous step’s rollout
+      output) at runtime.</p>
+      <p>This is the standard wiring used by NewMCTSSelfPlayPartitions:
+      rollout reads tree’s leaf within-step (so the rollout sees the
+      freshest leaf), and tree reads rollout’s scores lag-1 (so rollout
+      doesn’t have to wait on tree for last step’s scores). The 1-step
+      lag aligns correctly: at step N+1 tree backs up the path it
+      selected at step N with scores from rollout at step N (which were
+      for that very leaf).</p>
+      <p>State-history mode takes priority over within-step mode if both
+      keys are present.</p>
+      <div class="sourceCode" id="cb11"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MCTSTreeParamRolloutScoresPartition <span class="op">=</span> <span class="st">&quot;rollout_scores_partition&quot;</span></span></code></pre></div>
+      <p><a name="MCTSTreeParamRootState"></a> Param key used by
+      MCTSTreePartition.Iterate to read the current search root state.
+      Whenever this param’s value differs from the cached root encoding,
+      the tree is reset to the decoded new root. The slice should be of
+      length StateWidth.</p>
+      <p>Set this via the embedded simulation run’s outer
+      params_from_upstream (e.g. an outer apply partition piping its
+      current game state into the inner sim via the
+      “&lt;innerName&gt;/root_state” forwarding mechanism). When
+      MCTSTreePartition is used standalone with no outer pipeline, the
+      param is absent and the tree retains the root set at Configure
+      time.</p>
+      <div class="sourceCode" id="cb12"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MCTSTreeParamRootState <span class="op">=</span> <span class="st">&quot;root_state&quot;</span></span></code></pre></div>
+      <p><a name="MCTSTreeRowBestRootIdx"></a> Row layout slot
+      accessors. Use these to compute params_from_upstream indices when
+      wiring downstream partitions to MCTSTreePartition’s row.</p>
+      <div class="sourceCode" id="cb13"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MCTSTreeRowBestRootIdx <span class="op">=</span> <span class="dv">0</span></span></code></pre></div>
+      <p><a name="MCTSTreeRowLeafStateOffset"></a></p>
+      <div class="sourceCode" id="cb14"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> MCTSTreeRowLeafStateOffset <span class="op">=</span> <span class="dv">1</span></span></code></pre></div>
+      <p><a name="MASTAggregationCountSlot"></a></p>
+      <h2 id="func-mastaggregationcountslot">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_aggregation_partition.go#L61">MASTAggregationCountSlot</a></h2>
+      <div class="sourceCode" id="cb15"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTAggregationCountSlot<span class="op">(</span>k <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MASTAggregationCountSlot returns the row offset of the count
+      for key k.</p>
+      <p><a name="MASTAggregationRowWidth"></a></p>
+      <h2 id="func-mastaggregationrowwidth">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_aggregation_partition.go#L58">MASTAggregationRowWidth</a></h2>
+      <div class="sourceCode" id="cb16"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTAggregationRowWidth<span class="op">(</span>maxKeys <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MASTAggregationRowWidth returns the required state_width for an
+      MASTAggregationPartition with the given key bound.</p>
+      <p><a name="MASTAggregationSumSlot"></a></p>
+      <h2 id="func-mastaggregationsumslot">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_aggregation_partition.go#L64">MASTAggregationSumSlot</a></h2>
+      <div class="sourceCode" id="cb17"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTAggregationSumSlot<span class="op">(</span>k <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MASTAggregationSumSlot returns the row offset of the sum for
+      key k.</p>
+      <p><a name="MASTMeanForKey"></a></p>
+      <h2 id="func-mastmeanforkey">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_aggregation_partition.go#L122">MASTMeanForKey</a></h2>
+      <div class="sourceCode" id="cb18"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTMeanForKey<span class="op">(</span>row <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> k <span class="dt">int</span><span class="op">)</span> <span class="op">(</span>mean <span class="dt">float64</span><span class="op">,</span> count <span class="dt">int</span><span class="op">)</span></span></code></pre></div>
+      <p>MASTMeanForKey reads the running mean reward for key k from a
+      row in the MASTAggregationPartition’s layout. Returns (0, 0) when
+      the key has not been observed. Used by samplers that have read the
+      partition’s row via params_as_partitions.</p>
+      <p><a name="MASTRolloutNumPathOffset"></a></p>
+      <h2 id="func-mastrolloutnumpathoffset">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_rollout_partition.go#L82">MASTRolloutNumPathOffset</a></h2>
+      <div class="sourceCode" id="cb19"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTRolloutNumPathOffset<span class="op">(</span>players <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MASTRolloutNumPathOffset returns the row offset of the num_path
+      counter.</p>
+      <p><a name="MASTRolloutOkOffset"></a></p>
+      <h2 id="func-mastrolloutokoffset">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_rollout_partition.go#L78">MASTRolloutOkOffset</a></h2>
+      <div class="sourceCode" id="cb20"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTRolloutOkOffset<span class="op">(</span>players <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MASTRolloutOkOffset returns the row offset of the ok flag.</p>
+      <p><a name="MASTRolloutPathOffset"></a></p>
+      <h2 id="func-mastrolloutpathoffset">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_rollout_partition.go#L86">MASTRolloutPathOffset</a></h2>
+      <div class="sourceCode" id="cb21"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTRolloutPathOffset<span class="op">(</span>players <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MASTRolloutPathOffset returns the row offset of the first
+      (key_idx, reward) pair.</p>
+      <p><a name="MASTRolloutRowWidth"></a></p>
+      <h2 id="func-mastrolloutrowwidth">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_rollout_partition.go#L70">MASTRolloutRowWidth</a></h2>
+      <div class="sourceCode" id="cb22"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTRolloutRowWidth<span class="op">(</span>players<span class="op">,</span> maxPath <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MASTRolloutRowWidth returns the required state_width for an
+      MASTRolloutPartition with the given player count and path
+      bound.</p>
+      <p><a name="MASTRolloutScoresOffset"></a></p>
+      <h2 id="func-mastrolloutscoresoffset">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_rollout_partition.go#L75">MASTRolloutScoresOffset</a></h2>
+      <div class="sourceCode" id="cb23"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MASTRolloutScoresOffset<span class="op">(</span>i <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MASTRolloutScoresOffset returns the row offset of score slot
+      i.</p>
+      <p><a name="MCTSRolloutRowWidth"></a></p>
+      <h2 id="func-mctsrolloutrowwidth">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_rollout_partition.go#L50">MCTSRolloutRowWidth</a></h2>
+      <div class="sourceCode" id="cb24"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MCTSRolloutRowWidth<span class="op">(</span>players <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MCTSRolloutRowWidth returns the required InitStateValues /
+      StateWidth for a MCTSRolloutPartition with the given player
+      count.</p>
+      <p><a name="MCTSTreeRowHasLeafOffset"></a></p>
+      <h2 id="func-mctstreerowhasleafoffset">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree_partition.go#L126">MCTSTreeRowHasLeafOffset</a></h2>
+      <div class="sourceCode" id="cb25"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MCTSTreeRowHasLeafOffset<span class="op">(</span>stateWidth <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p><a name="MCTSTreeRowVisitsOffset"></a></p>
+      <h2 id="func-mctstreerowvisitsoffset">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree_partition.go#L127">MCTSTreeRowVisitsOffset</a></h2>
+      <div class="sourceCode" id="cb26"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MCTSTreeRowVisitsOffset<span class="op">(</span>stateWidth <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p><a name="MCTSTreeRowWidth"></a></p>
+      <h2 id="func-mctstreerowwidth">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree_partition.go#L135">MCTSTreeRowWidth</a></h2>
+      <div class="sourceCode" id="cb27"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MCTSTreeRowWidth<span class="op">(</span>stateWidth<span class="op">,</span> maxLegalActions <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p>MCTSTreeRowWidth returns the required InitStateValues /
+      StateWidth for a MCTSTreePartition with the given encoded-state
+      width and max legal-action count.</p>
+      <p><a name="MCTSTreeRowWinsOffset"></a></p>
+      <h2 id="func-mctstreerowwinsoffset">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree_partition.go#L128">MCTSTreeRowWinsOffset</a></h2>
+      <div class="sourceCode" id="cb28"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> MCTSTreeRowWinsOffset<span class="op">(</span>stateWidth<span class="op">,</span> maxLegalActions <span class="dt">int</span><span class="op">)</span> <span class="dt">int</span></span></code></pre></div>
+      <p><a name="WinnerToTerminal"></a></p>
+      <h2 id="func-winnertoterminal">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_rollout.go#L126">WinnerToTerminal</a></h2>
+      <div class="sourceCode" id="cb29"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> WinnerToTerminal<span class="op">(</span>winner<span class="op">,</span> players <span class="dt">int</span><span class="op">,</span> done <span class="dt">bool</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p>WinnerToTerminal builds an Environment.Terminal-compatible
+      result from a binary winner. For envs whose native terminal
+      predicate is “winner int, done bool” rather than per-player
+      scores, embed this in your Environment implementation:</p>
+      <div class="sourceCode" id="cb30"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>g <span class="op">*</span>MyGame<span class="op">)</span> Terminal<span class="op">(</span>s State<span class="op">)</span> <span class="op">([]</span><span class="dt">float64</span><span class="op">,</span> <span class="dt">bool</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    w<span class="op">,</span> done <span class="op">:=</span> g<span class="op">.</span>winnerOrDone<span class="op">(</span>s<span class="op">)</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> agents<span class="op">.</span>WinnerToTerminal<span class="op">(</span>w<span class="op">,</span> g<span class="op">.</span>Players<span class="op">(</span>s<span class="op">),</span> done<span class="op">),</span> done</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="ApplyPartition"></a></p>
+      <h2 id="type-applypartition">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/apply_partition.go#L46-L54">ApplyPartition</a></h2>
+      <p>ApplyPartition advances the environment by one ply per
+      stochadex outer step using a best-action signal supplied either
+      via params_from_upstream (within-step) OR via params_as_partitions
+      (lagged read of an upstream partition’s state-history row). The
+      partition row is the encoded current game state; one outer step
+      decodes the row, applies the chosen legal action, and writes the
+      encoded post-move state back.</p>
+      <p>Row layout (width = StateWidth):</p>
+      <div class="sourceCode" id="cb31"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span><span class="dv">0</span> <span class="op">..</span> StateWidth<span class="op">-</span><span class="dv">1</span><span class="op">]</span>   encoded current game state<span class="op">.</span></span></code></pre></div>
+      <h3 id="two-read-modes">Two read modes</h3>
+      <ol type="1">
+      <li><p>Direct param mode (ApplyParamBestIdx): set
+      ParamsFromUpstream[ApplyParamBestIdx] to read the best-action
+      index directly within the same step. Used when the upstream
+      partition is not in a self-referential cycle with apply.</p></li>
+      <li><p>State-history mode (ApplyParamBestIdxPartition +
+      BestIdxSlot): set ParamsAsPartitions[ApplyParamBestIdxPartition]
+      to the upstream partition’s name, and set BestIdxSlot to the
+      offset of the best-action index within that partition’s row. Apply
+      will read the PREVIOUS step’s row 0 of that partition each step.
+      Used to break the apply ↔︎ search dependency cycle in
+      NewMCTSSelfPlayPartitions: search reads apply within-step (so
+      apply does not wait on search), and apply reads search lagged by
+      one step (so search does not wait on apply). The 1-step lag aligns
+      correctly because at step N apply applies the best_idx that search
+      produced at step N-1 for apply’s state at step N-1 — which is the
+      same state apply currently holds (apply only advances when it
+      applies a move).</p></li>
+      </ol>
+      <p>State-history mode takes priority if both are configured.</p>
+      <p>Warm fields (must be set before Configure):</p>
+      <ul>
+      <li>Env: the typed Environment[S, A] to advance.</li>
+      <li>Decoder, Encoder: codec for the game state.</li>
+      </ul>
+      <p>Optional warm field:</p>
+      <ul>
+      <li>BestIdxSlot: row offset of the best-action index within the
+      upstream partition’s row when using state-history mode.</li>
+      </ul>
+      <div class="sourceCode" id="cb32"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> ApplyPartition<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    Env         Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    Decoder     <span class="kw">func</span><span class="op">([]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">(</span>S<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    Encoder     <span class="kw">func</span><span class="op">(</span>S<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    BestIdxSlot <span class="dt">int</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="ApplyPartition[S, A].Configure"></a></p>
+      <h3 id="func-applypartitions-a-configure">func (*ApplyPartition[S,
+      A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/apply_partition.go#L68">Configure</a></h3>
+      <div class="sourceCode" id="cb33"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>ApplyPartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p>Configure implements simulator.Iteration.</p>
+      <p><a name="ApplyPartition[S, A].Iterate"></a></p>
+      <h3 id="func-applypartitions-a-iterate">func (*ApplyPartition[S,
+      A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/apply_partition.go#L90-L95">Iterate</a></h3>
+      <div class="sourceCode" id="cb34"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>ApplyPartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p>Iterate implements simulator.Iteration.</p>
+      <p><a name="Environment"></a></p>
+      <h2 id="type-environment">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/environment.go#L15-L21">Environment</a></h2>
+      <p>Environment is the game/decision-process interface that MCTS
+      searches over. Implementations are pure: Legal/Apply must not
+      mutate s, and Apply must return a fresh value (the search clones
+      aggressively).</p>
+      <p>Terminal returns the per-player [0,1] score vector and a done
+      flag. The score vector lets the env represent draws (0.5/0.5),
+      graded scoring (Catan-like), and standard winner-takes-all
+      (one-hot) without faking a “winner” int. For binary games, see
+      WinnerToTerminal in rollout.go.</p>
+      <p>Actor returns the index of the player whose decision creates
+      the next edge from s; backups credit nodes by Actor at the parent.
+      Players returns the total seat count and bounds the score vector
+      length.</p>
+      <div class="sourceCode" id="cb35"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Environment<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]</span> <span class="kw">interface</span> <span class="op">{</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    Legal<span class="op">(</span>s S<span class="op">)</span> <span class="op">[]</span>A</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    Apply<span class="op">(</span>s S<span class="op">,</span> a A<span class="op">)</span> <span class="op">(</span>S<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    Terminal<span class="op">(</span>s S<span class="op">)</span> <span class="op">(</span>scores <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> done <span class="dt">bool</span><span class="op">)</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    Actor<span class="op">(</span>s S<span class="op">)</span> <span class="dt">int</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    Players<span class="op">(</span>s S<span class="op">)</span> <span class="dt">int</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="MASTAggregationPartition"></a></p>
+      <h2 id="type-mastaggregationpartition">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_aggregation_partition.go#L39-L44">MASTAggregationPartition</a></h2>
+      <p>MASTAggregationPartition is a stochadex iteration that
+      maintains running (count, sum) pairs per action-key index for MAST
+      (Move-Average Sampling Technique). Each step it reads a
+      variable-length update batch from an upstream rollout partition
+      via params_from_upstream and applies the (key_idx, reward)
+      increments to its row.</p>
+      <p>Row layout (width = 2 * MaxKeys):</p>
+      <div class="sourceCode" id="cb36"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span><span class="dv">2</span><span class="op">*</span>k<span class="op">]</span>     count <span class="cf">for</span> key k</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span><span class="dv">2</span><span class="op">*</span>k<span class="op">+</span><span class="dv">1</span><span class="op">]</span>   sum   <span class="cf">for</span> key k</span></code></pre></div>
+      <p>Use MASTAggregationRowWidth(K) to compute state_width.</p>
+      <h3 id="update-batch-format">Update batch format</h3>
+      <p>The upstream batch is a single []float64 with the layout</p>
+      <div class="sourceCode" id="cb37"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>num_updates<span class="op">,</span> key_idx_0<span class="op">,</span> reward_0<span class="op">,</span> key_idx_1<span class="op">,</span> reward_1<span class="op">,</span> <span class="op">...]</span></span></code></pre></div>
+      <p>where num_updates is the number of valid (key_idx, reward)
+      pairs in the slice. MASTRolloutPartition emits exactly this layout
+      in its row’s path-suffix slots; wire MASTAggregationPartition’s
+      params_from_upstream (key MASTAggregationParamUpdates) to those
+      slots.</p>
+      <p>Out-of-range key indices and updates beyond the slice’s
+      declared num_updates are silently dropped.</p>
+      <h3 id="read-access">Read access</h3>
+      <p>Downstream samplers (e.g. MASTRolloutPartition) read the
+      aggregates via state-history mode (lag-1) using
+      params_as_partitions. See MASTAggregationParamPartition for the
+      canonical key.</p>
+      <div class="sourceCode" id="cb38"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MASTAggregationPartition<span class="op">[</span>A <span class="dt">any</span><span class="op">]</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    MaxKeys <span class="dt">int</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="MASTAggregationPartition[A].Configure"></a></p>
+      <h3 id="func-mastaggregationpartitiona-configure">func
+      (*MASTAggregationPartition[A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_aggregation_partition.go#L67">Configure</a></h3>
+      <div class="sourceCode" id="cb39"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MASTAggregationPartition<span class="op">[</span>A<span class="op">])</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p>Configure implements simulator.Iteration.</p>
+      <p><a name="MASTAggregationPartition[A].Iterate"></a></p>
+      <h3 id="func-mastaggregationpartitiona-iterate">func
+      (*MASTAggregationPartition[A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_aggregation_partition.go#L86-L91">Iterate</a></h3>
+      <div class="sourceCode" id="cb40"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MASTAggregationPartition<span class="op">[</span>A<span class="op">])</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p>Iterate implements simulator.Iteration.</p>
+      <p><a name="MASTRolloutPartition"></a></p>
+      <h2 id="type-mastrolloutpartition">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_rollout_partition.go#L54-L66">MASTRolloutPartition</a></h2>
+      <p>MASTRolloutPartition is a stochadex iteration that runs one
+      MAST-biased rollout per step. It reads the leaf state from an
+      upstream MCTSTreePartition (within-step), reads the running
+      aggregates from a MASTAggregationPartition (lag-1, via
+      params_as_partitions), runs a playout sampling each ply via
+      softmax over the aggregates, and emits the per-player scores plus
+      the (key_idx, reward) path that the MASTAggregationPartition will
+      absorb on the next step.</p>
+      <p>Row layout (width = Players + 2 + 2 * MaxPath):</p>
+      <div class="sourceCode" id="cb41"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span><span class="dv">0</span> <span class="op">..</span> Players<span class="op">-</span><span class="dv">1</span><span class="op">]</span>                           per<span class="op">-</span>player <span class="op">[</span><span class="dv">0</span><span class="op">,</span><span class="dv">1</span><span class="op">]</span> scores</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>Players<span class="op">]</span>                                  ok flag <span class="op">(</span><span class="dv">1</span> <span class="op">=</span> scores valid<span class="op">)</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>Players<span class="op">+</span><span class="dv">1</span><span class="op">]</span>                                num_path <span class="op">(</span>length of valid pairs<span class="op">)</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>Players<span class="op">+</span><span class="dv">2</span> <span class="op">..</span> Players<span class="op">+</span><span class="dv">1</span><span class="op">+</span><span class="dv">2</span><span class="op">*</span>MaxPath<span class="op">]</span>         <span class="op">(</span>key_idx<span class="op">,</span> reward<span class="op">)</span> pairs<span class="op">,</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>                                              padded with zeros</span></code></pre></div>
+      <p>The (num_path, pairs…) suffix matches
+      MASTAggregationParamUpdates so the downstream
+      MASTAggregationPartition can read it as a single slice.</p>
+      <p>Warm fields (must be set before Configure):</p>
+      <ul>
+      <li>Env: the typed Environment[S, A] to roll out against.</li>
+      <li>Cfg: must have RolloutMaxSteps; the rollout function in Cfg is
+      ignored (this partition implements its own MAST-biased
+      sampling).</li>
+      <li>Decoder: decodes the leaf_state from the upstream-supplied
+      slice.</li>
+      <li>KeyToIdx: maps an action to a bounded index in [0,
+      MaxKeys).</li>
+      <li>MaxKeys: same K as the MASTAggregationPartition this is wired
+      to.</li>
+      <li>MaxPath: maximum number of (key, reward) updates emitted per
+      rollout. Paths longer than this are truncated.</li>
+      <li>Players: per-player score vector length.</li>
+      <li>Tau: softmax temperature (MASTDefaultTau if &lt;= 0).</li>
+      <li>Progress: optional [0,1] per-player progress proxy used to
+      score truncated rollouts.</li>
+      </ul>
+      <div class="sourceCode" id="cb42"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MASTRolloutPartition<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    Env      Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    Cfg      MCTSConfig<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    Decoder  <span class="kw">func</span><span class="op">([]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">(</span>S<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    KeyToIdx <span class="kw">func</span><span class="op">(</span>A<span class="op">)</span> <span class="dt">int</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    MaxKeys  <span class="dt">int</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    MaxPath  <span class="dt">int</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>    Players  <span class="dt">int</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>    Tau      <span class="dt">float64</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>    Progress <span class="kw">func</span><span class="op">(</span>s S<span class="op">,</span> player <span class="dt">int</span><span class="op">)</span> <span class="op">(</span><span class="dt">float64</span><span class="op">,</span> <span class="dt">bool</span><span class="op">)</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="MASTRolloutPartition[S, A].Configure"></a></p>
+      <h3 id="func-mastrolloutpartitions-a-configure">func
+      (*MASTRolloutPartition[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_rollout_partition.go#L89">Configure</a></h3>
+      <div class="sourceCode" id="cb43"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MASTRolloutPartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p>Configure implements simulator.Iteration.</p>
+      <p><a name="MASTRolloutPartition[S, A].Iterate"></a></p>
+      <h3 id="func-mastrolloutpartitions-a-iterate">func
+      (*MASTRolloutPartition[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mast_rollout_partition.go#L119-L124">Iterate</a></h3>
+      <div class="sourceCode" id="cb44"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MASTRolloutPartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p>Iterate implements simulator.Iteration.</p>
+      <p><a name="MCTSConfig"></a></p>
+      <h2 id="type-mctsconfig">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_config.go#L21-L28">MCTSConfig</a></h2>
+      <p>MCTSConfig holds UCT hyperparameters and the rollout
+      driver.</p>
+      <p>Rollout is the single graded rollout signature: it returns a
+      per-player score vector in [0,1] and an ok flag (false signals “no
+      signal” — caller counts the visit but skips the win credit). For
+      binary winner games or games using a Progress proxy, build the
+      rollout from helpers in rollout.go (UniformRandomRollout,
+      OneHotFromWinner, FromProgress).</p>
+      <p>Progress is an optional per-state, per-player [0,1] value proxy
+      used by the FromProgress rollout adapter to score truncated
+      rollouts.</p>
+      <div class="sourceCode" id="cb45"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MCTSConfig<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>    Simulations     <span class="dt">int</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>    Exploration     <span class="dt">float64</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    MaxTreeDepth    <span class="dt">int</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    RolloutMaxSteps <span class="dt">int</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>    Rollout         MCTSRolloutFn<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    Progress        <span class="kw">func</span><span class="op">(</span>s S<span class="op">,</span> player <span class="dt">int</span><span class="op">)</span> <span class="op">(</span><span class="dt">float64</span><span class="op">,</span> <span class="dt">bool</span><span class="op">)</span></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="MCTSConfig[S, A].ApplyDefaults"></a></p>
+      <h3 id="func-mctsconfigs-a-applydefaults">func (*MCTSConfig[S, A])
+      <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_config.go#L36">ApplyDefaults</a></h3>
+      <div class="sourceCode" id="cb46"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>MCTSConfig<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> ApplyDefaults<span class="op">()</span></span></code></pre></div>
+      <p>ApplyDefaults fills in zero-valued hyperparameters with the
+      package defaults, mutating the receiver. Called once at the start
+      of each search run; safe to call multiple times.</p>
+      <p>Exported so external packages building on MCTSConfig can share
+      the defaults logic without duplicating it.</p>
+      <p><a name="MCTSEdgeStat"></a></p>
+      <h2 id="type-mctsedgestat">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/environment.go#L25-L29">MCTSEdgeStat</a></h2>
+      <p>MCTSEdgeStat is per-action telemetry exposed at the root after
+      a search. Useful for JSON reports or logging the search’s
+      distribution over moves.</p>
+      <div class="sourceCode" id="cb47"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MCTSEdgeStat<span class="op">[</span>A <span class="dt">any</span><span class="op">]</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>    Action       A       <span class="st">`json:&quot;action&quot;`</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    Visits       <span class="dt">int</span>     <span class="st">`json:&quot;visits&quot;`</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>    MeanForActor <span class="dt">float64</span> <span class="st">`json:&quot;mean_for_actor&quot;`</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="RunMCTSSearch"></a></p>
+      <h3 id="func-runmctssearch">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_run_search.go#L14-L20">RunMCTSSearch</a></h3>
+      <div class="sourceCode" id="cb48"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> RunMCTSSearch<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">](</span>env Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> root S<span class="op">,</span> cfg MCTSConfig<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> baseSeed <span class="dt">uint64</span><span class="op">,</span> sims <span class="dt">int</span><span class="op">)</span> <span class="op">(</span>A<span class="op">,</span> <span class="op">[]</span>MCTSEdgeStat<span class="op">[</span>A<span class="op">],</span> <span class="dt">error</span><span class="op">)</span></span></code></pre></div>
+      <p>RunMCTSSearch runs sims UCT simulations from root and returns
+      the best legal action plus per-edge stats. Independent of
+      stochadex partitions — useful for one-shot “what’s the best move?”
+      queries.</p>
+      <p>Defaults are filled in from the package constants. If
+      cfg.Rollout is nil, UniformRandomRollout is used.</p>
+      <p><a name="MCTSRolloutFn"></a></p>
+      <h2 id="type-mctsrolloutfn">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_rollout.go#L15">MCTSRolloutFn</a></h2>
+      <p>MCTSRolloutFn is the single rollout signature used by the
+      search. It runs a stochastic playout from s for at most maxSteps
+      actions and returns:</p>
+      <ul>
+      <li>scores: per-player [0,1] score vector (length
+      Players(s)).</li>
+      <li>ok: false signals “no signal” — the caller counts the
+      simulation as a visit but does not credit any win, so UCB
+      exploration still progresses.</li>
+      <li>err: a hard failure (e.g. Apply rejected what it claimed was
+      legal); the caller treats this like ok=false.</li>
+      </ul>
+      <p>The seed argument is the rollout’s full RNG seed;
+      implementations should be deterministic given the same seed.</p>
+      <div class="sourceCode" id="cb49"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MCTSRolloutFn<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]</span> <span class="kw">func</span><span class="op">(</span>env Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> s S<span class="op">,</span> maxSteps <span class="dt">int</span><span class="op">,</span> seed <span class="dt">uint64</span><span class="op">)</span> <span class="op">(</span>scores <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> ok <span class="dt">bool</span><span class="op">,</span> err <span class="dt">error</span><span class="op">)</span></span></code></pre></div>
+      <p><a name="FromProgress"></a></p>
+      <h3 id="func-fromprogress">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_rollout.go#L60-L63">FromProgress</a></h3>
+      <div class="sourceCode" id="cb50"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> FromProgress<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">](</span>inner MCTSRolloutFn<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> progress <span class="kw">func</span><span class="op">(</span>s S<span class="op">,</span> player <span class="dt">int</span><span class="op">)</span> <span class="op">(</span><span class="dt">float64</span><span class="op">,</span> <span class="dt">bool</span><span class="op">))</span> MCTSRolloutFn<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span></code></pre></div>
+      <p>FromProgress wraps an inner rollout so that truncated rollouts
+      (ok=false from inner) are rescued by scoring the final state via
+      the supplied progress function. progress returns a per-player
+      [0,1] proxy of “how close is this player to winning” and an ok
+      flag (false = no proxy available for that player; treated as
+      0).</p>
+      <p>All-equal progress vectors carry no comparative signal and are
+      treated as no signal (ok=false from the wrapper) so the search
+      relies on UCB exploration alone — see the docstring on
+      MCTSTree.backupVisits for the stall-move failure mode this
+      avoids.</p>
+      <p>FromProgress needs to know the final state of the inner
+      rollout, so it re-runs the playout itself rather than wrapping
+      inner. The inner rollout is therefore only consulted for early
+      termination.</p>
+      <p><a name="UniformRandomRollout"></a></p>
+      <h3 id="func-uniformrandomrollout">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_rollout.go#L23">UniformRandomRollout</a></h3>
+      <div class="sourceCode" id="cb51"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> UniformRandomRollout<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]()</span> MCTSRolloutFn<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span></code></pre></div>
+      <p>UniformRandomRollout returns a MCTSRolloutFn that plays
+      uniformly random legal actions until either Terminal returns done
+      or maxSteps is reached. On termination the env’s Terminal scores
+      are returned. On truncation (maxSteps reached without termination)
+      the rollout returns ok=false — compose with FromProgress if you
+      have a progress proxy to score truncated rollouts.</p>
+      <p><a name="MCTSRolloutPartition"></a></p>
+      <h2 id="type-mctsrolloutpartition">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_rollout_partition.go#L31-L38">MCTSRolloutPartition</a></h2>
+      <p>MCTSRolloutPartition runs one rollout per stochadex step. It
+      reads the leaf state to roll out from via params_from_upstream
+      (typically wired to a MCTSTreePartition’s leaf_state slot via
+      Indices) and outputs a per-player score vector plus an ok flag in
+      its own row.</p>
+      <p>Row layout (width = Players + 1):</p>
+      <div class="sourceCode" id="cb52"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span><span class="dv">0</span> <span class="op">..</span> Players<span class="op">-</span><span class="dv">1</span><span class="op">]</span>   per<span class="op">-</span>player <span class="op">[</span><span class="dv">0</span><span class="op">,</span><span class="dv">1</span><span class="op">]</span> scores from the rollout</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>Players<span class="op">]</span>          ok flag <span class="op">(</span><span class="dv">1</span> <span class="cf">if</span> the rollout produced valid scores<span class="op">,</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>                      <span class="dv">0</span> otherwise — the upstream MCTSTreePartition uses</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>                      this to decide whether to apply backupScores or</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>                      backupVisits with no signal<span class="op">)</span></span></code></pre></div>
+      <p>Use MCTSRolloutRowWidth(P) to size InitStateValues /
+      state_width.</p>
+      <p>Stateless across steps — each Iterate is one independent
+      rollout. Swap in FromProgress, WinnerToTerminal, or any custom
+      MCTSRolloutFn via Cfg.Rollout without touching the partition
+      wiring.</p>
+      <p>Warm fields (must be set before Configure):</p>
+      <ul>
+      <li>Env: the typed Environment[S, A] to roll out against.</li>
+      <li>Cfg: must have Rollout set (the rollout function to
+      invoke).</li>
+      <li>Decoder: decodes the leaf_state from the upstream-supplied
+      []float64 back into the typed S.</li>
+      <li>Players: P, the per-player score vector length.</li>
+      </ul>
+      <div class="sourceCode" id="cb53"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MCTSRolloutPartition<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>    Env     Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>    Cfg     MCTSConfig<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>    Decoder <span class="kw">func</span><span class="op">([]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">(</span>S<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>    Players <span class="dt">int</span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="MCTSRolloutPartition[S, A].Configure"></a></p>
+      <h3 id="func-mctsrolloutpartitions-a-configure">func
+      (*MCTSRolloutPartition[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_rollout_partition.go#L55">Configure</a></h3>
+      <div class="sourceCode" id="cb54"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MCTSRolloutPartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p>Configure implements simulator.Iteration.</p>
+      <p><a name="MCTSRolloutPartition[S, A].Iterate"></a></p>
+      <h3 id="func-mctsrolloutpartitions-a-iterate">func
+      (*MCTSRolloutPartition[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_rollout_partition.go#L73-L78">Iterate</a></h3>
+      <div class="sourceCode" id="cb55"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MCTSRolloutPartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p>Iterate implements simulator.Iteration.</p>
+      <p><a name="MCTSTree"></a></p>
+      <h2 id="type-mctstree">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L27-L29">MCTSTree</a></h2>
+      <p>MCTSTree is the in-memory UCT search tree for a fixed root
+      state. Methods are not safe for concurrent use; one MCTSTree per
+      goroutine.</p>
+      <p>The MCTSTree owns no environment or config — those are passed
+      in to RunOne per-simulation. This makes MCTSTree easy to embed in
+      iterations that may want to tweak config between simulations
+      (e.g. adaptive exploration).</p>
+      <div class="sourceCode" id="cb56"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MCTSTree<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="NewMCTSTree"></a></p>
+      <h3 id="func-newmctstree">func <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L32">NewMCTSTree</a></h3>
+      <div class="sourceCode" id="cb57"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewMCTSTree<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">](</span>root S<span class="op">)</span> <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span></code></pre></div>
+      <p>NewMCTSTree returns a MCTSTree with a single root node
+      containing root.</p>
+      <p><a name="MCTSTree[S, A].AdvanceRoot"></a></p>
+      <h3 id="func-mctstrees-a-advanceroot">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L350">AdvanceRoot</a></h3>
+      <div class="sourceCode" id="cb58"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> AdvanceRoot<span class="op">(</span>env Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> legalIdx <span class="dt">int</span><span class="op">)</span></span></code></pre></div>
+      <p>AdvanceRoot promotes the root’s child at the given legal index
+      to be the new root, preserving its subtree (classic MCTS tree
+      reuse). If that child was never expanded, the tree is rebuilt
+      fresh from the resulting state.</p>
+      <p>env is needed to compute the post-move state if the subtree is
+      missing.</p>
+      <p><a name="MCTSTree[S, A].BackupScores"></a></p>
+      <h3 id="func-mctstrees-a-backupscores">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L155">BackupScores</a></h3>
+      <div class="sourceCode" id="cb59"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> BackupScores<span class="op">(</span>path <span class="op">[]</span><span class="dt">int</span><span class="op">,</span> scores <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
+      <p>BackupScores credits each node along path with the score
+      belonging to its actor (visits and wins both increment). Exported
+      wrapper around the internal backupScores so iterations split
+      across selection / rollout / backup partitions can apply the
+      scores when they arrive.</p>
+      <p><a name="MCTSTree[S, A].BackupVisits"></a></p>
+      <h3 id="func-mctstrees-a-backupvisits">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L162">BackupVisits</a></h3>
+      <div class="sourceCode" id="cb60"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> BackupVisits<span class="op">(</span>path <span class="op">[]</span><span class="dt">int</span><span class="op">,</span> scores <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
+      <p>BackupVisits is the no-signal-tolerant variant: visits always
+      increment, but wins are only credited when scores is non-nil. See
+      backupVisits docs for the engine-stall reasoning.</p>
+      <p><a name="MCTSTree[S, A].NodeCount"></a></p>
+      <h3 id="func-mctstrees-a-nodecount">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L61">NodeCount</a></h3>
+      <div class="sourceCode" id="cb61"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> NodeCount<span class="op">()</span> <span class="dt">int</span></span></code></pre></div>
+      <p>NodeCount returns the number of nodes currently in the tree
+      (including the root). Useful for telemetry and capacity
+      tuning.</p>
+      <p><a name="MCTSTree[S, A].Reset"></a></p>
+      <h3 id="func-mctstrees-a-reset">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L45">Reset</a></h3>
+      <div class="sourceCode" id="cb62"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Reset<span class="op">(</span>root S<span class="op">)</span></span></code></pre></div>
+      <p>Reset replaces the entire tree with a fresh root at the given
+      state. Use when no usable subtree exists (opening move, or after
+      an external change to the root).</p>
+      <p><a name="MCTSTree[S, A].Root"></a></p>
+      <h3 id="func-mctstrees-a-root">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L55">Root</a></h3>
+      <div class="sourceCode" id="cb63"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Root<span class="op">()</span> S</span></code></pre></div>
+      <p>Root returns the root state.</p>
+      <p><a name="MCTSTree[S, A].RootBestLegalIdx"></a></p>
+      <h3 id="func-mctstrees-a-rootbestlegalidx">func (*MCTSTree[S, A])
+      <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L424">RootBestLegalIdx</a></h3>
+      <div class="sourceCode" id="cb64"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> RootBestLegalIdx<span class="op">()</span> <span class="op">(</span><span class="dt">int</span><span class="op">,</span> <span class="dt">bool</span><span class="op">)</span></span></code></pre></div>
+      <p>RootBestLegalIdx returns the most-visited (then most-winning)
+      child legal index. Ties are broken via reservoir sampling over
+      equally-good children so the choice is not biased toward the
+      first-listed action — important for engine-heavy games where the
+      first listed legal action is often a stall (recycle, pass) and a
+      deterministic first-tie pick would deadlock the agent. Reservoir
+      randomness is seeded from the current tree shape so the result is
+      reproducible without taking an external rng.</p>
+      <p><a name="MCTSTree[S, A].RootEdgeStats"></a></p>
+      <h3 id="func-mctstrees-a-rootedgestats">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L461">RootEdgeStats</a></h3>
+      <div class="sourceCode" id="cb65"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> RootEdgeStats<span class="op">(</span>legal <span class="op">[]</span>A<span class="op">)</span> <span class="op">[]</span>MCTSEdgeStat<span class="op">[</span>A<span class="op">]</span></span></code></pre></div>
+      <p>RootEdgeStats reports per-action visit counts and
+      mean-for-actor for each expanded child of the root. legal must be
+      the same slice ordering used by the env’s Legal(root); pass
+      env.Legal(tree.Root()) at the call site.</p>
+      <p><a name="MCTSTree[S, A].RootStatsByLegalIdx"></a></p>
+      <h3 id="func-mctstrees-a-rootstatsbylegalidx">func (*MCTSTree[S,
+      A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L170">RootStatsByLegalIdx</a></h3>
+      <div class="sourceCode" id="cb66"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> RootStatsByLegalIdx<span class="op">(</span>maxLegalActions <span class="dt">int</span><span class="op">)</span> <span class="op">(</span>visits<span class="op">,</span> wins <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
+      <p>RootStatsByLegalIdx returns per-legal-action visit counts and
+      win sums at the root, padded with zeros up to maxLegalActions.
+      Returns (visits, wins) each of length maxLegalActions. Used to
+      expose root statistics in fixed-width row layouts.</p>
+      <p><a name="MCTSTree[S, A].RunOne"></a></p>
+      <h3 id="func-mctstrees-a-runone">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L194">RunOne</a></h3>
+      <div class="sourceCode" id="cb67"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> RunOne<span class="op">(</span>env Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> cfg <span class="op">*</span>MCTSConfig<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> rng <span class="op">*</span>rand<span class="op">.</span>Rand<span class="op">)</span></span></code></pre></div>
+      <p>RunOne does one UCT iteration: selection → expansion → rollout
+      → backup. rng must be seeded by the caller; one call uses one
+      RNG.</p>
+      <p>Calls cfg.applyDefaults() so a fresh MCTSConfig with only
+      Rollout set works out of the box. The mutation is idempotent (only
+      zero values are filled).</p>
+      <p>RunOne is the all-in-one path used by RunMCTSSearch and by
+      callers who don’t need the selection / rollout / backup phases as
+      separate stochadex partitions. For the decomposed pipeline use
+      SelectLeaf + BackupScores.</p>
+      <p><a name="MCTSTree[S, A].SelectLeaf"></a></p>
+      <h3 id="func-mctstrees-a-selectleaf">func (*MCTSTree[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree.go#L81">SelectLeaf</a></h3>
+      <div class="sourceCode" id="cb68"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> SelectLeaf<span class="op">(</span>env Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> cfg <span class="op">*</span>MCTSConfig<span class="op">[</span>S<span class="op">,</span> A<span class="op">],</span> rng <span class="op">*</span>rand<span class="op">.</span>Rand<span class="op">)</span> <span class="op">(</span>path <span class="op">[]</span><span class="dt">int</span><span class="op">,</span> leafState S<span class="op">,</span> leafIdx <span class="dt">int</span><span class="op">,</span> ok <span class="dt">bool</span><span class="op">)</span></span></code></pre></div>
+      <p>SelectLeaf walks the tree from the root using UCB1 (with
+      first-visit preference for unvisited children) until it reaches an
+      unexpanded edge, then expands it by creating a new child node.
+      Returns the path of node indices from the root’s child down to the
+      new leaf, the leaf’s state, the leaf’s node index, and ok=true.
+      Returns ok=false if the root is terminal, has no legal moves,
+      MaxTreeDepth is reached, or env.Apply fails during expansion (the
+      caller should treat this as “no leaf selected this step”).</p>
+      <p>SelectLeaf does NOT roll out and does NOT back up — it is the
+      (selection + expansion) half of one MCTS iteration. Pair it with
+      MCTSTree.BackupScores or MCTSTree.BackupVisits to apply the scores
+      when they arrive.</p>
+      <p>Calls cfg.applyDefaults() so a fresh MCTSConfig works out of
+      the box. The mutation is idempotent (only zero values are
+      filled).</p>
+      <p><a name="MCTSTreePartition"></a></p>
+      <h2 id="type-mctstreepartition">type <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree_partition.go#L65-L79">MCTSTreePartition</a></h2>
+      <p>MCTSTreePartition runs the (selection + expansion + backup)
+      phase of a UCT MCTS search as a stochadex iteration. The tree
+      itself lives on the struct (graph state, fundamentally not
+      []float64-shaped); the partition row exposes a fixed-width summary
+      that downstream partitions can consume via
+      params_from_upstream:</p>
+      <div class="sourceCode" id="cb69"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>MCTSTreeRowBestRootIdx<span class="op">]</span>                        — most<span class="op">-</span>visited root</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>                                                 legal<span class="op">-</span>action index</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>                                                 after the most recent</span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>                                                 update <span class="op">(-</span><span class="dv">1</span> <span class="cf">if</span> not</span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>                                                 yet decided<span class="op">)</span></span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>MCTSTreeRowLeafStateOffset <span class="op">..</span> <span class="op">+</span>StateWidth<span class="op">-</span><span class="dv">1</span><span class="op">]</span>   — encoded state of the</span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>                                                 leaf the search just</span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>                                                 selected <span class="op">(</span>input to a</span>
+<span id="cb69-9"><a href="#cb69-9" aria-hidden="true" tabindex="-1"></a>                                                 rollout partition<span class="op">)</span></span>
+<span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>MCTSTreeRowHasLeafOffset<span class="op">(</span>W<span class="op">)]</span>                   — <span class="dv">1</span> <span class="cf">if</span> the leaf_state</span>
+<span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a>                                                 slot is <span class="bu">real</span><span class="op">,</span> <span class="dv">0</span></span>
+<span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>                                                 otherwise <span class="op">(</span>used by</span>
+<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a>                                                 rollout partitions to</span>
+<span id="cb69-14"><a href="#cb69-14" aria-hidden="true" tabindex="-1"></a>                                                 short<span class="op">-</span>circuit when</span>
+<span id="cb69-15"><a href="#cb69-15" aria-hidden="true" tabindex="-1"></a>                                                 nothing has been</span>
+<span id="cb69-16"><a href="#cb69-16" aria-hidden="true" tabindex="-1"></a>                                                 selected yet<span class="op">)</span></span>
+<span id="cb69-17"><a href="#cb69-17" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>MCTSTreeRowVisitsOffset<span class="op">(</span>W<span class="op">)</span> <span class="op">..</span> <span class="op">+</span>MaxLegalActions<span class="op">-</span><span class="dv">1</span><span class="op">]</span> — per<span class="op">-</span>legal<span class="op">-</span>action</span>
+<span id="cb69-18"><a href="#cb69-18" aria-hidden="true" tabindex="-1"></a>                                                    root visit counts<span class="op">,</span></span>
+<span id="cb69-19"><a href="#cb69-19" aria-hidden="true" tabindex="-1"></a>                                                    padded with zeros</span>
+<span id="cb69-20"><a href="#cb69-20" aria-hidden="true" tabindex="-1"></a>row<span class="op">[</span>MCTSTreeRowWinsOffset<span class="op">(</span>W<span class="op">,</span>K<span class="op">)</span> <span class="op">..</span> <span class="op">+</span>MaxLegalActions<span class="op">-</span><span class="dv">1</span><span class="op">]</span> — per<span class="op">-</span>legal<span class="op">-</span>action</span>
+<span id="cb69-21"><a href="#cb69-21" aria-hidden="true" tabindex="-1"></a>                                                    root win sums<span class="op">,</span></span>
+<span id="cb69-22"><a href="#cb69-22" aria-hidden="true" tabindex="-1"></a>                                                    padded with zeros</span></code></pre></div>
+      <p>Use MCTSTreeRowWidth(W, K) to compute the required state_width
+      / init slice length.</p>
+      <h3 id="pipeline-lag">Pipeline lag</h3>
+      <p>MCTSTreePartition is one half of a 2-step pipeline with a
+      downstream rollout partition. The rollout partition reads
+      (leaf_state, has_leaf) and outputs scores; MCTSTreePartition then
+      reads those scores via params_from_upstream (key
+      MCTSTreeParamRolloutScores) and applies a backup to the path it
+      selected two steps earlier. The 2-step lag is fundamental to
+      expressing selection-then-backup as stochadex’s single-row
+      dataflow.</p>
+      <p>In steady state each outer step does one selection + one
+      backup, so the throughput is one MCTS iteration per stochadex step
+      (after a 2-step fill).</p>
+      <p>Warm fields (must be set before Configure):</p>
+      <ul>
+      <li>Env: the typed Environment[S, A] to search.</li>
+      <li>Cfg: UCT hyperparameters and the rollout function (the rollout
+      fn here is only used by MCTSTree.RunOne when no upstream rollout
+      is wired — left nil if a separate MCTSRolloutPartition supplies
+      the scores).</li>
+      <li>Decoder, Encoder: codec for the leaf state slots.</li>
+      <li>MaxLegalActions: K, the maximum legal-action count at any
+      node. Stats slots beyond the actual legal count are
+      zero-padded.</li>
+      <li>StateWidth: W, the width of one encoded state.</li>
+      <li>Players: P, the per-player score vector length.</li>
+      </ul>
+      <div class="sourceCode" id="cb70"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> MCTSTreePartition<span class="op">[</span>S <span class="dt">any</span><span class="op">,</span> A <span class="dt">any</span><span class="op">]</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>    Env             Environment<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>    Cfg             MCTSConfig<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>    Decoder         <span class="kw">func</span><span class="op">([]</span><span class="dt">float64</span><span class="op">)</span> <span class="op">(</span>S<span class="op">,</span> <span class="dt">error</span><span class="op">)</span></span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>    Encoder         <span class="kw">func</span><span class="op">(</span>S<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>    MaxLegalActions <span class="dt">int</span></span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>    StateWidth      <span class="dt">int</span></span>
+<span id="cb70-8"><a href="#cb70-8" aria-hidden="true" tabindex="-1"></a>    Players         <span class="dt">int</span></span>
+<span id="cb70-9"><a href="#cb70-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// contains filtered or unexported fields</span></span>
+<span id="cb70-10"><a href="#cb70-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+      <p><a name="MCTSTreePartition[S, A].Configure"></a></p>
+      <h3 id="func-mctstreepartitions-a-configure">func
+      (*MCTSTreePartition[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree_partition.go#L143">Configure</a></h3>
+      <div class="sourceCode" id="cb71"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MCTSTreePartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>simulator<span class="op">.</span>Settings<span class="op">)</span></span></code></pre></div>
+      <p>Configure implements simulator.Iteration. Decodes the encoded
+      root from is.InitStateValues[1 .. 1+StateWidth] and resets the
+      tree. The first slot (MCTSTreeRowBestRootIdx) and the stats slots
+      can be left zero in the init: best_root_idx is initialised to -1
+      to signal “not yet decided”.</p>
+      <p><a name="MCTSTreePartition[S, A].Iterate"></a></p>
+      <h3 id="func-mctstreepartitions-a-iterate">func
+      (*MCTSTreePartition[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree_partition.go#L181-L186">Iterate</a></h3>
+      <div class="sourceCode" id="cb72"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MCTSTreePartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> Iterate<span class="op">(</span>params <span class="op">*</span>simulator<span class="op">.</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>simulator<span class="op">.</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>simulator<span class="op">.</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
+      <p>Iterate implements simulator.Iteration.</p>
+      <p><a name="MCTSTreePartition[S, A].MCTSTree"></a></p>
+      <h3 id="func-mctstreepartitions-a-mctstree">func
+      (*MCTSTreePartition[S, A]) <a
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/agents/mcts_tree_partition.go#L311">MCTSTree</a></h3>
+      <div class="sourceCode" id="cb73"><pre
+      class="sourceCode go"><code class="sourceCode go"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>m <span class="op">*</span>MCTSTreePartition<span class="op">[</span>S<span class="op">,</span> A<span class="op">])</span> MCTSTree<span class="op">()</span> <span class="op">*</span>MCTSTree<span class="op">[</span>S<span class="op">,</span> A<span class="op">]</span></span></code></pre></div>
+      <p>MCTSTree exposes the underlying search tree (typically for
+      telemetry).</p>
+      <p>Generated by <a
+      href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
+    </div>
+  </main>
+
+  <script>
+    // Mobile sidebar toggle
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+
+    // Set active navigation item
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('.nav-links a');
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && currentPath.includes(href.replace('../', ''))) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

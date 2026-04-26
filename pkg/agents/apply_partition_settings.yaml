@@ -1,0 +1,25 @@
+iterations:
+  # idx_provider mocks an upstream best_legal_idx signal: always emits
+  # legal-action index 0 (the first available legal action). This is just
+  # enough to drive the apply partition's row through a sequence of
+  # plies in the harness/run tests.
+  - name: idx_provider
+    params: {}
+    init_state_values: [0]
+    seed: 0
+    state_width: 1
+    state_history_depth: 1
+  - name: apply
+    params: {}
+    params_from_upstream:
+      best_legal_idx:
+        upstream: 0
+        indices: [0]
+    init_state_values:
+      # Encoded empty TTT board (10 floats: 9 cells + current player).
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    seed: 0
+    state_width: 10
+    state_history_depth: 1
+init_time_value: 0.0
+timesteps_history_depth: 1

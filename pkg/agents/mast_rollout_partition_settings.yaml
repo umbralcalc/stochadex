@@ -1,0 +1,38 @@
+iterations:
+  # leaf_provider mocks an upstream tree partition emitting [encoded_leaf,
+  # has_leaf]. Encoded TTT empty board (10 floats: 9 cells + current
+  # player) plus has_leaf=1.
+  - name: leaf_provider
+    params: {}
+    init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+    seed: 0
+    state_width: 11
+    state_history_depth: 1
+  # agg_provider mocks the MASTAggregationPartition's row state. We start
+  # with all zeros so the rollout falls back to uniform sampling.
+  # MASTAggregationRowWidth(MaxKeys=9) = 18.
+  - name: agg_provider
+    params: {}
+    init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    seed: 0
+    state_width: 18
+    state_history_depth: 1
+  - name: rollout
+    params:
+      # params_as_partitions resolution happens at PartitionConfig
+      # generation time, not at Settings YAML load. Inline the resolved
+      # index directly: agg_provider is partition index 1.
+      mast_aggregates_partition: [1]
+    params_from_upstream:
+      leaf:
+        upstream: 0
+        indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    init_state_values:
+      # MASTRolloutRowWidth(P=2, MaxPath=9) = 2 + 2 + 18 = 22.
+      [0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    seed: 7777
+    state_width: 22
+    state_history_depth: 1
+init_time_value: 0.0
+timesteps_history_depth: 1

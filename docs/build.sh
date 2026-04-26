@@ -118,9 +118,6 @@ generate_html_pages() {
     log_info "Generating home page..."
     pandoc --template "$DOCS_DIR/template.html" \
         --wrap=preserve \
-        --citeproc \
-        --csl="$DOCS_DIR/ieee.csl" \
-        --bibliography="$DOCS_DIR/biblio.bib" \
         --mathjax \
         --syntax-highlighting=pygments \
         --metadata="is-home:true" \
@@ -135,9 +132,6 @@ generate_html_pages() {
         local title=$(grep -E '^title:' "$DOCS_DIR/quickstart.md" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "Quickstart")
         pandoc --template "$DOCS_DIR/template.html" \
             --wrap=preserve \
-            --citeproc \
-            --csl="$DOCS_DIR/ieee.csl" \
-            --bibliography="$DOCS_DIR/biblio.bib" \
             --mathjax \
             --syntax-highlighting=pygments \
             --metadata="title:$title" \
@@ -301,18 +295,25 @@ validate_build() {
         ((errors++))
     fi
     
-    # Check for broken anchor links (verify href="#id" targets exist in the same file)
+    # Check for broken anchor links (verify href="#id" targets exist in the same file).
     # Pandoc lowercases IDs and may add prefixes (e.g., func-, type-), so we check
-    # case-insensitively whether the anchor appears as a suffix of any id in the file.
+    # case-insensitively whether the anchor appears as a substring of any id/name.
+    # Targets are id="..." attributes AND <a name="..."> anchors (gomarkdoc emits the
+    # latter, e.g. for generic methods like <a name="MCTSTree[S, A].AdvanceRoot">).
+    # Hrefs are URL-decoded before comparison so %5B/%20 match the literal [/space
+    # characters that gomarkdoc puts in name attributes.
     for html_file in "$DOCS_DIR"/*.html "$DOCS_DIR"/pkg/*.html; do
         if [ ! -f "$html_file" ]; then
             continue
         fi
-        local ids=$(grep -oE 'id="[^"]+' "$html_file" | sed 's/id="//' | tr '[:upper:]' '[:lower:]' | sort -u)
+        local targets=$( { grep -oE 'id="[^"]+' "$html_file" | sed 's/id="//'; \
+                           grep -oE 'name="[^"]+' "$html_file" | sed 's/name="//'; } \
+                         | tr '[:upper:]' '[:lower:]' | sort -u)
         local anchors=$(grep -oE 'href="#[^"]+' "$html_file" | sed 's/href="#//' | sort -u)
         for anchor in $anchors; do
-            local anchor_lower=$(echo "$anchor" | tr '[:upper:]' '[:lower:]')
-            if ! echo "$ids" | grep -q "$anchor_lower"; then
+            local anchor_decoded=$(printf '%b' "${anchor//%/\\x}")
+            local anchor_lower=$(echo "$anchor_decoded" | tr '[:upper:]' '[:lower:]')
+            if ! echo "$targets" | grep -qF "$anchor_lower"; then
                 log_warning "Broken anchor link #$anchor in $(basename "$html_file")"
             fi
         done
