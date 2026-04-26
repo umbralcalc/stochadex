@@ -3,9 +3,9 @@ package agents_test
 import (
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/agents"
-	"github.com/umbralcalc/stochadex/pkg/agents/agentstest"
+	"github.com/umbralcalc/stochadex/pkg/general"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -17,7 +17,7 @@ import (
 func newMASTAggregationImpls() []simulator.Iteration {
 	return []simulator.Iteration{
 		&general.ConstantValuesIteration{},
-		&agents.MASTAggregationIteration[agentstest.TTTAction]{MaxKeys: 4},
+		&agents.MASTAggregationIteration[agents.TTTAction]{MaxKeys: 4},
 	}
 }
 
@@ -25,7 +25,7 @@ func TestMASTAggregationIteration(t *testing.T) {
 	t.Run(
 		"test that the MAST aggregation partition runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mast_aggregation_iteration_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./mast_aggregation_settings.yaml")
 			iterations := newMASTAggregationImpls()
 			for partitionIndex, iter := range iterations {
 				iter.Configure(partitionIndex, settings)
@@ -76,7 +76,7 @@ func TestMASTAggregationIteration(t *testing.T) {
 	t.Run(
 		"test that the MAST aggregation partition runs with harnesses",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mast_aggregation_iteration_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./mast_aggregation_settings.yaml")
 			iterations := newMASTAggregationImpls()
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
@@ -108,7 +108,7 @@ func TestMASTAggregationIterationRowLayout(t *testing.T) {
 
 func TestMASTAggregationIterationDropsOutOfRangeKeys(t *testing.T) {
 	provider := &general.ConstantValuesIteration{}
-	agg := &agents.MASTAggregationIteration[agentstest.TTTAction]{MaxKeys: 4}
+	agg := &agents.MASTAggregationIteration[agents.TTTAction]{MaxKeys: 4}
 	gen := simulator.NewConfigGenerator()
 	store := simulator.NewStateTimeStorage()
 	gen.SetSimulation(&simulator.SimulationConfig{

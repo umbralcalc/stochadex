@@ -11,33 +11,33 @@ package analysis_test
 import (
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/agents"
-	"github.com/umbralcalc/stochadex/pkg/agents/agentstest"
+	"github.com/umbralcalc/stochadex/pkg/analysis"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func ttSpec(initState agentstest.TTTState, simsPerPly int, seed uint64) analysis.MCTSSelfPlaySpec[agentstest.TTTState, agentstest.TTTAction] {
-	return analysis.MCTSSelfPlaySpec[agentstest.TTTState, agentstest.TTTAction]{
+func ttSpec(initState agents.TTTState, simsPerPly int, seed uint64) analysis.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction] {
+	return analysis.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction]{
 		Name: "ttt",
-		Env:  &agentstest.TTTGame{},
-		Cfg: agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{
-			Rollout: agents.UniformRandomRollout[agentstest.TTTState, agentstest.TTTAction](),
+		Env:  &agents.TTTGame{},
+		Cfg: agents.MCTSConfig[agents.TTTState, agents.TTTAction]{
+			Rollout: agents.UniformRandomRollout[agents.TTTState, agents.TTTAction](),
 		},
 		InitState:       initState,
-		Decoder:         agentstest.TTTDecode,
-		Encoder:         agentstest.TTTEncode,
+		Decoder:         agents.TTTDecode,
+		Encoder:         agents.TTTEncode,
 		SimsPerPly:      simsPerPly,
 		MaxLegalActions: 9,
-		StateWidth:      agentstest.TTTWidth,
+		StateWidth:      agents.TTTWidth,
 		Players:         2,
 		Seed:            seed,
 	}
 }
 
-func runOuter(t *testing.T, spec analysis.MCTSSelfPlaySpec[agentstest.TTTState, agentstest.TTTAction], outerSteps int) [][]float64 {
+func runOuter(t *testing.T, spec analysis.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction], outerSteps int) [][]float64 {
 	t.Helper()
-	parts := analysis.NewMCTSSelfPlayPartitions[agentstest.TTTState, agentstest.TTTAction](spec)
+	parts := analysis.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](spec)
 	gen := simulator.NewConfigGenerator()
 	store := simulator.NewStateTimeStorage()
 	gen.SetSimulation(&simulator.SimulationConfig{
@@ -56,11 +56,11 @@ func runOuter(t *testing.T, spec analysis.MCTSSelfPlaySpec[agentstest.TTTState, 
 }
 
 func TestSelfPlayPartitionsPlayGameToTermination(t *testing.T) {
-	rows := runOuter(t, ttSpec(agentstest.TTTState{}, 30, 7), 12)
+	rows := runOuter(t, ttSpec(agents.TTTState{}, 30, 7), 12)
 	if len(rows) < 2 {
 		t.Fatalf("expected multiple rows, got %d", len(rows))
 	}
-	last, err := agentstest.TTTDecode(rows[len(rows)-1])
+	last, err := agents.TTTDecode(rows[len(rows)-1])
 	if err != nil {
 		t.Fatalf("decode final row: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestSelfPlayPartitionsPlayGameToTermination(t *testing.T) {
 // best_idx and plays the winning move.
 func TestSelfPlayPartitionsFindWinFromForcedPosition(t *testing.T) {
 	// X has two in a row at 0, 1; cell 2 wins. X to move.
-	init := agentstest.TTTFromGrid([9]int8{1, 1, 0, 0, 2, 0, 0, 2, 0}, 0)
+	init := agents.TTTFromGrid([9]int8{1, 1, 0, 0, 2, 0, 0, 2, 0}, 0)
 	rows := runOuter(t, ttSpec(init, 200, 99), 3)
 	if len(rows) < 3 {
 		t.Fatalf("expected at least 3 rows, got %d", len(rows))
@@ -94,7 +94,7 @@ func TestSelfPlayPartitionsFindWinFromForcedPosition(t *testing.T) {
 	// Iterate). Row 1 = after step 1 (apply skipped because search hadn't
 	// produced a real best_idx yet). Row 2 = after step 2 (apply played
 	// the winning move).
-	step2, err := agentstest.TTTDecode(rows[2])
+	step2, err := agents.TTTDecode(rows[2])
 	if err != nil {
 		t.Fatalf("decode row 2: %v", err)
 	}
@@ -104,8 +104,8 @@ func TestSelfPlayPartitionsFindWinFromForcedPosition(t *testing.T) {
 }
 
 func TestSelfPlayPartitionsRunWithHarnesses(t *testing.T) {
-	parts := analysis.NewMCTSSelfPlayPartitions[agentstest.TTTState, agentstest.TTTAction](
-		ttSpec(agentstest.TTTState{}, 20, 11),
+	parts := analysis.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](
+		ttSpec(agents.TTTState{}, 20, 11),
 	)
 	gen := simulator.NewConfigGenerator()
 	gen.SetSimulation(&simulator.SimulationConfig{
@@ -130,12 +130,12 @@ func TestNewMCTSSelfPlayPartitionsPanicsOnMissingCodec(t *testing.T) {
 			t.Fatal("expected panic on missing encoder/decoder")
 		}
 	}()
-	_ = analysis.NewMCTSSelfPlayPartitions[agentstest.TTTState, agentstest.TTTAction](
-		analysis.MCTSSelfPlaySpec[agentstest.TTTState, agentstest.TTTAction]{
+	_ = analysis.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](
+		analysis.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction]{
 			Name:            "ttt",
-			Env:             &agentstest.TTTGame{},
+			Env:             &agents.TTTGame{},
 			MaxLegalActions: 9,
-			StateWidth:      agentstest.TTTWidth,
+			StateWidth:      agents.TTTWidth,
 			Players:         2,
 		},
 	)

@@ -12,7 +12,8 @@ import (
 // legal action, and writes the encoded post-move state back.
 //
 // Row layout (width = StateWidth):
-//   row[0 .. StateWidth-1]   encoded current game state.
+//
+//	row[0 .. StateWidth-1]   encoded current game state.
 //
 // # Two read modes
 //
@@ -44,10 +45,10 @@ import (
 //   - BestIdxSlot: row offset of the best-action index within the
 //     upstream partition's row when using state-history mode.
 type ApplyIteration[S any, A any] struct {
-	Env          Environment[S, A]
-	Decoder      func([]float64) (S, error)
-	Encoder      func(S) []float64
-	BestIdxSlot  int
+	Env         Environment[S, A]
+	Decoder     func([]float64) (S, error)
+	Encoder     func(S) []float64
+	BestIdxSlot int
 
 	cur         S
 	lastWritten []float64

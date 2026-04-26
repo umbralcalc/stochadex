@@ -1,4 +1,4 @@
-package agentstest
+package agents
 
 import "fmt"
 
@@ -24,12 +24,12 @@ var WinLines = [...][3]int{
 	{0, 4, 8}, {2, 4, 6},
 }
 
-// TTTGame implements agents.Environment[TTTState, TTTAction].
-//
-// We do not import mcts here to avoid an import cycle from
-// pkg/mcts/mctstest → pkg/mcts → ... → pkg/mcts/agentstest. Callers in
-// _test.go files will satisfy agents.Environment by this struct's method
-// set via duck typing at the call site.
+// TTTGame implements Environment[TTTState, TTTAction]. Tic-tac-toe is the
+// canonical fixture for testing this package and downstream consumers
+// (e.g. pkg/analysis): small enough to be obvious, large enough that
+// random play loses, and deterministic at endgame — from a "win in one"
+// position MCTS must pick the winning move; from a "block in one"
+// position it must block.
 type TTTGame struct{}
 
 // Legal returns the empty cells; nil if the game is over.

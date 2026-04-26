@@ -10,36 +10,36 @@ import (
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/agents"
-	"github.com/umbralcalc/stochadex/pkg/agents/agentstest"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
 // buildMASTPipeline wires the three partitions into a ConfigGenerator,
 // returning the generator ready to GenerateConfigs.
-func buildMASTPipeline(rootInit agentstest.TTTState, sims int, seed uint64) *simulator.ConfigGenerator {
-	const W = agentstest.TTTWidth
+func buildMASTPipeline(rootInit agents.TTTState, sims int, seed uint64) *simulator.ConfigGenerator {
+	const W = agents.TTTWidth
 	const K = 9
 	const P = 2
 	const MaxPath = 9
 
-	tree := &agents.MCTSTreeIteration[agentstest.TTTState, agentstest.TTTAction]{
-		Env:             &agentstest.TTTGame{},
-		Decoder:         agentstest.TTTDecode,
-		Encoder:         agentstest.TTTEncode,
+	tree := &agents.MCTSTreeIteration[agents.TTTState, agents.TTTAction]{
+		Env:             &agents.TTTGame{},
+		Decoder:         agents.TTTDecode,
+		Encoder:         agents.TTTEncode,
 		MaxLegalActions: K,
 		StateWidth:      W,
 		Players:         P,
 	}
-	rollout := &agents.MASTRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
-		Env:      &agentstest.TTTGame{},
-		Cfg:      agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{RolloutMaxSteps: 30},
-		Decoder:  agentstest.TTTDecode,
+	rollout := &agents.MASTRolloutIteration[agents.TTTState, agents.TTTAction]{
+		Env:      &agents.TTTGame{},
+		Cfg:      agents.MCTSConfig[agents.TTTState, agents.TTTAction]{RolloutMaxSteps: 30},
+		Decoder:  agents.TTTDecode,
 		KeyToIdx: tttKeyToIdx,
 		MaxKeys:  K,
 		MaxPath:  MaxPath,
 		Players:  P,
 	}
-	agg := &agents.MASTAggregationIteration[agentstest.TTTAction]{MaxKeys: K}
+	agg := &agents.MASTAggregationIteration[agents.TTTAction]{MaxKeys: K}
 
 	gen := simulator.NewConfigGenerator()
 	gen.SetSimulation(&simulator.SimulationConfig{
@@ -51,7 +51,7 @@ func buildMASTPipeline(rootInit agentstest.TTTState, sims int, seed uint64) *sim
 	})
 
 	treeInit := make([]float64, agents.MCTSTreeRowWidth(W, K))
-	copy(treeInit[agents.MCTSTreeRowLeafStateOffset:], agentstest.TTTEncode(rootInit))
+	copy(treeInit[agents.MCTSTreeRowLeafStateOffset:], agents.TTTEncode(rootInit))
 
 	gen.SetPartition(&simulator.PartitionConfig{
 		Name:      "tree",
@@ -103,7 +103,7 @@ func buildMASTPipeline(rootInit agentstest.TTTState, sims int, seed uint64) *sim
 }
 
 func TestMASTPipelineAccumulatesAggregates(t *testing.T) {
-	gen := buildMASTPipeline(agentstest.TTTState{}, 100, 1234)
+	gen := buildMASTPipeline(agents.TTTState{}, 100, 1234)
 	store := simulator.NewStateTimeStorage()
 	gen.GetSimulation().OutputCondition = &simulator.EveryStepOutputCondition{}
 	gen.GetSimulation().OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: store}
@@ -132,25 +132,25 @@ func TestMASTPipelineAccumulatesAggregates(t *testing.T) {
 }
 
 func TestMASTPipelineFindsWinningMove(t *testing.T) {
-	root := agentstest.TTTFromGrid([9]int8{1, 1, 0, 0, 2, 0, 0, 2, 0}, 0)
+	root := agents.TTTFromGrid([9]int8{1, 1, 0, 0, 2, 0, 0, 2, 0}, 0)
 	gen := buildMASTPipeline(root, 200, 9999)
 	settings, impl := gen.GenerateConfigs()
 	coord := simulator.NewPartitionCoordinator(settings, impl)
 	coord.Run()
 
-	treeIter := impl.Iterations[0].(*agents.MCTSTreeIteration[agentstest.TTTState, agentstest.TTTAction])
+	treeIter := impl.Iterations[0].(*agents.MCTSTreeIteration[agents.TTTState, agents.TTTAction])
 	bestI, ok := treeIter.MCTSTree().RootBestLegalIdx()
 	if !ok {
 		t.Fatal("RootBestLegalIdx returned ok=false after sims")
 	}
-	leg := (&agentstest.TTTGame{}).Legal(root)
-	if leg[bestI] != agentstest.TTTAction(2) {
+	leg := (&agents.TTTGame{}).Legal(root)
+	if leg[bestI] != agents.TTTAction(2) {
 		t.Fatalf("MAST-driven MCTS missed winning move; got legal[%d]=%d", bestI, leg[bestI])
 	}
 }
 
 func TestMASTPipelineRunsWithHarnesses(t *testing.T) {
-	gen := buildMASTPipeline(agentstest.TTTState{}, 20, 11)
+	gen := buildMASTPipeline(agents.TTTState{}, 20, 11)
 	settings, impl := gen.GenerateConfigs()
 	if err := simulator.RunWithHarnesses(settings, impl); err != nil {
 		t.Fatalf("RunWithHarnesses: %v", err)

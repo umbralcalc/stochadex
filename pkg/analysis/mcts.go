@@ -1,8 +1,8 @@
 package analysis
 
 import (
-	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/agents"
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -11,24 +11,24 @@ import (
 // outer partitions plus an embedded sub-simulation hosting the
 // (MCTSTreeIteration + MCTSRolloutIteration) pipeline:
 //
-//   outer:
-//     <Name>_apply   : ApplyIteration  — encoded game state; advances by
-//                                        one ply per outer step using the
-//                                        best-action signal from the
-//                                        embedded search.
-//     <Name>_search  : EmbeddedSimulationRunIteration — runs SimsPerPly
-//                                        inner steps per outer step, with
-//                                        the inner sim's tree root
-//                                        re-seeded each outer step from
-//                                        the apply partition's row.
+//	outer:
+//	  <Name>_apply   : ApplyIteration  — encoded game state; advances by
+//	                                     one ply per outer step using the
+//	                                     best-action signal from the
+//	                                     embedded search.
+//	  <Name>_search  : EmbeddedSimulationRunIteration — runs SimsPerPly
+//	                                     inner steps per outer step, with
+//	                                     the inner sim's tree root
+//	                                     re-seeded each outer step from
+//	                                     the apply partition's row.
 //
-//   inner sim (inside <Name>_search):
-//     <Name>_tree    : MCTSTreeIteration    — selection + backup; tree on
-//                                        struct; row exposes leaf state
-//                                        and root edge stats.
-//     <Name>_rollout : MCTSRolloutIteration — one rollout per inner step,
-//                                        consuming the leaf from
-//                                        <Name>_tree.
+//	inner sim (inside <Name>_search):
+//	  <Name>_tree    : MCTSTreeIteration    — selection + backup; tree on
+//	                                     struct; row exposes leaf state
+//	                                     and root edge stats.
+//	  <Name>_rollout : MCTSRolloutIteration — one rollout per inner step,
+//	                                     consuming the leaf from
+//	                                     <Name>_tree.
 //
 // The (selection + expansion + backup) bundle stays together because
 // both selection and backup mutate the same shared graph state, but

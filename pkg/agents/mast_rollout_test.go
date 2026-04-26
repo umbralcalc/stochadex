@@ -3,9 +3,9 @@ package agents_test
 import (
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/agents"
-	"github.com/umbralcalc/stochadex/pkg/agents/agentstest"
+	"github.com/umbralcalc/stochadex/pkg/general"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -13,12 +13,12 @@ func newMASTRolloutImpls() []simulator.Iteration {
 	return []simulator.Iteration{
 		&general.ConstantValuesIteration{}, // leaf_provider
 		&general.ConstantValuesIteration{}, // agg_provider
-		&agents.MASTRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
-			Env: &agentstest.TTTGame{},
-			Cfg: agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{
+		&agents.MASTRolloutIteration[agents.TTTState, agents.TTTAction]{
+			Env: &agents.TTTGame{},
+			Cfg: agents.MCTSConfig[agents.TTTState, agents.TTTAction]{
 				RolloutMaxSteps: 30,
 			},
-			Decoder:  agentstest.TTTDecode,
+			Decoder:  agents.TTTDecode,
 			KeyToIdx: tttKeyToIdx,
 			MaxKeys:  9,
 			MaxPath:  9,
@@ -29,13 +29,13 @@ func newMASTRolloutImpls() []simulator.Iteration {
 
 // tttKeyToIdx maps a tic-tac-toe action to its cell index. Cell index is
 // already a bounded int in [0, 9), making it the natural action key.
-func tttKeyToIdx(a agentstest.TTTAction) int { return int(a) }
+func tttKeyToIdx(a agents.TTTAction) int { return int(a) }
 
 func TestMASTRolloutIteration(t *testing.T) {
 	t.Run(
 		"test that the MAST rollout partition runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mast_rollout_iteration_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./mast_rollout_settings.yaml")
 			iterations := newMASTRolloutImpls()
 			for partitionIndex, iter := range iterations {
 				iter.Configure(partitionIndex, settings)
@@ -78,7 +78,7 @@ func TestMASTRolloutIteration(t *testing.T) {
 	t.Run(
 		"test that the MAST rollout partition runs with harnesses",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mast_rollout_iteration_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./mast_rollout_settings.yaml")
 			iterations := newMASTRolloutImpls()
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
@@ -117,13 +117,13 @@ func TestMASTRolloutRowLayout(t *testing.T) {
 // TestMASTRolloutEmitsZerosWhenHasLeafFalse verifies the upstream
 // has_leaf=0 sentinel produces an all-zero scores+ok+path row.
 func TestMASTRolloutEmitsZerosWhenHasLeafFalse(t *testing.T) {
-	emptyLeaf := agentstest.TTTEncode(agentstest.TTTState{})
+	emptyLeaf := agents.TTTEncode(agents.TTTState{})
 	leafSlice := append(append([]float64{}, emptyLeaf...), 0) // has_leaf=0
 
-	roll := &agents.MASTRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
-		Env:      &agentstest.TTTGame{},
-		Cfg:      agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{RolloutMaxSteps: 30},
-		Decoder:  agentstest.TTTDecode,
+	roll := &agents.MASTRolloutIteration[agents.TTTState, agents.TTTAction]{
+		Env:      &agents.TTTGame{},
+		Cfg:      agents.MCTSConfig[agents.TTTState, agents.TTTAction]{RolloutMaxSteps: 30},
+		Decoder:  agents.TTTDecode,
 		KeyToIdx: tttKeyToIdx,
 		MaxKeys:  9,
 		MaxPath:  9,
@@ -177,7 +177,7 @@ func TestMASTRolloutEmitsZerosWhenHasLeafFalse(t *testing.T) {
 // and many rollouts, the emitted paths should bias toward visiting cell
 // 4 early.
 func TestMASTRolloutBiasesByAggregates(t *testing.T) {
-	emptyLeaf := agentstest.TTTEncode(agentstest.TTTState{})
+	emptyLeaf := agents.TTTEncode(agents.TTTState{})
 	leafSlice := append(append([]float64{}, emptyLeaf...), 1)
 
 	aggRow := make([]float64, agents.MASTAggregationRowWidth(9))
@@ -188,10 +188,10 @@ func TestMASTRolloutBiasesByAggregates(t *testing.T) {
 		}
 	}
 
-	roll := &agents.MASTRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
-		Env:      &agentstest.TTTGame{},
-		Cfg:      agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{RolloutMaxSteps: 30},
-		Decoder:  agentstest.TTTDecode,
+	roll := &agents.MASTRolloutIteration[agents.TTTState, agents.TTTAction]{
+		Env:      &agents.TTTGame{},
+		Cfg:      agents.MCTSConfig[agents.TTTState, agents.TTTAction]{RolloutMaxSteps: 30},
+		Decoder:  agents.TTTDecode,
 		KeyToIdx: tttKeyToIdx,
 		MaxKeys:  9,
 		MaxPath:  9,

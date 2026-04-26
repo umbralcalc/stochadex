@@ -3,19 +3,19 @@ package agents_test
 import (
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/agents"
-	"github.com/umbralcalc/stochadex/pkg/agents/agentstest"
+	"github.com/umbralcalc/stochadex/pkg/general"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
 func newApplyIterationImpls() []simulator.Iteration {
 	return []simulator.Iteration{
 		&general.ConstantValuesIteration{},
-		&agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
-			Env:     &agentstest.TTTGame{},
-			Decoder: agentstest.TTTDecode,
-			Encoder: agentstest.TTTEncode,
+		&agents.ApplyIteration[agents.TTTState, agents.TTTAction]{
+			Env:     &agents.TTTGame{},
+			Decoder: agents.TTTDecode,
+			Encoder: agents.TTTEncode,
 		},
 	}
 }
@@ -24,7 +24,7 @@ func TestApplyIteration(t *testing.T) {
 	t.Run(
 		"test that the apply partition runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./apply_iteration_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./apply_settings.yaml")
 			iterations := newApplyIterationImpls()
 			for partitionIndex, iter := range iterations {
 				iter.Configure(partitionIndex, settings)
@@ -61,7 +61,7 @@ func TestApplyIteration(t *testing.T) {
 			// By the end of the run the game should have terminated (legal
 			// idx 0 plays whichever cell is leftmost-empty each ply, so 9
 			// steps is enough to fill the board or end early on a win).
-			last, err := agentstest.TTTDecode(rows[len(rows)-1])
+			last, err := agents.TTTDecode(rows[len(rows)-1])
 			if err != nil {
 				t.Fatalf("decode final row: %v", err)
 			}
@@ -73,7 +73,7 @@ func TestApplyIteration(t *testing.T) {
 	t.Run(
 		"test that the apply partition runs with harnesses",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./apply_iteration_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./apply_settings.yaml")
 			iterations := newApplyIterationImpls()
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
@@ -105,10 +105,10 @@ func TestApplyIterationStateHistoryMode(t *testing.T) {
 	const slot = 1
 	upstreamInit := []float64{0, 4}
 
-	apply := &agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
-		Env:         &agentstest.TTTGame{},
-		Decoder:     agentstest.TTTDecode,
-		Encoder:     agentstest.TTTEncode,
+	apply := &agents.ApplyIteration[agents.TTTState, agents.TTTAction]{
+		Env:         &agents.TTTGame{},
+		Decoder:     agents.TTTDecode,
+		Encoder:     agents.TTTEncode,
 		BestIdxSlot: slot,
 	}
 
@@ -134,7 +134,7 @@ func TestApplyIterationStateHistoryMode(t *testing.T) {
 		ParamsAsPartitions: map[string][]string{
 			agents.ApplyParamBestIdxPartition: {"upstream"},
 		},
-		InitStateValues:   agentstest.TTTEncode(agentstest.TTTState{}),
+		InitStateValues:   agents.TTTEncode(agents.TTTState{}),
 		StateHistoryDepth: 1,
 		Seed:              0,
 	})
@@ -148,7 +148,7 @@ func TestApplyIterationStateHistoryMode(t *testing.T) {
 	}
 	// At step 1 (first Iterate) apply reads upstream's row 0 = init = best=4.
 	// X plays cell 4. Expect cells[4] = 1.
-	step1, err := agentstest.TTTDecode(rows[1])
+	step1, err := agents.TTTDecode(rows[1])
 	if err != nil {
 		t.Fatalf("decode row 1: %v", err)
 	}
@@ -162,13 +162,13 @@ func TestApplyIterationStateHistoryMode(t *testing.T) {
 // the upstream signals a valid index.
 func TestApplyIterationDoesNotMoveAtTerminal(t *testing.T) {
 	// Seed apply with a position where X has already won.
-	terminalInit := agentstest.TTTEncode(agentstest.TTTFromGrid(
+	terminalInit := agents.TTTEncode(agents.TTTFromGrid(
 		[9]int8{1, 1, 1, 2, 2, 0, 0, 0, 0}, 1,
 	))
-	apply := &agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
-		Env:     &agentstest.TTTGame{},
-		Decoder: agentstest.TTTDecode,
-		Encoder: agentstest.TTTEncode,
+	apply := &agents.ApplyIteration[agents.TTTState, agents.TTTAction]{
+		Env:     &agents.TTTGame{},
+		Decoder: agents.TTTDecode,
+		Encoder: agents.TTTEncode,
 	}
 	gen := simulator.NewConfigGenerator()
 	store := simulator.NewStateTimeStorage()
@@ -201,7 +201,7 @@ func TestApplyIterationDoesNotMoveAtTerminal(t *testing.T) {
 
 	rows := store.GetValues("apply")
 	for i, r := range rows {
-		got, err := agentstest.TTTDecode(r)
+		got, err := agents.TTTDecode(r)
 		if err != nil {
 			t.Fatalf("decode row %d: %v", i, err)
 		}
@@ -215,10 +215,10 @@ func TestApplyIterationDoesNotMoveAtTerminal(t *testing.T) {
 // best_legal_idx outside the legal-action range is treated as a no-op
 // rather than panicking or producing a bogus move.
 func TestApplyIterationIgnoresOutOfRangeIdx(t *testing.T) {
-	apply := &agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
-		Env:     &agentstest.TTTGame{},
-		Decoder: agentstest.TTTDecode,
-		Encoder: agentstest.TTTEncode,
+	apply := &agents.ApplyIteration[agents.TTTState, agents.TTTAction]{
+		Env:     &agents.TTTGame{},
+		Decoder: agents.TTTDecode,
+		Encoder: agents.TTTEncode,
 	}
 	gen := simulator.NewConfigGenerator()
 	store := simulator.NewStateTimeStorage()
@@ -242,7 +242,7 @@ func TestApplyIterationIgnoresOutOfRangeIdx(t *testing.T) {
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
 			agents.ApplyParamBestIdx: {Upstream: "idx", Indices: []int{0}},
 		},
-		InitStateValues:   agentstest.TTTEncode(agentstest.TTTState{}),
+		InitStateValues:   agents.TTTEncode(agents.TTTState{}),
 		StateHistoryDepth: 1,
 		Seed:              0,
 	})
@@ -251,7 +251,7 @@ func TestApplyIterationIgnoresOutOfRangeIdx(t *testing.T) {
 
 	rows := store.GetValues("apply")
 	for i, r := range rows {
-		got, _ := agentstest.TTTDecode(r)
+		got, _ := agents.TTTDecode(r)
 		filled := 0
 		for _, c := range got.Cells {
 			if c != 0 {
@@ -268,10 +268,10 @@ func TestApplyIterationIgnoresOutOfRangeIdx(t *testing.T) {
 // (meaning "search hasn't produced a real best yet") is treated as
 // no-op.
 func TestApplyIterationSkipsOnNegativeIdx(t *testing.T) {
-	apply := &agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
-		Env:     &agentstest.TTTGame{},
-		Decoder: agentstest.TTTDecode,
-		Encoder: agentstest.TTTEncode,
+	apply := &agents.ApplyIteration[agents.TTTState, agents.TTTAction]{
+		Env:     &agents.TTTGame{},
+		Decoder: agents.TTTDecode,
+		Encoder: agents.TTTEncode,
 	}
 	gen := simulator.NewConfigGenerator()
 	store := simulator.NewStateTimeStorage()
@@ -295,7 +295,7 @@ func TestApplyIterationSkipsOnNegativeIdx(t *testing.T) {
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
 			agents.ApplyParamBestIdx: {Upstream: "idx", Indices: []int{0}},
 		},
-		InitStateValues:   agentstest.TTTEncode(agentstest.TTTState{}),
+		InitStateValues:   agents.TTTEncode(agents.TTTState{}),
 		StateHistoryDepth: 1,
 		Seed:              0,
 	})
@@ -303,7 +303,7 @@ func TestApplyIterationSkipsOnNegativeIdx(t *testing.T) {
 	simulator.NewPartitionCoordinator(settings, impl).Run()
 
 	rows := store.GetValues("apply")
-	last, _ := agentstest.TTTDecode(rows[len(rows)-1])
+	last, _ := agents.TTTDecode(rows[len(rows)-1])
 	for i, c := range last.Cells {
 		if c != 0 {
 			t.Fatalf("expected board untouched with idx=-1; cell[%d]=%d", i, c)
