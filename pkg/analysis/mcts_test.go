@@ -2,8 +2,8 @@ package analysis_test
 
 // End-to-end integration tests for the MCTS analysis helper. The helper
 // builds Architecture K: an outer apply partition + an outer search
-// partition (EmbeddedSimulationRunIteration wrapping a MCTSTreePartition +
-// MCTSRolloutPartition pipeline). The tests drive the full stack against the
+// partition (EmbeddedSimulationRunIteration wrapping a MCTSTreeIteration +
+// MCTSRolloutIteration pipeline). The tests drive the full stack against the
 // shared tic-tac-toe fixture and assert on the OUTER apply partition's
 // recorded rows — which is the user-visible game state evolving over
 // time.

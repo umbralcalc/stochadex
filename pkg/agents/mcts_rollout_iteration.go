@@ -4,15 +4,15 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// MCTSRolloutPartition runs one rollout per stochadex step. It reads the leaf
+// MCTSRolloutIteration runs one rollout per stochadex step. It reads the leaf
 // state to roll out from via params_from_upstream (typically wired to a
-// MCTSTreePartition's leaf_state slot via Indices) and outputs a per-player
+// MCTSTreeIteration's leaf_state slot via Indices) and outputs a per-player
 // score vector plus an ok flag in its own row.
 //
 // Row layout (width = Players + 1):
 //   row[0 .. Players-1]   per-player [0,1] scores from the rollout
 //   row[Players]          ok flag (1 if the rollout produced valid scores,
-//                         0 otherwise — the upstream MCTSTreePartition uses
+//                         0 otherwise — the upstream MCTSTreeIteration uses
 //                         this to decide whether to apply backupScores or
 //                         backupVisits with no signal)
 //
@@ -28,7 +28,7 @@ import (
 //   - Decoder: decodes the leaf_state from the upstream-supplied
 //     []float64 back into the typed S.
 //   - Players: P, the per-player score vector length.
-type MCTSRolloutPartition[S any, A any] struct {
+type MCTSRolloutIteration[S any, A any] struct {
 	Env     Environment[S, A]
 	Cfg     MCTSConfig[S, A]
 	Decoder func([]float64) (S, error)
@@ -37,40 +37,40 @@ type MCTSRolloutPartition[S any, A any] struct {
 	seed uint64
 }
 
-// Param key used by MCTSRolloutPartition.Iterate to read the leaf state from
-// an upstream MCTSTreePartition via params_from_upstream. The slice should
+// Param key used by MCTSRolloutIteration.Iterate to read the leaf state from
+// an upstream MCTSTreeIteration via params_from_upstream. The slice should
 // be of length StateWidth followed by a single has_leaf flag (matching
-// MCTSTreePartition's row layout: leaf_state then has_leaf). Use Indices on
+// MCTSTreeIteration's row layout: leaf_state then has_leaf). Use Indices on
 // the NamedUpstreamConfig to slice out the leaf_state + has_leaf section
 // of the tree's row.
 const MCTSRolloutParamLeaf = "leaf"
 
 // MCTSRolloutRowWidth returns the required InitStateValues / StateWidth for a
-// MCTSRolloutPartition with the given player count.
+// MCTSRolloutIteration with the given player count.
 func MCTSRolloutRowWidth(players int) int {
 	return players + 1
 }
 
 // Configure implements simulator.Iteration.
-func (m *MCTSRolloutPartition[S, A]) Configure(partitionIndex int, settings *simulator.Settings) {
+func (m *MCTSRolloutIteration[S, A]) Configure(partitionIndex int, settings *simulator.Settings) {
 	if m.Env == nil {
-		panic("agents.MCTSRolloutPartition: Env required")
+		panic("agents.MCTSRolloutIteration: Env required")
 	}
 	if m.Decoder == nil {
-		panic("agents.MCTSRolloutPartition: Decoder required")
+		panic("agents.MCTSRolloutIteration: Decoder required")
 	}
 	if m.Players <= 0 {
-		panic("agents.MCTSRolloutPartition: Players must be > 0")
+		panic("agents.MCTSRolloutIteration: Players must be > 0")
 	}
 	is := settings.Iterations[partitionIndex]
 	if is.StateWidth != MCTSRolloutRowWidth(m.Players) {
-		panic("agents.MCTSRolloutPartition: StateWidth must equal MCTSRolloutRowWidth(Players)")
+		panic("agents.MCTSRolloutIteration: StateWidth must equal MCTSRolloutRowWidth(Players)")
 	}
 	m.seed = is.Seed
 }
 
 // Iterate implements simulator.Iteration.
-func (m *MCTSRolloutPartition[S, A]) Iterate(
+func (m *MCTSRolloutIteration[S, A]) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,

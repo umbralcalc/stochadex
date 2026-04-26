@@ -9,14 +9,14 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// newMCTSTreePartitionIteration constructs a MCTSTreePartition wired for tic-tac-toe.
+// newMCTSTreeIterationIteration constructs a MCTSTreeIteration wired for tic-tac-toe.
 // Used by both t.Run blocks and the analysis-level integration tests.
-func newMCTSTreePartitionIteration() *agents.MCTSTreePartition[agentstest.TTTState, agentstest.TTTAction] {
-	return &agents.MCTSTreePartition[agentstest.TTTState, agentstest.TTTAction]{
+func newMCTSTreeIterationIteration() *agents.MCTSTreeIteration[agentstest.TTTState, agentstest.TTTAction] {
+	return &agents.MCTSTreeIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env: &agentstest.TTTGame{},
 		Cfg: agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{
-			// Rollout fn left nil — MCTSTreePartition selects + backs up only.
-			// Scores are supplied by an upstream MCTSRolloutPartition.
+			// Rollout fn left nil — MCTSTreeIteration selects + backs up only.
+			// Scores are supplied by an upstream MCTSRolloutIteration.
 		},
 		Decoder:         agentstest.TTTDecode,
 		Encoder:         agentstest.TTTEncode,
@@ -26,12 +26,12 @@ func newMCTSTreePartitionIteration() *agents.MCTSTreePartition[agentstest.TTTSta
 	}
 }
 
-func TestMCTSTreePartition(t *testing.T) {
+func TestMCTSTreeIteration(t *testing.T) {
 	t.Run(
 		"test that the tree partition runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mcts_tree_partition_settings.yaml")
-			iterations := []simulator.Iteration{newMCTSTreePartitionIteration()}
+			settings := simulator.LoadSettingsFromYaml("./mcts_tree_iteration_settings.yaml")
+			iterations := []simulator.Iteration{newMCTSTreeIterationIteration()}
 			for partitionIndex, iter := range iterations {
 				iter.Configure(partitionIndex, settings)
 			}
@@ -48,7 +48,7 @@ func TestMCTSTreePartition(t *testing.T) {
 			coordinator := simulator.NewPartitionCoordinator(settings, implementations)
 			coordinator.Run()
 
-			// Without an upstream rollout supplying scores, MCTSTreePartition
+			// Without an upstream rollout supplying scores, MCTSTreeIteration
 			// uses no-signal-tolerant backups: tree must still grow because
 			// every selection counts as a visit.
 			rows := store.GetValues("tree")
@@ -65,8 +65,8 @@ func TestMCTSTreePartition(t *testing.T) {
 	t.Run(
 		"test that the tree partition runs with harnesses",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mcts_tree_partition_settings.yaml")
-			iterations := []simulator.Iteration{newMCTSTreePartitionIteration()}
+			settings := simulator.LoadSettingsFromYaml("./mcts_tree_iteration_settings.yaml")
+			iterations := []simulator.Iteration{newMCTSTreeIterationIteration()}
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.NilOutputCondition{},
@@ -83,10 +83,10 @@ func TestMCTSTreePartition(t *testing.T) {
 	)
 }
 
-// TestMCTSTreePartitionRowLayout pins the row-layout offsets and width so a
+// TestMCTSTreeIterationRowLayout pins the row-layout offsets and width so a
 // future change can't silently shift slots that downstream wiring depends
 // on. Documented in TreeRow* constants and MCTSTreeRowWidth.
-func TestMCTSTreePartitionRowLayout(t *testing.T) {
+func TestMCTSTreeIterationRowLayout(t *testing.T) {
 	const W = 10
 	const K = 9
 	if got, want := agents.MCTSTreeRowWidth(W, K), 1+W+1+2*K; got != want {
@@ -109,13 +109,13 @@ func TestMCTSTreePartitionRowLayout(t *testing.T) {
 	}
 }
 
-// TestMCTSTreePartitionResetsOnRootStateChange exercises the load-bearing
+// TestMCTSTreeIterationResetsOnRootStateChange exercises the load-bearing
 // outer-piped root_state mechanism: when an upstream partition pushes a
 // new game state into MCTSTreeParamRootState, the tree must rebuild from the
 // new root rather than keep accumulating against the old one. Without
 // this, self-play would search a stale position every ply after the first.
-func TestMCTSTreePartitionResetsOnRootStateChange(t *testing.T) {
-	tree := newMCTSTreePartitionIteration()
+func TestMCTSTreeIterationResetsOnRootStateChange(t *testing.T) {
+	tree := newMCTSTreeIterationIteration()
 	gen := simulator.NewConfigGenerator()
 
 	// Provider partition emits a constant encoded TTT state in slots
@@ -175,12 +175,12 @@ func TestMCTSTreePartitionResetsOnRootStateChange(t *testing.T) {
 	}
 }
 
-// TestMCTSTreePartitionTerminalRootEmitsHasLeafFalse verifies that when the
+// TestMCTSTreeIterationTerminalRootEmitsHasLeafFalse verifies that when the
 // tree's root is already terminal (game over), SelectLeaf returns ok=false
 // and the partition emits has_leaf=0 — signalling downstream rollouts to
 // skip.
-func TestMCTSTreePartitionTerminalRootEmitsHasLeafFalse(t *testing.T) {
-	tree := newMCTSTreePartitionIteration()
+func TestMCTSTreeIterationTerminalRootEmitsHasLeafFalse(t *testing.T) {
+	tree := newMCTSTreeIterationIteration()
 	gen := simulator.NewConfigGenerator()
 	store := simulator.NewStateTimeStorage()
 

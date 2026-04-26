@@ -4,7 +4,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// MASTAggregationPartition is a stochadex iteration that maintains
+// MASTAggregationIteration is a stochadex iteration that maintains
 // running (count, sum) pairs per action-key index for MAST (Move-Average
 // Sampling Technique). Each step it reads a variable-length update
 // batch from an upstream rollout partition via params_from_upstream and
@@ -24,8 +24,8 @@ import (
 //	[num_updates, key_idx_0, reward_0, key_idx_1, reward_1, ...]
 //
 // where num_updates is the number of valid (key_idx, reward) pairs in
-// the slice. MASTRolloutPartition emits exactly this layout in its
-// row's path-suffix slots; wire MASTAggregationPartition's
+// the slice. MASTRolloutIteration emits exactly this layout in its
+// row's path-suffix slots; wire MASTAggregationIteration's
 // params_from_upstream (key MASTAggregationParamUpdates) to those slots.
 //
 // Out-of-range key indices and updates beyond the slice's declared
@@ -33,10 +33,10 @@ import (
 //
 // # Read access
 //
-// Downstream samplers (e.g. MASTRolloutPartition) read the aggregates
+// Downstream samplers (e.g. MASTRolloutIteration) read the aggregates
 // via state-history mode (lag-1) using params_as_partitions. See
 // MASTAggregationParamPartition for the canonical key.
-type MASTAggregationPartition[A any] struct {
+type MASTAggregationIteration[A any] struct {
 	MaxKeys int
 
 	counts []float64
@@ -54,7 +54,7 @@ const MASTAggregationParamUpdates = "mast_updates"
 const MASTAggregationParamPartition = "mast_aggregates_partition"
 
 // MASTAggregationRowWidth returns the required state_width for an
-// MASTAggregationPartition with the given key bound.
+// MASTAggregationIteration with the given key bound.
 func MASTAggregationRowWidth(maxKeys int) int { return 2 * maxKeys }
 
 // MASTAggregationCountSlot returns the row offset of the count for key k.
@@ -64,13 +64,13 @@ func MASTAggregationCountSlot(k int) int { return 2 * k }
 func MASTAggregationSumSlot(k int) int { return 2*k + 1 }
 
 // Configure implements simulator.Iteration.
-func (m *MASTAggregationPartition[A]) Configure(partitionIndex int, settings *simulator.Settings) {
+func (m *MASTAggregationIteration[A]) Configure(partitionIndex int, settings *simulator.Settings) {
 	if m.MaxKeys <= 0 {
-		panic("agents.MASTAggregationPartition: MaxKeys must be > 0")
+		panic("agents.MASTAggregationIteration: MaxKeys must be > 0")
 	}
 	is := settings.Iterations[partitionIndex]
 	if is.StateWidth != MASTAggregationRowWidth(m.MaxKeys) {
-		panic("agents.MASTAggregationPartition: StateWidth must equal MASTAggregationRowWidth(MaxKeys)")
+		panic("agents.MASTAggregationIteration: StateWidth must equal MASTAggregationRowWidth(MaxKeys)")
 	}
 	m.counts = make([]float64, m.MaxKeys)
 	m.sums = make([]float64, m.MaxKeys)
@@ -83,7 +83,7 @@ func (m *MASTAggregationPartition[A]) Configure(partitionIndex int, settings *si
 }
 
 // Iterate implements simulator.Iteration.
-func (m *MASTAggregationPartition[A]) Iterate(
+func (m *MASTAggregationIteration[A]) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -116,7 +116,7 @@ func (m *MASTAggregationPartition[A]) Iterate(
 }
 
 // MASTMeanForKey reads the running mean reward for key k from a row in
-// the MASTAggregationPartition's layout. Returns (0, 0) when the key
+// the MASTAggregationIteration's layout. Returns (0, 0) when the key
 // has not been observed. Used by samplers that have read the partition's
 // row via params_as_partitions.
 func MASTMeanForKey(row []float64, k int) (mean float64, count int) {

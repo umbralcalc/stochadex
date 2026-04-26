@@ -1,7 +1,7 @@
 package agents_test
 
 // Integration test: the full three-partition MAST inner pipeline
-// (MCTSTreePartition + MASTRolloutPartition + MASTAggregationPartition)
+// (MCTSTreeIteration + MASTRolloutIteration + MASTAggregationIteration)
 // running against tic-tac-toe. Verifies (a) the agg row accumulates
 // observations as rollouts complete and (b) the search still finds the
 // winning move from a forcing position.
@@ -22,7 +22,7 @@ func buildMASTPipeline(rootInit agentstest.TTTState, sims int, seed uint64) *sim
 	const P = 2
 	const MaxPath = 9
 
-	tree := &agents.MCTSTreePartition[agentstest.TTTState, agentstest.TTTAction]{
+	tree := &agents.MCTSTreeIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:             &agentstest.TTTGame{},
 		Decoder:         agentstest.TTTDecode,
 		Encoder:         agentstest.TTTEncode,
@@ -30,7 +30,7 @@ func buildMASTPipeline(rootInit agentstest.TTTState, sims int, seed uint64) *sim
 		StateWidth:      W,
 		Players:         P,
 	}
-	rollout := &agents.MASTRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+	rollout := &agents.MASTRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:      &agentstest.TTTGame{},
 		Cfg:      agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{RolloutMaxSteps: 30},
 		Decoder:  agentstest.TTTDecode,
@@ -39,7 +39,7 @@ func buildMASTPipeline(rootInit agentstest.TTTState, sims int, seed uint64) *sim
 		MaxPath:  MaxPath,
 		Players:  P,
 	}
-	agg := &agents.MASTAggregationPartition[agentstest.TTTAction]{MaxKeys: K}
+	agg := &agents.MASTAggregationIteration[agentstest.TTTAction]{MaxKeys: K}
 
 	gen := simulator.NewConfigGenerator()
 	gen.SetSimulation(&simulator.SimulationConfig{
@@ -138,7 +138,7 @@ func TestMASTPipelineFindsWinningMove(t *testing.T) {
 	coord := simulator.NewPartitionCoordinator(settings, impl)
 	coord.Run()
 
-	treeIter := impl.Iterations[0].(*agents.MCTSTreePartition[agentstest.TTTState, agentstest.TTTAction])
+	treeIter := impl.Iterations[0].(*agents.MCTSTreeIteration[agentstest.TTTState, agentstest.TTTAction])
 	bestI, ok := treeIter.MCTSTree().RootBestLegalIdx()
 	if !ok {
 		t.Fatal("RootBestLegalIdx returned ok=false after sims")

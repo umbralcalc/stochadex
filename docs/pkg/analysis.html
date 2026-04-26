@@ -1811,11 +1811,11 @@
       <p>MCTSSelfPlaySpec captures the inputs needed to wire a
       fully-decomposed MCTS self-play stack into a stochadex simulation.
       The result is three outer partitions plus an embedded
-      sub-simulation hosting the (MCTSTreePartition +
-      MCTSRolloutPartition) pipeline:</p>
+      sub-simulation hosting the (MCTSTreeIteration +
+      MCTSRolloutIteration) pipeline:</p>
       <div class="sourceCode" id="cb72"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>outer<span class="op">:</span></span>
-<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">&lt;</span>Name<span class="op">&gt;</span>_apply   <span class="op">:</span> ApplyPartition  — encoded game state<span class="op">;</span> advances by</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">&lt;</span>Name<span class="op">&gt;</span>_apply   <span class="op">:</span> ApplyIteration  — encoded game state<span class="op">;</span> advances by</span>
 <span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>                                     one ply per outer step using the</span>
 <span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a>                                     best<span class="op">-</span>action signal from the</span>
 <span id="cb72-5"><a href="#cb72-5" aria-hidden="true" tabindex="-1"></a>                                     embedded search<span class="op">.</span></span>
@@ -1826,10 +1826,10 @@
 <span id="cb72-10"><a href="#cb72-10" aria-hidden="true" tabindex="-1"></a>                                     the apply partition<span class="ch">&#39;s row.</span></span>
 <span id="cb72-11"><a href="#cb72-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb72-12"><a href="#cb72-12" aria-hidden="true" tabindex="-1"></a>inner sim <span class="op">(</span>inside <span class="op">&lt;</span>Name<span class="op">&gt;</span>_search<span class="op">):</span></span>
-<span id="cb72-13"><a href="#cb72-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">&lt;</span>Name<span class="op">&gt;</span>_tree    <span class="op">:</span> MCTSTreePartition    — selection <span class="op">+</span> backup<span class="op">;</span> tree on</span>
+<span id="cb72-13"><a href="#cb72-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">&lt;</span>Name<span class="op">&gt;</span>_tree    <span class="op">:</span> MCTSTreeIteration    — selection <span class="op">+</span> backup<span class="op">;</span> tree on</span>
 <span id="cb72-14"><a href="#cb72-14" aria-hidden="true" tabindex="-1"></a>                                     <span class="kw">struct</span><span class="op">;</span> row exposes leaf state</span>
 <span id="cb72-15"><a href="#cb72-15" aria-hidden="true" tabindex="-1"></a>                                     and root edge stats<span class="op">.</span></span>
-<span id="cb72-16"><a href="#cb72-16" aria-hidden="true" tabindex="-1"></a>  <span class="op">&lt;</span>Name<span class="op">&gt;</span>_rollout <span class="op">:</span> MCTSRolloutPartition — one rollout per inner step<span class="op">,</span></span>
+<span id="cb72-16"><a href="#cb72-16" aria-hidden="true" tabindex="-1"></a>  <span class="op">&lt;</span>Name<span class="op">&gt;</span>_rollout <span class="op">:</span> MCTSRolloutIteration — one rollout per inner step<span class="op">,</span></span>
 <span id="cb72-17"><a href="#cb72-17" aria-hidden="true" tabindex="-1"></a>                                     consuming the leaf from</span>
 <span id="cb72-18"><a href="#cb72-18" aria-hidden="true" tabindex="-1"></a>                                     <span class="op">&lt;</span>Name<span class="op">&gt;</span>_tree<span class="op">.</span></span></code></pre></div>
       <p>The (selection + expansion + backup) bundle stays together

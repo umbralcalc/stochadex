@@ -13,7 +13,7 @@ func newMASTRolloutImpls() []simulator.Iteration {
 	return []simulator.Iteration{
 		&general.ConstantValuesIteration{}, // leaf_provider
 		&general.ConstantValuesIteration{}, // agg_provider
-		&agents.MASTRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+		&agents.MASTRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 			Env: &agentstest.TTTGame{},
 			Cfg: agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{
 				RolloutMaxSteps: 30,
@@ -31,11 +31,11 @@ func newMASTRolloutImpls() []simulator.Iteration {
 // already a bounded int in [0, 9), making it the natural action key.
 func tttKeyToIdx(a agentstest.TTTAction) int { return int(a) }
 
-func TestMASTRolloutPartition(t *testing.T) {
+func TestMASTRolloutIteration(t *testing.T) {
 	t.Run(
 		"test that the MAST rollout partition runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mast_rollout_partition_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./mast_rollout_iteration_settings.yaml")
 			iterations := newMASTRolloutImpls()
 			for partitionIndex, iter := range iterations {
 				iter.Configure(partitionIndex, settings)
@@ -78,7 +78,7 @@ func TestMASTRolloutPartition(t *testing.T) {
 	t.Run(
 		"test that the MAST rollout partition runs with harnesses",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mast_rollout_partition_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./mast_rollout_iteration_settings.yaml")
 			iterations := newMASTRolloutImpls()
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
@@ -120,7 +120,7 @@ func TestMASTRolloutEmitsZerosWhenHasLeafFalse(t *testing.T) {
 	emptyLeaf := agentstest.TTTEncode(agentstest.TTTState{})
 	leafSlice := append(append([]float64{}, emptyLeaf...), 0) // has_leaf=0
 
-	roll := &agents.MASTRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+	roll := &agents.MASTRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:      &agentstest.TTTGame{},
 		Cfg:      agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{RolloutMaxSteps: 30},
 		Decoder:  agentstest.TTTDecode,
@@ -188,7 +188,7 @@ func TestMASTRolloutBiasesByAggregates(t *testing.T) {
 		}
 	}
 
-	roll := &agents.MASTRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+	roll := &agents.MASTRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:      &agentstest.TTTGame{},
 		Cfg:      agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{RolloutMaxSteps: 30},
 		Decoder:  agentstest.TTTDecode,

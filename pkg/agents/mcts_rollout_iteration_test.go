@@ -9,12 +9,12 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// newMCTSRolloutPartitionImpls builds the [leaf_provider, rollout] iteration
+// newMCTSRolloutIterationImpls builds the [leaf_provider, rollout] iteration
 // pair for the tic-tac-toe-driven test.
-func newMCTSRolloutPartitionImpls() []simulator.Iteration {
+func newMCTSRolloutIterationImpls() []simulator.Iteration {
 	return []simulator.Iteration{
 		&general.ConstantValuesIteration{},
-		&agents.MCTSRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+		&agents.MCTSRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 			Env: &agentstest.TTTGame{},
 			Cfg: agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{
 				Rollout: agents.UniformRandomRollout[agentstest.TTTState, agentstest.TTTAction](),
@@ -25,12 +25,12 @@ func newMCTSRolloutPartitionImpls() []simulator.Iteration {
 	}
 }
 
-func TestMCTSRolloutPartition(t *testing.T) {
+func TestMCTSRolloutIteration(t *testing.T) {
 	t.Run(
 		"test that the rollout partition runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mcts_rollout_partition_settings.yaml")
-			iterations := newMCTSRolloutPartitionImpls()
+			settings := simulator.LoadSettingsFromYaml("./mcts_rollout_iteration_settings.yaml")
+			iterations := newMCTSRolloutIterationImpls()
 			for partitionIndex, iter := range iterations {
 				iter.Configure(partitionIndex, settings)
 			}
@@ -72,8 +72,8 @@ func TestMCTSRolloutPartition(t *testing.T) {
 	t.Run(
 		"test that the rollout partition runs with harnesses",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mcts_rollout_partition_settings.yaml")
-			iterations := newMCTSRolloutPartitionImpls()
+			settings := simulator.LoadSettingsFromYaml("./mcts_rollout_iteration_settings.yaml")
+			iterations := newMCTSRolloutIterationImpls()
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.NilOutputCondition{},
@@ -94,7 +94,7 @@ func TestMCTSRolloutPartition(t *testing.T) {
 // the given [encoded_leaf, has_leaf] slice into an upstream of a rollout
 // partition, runs steps, and returns the rollout partition's recorded rows.
 // Helper for the various rollout-edge-case tests below.
-func runRolloutWithLeaf(t *testing.T, leafSlice []float64, rollout *agents.MCTSRolloutPartition[agentstest.TTTState, agentstest.TTTAction], steps int) [][]float64 {
+func runRolloutWithLeaf(t *testing.T, leafSlice []float64, rollout *agents.MCTSRolloutIteration[agentstest.TTTState, agentstest.TTTAction], steps int) [][]float64 {
 	t.Helper()
 	width := len(leafSlice)
 	indices := make([]int, width)
@@ -132,13 +132,13 @@ func runRolloutWithLeaf(t *testing.T, leafSlice []float64, rollout *agents.MCTSR
 	return store.GetValues("rollout")
 }
 
-// TestMCTSRolloutPartitionEmitsZerosWhenHasLeafFalse pins the contract that
+// TestMCTSRolloutIterationEmitsZerosWhenHasLeafFalse pins the contract that
 // the upstream-supplied has_leaf=0 sentinel produces an all-zero
 // scores+ok row, signalling no signal to the downstream tree partition.
-func TestMCTSRolloutPartitionEmitsZerosWhenHasLeafFalse(t *testing.T) {
+func TestMCTSRolloutIterationEmitsZerosWhenHasLeafFalse(t *testing.T) {
 	emptyLeaf := agentstest.TTTEncode(agentstest.TTTState{})
 	leafSlice := append(append([]float64{}, emptyLeaf...), 0) // has_leaf = 0
-	roll := &agents.MCTSRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+	roll := &agents.MCTSRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env: &agentstest.TTTGame{},
 		Cfg: agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{
 			Rollout: agents.UniformRandomRollout[agentstest.TTTState, agentstest.TTTAction](),
@@ -157,13 +157,13 @@ func TestMCTSRolloutPartitionEmitsZerosWhenHasLeafFalse(t *testing.T) {
 	}
 }
 
-// TestMCTSRolloutPartitionEmitsZerosWhenCfgRolloutNil verifies the safety
+// TestMCTSRolloutIterationEmitsZerosWhenCfgRolloutNil verifies the safety
 // path: a misconfigured Cfg with no Rollout function emits zeros rather
 // than panicking.
-func TestMCTSRolloutPartitionEmitsZerosWhenCfgRolloutNil(t *testing.T) {
+func TestMCTSRolloutIterationEmitsZerosWhenCfgRolloutNil(t *testing.T) {
 	emptyLeaf := agentstest.TTTEncode(agentstest.TTTState{})
 	leafSlice := append(append([]float64{}, emptyLeaf...), 1) // has_leaf = 1
-	roll := &agents.MCTSRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+	roll := &agents.MCTSRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:     &agentstest.TTTGame{},
 		Cfg:     agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{}, // no Rollout
 		Decoder: agentstest.TTTDecode,
@@ -177,17 +177,17 @@ func TestMCTSRolloutPartitionEmitsZerosWhenCfgRolloutNil(t *testing.T) {
 	}
 }
 
-// TestMCTSRolloutPartitionRejectsScoresWithWrongLength verifies the safety
+// TestMCTSRolloutIterationRejectsScoresWithWrongLength verifies the safety
 // path: a rollout function returning a score vector of the wrong length
 // (Players=2 but rollout returns 3 floats) is rejected with ok=0 rather
 // than emitting a malformed row.
-func TestMCTSRolloutPartitionRejectsScoresWithWrongLength(t *testing.T) {
+func TestMCTSRolloutIterationRejectsScoresWithWrongLength(t *testing.T) {
 	bogus := func(env agents.Environment[agentstest.TTTState, agentstest.TTTAction], s agentstest.TTTState, max int, seed uint64) ([]float64, bool, error) {
 		return []float64{0.3, 0.3, 0.4}, true, nil // 3 players for a 2-player env
 	}
 	emptyLeaf := agentstest.TTTEncode(agentstest.TTTState{})
 	leafSlice := append(append([]float64{}, emptyLeaf...), 1)
-	roll := &agents.MCTSRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+	roll := &agents.MCTSRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:     &agentstest.TTTGame{},
 		Cfg:     agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{Rollout: bogus},
 		Decoder: agentstest.TTTDecode,
@@ -204,16 +204,16 @@ func TestMCTSRolloutPartitionRejectsScoresWithWrongLength(t *testing.T) {
 	}
 }
 
-// TestMCTSRolloutPartitionPropagatesOkOnValidScores is the positive
+// TestMCTSRolloutIterationPropagatesOkOnValidScores is the positive
 // counterpart: when the rollout returns valid scores summing to 1, the
 // row faithfully reflects them with ok=1.
-func TestMCTSRolloutPartitionPropagatesOkOnValidScores(t *testing.T) {
+func TestMCTSRolloutIterationPropagatesOkOnValidScores(t *testing.T) {
 	canned := func(env agents.Environment[agentstest.TTTState, agentstest.TTTAction], s agentstest.TTTState, max int, seed uint64) ([]float64, bool, error) {
 		return []float64{0.6, 0.4}, true, nil
 	}
 	emptyLeaf := agentstest.TTTEncode(agentstest.TTTState{})
 	leafSlice := append(append([]float64{}, emptyLeaf...), 1)
-	roll := &agents.MCTSRolloutPartition[agentstest.TTTState, agentstest.TTTAction]{
+	roll := &agents.MCTSRolloutIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:     &agentstest.TTTGame{},
 		Cfg:     agents.MCTSConfig[agentstest.TTTState, agentstest.TTTAction]{Rollout: canned},
 		Decoder: agentstest.TTTDecode,

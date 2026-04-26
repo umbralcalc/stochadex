@@ -18,13 +18,13 @@ const MASTDefaultTau = 1.0
 // encouraged nor discouraged.
 const MASTSamplePrior = 0.5
 
-// MASTRolloutPartition is a stochadex iteration that runs one
+// MASTRolloutIteration is a stochadex iteration that runs one
 // MAST-biased rollout per step. It reads the leaf state from an upstream
-// MCTSTreePartition (within-step), reads the running aggregates from a
-// MASTAggregationPartition (lag-1, via params_as_partitions), runs a
+// MCTSTreeIteration (within-step), reads the running aggregates from a
+// MASTAggregationIteration (lag-1, via params_as_partitions), runs a
 // playout sampling each ply via softmax over the aggregates, and emits
 // the per-player scores plus the (key_idx, reward) path that the
-// MASTAggregationPartition will absorb on the next step.
+// MASTAggregationIteration will absorb on the next step.
 //
 // Row layout (width = Players + 2 + 2 * MaxPath):
 //
@@ -35,7 +35,7 @@ const MASTSamplePrior = 0.5
 //	                                              padded with zeros
 //
 // The (num_path, pairs...) suffix matches MASTAggregationParamUpdates
-// so the downstream MASTAggregationPartition can read it as a single
+// so the downstream MASTAggregationIteration can read it as a single
 // slice.
 //
 // Warm fields (must be set before Configure):
@@ -44,14 +44,14 @@ const MASTSamplePrior = 0.5
 //     ignored (this partition implements its own MAST-biased sampling).
 //   - Decoder: decodes the leaf_state from the upstream-supplied slice.
 //   - KeyToIdx: maps an action to a bounded index in [0, MaxKeys).
-//   - MaxKeys: same K as the MASTAggregationPartition this is wired to.
+//   - MaxKeys: same K as the MASTAggregationIteration this is wired to.
 //   - MaxPath: maximum number of (key, reward) updates emitted per
 //     rollout. Paths longer than this are truncated.
 //   - Players: per-player score vector length.
 //   - Tau: softmax temperature (MASTDefaultTau if <= 0).
 //   - Progress: optional [0,1] per-player progress proxy used to score
 //     truncated rollouts.
-type MASTRolloutPartition[S any, A any] struct {
+type MASTRolloutIteration[S any, A any] struct {
 	Env      Environment[S, A]
 	Cfg      MCTSConfig[S, A]
 	Decoder  func([]float64) (S, error)
@@ -66,7 +66,7 @@ type MASTRolloutPartition[S any, A any] struct {
 }
 
 // MASTRolloutRowWidth returns the required state_width for an
-// MASTRolloutPartition with the given player count and path bound.
+// MASTRolloutIteration with the given player count and path bound.
 func MASTRolloutRowWidth(players, maxPath int) int {
 	return players + 2 + 2*maxPath
 }
@@ -86,28 +86,28 @@ func MASTRolloutNumPathOffset(players int) int { return players + 1 }
 func MASTRolloutPathOffset(players int) int { return players + 2 }
 
 // Configure implements simulator.Iteration.
-func (m *MASTRolloutPartition[S, A]) Configure(partitionIndex int, settings *simulator.Settings) {
+func (m *MASTRolloutIteration[S, A]) Configure(partitionIndex int, settings *simulator.Settings) {
 	if m.Env == nil {
-		panic("agents.MASTRolloutPartition: Env required")
+		panic("agents.MASTRolloutIteration: Env required")
 	}
 	if m.Decoder == nil {
-		panic("agents.MASTRolloutPartition: Decoder required")
+		panic("agents.MASTRolloutIteration: Decoder required")
 	}
 	if m.KeyToIdx == nil {
-		panic("agents.MASTRolloutPartition: KeyToIdx required")
+		panic("agents.MASTRolloutIteration: KeyToIdx required")
 	}
 	if m.MaxKeys <= 0 {
-		panic("agents.MASTRolloutPartition: MaxKeys must be > 0")
+		panic("agents.MASTRolloutIteration: MaxKeys must be > 0")
 	}
 	if m.MaxPath <= 0 {
-		panic("agents.MASTRolloutPartition: MaxPath must be > 0")
+		panic("agents.MASTRolloutIteration: MaxPath must be > 0")
 	}
 	if m.Players <= 0 {
-		panic("agents.MASTRolloutPartition: Players must be > 0")
+		panic("agents.MASTRolloutIteration: Players must be > 0")
 	}
 	is := settings.Iterations[partitionIndex]
 	if is.StateWidth != MASTRolloutRowWidth(m.Players, m.MaxPath) {
-		panic("agents.MASTRolloutPartition: StateWidth must equal MASTRolloutRowWidth(Players, MaxPath)")
+		panic("agents.MASTRolloutIteration: StateWidth must equal MASTRolloutRowWidth(Players, MaxPath)")
 	}
 	if m.Tau <= 0 {
 		m.Tau = MASTDefaultTau
@@ -116,7 +116,7 @@ func (m *MASTRolloutPartition[S, A]) Configure(partitionIndex int, settings *sim
 }
 
 // Iterate implements simulator.Iteration.
-func (m *MASTRolloutPartition[S, A]) Iterate(
+func (m *MASTRolloutIteration[S, A]) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -141,7 +141,7 @@ func (m *MASTRolloutPartition[S, A]) Iterate(
 		return out
 	}
 
-	// Read aggregates from the upstream MASTAggregationPartition's row 0
+	// Read aggregates from the upstream MASTAggregationIteration's row 0
 	// (lag-1, state-history mode) if wired; nil = uniform sampling.
 	var aggregates []float64
 	if upstreamSlice, present := params.GetOk(MASTAggregationParamPartition); present && len(upstreamSlice) > 0 {
@@ -180,7 +180,7 @@ func (m *MASTRolloutPartition[S, A]) Iterate(
 }
 
 // mastPathEntry records one (key, reward) pair to be absorbed by the
-// downstream MASTAggregationPartition.
+// downstream MASTAggregationIteration.
 type mastPathEntry struct {
 	keyIdx int
 	reward float64
@@ -199,11 +199,11 @@ type mastStepRec struct {
 // rewards are scored from the actor's perspective: each path entry's
 // reward is scores[actor_at_that_ply].
 //
-// aggregates is the MASTAggregationPartition's row (counts and sums per
+// aggregates is the MASTAggregationIteration's row (counts and sums per
 // key); nil = uniform sampling. When aggregates is supplied and at least
 // one key has been observed, sampling uses softmax over per-key means
 // (with MASTSamplePrior for unobserved keys).
-func (m *MASTRolloutPartition[S, A]) playout(
+func (m *MASTRolloutIteration[S, A]) playout(
 	leaf S,
 	aggregates []float64,
 	maxSteps int,
@@ -240,9 +240,9 @@ func (m *MASTRolloutPartition[S, A]) playout(
 }
 
 // sample draws one action via softmax over the supplied aggregates
-// (interpreted as the MASTAggregationPartition's row layout). Falls back
+// (interpreted as the MASTAggregationIteration's row layout). Falls back
 // to uniform when aggregates is nil or no observations exist yet.
-func (m *MASTRolloutPartition[S, A]) sample(
+func (m *MASTRolloutIteration[S, A]) sample(
 	legal []A,
 	aggregates []float64,
 	rng *rand.Rand,
@@ -299,7 +299,7 @@ func (m *MASTRolloutPartition[S, A]) sample(
 // attribute converts an in-memory path of (actor, keyIdx) records into
 // (keyIdx, reward) pairs ready to emit. Reward for each entry is
 // scores[entry.actor]; entries with out-of-range actors are dropped.
-func (m *MASTRolloutPartition[S, A]) attribute(steps []mastStepRec, scores []float64) []mastPathEntry {
+func (m *MASTRolloutIteration[S, A]) attribute(steps []mastStepRec, scores []float64) []mastPathEntry {
 	out := make([]mastPathEntry, 0, len(steps))
 	for _, st := range steps {
 		if st.actor < 0 || st.actor >= len(scores) {
@@ -313,7 +313,7 @@ func (m *MASTRolloutPartition[S, A]) attribute(steps []mastStepRec, scores []flo
 // applyProgress evaluates the optional Progress function across players,
 // returning the score vector and a "has comparative signal" flag (false
 // if all values are zero, which carries no signal — see the MCTSTree docs).
-func (m *MASTRolloutPartition[S, A]) applyProgress(s S) (scores []float64, hasSignal bool) {
+func (m *MASTRolloutIteration[S, A]) applyProgress(s S) (scores []float64, hasSignal bool) {
 	if m.Progress == nil {
 		return nil, false
 	}

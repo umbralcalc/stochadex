@@ -4,7 +4,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// ApplyPartition advances the environment by one ply per stochadex outer
+// ApplyIteration advances the environment by one ply per stochadex outer
 // step using a best-action signal supplied either via params_from_upstream
 // (within-step) OR via params_as_partitions (lagged read of an upstream
 // partition's state-history row). The partition row is the encoded
@@ -43,7 +43,7 @@ import (
 // Optional warm field:
 //   - BestIdxSlot: row offset of the best-action index within the
 //     upstream partition's row when using state-history mode.
-type ApplyPartition[S any, A any] struct {
+type ApplyIteration[S any, A any] struct {
 	Env          Environment[S, A]
 	Decoder      func([]float64) (S, error)
 	Encoder      func(S) []float64
@@ -65,20 +65,20 @@ const ApplyParamBestIdx = "best_legal_idx"
 const ApplyParamBestIdxPartition = "best_idx_partition"
 
 // Configure implements simulator.Iteration.
-func (m *ApplyPartition[S, A]) Configure(partitionIndex int, settings *simulator.Settings) {
+func (m *ApplyIteration[S, A]) Configure(partitionIndex int, settings *simulator.Settings) {
 	if m.Env == nil {
-		panic("agents.ApplyPartition: Env required")
+		panic("agents.ApplyIteration: Env required")
 	}
 	if m.Decoder == nil {
-		panic("agents.ApplyPartition: Decoder required")
+		panic("agents.ApplyIteration: Decoder required")
 	}
 	if m.Encoder == nil {
-		panic("agents.ApplyPartition: Encoder required")
+		panic("agents.ApplyIteration: Encoder required")
 	}
 	is := settings.Iterations[partitionIndex]
 	cur, err := m.Decoder(is.InitStateValues)
 	if err != nil {
-		panic("agents.ApplyPartition: decoder failed: " + err.Error())
+		panic("agents.ApplyIteration: decoder failed: " + err.Error())
 	}
 	m.cur = cur
 	enc := m.Encoder(cur)
@@ -87,7 +87,7 @@ func (m *ApplyPartition[S, A]) Configure(partitionIndex int, settings *simulator
 }
 
 // Iterate implements simulator.Iteration.
-func (m *ApplyPartition[S, A]) Iterate(
+func (m *ApplyIteration[S, A]) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -142,7 +142,7 @@ func (m *ApplyPartition[S, A]) Iterate(
 }
 
 // floatsEqual reports whether a and b are bitwise-identical. Used by
-// ApplyPartition to detect when the row has been overwritten by another
+// ApplyIteration to detect when the row has been overwritten by another
 // partition since the last Iterate so the cached typed state can be
 // invalidated.
 func floatsEqual(a, b []float64) bool {

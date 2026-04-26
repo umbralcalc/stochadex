@@ -17,15 +17,15 @@ import (
 func newMASTAggregationImpls() []simulator.Iteration {
 	return []simulator.Iteration{
 		&general.ConstantValuesIteration{},
-		&agents.MASTAggregationPartition[agentstest.TTTAction]{MaxKeys: 4},
+		&agents.MASTAggregationIteration[agentstest.TTTAction]{MaxKeys: 4},
 	}
 }
 
-func TestMASTAggregationPartition(t *testing.T) {
+func TestMASTAggregationIteration(t *testing.T) {
 	t.Run(
 		"test that the MAST aggregation partition runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mast_aggregation_partition_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./mast_aggregation_iteration_settings.yaml")
 			iterations := newMASTAggregationImpls()
 			for partitionIndex, iter := range iterations {
 				iter.Configure(partitionIndex, settings)
@@ -76,7 +76,7 @@ func TestMASTAggregationPartition(t *testing.T) {
 	t.Run(
 		"test that the MAST aggregation partition runs with harnesses",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./mast_aggregation_partition_settings.yaml")
+			settings := simulator.LoadSettingsFromYaml("./mast_aggregation_iteration_settings.yaml")
 			iterations := newMASTAggregationImpls()
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
@@ -94,7 +94,7 @@ func TestMASTAggregationPartition(t *testing.T) {
 	)
 }
 
-func TestMASTAggregationPartitionRowLayout(t *testing.T) {
+func TestMASTAggregationIterationRowLayout(t *testing.T) {
 	if got, want := agents.MASTAggregationRowWidth(5), 10; got != want {
 		t.Errorf("MASTAggregationRowWidth(5): got %d want %d", got, want)
 	}
@@ -106,9 +106,9 @@ func TestMASTAggregationPartitionRowLayout(t *testing.T) {
 	}
 }
 
-func TestMASTAggregationPartitionDropsOutOfRangeKeys(t *testing.T) {
+func TestMASTAggregationIterationDropsOutOfRangeKeys(t *testing.T) {
 	provider := &general.ConstantValuesIteration{}
-	agg := &agents.MASTAggregationPartition[agentstest.TTTAction]{MaxKeys: 4}
+	agg := &agents.MASTAggregationIteration[agentstest.TTTAction]{MaxKeys: 4}
 	gen := simulator.NewConfigGenerator()
 	store := simulator.NewStateTimeStorage()
 	gen.SetSimulation(&simulator.SimulationConfig{

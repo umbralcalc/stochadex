@@ -23,9 +23,9 @@
 //   - One-shot helper RunMCTSSearch for ad-hoc searches outside a coordinator
 //
 // Usage Patterns:
-//   - Self-play: compose ApplyPartition + an embedded search sim
+//   - Self-play: compose ApplyIteration + an embedded search sim
 //     (analysis.NewMCTSSelfPlayPartitions wires this up)
-//   - Per-simulation telemetry: run MCTSTreePartition + MCTSRolloutPartition
+//   - Per-simulation telemetry: run MCTSTreeIteration + MCTSRolloutIteration
 //     directly without the apply layer, then read the tree's row
 //   - YAML / pkg/api use: ship non-generic façade types per environment family
 //     that bake in the type parameters, since generic types in YAML iteration

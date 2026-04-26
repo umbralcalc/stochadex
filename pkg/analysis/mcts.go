@@ -9,10 +9,10 @@ import (
 // MCTSSelfPlaySpec captures the inputs needed to wire a fully-decomposed
 // MCTS self-play stack into a stochadex simulation. The result is three
 // outer partitions plus an embedded sub-simulation hosting the
-// (MCTSTreePartition + MCTSRolloutPartition) pipeline:
+// (MCTSTreeIteration + MCTSRolloutIteration) pipeline:
 //
 //   outer:
-//     <Name>_apply   : ApplyPartition  — encoded game state; advances by
+//     <Name>_apply   : ApplyIteration  — encoded game state; advances by
 //                                        one ply per outer step using the
 //                                        best-action signal from the
 //                                        embedded search.
@@ -23,10 +23,10 @@ import (
 //                                        the apply partition's row.
 //
 //   inner sim (inside <Name>_search):
-//     <Name>_tree    : MCTSTreePartition    — selection + backup; tree on
+//     <Name>_tree    : MCTSTreeIteration    — selection + backup; tree on
 //                                        struct; row exposes leaf state
 //                                        and root edge stats.
-//     <Name>_rollout : MCTSRolloutPartition — one rollout per inner step,
+//     <Name>_rollout : MCTSRolloutIteration — one rollout per inner step,
 //                                        consuming the leaf from
 //                                        <Name>_tree.
 //
@@ -122,7 +122,7 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 
 	treeInit := make([]float64, treeRowWidth)
 	// Initial best_root_idx slot stays zero (will be overwritten on first
-	// Iterate; the standalone MCTSTreePartition convention is that 0 here is
+	// Iterate; the standalone MCTSTreeIteration convention is that 0 here is
 	// safe because no consumer reads best_root_idx until the tree has
 	// recorded at least one visit).
 	copy(treeInit[agents.MCTSTreeRowLeafStateOffset:], encodedRoot)
@@ -131,7 +131,7 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 
 	innerTree := &simulator.PartitionConfig{
 		Name: treeName,
-		Iteration: &agents.MCTSTreePartition[S, A]{
+		Iteration: &agents.MCTSTreeIteration[S, A]{
 			Env:             spec.Env,
 			Cfg:             spec.Cfg,
 			Decoder:         spec.Decoder,
@@ -166,7 +166,7 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 
 	innerRollout := &simulator.PartitionConfig{
 		Name: rolloutName,
-		Iteration: &agents.MCTSRolloutPartition[S, A]{
+		Iteration: &agents.MCTSRolloutIteration[S, A]{
 			Env:     spec.Env,
 			Cfg:     spec.Cfg,
 			Decoder: spec.Decoder,
@@ -245,7 +245,7 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 	// read search's row from the previous step.
 	apply := &simulator.PartitionConfig{
 		Name: applyName,
-		Iteration: &agents.ApplyPartition[S, A]{
+		Iteration: &agents.ApplyIteration[S, A]{
 			Env:         spec.Env,
 			Decoder:     spec.Decoder,
 			Encoder:     spec.Encoder,

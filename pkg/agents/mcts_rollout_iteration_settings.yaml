@@ -1,5 +1,5 @@
 iterations:
-  # leaf_provider mocks a TreePartition's leaf_state + has_leaf section by
+  # leaf_provider mocks a MCTSTreeIteration's leaf_state + has_leaf section by
   # emitting a constant 11-float slice: [9 cells, current_player, has_leaf].
   # This drives the rollout partition deterministically for the test.
   - name: leaf_provider

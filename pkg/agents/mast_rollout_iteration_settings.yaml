@@ -8,7 +8,7 @@ iterations:
     seed: 0
     state_width: 11
     state_history_depth: 1
-  # agg_provider mocks the MASTAggregationPartition's row state. We start
+  # agg_provider mocks the MASTAggregationIteration's row state. We start
   # with all zeros so the rollout falls back to uniform sampling.
   # MASTAggregationRowWidth(MaxKeys=9) = 18.
   - name: agg_provider

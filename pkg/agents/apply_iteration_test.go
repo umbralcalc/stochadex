@@ -9,10 +9,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func newApplyPartitionImpls() []simulator.Iteration {
+func newApplyIterationImpls() []simulator.Iteration {
 	return []simulator.Iteration{
 		&general.ConstantValuesIteration{},
-		&agents.ApplyPartition[agentstest.TTTState, agentstest.TTTAction]{
+		&agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
 			Env:     &agentstest.TTTGame{},
 			Decoder: agentstest.TTTDecode,
 			Encoder: agentstest.TTTEncode,
@@ -20,12 +20,12 @@ func newApplyPartitionImpls() []simulator.Iteration {
 	}
 }
 
-func TestApplyPartition(t *testing.T) {
+func TestApplyIteration(t *testing.T) {
 	t.Run(
 		"test that the apply partition runs",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./apply_partition_settings.yaml")
-			iterations := newApplyPartitionImpls()
+			settings := simulator.LoadSettingsFromYaml("./apply_iteration_settings.yaml")
+			iterations := newApplyIterationImpls()
 			for partitionIndex, iter := range iterations {
 				iter.Configure(partitionIndex, settings)
 			}
@@ -73,8 +73,8 @@ func TestApplyPartition(t *testing.T) {
 	t.Run(
 		"test that the apply partition runs with harnesses",
 		func(t *testing.T) {
-			settings := simulator.LoadSettingsFromYaml("./apply_partition_settings.yaml")
-			iterations := newApplyPartitionImpls()
+			settings := simulator.LoadSettingsFromYaml("./apply_iteration_settings.yaml")
+			iterations := newApplyIterationImpls()
 			implementations := &simulator.Implementations{
 				Iterations:      iterations,
 				OutputCondition: &simulator.NilOutputCondition{},
@@ -91,13 +91,13 @@ func TestApplyPartition(t *testing.T) {
 	)
 }
 
-// TestApplyPartitionStateHistoryMode wires the apply partition to read its
+// TestApplyIterationStateHistoryMode wires the apply partition to read its
 // best-action signal from an upstream partition's state-history row at a
 // configurable slot offset, instead of via params_from_upstream. This is
 // the wiring used by NewMCTSSelfPlayPartitions to break the apply ↔ search
 // dependency cycle. The test verifies the lag-1 read picks up the upstream
 // value correctly.
-func TestApplyPartitionStateHistoryMode(t *testing.T) {
+func TestApplyIterationStateHistoryMode(t *testing.T) {
 	// Upstream partition row layout: [unused, best_legal_idx]. Slot 1 is
 	// what apply will read (BestIdxSlot=1). Constant value = 4 (centre
 	// cell on an empty TTT board).
@@ -105,7 +105,7 @@ func TestApplyPartitionStateHistoryMode(t *testing.T) {
 	const slot = 1
 	upstreamInit := []float64{0, 4}
 
-	apply := &agents.ApplyPartition[agentstest.TTTState, agentstest.TTTAction]{
+	apply := &agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:         &agentstest.TTTGame{},
 		Decoder:     agentstest.TTTDecode,
 		Encoder:     agentstest.TTTEncode,
@@ -157,15 +157,15 @@ func TestApplyPartitionStateHistoryMode(t *testing.T) {
 	}
 }
 
-// TestApplyPartitionDoesNotMoveAtTerminal verifies that apply detects an
+// TestApplyIterationDoesNotMoveAtTerminal verifies that apply detects an
 // already-terminal current state (game over) and skips the move even when
 // the upstream signals a valid index.
-func TestApplyPartitionDoesNotMoveAtTerminal(t *testing.T) {
+func TestApplyIterationDoesNotMoveAtTerminal(t *testing.T) {
 	// Seed apply with a position where X has already won.
 	terminalInit := agentstest.TTTEncode(agentstest.TTTFromGrid(
 		[9]int8{1, 1, 1, 2, 2, 0, 0, 0, 0}, 1,
 	))
-	apply := &agents.ApplyPartition[agentstest.TTTState, agentstest.TTTAction]{
+	apply := &agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:     &agentstest.TTTGame{},
 		Decoder: agentstest.TTTDecode,
 		Encoder: agentstest.TTTEncode,
@@ -211,11 +211,11 @@ func TestApplyPartitionDoesNotMoveAtTerminal(t *testing.T) {
 	}
 }
 
-// TestApplyPartitionIgnoresOutOfRangeIdx verifies that an upstream
+// TestApplyIterationIgnoresOutOfRangeIdx verifies that an upstream
 // best_legal_idx outside the legal-action range is treated as a no-op
 // rather than panicking or producing a bogus move.
-func TestApplyPartitionIgnoresOutOfRangeIdx(t *testing.T) {
-	apply := &agents.ApplyPartition[agentstest.TTTState, agentstest.TTTAction]{
+func TestApplyIterationIgnoresOutOfRangeIdx(t *testing.T) {
+	apply := &agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:     &agentstest.TTTGame{},
 		Decoder: agentstest.TTTDecode,
 		Encoder: agentstest.TTTEncode,
@@ -264,11 +264,11 @@ func TestApplyPartitionIgnoresOutOfRangeIdx(t *testing.T) {
 	}
 }
 
-// TestApplyPartitionSkipsOnNegativeIdx verifies that the -1 sentinel
+// TestApplyIterationSkipsOnNegativeIdx verifies that the -1 sentinel
 // (meaning "search hasn't produced a real best yet") is treated as
 // no-op.
-func TestApplyPartitionSkipsOnNegativeIdx(t *testing.T) {
-	apply := &agents.ApplyPartition[agentstest.TTTState, agentstest.TTTAction]{
+func TestApplyIterationSkipsOnNegativeIdx(t *testing.T) {
+	apply := &agents.ApplyIteration[agentstest.TTTState, agentstest.TTTAction]{
 		Env:     &agentstest.TTTGame{},
 		Decoder: agentstest.TTTDecode,
 		Encoder: agentstest.TTTEncode,
