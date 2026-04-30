@@ -1,12 +1,12 @@
 // Package agents provides decision-making agents that operate over a generic
 // Environment[S, A] interface. The package is intended to host any agent built
-// on the same environment framework — currently it ships MCTS (UCT) as the
+// on the same environment framework. Currently it ships MCTS (UCT) as the
 // only agent, with MAST as an optional rollout strategy on top.
 //
 // Per-player terminal scores are []float64 in [0,1] (the established stochadex
 // value convention). Codecs (encoder/decoder for S into the stochadex row's
-// []float64) are supplied by the caller as function fields on each partition
-// — this package does not depend on any encoding protocol.
+// []float64) are supplied by the caller as function fields on each partition.
+// This package does not depend on any encoding protocol.
 //
 // Key Features:
 //   - Generic Environment[S, A] interface (Legal/Apply/Terminal/Actor/Players)

@@ -578,14 +578,14 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="st">&quot;github.com/umbralcalc/stochadex/pkg/agents&quot;</span></span></code></pre></div>
       <p>Package agents provides decision-making agents that operate
       over a generic Environment[S, A] interface. The package is
-      intended to host any agent built on the same environment framework
-      — currently it ships MCTS (UCT) as the only agent, with MAST as an
-      optional rollout strategy on top.</p>
+      intended to host any agent built on the same environment
+      framework. Currently it ships MCTS (UCT) as the only agent, with
+      MAST as an optional rollout strategy on top.</p>
       <p>Per-player terminal scores are []float64 in [0,1] (the
       established stochadex value convention). Codecs (encoder/decoder
       for S into the stochadex row’s []float64) are supplied by the
-      caller as function fields on each partition — this package does
-      not depend on any encoding protocol.</p>
+      caller as function fields on each partition. This package does not
+      depend on any encoding protocol.</p>
       <p>Key Features:</p>
       <ul>
       <li>Generic Environment[S, A] interface
