@@ -26,8 +26,10 @@
   <!-- Custom CSS -->
   <style>
     :root {
-      --primary-color: #2563eb;
-      --primary-hover: #1d4ed8;
+      --primary-color: #4D7F37;
+      --primary-hover: #3D6B2C;
+      --link-color: #4D7F37;
+      --link-hover: #3D6B2C;
       --secondary-color: #64748b;
       --accent-color: #f59e0b;
       --text-primary: #1e293b;
@@ -66,6 +68,16 @@
 
     /* Sidebar */
     .sidebar {
+      /* Green-tinted overrides preserving the slate palette's tonal hierarchy. */
+      --bg-primary: #fafdf7;
+      --bg-secondary: #f3f8ec;
+      --bg-tertiary: #e8f0db;
+      --border-color: #d6e3c5;
+      --border-hover: #c2d3ad;
+      --text-primary: #4D7F37;
+      --text-secondary: #4D7F37;
+      --text-muted: #4D7F37;
+
       width: 280px;
       background-color: var(--bg-secondary);
       border-right: 1px solid var(--border-color);
@@ -140,7 +152,7 @@
       background-color: var(--bg-primary);
       color: var(--primary-color);
       border-left-color: var(--primary-color);
-      font-weight: 500;
+      font-weight: 700;
     }
 
     /* Main content */
@@ -195,13 +207,13 @@
     }
 
     a {
-      color: var(--primary-color);
+      color: var(--link-color);
       text-decoration: none;
       transition: color 0.2s ease;
     }
 
     a:hover {
-      color: var(--primary-hover);
+      color: var(--link-hover);
       text-decoration: underline;
     }
 
@@ -439,7 +451,6 @@
     img {
       max-width: 100%;
       height: auto;
-      border-radius: var(--radius-md);
     }
 
     .centered {
@@ -549,6 +560,7 @@
       <ul class="nav-links">
         <li><a href="../index.html">Home</a></li>
         <li><a href="../pkg/quickstart.html">Quickstart</a></li>
+        <li><a href="../pkg/how_it_works.html">How it works</a></li>
       </ul>
     </div>
 
@@ -599,16 +611,14 @@
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the binary in the container with your configs</span></span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">-p</span> 2112:2112 stochadex <span class="at">--config</span> ./cfg/example_config.yaml <span class="dt">\</span></span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--socket</span> ./cfg/socket.yaml</span></code></pre></div>
-      <h2 id="developing-the-code">Developing the code</h2>
-      <p>You can add any new simulation partition you like by following the patterns for other processes given, e.g., in the <a href="https://umbralcalc.github.io/stochadex/pkg/continuous.html">pkg/continuous</a> package.</p>
+      <h2 id="example-analysis-notebooks">Example analysis notebooks</h2>
       <ul>
-      <li>The main step is to create a new struct for your partition iterator which implements the <a href="https://umbralcalc.github.io/stochadex/pkg/simulator.html#Iteration">simulator.Iteration</a> interface.</li>
-      <li>It is then strongly recommended that a test function for this new iterator is written, which should include a test that calls <a href="https://umbralcalc.github.io/stochadex/pkg/simulator.html#RunWithHarnesses">simulator.RunWithHarnesses</a>.</li>
+      <li><a href="https://github.com/umbralcalc/stochadex/blob/main/nbs/csv.ipynb">Examples with CSV files</a></li>
+      <li><a href="https://github.com/umbralcalc/stochadex/blob/main/nbs/dataframe.ipynb">Examples with Dataframes</a></li>
+      <li><a href="https://github.com/umbralcalc/stochadex/blob/main/nbs/logs.ipynb">Examples with JSON Log Entries</a></li>
+      <li><a href="https://github.com/umbralcalc/stochadex/blob/main/nbs/partitions.ipynb">Examples with Partitions</a></li>
+      <li><a href="https://github.com/umbralcalc/stochadex/blob/main/nbs/postgres.ipynb">Examples with a Postgres DB</a></li>
       </ul>
-      <h2 id="using-the-analysis-package">Using the analysis package</h2>
-      <p>The <a href="https://umbralcalc.github.io/stochadex/pkg/analysis.html">pkg/analysis</a> package provides tools for analysing simulation outputs and building new simulations.</p>
-      <p>The plots work well within GoNB notebooks (notebooks with a Go-friendly Jupyter Kernel) and there are some simple examples of what you can do provided the <a href="https://github.com/umbralcalc/stochadex/tree/main/nbs">nbs/</a> folder.</p>
-      <p>In order to use the GoNB Jupyter Kernel, please install GoNB from here: <a href="https://github.com/janpfeifer/gonb">https://github.com/janpfeifer/gonb</a>.</p>
     </div>
   </main>
 

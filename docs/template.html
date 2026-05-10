@@ -26,8 +26,10 @@
   <!-- Custom CSS -->
   <style>
     :root {
-      --primary-color: #2563eb;
-      --primary-hover: #1d4ed8;
+      --primary-color: #4D7F37;
+      --primary-hover: #3D6B2C;
+      --link-color: #4D7F37;
+      --link-hover: #3D6B2C;
       --secondary-color: #64748b;
       --accent-color: #f59e0b;
       --text-primary: #1e293b;
@@ -66,6 +68,16 @@
 
     /* Sidebar */
     .sidebar {
+      /* Green-tinted overrides preserving the slate palette's tonal hierarchy. */
+      --bg-primary: #fafdf7;
+      --bg-secondary: #f3f8ec;
+      --bg-tertiary: #e8f0db;
+      --border-color: #d6e3c5;
+      --border-hover: #c2d3ad;
+      --text-primary: #4D7F37;
+      --text-secondary: #4D7F37;
+      --text-muted: #4D7F37;
+
       width: 280px;
       background-color: var(--bg-secondary);
       border-right: 1px solid var(--border-color);
@@ -140,7 +152,7 @@
       background-color: var(--bg-primary);
       color: var(--primary-color);
       border-left-color: var(--primary-color);
-      font-weight: 500;
+      font-weight: 700;
     }
 
     /* Main content */
@@ -195,13 +207,13 @@
     }
 
     a {
-      color: var(--primary-color);
+      color: var(--link-color);
       text-decoration: none;
       transition: color 0.2s ease;
     }
 
     a:hover {
-      color: var(--primary-hover);
+      color: var(--link-hover);
       text-decoration: underline;
     }
 
@@ -439,7 +451,6 @@
     img {
       max-width: 100%;
       height: auto;
-      border-radius: var(--radius-md);
     }
 
     .centered {
@@ -555,6 +566,7 @@
       <ul class="nav-links">
         <li><a href="$if(is-home)$$else$../$endif$index.html">Home</a></li>
         <li><a href="$if(is-home)$$else$../$endif$pkg/quickstart.html">Quickstart</a></li>
+        <li><a href="$if(is-home)$$else$../$endif$pkg/how_it_works.html">How it works</a></li>
       </ul>
     </div>
 

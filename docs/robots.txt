@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://umbralcalc.github.io/stochadex/sitemap.xml
+Sitemap: https://stochadex.github.io/sitemap.xml

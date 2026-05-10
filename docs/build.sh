@@ -140,6 +140,21 @@ generate_html_pages() {
             -o "$DOCS_DIR/pkg/quickstart.html" \
             "$DOCS_DIR/quickstart.md"
     fi
+
+    # Generate how it works page
+    if [ -f "$DOCS_DIR/how_it_works.md" ]; then
+        log_info "Generating how it works page..."
+        local title=$(grep -E '^title:' "$DOCS_DIR/how_it_works.md" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "How it works")
+        pandoc --template "$DOCS_DIR/template.html" \
+            --wrap=preserve \
+            --mathjax \
+            --syntax-highlighting=pygments \
+            --metadata="title:$title" \
+            -f markdown \
+            -t html \
+            -o "$DOCS_DIR/pkg/how_it_works.html" \
+            "$DOCS_DIR/how_it_works.md"
+    fi
     
     log_success "HTML pages generated"
 }
@@ -217,7 +232,7 @@ EOF
 generate_sitemap() {
     log_info "Generating sitemap..."
     
-    local base_url="https://umbralcalc.github.io/stochadex"
+    local base_url="https://stochadex.github.io/"
     
     cat > "$DOCS_DIR/sitemap.xml" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -272,7 +287,7 @@ generate_robots() {
 User-agent: *
 Allow: /
 
-Sitemap: https://umbralcalc.github.io/stochadex/sitemap.xml
+Sitemap: https://stochadex.github.io/sitemap.xml
 EOF
     
     log_success "robots.txt generated"
