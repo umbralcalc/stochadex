@@ -25,7 +25,7 @@ This simulation engine is designed based on the simulation software fundamentals
 - [Planning approval policies for affordability with housing market simulations](https://github.com/umbralcalc/homark)
 - [Small business survival and support policy simulation](https://github.com/umbralcalc/business-survival)
 - [18xx gameplay design tool and Monte Carlo Tree Search (MCTS) agents](https://github.com/umbralcalc/18xxdesigner)
-- [Decision-making games for the python programmer](https://github.com/umbralcalc/dexetera)
+- [Turning simulations into in-browser interactive dashboards](https://github.com/umbralcalc/dexetera)
 
 ## Other cool engines
 
