@@ -13,7 +13,7 @@ It's a simulation engine written in [Go](https://go.dev/) which can be used to s
 
 For software engineers, the stochadex simulation framework abstracts away many of the common features that sampling algorithms have for performing these computations behind a highly-configurable interface.
 
-This simulation engine is designed based on the simulation software fundamentals described in [this collection of blog posts](https://umbralcalc.github.io/posts/why_simulate_real_world_systems.html).
+This simulation engine is designed based on the simulation software fundamentals described in [this collection of blog posts](https://umbralcalc.github.io/posts/simulating_real_world_systems_as_a_programmer_introduction.html).
 
 ## Projects using the software
 
