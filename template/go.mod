@@ -2,7 +2,7 @@ module github.com/example/my-stochadex-project
 
 go 1.25.2
 
-require github.com/umbralcalc/stochadex v0.0.0-20260511203348-696720a086a2
+require github.com/umbralcalc/stochadex v0.0.0-20260529062707-b3fa54eb7212
 
 require (
 	github.com/gorilla/websocket v1.5.3 // indirect
