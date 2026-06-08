@@ -975,7 +975,7 @@
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewConfigGenerator"></a></p>
       <h3 id="func-newconfiggenerator">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L280">NewConfigGenerator</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L284">NewConfigGenerator</a></h3>
       <div class="sourceCode" id="cb5"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewConfigGenerator<span class="op">()</span> <span class="op">*</span>ConfigGenerator</span></code></pre></div>
       <p>NewConfigGenerator creates a new ConfigGenerator with empty
@@ -983,7 +983,7 @@
       <p><a name="ConfigGenerator.GenerateConfigs"></a></p>
       <h3 id="func-configgenerator-generateconfigs">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L200">GenerateConfigs</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L204">GenerateConfigs</a></h3>
       <div class="sourceCode" id="cb6"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> GenerateConfigs<span class="op">()</span> <span class="op">(*</span>Settings<span class="op">,</span> <span class="op">*</span>Implementations<span class="op">)</span></span></code></pre></div>
       <p>GenerateConfigs constructs Settings and Implementations ready
@@ -999,21 +999,21 @@
       <p><a name="ConfigGenerator.GetPartition"></a></p>
       <h3 id="func-configgenerator-getpartition">func (*ConfigGenerator)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L177">GetPartition</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L181">GetPartition</a></h3>
       <div class="sourceCode" id="cb8"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> GetPartition<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>PartitionConfig</span></code></pre></div>
       <p>GetPartition retrieves a partition config by name.</p>
       <p><a name="ConfigGenerator.GetSimulation"></a></p>
       <h3 id="func-configgenerator-getsimulation">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L167">GetSimulation</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L171">GetSimulation</a></h3>
       <div class="sourceCode" id="cb9"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> GetSimulation<span class="op">()</span> <span class="op">*</span>SimulationConfig</span></code></pre></div>
       <p>GetSimulation returns the current simulation config.</p>
       <p><a name="ConfigGenerator.ResetPartition"></a></p>
       <h3 id="func-configgenerator-resetpartition">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L188">ResetPartition</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L192">ResetPartition</a></h3>
       <div class="sourceCode" id="cb10"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> ResetPartition<span class="op">(</span>name <span class="dt">string</span><span class="op">,</span> config <span class="op">*</span>PartitionConfig<span class="op">)</span></span></code></pre></div>
       <p>ResetPartition replaces the config for a partition by name.</p>
@@ -1028,7 +1028,7 @@
       <p><a name="ConfigGenerator.SetPartition"></a></p>
       <h3 id="func-configgenerator-setpartition">func (*ConfigGenerator)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L182">SetPartition</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L186">SetPartition</a></h3>
       <div class="sourceCode" id="cb12"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> SetPartition<span class="op">(</span>config <span class="op">*</span>PartitionConfig<span class="op">)</span></span></code></pre></div>
       <p>SetPartition adds a new partition config. Names must be
@@ -1036,7 +1036,7 @@
       <p><a name="ConfigGenerator.SetSimulation"></a></p>
       <h3 id="func-configgenerator-setsimulation">func
       (*ConfigGenerator) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L172">SetSimulation</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/configs.go#L176">SetSimulation</a></h3>
       <div class="sourceCode" id="cb13"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>ConfigGenerator<span class="op">)</span> SetSimulation<span class="op">(</span>config <span class="op">*</span>SimulationConfig<span class="op">)</span></span></code></pre></div>
       <p>SetSimulation sets the current simulation config.</p>

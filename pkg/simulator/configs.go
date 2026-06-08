@@ -158,8 +158,12 @@ func (c *ConfigGenerator) GetGlobalSeed() uint64 {
 func (c *ConfigGenerator) SetGlobalSeed(seed uint64) {
 	c.globalSeed = seed
 	r := rand.New(rand.NewPCG(seed, seed))
-	for _, config := range c.partitionConfigOrdering.ConfigByName {
-		config.Seed = uint64(r.IntN(1e8))
+	// Iterate over the ordered Names slice rather than the ConfigByName map:
+	// Go randomizes map iteration order, so ranging over the map would assign
+	// different derived seeds to each partition on every call for the same
+	// global seed.
+	for _, name := range c.partitionConfigOrdering.Names {
+		c.partitionConfigOrdering.ConfigByName[name].Seed = uint64(r.IntN(1e8))
 	}
 }
 
