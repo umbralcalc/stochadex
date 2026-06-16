@@ -1,0 +1,25 @@
+iterations:
+- name: partition_0
+  params: {}
+  init_state_values: [7.0, 8.0, 3.0, 7.0, 1.0]
+  seed: 2365
+  state_width: 5
+  state_history_depth: 2
+- name: partition_1
+  params:
+    multipliers: [2.4, 1.0, 4.3]
+  init_state_values: [1.0, 2.0, 3.0]
+  seed: 167
+  state_width: 3
+  state_history_depth: 10
+- name: partition_2
+  params: {}
+  params_from_upstream:
+    multipliers:
+      upstream: 1
+  init_state_values: [3.0, 1.0, 3.5]
+  seed: 234
+  state_width: 3
+  state_history_depth: 10
+init_time_value: 0.0
+timesteps_history_depth: 10

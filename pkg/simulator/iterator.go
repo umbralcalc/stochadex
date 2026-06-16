@@ -181,7 +181,14 @@ func (s *StateIterator) Iterate(
 func (s *StateIterator) ReceiveAndIteratePending(
 	inputChannel <-chan *IteratorInputMessage,
 ) {
-	inputMessage := <-inputChannel
+	s.IteratePending(<-inputChannel)
+}
+
+// IteratePending updates upstream-driven params, runs Iterate, and stores a
+// pending state update for the given input message. It is the work performed
+// by the iteration phase, factored out from the channel receive so that
+// long-lived workers can own the receive themselves.
+func (s *StateIterator) IteratePending(inputMessage *IteratorInputMessage) {
 	// listen to the upstream channels which may set new params
 	s.ValueChannels.UpdateUpstreamParams(&s.Params)
 	inputMessage.StateHistories[s.Partition.Index].NextValues = s.Iterate(
@@ -196,7 +203,14 @@ func (s *StateIterator) ReceiveAndIteratePending(
 
 // UpdateHistory applies the pending state update to the partition history.
 func (s *StateIterator) UpdateHistory(inputChannel <-chan *IteratorInputMessage) {
-	inputMessage := <-inputChannel
+	s.ApplyHistoryUpdate(<-inputChannel)
+}
+
+// ApplyHistoryUpdate applies the pending state update to the partition history
+// for the given input message. It is the work performed by the update phase,
+// factored out from the channel receive so that long-lived workers can own the
+// receive themselves.
+func (s *StateIterator) ApplyHistoryUpdate(inputMessage *IteratorInputMessage) {
 	// reference this partition
 	partition := inputMessage.StateHistories[s.Partition.Index]
 	// iterate over the history (matrix columns) and shift them

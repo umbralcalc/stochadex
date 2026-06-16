@@ -124,7 +124,25 @@ func (h *IterationTestHarness) Iterate(
 // RunWithHarnesses runs all iterations, each wrapped in a test harness and
 // returns any errors if found. The simulation is also run twice to check
 // for statefulness residues.
+//
+// It uses the default spawn-per-step execution. To exercise a specific
+// ExecutionStrategy under the same checks, use RunWithHarnessesUsing.
 func RunWithHarnesses(settings *Settings, implementations *Implementations) error {
+	return RunWithHarnessesUsing(settings, implementations, nil)
+}
+
+// RunWithHarnessesUsing is like RunWithHarnesses but advances the simulation
+// with the given ExecutionStrategy (nil selects the default spawn-per-step
+// execution and uses the manual Step loop so behaviour is unchanged). It
+// applies every per-step correctness check (params mutation, NaN, state width,
+// history integrity) and the twice-run statefulness-residue check, so each
+// strategy is validated against the same rigour as the default.
+func RunWithHarnessesUsing(
+	settings *Settings,
+	implementations *Implementations,
+	strategy ExecutionStrategy,
+) error {
+	implementations.ExecutionStrategy = strategy
 	initRunStore := NewStateTimeStorage()
 	implementations.OutputFunction = &StateTimeStorageOutputFunction{
 		Store: initRunStore,
@@ -140,14 +158,8 @@ func RunWithHarnesses(settings *Settings, implementations *Implementations) erro
 		implementations.Iterations[index] = harness
 	}
 	coordinator := NewPartitionCoordinator(settings, implementations)
-	var wg sync.WaitGroup
-	for !coordinator.ReadyToTerminate() {
-		coordinator.Step(&wg)
-		for _, harness := range harnesses {
-			if harness.Err != nil {
-				return harness.Err
-			}
-		}
+	if err := runHarnessedToTermination(coordinator, harnesses); err != nil {
+		return err
 	}
 	resetRunStore := NewStateTimeStorage()
 	implementations.OutputFunction = &StateTimeStorageOutputFunction{
@@ -157,13 +169,8 @@ func RunWithHarnesses(settings *Settings, implementations *Implementations) erro
 		iteration.Configure(index, settings)
 	}
 	coordinator = NewPartitionCoordinator(settings, implementations)
-	for !coordinator.ReadyToTerminate() {
-		coordinator.Step(&wg)
-		for _, harness := range harnesses {
-			if harness.Err != nil {
-				return harness.Err
-			}
-		}
+	if err := runHarnessedToTermination(coordinator, harnesses); err != nil {
+		return err
 	}
 	for _, pName := range initRunStore.GetNames() {
 		valuesAfterReset := resetRunStore.GetValues(pName)
@@ -174,6 +181,36 @@ func RunWithHarnesses(settings *Settings, implementations *Implementations) erro
 						" this typically happens if there is a statefulness residue")
 				}
 			}
+		}
+	}
+	return nil
+}
+
+// runHarnessedToTermination advances the coordinator to termination and
+// returns the first harness error found. For the default execution (no
+// strategy) it uses the manual Step loop so the per-step checks run between
+// every step exactly as before; for an explicit strategy it delegates the loop
+// to Run and checks the harnesses once it returns.
+func runHarnessedToTermination(
+	coordinator *PartitionCoordinator,
+	harnesses []*IterationTestHarness,
+) error {
+	if coordinator.RunStrategy == nil {
+		var wg sync.WaitGroup
+		for !coordinator.ReadyToTerminate() {
+			coordinator.Step(&wg)
+			for _, harness := range harnesses {
+				if harness.Err != nil {
+					return harness.Err
+				}
+			}
+		}
+		return nil
+	}
+	coordinator.Run()
+	for _, harness := range harnesses {
+		if harness.Err != nil {
+			return harness.Err
 		}
 	}
 	return nil

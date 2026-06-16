@@ -64,6 +64,7 @@ type Implementations struct {
 	OutputFunction       OutputFunction
 	TerminationCondition TerminationCondition
 	TimestepFunction     TimestepFunction
+	ExecutionStrategy    ExecutionStrategy
 }
 
 // NamedUpstreamConfig is like UpstreamConfig but refers to upstream by name.
@@ -109,6 +110,7 @@ type SimulationConfig struct {
 	TerminationCondition TerminationCondition
 	TimestepFunction     TimestepFunction
 	InitTimeValue        float64
+	ExecutionStrategy    ExecutionStrategy
 }
 
 // SimulationConfigStrings is the YAML-loadable version of SimulationConfig,
@@ -119,6 +121,7 @@ type SimulationConfigStrings struct {
 	TerminationCondition string  `yaml:"termination_condition"`
 	TimestepFunction     string  `yaml:"timestep_function"`
 	InitTimeValue        float64 `yaml:"init_time_value"`
+	ExecutionStrategy    string  `yaml:"execution_strategy,omitempty"`
 }
 
 // PartitionConfigOrdering maintains the ordering and lookup for partitions.
@@ -208,6 +211,7 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 		OutputFunction:       c.simulationConfig.OutputFunction,
 		TerminationCondition: c.simulationConfig.TerminationCondition,
 		TimestepFunction:     c.simulationConfig.TimestepFunction,
+		ExecutionStrategy:    c.simulationConfig.ExecutionStrategy,
 	}
 	settings := Settings{
 		Iterations:    make([]IterationSettings, 0),

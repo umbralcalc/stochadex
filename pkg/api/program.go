@@ -253,6 +253,16 @@ func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings {
 	return &config
 }
 
+// executionStrategyField returns the trailing SimulationConfig field fragment
+// for an optional execution strategy expression, or an empty string when none
+// is configured (preserving the default execution).
+func executionStrategyField(expr string) string {
+	if expr == "" {
+		return ""
+	}
+	return ",\n	ExecutionStrategy: " + expr
+}
+
 // formatExtraCode serialises Iteration factories and SimulationConfig into
 // Go code fragments for main and embedded runs.
 func formatExtraCode(args ParsedArgs) string {
@@ -272,12 +282,13 @@ func formatExtraCode(args ParsedArgs) string {
 	OutputFunction: %s,
 	TerminationCondition: %s,
 	TimestepFunction: %s,
-	InitTimeValue: %f}`+"\n    ",
+	InitTimeValue: %f%s}`+"\n    ",
 		args.ConfigStrings.Main.Simulation.OutputCondition,
 		args.ConfigStrings.Main.Simulation.OutputFunction,
 		args.ConfigStrings.Main.Simulation.TerminationCondition,
 		args.ConfigStrings.Main.Simulation.TimestepFunction,
 		args.ConfigStrings.Main.Simulation.InitTimeValue,
+		executionStrategyField(args.ConfigStrings.Main.Simulation.ExecutionStrategy),
 	)
 	for i, embedded := range args.ConfigStrings.Embedded {
 		for j, partition := range embedded.Run.Partitions {
@@ -295,13 +306,14 @@ func formatExtraCode(args ParsedArgs) string {
 		OutputFunction: %s,
 		TerminationCondition: %s,
 		TimestepFunction: %s,
-		InitTimeValue: %f}`+"\n    ",
+		InitTimeValue: %f%s}`+"\n    ",
 			i,
 			embedded.Run.Simulation.OutputCondition,
 			embedded.Run.Simulation.OutputFunction,
 			embedded.Run.Simulation.TerminationCondition,
 			embedded.Run.Simulation.TimestepFunction,
 			embedded.Run.Simulation.InitTimeValue,
+			executionStrategyField(embedded.Run.Simulation.ExecutionStrategy),
 		)
 	}
 	return extraCode

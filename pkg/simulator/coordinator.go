@@ -72,6 +72,7 @@ type PartitionCoordinator struct {
 	Shared               *IteratorInputMessage
 	TimestepFunction     TimestepFunction
 	TerminationCondition TerminationCondition
+	RunStrategy          ExecutionStrategy
 	newWorkChannels      [](chan *IteratorInputMessage)
 }
 
@@ -148,7 +149,16 @@ func (c *PartitionCoordinator) ReadyToTerminate() bool {
 }
 
 // Run advances by repeatedly calling Step until termination.
+//
+// When RunStrategy is non-nil it owns the whole run loop; otherwise Run uses
+// the default spawn-per-step two-phase execution that is equivalent to
+// repeatedly calling Step.
 func (c *PartitionCoordinator) Run() {
+	if c.RunStrategy != nil {
+		c.RunStrategy.Run(c)
+		return
+	}
+
 	var wg sync.WaitGroup
 
 	// terminate the for loop if the condition has been met
@@ -242,6 +252,7 @@ func NewPartitionCoordinator(
 		},
 		TimestepFunction:     implementations.TimestepFunction,
 		TerminationCondition: implementations.TerminationCondition,
+		RunStrategy:          implementations.ExecutionStrategy,
 		newWorkChannels:      newWorkChannels,
 	}
 }
