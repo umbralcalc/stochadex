@@ -44,8 +44,8 @@
 {"partition_name":"first_wiener_process","state":[4.122486289862775,-0.09530114757342072,-0.293501705364771,1.7389076884242995],"time":21}
 {"partition_name":"second_wiener_process","state":[-0.521307488765962,-2.9082128594523016],"time":22}
 {"partition_name":"first_wiener_process","state":[2.456817033818264,-1.3991597851336997,-2.4598278761868158,-1.0392526465035545],"time":22}
-{"partition_name":"first_wiener_process","state":[1.37431261976142,-1.354860964037483,1.3512526860068415,-3.0503930015402685],"time":23}
 {"partition_name":"second_wiener_process","state":[-1.1132732778642,-0.8262011114860072],"time":23}
+{"partition_name":"first_wiener_process","state":[1.37431261976142,-1.354860964037483,1.3512526860068415,-3.0503930015402685],"time":23}
 {"partition_name":"second_wiener_process","state":[-0.10255835955022397,0.507725414950382],"time":24}
 {"partition_name":"first_wiener_process","state":[-0.08366215284283185,-0.1981953342415224,1.7594410937071485,-1.9477399541572011],"time":24}
 {"partition_name":"second_wiener_process","state":[-0.9684974266365642,1.405115175309793],"time":25}
@@ -186,8 +186,8 @@
 {"partition_name":"first_wiener_process","state":[1.5906770193099806,-8.794715920340463,17.063327630351335,-10.472717705242239],"time":92}
 {"partition_name":"second_wiener_process","state":[-7.341547577063235,9.935847805203412],"time":93}
 {"partition_name":"first_wiener_process","state":[1.0814369089276166,-9.077445850352257,20.107595105851548,-13.28211789240355],"time":93}
-{"partition_name":"second_wiener_process","state":[-6.384405020409689,10.101417678588252],"time":94}
 {"partition_name":"first_wiener_process","state":[-0.8589916585367396,-9.509450567841048,16.63289634702682,-12.736384580407876],"time":94}
+{"partition_name":"second_wiener_process","state":[-6.384405020409689,10.101417678588252],"time":94}
 {"partition_name":"second_wiener_process","state":[-8.17197641563693,9.779672343152935],"time":95}
 {"partition_name":"first_wiener_process","state":[0.3821615051521541,-7.919740961037213,18.880332441202373,-11.841089048719649],"time":95}
 {"partition_name":"second_wiener_process","state":[-7.117170595379632,7.159312899182237],"time":96}

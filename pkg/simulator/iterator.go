@@ -91,9 +91,14 @@ type Iteration interface {
 
 // UpstreamStateValues contains information to receive state values from an
 // upstream iterator via channel.
+//
+// Upstream is the partition index of the producer. It is unused by the
+// channel-based strategies (which receive blockingly on Channel) but lets
+// inline execution read the producer's staged NextValues directly.
 type UpstreamStateValues struct {
-	Channel chan []float64
-	Indices []int
+	Channel  chan []float64
+	Indices  []int
+	Upstream int
 }
 
 // DownstreamStateValues contains information to broadcast state values to
@@ -119,6 +124,32 @@ func (s *StateValueChannels) UpdateUpstreamParams(params *Params) {
 			params.Set(name, <-upstream.Channel)
 		default:
 			values := <-upstream.Channel
+			indexedValues := make([]float64, len(indices))
+			for i, index := range indices {
+				indexedValues[i] = values[index]
+			}
+			params.Set(name, indexedValues)
+		}
+	}
+}
+
+// UpdateUpstreamParamsInline updates Params with values read directly from the
+// producers' staged NextValues, without any channel handshake. It is the
+// inline-execution counterpart to UpdateUpstreamParams and requires that every
+// upstream producer has already run its iteration phase this step (i.e. that
+// partitions are processed in an order where upstreams precede consumers).
+func (s *StateValueChannels) UpdateUpstreamParamsInline(
+	params *Params,
+	stateHistories []*StateHistory,
+) {
+	for name, upstream := range s.Upstreams {
+		values := stateHistories[upstream.Upstream].NextValues
+		switch indices := upstream.Indices; indices {
+		case nil:
+			// Copy so downstream params wiring cannot mutate the producer's
+			// staged state buffer (matching BroadcastDownstream's guarantee).
+			params.Set(name, append([]float64(nil), values...))
+		default:
 			indexedValues := make([]float64, len(indices))
 			for i, index := range indices {
 				indexedValues[i] = values[index]
@@ -198,6 +229,22 @@ func (s *StateIterator) IteratePending(inputMessage *IteratorInputMessage) {
 	// broadcast a reference to the new state values for all downstream listeners
 	s.ValueChannels.BroadcastDownstream(
 		inputMessage.StateHistories[s.Partition.Index].NextValues,
+	)
+}
+
+// IteratePendingInline runs the iteration phase for inline execution: it reads
+// upstream-driven params directly from producers' staged NextValues (no
+// channels) and does not broadcast downstream. Callers must process partitions
+// in an order where every upstream precedes its downstream consumers, which
+// InlineExecution validates before running.
+func (s *StateIterator) IteratePendingInline(inputMessage *IteratorInputMessage) {
+	s.ValueChannels.UpdateUpstreamParamsInline(
+		&s.Params,
+		inputMessage.StateHistories,
+	)
+	inputMessage.StateHistories[s.Partition.Index].NextValues = s.Iterate(
+		inputMessage.StateHistories,
+		inputMessage.TimestepsHistory,
 	)
 }
 

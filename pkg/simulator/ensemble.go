@@ -17,13 +17,6 @@ type EnsembleRun struct {
 // ConfigGenerator. It returns one EnsembleRun per seed, index-aligned to the
 // seeds slice.
 //
-// This is the data-parallel ensemble expressed through the existing
-// abstractions: every member is a whole, independent coordinator with its own
-// histories, timesteps and termination, advanced by today's unmodified
-// execution. There is therefore no shared-state coupling between members and
-// no simulator invariant is weakened — in contrast to trying to parallelise
-// partitions within a single coordinator.
-//
 // The build closure MUST construct a fresh ConfigGenerator (and therefore
 // fresh Iteration instances) on every call. This is load-bearing:
 // ConfigGenerator.GenerateConfigs hands back the same Iteration pointers it was

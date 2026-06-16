@@ -111,6 +111,45 @@ func independentSettings(numPartitions int) (*Settings, func() []Iteration) {
 	return settings, makeIterations
 }
 
+// misorderedSettings builds a topology whose within-step edge runs "backwards"
+// in partition order: partition_0 reads upstream partition_1. The channel
+// strategies handle this (the consumer blocks until the producer broadcasts),
+// but inline execution cannot, since it would read the producer's output
+// before the producer has run this step.
+func misorderedSettings() (*Settings, func() []Iteration) {
+	settings := &Settings{
+		Iterations: []IterationSettings{
+			{
+				Name:   "partition_0",
+				Params: NewParams(make(map[string][]float64)),
+				ParamsFromUpstream: map[string]UpstreamConfig{
+					"multipliers": {Upstream: 1},
+				},
+				InitStateValues:   []float64{1.0, 2.0, 3.0},
+				StateWidth:        3,
+				StateHistoryDepth: 2,
+			},
+			{
+				Name:              "partition_1",
+				Params:            NewParams(make(map[string][]float64)),
+				InitStateValues:   []float64{1.0, 1.0, 1.0},
+				StateWidth:        3,
+				StateHistoryDepth: 2,
+			},
+		},
+		InitTimeValue:         0.0,
+		TimestepsHistoryDepth: 2,
+	}
+	settings.Init()
+	makeIterations := func() []Iteration {
+		return []Iteration{
+			&paramMultProcessIteration{},
+			&doublingProcessIteration{},
+		}
+	}
+	return settings, makeIterations
+}
+
 func TestExecutionStrategies(t *testing.T) {
 	const maxSteps = 20
 
@@ -161,6 +200,66 @@ func TestExecutionStrategies(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("InlineExecution matches default when ordering is valid",
+		func(t *testing.T) {
+			// Inline execution is valid for edge-free topologies and for
+			// within-step edges where upstreams precede consumers (the chain's
+			// partition_2 reads partition_1, and 1 < 2).
+			inlineValid := map[string]func() (*Settings, func() []Iteration){
+				"single_partition": func() (*Settings, func() []Iteration) {
+					return independentSettings(1)
+				},
+				"independent_8": func() (*Settings, func() []Iteration) {
+					return independentSettings(8)
+				},
+				"chain": func() (*Settings, func() []Iteration) {
+					return chainSettings()
+				},
+			}
+			for topologyName, build := range inlineValid {
+				settings, makeIterations := build()
+				reference := runStrategyConfig(settings, makeIterations, maxSteps, nil)
+				got := runStrategyConfig(
+					settings, makeIterations, maxSteps, &InlineExecution{})
+				assertStoresEqual(t, reference, got, "inline/"+topologyName)
+			}
+		})
+
+	t.Run("InlineExecution passes RunWithHarnesses on a single partition",
+		func(t *testing.T) {
+			settings, makeIterations := independentSettings(1)
+			implementations := &Implementations{
+				Iterations:      makeIterations(),
+				OutputCondition: &EveryStepOutputCondition{},
+				OutputFunction:  &NilOutputFunction{},
+				TerminationCondition: &NumberOfStepsTerminationCondition{
+					MaxNumberOfSteps: maxSteps,
+				},
+				TimestepFunction: &ConstantTimestepFunction{Stepsize: 1.0},
+			}
+			if err := RunWithHarnessesUsing(
+				settings, implementations, &InlineExecution{}); err != nil {
+				t.Errorf("inline harness: %v", err)
+			}
+		})
+
+	t.Run("InlineExecution panics on mis-ordered edges", func(t *testing.T) {
+		// A consumer ordered before its upstream is fine for the channel
+		// strategies (which block) but cannot be serviced inline; it must
+		// panic rather than read stale values.
+		settings, makeIterations := misorderedSettings()
+
+		// The default strategy handles the reverse-ordered edge fine.
+		runStrategyConfig(settings, makeIterations, maxSteps, nil)
+
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected panic for mis-ordered upstream under inline")
+			}
+		}()
+		runStrategyConfig(settings, makeIterations, maxSteps, &InlineExecution{})
+	})
 }
 
 // benchmarkStrategy runs a many-partition, many-step simulation under the
@@ -181,6 +280,31 @@ func BenchmarkSpawnPerStepExecution(b *testing.B) {
 
 func BenchmarkPersistentWorkerExecution(b *testing.B) {
 	benchmarkStrategy(b, &PersistentWorkerExecution{})
+}
+
+func BenchmarkInlineExecution(b *testing.B) {
+	benchmarkStrategy(b, &InlineExecution{})
+}
+
+// benchmarkSinglePartition runs a single-partition simulation, where the
+// per-step goroutine spawn and channel round-trip are pure overhead. This is
+// the case InlineExecution targets: comparing it against the default strategy
+// shows the handover cost removed.
+func benchmarkSinglePartition(b *testing.B, strategy ExecutionStrategy) {
+	settings, makeIterations := independentSettings(1)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		runStrategyConfig(settings, makeIterations, 1000, strategy)
+	}
+}
+
+func BenchmarkSinglePartitionSpawnPerStep(b *testing.B) {
+	benchmarkSinglePartition(b, &SpawnPerStepExecution{})
+}
+
+func BenchmarkSinglePartitionInline(b *testing.B) {
+	benchmarkSinglePartition(b, &InlineExecution{})
 }
 
 // TestPersistentWorkerExecutionLongRun exercises worker setup/teardown over

@@ -126,3 +126,79 @@ func (e *PersistentWorkerExecution) Run(c *PartitionCoordinator) {
 	// every worker is now blocked on an iteration-phase wake-up; release them
 	close(quit)
 }
+
+// InlineExecution runs the simulation entirely on the calling goroutine: no
+// worker goroutines, no channel handshakes and no WaitGroup barrier. Each step
+// runs the iteration phase for every partition and then the update phase for
+// every partition, in index order, by calling the iterators directly.
+//
+// This is the only strategy that synchronises nothing per step, so it is the
+// one that reaches serial speed when concurrency buys nothing — most obviously
+// a single-partition run, where the default per-step goroutine spawn and
+// channel round-trip are pure overhead.
+//
+// Within-step params_from_upstream edges are supported, but because inline
+// execution has no blocking channel handshake to wait on, every upstream
+// producer must be ordered before its downstream consumers: the producer's
+// staged output is read directly, so it must already have run this step. Run
+// validates this up front and panics with a clear message if any consumer is
+// ordered before (or at the same index as) one of its upstreams — which also
+// catches cycles — rather than silently reading stale values. Reorder the
+// partitions so upstreams precede consumers, or use a concurrent strategy.
+// Partitions coupled only through state-history reads (which are lag-based and
+// need no within-step handshake) are unaffected by the ordering rule.
+//
+// Output is byte-identical to the default strategy: the two phases are still
+// applied in order, so the iteration phase observes the previous step's
+// committed history exactly as the barrier guarantees, and upstream params
+// carry the same current-step producer output the channel broadcast would.
+//
+// This strategy is stateless and safe to share across coordinators.
+type InlineExecution struct{}
+
+// Run advances the coordinator to termination inline on the calling goroutine.
+func (e *InlineExecution) Run(c *PartitionCoordinator) {
+	// Fail loudly instead of reading stale producer output if any consumer is
+	// not ordered strictly after all of its upstreams (this also rejects
+	// cycles and self-edges).
+	for consumerIndex, iterator := range c.Iterators {
+		for _, upstream := range iterator.ValueChannels.Upstreams {
+			if upstream.Upstream >= consumerIndex {
+				panic("InlineExecution requires upstreams to be ordered before " +
+					"their consumers: partition " + iterator.Partition.Name +
+					" reads an upstream that is not earlier in partition order; " +
+					"reorder the partitions or use a concurrent execution strategy")
+			}
+		}
+	}
+
+	for !c.ReadyToTerminate() {
+		// update the overall step count and get the next time increment
+		c.Shared.TimestepsHistory.CurrentStepNumber += 1
+		c.Shared.TimestepsHistory.NextIncrement =
+			c.TimestepFunction.NextIncrement(c.Shared.TimestepsHistory)
+
+		// iteration phase for every partition, then update phase for every
+		// partition: the same two-phase ordering as the default strategy, so a
+		// partition that reads another's history still sees the previous
+		// step's committed values. Upstream params are read directly from
+		// producers' staged output, which the ordering check guarantees is
+		// already set this step.
+		for _, iterator := range c.Iterators {
+			iterator.IteratePendingInline(c.Shared)
+		}
+		for _, iterator := range c.Iterators {
+			iterator.ApplyHistoryUpdate(c.Shared)
+		}
+
+		// iterate over the history of timesteps and shift them back one
+		for i := c.Shared.TimestepsHistory.StateHistoryDepth - 1; i > 0; i-- {
+			c.Shared.TimestepsHistory.Values.SetVec(i,
+				c.Shared.TimestepsHistory.Values.AtVec(i-1))
+		}
+		// now update the history with the next time increment
+		c.Shared.TimestepsHistory.Values.SetVec(0,
+			c.Shared.TimestepsHistory.Values.AtVec(0)+
+				c.Shared.TimestepsHistory.NextIncrement)
+	}
+}

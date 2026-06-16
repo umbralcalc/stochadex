@@ -214,8 +214,9 @@ func NewPartitionCoordinator(
 		upstreamByParams := make(map[string]*UpstreamStateValues)
 		for params, values := range iteration.ParamsFromUpstream {
 			upstreamByParams[params] = &UpstreamStateValues{
-				Channel: valueChannels[values.Upstream],
-				Indices: values.Indices,
+				Channel:  valueChannels[values.Upstream],
+				Indices:  values.Indices,
+				Upstream: values.Upstream,
 			}
 		}
 		iterators = append(
