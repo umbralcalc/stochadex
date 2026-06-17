@@ -34,13 +34,11 @@ func (c *CoxProcessIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	rates := params.Get("rates")
-	values := make([]float64, stateHistory.StateWidth)
+	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
 		if rates[i] > (rates[i]+
 			(1.0/timestepsHistory.NextIncrement))*c.unitUniformDist.Rand() {
-			values[i] = stateHistory.Values.At(0, i) + 1.0
-		} else {
-			values[i] = stateHistory.Values.At(0, i)
+			values[i] += 1.0
 		}
 	}
 	return values

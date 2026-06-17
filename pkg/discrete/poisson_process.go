@@ -76,13 +76,11 @@ func (p *PoissonProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	values := make([]float64, stateHistory.StateWidth)
+	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
 		if params.GetIndex("rates", i) > (params.GetIndex("rates", i)+
 			(1.0/timestepsHistory.NextIncrement))*p.unitUniformDist.Rand() {
-			values[i] = stateHistory.Values.At(0, i) + 1.0
-		} else {
-			values[i] = stateHistory.Values.At(0, i)
+			values[i] += 1.0
 		}
 	}
 	return values

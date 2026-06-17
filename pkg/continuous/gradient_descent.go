@@ -32,9 +32,9 @@ func (g *GradientDescentIteration) Iterate(
 			learningRate *= -1.0
 		}
 	}
-	values := make([]float64, stateHistory.StateWidth)
+	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
-		values[i] = stateHistory.Values.At(0, i) - learningRate*gradient[i]
+		values[i] -= learningRate * gradient[i]
 	}
 	return values
 }

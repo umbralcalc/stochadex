@@ -82,13 +82,11 @@ func (c *CompoundPoissonProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	values := make([]float64, stateHistory.StateWidth)
+	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
 		if params.GetIndex("rates", i) > (params.GetIndex("rates", i)+
 			(1.0/timestepsHistory.NextIncrement))*c.unitUniformDist.Rand() {
-			values[i] = stateHistory.Values.At(0, i) + c.JumpDist.NewJump(params, i)
-		} else {
-			values[i] = stateHistory.Values.At(0, i)
+			values[i] += c.JumpDist.NewJump(params, i)
 		}
 	}
 	return values

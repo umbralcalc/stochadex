@@ -77,11 +77,10 @@ func (w *WienerProcessIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	values := make([]float64, stateHistory.StateWidth)
+	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
-		values[i] = stateHistory.Values.At(0, i) +
-			math.Sqrt(params.GetIndex("variances", i)*
-				timestepsHistory.NextIncrement)*w.unitNormalDist.Rand()
+		values[i] += math.Sqrt(params.GetIndex("variances", i)*
+			timestepsHistory.NextIncrement) * w.unitNormalDist.Rand()
 	}
 	return values
 }

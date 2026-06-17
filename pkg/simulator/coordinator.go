@@ -207,6 +207,7 @@ func NewPartitionCoordinator(
 			stateHistories,
 			&StateHistory{
 				Values:            stateHistoryValues,
+				NextValues:        make([]float64, iteration.StateWidth),
 				StateWidth:        iteration.StateWidth,
 				StateHistoryDepth: iteration.StateHistoryDepth,
 			},

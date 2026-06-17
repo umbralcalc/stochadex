@@ -149,9 +149,12 @@ func (j *JsonLogChannelOutputFunction) Output(
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
+	// Copy on retain: the background writer marshals this entry asynchronously,
+	// so it must not alias a reusable buffer the iteration may overwrite next
+	// step (see StateHistory.NextValues).
 	j.logChannel <- JsonLogEntry{
 		PartitionName:       partitionName,
-		State:               state,
+		State:               append([]float64(nil), state...),
 		CumulativeTimesteps: cumulativeTimesteps,
 	}
 }

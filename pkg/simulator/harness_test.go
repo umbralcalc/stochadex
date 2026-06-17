@@ -80,6 +80,28 @@ func (h *harnessFailStatefulTestIteration) Iterate(
 	return newValues
 }
 
+// harnessAliasTestIteration returns a live history row directly, without
+// mutating it. The other harness checks (NaN, width, depth-retention) all pass
+// for this — only the output-aliasing check rejects it. At StateHistoryDepth ==
+// 1 this is the pathology that was previously invisible.
+type harnessAliasTestIteration struct {
+}
+
+func (h *harnessAliasTestIteration) Configure(
+	partitionIndex int,
+	settings *Settings,
+) {
+}
+
+func (h *harnessAliasTestIteration) Iterate(
+	params *Params,
+	partitionIndex int,
+	stateHistories []*StateHistory,
+	timestepsHistory *CumulativeTimestepsHistory,
+) []float64 {
+	return stateHistories[partitionIndex].Values.RawRowView(0)
+}
+
 func TestIterationHarness(t *testing.T) {
 	settings := &Settings{
 		Iterations: []IterationSettings{{
@@ -111,6 +133,39 @@ func TestIterationHarness(t *testing.T) {
 			t.Errorf("Expected the harness to succeed, but it failed.")
 		}
 	})
+
+	t.Run("test that the harness catches output aliasing live history at depth 1",
+		func(t *testing.T) {
+			depthOneSettings := &Settings{
+				Iterations: []IterationSettings{{
+					Name:              "test",
+					Params:            NewParams(make(map[string][]float64)),
+					InitStateValues:   []float64{0.0, 1.0, 2.0, 3.0},
+					Seed:              0,
+					StateWidth:        4,
+					StateHistoryDepth: 1,
+				}},
+				InitTimeValue:         0.0,
+				TimestepsHistoryDepth: 1,
+			}
+			implementations := &Implementations{
+				Iterations:      []Iteration{&harnessAliasTestIteration{}},
+				OutputCondition: &EveryStepOutputCondition{},
+				OutputFunction:  &NilOutputFunction{},
+				TerminationCondition: &NumberOfStepsTerminationCondition{
+					MaxNumberOfSteps: 100,
+				},
+				TimestepFunction: &ConstantTimestepFunction{Stepsize: 1.0},
+			}
+			err := RunWithHarnesses(depthOneSettings, implementations)
+			if err != nil {
+				t.Log("Test harness failed as expected.")
+			} else {
+				t.Errorf("Expected the harness to fail on output aliasing, but" +
+					" it succeeded.")
+			}
+		},
+	)
 
 	t.Run("test that the test harness run fails as expected", func(t *testing.T) {
 		implementations := &Implementations{

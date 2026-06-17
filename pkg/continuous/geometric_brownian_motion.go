@@ -41,11 +41,11 @@ func (g *GeometricBrownianMotionIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	values := make([]float64, stateHistory.StateWidth)
+	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
-		values[i] = stateHistory.Values.At(0, i) * (1.0 +
+		values[i] *= 1.0 +
 			math.Sqrt(params.GetIndex("variances", i)*
-				timestepsHistory.NextIncrement)*g.unitNormalDist.Rand())
+				timestepsHistory.NextIncrement)*g.unitNormalDist.Rand()
 	}
 	return values
 }

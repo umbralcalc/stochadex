@@ -84,7 +84,10 @@ func (s *StateTimeStorage) IndexOf(name string) (int, bool) {
 //   - One goroutine per partition index
 //   - No concurrent GetValues calls
 func (s *StateTimeStorage) AppendByIndex(index int, time float64, values []float64) {
-	s.store[index] = append(s.store[index], values)
+	// Copy on retain: iterations are permitted to return a reusable buffer
+	// (see StateHistory.NextValues / GetNextStateRowToUpdate), so the slice
+	// handed to Output may be overwritten on the next step. Store our own copy.
+	s.store[index] = append(s.store[index], append([]float64(nil), values...))
 	s.appendTimeIfNew(time)
 }
 
@@ -92,7 +95,8 @@ func (s *StateTimeStorage) AppendByIndex(index int, time float64, values []float
 // use; intended for single-goroutine data loading.
 func (s *StateTimeStorage) Append(name string, time float64, values []float64) {
 	index := s.getOrCreateIndex(name)
-	s.store[index] = append(s.store[index], values)
+	// Copy on retain, matching AppendByIndex, so callers may reuse the slice.
+	s.store[index] = append(s.store[index], append([]float64(nil), values...))
 	if len(s.times) == 0 || time > s.times[len(s.times)-1] {
 		s.times = append(s.times, time)
 	}

@@ -48,12 +48,12 @@ func (o *OrnsteinUhlenbeckExactGaussianIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	dt := timestepsHistory.NextIncrement
-	values := make([]float64, stateHistory.StateWidth)
+	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
 		th := params.GetIndex("thetas", i)
 		mu := params.GetIndex("mus", i)
 		sig := params.GetIndex("sigmas", i)
-		x := stateHistory.Values.At(0, i)
+		x := values[i]
 		var mean, condVar float64
 		if th == 0 {
 			mean = x

@@ -45,11 +45,10 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
-	values := make([]float64, stateHistory.StateWidth)
+	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
-		values[i] = stateHistory.Values.At(0, i) +
-			params.GetIndex("thetas", i)*(params.GetIndex("mus", i)-
-				stateHistory.Values.At(0, i))*timestepsHistory.NextIncrement +
+		values[i] += params.GetIndex("thetas", i)*(params.GetIndex("mus", i)-
+			values[i])*timestepsHistory.NextIncrement +
 			params.GetIndex("sigmas", i)*math.Sqrt(
 				timestepsHistory.NextIncrement)*o.unitNormalDist.Rand()
 	}

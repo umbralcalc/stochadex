@@ -11,7 +11,7 @@ import (
 //
 // Usage hints:
 //   - Provide "state_value_observation_probs" with values in [0, 1].
-//   - Outputs are written in-place to the current state row and returned.
+//   - Outputs are written into the partition's reusable next-state buffer.
 //   - Seed is taken from the partition's Settings for reproducibility.
 type BernoulliProcessIteration struct {
 	uniformDist *distuv.Uniform
@@ -37,7 +37,7 @@ func (b *BernoulliProcessIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	outputValues := stateHistories[partitionIndex].Values.RawRowView(0)
+	outputValues := stateHistories[partitionIndex].GetNextStateRowToUpdate()
 	probs := params.Get("state_value_observation_probs")
 	for i := range outputValues {
 		if b.uniformDist.Rand() < probs[i] {

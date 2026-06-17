@@ -23,5 +23,5 @@ func (c *ConstantValuesIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	return stateHistories[partitionIndex].Values.RawRowView(0)
+	return stateHistories[partitionIndex].GetNextStateRowToUpdate()
 }

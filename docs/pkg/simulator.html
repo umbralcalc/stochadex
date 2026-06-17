@@ -997,7 +997,7 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">var</span> File_cmd_messages_partition_state_proto protoreflect<span class="op">.</span>FileDescriptor</span></code></pre></div>
       <p><a name="RunWithHarnesses"></a></p>
       <h2 id="func-runwithharnesses">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L130">RunWithHarnesses</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L192">RunWithHarnesses</a></h2>
       <div class="sourceCode" id="cb3"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> RunWithHarnesses<span class="op">(</span>settings <span class="op">*</span>Settings<span class="op">,</span> implementations <span class="op">*</span>Implementations<span class="op">)</span> <span class="dt">error</span></span></code></pre></div>
       <p>RunWithHarnesses runs all iterations, each wrapped in a test
@@ -1008,7 +1008,7 @@
       RunWithHarnessesUsing.</p>
       <p><a name="RunWithHarnessesUsing"></a></p>
       <h2 id="func-runwithharnessesusing">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L140-L144">RunWithHarnessesUsing</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L202-L206">RunWithHarnessesUsing</a></h2>
       <div class="sourceCode" id="cb4"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> RunWithHarnessesUsing<span class="op">(</span>settings <span class="op">*</span>Settings<span class="op">,</span> implementations <span class="op">*</span>Implementations<span class="op">,</span> strategy ExecutionStrategy<span class="op">)</span> <span class="dt">error</span></span></code></pre></div>
       <p>RunWithHarnessesUsing is like RunWithHarnesses but advances the
@@ -1110,7 +1110,7 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>ConstantTimestepFunction<span class="op">)</span> NextIncrement<span class="op">(</span>timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">float64</span></span></code></pre></div>
       <p><a name="CumulativeTimestepsHistory"></a></p>
       <h2 id="type-cumulativetimestepshistory">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L41-L46">CumulativeTimestepsHistory</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L49-L54">CumulativeTimestepsHistory</a></h2>
       <p>CumulativeTimestepsHistory is a rolling window of cumulative
       timesteps with NextIncrement and CurrentStepNumber.</p>
       <div class="sourceCode" id="cb17"><pre
@@ -1168,7 +1168,7 @@
       per-member output regardless of maxConcurrency.</p>
       <p><a name="EveryNStepsOutputCondition"></a></p>
       <h2 id="type-everynstepsoutputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L274-L276">EveryNStepsOutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L277-L279">EveryNStepsOutputCondition</a></h2>
       <p>EveryNStepsOutputCondition emits output once every N steps.</p>
       <div class="sourceCode" id="cb21"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> EveryNStepsOutputCondition <span class="kw">struct</span> <span class="op">{</span></span>
@@ -1177,12 +1177,12 @@
       <p><a name="EveryNStepsOutputCondition.IsOutputStep"></a></p>
       <h3 id="func-everynstepsoutputcondition-isoutputstep">func
       (*EveryNStepsOutputCondition) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L278-L282">IsOutputStep</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L281-L285">IsOutputStep</a></h3>
       <div class="sourceCode" id="cb22"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>EveryNStepsOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="EveryStepOutputCondition"></a></p>
       <h2 id="type-everystepoutputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L263">EveryStepOutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L266">EveryStepOutputCondition</a></h2>
       <p>EveryStepOutputCondition calls the OutputFunction at every
       step.</p>
       <div class="sourceCode" id="cb23"><pre
@@ -1190,7 +1190,7 @@
       <p><a name="EveryStepOutputCondition.IsOutputStep"></a></p>
       <h3 id="func-everystepoutputcondition-isoutputstep">func
       (*EveryStepOutputCondition) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L265-L269">IsOutputStep</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L268-L272">IsOutputStep</a></h3>
       <div class="sourceCode" id="cb24"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>EveryStepOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="ExecutionStrategy"></a></p>
@@ -1430,7 +1430,7 @@
 <span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="IterationTestHarness"></a></p>
       <h2 id="type-iterationtestharness">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L13-L18">IterationTestHarness</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L40-L45">IterationTestHarness</a></h2>
       <p>IterationTestHarness wraps an iteration and performs checks on
       its behaviour while running.</p>
       <div class="sourceCode" id="cb35"><pre
@@ -1442,18 +1442,18 @@
       <p><a name="IterationTestHarness.Configure"></a></p>
       <h3 id="func-iterationtestharness-configure">func
       (*IterationTestHarness) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L20-L23">Configure</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L47-L50">Configure</a></h3>
       <div class="sourceCode" id="cb36"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>h <span class="op">*</span>IterationTestHarness<span class="op">)</span> Configure<span class="op">(</span>partitionIndex <span class="dt">int</span><span class="op">,</span> settings <span class="op">*</span>Settings<span class="op">)</span></span></code></pre></div>
       <p><a name="IterationTestHarness.Iterate"></a></p>
       <h3 id="func-iterationtestharness-iterate">func
       (*IterationTestHarness) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L34-L39">Iterate</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/harness.go#L61-L66">Iterate</a></h3>
       <div class="sourceCode" id="cb37"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>h <span class="op">*</span>IterationTestHarness<span class="op">)</span> Iterate<span class="op">(</span>params <span class="op">*</span>Params<span class="op">,</span> partitionIndex <span class="dt">int</span><span class="op">,</span> stateHistories <span class="op">[]*</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p><a name="IteratorInputMessage"></a></p>
       <h2 id="type-iteratorinputmessage">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L49-L52">IteratorInputMessage</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L57-L60">IteratorInputMessage</a></h2>
       <p>IteratorInputMessage carries shared histories into iterator
       jobs.</p>
       <div class="sourceCode" id="cb38"><pre
@@ -1472,7 +1472,7 @@
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewJsonLogChannelOutputFunction"></a></p>
       <h3 id="func-newjsonlogchanneloutputfunction">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L166-L168">NewJsonLogChannelOutputFunction</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L169-L171">NewJsonLogChannelOutputFunction</a></h3>
       <div class="sourceCode" id="cb40"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewJsonLogChannelOutputFunction<span class="op">(</span>filePath <span class="dt">string</span><span class="op">)</span> <span class="op">*</span>JsonLogChannelOutputFunction</span></code></pre></div>
       <p>NewJsonLogChannelOutputFunction creates a
@@ -1481,7 +1481,7 @@
       <p><a name="JsonLogChannelOutputFunction.Close"></a></p>
       <h3 id="func-jsonlogchanneloutputfunction-close">func
       (*JsonLogChannelOutputFunction) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L160">Close</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L163">Close</a></h3>
       <div class="sourceCode" id="cb41"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>j <span class="op">*</span>JsonLogChannelOutputFunction<span class="op">)</span> Close<span class="op">()</span></span></code></pre></div>
       <p>Close flushes and stops the background writer. Defer it after
@@ -1559,14 +1559,14 @@
 <span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NilOutputCondition"></a></p>
       <h2 id="type-niloutputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L252">NilOutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L255">NilOutputCondition</a></h2>
       <p>NilOutputCondition never outputs.</p>
       <div class="sourceCode" id="cb51"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> NilOutputCondition <span class="kw">struct</span><span class="op">{}</span></span></code></pre></div>
       <p><a name="NilOutputCondition.IsOutputStep"></a></p>
       <h3 id="func-niloutputcondition-isoutputstep">func
       (*NilOutputCondition) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L254-L258">IsOutputStep</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L257-L261">IsOutputStep</a></h3>
       <div class="sourceCode" id="cb52"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>c <span class="op">*</span>NilOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="NilOutputFunction"></a></p>
@@ -1604,7 +1604,7 @@
       class="sourceCode go"><code class="sourceCode go"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>t <span class="op">*</span>NumberOfStepsTerminationCondition<span class="op">)</span> Terminate<span class="op">(</span>stateHistories <span class="op">[]*</span>StateHistory<span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="OnlyGivenPartitionsOutputCondition"></a></p>
       <h2 id="type-onlygivenpartitionsoutputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L287-L289">OnlyGivenPartitionsOutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L290-L292">OnlyGivenPartitionsOutputCondition</a></h2>
       <p>OnlyGivenPartitionsOutputCondition emits output only for listed
       partitions.</p>
       <div class="sourceCode" id="cb58"><pre
@@ -1614,12 +1614,12 @@
       <p><a name="OnlyGivenPartitionsOutputCondition.IsOutputStep"></a></p>
       <h3 id="func-onlygivenpartitionsoutputcondition-isoutputstep">func
       (*OnlyGivenPartitionsOutputCondition) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L291-L295">IsOutputStep</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L294-L298">IsOutputStep</a></h3>
       <div class="sourceCode" id="cb59"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>o <span class="op">*</span>OnlyGivenPartitionsOutputCondition<span class="op">)</span> IsOutputStep<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> timestepsHistory <span class="op">*</span>CumulativeTimestepsHistory<span class="op">)</span> <span class="dt">bool</span></span></code></pre></div>
       <p><a name="OutputCondition"></a></p>
       <h2 id="type-outputcondition">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L247-L249">OutputCondition</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L250-L252">OutputCondition</a></h2>
       <p>OutputCondition decides whether an output should be emitted
       this step.</p>
       <div class="sourceCode" id="cb60"><pre
@@ -2090,7 +2090,7 @@
       default spawn-per-step two-phase execution.</p>
       <p><a name="StateHistory"></a></p>
       <h2 id="type-statehistory">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L12-L20">StateHistory</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L12-L24">StateHistory</a></h2>
       <p>StateHistory is a rolling window of state vectors.</p>
       <p>Usage hints:</p>
       <ul>
@@ -2104,14 +2104,18 @@
 <span id="cb104-2"><a href="#cb104-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// each row is a different state in the history, by convention,</span></span>
 <span id="cb104-3"><a href="#cb104-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// starting with the most recent at index = 0</span></span>
 <span id="cb104-4"><a href="#cb104-4" aria-hidden="true" tabindex="-1"></a>    Values <span class="op">*</span>mat<span class="op">.</span>Dense</span>
-<span id="cb104-5"><a href="#cb104-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// should be of length = StateWidth</span></span>
-<span id="cb104-6"><a href="#cb104-6" aria-hidden="true" tabindex="-1"></a>    NextValues        <span class="op">[]</span><span class="dt">float64</span></span>
-<span id="cb104-7"><a href="#cb104-7" aria-hidden="true" tabindex="-1"></a>    StateWidth        <span class="dt">int</span></span>
-<span id="cb104-8"><a href="#cb104-8" aria-hidden="true" tabindex="-1"></a>    StateHistoryDepth <span class="dt">int</span></span>
-<span id="cb104-9"><a href="#cb104-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<span id="cb104-5"><a href="#cb104-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// NextValues is a per-partition reusable scratch buffer of length =</span></span>
+<span id="cb104-6"><a href="#cb104-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// StateWidth, pre-allocated when the history is constructed. An Iteration</span></span>
+<span id="cb104-7"><a href="#cb104-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// may write its next state into this buffer and return it to avoid</span></span>
+<span id="cb104-8"><a href="#cb104-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// allocating a fresh row every step (GetNextStateRowToUpdate hands it back</span></span>
+<span id="cb104-9"><a href="#cb104-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// pre-filled with the current state).</span></span>
+<span id="cb104-10"><a href="#cb104-10" aria-hidden="true" tabindex="-1"></a>    NextValues        <span class="op">[]</span><span class="dt">float64</span></span>
+<span id="cb104-11"><a href="#cb104-11" aria-hidden="true" tabindex="-1"></a>    StateWidth        <span class="dt">int</span></span>
+<span id="cb104-12"><a href="#cb104-12" aria-hidden="true" tabindex="-1"></a>    StateHistoryDepth <span class="dt">int</span></span>
+<span id="cb104-13"><a href="#cb104-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="StateHistory.CopyStateRow"></a></p>
       <h3 id="func-statehistory-copystaterow">func (*StateHistory) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L23">CopyStateRow</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L27">CopyStateRow</a></h3>
       <div class="sourceCode" id="cb105"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb105-1"><a href="#cb105-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateHistory<span class="op">)</span> CopyStateRow<span class="op">(</span>index <span class="dt">int</span><span class="op">)</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p>CopyStateRow copies a row from the state history given the
@@ -2119,12 +2123,15 @@
       <p><a name="StateHistory.GetNextStateRowToUpdate"></a></p>
       <h3 id="func-statehistory-getnextstaterowtoupdate">func
       (*StateHistory) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L32">GetNextStateRowToUpdate</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/histories.go#L39">GetNextStateRowToUpdate</a></h3>
       <div class="sourceCode" id="cb106"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateHistory<span class="op">)</span> GetNextStateRowToUpdate<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
-      <p>GetNextStateRowToUpdate determines whether or not it is
-      necessary to copy the previous row or simply expose it based on
-      whether a history longer than 1 is needed.</p>
+      <p>GetNextStateRowToUpdate returns the partition’s reusable
+      NextValues buffer pre-filled with a copy of the current state (row
+      0), ready for the iteration to mutate and return.</p>
+      <p>It always copies — never exposes a row of Values directly — so
+      that mutating and returning the result cannot corrupt live history
+      or any retained output.</p>
       <p><a name="StateIterator"></a></p>
       <h2 id="type-stateiterator">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/iterator.go#L180-L187">StateIterator</a></h2>
@@ -2232,13 +2239,13 @@
 <span id="cb115-3"><a href="#cb115-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewStateTimeStorage"></a></p>
       <h3 id="func-newstatetimestorage">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L155">NewStateTimeStorage</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L159">NewStateTimeStorage</a></h3>
       <div class="sourceCode" id="cb116"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewStateTimeStorage<span class="op">()</span> <span class="op">*</span>StateTimeStorage</span></code></pre></div>
       <p>NewStateTimeStorage constructs a new StateTimeStorage.</p>
       <p><a name="StateTimeStorage.Append"></a></p>
       <h3 id="func-statetimestorage-append">func (*StateTimeStorage) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L93">Append</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L96">Append</a></h3>
       <div class="sourceCode" id="cb117"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateTimeStorage<span class="op">)</span> Append<span class="op">(</span>name <span class="dt">string</span><span class="op">,</span> time <span class="dt">float64</span><span class="op">,</span> values <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
       <p>Append appends values for name and records time. Not safe for
@@ -2268,21 +2275,21 @@
       <p><a name="StateTimeStorage.GetNames"></a></p>
       <h3 id="func-statetimestorage-getnames">func (*StateTimeStorage)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L102">GetNames</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L106">GetNames</a></h3>
       <div class="sourceCode" id="cb120"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateTimeStorage<span class="op">)</span> GetNames<span class="op">()</span> <span class="op">[]</span><span class="dt">string</span></span></code></pre></div>
       <p>GetNames returns all registered partition names.</p>
       <p><a name="StateTimeStorage.GetTimes"></a></p>
       <h3 id="func-statetimestorage-gettimes">func (*StateTimeStorage)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L139">GetTimes</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L143">GetTimes</a></h3>
       <div class="sourceCode" id="cb121"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb121-1"><a href="#cb121-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateTimeStorage<span class="op">)</span> GetTimes<span class="op">()</span> <span class="op">[]</span><span class="dt">float64</span></span></code></pre></div>
       <p>GetTimes returns a snapshot of the time axis.</p>
       <p><a name="StateTimeStorage.GetValues"></a></p>
       <h3 id="func-statetimestorage-getvalues">func (*StateTimeStorage)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L111">GetValues</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L115">GetValues</a></h3>
       <div class="sourceCode" id="cb122"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateTimeStorage<span class="op">)</span> GetValues<span class="op">(</span>name <span class="dt">string</span><span class="op">)</span> <span class="op">[][]</span><span class="dt">float64</span></span></code></pre></div>
       <p>GetValues returns a snapshot of all time series rows for name,
@@ -2306,14 +2313,14 @@
       <p><a name="StateTimeStorage.SetTimes"></a></p>
       <h3 id="func-statetimestorage-settimes">func (*StateTimeStorage)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L148">SetTimes</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L152">SetTimes</a></h3>
       <div class="sourceCode" id="cb125"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb125-1"><a href="#cb125-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateTimeStorage<span class="op">)</span> SetTimes<span class="op">(</span>times <span class="op">[]</span><span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
       <p>SetTimes replaces the time axis.</p>
       <p><a name="StateTimeStorage.SetValues"></a></p>
       <h3 id="func-statetimestorage-setvalues">func (*StateTimeStorage)
       <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L133">SetValues</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/storage.go#L137">SetValues</a></h3>
       <div class="sourceCode" id="cb126"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>s <span class="op">*</span>StateTimeStorage<span class="op">)</span> SetValues<span class="op">(</span>name <span class="dt">string</span><span class="op">,</span> values <span class="op">[][]</span><span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
       <p>SetValues replaces the entire series for name.</p>
@@ -2465,7 +2472,7 @@
 <span id="cb142-5"><a href="#cb142-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="WebsocketOutputFunction"></a></p>
       <h2 id="type-websocketoutputfunction">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L193-L196">WebsocketOutputFunction</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L196-L199">WebsocketOutputFunction</a></h2>
       <p>WebsocketOutputFunction serialises and sends outputs via a
       websocket connection when the condition is met.</p>
       <div class="sourceCode" id="cb143"><pre
@@ -2474,7 +2481,7 @@
 <span id="cb143-3"><a href="#cb143-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="NewWebsocketOutputFunction"></a></p>
       <h3 id="func-newwebsocketoutputfunction">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L239-L242">NewWebsocketOutputFunction</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L242-L245">NewWebsocketOutputFunction</a></h3>
       <div class="sourceCode" id="cb144"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewWebsocketOutputFunction<span class="op">(</span>connection <span class="op">*</span>websocket<span class="op">.</span>Conn<span class="op">,</span> mutex <span class="op">*</span>sync<span class="op">.</span>Mutex<span class="op">)</span> <span class="op">*</span>WebsocketOutputFunction</span></code></pre></div>
       <p>NewWebsocketOutputFunction constructs a WebsocketOutputFunction
@@ -2482,13 +2489,13 @@
       <p><a name="WebsocketOutputFunction.Configure"></a></p>
       <h3 id="func-websocketoutputfunction-configure">func
       (*WebsocketOutputFunction) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L198">Configure</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L201">Configure</a></h3>
       <div class="sourceCode" id="cb145"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb145-1"><a href="#cb145-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WebsocketOutputFunction<span class="op">)</span> Configure<span class="op">(*</span>Settings<span class="op">)</span></span></code></pre></div>
       <p><a name="WebsocketOutputFunction.Output"></a></p>
       <h3 id="func-websocketoutputfunction-output">func
       (*WebsocketOutputFunction) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L200-L204">Output</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/simulator/output.go#L203-L207">Output</a></h3>
       <div class="sourceCode" id="cb146"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb146-1"><a href="#cb146-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>w <span class="op">*</span>WebsocketOutputFunction<span class="op">)</span> Output<span class="op">(</span>partitionName <span class="dt">string</span><span class="op">,</span> state <span class="op">[]</span><span class="dt">float64</span><span class="op">,</span> cumulativeTimesteps <span class="dt">float64</span><span class="op">)</span></span></code></pre></div>
       <p>Generated by <a

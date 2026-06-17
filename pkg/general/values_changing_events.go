@@ -76,7 +76,7 @@ func (v *ValuesChangingEventsIteration) Iterate(
 		if defaults, ok := params.GetOk("default_values"); ok {
 			return defaults
 		} else {
-			return stateHistories[partitionIndex].Values.RawRowView(0)
+			return stateHistories[partitionIndex].GetNextStateRowToUpdate()
 		}
 	}
 }

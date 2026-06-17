@@ -720,8 +720,8 @@
       <ul>
       <li>Provide “state_value_observation_probs” with values in [0,
       1].</li>
-      <li>Outputs are written in-place to the current state row and
-      returned.</li>
+      <li>Outputs are written into the partition’s reusable next-state
+      buffer.</li>
       <li>Seed is taken from the partition’s Settings for
       reproducibility.</li>
       </ul>

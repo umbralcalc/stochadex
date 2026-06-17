@@ -13,7 +13,11 @@ type StateHistory struct {
 	// each row is a different state in the history, by convention,
 	// starting with the most recent at index = 0
 	Values *mat.Dense
-	// should be of length = StateWidth
+	// NextValues is a per-partition reusable scratch buffer of length =
+	// StateWidth, pre-allocated when the history is constructed. An Iteration
+	// may write its next state into this buffer and return it to avoid
+	// allocating a fresh row every step (GetNextStateRowToUpdate hands it back
+	// pre-filled with the current state).
 	NextValues        []float64
 	StateWidth        int
 	StateHistoryDepth int
@@ -26,14 +30,18 @@ func (s *StateHistory) CopyStateRow(index int) []float64 {
 	return valuesCopy
 }
 
-// GetNextStateRowToUpdate determines whether or not it is necessary
-// to copy the previous row or simply expose it based on whether a history
-// longer than 1 is needed.
+// GetNextStateRowToUpdate returns the partition's reusable NextValues buffer
+// pre-filled with a copy of the current state (row 0), ready for the iteration
+// to mutate and return.
+//
+// It always copies — never exposes a row of Values directly — so that mutating
+// and returning the result cannot corrupt live history or any retained output.
 func (s *StateHistory) GetNextStateRowToUpdate() []float64 {
-	if s.StateHistoryDepth == 1 {
-		return s.Values.RawRowView(0)
+	if s.NextValues == nil {
+		s.NextValues = make([]float64, s.StateWidth)
 	}
-	return s.CopyStateRow(0)
+	copy(s.NextValues, s.Values.RawRowView(0))
+	return s.NextValues
 }
 
 // CumulativeTimestepsHistory is a rolling window of cumulative timesteps with

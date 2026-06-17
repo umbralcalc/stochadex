@@ -103,8 +103,10 @@ func TestAggregation(t *testing.T) {
 				t.Error("data mean defaults failed. values were: " +
 					fmt.Sprint(meanValues[0]))
 			}
-			if !floats.Equal(meanValues[1], []float64{2, 5, 8}) {
-				t.Error("data mean failed. values were: " +
+			// index 1 is a burn-in step (fewer steps than the data history
+			// depth) so the mean is not yet defined and the default is returned.
+			if !floats.Equal(meanValues[1], []float64{0, 0, 0}) {
+				t.Error("data mean burn-in failed. values were: " +
 					fmt.Sprint(meanValues[1]))
 			}
 			if !floats.Equal(meanValues[2], []float64{2, 5, 8}) {
@@ -168,8 +170,11 @@ func TestAggregation(t *testing.T) {
 				t.Error("data variance defaults failed. values were: " +
 					fmt.Sprint(varianceValues[0]))
 			}
-			if !floats.EqualApprox(varianceValues[1], []float64{1.0, 1.0, 1.0}, 0.1) {
-				t.Error("data variance failed. values were: " +
+			// index 1 is a burn-in step (fewer steps than the data history
+			// depth) so the variance is not yet defined and the default is
+			// returned.
+			if !floats.EqualApprox(varianceValues[1], []float64{0.0, 0.0, 0.0}, 0.1) {
+				t.Error("data variance burn-in failed. values were: " +
 					fmt.Sprint(varianceValues[1]))
 			}
 			if !floats.EqualApprox(varianceValues[2], []float64{1.0, 1.0, 1.0}, 0.1) {
@@ -233,8 +238,11 @@ func TestAggregation(t *testing.T) {
 				t.Error("data covariance defaults failed. values were: " +
 					fmt.Sprint(covarianceValues[0]))
 			}
-			if !floats.Equal(covarianceValues[1], []float64{1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0}) {
-				t.Error("data covariance failed. values were: " +
+			// index 1 is a burn-in step (fewer steps than the data history
+			// depth) so the covariance is not yet defined and the default is
+			// returned.
+			if !floats.Equal(covarianceValues[1], []float64{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}) {
+				t.Error("data covariance burn-in failed. values were: " +
 					fmt.Sprint(covarianceValues[1]))
 			}
 			if !floats.Equal(covarianceValues[2], []float64{1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0}) {

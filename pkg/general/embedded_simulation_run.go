@@ -100,6 +100,7 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 							inSettings.StateWidth,
 							nil,
 						),
+						NextValues:        make([]float64, inSettings.StateWidth),
 						StateWidth:        inSettings.StateWidth,
 						StateHistoryDepth: inSettings.StateHistoryDepth,
 					},
@@ -180,7 +181,7 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 
 	// skip any steps for configured burn-in
 	if timestepsHistory.CurrentStepNumber < e.burnInSteps {
-		return stateHistories[partitionIndex].Values.RawRowView(0)
+		return stateHistories[partitionIndex].GetNextStateRowToUpdate()
 	}
 
 	// set the initial conditions from params and the other params

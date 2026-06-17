@@ -3,10 +3,37 @@ package simulator
 import (
 	"fmt"
 	"sync"
+	"unsafe"
 
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
 )
+
+// outputAliasesHistory reports whether the slice returned by an iteration
+// shares backing memory with any row of the partition's live state history.
+//
+// Returning such a slice is a contract violation: the engine and every output
+// sink may retain the returned slice (copying it), but if it aliases live
+// history then (a) mutating it corrupts the history in place — racily, since
+// the iteration phase runs partitions concurrently — and (b) the aliased row
+// keeps changing under anything that retained it. The depth>1 retention check
+// catches in-place mutation of deeper rows; this catches the row-0 aliasing
+// that is otherwise invisible when StateHistoryDepth == 1. Returning the
+// dedicated NextValues buffer (e.g. via GetNextStateRowToUpdate) is fine — it
+// is separately allocated and does not alias Values.
+func outputAliasesHistory(output []float64, values *mat.Dense) bool {
+	if len(output) == 0 {
+		return false
+	}
+	data := values.RawMatrix().Data
+	if len(data) == 0 {
+		return false
+	}
+	outPtr := uintptr(unsafe.Pointer(&output[0]))
+	base := uintptr(unsafe.Pointer(&data[0]))
+	end := base + uintptr(len(data))*unsafe.Sizeof(data[0])
+	return outPtr >= base && outPtr < end
+}
 
 // IterationTestHarness wraps an iteration and performs checks
 // on its behaviour while running.
@@ -96,6 +123,16 @@ func (h *IterationTestHarness) Iterate(
 			stateHistory.StateHistoryDepth)
 		return output
 	}
+	if outputAliasesHistory(output, stateHistory.Values) {
+		h.Err = fmt.Errorf(
+			"partition: %s, time: %f output state aliases a row of live state"+
+				" history; return a freshly allocated slice or the reusable"+
+				" NextValues buffer (e.g. via GetNextStateRowToUpdate) instead",
+			h.name,
+			timestepsHistory.Values.AtVec(0)+timestepsHistory.NextIncrement,
+		)
+		return output
+	}
 	for i := stateHistory.StateHistoryDepth - 1; i > 0; i-- {
 		pastState := h.history.RawRowView(i)
 		pastStateFromHistory := stateHistory.Values.RawRowView(i)
@@ -119,6 +156,31 @@ func (h *IterationTestHarness) Iterate(
 	}
 	h.history.SetRow(0, outputCopy)
 	return output
+}
+
+// checkStoredRowsDistinct verifies that the StateTimeStorage retained an
+// independent copy of every appended state, rather than aliasing a reusable
+// buffer that the producing iteration overwrites each step. It inspects the
+// backing arrays of consecutive stored rows directly (the public GetValues
+// deep-copies, which would mask the very aliasing under test). The realistic
+// failure mode — an output sink that stops copying on retain — collapses an
+// entire partition's trajectory onto one shared buffer, so detecting that any
+// two consecutive rows share a base pointer is sufficient.
+func checkStoredRowsDistinct(store *StateTimeStorage) error {
+	for index, rows := range store.store {
+		for i := 1; i < len(rows); i++ {
+			if len(rows[i]) == 0 || len(rows[i-1]) == 0 {
+				continue
+			}
+			if uintptr(unsafe.Pointer(&rows[i][0])) ==
+				uintptr(unsafe.Pointer(&rows[i-1][0])) {
+				return fmt.Errorf("stored output rows for partition index %d share"+
+					" backing memory across timesteps; an output sink retained a"+
+					" reusable buffer without copying on retain", index)
+			}
+		}
+	}
+	return nil
 }
 
 // RunWithHarnesses runs all iterations, each wrapped in a test harness and
@@ -159,6 +221,9 @@ func RunWithHarnessesUsing(
 	}
 	coordinator := NewPartitionCoordinator(settings, implementations)
 	if err := runHarnessedToTermination(coordinator, harnesses); err != nil {
+		return err
+	}
+	if err := checkStoredRowsDistinct(initRunStore); err != nil {
 		return err
 	}
 	resetRunStore := NewStateTimeStorage()
