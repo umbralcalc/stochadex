@@ -27,6 +27,7 @@ This simulation engine is designed based on the simulation software fundamentals
 - [18xx gameplay design tool and Monte Carlo Tree Search (MCTS) agents](https://github.com/umbralcalc/18xxdesigner)
 - [Turning simulations into in-browser interactive dashboards](https://github.com/umbralcalc/dexetera)
 - [Inferring structural causal models from open source datasets](https://github.com/umbralcalc/openaction2outcome)
+- [Seasonal bathing water pollution exceedance forecasts](https://github.com/umbralcalc/bathing-water-forecaster)
 
 ## Other cool engines
 
