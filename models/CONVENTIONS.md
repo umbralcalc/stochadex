@@ -15,6 +15,7 @@ downstream repo name where one exists):
 ```
 models/
   <domain-name>/
+    doc.go             # package doc comment: what the model is + the bespoke-extensions note
     card.md            # methodology card — the primary legible spec
     stub.go            # data-free SDK generative core (BuildStub)
     stub_test.go       # engine-CI test: harness + invariants + headline direction-of-response
@@ -24,6 +25,12 @@ models/
 
 The Go **package name** is a short identifier for the domain (`amr`, `floodrisk`) — it
 need not equal the directory name, but must be a valid Go identifier (no hyphens).
+
+Every entry carries a dedicated **`doc.go`** holding the package doc comment: a one-line
+statement of what the model is, followed by the note that the `<iteration>.go` files are
+bespoke extensions lifted from the downstream repo and staged here for the "should this be
+promoted into core?" question (see [Bespoke extensions](#bespoke-extensions)). Keep the
+comment in `doc.go` alone — do not also attach a package comment to a source file.
 
 ## The three artifacts
 
@@ -144,9 +151,9 @@ recurrence once several stubs exist.
 
 ## Adding an entry
 
-Use the `/new-model` skill, or by hand: create the folder, write the artifacts (`card.md`,
-`stub.go`, `stub_test.go`, `behaviour_test.go`, and the bespoke `<iteration>.go` files),
-add a row to the table in [`README.md`](README.md), and confirm
+Use the `/new-model` skill, or by hand: create the folder, write the artifacts (`doc.go`,
+`card.md`, `stub.go`, `stub_test.go`, `behaviour_test.go`, and the bespoke `<iteration>.go`
+files), add a row to the table in [`README.md`](README.md), and confirm
 `go test ./models/<domain-name>/...` passes. The `behaviour_test.go` expected-behaviour
 suite (§4 above) is mandatory, not optional: an entry without it is incomplete. Flagships
 are built deliberately; long-tail models are catalogued opportunistically when next touched

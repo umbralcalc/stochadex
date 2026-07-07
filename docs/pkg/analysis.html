@@ -1106,7 +1106,7 @@
       “&lt;Name&gt;_search”.</p>
       <p><a name="NewPosteriorEstimationPartitions"></a></p>
       <h2 id="func-newposteriorestimationpartitions">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/inference.go#L69-L72">NewPosteriorEstimationPartitions</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/inference.go#L72-L75">NewPosteriorEstimationPartitions</a></h2>
       <div class="sourceCode" id="cb15"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> NewPosteriorEstimationPartitions<span class="op">(</span>applied AppliedPosteriorEstimation<span class="op">,</span> storage <span class="op">*</span>simulator<span class="op">.</span>StateTimeStorage<span class="op">)</span> <span class="op">[]*</span>simulator<span class="op">.</span>PartitionConfig</span></code></pre></div>
       <p>NewPosteriorEstimationPartitions creates a set of
@@ -1507,7 +1507,7 @@
 <span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="AppliedPosteriorEstimation"></a></p>
       <h2 id="type-appliedposteriorestimation">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/inference.go#L56-L65">AppliedPosteriorEstimation</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/inference.go#L56-L68">AppliedPosteriorEstimation</a></h2>
       <p>AppliedPosteriorEstimation is the base configuration for an
       online inference of a simulation (specified by partition configs)
       from a referenced dataset.</p>
@@ -1529,9 +1529,12 @@
 <span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    Sampler      PosteriorSampler</span>
 <span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    Comparison   AppliedLikelihoodComparison</span>
 <span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    PastDiscount <span class="dt">float64</span></span>
-<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>    MemoryDepth  <span class="dt">int</span></span>
-<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>    Seed         <span class="dt">uint64</span></span>
-<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// MemoryDepth sets the likelihood partition&#39;s StateHistoryDepth — the number</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// of past rows the posterior log-normalisation rolling window aggregates. Keep</span></span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// it consistent with how much history you intend to accumulate; must be &gt;= 1.</span></span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>    MemoryDepth <span class="dt">int</span></span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>    Seed        <span class="dt">uint64</span></span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="AppliedSMCInference"></a></p>
       <h2 id="type-appliedsmcinference">type <a
       href="https://github.com/umbralcalc/stochadex/blob/main/pkg/analysis/smc.go#L40-L51">AppliedSMCInference</a></h2>

@@ -22,8 +22,10 @@ reference pattern to copy.
 3. **Bespoke iterations** (`<iteration>.go`) — lift the custom `simulator.Iteration`
    implementations the model needs from the downstream repo, into this folder, verbatim.
    Leave the downstream's data-fitting / calibration / inference helpers downstream — only
-   the generative iterations travel. Add a package doc comment noting these are bespoke
-   extensions staged for the "promote into core?" question.
+   the generative iterations travel. Put the package doc comment in a dedicated **`doc.go`**
+   (one line on what the model is, plus the note that these iterations are bespoke extensions
+   staged for the "promote into core?" question) — keep it there alone, not also on a source
+   file.
 
 4. **Stub** (`stub.go`) — write `BuildStub(...) *simulator.ConfigGenerator`:
    - Every input a literal exported `Default*` constant; no file I/O, no data, no inference.

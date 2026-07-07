@@ -34,6 +34,8 @@ front; it emerges from the recurrence.
 | [antimicrobial-resistance](antimicrobial-resistance/card.md) | Hospital cephalosporin resistance: two-strain colonisation → bloodstream infection under prescribing pressure | [repo](https://github.com/umbralcalc/antimicrobial-resistance) |
 | [floodrisk](floodrisk/card.md) | Catchment flood dynamics: stochastic rainfall → rainfall-runoff cascade → river peak flow under climate perturbation | [repo](https://github.com/umbralcalc/floodrisk) |
 | [energy-balancer](energy-balancer/card.md) | GB grid balancing: mean-reverting residual demand → co-moving imbalance price + carbon intensity → price- vs carbon-threshold battery dispatch under rising renewable intermittency | [repo](https://github.com/umbralcalc/energy-balancer) |
+| [business-survival](business-survival/card.md) | Local-authority business demography: monthly sector×age Leslie register under formation, ONS-derived exit hazards, macro covariates and support-policy multipliers → register stock + five-year cohort survival | [repo](https://github.com/umbralcalc/business-survival) |
+| [trywizard](trywizard/card.md) | Rugby match dynamics: coupled Cox counting processes for tries/penalties/cards driven by a log-linear (Poisson-GLM) rate model with substitution covariates → scoreline + home win probability under substitution timing | [repo](https://github.com/umbralcalc/trywizard) |
 
 See [`CONVENTIONS.md`](CONVENTIONS.md) for the format each entry follows and how to add
 one. New entries adopt the format from birth; existing downstream models are catalogued
