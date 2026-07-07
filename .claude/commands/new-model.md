@@ -35,21 +35,40 @@ reference pattern to copy.
 5. **Test** (`stub_test.go`) — `t.Run` subtests in three tiers:
    - `harness`: `simulator.RunWithHarnesses(settings, implementations)` returns no error.
    - `invariants`: structural / physical properties that hold every step.
-   - direction-of-parameter-response: sweep the driver, assert the output moves the correct
-     way (average over a seed ensemble if a single run is too noisy). This is the assertion
-     that would catch a sign error — make it meaningful, not "it runs."
+   - headline direction-of-parameter-response: sweep the one driver `BuildStub` exposes,
+     assert the output moves the correct way (average over a seed ensemble if a single run
+     is too noisy). This is the assertion that would catch a sign error — make it
+     meaningful, not "it runs."
    Keep runs sub-second (small step counts / ensembles).
 
-6. **Write the methodology card** (`card.md`) with the fixed headings from
+6. **Expected-behaviour suite** (`behaviour_test.go`) — MANDATORY (CONVENTIONS §4). A set
+   of `t.Run` subtests whose *names are plain-language response claims* (e.g.
+   `higher_discharge_threshold_reduces_cycling`), each varying one input and asserting the
+   output moves as the name says. Cover both:
+   - **Decision-path responses (actionable levers):** sweep the params/choices a downstream
+     decision-maker controls (policy thresholds, sizing, action selection) — every crucial
+     `(state, action) → outcome` path. For discrete actions, drive the system into each
+     branch and check that branch's signed outcome directly.
+   - **Structural-driver responses (non-actionable levers):** sweep params the world sets
+     (volatilities, efficiencies, rate constants) and assert the physically/economically
+     correct sign — this earns out-of-sample credibility.
+   Vary params by reaching into the generator (`gen.GetPartition(name).Params.Map[key] =
+   ...`) rather than bloating `BuildStub`; ensemble-average noisy claims; keep the suite to
+   a few seconds. Purely-structural stubs (decisions all downstream, e.g. `floodrisk`) have
+   no actionable claims but must be comprehensive on structural drivers and say so.
+
+7. **Write the methodology card** (`card.md`) with the fixed headings from
    `models/CONVENTIONS.md`: System (+ partition table) / Ingests / Assumptions / Validity
    regime / Failure modes / Question answered / Generative behaviour under test / Bespoke
    extensions / Downstream. The card carries the structural spec the Go code does not —
    keep it genuinely informative.
 
-7. **Register** the entry: add a row to the table in `models/README.md`.
+8. **Register** the entry: add a row to the table in `models/README.md`.
 
-8. **Verify:** run `go build ./...`, `gofmt -l models/<domain-name>/` (expect empty), and
-   `go test -count=1 ./models/<domain-name>/...`. Diagnose and fix any failures.
+9. **Verify:** run `go build ./...`, `gofmt -l models/<domain-name>/` (expect empty), and
+   `go test -count=1 ./models/<domain-name>/...`. Diagnose and fix any failures — and treat
+   a surprising behaviour-suite result as a finding to understand (it may be a real bug in
+   the stub or a wrong assumption in the test), not just a threshold to tune away.
 
 ## Reference pattern
 

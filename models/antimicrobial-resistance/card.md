@@ -96,6 +96,17 @@ roughly how much, does changing that prescribing rate move them?*
    the steady-state resistant colonisation fraction and the total resistant BSI burden.
    (Observed: resistant fraction 0.136 → 0.204 → 0.260 for prescribing 0.02 → 0.3 → 0.8.)
 
+The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) adds named,
+plain-language response claims:
+
+- *Decision-path / mechanism (the actionable stewardship lever):* prescribing raises
+  resistance **only through the selection term** — with `selection_coefficient` set to zero,
+  a low-vs-high prescribing sweep leaves the resistant fraction unchanged, while with
+  selection on the same sweep moves it. This pins down *why* the stewardship lever works.
+- *Structural drivers (out-of-sample credibility):* a higher fitness cost lowers resistance;
+  higher transmission raises total colonisation; a higher per-patient infection probability
+  raises the resistant BSI burden (the colonisation → infection outcome path).
+
 ## Bespoke extensions (staged beside the stub)
 
 `ColonisationDynamicsIteration` ([`colonisation.go`](colonisation.go)) and

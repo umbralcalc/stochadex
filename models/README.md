@@ -33,6 +33,7 @@ front; it emerges from the recurrence.
 |---|---|---|
 | [antimicrobial-resistance](antimicrobial-resistance/card.md) | Hospital cephalosporin resistance: two-strain colonisation → bloodstream infection under prescribing pressure | [repo](https://github.com/umbralcalc/antimicrobial-resistance) |
 | [floodrisk](floodrisk/card.md) | Catchment flood dynamics: stochastic rainfall → rainfall-runoff cascade → river peak flow under climate perturbation | [repo](https://github.com/umbralcalc/floodrisk) |
+| [energy-balancer](energy-balancer/card.md) | GB grid balancing: mean-reverting residual demand → co-moving imbalance price + carbon intensity → price- vs carbon-threshold battery dispatch under rising renewable intermittency | [repo](https://github.com/umbralcalc/energy-balancer) |
 
 See [`CONVENTIONS.md`](CONVENTIONS.md) for the format each entry follows and how to add
 one. New entries adopt the format from birth; existing downstream models are catalogued

@@ -99,6 +99,15 @@ direction, and roughly how much, does wetter forcing move the flood peak?*
    m³/s for multipliers 1.0 → 1.15 → 1.3.) Averaged over a 12-member ensemble so the
    claim is about the distribution, not one noisy realisation.
 
+The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) adds named,
+plain-language response claims. This model is **purely structural** — its decision layer
+(natural flood management) lives entirely downstream, so the stub has no actionable in-stub
+lever and the suite is instead comprehensive on the structural drivers of the flood peak:
+higher wet-day persistence raises peak flow; higher evapotranspiration lowers it; a larger
+catchment area raises it (the mm→m³/s scaling); and a greater soil-storage `field_capacity`
+lowers it — the structural basis for why "make room for water" catchment measures work, and
+the closest the stub comes to expressing the downstream NFM intervention.
+
 ## Bespoke extensions (staged beside the stub)
 
 `StochasticRainfallIteration` ([`rainfall.go`](rainfall.go)) and

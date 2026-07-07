@@ -60,8 +60,11 @@ type AppliedPosteriorEstimation struct {
 	Sampler      PosteriorSampler
 	Comparison   AppliedLikelihoodComparison
 	PastDiscount float64
-	MemoryDepth  int
-	Seed         uint64
+	// MemoryDepth sets the likelihood partition's StateHistoryDepth — the number
+	// of past rows the posterior log-normalisation rolling window aggregates. Keep
+	// it consistent with how much history you intend to accumulate; must be >= 1.
+	MemoryDepth int
+	Seed        uint64
 }
 
 // NewPosteriorEstimationPartitions creates a set of PartitionConfigs for
