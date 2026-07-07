@@ -62,6 +62,71 @@ dispatch back-calculated when a limit binds. EFC, revenue and carbon saved accum
 the actual (post-constraint) dispatch. The two batteries are physically identical; only
 their dispatch policy differs.
 
+
+<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Partition wiring
+
+The partition dependency graph, derived statically from the stub's `BuildStub` wiring
+by [`pkg/graph`](../../pkg/graph). Solid arrows are within-step `params_from_upstream`
+wiring (which imposes a computation order); dashed arrows leaving a shaded past-copy
+node are lag reads of a partition's committed state from an earlier step — drawn as
+separate source nodes so the graph stays a DAG.
+
+```mermaid
+flowchart TB
+  n0["residual_demand"]
+  n1["price_noise"]
+  n2["carbon_noise"]
+  n3["price"]
+  n4["carbon_intensity"]
+  n5["price_dispatch"]
+  n6["price_battery"]
+  n7["price_efc"]
+  n8["price_revenue"]
+  n9["price_co2_saved"]
+  n10["carbon_dispatch"]
+  n11["carbon_battery"]
+  n12["carbon_efc"]
+  n13["carbon_revenue"]
+  n14["carbon_co2_saved"]
+  n0past["residual_demand"]
+  n1past["price_noise"]
+  n2past["carbon_noise"]
+  n3past["price"]
+  n4past["carbon_intensity"]
+  n6past["price_battery"]
+  n11past["carbon_battery"]
+  n0past -.->|demand_partition| n3
+  n1past -.->|noise_partition| n3
+  n0past -.->|demand_partition| n4
+  n2past -.->|noise_partition| n4
+  n3past -.->|price_partition| n5
+  n5 -->|dispatch_mw| n6
+  n6past -.->|battery_partition| n7
+  n6past -.->|battery_partition| n8
+  n3past -.->|price_partition| n8
+  n6past -.->|battery_partition| n9
+  n4past -.->|carbon_partition| n9
+  n4past -.->|carbon_partition| n10
+  n10 -->|dispatch_mw| n11
+  n11past -.->|battery_partition| n12
+  n11past -.->|battery_partition| n13
+  n3past -.->|price_partition| n13
+  n11past -.->|battery_partition| n14
+  n4past -.->|carbon_partition| n14
+  classDef pastcopy fill:#d8e6f3,stroke:#4a7ba6,color:#000;
+  class n0past pastcopy;
+  class n1past pastcopy;
+  class n2past pastcopy;
+  class n3past pastcopy;
+  class n4past pastcopy;
+  class n6past pastcopy;
+  class n11past pastcopy;
+```
+
+<!-- END generated: partition-wiring -->
+
 ## Ingests (in the stub: nothing)
 
 The stub is **data-free** — every input is a literal constant in [`stub.go`](stub.go),

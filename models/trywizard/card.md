@@ -46,6 +46,48 @@ covariate on for more of the match, and — with the illustrative positive coeff
 lifts the home side's try and penalty rates. Every other input is a literal `Default*`
 constant; the away side's timing is held fixed so home timing varies in isolation.
 
+
+<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Partition wiring
+
+The partition dependency graph, derived statically from the stub's `BuildStub` wiring
+by [`pkg/graph`](../../pkg/graph). Solid arrows are within-step `params_from_upstream`
+wiring (which imposes a computation order); dashed arrows leaving a shaded past-copy
+node are lag reads of a partition's committed state from an earlier step — drawn as
+separate source nodes so the graph stays a DAG.
+
+```mermaid
+flowchart TB
+  n0["baseline_rates"]
+  n1["sub_covariates"]
+  n2["score_rates"]
+  n3["card_rates"]
+  n4["score_events"]
+  n5["card_events"]
+  n6["conversion_events"]
+  n7["match_state"]
+  n4past["score_events"]
+  n5past["card_events"]
+  n0 -->|baseline| n2
+  n1 -->|covariates| n2
+  n0 -->|baseline| n3
+  n1 -->|covariates| n3
+  n2 -->|rates| n4
+  n3 -->|rates| n5
+  n4 -->|try_values| n6
+  n4past -.->|score_events_partition| n6
+  n5 -->|card_values| n7
+  n6 -->|conversion_values| n7
+  n4 -->|score_values| n7
+  n5past -.->|card_partition| n7
+  classDef pastcopy fill:#d8e6f3,stroke:#4a7ba6,color:#000;
+  class n4past pastcopy;
+  class n5past pastcopy;
+```
+
+<!-- END generated: partition-wiring -->
+
 ## Ingests (in the stub: nothing)
 
 The stub is **data-free** — every input is a literal constant in [`stub.go`](stub.go), with

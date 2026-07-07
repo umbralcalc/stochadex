@@ -34,6 +34,29 @@ linear reservoirs (recession constants) and convert mm → m³/s by catchment ar
 **nonlinear saturation response** is the hydrological heart: a wet antecedent catchment
 turns rainfall into flow far more efficiently than a dry one.
 
+
+<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Partition wiring
+
+The partition dependency graph, derived statically from the stub's `BuildStub` wiring
+by [`pkg/graph`](../../pkg/graph). Solid arrows are within-step `params_from_upstream`
+wiring (which imposes a computation order); dashed arrows leaving a shaded past-copy
+node are lag reads of a partition's committed state from an earlier step — drawn as
+separate source nodes so the graph stays a DAG.
+
+```mermaid
+flowchart TB
+  n0["rainfall"]
+  n1["runoff"]
+  n0past["rainfall"]
+  n0past -.->|upstream_partition| n1
+  classDef pastcopy fill:#d8e6f3,stroke:#4a7ba6,color:#000;
+  class n0past pastcopy;
+```
+
+<!-- END generated: partition-wiring -->
+
 ## Ingests (in the stub: nothing)
 
 The stub is **data-free** — every input is a literal constant in [`stub.go`](stub.go),

@@ -36,6 +36,26 @@ multiplier that suppresses growth at low density when `γ>0` (γ=0 recovers the
 standard Ricker). The covariate values are read within-step from the upstream
 `covariates` partition via `params_from_upstream`.
 
+
+<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Partition wiring
+
+The partition dependency graph, derived statically from the stub's `BuildStub` wiring
+by [`pkg/graph`](../../pkg/graph). Solid arrows are within-step `params_from_upstream`
+wiring (which imposes a computation order); dashed arrows leaving a shaded past-copy
+node are lag reads of a partition's committed state from an earlier step — drawn as
+separate source nodes so the graph stays a DAG.
+
+```mermaid
+flowchart TB
+  n0["covariates"]
+  n1["population"]
+  n0 -->|covariates| n1
+```
+
+<!-- END generated: partition-wiring -->
+
 ## Ingests (in the stub: nothing)
 
 The stub is **data-free** — every input is a literal constant in [`stub.go`](stub.go),

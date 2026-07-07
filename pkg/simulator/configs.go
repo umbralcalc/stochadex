@@ -185,6 +185,13 @@ func (c *ConfigGenerator) GetPartition(name string) *PartitionConfig {
 	return c.partitionConfigOrdering.ConfigByName[name]
 }
 
+// PartitionNames returns the partition names in the order they were added,
+// which is the same order used to assign partition indices in GenerateConfigs.
+// It returns a copy so callers cannot mutate the internal ordering.
+func (c *ConfigGenerator) PartitionNames() []string {
+	return append([]string(nil), c.partitionConfigOrdering.Names...)
+}
+
 // SetPartition adds a new partition config. Names must be unique.
 func (c *ConfigGenerator) SetPartition(config *PartitionConfig) {
 	config.Init()

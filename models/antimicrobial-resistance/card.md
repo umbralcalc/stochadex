@@ -33,6 +33,29 @@ The **selection term** `selection·ceph·S` is the causal heart of the model: ce
 use converts susceptible colonisation into resistant colonisation. BSI counts are
 `Poisson(infection_probability · population · fraction · dt)` per strain.
 
+
+<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Partition wiring
+
+The partition dependency graph, derived statically from the stub's `BuildStub` wiring
+by [`pkg/graph`](../../pkg/graph). Solid arrows are within-step `params_from_upstream`
+wiring (which imposes a computation order); dashed arrows leaving a shaded past-copy
+node are lag reads of a partition's committed state from an earlier step — drawn as
+separate source nodes so the graph stays a DAG.
+
+```mermaid
+flowchart TB
+  n0["colonisation"]
+  n1["infection"]
+  n0past["colonisation"]
+  n0past -.->|colonisation_partition| n1
+  classDef pastcopy fill:#d8e6f3,stroke:#4a7ba6,color:#000;
+  class n0past pastcopy;
+```
+
+<!-- END generated: partition-wiring -->
+
 ## Ingests (in the stub: nothing)
 
 The stub is **data-free** — every input is a literal constant in [`stub.go`](stub.go).

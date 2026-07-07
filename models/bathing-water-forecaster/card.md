@@ -37,6 +37,30 @@ sites move coherently; set it to zero and a site ignores the region entirely. Th
 step is deterministic given `z` and `t`; all cross-site-correlated randomness enters
 through the shared anomaly.
 
+
+<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Partition wiring
+
+The partition dependency graph, derived statically from the stub's `BuildStub` wiring
+by [`pkg/graph`](../../pkg/graph). Solid arrows are within-step `params_from_upstream`
+wiring (which imposes a computation order); dashed arrows leaving a shaded past-copy
+node are lag reads of a partition's committed state from an earlier step — drawn as
+separate source nodes so the graph stays a DAG.
+
+```mermaid
+flowchart TB
+  n0["anomaly"]
+  n1["site_0"]
+  n2["site_1"]
+  n3["site_2"]
+  n0 -->|anomaly| n1
+  n0 -->|anomaly| n2
+  n0 -->|anomaly| n3
+```
+
+<!-- END generated: partition-wiring -->
+
 ## Ingests (in the stub: nothing)
 
 The stub is **data-free** — every input is a literal constant in [`stub.go`](stub.go),

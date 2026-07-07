@@ -25,10 +25,6 @@ const (
 	// DefaultNumSteps is the flagship horizon (days), matching the downstream
 	// dashboard's SimSteps.
 	DefaultNumSteps = 200
-
-	// Partition indices within the stub.
-	colonisationPartition = 0
-	infectionPartition    = 1
 )
 
 // BuildStub constructs the data-free generative core of the antimicrobial-
@@ -71,10 +67,14 @@ func BuildStub(prescribingRate float64, numSteps int) *simulator.ConfigGenerator
 		Name:      "infection",
 		Iteration: &InfectionProcessIteration{},
 		Params: simulator.NewParams(map[string][]float64{
-			"infection_probability":  {DefaultInfectionProbability},
-			"patient_population":     {DefaultPatientPopulation},
-			"colonisation_partition": {colonisationPartition},
+			"infection_probability": {DefaultInfectionProbability},
+			"patient_population":    {DefaultPatientPopulation},
 		}),
+		// infection reads the colonisation partition's state history; referenced
+		// by name so the index survives reordering (and is visible to pkg/graph).
+		ParamsAsPartitions: map[string][]string{
+			"colonisation_partition": {"colonisation"},
+		},
 		InitStateValues:   []float64{0.0, 0.0},
 		StateHistoryDepth: 1,
 		Seed:              3347,

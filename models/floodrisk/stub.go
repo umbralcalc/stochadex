@@ -29,10 +29,6 @@ const (
 
 	// DefaultNumSteps is the flagship horizon in days (10 years).
 	DefaultNumSteps = 3650
-
-	// Partition indices within the stub.
-	rainfallPartition = 0
-	runoffPartition   = 1
 )
 
 // BuildStub constructs the data-free generative core of the flood-risk model: a
@@ -77,8 +73,13 @@ func BuildStub(rainfallMultiplier float64, numSteps int, seed uint64) *simulator
 			"fast_recession_rate": {DefaultFastRecessionRate},
 			"slow_recession_rate": {DefaultSlowRecessionRate},
 			"catchment_area_km2":  {DefaultCatchmentAreaKm2},
-			"upstream_partition":  {rainfallPartition},
 		}),
+		// runoff reads the previous step's committed rainfall from its state
+		// history; referenced by name so the index survives reordering (and is
+		// visible to pkg/graph).
+		ParamsAsPartitions: map[string][]string{
+			"upstream_partition": {"rainfall"},
+		},
 		InitStateValues:   []float64{InitialSoilMoisture, 0.0, 0.0, 0.0},
 		StateHistoryDepth: 1,
 		Seed:              0,

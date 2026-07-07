@@ -33,6 +33,11 @@ reference pattern to copy.
      the test will sweep).
    - Note in a comment that the constants are illustrative, not calibrated posteriors, and
      point to the downstream repo.
+   - **Wire cross-partition references by name**, via `ParamsFromUpstream` (within-step) or
+     `ParamsAsPartitions` (a lag read of another partition's state history). Do **not** pass
+     a partition index as a raw numeric param (e.g. `"x_partition": {someIndexConst}`): that
+     hides the dependency from `pkg/graph`, so the generated wiring diagram (step 7) comes
+     out with disconnected nodes. Name-based refs also survive partition reordering.
 
 5. **Test** (`stub_test.go`) — `t.Run` subtests in three tiers:
    - `harness`: `simulator.RunWithHarnesses(settings, implementations)` returns no error.
@@ -63,14 +68,21 @@ reference pattern to copy.
    `models/CONVENTIONS.md`: System (+ partition table) / Ingests / Assumptions / Validity
    regime / Failure modes / Question answered / Generative behaviour under test / Bespoke
    extensions / Downstream. The card carries the structural spec the Go code does not —
-   keep it genuinely informative.
+   keep it genuinely informative. The **Partition wiring** Mermaid diagram is inserted
+   automatically (step 8) between generated-block markers — do not hand-write it. First add
+   the model to `cmd/model-graphs` (a `{dir, BuildStub(...)}` entry) so the generator knows
+   about it.
 
-8. **Register** the entry: add a row to the table in `models/README.md`.
+8. **Register** the entry: add a row to the table in `models/README.md`, and generate the
+   card's wiring diagram with `go generate ./cmd/model-graphs` (adds/refreshes the
+   **Partition wiring** section).
 
 9. **Verify:** run `go build ./...`, `gofmt -l models/<domain-name>/` (expect empty), and
-   `go test -count=1 ./models/<domain-name>/...`. Diagnose and fix any failures — and treat
-   a surprising behaviour-suite result as a finding to understand (it may be a real bug in
-   the stub or a wrong assumption in the test), not just a threshold to tune away.
+   `go test -count=1 ./models/<domain-name>/...`. Also run `go test ./cmd/model-graphs/` —
+   `TestCardsUpToDate` fails if the wiring diagram is stale (regenerate with step 8).
+   Diagnose and fix any failures — and treat a surprising behaviour-suite result as a
+   finding to understand (it may be a real bug in the stub or a wrong assumption in the
+   test), not just a threshold to tune away.
 
 ## Reference pattern
 

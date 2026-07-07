@@ -39,6 +39,37 @@ delivered-completions flow — so it is the approval **inflow** that shifts long
 affordability; completion speed changes the standing stock and delivery timing, not the
 steady-state supply rate.
 
+
+<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Partition wiring
+
+The partition dependency graph, derived statically from the stub's `BuildStub` wiring
+by [`pkg/graph`](../../pkg/graph). Solid arrows are within-step `params_from_upstream`
+wiring (which imposes a computation order); dashed arrows leaving a shaded past-copy
+node are lag reads of a partition's committed state from an earlier step — drawn as
+separate source nodes so the graph stays a DAG.
+
+```mermaid
+flowchart TB
+  n0["bank_rate"]
+  n1["pipeline"]
+  n2["price_drift"]
+  n3["log_earnings"]
+  n4["log_price"]
+  n5["affordability"]
+  n3past["log_earnings"]
+  n4past["log_price"]
+  n2 -->|drift_coefficients| n4
+  n3past -.->|log_earnings_partition| n5
+  n4past -.->|log_price_partition| n5
+  classDef pastcopy fill:#d8e6f3,stroke:#4a7ba6,color:#000;
+  class n3past pastcopy;
+  class n4past pastcopy;
+```
+
+<!-- END generated: partition-wiring -->
+
 ## Ingests (in the stub: nothing)
 
 The stub is **data-free** — every input is a literal `Default*` constant in

@@ -44,6 +44,13 @@ headings, in order:
   this is the methodology card and the stub is the runnable demonstration.
 - **System** — the real-world system, and a table of the stub's partitions
   (`| Partition | Iteration | State | Role |`).
+- **Partition wiring** — *generated, do not hand-write.* A Mermaid dependency graph of the
+  partitions, produced by `cmd/model-graphs` from the stub's `BuildStub` wiring and spliced
+  in between `<!-- BEGIN/END generated: partition-wiring -->` markers (run
+  `go generate ./cmd/model-graphs`). Solid arrows are within-step `params_from_upstream`
+  wiring; dashed arrows from a shaded past-copy node are lag reads of a partition's
+  committed state (drawn as separate nodes so the graph stays a DAG). `TestCardsUpToDate`
+  fails CI if this section is stale.
 - **Ingests** — what the model consumes. For the stub this is "nothing" (data-free); name
   what the *downstream* application ingests.
 - **Assumptions** — the modelling choices a reader must accept.
@@ -61,6 +68,12 @@ headings, in order:
   `simulator.PartitionConfig`, wire them with `ParamsFromUpstream`, and set the run with
   `SimulationConfig` (`EveryStepOutputCondition`, `NumberOfStepsTerminationCondition`,
   `ConstantTimestepFunction`).
+- **Wire cross-partition references by name** — `ParamsFromUpstream` for a within-step read,
+  `ParamsAsPartitions` for a lag read of another partition's state history. Never pass a
+  partition index as a raw numeric param (`"x_partition": {someIndexConst}`): it hides the
+  dependency from `pkg/graph`, so the generated wiring diagram loses that edge, and it breaks
+  under partition reordering. Also add the new entry to `cmd/model-graphs` so its card
+  diagram is generated.
 - **Every input is a literal constant** declared as an exported `Default*` const. No file
   I/O, no data loading, no inference, no decision/policy layer — the generative core only.
 - Expose the **one scientifically-interesting driver** as a `BuildStub` parameter (the

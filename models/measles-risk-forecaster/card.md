@@ -47,6 +47,26 @@ reachable_cluster)`; capping it at a school/neighbourhood scale (~400) is what k
 absolute outbreak sizes finite and community-scaled. `R_eff = R_local·remaining/pool`,
 so an outbreak self-limits when its susceptibles run out.
 
+
+<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Partition wiring
+
+The partition dependency graph, derived statically from the stub's `BuildStub` wiring
+by [`pkg/graph`](../../pkg/graph). Solid arrows are within-step `params_from_upstream`
+wiring (which imposes a computation order); dashed arrows leaving a shaded past-copy
+node are lag reads of a partition's committed state from an earlier step — drawn as
+separate source nodes so the graph stays a DAG.
+
+```mermaid
+flowchart TB
+  n0["national_importation"]
+  n1["outbreaks"]
+  n0 -->|national_seed_total| n1
+```
+
+<!-- END generated: partition-wiring -->
+
 ## Ingests (in the stub: nothing)
 
 The stub is **data-free** — every input is a literal `Default*` constant in

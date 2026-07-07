@@ -73,13 +73,6 @@ const (
 
 	// Δ per step (hours): a half-hourly settlement period.
 	stepSizeHours = 0.5
-
-	// Shared-signal partition indices within the stub (declaration order).
-	residualDemandPartition  = 0
-	priceNoisePartition      = 1
-	carbonNoisePartition     = 2
-	pricePartition           = 3
-	carbonIntensityPartition = 4
 )
 
 // BuildStub constructs the data-free generative core of the GB grid-balancing
@@ -158,9 +151,11 @@ func BuildStub(renewablePenetration float64, numSteps int, seed uint64) *simulat
 		Params: simulator.NewParams(map[string][]float64{
 			"demand_slope":     {DefaultDemandSlope},
 			"demand_intercept": {DefaultDemandIntercept},
-			"demand_partition": {residualDemandPartition},
-			"noise_partition":  {priceNoisePartition},
 		}),
+		ParamsAsPartitions: map[string][]string{
+			"demand_partition": {"residual_demand"},
+			"noise_partition":  {"price_noise"},
+		},
 		InitStateValues:   []float64{DefaultDemandSlope*DefaultResidualMeanMW + DefaultDemandIntercept},
 		StateHistoryDepth: 1,
 		Seed:              0,
@@ -172,9 +167,11 @@ func BuildStub(renewablePenetration float64, numSteps int, seed uint64) *simulat
 		Params: simulator.NewParams(map[string][]float64{
 			"carbon_slope":     {DefaultCarbonSlope},
 			"carbon_intercept": {DefaultCarbonIntercept},
-			"demand_partition": {residualDemandPartition},
-			"noise_partition":  {carbonNoisePartition},
 		}),
+		ParamsAsPartitions: map[string][]string{
+			"demand_partition": {"residual_demand"},
+			"noise_partition":  {"carbon_noise"},
+		},
 		InitStateValues:   []float64{DefaultCarbonSlope*DefaultResidualMeanMW + DefaultCarbonIntercept},
 		StateHistoryDepth: 1,
 		Seed:              0,
@@ -195,20 +192,24 @@ func BuildStub(renewablePenetration float64, numSteps int, seed uint64) *simulat
 		prefix:   "price",
 		dispatch: &PriceThresholdDispatchIteration{},
 		dispatchParams: map[string][]float64{
-			"price_partition": {pricePartition},
 			"price_high":      {DefaultPriceHigh},
 			"price_low":       {DefaultPriceLow},
 			"power_rating_mw": {DefaultPowerRatingMW},
+		},
+		dispatchAsPartitions: map[string][]string{
+			"price_partition": {"price"},
 		},
 	})
 	addPolicyChain(gen, &policySpec{
 		prefix:   "carbon",
 		dispatch: &CarbonThresholdDispatchIteration{},
 		dispatchParams: map[string][]float64{
-			"carbon_partition": {carbonIntensityPartition},
-			"carbon_high":      {DefaultCarbonHigh},
-			"carbon_low":       {DefaultCarbonLow},
-			"power_rating_mw":  {DefaultPowerRatingMW},
+			"carbon_high":     {DefaultCarbonHigh},
+			"carbon_low":      {DefaultCarbonLow},
+			"power_rating_mw": {DefaultPowerRatingMW},
+		},
+		dispatchAsPartitions: map[string][]string{
+			"carbon_partition": {"carbon_intensity"},
 		},
 	})
 
@@ -230,6 +231,10 @@ type policySpec struct {
 	prefix         string              // partition-name prefix, e.g. "price"
 	dispatch       simulator.Iteration // the threshold dispatch iteration
 	dispatchParams map[string][]float64
+	// dispatchAsPartitions names the shared-signal partitions the dispatch reads
+	// (e.g. "price" or "carbon_intensity"), resolved to indices by name so they
+	// survive reordering and are visible to pkg/graph.
+	dispatchAsPartitions map[string][]string
 }
 
 // addPolicyChain appends the five partitions of one policy's battery chain,
@@ -240,12 +245,13 @@ func addPolicyChain(gen *simulator.ConfigGenerator, spec *policySpec) {
 	batteryName := spec.prefix + "_battery"
 
 	gen.SetPartition(&simulator.PartitionConfig{
-		Name:              dispatchName,
-		Iteration:         spec.dispatch,
-		Params:            simulator.NewParams(spec.dispatchParams),
-		InitStateValues:   []float64{0.0},
-		StateHistoryDepth: 1,
-		Seed:              0,
+		Name:               dispatchName,
+		Iteration:          spec.dispatch,
+		Params:             simulator.NewParams(spec.dispatchParams),
+		ParamsAsPartitions: spec.dispatchAsPartitions,
+		InitStateValues:    []float64{0.0},
+		StateHistoryDepth:  1,
+		Seed:               0,
 	})
 
 	gen.SetPartition(&simulator.PartitionConfig{
