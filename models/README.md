@@ -34,8 +34,6 @@ front; it emerges from the recurrence.
 | [antimicrobial-resistance](antimicrobial-resistance/card.md) | Hospital cephalosporin resistance: two-strain colonisation → bloodstream infection under prescribing pressure | [repo](https://github.com/umbralcalc/antimicrobial-resistance) |
 | [floodrisk](floodrisk/card.md) | Catchment flood dynamics: stochastic rainfall → rainfall-runoff cascade → river peak flow under climate perturbation | [repo](https://github.com/umbralcalc/floodrisk) |
 
-> **Status:** the conventions above are the *residue* of building two flagships
-> (antimicrobial-resistance, then floodrisk) end-to-end, not a speculative standard. New
-> entries adopt the format from
-> birth; existing downstream models are catalogued deliberately (flagships) or
-> opportunistically (the long tail), never by forced retrofit.
+See [`CONVENTIONS.md`](CONVENTIONS.md) for the format each entry follows and how to add
+one. New entries adopt the format from birth; existing downstream models are catalogued
+deliberately (flagships) or opportunistically (the long tail), never by forced retrofit.

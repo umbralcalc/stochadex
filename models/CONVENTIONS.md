@@ -1,9 +1,8 @@
 # Catalogue conventions
 
-The thin spec for a domain-models catalogue entry. This is the *residue* of building
-two flagships end-to-end (antimicrobial-resistance, floodrisk), not a speculative
-standard — it documents what those entries actually do. Keep it thin; extend it only
-when a new entry teaches something the existing ones did not.
+The thin spec for a domain-models catalogue entry. It documents the format the entries
+follow rather than prescribing a speculative standard: keep it thin, and extend it only
+when a new entry needs something the convention does not yet cover.
 
 See [`README.md`](README.md) for *why* the catalogue exists. This file is *how* to add
 to it.
