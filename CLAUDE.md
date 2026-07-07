@@ -23,10 +23,35 @@ pkg/
   keyboard/    — Real-time keyboard input for interactive simulations
 cmd/stochadex/ — CLI binary
 cfg/           — Example YAML configs
+models/        — Domain-models catalogue: data-free SDK simulation stubs of real-world domains, wired into engine CI. Replaced the old `template/` scaffold. See models/CONVENTIONS.md.
 test/          — Integration tests (correspond to notebook examples in nbs/)
 nbs/           — Jupyter notebooks (GoNB) with worked examples
 docs/          — Documentation source and build script
 ```
+
+## Domain-models catalogue (`models/`)
+
+`models/` holds a catalogue of real-world domains, each demonstrated as a **data-free,
+SDK-built simulation stub of its generative core** wired into the engine's own CI. It
+replaced the deleted `template/` folder: cookie-cutter scaffolding pushed frozen structure
+downstream and blocked upstream learning; the catalogue inverts this — applications teach
+the engine what good domain models look like, and recurring bespoke extensions surface for
+promotion into core.
+
+- **Repo boundary follows the generative/inferential split.** This engine owns the forward
+  model; downstream project repos own inference, data ingestion, calibration, and the
+  decision layer. Each entry links to its downstream repo.
+- **Three artifacts per entry:** `card.md` (methodology card — the primary legible spec,
+  since the stub is Go not YAML), `stub.go` (`BuildStub(...) *simulator.ConfigGenerator`,
+  all inputs literal constants, the one interesting driver exposed as a parameter), and
+  `stub_test.go` (three tiers: `RunWithHarnesses` → structural/physical invariants →
+  direction-of-parameter-response, the assertion that would catch a sign error).
+- **Bespoke `simulator.Iteration` implementations sit beside the stub**, lifted from the
+  downstream repo; their calibration/inference helpers stay downstream. Recurrence across
+  entries is the promotion-into-core signal — do not design that mechanism up front.
+- Conventions are frozen thinly in `models/CONVENTIONS.md`. Add entries with the
+  `/new-model` skill. Reference entries: `models/antimicrobial-resistance/` (coupled
+  compartments) and `models/floodrisk/` (a rainfall → runoff cascade).
 
 ## Core Abstraction: the Iteration Interface
 
