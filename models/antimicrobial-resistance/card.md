@@ -146,4 +146,4 @@ Data ingestion (UKHSA surveillance), simulation-based inference / calibration, a
 prescribing-policy decision layer (baseline / cycling / threshold / restriction) live in
 the project repo:
 
-**https://github.com/umbralcalc/antimicrobial-resistance**
+**[https://github.com/umbralcalc/antimicrobial-resistance](https://github.com/umbralcalc/antimicrobial-resistance)**

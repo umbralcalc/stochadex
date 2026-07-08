@@ -202,4 +202,4 @@ Data ingestion (UKHSA / COVER / ONS), CAR spatial smoothing, censored-likelihood
 calibration, the reporting-lag nowcast, the honest backtest against the coverage
 heuristic, and the risk-ranking decision layer live in the project repo:
 
-**https://github.com/umbralcalc/measles-risk-forecaster**
+**[https://github.com/umbralcalc/measles-risk-forecaster](https://github.com/umbralcalc/measles-risk-forecaster)**

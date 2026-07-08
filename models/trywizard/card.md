@@ -221,4 +221,4 @@ Data ingestion (the SportDevs rugby API), baseline kernel smoothing, Poisson-GLM
 the substitution-counterfactual evaluation / win-probability decision layer live in the project
 repo:
 
-**https://github.com/umbralcalc/trywizard**
+**[https://github.com/umbralcalc/trywizard](https://github.com/umbralcalc/trywizard)**

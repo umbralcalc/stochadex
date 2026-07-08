@@ -166,4 +166,4 @@ Data ingestion (NFPD electrofishing series + EA hydrology / water quality),
 covariate matching, simulation-based calibration and inference, and the projection /
 scenario decision layer live in the project repo:
 
-**https://github.com/umbralcalc/anglersim**
+**[https://github.com/umbralcalc/anglersim](https://github.com/umbralcalc/anglersim)**

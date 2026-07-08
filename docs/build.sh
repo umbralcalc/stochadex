@@ -10,6 +10,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOCS_DIR="$SCRIPT_DIR"
 PUBLIC_DIR="$DOCS_DIR"
 TEMP_DIR="$DOCS_DIR/.temp"
+MODELS_DIR="$DOCS_DIR/../models"
+WORK_TEMPLATE="$TEMP_DIR/template.html"
+REPO_BLOB_URL="https://github.com/umbralcalc/stochadex/blob/main/models"
 
 # Colors for output
 RED='\033[0;31m'
@@ -110,13 +113,73 @@ copy_assets() {
     fi
 }
 
+# Prepare a working copy of the template with the Models nav list injected.
+# The source template.html carries empty MODELS_NAV markers; this fills them from
+# whatever lives in models/ so /new-model entries appear in the sidebar automatically.
+prepare_template() {
+    log_info "Preparing navigation template..."
+
+    local packages_nav="$TEMP_DIR/packages_nav.html"
+    local models_nav="$TEMP_DIR/models_nav.html"
+    : > "$packages_nav"
+    : > "$models_nav"
+
+    # Packages: auto-discover from the module's pkg/ tree — the same source the package
+    # docs are generated from — so a new package appears in the sidebar automatically.
+    for pkg in $(go list ../... | grep '/pkg/'); do
+        local pkg_name=$(basename "$pkg")
+        case "$pkg_name" in
+            api) local label="API" ;;                            # known acronym
+            *)   local label=$(echo "$pkg_name" \
+                     | awk '{print toupper(substr($0,1,1)) substr($0,2)}') ;;
+        esac
+        printf '        <li><a href="$if(is-home)$$else$../$endif$pkg/%s.html">%s</a></li>\n' \
+            "$pkg_name" "$label" >> "$packages_nav"
+    done
+
+    # Domain models: auto-discover from the models/ catalogue.
+    for card in "$MODELS_DIR"/*/card.md; do
+        [ -f "$card" ] || continue
+        local name=$(basename "$(dirname "$card")")
+        # Short sidebar label: dir name, hyphens to spaces, Title Cased.
+        local label=$(echo "$name" | tr '-' ' ' \
+            | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+        printf '        <li><a href="$if(is-home)$$else$../$endif$pkg/model-%s.html">%s</a></li>\n' \
+            "$name" "$label" >> "$models_nav"
+    done
+
+    # Splice each nav list between its markers into the working template.
+    awk -v pkgfile="$packages_nav" -v modfile="$models_nav" '
+        /<!-- PACKAGES_NAV_START -->/ {
+            print
+            while ((getline line < pkgfile) > 0) print line
+            close(pkgfile)
+            skip=1
+            next
+        }
+        /<!-- PACKAGES_NAV_END -->/ { skip=0; print; next }
+        /<!-- MODELS_NAV_START -->/ {
+            print
+            while ((getline line < modfile) > 0) print line
+            close(modfile)
+            skip=1
+            next
+        }
+        /<!-- MODELS_NAV_END -->/ { skip=0; print; next }
+        skip==1 { next }
+        { print }
+    ' "$DOCS_DIR/template.html" > "$WORK_TEMPLATE"
+
+    log_success "Navigation template prepared ($(grep -c '<li>' "$packages_nav") packages, $(grep -c '<li>' "$models_nav") models)"
+}
+
 # Generate HTML pages
 generate_html_pages() {
     log_info "Generating HTML pages..."
     
     # Generate home page
     log_info "Generating home page..."
-    pandoc --template "$DOCS_DIR/template.html" \
+    pandoc --template "$WORK_TEMPLATE" \
         --wrap=preserve \
         --mathjax \
         --syntax-highlighting=pygments \
@@ -130,7 +193,7 @@ generate_html_pages() {
     if [ -f "$DOCS_DIR/quickstart.md" ]; then
         log_info "Generating quickstart page..."
         local title=$(grep -E '^title:' "$DOCS_DIR/quickstart.md" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "Quickstart")
-        pandoc --template "$DOCS_DIR/template.html" \
+        pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
             --syntax-highlighting=pygments \
@@ -145,7 +208,7 @@ generate_html_pages() {
     if [ -f "$DOCS_DIR/how_it_works.md" ]; then
         log_info "Generating how it works page..."
         local title=$(grep -E '^title:' "$DOCS_DIR/how_it_works.md" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "How it works")
-        pandoc --template "$DOCS_DIR/template.html" \
+        pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
             --syntax-highlighting=pygments \
@@ -220,12 +283,95 @@ EOF
         # Generate HTML
         pandoc "$TEMP_DIR/${pkg_name}_with_meta.md" \
             -o "$DOCS_DIR/pkg/${pkg_name}.html" \
-            --template="$DOCS_DIR/template.html" \
+            --template="$WORK_TEMPLATE" \
             --mathjax \
             --syntax-highlighting=pygments
     done
     
     log_success "Package documentation generated"
+}
+
+# Generate model card pages from models/*/card.md
+generate_model_docs() {
+    log_info "Generating model card pages..."
+
+    mkdir -p "$DOCS_DIR/pkg"
+
+    for card in "$MODELS_DIR"/*/card.md; do
+        [ -f "$card" ] || continue
+        local name=$(basename "$(dirname "$card")")
+        local title=$(grep -m1 -E '^# ' "$card" | sed 's/^# *//')
+        [ -z "$title" ] && title="$name"
+
+        log_info "Generating model: $name"
+
+        # Rewrite sibling-file relative links (e.g. [`stub.go`](stub.go)) to GitHub blob
+        # URLs so they resolve in the docs site. Only targets that are a bare filename
+        # ending in .go/.md/.yaml/.yml are rewritten; paths with slashes are left alone.
+        sed -E "s#\]\(([A-Za-z0-9_.-]+\.(go|md|ya?ml))\)#](${REPO_BLOB_URL}/${name}/\1)#g" \
+            "$card" > "$TEMP_DIR/model-${name}.md"
+
+        # Prepend frontmatter (title drives the <title> tag and page header)
+        cat > "$TEMP_DIR/model-${name}_with_meta.md" << EOF
+---
+title: "$title"
+logo: true
+---
+
+$(cat "$TEMP_DIR/model-${name}.md")
+EOF
+
+        pandoc "$TEMP_DIR/model-${name}_with_meta.md" \
+            -o "$DOCS_DIR/pkg/model-${name}.html" \
+            --template="$WORK_TEMPLATE" \
+            --mathjax \
+            --syntax-highlighting=pygments
+    done
+
+    log_success "Model card pages generated"
+}
+
+# Post-process mermaid blocks. Pandoc renders ```mermaid as
+# <pre class="mermaid"><code>…</code></pre>; mermaid.js expects the source directly
+# under the .mermaid element, so strip the inner <code> wrapper. Only mermaid blocks
+# are touched — other code blocks keep their <pre class="sourceCode …"><code> markup.
+render_mermaid() {
+    log_info "Post-processing mermaid diagrams..."
+
+    local count=0
+    for html_file in "$DOCS_DIR"/index.html "$DOCS_DIR"/pkg/*.html; do
+        [ -f "$html_file" ] || continue
+        if grep -q '<pre class="mermaid"><code>' "$html_file"; then
+            perl -0777 -i -pe \
+                's#<pre class="mermaid"><code>(.*?)</code></pre>#<pre class="mermaid">$1</pre>#gs' \
+                "$html_file"
+            # Docs palette: recolour past-history (cross-history) node fill. The graph
+            # generator emits classDef pastcopy fill:#d8e6f3 (see pkg/graph/render.go);
+            # mermaid applies it inline with !important, so it must be remapped in the
+            # source here rather than via a stylesheet override.
+            perl -0777 -i -pe 's/fill:#d8e6f3/fill:#F5F5F5/g' "$html_file"
+            ((count++)) || true
+        fi
+    done
+
+    log_success "Mermaid diagrams post-processed ($count pages)"
+}
+
+# Wrap each rendered <table> in <div class="table-scroll"> so wide tables scroll
+# horizontally (styled in template.html) instead of squashing their columns. Pandoc
+# does not emit a wrapper, and clean_build regenerates pages each run, so there is no
+# risk of double-wrapping.
+wrap_tables() {
+    log_info "Wrapping tables for horizontal scroll..."
+
+    for html_file in "$DOCS_DIR"/index.html "$DOCS_DIR"/pkg/*.html; do
+        [ -f "$html_file" ] || continue
+        perl -0777 -i -pe \
+            's#(<table\b.*?</table>)#<div class="table-scroll">$1</div>#gs' \
+            "$html_file"
+    done
+
+    log_success "Tables wrapped"
 }
 
 # Generate sitemap
@@ -349,8 +495,12 @@ main() {
     check_dependencies
     clean_build
     copy_assets
+    prepare_template
     generate_html_pages
     generate_package_docs
+    generate_model_docs
+    render_mermaid
+    wrap_tables
     generate_sitemap
     generate_robots
     validate_build

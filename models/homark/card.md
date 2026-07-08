@@ -194,4 +194,4 @@ Data ingestion (UK HPI / BoE / ONS / DLUHC), per-LA calibration (deterministic g
 Evolution Strategy), holdout validation, credibility diagnostics, and the policy-scenario
 decision layer live in the project repo:
 
-**https://github.com/umbralcalc/homark**
+**[https://github.com/umbralcalc/homark](https://github.com/umbralcalc/homark)**

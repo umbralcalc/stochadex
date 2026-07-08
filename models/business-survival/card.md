@@ -200,4 +200,4 @@ Data ingestion (ONS / Companies House / NSPL / NOMIS / Bank of England), panel a
 calibration, the support-portfolio and macro-scenario decision layer, and the Monte-Carlo
 policy evaluator live in the project repo:
 
-**https://github.com/umbralcalc/business-survival**
+**[https://github.com/umbralcalc/business-survival](https://github.com/umbralcalc/business-survival)**

@@ -120,6 +120,39 @@
       letter-spacing: 0.05em;
       color: var(--text-muted);
       background-color: var(--bg-tertiary);
+      /* Clickable <summary>: remove the native disclosure triangle and add our own
+         chevron that rotates when the section is open. */
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-section-title::-webkit-details-marker {
+      display: none;
+    }
+
+    .nav-section-title:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-section-title::after {
+      content: "";
+      width: 0.4rem;
+      height: 0.4rem;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(-45deg);
+      transition: transform 0.2s ease;
+      opacity: 0.6;
+      margin-left: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    details.nav-section[open] > .nav-section-title::after {
+      transform: rotate(45deg);
     }
 
     .nav-links {
@@ -245,6 +278,39 @@
       color: inherit;
       padding: 0;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Courier New', monospace;
+    }
+
+    /* Mermaid diagrams: drop the code-block chrome so the diagram sits on the page
+       with no background, border, or shadow (node fills come from mermaid's theme). */
+    pre.mermaid {
+      background-color: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      margin: 1.5rem 0;
+      /* Side-scroll a diagram that is wider than the column instead of shrinking it. */
+      overflow-x: auto;
+      overflow-y: hidden;
+      text-align: center;
+    }
+    /* Render every diagram at its natural size (mermaid runs with useMaxWidth:false):
+       short diagrams are not upscaled, tall ones like trywizard are not squashed, and
+       diagrams wider than the column overflow and scroll horizontally via the rule above. */
+    pre.mermaid svg {
+      width: auto !important;
+      max-width: none !important;
+      background-color: transparent;
+      /* Centre when it fits the column; when wider, margins collapse and the
+         parent scrolls horizontally. */
+      display: block;
+      margin: 0 auto;
+    }
+    /* Edge (link) labels: no background at all. edgeLabelBackground clears the
+       .edgeLabel classes; .labelBkg is a separate div behind the label text that the
+       theme fills semi-opaque grey, so clear it explicitly (mermaid sets it without
+       !important, so this override wins regardless of its id-scoped selector). */
+    pre.mermaid .labelBkg {
+      background-color: transparent !important;
     }
 
     /* Go-specific syntax highlighting improvements */
@@ -415,11 +481,19 @@
       color: var(--text-primary);
     }
 
-    /* Tables */
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    /* Tables. Wrapped at build time in <div class="table-scroll"> so a table wider
+       than the column scrolls horizontally instead of squashing its columns. The
+       table fills the column when it fits (min-width:100%) but grows to its content
+       width when unbreakable content (e.g. long type names) needs more room. */
+    .table-scroll {
+      overflow-x: auto;
       margin: 1.5rem 0;
+    }
+    table {
+      width: auto;
+      min-width: 100%;
+      border-collapse: collapse;
+      margin: 0;
       background-color: var(--bg-primary);
       border-radius: var(--radius-md);
       overflow: hidden;
@@ -555,30 +629,50 @@
       </a>
     </div>
 
-    <div class="nav-section">
-      <div class="nav-section-title">Getting Started</div>
+    <details class="nav-section">
+      <summary class="nav-section-title">Getting Started</summary>
       <ul class="nav-links">
         <li><a href="../index.html">Home</a></li>
         <li><a href="../pkg/quickstart.html">Quickstart</a></li>
         <li><a href="../pkg/how_it_works.html">How it works</a></li>
       </ul>
-    </div>
+    </details>
 
-    <div class="nav-section">
-      <div class="nav-section-title">Packages</div>
+    <details class="nav-section">
+      <summary class="nav-section-title">Packages</summary>
       <ul class="nav-links">
+        <!-- PACKAGES_NAV_START -->
         <li><a href="../pkg/agents.html">Agents</a></li>
         <li><a href="../pkg/analysis.html">Analysis</a></li>
         <li><a href="../pkg/api.html">API</a></li>
         <li><a href="../pkg/continuous.html">Continuous</a></li>
         <li><a href="../pkg/discrete.html">Discrete</a></li>
         <li><a href="../pkg/general.html">General</a></li>
+        <li><a href="../pkg/graph.html">Graph</a></li>
         <li><a href="../pkg/inference.html">Inference</a></li>
         <li><a href="../pkg/kernels.html">Kernels</a></li>
         <li><a href="../pkg/keyboard.html">Keyboard</a></li>
         <li><a href="../pkg/simulator.html">Simulator</a></li>
+        <!-- PACKAGES_NAV_END -->
       </ul>
-    </div>
+    </details>
+
+    <details class="nav-section">
+      <summary class="nav-section-title">Domain Models</summary>
+      <ul class="nav-links">
+        <!-- MODELS_NAV_START -->
+        <li><a href="../pkg/model-anglersim.html">Anglersim</a></li>
+        <li><a href="../pkg/model-antimicrobial-resistance.html">Antimicrobial Resistance</a></li>
+        <li><a href="../pkg/model-bathing-water-forecaster.html">Bathing Water Forecaster</a></li>
+        <li><a href="../pkg/model-business-survival.html">Business Survival</a></li>
+        <li><a href="../pkg/model-energy-balancer.html">Energy Balancer</a></li>
+        <li><a href="../pkg/model-floodrisk.html">Floodrisk</a></li>
+        <li><a href="../pkg/model-homark.html">Homark</a></li>
+        <li><a href="../pkg/model-measles-risk-forecaster.html">Measles Risk Forecaster</a></li>
+        <li><a href="../pkg/model-trywizard.html">Trywizard</a></li>
+        <!-- MODELS_NAV_END -->
+      </ul>
+    </details>
   </nav>
 
   <!-- Main content -->
@@ -654,7 +748,7 @@
       </ul>
       <p><a name="Edge"></a></p>
       <h2 id="type-edge">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L77-L88">Edge</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L40-L51">Edge</a></h2>
       <p>Edge is a directed dependency: the Target partition depends on
       the Source.</p>
       <div class="sourceCode" id="cb2"><pre
@@ -672,7 +766,7 @@
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="EdgeKind"></a></p>
       <h2 id="type-edgekind">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L47">EdgeKind</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L10">EdgeKind</a></h2>
       <p>EdgeKind distinguishes the three dependency types between
       partitions.</p>
       <div class="sourceCode" id="cb3"><pre
@@ -690,7 +784,7 @@
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span></code></pre></div>
       <p><a name="EdgeKind.Reliable"></a></p>
       <h3 id="func-edgekind-reliable">func (EdgeKind) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L74">Reliable</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L37">Reliable</a></h3>
       <div class="sourceCode" id="cb5"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>k EdgeKind<span class="op">)</span> Reliable<span class="op">()</span> <span class="dt">bool</span></span></code></pre></div>
       <p>Reliable reports whether this edge kind is derived from
@@ -699,13 +793,13 @@
       they should be asserted on.</p>
       <p><a name="EdgeKind.String"></a></p>
       <h3 id="func-edgekind-string">func (EdgeKind) <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L60">String</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L23">String</a></h3>
       <div class="sourceCode" id="cb6"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> <span class="op">(</span>k EdgeKind<span class="op">)</span> String<span class="op">()</span> <span class="dt">string</span></span></code></pre></div>
       <p>String returns a stable snake_case label for the edge kind.</p>
       <p><a name="Graph"></a></p>
       <h2 id="type-graph">type <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L92-L95">Graph</a></h2>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L55-L58">Graph</a></h2>
       <p>Graph is the dependency graph of a simulation: partition names
       in index order plus the derived edges. It is a pure function of
       the configuration.</p>
@@ -716,7 +810,7 @@
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
       <p><a name="Build"></a></p>
       <h3 id="func-build">func <a
-      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L100">Build</a></h3>
+      href="https://github.com/umbralcalc/stochadex/blob/main/pkg/graph/graph.go#L63">Build</a></h3>
       <div class="sourceCode" id="cb8"><pre
       class="sourceCode go"><code class="sourceCode go"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">func</span> Build<span class="op">(</span>gen <span class="op">*</span>simulator<span class="op">.</span>ConfigGenerator<span class="op">)</span> <span class="op">*</span>Graph</span></code></pre></div>
       <p>Build derives the dependency graph from a ConfigGenerator. It
@@ -806,8 +900,37 @@
         const href = link.getAttribute('href');
         if (href && currentPath.includes(href.replace('../', ''))) {
           link.classList.add('active');
+          // Sections start collapsed; open the one holding the current page.
+          const section = link.closest('details.nav-section');
+          if (section) section.open = true;
         }
       });
+    });
+  </script>
+
+  <!-- Mermaid: render ```mermaid fenced blocks (class="mermaid") into diagrams.
+       Other code blocks use class="sourceCode …" and are left to Prism. -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'strict',
+      theme: 'base',
+      // Render at intrinsic size so wide diagrams are not shrunk to the column width;
+      // the CSS above fixes the height and lets the container scroll horizontally.
+      flowchart: { useMaxWidth: false },
+      themeVariables: {
+        // No diagram background.
+        background: 'transparent',
+        // Default (non-past-history) partition nodes. Past-copy and deadlock nodes
+        // carry their own classDef fills in the generated source, so they override this.
+        primaryColor: '#93C47D66',
+        primaryBorderColor: '#5a8a3c',
+        primaryTextColor: '#1a1a1a',
+        lineColor: '#666',
+        // No background behind edge (link) labels.
+        edgeLabelBackground: 'transparent',
+      },
     });
   </script>
 </body>

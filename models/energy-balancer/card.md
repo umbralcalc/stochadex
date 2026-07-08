@@ -271,4 +271,4 @@ Data ingestion (NESO / Carbon Intensity API / Sheffield Solar / Elexon), OU para
 inference (OLS + SMC), policy evaluation, and the dispatch decision layer live in the
 project repo:
 
-**https://github.com/umbralcalc/energy-balancer**
+**[https://github.com/umbralcalc/energy-balancer](https://github.com/umbralcalc/energy-balancer)**

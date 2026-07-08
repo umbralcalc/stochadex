@@ -148,4 +148,4 @@ promote, but that waits for the recurrence.
 Data ingestion (EA rainfall / flow series), calibration and simulation-based inference,
 and the natural-flood-management intervention/decision layer live in the project repo:
 
-**https://github.com/umbralcalc/floodrisk**
+**[https://github.com/umbralcalc/floodrisk](https://github.com/umbralcalc/floodrisk)**

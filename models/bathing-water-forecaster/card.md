@@ -179,4 +179,4 @@ Data ingestion (EA bathing-water sample records + rainfall), censored-likelihood
 fitting, empirical-Bayes pooling, the sequential-Monte-Carlo anomaly filter, and the
 forecast-commitment / scoring decision layer live in the project repo:
 
-**https://github.com/umbralcalc/bathing-water-forecaster**
+**[https://github.com/umbralcalc/bathing-water-forecaster](https://github.com/umbralcalc/bathing-water-forecaster)**
