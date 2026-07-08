@@ -1,9 +1,21 @@
+// partition_state.proto defines PartitionState, the wire format for streaming a
+// single partition's output at one simulation step. The engine's websocket
+// output function (pkg/simulator/output.go) marshals one message per output step
+// and sends it to browser and Python clients. Go, JS, and Python bindings are
+// generated from this file by generate_proto.sh — edit here and regenerate;
+// never hand-edit the generated files.
+
 syntax = "proto3";
 
 option go_package = "./pkg/simulator";
 
+// PartitionState carries one partition's state vector at a single
+// cumulative-time point.
 message PartitionState {
+  // Simulation time (the cumulative sum of timestep increments) at this output.
   double cumulative_timesteps = 1;
+  // Name of the partition that produced this state.
   string partition_name = 2;
+  // The partition's state vector for this step (length = the partition's state width).
   repeated double state = 3;
 }
