@@ -500,11 +500,11 @@ make_badge() {
     <rect x="${lw}" width="${mw}" height="20" fill="${color}"/>
     <rect width="${total}" height="20" fill="url(#s)"/>
   </g>
-  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
-    <text x="${lcx}" y="15" transform="scale(.1)" fill="#010101" fill-opacity=".3" textLength="$(( ${#label} * 70 ))">${label}</text>
-    <text x="${lcx}" y="14" transform="scale(.1)" textLength="$(( ${#label} * 70 ))">${label}</text>
-    <text x="${mcx}" y="15" transform="scale(.1)" fill="#010101" fill-opacity=".3" textLength="$(( ${#message} * 70 ))">${message}</text>
-    <text x="${mcx}" y="14" transform="scale(.1)" textLength="$(( ${#message} * 70 ))">${message}</text>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="110" text-rendering="geometricPrecision">
+    <text x="${lcx}" y="150" transform="scale(.1)" fill="#010101" fill-opacity=".3" textLength="$(( ${#label} * 70 ))">${label}</text>
+    <text x="${lcx}" y="140" transform="scale(.1)" textLength="$(( ${#label} * 70 ))">${label}</text>
+    <text x="${mcx}" y="150" transform="scale(.1)" fill="#010101" fill-opacity=".3" textLength="$(( ${#message} * 70 ))">${message}</text>
+    <text x="${mcx}" y="140" transform="scale(.1)" textLength="$(( ${#message} * 70 ))">${message}</text>
   </g>
 </svg>
 EOF
