@@ -32,7 +32,7 @@
       "bespoke_iterations": [
         "BathingConcentrationIteration"
       ],
-      "behaviour_bound": false
+      "behaviour_bound": true
     },
     {
       "dir": "business-survival",
@@ -42,7 +42,7 @@
       "bespoke_iterations": [
         "SingleLAPopulationIteration"
       ],
-      "behaviour_bound": false
+      "behaviour_bound": true
     },
     {
       "dir": "energy-balancer",
@@ -84,7 +84,7 @@
         "AffordabilityFromLogsIteration",
         "StochasticPipelineIteration"
       ],
-      "behaviour_bound": false
+      "behaviour_bound": true
     },
     {
       "dir": "measles-risk-forecaster",
@@ -95,7 +95,7 @@
         "JointOutbreakIteration",
         "NationalImportationIteration"
       ],
-      "behaviour_bound": false
+      "behaviour_bound": true
     },
     {
       "dir": "trywizard",
@@ -107,7 +107,7 @@
       "bespoke_iterations": [
         "ConversionIteration"
       ],
-      "behaviour_bound": false
+      "behaviour_bound": true
     }
   ],
   "core_package_usage": {

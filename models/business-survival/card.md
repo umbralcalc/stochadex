@@ -152,14 +152,15 @@ weather change), so that support portfolios can be ranked?*
    positive standing stock.
 3. **Correct direction of parameter response** — a supportive hazard multiplier
    (`hazardScale = 0.85`) yields a higher back-half register stock than an adverse one
-   (`1.15`), averaged over an 8-member stochastic ensemble. (Deterministic back-half stock
-   over the sweep `hazardScale` 0.80 → 0.90 → 1.00 → 1.10 → 1.20: 1493 → 1418 → 1348 → 1285
-   → 1226 — monotone. The isolated five-year cohort survival over 0.80 → 1.00 → 1.20:
-   0.4657 → 0.3840 → 0.3164, with the baseline exactly matching the ONS ≈0.384 benchmark.)
+   (`1.15`), averaged over an 8-member stochastic ensemble. The baseline isolated five-year
+   cohort survival reproduces the ONS ≈0.384 benchmark by construction.
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) makes the
 decision-readiness explicit — each subtest is a named, plain-language response claim, run in
-deterministic mean-field mode so each signed effect is exact:
+deterministic mean-field mode so each signed effect is exact. The full set of claims, with
+the exact numbers each run produces, is emitted by the suite itself and rendered in the
+**Observed behaviour** table below — none of those numbers are hand-typed, so a claim's
+result can never drift from the assertion that enforces it. The claims split into:
 
 - *Decision-path responses (actionable support levers a downstream controls):* a lower
   death-hazard scale raises five-year cohort survival (the headline lever on the signature
@@ -175,6 +176,29 @@ deterministic mean-field mode so each signed effect is exact:
   boost lowers cohort survival; and a higher structural sector hazard lowers that sector's
   stock. These cover every mechanism — formation, baseline demography, both macro channels,
   the distress channel, and sector heterogeneity — the model was not tuned against.
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestBusinessSurvivalExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's assertion broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
+
+| Response claim | Enforced by | Observed |
+|---|---|---|
+| A lower support-policy exit-hazard scale raises five-year cohort survival | [`TestBusinessSurvivalExpectedBehaviour/lower_death_hazard_scale_raises_five_year_cohort_survival`](behaviour_test.go) | five-year cohort survival fraction — adverse (scale=1.15) 0.33 · supported (scale=0.85) 0.44 |
+| Formation support (higher birth scale) raises register stock | [`TestBusinessSurvivalExpectedBehaviour/higher_formation_support_raises_register_stock`](behaviour_test.go) | deterministic back-half register stock — base 1348.24 · policy_birth_scale=1.2 1617.88 |
+| First-year (infant) hazard relief raises cohort survival | [`TestBusinessSurvivalExpectedBehaviour/lower_infant_hazard_support_raises_cohort_survival`](behaviour_test.go) | five-year cohort survival fraction — infant scale=1.7 0.38 · infant scale=0.3 0.39 |
+| A sector-targeted formation subsidy raises that sector's stock (Technology) | [`TestBusinessSurvivalExpectedBehaviour/targeted_sector_formation_support_raises_that_sector_stock`](behaviour_test.go) | deterministic back-half sector stock — base 149.80 · Technology birth scale=1.5 224.71 |
+| Sector-targeted hazard relief raises that sector's stock (Hospitality) | [`TestBusinessSurvivalExpectedBehaviour/targeted_sector_hazard_relief_raises_that_sector_stock`](behaviour_test.go) | deterministic back-half sector stock — base 199.74 · Hospitality hazard scale=0.8 221.25 |
+| A worse baseline ONS survival curve lowers register stock | [`TestBusinessSurvivalExpectedBehaviour/worse_baseline_survival_curve_lowers_stock`](behaviour_test.go) | deterministic back-half register stock — base curve 1348.24 · survival ×0.9 1230.40 |
+| A higher Bank Rate (negative birth elasticity) suppresses formation | [`TestBusinessSurvivalExpectedBehaviour/higher_bank_rate_suppresses_formation`](behaviour_test.go) | deterministic back-half register stock — Bank Rate 0.5% 1348.24 · Bank Rate 3.0% 386.28 |
+| A higher claimant count (negative birth elasticity) suppresses formation | [`TestBusinessSurvivalExpectedBehaviour/higher_claimant_count_suppresses_formation`](behaviour_test.go) | deterministic back-half register stock — claimants 12k 1348.24 · claimants 24k 1021.77 |
+| A higher Bank Rate (positive death elasticity) raises exit hazards and lowers cohort survival | [`TestBusinessSurvivalExpectedBehaviour/higher_bank_rate_raises_exit_hazard_and_lowers_survival`](behaviour_test.go) | five-year cohort survival fraction — Bank Rate 0.5% 0.38 · Bank Rate 3.0% 0.03 |
+| A positive distress-hazard boost lowers cohort survival | [`TestBusinessSurvivalExpectedBehaviour/distress_signal_lowers_cohort_survival`](behaviour_test.go) | five-year cohort survival fraction — calm 0.38 · distress boost +0.3 0.29 |
+| A higher structural sector baseline hazard lowers that sector's stock (Retail) | [`TestBusinessSurvivalExpectedBehaviour/higher_sector_baseline_hazard_lowers_that_sector_stock`](behaviour_test.go) | deterministic back-half sector stock — base 249.67 · Retail hazard scale=1.5 199.46 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 

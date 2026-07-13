@@ -173,14 +173,14 @@ outcome?*
    indicator is binary and reaches the second half by the final step; and conversions never
    exceed the tries that trigger them.
 3. **Correct direction of parameter response** — an earlier home substitution (minute 20 vs 70)
-   raises the ensemble-mean home try count, averaged over a 24-member ensemble. (Observed sweep
-   over `homeSubMinute` 15 → 35 → 55 → 75, 200-run ensemble: home tries 6.08 → 5.37 → 4.64 →
-   4.01; home score 47.6 → 42.5 → 37.4 → 32.9 against a flat away 35.8/36.0; home win
-   probability 0.70 → 0.64 → 0.53 → 0.42. Away scoring is flat because the away timing is held
-   fixed — the response is attributable to the home lever alone.)
+   raises the ensemble-mean home try count, averaged over a 24-member ensemble (the headline
+   row of the generated **Observed behaviour** table below). Away scoring is flat because the
+   away timing is held fixed — the response is attributable to the home lever alone.
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) makes the
-decision-readiness explicit — each subtest is a named, plain-language response claim:
+decision-readiness explicit — each subtest is a named, plain-language response claim, with the
+observed number for each emitted by the test run into the **Observed behaviour** table below
+(never hand-typed):
 
 - *Decision-path responses (actionable levers a coach / analyst controls):* an earlier home
   substitution raises the home **win probability** (the metric that matters); substituting more
@@ -195,6 +195,27 @@ decision-readiness explicit — each subtest is a named, plain-language response
   independent discipline channel). These span every mechanism — the score rate, the conversion
   step, the covariate effect size, the home edge, and the card process — none of which the stub
   was tuned against.
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestRugbyExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's assertion broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
+
+| Response claim | Enforced by | Observed |
+|---|---|---|
+| Earlier home substitution raises home tries (headline driver) | [`TestRugbyExpectedBehaviour/earlier_home_substitution_raises_home_tries`](behaviour_test.go) | ensemble-mean home tries — sub min 70 (late) 4.62 · sub min 20 (early) 6.29 |
+| Earlier home substitution raises home win probability | [`TestRugbyExpectedBehaviour/earlier_home_substitution_raises_home_win_probability`](behaviour_test.go) | home win probability — sub min 65 (late) 0.48 · sub min 15 (early) 0.70 |
+| Substituting more position groups raises home tries | [`TestRugbyExpectedBehaviour/substituting_more_position_groups_raises_home_tries`](behaviour_test.go) | ensemble-mean home tries — 1 group 4.90 · 4 groups 6.43 |
+| Earlier away substitution raises away tries | [`TestRugbyExpectedBehaviour/earlier_away_substitution_raises_away_tries`](behaviour_test.go) | ensemble-mean away tries — sub min 70 (late) 3.70 · sub min 20 (early) 5.33 |
+| Higher home try intercept raises home tries | [`TestRugbyExpectedBehaviour/higher_try_intercept_raises_home_tries`](behaviour_test.go) | ensemble-mean home tries — intercept -3.0 5.12 · intercept -2.5 7.92 |
+| Higher conversion probability raises home score | [`TestRugbyExpectedBehaviour/higher_conversion_probability_raises_home_score`](behaviour_test.go) | ensemble-mean home score — p=0.75 40.46 · p=0.98 42.96 |
+| Stronger per-group substitution effect raises home tries | [`TestRugbyExpectedBehaviour/stronger_substitution_effect_raises_home_tries`](behaviour_test.go) | ensemble-mean home tries — β=0.15 6.43 · β=0.40 13.17 |
+| Home-advantage intercept makes home outscore away under symmetric subs | [`TestRugbyExpectedBehaviour/home_advantage_intercept_makes_home_outscore_away`](behaviour_test.go) | ensemble-mean tries — away tries 4.42 · home tries 5.20 |
+| Higher yellow-card intercept raises cards | [`TestRugbyExpectedBehaviour/higher_yellow_card_intercept_raises_cards`](behaviour_test.go) | ensemble-mean home yellow cards — intercept -4.5 0.70 · intercept -3.3 2.80 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 

@@ -7,10 +7,14 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
+// The override run helper (runStubOverride), the param setter (setParam), and the
+// metric helpers (finalAffordability, meanFinalAff, meanPipelineStock) live in
+// behaviour.go so they can be shared with the card generator; the tests below
+// exercise the stub through the local runStub helper.
+
 // runStub runs the stub to completion and returns the recorded state history for
 // every partition, keyed by partition name.
-func runStub(t *testing.T, approvalRate float64, numSteps int, seed uint64) *simulator.StateTimeStorage {
-	t.Helper()
+func runStub(approvalRate float64, numSteps int, seed uint64) *simulator.StateTimeStorage {
 	settings, implementations := BuildStub(approvalRate, numSteps, seed).GenerateConfigs()
 	store := simulator.NewStateTimeStorage()
 	implementations.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: store}
@@ -22,19 +26,12 @@ func runStub(t *testing.T, approvalRate float64, numSteps int, seed uint64) *sim
 	return store
 }
 
-// finalAffordability returns the price-to-earnings ratio at the end of a run.
-func finalAffordability(store *simulator.StateTimeStorage) float64 {
-	rows := store.GetValues("affordability")
-	return rows[len(rows)-1][0]
-}
-
 // meanFinalAffordability ensemble-averages the final affordability ratio across
 // independent realisations (varying only the seed) to damp single-run noise.
-func meanFinalAffordability(t *testing.T, approvalRate float64, numSteps, nMembers int) float64 {
-	t.Helper()
+func meanFinalAffordability(approvalRate float64, numSteps, nMembers int) float64 {
 	var sum float64
 	for m := 0; m < nMembers; m++ {
-		sum += finalAffordability(runStub(t, approvalRate, numSteps, uint64(2000+m)))
+		sum += finalAffordability(runStub(approvalRate, numSteps, uint64(2000+m)))
 	}
 	return sum / float64(nMembers)
 }
@@ -51,7 +48,7 @@ func TestHomarkStub(t *testing.T) {
 
 	// Structural / physical invariants of the generative core.
 	t.Run("invariants", func(t *testing.T) {
-		store := runStub(t, DefaultApprovalRate, DefaultNumSteps, 42)
+		store := runStub(DefaultApprovalRate, DefaultNumSteps, 42)
 
 		// Affordability (a ratio of exponentials) and the pipeline stock (a count of
 		// units) are non-negative every step.
@@ -83,11 +80,12 @@ func TestHomarkStub(t *testing.T) {
 	// ends lower — i.e. affordability improves. This is the reason the model exists
 	// (supply policy → affordability); a stub that merely "runs" would not catch an
 	// inverted supply response. Ensemble-averaged so the claim is about the
-	// distribution, not one noisy realisation.
+	// distribution, not one noisy realisation. (The full set of response claims, with
+	// their observed numbers, is in behaviour_test.go via ObservedBehaviour.)
 	t.Run("more approvals improve affordability", func(t *testing.T) {
 		const numSteps, nMembers = DefaultNumSteps, 12
-		lowSupply := meanFinalAffordability(t, 40.0, numSteps, nMembers)
-		highSupply := meanFinalAffordability(t, 250.0, numSteps, nMembers)
+		lowSupply := meanFinalAffordability(40.0, numSteps, nMembers)
+		highSupply := meanFinalAffordability(250.0, numSteps, nMembers)
 		if !(highSupply < lowSupply) {
 			t.Fatalf("expected more approvals to lower the price-to-earnings ratio: "+
 				"low(40)=%.3f high(250)=%.3f", lowSupply, highSupply)

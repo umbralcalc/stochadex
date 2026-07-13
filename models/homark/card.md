@@ -150,7 +150,9 @@ earnings growth, demand pressure)?*
    ensemble so the claim is about the distribution, not one noisy realisation.
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) makes the
-decision-readiness explicit — each subtest is a named, plain-language response claim:
+decision-readiness explicit — each subtest is a named, plain-language response claim, with
+the observed number for each emitted by the test run into the **Observed behaviour** table
+below (never hand-typed):
 
 - *Decision-path responses (actionable planning levers):* more approvals improve
   affordability; a lower market-delivery fraction (tenure/affordable requirements diverting
@@ -166,6 +168,24 @@ decision-readiness explicit — each subtest is a named, plain-language response
 The model's decision layer (the policy-scenario grids) lives downstream; the stub exposes
 the underlying levers as swept params, so the actionable claims above are checked here while
 the scenario tooling stays out of the engine.
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestHomarkExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's assertion broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
+
+| Response claim | Enforced by | Observed |
+|---|---|---|
+| Higher planning approvals improve affordability (headline supply lever) | [`TestHomarkExpectedBehaviour/higher_approval_rate_improves_affordability`](behaviour_test.go) | ensemble-mean final price-to-earnings ratio — approvals=60 8.38 · approvals=240 6.57 |
+| A lower market-facing delivery fraction worsens affordability | [`TestHomarkExpectedBehaviour/lower_market_delivery_fraction_worsens_affordability`](behaviour_test.go) | ensemble-mean final price-to-earnings ratio — market_fraction=1.0 7.94 · market_fraction=0.3 8.76 |
+| A higher policy rate cools the market and lowers price-to-earnings | [`TestHomarkExpectedBehaviour/higher_policy_rate_lowers_price_to_earnings`](behaviour_test.go) | ensemble-mean final price-to-earnings ratio — μ=3% 7.94 · μ=6% 7.44 |
+| Stronger demand pressure raises price-to-earnings | [`TestHomarkExpectedBehaviour/stronger_demand_pressure_raises_price_to_earnings`](behaviour_test.go) | ensemble-mean final price-to-earnings ratio — demand_beta=0 7.94 · demand_beta=0.03 13.58 |
+| Faster earnings growth improves affordability (income denominator) | [`TestHomarkExpectedBehaviour/higher_earnings_growth_improves_affordability`](behaviour_test.go) | ensemble-mean final price-to-earnings ratio — drift=0.0025 7.94 · drift=0.006 5.24 |
+| A faster pipeline completion rate lowers the mean pipeline stock | [`TestHomarkExpectedBehaviour/faster_pipeline_completion_lowers_pipeline_stock`](behaviour_test.go) | ensemble-mean pipeline stock (units) — completion_rate=0.15 587.12 · completion_rate=0.30 319.35 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 

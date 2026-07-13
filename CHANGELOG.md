@@ -47,6 +47,11 @@ an exact version rather than assume stability across minors.
   net-seller `revenue > 0`, net-buyer `SoC > initial`) and difference-of-differences
   claims (AMR's "prescribing acts only through selection") bind the same way.
 
+- **Generated card numbers + claim↔test binding on the five remaining models.**
+  `bathing-water-forecaster`, `business-survival`, `homark`, `measles-risk-forecaster`,
+  and `trywizard` each gain an `ObservedBehaviour()` and a bound "Observed behaviour"
+  table — so **all nine catalogue models** now carry generated, test-bound card numbers
+  with no hand-typed results, and the cross-model index shows every model behaviour-bound.
 - **Cross-model index (`cmd/model-index`).** A generated view across all nine catalogue
   models — each model's core-package usage, the bespoke iterations beside its stub, and
   whether its behaviour claims are test-bound — derived by inspecting the real stubs, never

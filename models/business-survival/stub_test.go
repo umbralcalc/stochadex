@@ -7,6 +7,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
+// The register-stock helpers (totalStock, meanBackHalfStock) and the override
+// helpers live in behaviour.go so they can be shared with the card generator; the
+// tests below exercise them.
+
 // runStub runs the stub to completion and returns the recorded state history for
 // the population partition.
 func runStub(t *testing.T, hazardScale float64, numSteps int, seed uint64) *simulator.StateTimeStorage {
@@ -20,28 +24,6 @@ func runStub(t *testing.T, hazardScale float64, numSteps int, seed uint64) *simu
 		coordinator.Step(&wg)
 	}
 	return store
-}
-
-// totalStock sums every sector×age bucket in a state row (the standing register).
-func totalStock(row []float64) float64 {
-	var sum float64
-	for _, v := range row {
-		sum += v
-	}
-	return sum
-}
-
-// meanBackHalfStock averages the total register stock over the back half of the
-// run (a rough quasi-steady-state window once formation has filled the register).
-func meanBackHalfStock(rows [][]float64) float64 {
-	start := len(rows) / 2
-	var sum float64
-	var n int
-	for i := start; i < len(rows); i++ {
-		sum += totalStock(rows[i])
-		n++
-	}
-	return sum / float64(n)
 }
 
 // ensembleBackHalfStock averages meanBackHalfStock over nMembers seeds under a

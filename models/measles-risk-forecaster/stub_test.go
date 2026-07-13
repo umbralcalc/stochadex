@@ -3,50 +3,15 @@ package measles
 import (
 	"math"
 	"math/rand/v2"
-	"sync"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// runStub runs the stub to completion and returns the recorded state history for
-// every partition, keyed by partition name.
-func runStub(t *testing.T, mmr2Coverage float64, maxGenerations int, seed uint64) *simulator.StateTimeStorage {
-	t.Helper()
-	settings, implementations := BuildStub(mmr2Coverage, maxGenerations, seed).GenerateConfigs()
-	store := simulator.NewStateTimeStorage()
-	implementations.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: store}
-	coordinator := simulator.NewPartitionCoordinator(settings, implementations)
-	var wg sync.WaitGroup
-	for !coordinator.ReadyToTerminate() {
-		coordinator.Step(&wg)
-	}
-	return store
-}
-
-// totalCases sums the final cumulative case count across all UTLAs (the national
-// total for a scenario). The outbreaks state is [infectious_1..N, cumulative_1..N].
-func totalCases(store *simulator.StateTimeStorage) float64 {
-	rows := store.GetValues("outbreaks")
-	last := rows[len(rows)-1]
-	n := len(last) / 2
-	var sum float64
-	for i := 0; i < n; i++ {
-		sum += last[n+i]
-	}
-	return sum
-}
-
-// meanTotalCases ensemble-averages the national total across nScenarios seeds (each
-// seed draws its own shared national importation total M).
-func meanTotalCases(t *testing.T, mmr2Coverage float64, maxGenerations, nScenarios int) float64 {
-	t.Helper()
-	var sum float64
-	for k := 0; k < nScenarios; k++ {
-		sum += totalCases(runStub(t, mmr2Coverage, maxGenerations, uint64(1000+k)))
-	}
-	return sum / float64(nScenarios)
-}
+// The run/ensemble helpers (runStub, totalCases, meanTotalCases, …) live in the
+// non-test behaviour.go so the behaviour suite and the card share one definition of
+// what each number means; this file uses them for the harness/invariant/headline
+// checks.
 
 func TestMeaslesStub(t *testing.T) {
 	// Standard convention: the stub must pass the test harness (NaN, state-width,
@@ -63,7 +28,7 @@ func TestMeaslesStub(t *testing.T) {
 		const cov = DefaultMMR2Coverage
 		_, _, pool := BuildUTLASurface(cov)
 		n := len(pool)
-		store := runStub(t, cov, DefaultMaxGenerations, 42)
+		store := runStub(cov, DefaultMaxGenerations, 42)
 		rows := store.GetValues("outbreaks")
 
 		var prevCumulative []float64
@@ -135,8 +100,8 @@ func TestMeaslesStub(t *testing.T) {
 	// scenarios so the claim is about the distribution.
 	t.Run("lower coverage raises total cases", func(t *testing.T) {
 		const gens, nScenarios = DefaultMaxGenerations, 16
-		lowCoverage := meanTotalCases(t, 0.80, gens, nScenarios)
-		highCoverage := meanTotalCases(t, 0.94, gens, nScenarios)
+		lowCoverage := meanTotalCases(0.80, gens, nScenarios)
+		highCoverage := meanTotalCases(0.94, gens, nScenarios)
 		if !(lowCoverage > highCoverage) {
 			t.Fatalf("expected lower coverage to raise total cases: "+
 				"low(0.80)=%.0f high(0.94)=%.0f", lowCoverage, highCoverage)

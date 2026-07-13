@@ -135,26 +135,45 @@ the strength of the shared regional signal?*
    stay finite; every site's `p_exceed` is a genuine probability in `[0,1]` at every
    step.
 3. **Correct direction of parameter response** — raising the anomaly volatility
-   raises the ensemble-mean exceedance probability at a below-threshold site.
-   (Observed: mean P(exceed) 0.041 → 0.055 → 0.087 for anomaly volatility
-   0.3 → 0.5 → 0.8, a 16-member ensemble over 400 steps.) A stub that merely "runs"
-   would not catch an inverted response.
+   raises the ensemble-mean exceedance probability at a below-threshold site (a
+   16-member ensemble over 400 steps). A stub that merely "runs" would not catch an
+   inverted response.
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) adds
 named, plain-language response claims, covering both kinds of lever:
 
 - **Decision-path (actionable management / policy).** Pollution reduction (lowering a
-  site's baseline) cuts its exceedance probability (observed for `site_1`:
-  0.133 → 0.039 when the baseline count is roughly halved); a stricter statutory
-  threshold raises the flagged exceedance probability. The forecast/advisory decision
-  layer itself lives downstream.
+  site's baseline) cuts its exceedance probability; a stricter statutory threshold
+  raises the flagged exceedance probability. The forecast/advisory decision layer
+  itself lives downstream.
 - **Structural drivers (the world sets).** Higher regional anomaly volatility raises
   mean exceedance; **stronger regional coupling raises the cross-site correlation** of
   exceedance probabilities — the distinctive "one latent process driving a whole
-  coastline" property (observed: correlation between two antiphase-season sites moves
-  from −0.85 at near-zero coupling to +0.73 at strong coupling); faster anomaly
-  mean-reversion lowers mean exceedance; a larger within-site sample scale raises it;
-  and a larger seasonal amplitude raises the peak-season exceedance.
+  coastline" property; faster anomaly mean-reversion lowers mean exceedance; a larger
+  within-site sample scale raises it; and a larger seasonal amplitude raises the
+  peak-season exceedance.
+
+The observed number for each claim is emitted by the test run into the generated
+**Observed behaviour** table below — never hand-typed.
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestBathingWaterExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's assertion broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
+
+| Response claim | Enforced by | Observed |
+|---|---|---|
+| Pollution reduction (lower baseline) cuts a site's exceedance probability | [`TestBathingWaterExpectedBehaviour/pollution_reduction_lowers_exceedance_probability`](behaviour_test.go) | ensemble-mean exceedance probability — base 0.13 · baseline halved 0.04 |
+| A stricter statutory threshold raises the flagged exceedance probability | [`TestBathingWaterExpectedBehaviour/stricter_threshold_raises_flagged_exceedance_probability`](behaviour_test.go) | ensemble-mean exceedance probability — base 0.05 · threshold ×0.5 0.18 |
+| Higher regional anomaly volatility raises mean exceedance (headline driver) | [`TestBathingWaterExpectedBehaviour/higher_regional_anomaly_volatility_raises_mean_exceedance`](behaviour_test.go) | ensemble-mean exceedance probability — σ=0.3 0.04 · σ=0.8 0.09 |
+| Stronger regional coupling raises the cross-site correlation of exceedance | [`TestBathingWaterExpectedBehaviour/stronger_regional_coupling_raises_cross_site_correlation`](behaviour_test.go) | ensemble-mean cross-site correlation — loading=0.05 -0.85 · loading=1.5 0.72 |
+| Faster anomaly mean-reversion lowers mean exceedance | [`TestBathingWaterExpectedBehaviour/faster_anomaly_reversion_lowers_mean_exceedance`](behaviour_test.go) | ensemble-mean exceedance probability — θ=0.15 0.07 · θ=0.6 0.05 |
+| A larger within-site sample scale raises the exceedance probability | [`TestBathingWaterExpectedBehaviour/higher_sample_scale_raises_exceedance_probability`](behaviour_test.go) | ensemble-mean exceedance probability — base 0.05 · sample_scale=1.4 0.15 |
+| A larger seasonal amplitude raises the peak-season exceedance | [`TestBathingWaterExpectedBehaviour/larger_seasonal_amplitude_raises_peak_season_exceedance`](behaviour_test.go) | ensemble-mean peak exceedance probability — amplitude=0.2 0.07 · amplitude=1.2 0.37 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 
