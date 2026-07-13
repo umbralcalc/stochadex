@@ -182,7 +182,7 @@ generate_html_pages() {
     pandoc --template "$WORK_TEMPLATE" \
         --wrap=preserve \
         --mathjax \
-        --syntax-highlighting=pygments \
+        --highlight-style=pygments \
         --metadata="is-home:true" \
         -f markdown \
         -t html \
@@ -196,7 +196,7 @@ generate_html_pages() {
         pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
-            --syntax-highlighting=pygments \
+            --highlight-style=pygments \
             --metadata="title:$title" \
             -f markdown \
             -t html \
@@ -211,7 +211,7 @@ generate_html_pages() {
         pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
-            --syntax-highlighting=pygments \
+            --highlight-style=pygments \
             --metadata="title:$title" \
             -f markdown \
             -t html \
@@ -285,7 +285,7 @@ EOF
             -o "$DOCS_DIR/pkg/${pkg_name}.html" \
             --template="$WORK_TEMPLATE" \
             --mathjax \
-            --syntax-highlighting=pygments
+            --highlight-style=pygments
     done
     
     log_success "Package documentation generated"
@@ -325,7 +325,7 @@ EOF
             -o "$DOCS_DIR/pkg/model-${name}.html" \
             --template="$WORK_TEMPLATE" \
             --mathjax \
-            --syntax-highlighting=pygments
+            --highlight-style=pygments
     done
 
     log_success "Model card pages generated"
