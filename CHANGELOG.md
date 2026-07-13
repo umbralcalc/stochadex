@@ -22,7 +22,12 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
-_Nothing yet. New behaviour/API-changing PRs add their entries here._
+### Added
+- **Self-hosted version + coverage badges.** The docs frontpage badges are generated
+  as SVGs by `docs/build.sh` and served from the Pages site (`/version.svg`,
+  `/coverage.svg`) — no external badge service. Version is read from the latest
+  released `CHANGELOG.md` heading; total statement coverage is computed in CI (on
+  merge) and passed to the site build.
 
 ## [0.2.0] — 2026-07-13
 
