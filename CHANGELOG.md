@@ -30,6 +30,14 @@ an exact version rather than assume stability across minors.
   `anglersim.ObservedBehaviour()` is the single source of both the test assertions
   and the card numbers, so the card cannot show a value the test did not observe.
   `TestCardsUpToDate` fails CI if the committed numbers drift from the code.
+- **Claim↔test binding on the card (flagship: anglersim).** The generated "Observed
+  behaviour" table now renders every response claim as one bound object — the
+  plain-language statement, a link to the exact test subtest that enforces it
+  (`TestAnglersimExpectedBehaviour/<claim-id>`), and the number that test produced.
+  A claim cannot appear without a test enforcing it, nor carry a number the test did
+  not produce; a broken claim fails CI (the binding test on a sign break, or
+  `TestCardsUpToDate` on a number move). Folded into the frozen card format in
+  `models/CONVENTIONS.md` so new entries adopt it from birth.
 
 ### Changed
 - `cmd/model-graphs` now regenerates both the partition-wiring diagram and the

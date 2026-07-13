@@ -50,14 +50,20 @@ import (
 // "Observed behaviour" block. Only models whose behaviour suite exposes an
 // ObservedBehaviour() supply it (anglersim leads; others follow as generalised).
 type model struct {
-	dir string
-	gen *simulator.ConfigGenerator
-	obs []cardgen.Claim
+	dir     string
+	gen     *simulator.ConfigGenerator
+	obs     []cardgen.Claim
+	binding cardgen.Binding
 }
 
 func models() []model {
 	return []model{
-		{dir: "anglersim", gen: anglersim.BuildStub(anglersim.DefaultWarmingTrend, 60, 42), obs: anglersim.ObservedBehaviour()},
+		{
+			dir:     "anglersim",
+			gen:     anglersim.BuildStub(anglersim.DefaultWarmingTrend, 60, 42),
+			obs:     anglersim.ObservedBehaviour(),
+			binding: cardgen.Binding{TestName: "TestAnglersimExpectedBehaviour", TestFile: "behaviour_test.go"},
+		},
 		{dir: "antimicrobial-resistance", gen: amr.BuildStub(amr.BaselinePrescribingRate, 20)},
 		{dir: "bathing-water-forecaster", gen: bathingwater.BuildStub(bathingwater.DefaultAnomalyVolatility, 60, 42)},
 		{dir: "business-survival", gen: bizsurvival.BuildStub(bizsurvival.DefaultPolicyHazardScale, 24, 7001)},
@@ -103,8 +109,8 @@ func block(mermaid string) string {
 
 // obsBlock renders the marker-wrapped "Observed behaviour" block from a model's
 // claims. Returns "" when the model has no claims (so no block is spliced).
-func obsBlock(claims []cardgen.Claim) string {
-	body := cardgen.ObservedBehaviourMarkdown(claims, regenCmd)
+func obsBlock(claims []cardgen.Claim, binding cardgen.Binding) string {
+	body := cardgen.ObservedBehaviourMarkdown(claims, binding, regenCmd)
 	if body == "" {
 		return ""
 	}
@@ -152,7 +158,7 @@ func desiredCard(root string, m model) (current, desired string, err error) {
 	if err != nil {
 		return "", "", err
 	}
-	if ob := obsBlock(m.obs); ob != "" {
+	if ob := obsBlock(m.obs, m.binding); ob != "" {
 		out, err = splice(out, ob, obsBeginMarker, obsEndMarker, obsInsertBefore)
 		if err != nil {
 			return "", "", err

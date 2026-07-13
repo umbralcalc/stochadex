@@ -57,7 +57,16 @@ headings, in order:
 - **Validity regime** — where the model is trustworthy, and where it stops being so.
 - **Failure modes** — how it misleads when pushed out of regime.
 - **Question answered** — the single question the model exists to answer, in italics.
-- **Generative behaviour under test** — enumerate what `stub_test.go` asserts.
+- **Generative behaviour under test** — enumerate what `stub_test.go` asserts (harness,
+  invariants, headline direction). Prose only — put no hand-typed numeric results here; the
+  numbers live in the generated *Observed behaviour* block below.
+- **Observed behaviour** — *generated, do not hand-write.* A table in which every row is one
+  bound object: a named response claim, a link to the exact test subtest that enforces it
+  (`Test…ExpectedBehaviour/<claim-id>`), and the number that test produced. Spliced between
+  `<!-- BEGIN/END generated: observed-behaviour -->` markers by `cmd/model-graphs` from the
+  model's `ObservedBehaviour()` (run `go generate ./cmd/model-graphs`). This is the model's
+  claim↔test bond made mechanical: a claim cannot appear without a test that enforces it, nor
+  carry a number the test did not produce. `TestCardsUpToDate` fails CI if any number drifts.
 - **Bespoke extensions** — which iterations sit beside the stub, and the note on what a
   future promotion signal would look like.
 - **Downstream** — a link to the project repo owning inference, data, and the decision layer.
@@ -151,6 +160,29 @@ Mechanics:
 
 The point is not exhaustive parameter coverage — it is that the crucial decision paths and
 the credibility-bearing structural drivers each have a checked, named, sign-correct claim.
+
+**Claim↔test binding (the reference pattern — `anglersim`).** So the card's claims cannot
+drift from the tests that back them, define the claims *in code* as the single source of both
+the assertions and the card numbers, rather than asserting in the test and re-typing numbers
+into the card:
+
+- Expose `func ObservedBehaviour() []cardgen.Claim` in a non-`_test.go` file (`behaviour.go`)
+  so it is shared by the test and the card generator. Each `cardgen.Claim` carries a stable
+  `ID` (the claim's contract, e.g. `climate_warming_reduces_density`), a plain-language
+  `Statement`, a `Monotone` direction (+1/−1), and the ordered `Observations` (label + value)
+  it produces. Put the ensemble helpers in `behaviour.go` too, not the test file.
+- `behaviour_test.go` *consumes* `ObservedBehaviour()`: it runs one subtest per claim, named
+  by `ID`, asserting the observations move in the claim's `Monotone` direction. The subtest
+  name is therefore the claim id, and the test cannot pass while a claim's stated direction is
+  false.
+- Register the model's `ObservedBehaviour()` and its `cardgen.Binding` (test function name +
+  file) in `cmd/model-graphs`; it renders the *Observed behaviour* block and
+  `TestCardsUpToDate` guards it.
+
+The result is one bond — claim → test → observed number — that fails CI in either direction:
+break a claim's sign and the binding test fails; change a number without regenerating and the
+card guard fails. New entries should adopt this from birth; older entries are being migrated
+to it.
 
 ## Bespoke extensions
 
