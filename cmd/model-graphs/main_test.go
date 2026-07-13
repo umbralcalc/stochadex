@@ -5,9 +5,11 @@ import (
 	"testing"
 )
 
-// TestCardsUpToDate fails if any models/<domain>/card.md wiring diagram is out
-// of sync with its stub's BuildStub wiring. This is the CI guard: changing a
-// stub's partition wiring without regenerating the cards breaks the build.
+// TestCardsUpToDate fails if any models/<domain>/card.md generated block is out
+// of sync with the code — either the partition-wiring diagram (from BuildStub) or
+// the observed-behaviour numbers (from the model's ObservedBehaviour). This is the
+// CI guard: changing a stub's wiring or its generative behaviour without
+// regenerating the cards breaks the build, so a card can never show a stale number.
 //
 // To fix a failure, run:
 //
@@ -23,7 +25,8 @@ func TestCardsUpToDate(t *testing.T) {
 	}
 	if len(changed) > 0 {
 		t.Errorf(
-			"stale partition-wiring diagrams in: %s\nrun `go generate ./cmd/model-graphs` to regenerate",
+			"stale generated card sections (wiring diagram or observed-behaviour numbers) in: %s\n"+
+				"run `go generate ./cmd/model-graphs` to regenerate",
 			strings.Join(changed, ", "),
 		)
 	}

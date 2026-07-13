@@ -22,7 +22,19 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
-_Nothing yet. New behaviour/API-changing PRs add their entries here._
+### Added
+- **Generated card numbers (flagship: anglersim).** A model's card now shows an
+  "Observed behaviour" table whose numbers are emitted by the model's own
+  expected-behaviour suite and rendered into `card.md` by `cmd/model-graphs`, never
+  hand-typed. `models/cardgen` holds the shared `Claim`/`Observation` types;
+  `anglersim.ObservedBehaviour()` is the single source of both the test assertions
+  and the card numbers, so the card cannot show a value the test did not observe.
+  `TestCardsUpToDate` fails CI if the committed numbers drift from the code.
+
+### Changed
+- `cmd/model-graphs` now regenerates both the partition-wiring diagram and the
+  observed-behaviour block; `anglersim`'s behaviour helpers moved from `_test.go`
+  into `behaviour.go` so they are shared by the tests and the card generator.
 
 ## [0.1.0] — 2026-07-13
 
