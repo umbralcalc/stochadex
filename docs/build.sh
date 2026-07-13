@@ -176,7 +176,12 @@ prepare_template() {
 # Generate HTML pages
 generate_html_pages() {
     log_info "Generating HTML pages..."
-    
+
+    # clean_build removed docs/pkg; recreate it before writing the quickstart /
+    # how-it-works pages into it. Older pandoc (e.g. Ubuntu apt) does NOT create
+    # the output's parent dir, so this must exist first — newer pandoc masks it.
+    mkdir -p "$DOCS_DIR/pkg"
+
     # Generate home page
     log_info "Generating home page..."
     pandoc --template "$WORK_TEMPLATE" \
