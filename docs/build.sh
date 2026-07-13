@@ -12,7 +12,9 @@ PUBLIC_DIR="$DOCS_DIR"
 TEMP_DIR="$DOCS_DIR/.temp"
 MODELS_DIR="$DOCS_DIR/../models"
 WORK_TEMPLATE="$TEMP_DIR/template.html"
-REPO_BLOB_URL="https://github.com/umbralcalc/stochadex/blob/main/models"
+REPO_URL="https://github.com/umbralcalc/stochadex"
+REPO_DEFAULT_BRANCH="main"
+REPO_BLOB_URL="${REPO_URL}/blob/${REPO_DEFAULT_BRANCH}/models"
 
 # Colors for output
 RED='\033[0;31m'
@@ -241,8 +243,14 @@ generate_package_docs() {
         
         log_info "Generating package: $pkg_name"
         
-        # Generate markdown with better formatting
-        gomarkdoc "$pkg" --output "$TEMP_DIR/${pkg_name}.md" --format github --verbose
+        # Generate markdown with better formatting. Pass the repository details
+        # explicitly so source links are built deterministically — gomarkdoc's
+        # git-remote auto-resolution fails under actions/checkout ("no remotes
+        # found"), which silently drops every source link from the CI-built docs.
+        gomarkdoc "$pkg" --output "$TEMP_DIR/${pkg_name}.md" --format github --verbose \
+            --repository.url "$REPO_URL" \
+            --repository.default-branch "$REPO_DEFAULT_BRANCH" \
+            --repository.path /
         
         # Fix headings and add metadata. Use perl (portable across BSD/GNU) to add a
         # newline after each </a> — GNU sed rejects the BSD `sed -i ''` in-place form.

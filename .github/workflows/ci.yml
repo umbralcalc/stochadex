@@ -85,19 +85,20 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
         run: |
           set -euo pipefail
-          git clone --depth 1 \
-            "https://x-access-token:${DEPLOY_TOKEN}@github.com/stochadex/stochadex.github.io.git" \
-            site-pub
-          # Pages serves main:/docs, so only the docs/ tree needs updating.
-          rm -rf site-pub/docs
-          cp -R docs site-pub/docs
-          cd site-pub
+          # Pages on stochadex.github.io serves the gh-pages branch at root. We
+          # force-push a fresh single commit of the built site there, so the site
+          # repo's main is NEVER touched and stays an exact mirror of upstream
+          # (no confusing "N commits ahead"). Force-push keeps gh-pages a single
+          # commit — no history buildup — the standard orphan-branch deploy pattern.
+          pub="$(mktemp -d)"
+          cp -R docs/. "$pub/"
+          rm -rf "$pub/.temp" "$pub/.git"
+          cd "$pub"
+          git init -q -b gh-pages
           git config user.name "stochadex-ci"
           git config user.email "ci@users.noreply.github.com"
-          git add -A docs
-          if git diff --cached --quiet; then
-            echo "No docs changes to publish."
-          else
-            git commit -m "Rebuild docs site from umbralcalc/stochadex@${GITHUB_SHA}"
-            git push origin main
-          fi
+          git add -A
+          git commit -q -m "Publish docs site from umbralcalc/stochadex@${GITHUB_SHA}"
+          git push -f \
+            "https://x-access-token:${DEPLOY_TOKEN}@github.com/stochadex/stochadex.github.io.git" \
+            gh-pages
