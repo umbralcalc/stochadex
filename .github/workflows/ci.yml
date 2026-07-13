@@ -48,14 +48,18 @@ jobs:
       # -count=1 disables test caching so CI always re-runs the full suite.
       - run: go test ./... -race -count=1
 
-  # Rebuild the docs site and publish it to the stochadex.github.io repo. Runs ONLY
-  # on merge to main and ONLY after the test job passes (needs: [test]) — the site is
-  # never republished from a commit whose tests failed. The test job also guards that
-  # every model card's wiring diagram matches its BuildStub (the cmd/model-graphs CI
-  # guard), so build.sh can trust the committed cards are current.
-  deploy-site:
+  # Rebuild the docs site and (on merge to main only) publish it to the
+  # stochadex.github.io repo. The whole job runs after the test job passes
+  # (needs: [test]) so the site is never built from a commit whose tests failed;
+  # the test job also guards that every model card's wiring diagram matches its
+  # BuildStub (the cmd/model-graphs CI guard), so build.sh can trust the committed
+  # cards are current.
+  #
+  # The BUILD runs on both PRs and merges — so pandoc/build breakage is caught on
+  # the PR, not after merge. Only the final PUBLISH step is gated to push-to-main,
+  # so PRs validate the build without touching the live site.
+  site:
     needs: [test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +77,7 @@ jobs:
         run: bash build.sh
         working-directory: docs
       - name: Publish to stochadex.github.io
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           # Fine-grained PAT (or deploy key) with Contents:write on
           # stochadex/stochadex.github.io. Stored as a repo secret in
