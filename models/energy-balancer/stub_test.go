@@ -2,46 +2,14 @@ package energybalancer
 
 import (
 	"math"
-	"sync"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// runStub runs the stub to completion and returns the recorded state history for
-// every partition, keyed by partition name.
-func runStub(t *testing.T, renewablePenetration float64, numSteps int, seed uint64) *simulator.StateTimeStorage {
-	t.Helper()
-	settings, implementations := BuildStub(renewablePenetration, numSteps, seed).GenerateConfigs()
-	store := simulator.NewStateTimeStorage()
-	implementations.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: store}
-	coordinator := simulator.NewPartitionCoordinator(settings, implementations)
-	var wg sync.WaitGroup
-	for !coordinator.ReadyToTerminate() {
-		coordinator.Step(&wg)
-	}
-	return store
-}
-
-// finalEFC returns the cumulative equivalent full cycles at the end of a run for
-// the named policy chain ("price" or "carbon"): the total battery throughput,
-// and the cleanest monotone measure of how hard that policy worked its battery.
-func finalEFC(store *simulator.StateTimeStorage, policy string) float64 {
-	rows := store.GetValues(policy + "_efc")
-	return rows[len(rows)-1][0]
-}
-
-// meanFinalEFC averages cumulative EFC across an ensemble of independent
-// realisations (varying only the seed) to damp the sampling noise in a single
-// stochastic run.
-func meanFinalEFC(t *testing.T, policy string, renewablePenetration float64, numSteps, nMembers int) float64 {
-	t.Helper()
-	var sum float64
-	for m := 0; m < nMembers; m++ {
-		sum += finalEFC(runStub(t, renewablePenetration, numSteps, uint64(2000+m)), policy)
-	}
-	return sum / float64(nMembers)
-}
+// The run helpers (runStub, finalEFC, meanFinalEFC, finalValue, meanFinalValue)
+// and the override helpers live in behaviour.go so they can be shared with the card
+// generator; the tests below exercise them.
 
 func TestEnergyBalancerStub(t *testing.T) {
 	// Standard convention: the stub must pass the test harness (NaN, state-width,
@@ -56,7 +24,7 @@ func TestEnergyBalancerStub(t *testing.T) {
 	// Structural / physical invariants of the generative core, checked on both
 	// policy chains.
 	t.Run("invariants", func(t *testing.T) {
-		store := runStub(t, 0.7, DefaultNumSteps, 42)
+		store := runStub(0.7, DefaultNumSteps, 42)
 
 		minSoC := DefaultMinSoCFraction * DefaultEnergyCapacityMWh
 		maxSoC := DefaultMaxSoCFraction * DefaultEnergyCapacityMWh
@@ -92,19 +60,18 @@ func TestEnergyBalancerStub(t *testing.T) {
 		}
 	})
 
-	// Headline generative claim (correct direction of parameter response):
-	// higher renewable penetration means larger residual-demand swings, which
-	// carry both the imbalance price and the carbon intensity across their
-	// arbitrage thresholds more often, so both batteries cycle more — cumulative
-	// EFC rises with penetration for each policy. This is the reason the model
-	// exists (storage value grows with intermittency); a stub that merely "runs"
-	// would not catch an inverted volatility response.
+	// Headline generative claim (correct direction of parameter response): higher
+	// renewable penetration means larger residual-demand swings, which carry both
+	// the imbalance price and the carbon intensity across their arbitrage thresholds
+	// more often, so both batteries cycle more. This is the reason the model exists
+	// (storage value grows with intermittency). (The full set of response claims,
+	// with their observed numbers, is in behaviour_test.go via ObservedBehaviour.)
 	t.Run("more renewable intermittency raises battery cycling", func(t *testing.T) {
 		const numSteps, nMembers = DefaultNumSteps, 12
 
 		for _, policy := range []string{"price", "carbon"} {
-			calmEFC := meanFinalEFC(t, policy, 0.2, numSteps, nMembers)
-			windyEFC := meanFinalEFC(t, policy, 1.0, numSteps, nMembers)
+			calmEFC := meanFinalEFC(policy, 0.2, numSteps, nMembers)
+			windyEFC := meanFinalEFC(policy, 1.0, numSteps, nMembers)
 			if !(windyEFC > calmEFC) {
 				t.Fatalf("%s policy: expected higher renewable penetration to raise mean cumulative EFC: "+
 					"calm(0.2)=%.3f windy(1.0)=%.3f", policy, calmEFC, windyEFC)

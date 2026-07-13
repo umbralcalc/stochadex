@@ -212,18 +212,15 @@ conditions?*
    cumulative EFC and cumulative CO₂ saved are non-negative and monotonically
    non-decreasing; carbon intensity stays non-negative.
 3. **Correct direction of parameter response (both policies)** — raising
-   `renewablePenetration` from 0.2 to 1.0 raises the ensemble-mean cumulative EFC for the
-   price policy *and* the carbon policy. (Observed sweep for penetration
-   0.0 → 0.2 → 0.5 → 0.7 → 1.0: price-policy EFC 0.03 → 0.52 → 2.47 → 3.54 → 4.93;
-   carbon-policy EFC 0.00 → 0.05 → 0.82 → 1.73 → 3.37; price-policy revenue
-   −£68 → £1.0k → £6.3k → £9.9k → £16.0k — the slight loss at zero volatility is round-trip
-   efficiency with no arbitrage to capture; carbon-policy CO₂ saved
-   0 → 3.9 → 40.7 → 84.1 → 155.4 tCO₂. The carbon policy cycles less than the price policy
-   at every penetration, reproducing its greater selectivity.) Averaged over a 12-member
-   ensemble so the claim is about the distribution, not one noisy realisation.
+   `renewablePenetration` raises the ensemble-mean cumulative EFC for the price policy *and*
+   the carbon policy (the observed penetration sweep is the first row of the generated
+   **Observed behaviour** table below). Averaged over an ensemble so the claim is about the
+   distribution, not one noisy realisation.
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) makes the
-decision-readiness explicit — each subtest is a named, plain-language response claim:
+decision-readiness explicit — each subtest is a named, plain-language response claim, with
+the observed number for each emitted by the test run into the **Observed behaviour** table
+below (never hand-typed):
 
 - *Decision-path responses (actionable levers a downstream controls):* a higher discharge
   threshold reduces price-policy cycling; a larger battery lowers its cycle count; a
@@ -240,6 +237,27 @@ Authoring this suite surfaced a real aliasing bug in the stub — two policy cha
 shared a package-level params map, so a test overriding one chain's threshold leaked into
 later runs. The fix (fresh per-call specs) is exactly the kind of defect the suite exists
 to catch.
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestEnergyBalancerExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's assertion broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
+
+| Response claim | Enforced by | Observed |
+|---|---|---|
+| Higher renewable penetration raises battery cycling (headline driver) | [`TestEnergyBalancerExpectedBehaviour/higher_renewable_penetration_raises_cycling`](behaviour_test.go) | ensemble-mean cumulative EFC — pen 0.0 0.02 · 0.5 0.95 · 1.0 2.52 |
+| Higher discharge threshold reduces price-policy cycling | [`TestEnergyBalancerExpectedBehaviour/higher_discharge_threshold_reduces_price_cycling`](behaviour_test.go) | ensemble-mean cumulative EFC — base 1.24 · price_high=£60 0.24 |
+| Larger battery capacity lowers the cycle count | [`TestEnergyBalancerExpectedBehaviour/larger_battery_capacity_lowers_cycle_count`](behaviour_test.go) | ensemble-mean cumulative EFC — base 1.24 · 400 MWh 0.80 |
+| A persistently expensive market drains the battery (net seller) for positive revenue | [`TestEnergyBalancerExpectedBehaviour/persistently_expensive_market_makes_battery_net_seller`](behaviour_test.go) | one expensive-market run (seed 42) — final SoC (MWh) 20.00 · revenue (£) 3476.94 (asserts final SoC (MWh) < initial SoC, revenue (£) > £0) |
+| A persistently cheap market fills the battery (net buyer) at a cost | [`TestEnergyBalancerExpectedBehaviour/persistently_cheap_market_makes_battery_net_buyer`](behaviour_test.go) | one cheap-market run (seed 42) — final SoC (MWh) 180.00 · revenue (£) -2033.69 (asserts final SoC (MWh) > initial SoC, revenue (£) < £0) |
+| Lower round-trip efficiency reduces revenue | [`TestEnergyBalancerExpectedBehaviour/lower_round_trip_efficiency_reduces_revenue`](behaviour_test.go) | ensemble-mean price-policy revenue (£) — base 3047.35 · η=0.75 -405.32 |
+| Higher price noise raises cycling | [`TestEnergyBalancerExpectedBehaviour/higher_price_noise_raises_cycling`](behaviour_test.go) | ensemble-mean cumulative EFC — base 1.24 · σ=15 3.19 |
+| Steeper price sensitivity (mean held) raises cycling | [`TestEnergyBalancerExpectedBehaviour/steeper_price_sensitivity_raises_cycling`](behaviour_test.go) | ensemble-mean cumulative EFC — base 1.24 · slope=0.004 3.38 |
+| Steeper carbon sensitivity (mean held) raises carbon-policy cycling | [`TestEnergyBalancerExpectedBehaviour/higher_carbon_sensitivity_raises_carbon_cycling`](behaviour_test.go) | ensemble-mean carbon-policy cumulative EFC — base 0.55 · slope=0.020 2.13 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 

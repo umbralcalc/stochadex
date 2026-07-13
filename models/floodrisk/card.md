@@ -117,19 +117,38 @@ direction, and roughly how much, does wetter forcing move the flood peak?*
    residue across a repeated run (`simulator.RunWithHarnesses`).
 2. **Physical invariants** — rainfall ≥ 0; flows ≥ 0; soil moisture stays inside the
    store `[0, field_capacity]`; total flow equals fast + slow every step.
-3. **Correct direction of parameter response** — raising `rainfall_multiplier` from 1.0
-   to 1.3 raises the ensemble-mean peak flow. (Observed: mean peak 39.9 → 48.9 → 58.0
-   m³/s for multipliers 1.0 → 1.15 → 1.3.) Averaged over a 12-member ensemble so the
-   claim is about the distribution, not one noisy realisation.
+3. **Correct direction of parameter response** — raising `rainfall_multiplier` raises the
+   ensemble-mean peak flow (the observed rainfall sweep is the first row of the generated
+   **Observed behaviour** table below). Averaged over an ensemble so the claim is about the
+   distribution, not one noisy realisation.
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) adds named,
-plain-language response claims. This model is **purely structural** — its decision layer
-(natural flood management) lives entirely downstream, so the stub has no actionable in-stub
-lever and the suite is instead comprehensive on the structural drivers of the flood peak:
-higher wet-day persistence raises peak flow; higher evapotranspiration lowers it; a larger
-catchment area raises it (the mm→m³/s scaling); and a greater soil-storage `field_capacity`
-lowers it — the structural basis for why "make room for water" catchment measures work, and
-the closest the stub comes to expressing the downstream NFM intervention.
+plain-language response claims, with the observed number for each emitted by the test run
+into the **Observed behaviour** table below (never hand-typed). This model is **purely
+structural** — its decision layer (natural flood management) lives entirely downstream, so
+the stub has no actionable in-stub lever and the suite is instead comprehensive on the
+structural drivers of the flood peak: higher wet-day persistence raises peak flow; higher
+evapotranspiration lowers it; a larger catchment area raises it (the mm→m³/s scaling); and a
+greater soil-storage `field_capacity` lowers it — the structural basis for why "make room for
+water" catchment measures work, and the closest the stub comes to expressing the downstream
+NFM intervention.
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestFloodRiskExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's assertion broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
+
+| Response claim | Enforced by | Observed |
+|---|---|---|
+| Higher rainfall raises peak flow (headline driver) | [`TestFloodRiskExpectedBehaviour/higher_rainfall_raises_peak_flow`](behaviour_test.go) | ensemble-mean peak flow (m³/s) — ×1.0 32.70 · ×1.15 39.78 · ×1.3 47.62 |
+| Higher wet-day persistence raises flow | [`TestFloodRiskExpectedBehaviour/higher_wet_persistence_raises_flow`](behaviour_test.go) | ensemble-mean peak flow (m³/s) — base 32.70 · p_wet_given_wet=0.95 38.46 |
+| Higher evapotranspiration lowers flow | [`TestFloodRiskExpectedBehaviour/higher_evapotranspiration_lowers_flow`](behaviour_test.go) | ensemble-mean peak flow (m³/s) — base 32.70 · et_rate=5.0 20.43 |
+| Larger catchment area raises flow (mm→m³/s scaling) | [`TestFloodRiskExpectedBehaviour/larger_catchment_area_raises_flow`](behaviour_test.go) | ensemble-mean peak flow (m³/s) — base 32.70 · area ×2 65.40 |
+| Greater soil-storage capacity lowers peak flow ("room for water") | [`TestFloodRiskExpectedBehaviour/higher_field_capacity_lowers_peak_flow`](behaviour_test.go) | ensemble-mean peak flow (m³/s) — base 32.70 · field_capacity=700mm 25.43 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 

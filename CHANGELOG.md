@@ -39,10 +39,20 @@ an exact version rather than assume stability across minors.
   `TestCardsUpToDate` on a number move). Folded into the frozen card format in
   `models/CONVENTIONS.md` so new entries adopt it from birth.
 
+- **Generated card numbers + claim↔test binding on all three other flagships.**
+  `antimicrobial-resistance`, `floodrisk`, and `energy-balancer` each gain an
+  `ObservedBehaviour()` and a bound "Observed behaviour" table, matching anglersim.
+  `cardgen.Claim` gained threshold assertions (`Thresholds`) alongside monotone, and
+  a testing-free `cardgen.Verify`, so sign/level claims (e.g. energy-balancer's
+  net-seller `revenue > 0`, net-buyer `SoC > initial`) and difference-of-differences
+  claims (AMR's "prescribing acts only through selection") bind the same way.
+
 ### Changed
 - `cmd/model-graphs` now regenerates both the partition-wiring diagram and the
-  observed-behaviour block; `anglersim`'s behaviour helpers moved from `_test.go`
-  into `behaviour.go` so they are shared by the tests and the card generator.
+  observed-behaviour block; each flagship's behaviour helpers moved from `_test.go`
+  into `behaviour.go` so they are shared by the tests and the card generator. The
+  behaviour tests now consume `ObservedBehaviour()` and verify each claim with
+  `cardgen.Verify` (one computation is the source of the assertions and the numbers).
 
 ## [0.1.0] — 2026-07-13
 

@@ -1,50 +1,14 @@
 package floodrisk
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// runStub runs the stub to completion and returns the recorded state history for
-// every partition, keyed by partition name.
-func runStub(t *testing.T, rainfallMultiplier float64, numSteps int, seed uint64) *simulator.StateTimeStorage {
-	t.Helper()
-	settings, implementations := BuildStub(rainfallMultiplier, numSteps, seed).GenerateConfigs()
-	store := simulator.NewStateTimeStorage()
-	implementations.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: store}
-	coordinator := simulator.NewPartitionCoordinator(settings, implementations)
-	var wg sync.WaitGroup
-	for !coordinator.ReadyToTerminate() {
-		coordinator.Step(&wg)
-	}
-	return store
-}
-
-// peakFlow returns the maximum total river flow over the run after a spin-up
-// window (to discard the transient from the initial soil-store state).
-func peakFlow(rows [][]float64, spinUp int) float64 {
-	peak := 0.0
-	for i := spinUp; i < len(rows); i++ {
-		if rows[i][1] > peak { // [soil_moisture, total_flow, fast_flow, slow_flow]
-			peak = rows[i][1]
-		}
-	}
-	return peak
-}
-
-// meanPeakFlow averages peak flow across an ensemble of independent realisations
-// (varying only the rainfall seed) to damp the sampling noise in a single run.
-func meanPeakFlow(t *testing.T, rainfallMultiplier float64, numSteps, nMembers, spinUp int) float64 {
-	t.Helper()
-	var sum float64
-	for m := 0; m < nMembers; m++ {
-		store := runStub(t, rainfallMultiplier, numSteps, uint64(1000+m))
-		sum += peakFlow(store.GetValues("runoff"), spinUp)
-	}
-	return sum / float64(nMembers)
-}
+// The run helpers (runStub, peakFlow, meanPeakFlow) and the override helpers live
+// in behaviour.go so they can be shared with the card generator; the tests below
+// exercise them.
 
 func TestFloodRiskStub(t *testing.T) {
 	// Standard convention: the stub must pass the test harness (NaN, state-width,
@@ -58,7 +22,7 @@ func TestFloodRiskStub(t *testing.T) {
 
 	// Structural / physical invariants of the generative core.
 	t.Run("invariants", func(t *testing.T) {
-		store := runStub(t, 1.0, 1825, 42)
+		store := runStub(1.0, 1825, 42)
 
 		rainfall := store.GetValues("rainfall")
 		if len(rainfall) == 0 {
@@ -91,12 +55,14 @@ func TestFloodRiskStub(t *testing.T) {
 	// Headline generative claim (correct direction of parameter response):
 	// wetter climate forcing (higher rainfall_multiplier) raises flood peak
 	// flows. This is the reason the model exists — a stub that merely "runs"
-	// would not catch an inverted climate response.
+	// would not catch an inverted climate response. (The full set of response
+	// claims, with their observed numbers, is in behaviour_test.go via
+	// ObservedBehaviour.)
 	t.Run("wetter climate raises peak flow", func(t *testing.T) {
 		const numSteps, nMembers, spinUp = 1825, 12, 60
 
-		basePeak := meanPeakFlow(t, 1.0, numSteps, nMembers, spinUp)
-		wetPeak := meanPeakFlow(t, 1.3, numSteps, nMembers, spinUp)
+		basePeak := meanPeakFlow(1.0, numSteps, nMembers, spinUp)
+		wetPeak := meanPeakFlow(1.3, numSteps, nMembers, spinUp)
 
 		if !(wetPeak > basePeak) {
 			t.Fatalf("expected +30%% rainfall to raise mean peak flow: "+
