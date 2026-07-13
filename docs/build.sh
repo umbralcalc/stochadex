@@ -239,9 +239,9 @@ generate_package_docs() {
         # Generate markdown with better formatting
         gomarkdoc "$pkg" --output "$TEMP_DIR/${pkg_name}.md" --format github --verbose
         
-        # Fix headings and add metadata
-        sed -i '' 's#</a>#</a>\
-#g' "$TEMP_DIR/${pkg_name}.md"
+        # Fix headings and add metadata. Use perl (portable across BSD/GNU) to add a
+        # newline after each </a> — GNU sed rejects the BSD `sed -i ''` in-place form.
+        perl -0777 -i -pe 's#</a>#</a>\n#g' "$TEMP_DIR/${pkg_name}.md"
         
         # Post-process to fix Example code blocks in docstrings
         # Only convert opening ``` that are not already followed by a language tag
