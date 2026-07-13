@@ -4,7 +4,7 @@ title: "Home"
 
 <img src="./assets/logo.svg" width=600/>
 
-<div class="badges"><a href="https://github.com/umbralcalc/stochadex/releases"><img src="./version.svg" alt="Latest version" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/CHANGELOG.md"><img src="./coverage.svg" alt="Test coverage" /></a> <a href="https://github.com/umbralcalc/stochadex"><img src="https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&amp;logo=github&amp;logoColor=white" alt="Github" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="MIT" /></a> <a href="https://go.dev/"><img src="https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white" alt="Go" /></a></div>
+<div class="badges"><a href="https://github.com/umbralcalc/stochadex/releases"><img src="https://stochadex.github.io/version.svg" alt="Latest version" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/CHANGELOG.md"><img src="https://stochadex.github.io/coverage.svg" alt="Test coverage" /></a> <a href="https://github.com/umbralcalc/stochadex"><img src="https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&amp;logo=github&amp;logoColor=white" alt="Github" /></a> <a href="https://github.com/umbralcalc/stochadex/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="MIT" /></a> <a href="https://go.dev/"><img src="https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white" alt="Go" /></a></div>
 <div style="height:0.75em;"></div>
 
 ## So what is the 'stochadex' project?
