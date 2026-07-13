@@ -47,3 +47,52 @@ jobs:
       # -race keeps the goroutine-per-partition concurrency invariants honest;
       # -count=1 disables test caching so CI always re-runs the full suite.
       - run: go test ./... -race -count=1
+
+  # Rebuild the docs site and publish it to the stochadex.github.io repo. Runs ONLY
+  # on merge to main and ONLY after the test job passes (needs: [test]) — the site is
+  # never republished from a commit whose tests failed. The test job also guards that
+  # every model card's wiring diagram matches its BuildStub (the cmd/model-graphs CI
+  # guard), so build.sh can trust the committed cards are current.
+  deploy-site:
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+      - name: Install gomarkdoc
+        run: |
+          go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Build site
+        run: bash build.sh
+        working-directory: docs
+      - name: Publish to stochadex.github.io
+        env:
+          # Fine-grained PAT (or deploy key) with Contents:write on
+          # stochadex/stochadex.github.io. Stored as a repo secret in
+          # umbralcalc/stochadex — the built-in GITHUB_TOKEN cannot push cross-repo.
+          DEPLOY_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 \
+            "https://x-access-token:${DEPLOY_TOKEN}@github.com/stochadex/stochadex.github.io.git" \
+            site-pub
+          # Pages serves main:/docs, so only the docs/ tree needs updating.
+          rm -rf site-pub/docs
+          cp -R docs site-pub/docs
+          cd site-pub
+          git config user.name "stochadex-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A docs
+          if git diff --cached --quiet; then
+            echo "No docs changes to publish."
+          else
+            git commit -m "Rebuild docs site from umbralcalc/stochadex@${GITHUB_SHA}"
+            git push origin main
+          fi
