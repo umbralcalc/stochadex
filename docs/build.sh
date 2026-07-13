@@ -481,30 +481,33 @@ EOF
     log_success "robots.txt generated"
 }
 
-# make_badge writes a self-contained flat-style SVG badge (no external service) to
-# a file: make_badge <label> <message> <message-hex-color> <outfile>. Character
-# widths are approximated (~7px/char) — fine for the short label/message we use.
+# make_badge writes a self-contained SVG badge in the "for-the-badge" style (square
+# edges, uppercase text, ~28px tall — matching the other frontpage badges) to a
+# file: make_badge <label> <message> <message-hex-color> <outfile>. Character widths
+# are approximated — fine for the short label/message we use. Uppercasing via tr
+# (not ${x^^}) keeps it working on macOS bash 3.2 as well as CI's bash.
 make_badge() {
     local label="$1" message="$2" color="$3" out="$4"
-    local lw=$(( ${#label} * 7 + 12 ))
-    local mw=$(( ${#message} * 7 + 12 ))
+    local L M
+    L=$(printf '%s' "$label" | tr '[:lower:]' '[:upper:]')
+    M=$(printf '%s' "$message" | tr '[:lower:]' '[:upper:]')
+    local charw=10 pad=12 h=28
+    local lw=$(( ${#L} * charw + 2 * pad ))
+    local mw=$(( ${#M} * charw + 2 * pad ))
     local total=$(( lw + mw ))
-    local lcx=$(( lw * 10 / 2 ))
-    local mcx=$(( (lw + mw / 2) * 10 ))
+    local lcx=$(( lw * 5 ))                 # (lw / 2) x 10
+    local mcx=$(( (2 * lw + mw) * 5 ))      # (lw + mw / 2) x 10
+    local llen=$(( ${#L} * charw * 10 ))    # content width x 10
+    local mlen=$(( ${#M} * charw * 10 ))
     cat > "$out" << EOF
-<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="20" role="img" aria-label="${label}: ${message}">
-  <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
-  <clipPath id="r"><rect width="${total}" height="20" rx="3" fill="#fff"/></clipPath>
-  <g clip-path="url(#r)">
-    <rect width="${lw}" height="20" fill="#555"/>
-    <rect x="${lw}" width="${mw}" height="20" fill="${color}"/>
-    <rect width="${total}" height="20" fill="url(#s)"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="${h}" role="img" aria-label="${label}: ${message}">
+  <g shape-rendering="crispEdges">
+    <rect width="${lw}" height="${h}" fill="#555"/>
+    <rect x="${lw}" width="${mw}" height="${h}" fill="${color}"/>
   </g>
-  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="110" text-rendering="geometricPrecision">
-    <text x="${lcx}" y="150" transform="scale(.1)" fill="#010101" fill-opacity=".3" textLength="$(( ${#label} * 70 ))">${label}</text>
-    <text x="${lcx}" y="140" transform="scale(.1)" textLength="$(( ${#label} * 70 ))">${label}</text>
-    <text x="${mcx}" y="150" transform="scale(.1)" fill="#010101" fill-opacity=".3" textLength="$(( ${#message} * 70 ))">${message}</text>
-    <text x="${mcx}" y="140" transform="scale(.1)" textLength="$(( ${#message} * 70 ))">${message}</text>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="100" font-weight="bold">
+    <text transform="scale(.1)" x="${lcx}" y="180" textLength="${llen}">${L}</text>
+    <text transform="scale(.1)" x="${mcx}" y="180" textLength="${mlen}">${M}</text>
   </g>
 </svg>
 EOF
@@ -520,7 +523,7 @@ generate_badges() {
     local version
     version=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$DOCS_DIR/../CHANGELOG.md" \
         | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-    [ -n "$version" ] && make_badge "version" "v${version}" "#4D7F37" "$DOCS_DIR/version.svg"
+    [ -n "$version" ] && make_badge "version" "v${version}" "#4D7F37" "$DOCS_DIR/version-badge.svg"
 
     local cov=""
     for f in "$DOCS_DIR/../coverage.txt" "$DOCS_DIR/coverage.txt"; do
@@ -531,9 +534,9 @@ generate_badges() {
         local ccolor="#e05d44"
         if awk "BEGIN{exit !($cov >= 80)}"; then ccolor="#4D7F37"
         elif awk "BEGIN{exit !($cov >= 60)}"; then ccolor="#dfb317"; fi
-        make_badge "coverage" "${cov}%" "$ccolor" "$DOCS_DIR/coverage.svg"
+        make_badge "coverage" "${cov}%" "$ccolor" "$DOCS_DIR/coverage-badge.svg"
     else
-        make_badge "coverage" "n/a" "#9f9f9f" "$DOCS_DIR/coverage.svg"
+        make_badge "coverage" "n/a" "#9f9f9f" "$DOCS_DIR/coverage-badge.svg"
     fi
 
     log_success "Badges generated (version${cov:+, coverage ${cov}%})"
