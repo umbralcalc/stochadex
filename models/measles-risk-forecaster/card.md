@@ -152,17 +152,20 @@ pressure the world sets?*
    drawn once, held constant across generations, and stays inside its band.
 3. **Kernel vs theory** — a subcritical branching process seeded by one case has mean
    total progeny `1/(1−m)`, checked against the lifted `nextGeneration` kernel.
-4. **Correct direction of parameter response (headline)** — lowering MMR coverage from
-   0.94 to 0.80 raises the ensemble-mean national case total (more areas cross
-   `R_local = 1`). Averaged over shared-importation scenarios so the claim is about the
-   distribution.
+4. **Correct direction of parameter response (headline)** — lowering MMR coverage
+   raises the ensemble-mean national case total (more areas cross `R_local = 1`; the
+   observed coverage response is the first row of the generated **Observed behaviour**
+   table below). Averaged over shared-importation scenarios so the claim is about the
+   distribution, not one noisy realisation.
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) makes the
-decision-readiness explicit — each subtest is a named, plain-language response claim.
-This model is a transmission-*risk surface*: its one actionable lever is vaccine
-coverage; the rest are structural drivers the world sets, and the targeting/ranking
-decision layer lives downstream (so, like `floodrisk`, it is comprehensive on
-structural drivers rather than in-stub actions):
+decision-readiness explicit — each subtest is a named, plain-language response claim,
+and the observed number for every claim is emitted by the test run into the **Observed
+behaviour** table below (never hand-typed, so it cannot drift from the code). This model
+is a transmission-*risk surface*: its one actionable lever is vaccine coverage; the rest
+are structural drivers the world sets, and the targeting/ranking decision layer lives
+downstream (so, like `floodrisk`, it is comprehensive on structural drivers rather than
+in-stub actions):
 
 - *Decision-path response (the actionable lever):* higher vaccine coverage reduces the
   national case total — a catch-up campaign pulls areas below the `R_local = 1`
@@ -174,6 +177,23 @@ structural drivers rather than in-stub actions):
   variation far exceeds the fixed-importation baseline) — the joint-tail co-occurrence a
   per-area marginal model cannot produce. Each covers a distinct mechanism, so a sign
   error anywhere is caught.
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestMeaslesExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's assertion broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
+
+| Response claim | Enforced by | Observed |
+|---|---|---|
+| Higher vaccine coverage reduces total cases (the actionable lever) | [`TestMeaslesExpectedBehaviour/higher_vaccine_coverage_reduces_total_cases`](behaviour_test.go) | ensemble-mean national total cases — coverage 0.82 4224.33 · coverage 0.92 699.25 |
+| Higher-susceptibility areas accumulate more cases | [`TestMeaslesExpectedBehaviour/higher_susceptibility_areas_accumulate_more_cases`](behaviour_test.go) | ensemble-mean cumulative cases per area — bottom third 14.24 · top third 180.92 |
+| Higher basic reproduction number raises total cases | [`TestMeaslesExpectedBehaviour/higher_R0_raises_total_cases`](behaviour_test.go) | ensemble-mean national total cases — R0=12 1093.92 · R0=18 2613.33 |
+| Higher importation pressure raises total cases | [`TestMeaslesExpectedBehaviour/higher_importation_pressure_raises_total_cases`](behaviour_test.go) | ensemble-mean national total cases — seed [10,30] 1013.17 · seed [100,300] 5070.50 |
+| The shared national importation latent over-disperses the national total | [`TestMeaslesExpectedBehaviour/shared_national_latent_over_disperses_the_national_total`](behaviour_test.go) | coefficient of variation of the national total — fixed M 0.23 · shared latent 0.45 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 

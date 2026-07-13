@@ -70,8 +70,18 @@ func models() []model {
 			obs:     amr.ObservedBehaviour(),
 			binding: cardgen.Binding{TestName: "TestAMRExpectedBehaviour", TestFile: "behaviour_test.go"},
 		},
-		{dir: "bathing-water-forecaster", gen: bathingwater.BuildStub(bathingwater.DefaultAnomalyVolatility, 60, 42)},
-		{dir: "business-survival", gen: bizsurvival.BuildStub(bizsurvival.DefaultPolicyHazardScale, 24, 7001)},
+		{
+			dir:     "bathing-water-forecaster",
+			gen:     bathingwater.BuildStub(bathingwater.DefaultAnomalyVolatility, 60, 42),
+			obs:     bathingwater.ObservedBehaviour(),
+			binding: cardgen.Binding{TestName: "TestBathingWaterExpectedBehaviour", TestFile: "behaviour_test.go"},
+		},
+		{
+			dir:     "business-survival",
+			gen:     bizsurvival.BuildStub(bizsurvival.DefaultPolicyHazardScale, 24, 7001),
+			obs:     bizsurvival.ObservedBehaviour(),
+			binding: cardgen.Binding{TestName: "TestBusinessSurvivalExpectedBehaviour", TestFile: "behaviour_test.go"},
+		},
 		{
 			dir:     "energy-balancer",
 			gen:     energybalancer.BuildStub(0.5, 60, 42),
@@ -84,9 +94,24 @@ func models() []model {
 			obs:     floodrisk.ObservedBehaviour(),
 			binding: cardgen.Binding{TestName: "TestFloodRiskExpectedBehaviour", TestFile: "behaviour_test.go"},
 		},
-		{dir: "homark", gen: homark.BuildStub(homark.DefaultApprovalRate, 48, 42)},
-		{dir: "measles-risk-forecaster", gen: measles.BuildStub(measles.DefaultMMR2Coverage, measles.DefaultMaxGenerations, 42)},
-		{dir: "trywizard", gen: rugby.BuildStub(rugby.DefaultHomeSubMinute, rugby.DefaultNumSteps, 7001)},
+		{
+			dir:     "homark",
+			gen:     homark.BuildStub(homark.DefaultApprovalRate, 48, 42),
+			obs:     homark.ObservedBehaviour(),
+			binding: cardgen.Binding{TestName: "TestHomarkExpectedBehaviour", TestFile: "behaviour_test.go"},
+		},
+		{
+			dir:     "measles-risk-forecaster",
+			gen:     measles.BuildStub(measles.DefaultMMR2Coverage, measles.DefaultMaxGenerations, 42),
+			obs:     measles.ObservedBehaviour(),
+			binding: cardgen.Binding{TestName: "TestMeaslesExpectedBehaviour", TestFile: "behaviour_test.go"},
+		},
+		{
+			dir:     "trywizard",
+			gen:     rugby.BuildStub(rugby.DefaultHomeSubMinute, rugby.DefaultNumSteps, 7001),
+			obs:     rugby.ObservedBehaviour(),
+			binding: cardgen.Binding{TestName: "TestRugbyExpectedBehaviour", TestFile: "behaviour_test.go"},
+		},
 	}
 }
 

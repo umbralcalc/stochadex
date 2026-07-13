@@ -8,9 +8,9 @@ import (
 )
 
 // runStub runs the stub to completion and returns the recorded state history for
-// every partition.
-func runStub(t *testing.T, homeSubMinute, numSteps int, seed uint64) *simulator.StateTimeStorage {
-	t.Helper()
+// every partition. (finalRow lives in behaviour.go so it can be shared with the
+// card generator.)
+func runStub(homeSubMinute, numSteps int, seed uint64) *simulator.StateTimeStorage {
 	settings, implementations := BuildStub(homeSubMinute, numSteps, seed).GenerateConfigs()
 	store := simulator.NewStateTimeStorage()
 	implementations.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: store}
@@ -22,19 +22,12 @@ func runStub(t *testing.T, homeSubMinute, numSteps int, seed uint64) *simulator.
 	return store
 }
 
-// finalRow returns the last recorded state row of the named partition.
-func finalRow(store *simulator.StateTimeStorage, partition string) []float64 {
-	rows := store.GetValues(partition)
-	return rows[len(rows)-1]
-}
-
 // meanHomeTries ensemble-averages the final home-try count over nMembers seeds
 // for a given home substitution minute.
-func meanHomeTries(t *testing.T, homeSubMinute, numSteps, nMembers int) float64 {
-	t.Helper()
+func meanHomeTries(homeSubMinute, numSteps, nMembers int) float64 {
 	var sum float64
 	for m := 0; m < nMembers; m++ {
-		store := runStub(t, homeSubMinute, numSteps, uint64(4000+m))
+		store := runStub(homeSubMinute, numSteps, uint64(4000+m))
 		sum += finalRow(store, "score_events")[0] // [home_try, away_try, home_pen, away_pen]
 	}
 	return sum / float64(nMembers)
@@ -54,7 +47,7 @@ func TestRugbyStub(t *testing.T) {
 	// decrease, scores are non-negative, conversions never exceed tries, and the
 	// half indicator flips from first to second half at minute 40.
 	t.Run("invariants", func(t *testing.T) {
-		store := runStub(t, DefaultHomeSubMinute, DefaultNumSteps, 7001)
+		store := runStub(DefaultHomeSubMinute, DefaultNumSteps, 7001)
 
 		// Cumulative counting processes are non-decreasing.
 		for _, partition := range []string{"score_events", "card_events", "conversion_events"} {
@@ -102,12 +95,14 @@ func TestRugbyStub(t *testing.T) {
 	// reason the model exists (quantifying the effect of substitution timing) — a
 	// stub that merely "runs" would not catch a sign error in the covariate term.
 	// Averaged over a 24-member ensemble so the claim is about the distribution.
+	// (The full set of response claims, with their observed numbers, is in
+	// behaviour_test.go via ObservedBehaviour.)
 	t.Run("earlier home substitution raises home tries", func(t *testing.T) {
 		const nMembers = 24
 		const early, late = 20, 70
 
-		earlyTries := meanHomeTries(t, early, DefaultNumSteps, nMembers)
-		lateTries := meanHomeTries(t, late, DefaultNumSteps, nMembers)
+		earlyTries := meanHomeTries(early, DefaultNumSteps, nMembers)
+		lateTries := meanHomeTries(late, DefaultNumSteps, nMembers)
 		if !(earlyTries > lateTries) {
 			t.Fatalf("expected earlier home substitution to raise home tries: "+
 				"early(min=%d)=%.3f late(min=%d)=%.3f", early, earlyTries, late, lateTries)
