@@ -116,11 +116,13 @@ roughly how much, does changing that prescribing rate move them?*
    residue across a repeated run (`simulator.RunWithHarnesses`).
 2. **Structural invariants** — `S, R ∈ [0,1]`, `S + R ≤ 1` every step; BSI counts ≥ 0.
 3. **Correct direction of parameter response** — raising `prescribing_rate` raises both
-   the steady-state resistant colonisation fraction and the total resistant BSI burden.
-   (Observed: resistant fraction 0.136 → 0.204 → 0.260 for prescribing 0.02 → 0.3 → 0.8.)
+   the steady-state resistant colonisation fraction and the total resistant BSI burden (the
+   observed prescribing sweep is the first row of the generated **Observed behaviour** table
+   below).
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) adds named,
-plain-language response claims:
+plain-language response claims, with the observed number for each emitted by the test run
+into the **Observed behaviour** table below (never hand-typed):
 
 - *Decision-path / mechanism (the actionable stewardship lever):* prescribing raises
   resistance **only through the selection term** — with `selection_coefficient` set to zero,
@@ -129,6 +131,23 @@ plain-language response claims:
 - *Structural drivers (out-of-sample credibility):* a higher fitness cost lowers resistance;
   higher transmission raises total colonisation; a higher per-patient infection probability
   raises the resistant BSI burden (the colonisation → infection outcome path).
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestAMRExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's assertion broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
+
+| Response claim | Enforced by | Observed |
+|---|---|---|
+| Higher cephalosporin prescribing raises resistance (headline lever) | [`TestAMRExpectedBehaviour/prescribing_raises_resistance`](behaviour_test.go) | ensemble-mean resistant fraction — rate 0.02 0.13 · 0.3 0.20 · 0.8 0.25 |
+| Prescribing moves resistance only through selection (off: no effect; on: it moves) | [`TestAMRExpectedBehaviour/prescribing_acts_only_through_selection`](behaviour_test.go) | resistant-fraction change over the 0.02→0.8 prescribing sweep — selection off Δ 0.00 · selection on Δ 0.12 (asserts selection off Δ < 0.01) |
+| Higher fitness cost of resistance lowers resistance | [`TestAMRExpectedBehaviour/higher_fitness_cost_lowers_resistance`](behaviour_test.go) | ensemble-mean resistant fraction — base 0.20 · fitness_cost=0.15 0.10 |
+| Higher within-hospital transmission raises total colonisation | [`TestAMRExpectedBehaviour/higher_transmission_raises_total_colonisation`](behaviour_test.go) | ensemble-mean total colonised fraction (S+R) — base 0.35 · transmission_rate=0.09 0.49 |
+| Higher infection probability raises resistant BSI burden | [`TestAMRExpectedBehaviour/higher_infection_probability_raises_bsi`](behaviour_test.go) | ensemble-mean total resistant BSI count — base 190.00 · infection_probability=0.03 587.50 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 
