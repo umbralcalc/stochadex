@@ -150,18 +150,18 @@ behaviour** table below — never hand-typed, so it cannot drift from the code:
 
 ## Observed behaviour
 
-Generated from the model's expected-behaviour suite — each row is a named response claim whose direction is asserted by a binding test, shown with the ensemble observations that claim produces (rounded to 2 dp). Regenerate with `go run ./cmd/model-graphs`; the card cannot silently drift because `TestCardsUpToDate` fails CI if these numbers no longer match the code.
+Every row below is one *bound* object: a plain-language response claim, the test subtest that enforces it, and the number that test produced (ensemble values rounded to 2 dp). Nothing here is hand-written — the claims and their numbers are emitted by `TestAnglersimExpectedBehaviour` (via `go run ./cmd/model-graphs`), so a claim cannot drift from its test or its result. If the model's behaviour changes, either the binding test fails (a claim's direction broke) or `TestCardsUpToDate` fails (a number moved) — a broken claim cannot reach the card silently.
 
-| Response claim | Binding test | Observed |
+| Response claim | Enforced by | Observed |
 |---|---|---|
-| Climate warming reduces density | `climate_warming_reduces_density` | ensemble-mean final log-density — +0.00 °C/yr -0.26 · +0.04 -0.34 · +0.08 -0.42 |
-| Higher river flow (reduced abstraction) raises density | `reduced_abstraction_higher_flow_raises_density` | ensemble-mean final log-density — base flow -0.29 · flow ×2 -0.23 |
-| Drought (lower flow) reduces density | `drought_lower_flow_reduces_density` | ensemble-mean final log-density — base flow -0.29 · flow ×0.25 -0.34 |
-| Higher dissolved oxygen (pollution reduction) raises density | `water_quality_improvement_higher_dissolved_oxygen_raises_density` | ensemble-mean final log-density — base DO -0.29 · DO +3 mg/l -0.11 |
-| Higher intrinsic growth rate raises density | `higher_growth_rate_raises_density` | ensemble-mean final log-density — base r0 -0.29 · r0=1.0 0.22 |
-| Stronger density dependence reduces density | `stronger_density_dependence_reduces_density` | ensemble-mean final log-density — base α -0.29 · α=2.0 -0.98 |
-| Higher process noise widens the outcome distribution | `higher_process_noise_widens_density_distribution` | ensemble std of final log-density — σ=0.05 0.08 · σ=0.6 0.60 |
-| The Allee effect slows recovery from low density | `allee_effect_slows_recovery_from_low_density` | ensemble-mean final log-density from a low start — standard Ricker -2.00 · Allee γ=30 -5.75 |
+| Climate warming reduces density | [`TestAnglersimExpectedBehaviour/climate_warming_reduces_density`](behaviour_test.go) | ensemble-mean final log-density — +0.00 °C/yr -0.26 · +0.04 -0.34 · +0.08 -0.42 |
+| Higher river flow (reduced abstraction) raises density | [`TestAnglersimExpectedBehaviour/reduced_abstraction_higher_flow_raises_density`](behaviour_test.go) | ensemble-mean final log-density — base flow -0.29 · flow ×2 -0.23 |
+| Drought (lower flow) reduces density | [`TestAnglersimExpectedBehaviour/drought_lower_flow_reduces_density`](behaviour_test.go) | ensemble-mean final log-density — base flow -0.29 · flow ×0.25 -0.34 |
+| Higher dissolved oxygen (pollution reduction) raises density | [`TestAnglersimExpectedBehaviour/water_quality_improvement_higher_dissolved_oxygen_raises_density`](behaviour_test.go) | ensemble-mean final log-density — base DO -0.29 · DO +3 mg/l -0.11 |
+| Higher intrinsic growth rate raises density | [`TestAnglersimExpectedBehaviour/higher_growth_rate_raises_density`](behaviour_test.go) | ensemble-mean final log-density — base r0 -0.29 · r0=1.0 0.22 |
+| Stronger density dependence reduces density | [`TestAnglersimExpectedBehaviour/stronger_density_dependence_reduces_density`](behaviour_test.go) | ensemble-mean final log-density — base α -0.29 · α=2.0 -0.98 |
+| Higher process noise widens the outcome distribution | [`TestAnglersimExpectedBehaviour/higher_process_noise_widens_density_distribution`](behaviour_test.go) | ensemble std of final log-density — σ=0.05 0.08 · σ=0.6 0.60 |
+| The Allee effect slows recovery from low density | [`TestAnglersimExpectedBehaviour/allee_effect_slows_recovery_from_low_density`](behaviour_test.go) | ensemble-mean final log-density from a low start — standard Ricker -2.00 · Allee γ=30 -5.75 |
 
 <!-- END generated: observed-behaviour -->
 

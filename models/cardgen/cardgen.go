@@ -57,30 +57,44 @@ func renderObservations(obs []Observation) string {
 	return strings.Join(parts, " · ")
 }
 
+// Binding names the test that enforces a model's claims: the test function whose
+// subtests are its claim ids, and the source file it lives in (a card-relative
+// path, so the link resolves both on GitHub and on the rendered docs site).
+type Binding struct {
+	TestName string // e.g. "TestAnglersimExpectedBehaviour"
+	TestFile string // e.g. "behaviour_test.go"
+}
+
 // ObservedBehaviourMarkdown renders the body of the generated block (without the
-// markers) for a model's claims. Returns "" if there are no claims.
-func ObservedBehaviourMarkdown(claims []Claim, regenCmd string) string {
+// markers) for a model's claims. Each row is one bound object — the plain-language
+// claim, a link to the exact test/subtest that enforces it, and the number that
+// test produced — so claim, test, and result cannot drift apart. Returns "" if
+// there are no claims.
+func ObservedBehaviourMarkdown(claims []Claim, binding Binding, regenCmd string) string {
 	if len(claims) == 0 {
 		return ""
 	}
 	var b strings.Builder
 	b.WriteString("## Observed behaviour\n\n")
 	fmt.Fprintf(&b,
-		"Generated from the model's expected-behaviour suite — each row is a named "+
-			"response claim whose direction is asserted by a binding test, shown with the "+
-			"ensemble observations that claim produces (rounded to %d dp). Regenerate with "+
-			"`%s`; the card cannot silently drift because `TestCardsUpToDate` fails CI if "+
-			"these numbers no longer match the code.\n\n",
-		decimals, regenCmd,
+		"Every row below is one *bound* object: a plain-language response claim, the "+
+			"test subtest that enforces it, and the number that test produced (ensemble "+
+			"values rounded to %d dp). Nothing here is hand-written — the claims and their "+
+			"numbers are emitted by `%s` (via `%s`), so a claim cannot drift from its test "+
+			"or its result. If the model's behaviour changes, either the binding test fails "+
+			"(a claim's direction broke) or `TestCardsUpToDate` fails (a number moved) — a "+
+			"broken claim cannot reach the card silently.\n\n",
+		decimals, binding.TestName, regenCmd,
 	)
-	b.WriteString("| Response claim | Binding test | Observed |\n")
+	b.WriteString("| Response claim | Enforced by | Observed |\n")
 	b.WriteString("|---|---|---|\n")
 	for _, c := range claims {
 		observed := renderObservations(c.Observations)
 		if c.Unit != "" {
 			observed = fmt.Sprintf("%s — %s", c.Unit, observed)
 		}
-		fmt.Fprintf(&b, "| %s | `%s` | %s |\n", c.Statement, c.ID, observed)
+		test := fmt.Sprintf("[`%s/%s`](%s)", binding.TestName, c.ID, binding.TestFile)
+		fmt.Fprintf(&b, "| %s | %s | %s |\n", c.Statement, test, observed)
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
