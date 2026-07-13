@@ -481,67 +481,6 @@ EOF
     log_success "robots.txt generated"
 }
 
-# make_badge writes a self-contained SVG badge in the "for-the-badge" style (square
-# edges, uppercase text, ~28px tall — matching the other frontpage badges) to a
-# file: make_badge <label> <message> <message-hex-color> <outfile>. Character widths
-# are approximated — fine for the short label/message we use. Uppercasing via tr
-# (not ${x^^}) keeps it working on macOS bash 3.2 as well as CI's bash.
-make_badge() {
-    local label="$1" message="$2" color="$3" out="$4"
-    local L M
-    L=$(printf '%s' "$label" | tr '[:lower:]' '[:upper:]')
-    M=$(printf '%s' "$message" | tr '[:lower:]' '[:upper:]')
-    local charw=10 pad=12 h=28
-    local lw=$(( ${#L} * charw + 2 * pad ))
-    local mw=$(( ${#M} * charw + 2 * pad ))
-    local total=$(( lw + mw ))
-    local lcx=$(( lw * 5 ))                 # (lw / 2) x 10
-    local mcx=$(( (2 * lw + mw) * 5 ))      # (lw + mw / 2) x 10
-    local llen=$(( ${#L} * charw * 10 ))    # content width x 10
-    local mlen=$(( ${#M} * charw * 10 ))
-    cat > "$out" << EOF
-<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="${h}" role="img" aria-label="${label}: ${message}">
-  <g shape-rendering="crispEdges">
-    <rect width="${lw}" height="${h}" fill="#555"/>
-    <rect x="${lw}" width="${mw}" height="${h}" fill="${color}"/>
-  </g>
-  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="100" font-weight="bold">
-    <text transform="scale(.1)" x="${lcx}" y="180" textLength="${llen}">${L}</text>
-    <text transform="scale(.1)" x="${mcx}" y="180" textLength="${mlen}">${M}</text>
-  </g>
-</svg>
-EOF
-}
-
-# Generate the self-hosted version and coverage badges into docs/ (served on the
-# Pages site at /version.svg and /coverage.svg). Version is read from the latest
-# released heading in CHANGELOG.md (the repo's own source of truth); coverage is
-# read from a coverage.txt the CI test job produced (falls back to "n/a" locally).
-generate_badges() {
-    log_info "Generating self-hosted badges..."
-
-    local version
-    version=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$DOCS_DIR/../CHANGELOG.md" \
-        | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-    [ -n "$version" ] && make_badge "version" "v${version}" "#4D7F37" "$DOCS_DIR/version-badge.svg"
-
-    local cov=""
-    for f in "$DOCS_DIR/../coverage.txt" "$DOCS_DIR/coverage.txt"; do
-        [ -f "$f" ] && cov=$(tr -dc '0-9.' < "$f") && break
-    done
-    if [ -n "$cov" ]; then
-        # Colour by threshold: green >=80, yellow >=60, else red.
-        local ccolor="#e05d44"
-        if awk "BEGIN{exit !($cov >= 80)}"; then ccolor="#4D7F37"
-        elif awk "BEGIN{exit !($cov >= 60)}"; then ccolor="#dfb317"; fi
-        make_badge "coverage" "${cov}%" "$ccolor" "$DOCS_DIR/coverage-badge.svg"
-    else
-        make_badge "coverage" "n/a" "#9f9f9f" "$DOCS_DIR/coverage-badge.svg"
-    fi
-
-    log_success "Badges generated (version${cov:+, coverage ${cov}%})"
-}
-
 # Validate build
 validate_build() {
     log_info "Validating build..."
@@ -606,7 +545,6 @@ main() {
     wrap_tables
     generate_sitemap
     generate_robots
-    generate_badges
     validate_build
     
     # Clean up temporary files

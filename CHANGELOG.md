@@ -23,11 +23,10 @@ an exact version rather than assume stability across minors.
 ## [Unreleased]
 
 ### Added
-- **Self-hosted version + coverage badges.** The docs frontpage badges are generated
-  as SVGs by `docs/build.sh` and served from the Pages site (`/version.svg`,
-  `/coverage.svg`) — no external badge service. Version is read from the latest
-  released `CHANGELOG.md` heading; total statement coverage is computed in CI (on
-  merge) and passed to the site build.
+- **Frontpage status badges.** Version (from the latest git tag), CI status, and test
+  coverage badges on the docs frontpage. Coverage is published to Codecov from CI
+  (`go test -coverprofile` → `codecov/codecov-action`); version and CI use shields.io.
+  (Superseded the short-lived self-hosted-SVG badge approach.)
 
 ## [0.2.0] — 2026-07-13
 
