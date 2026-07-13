@@ -47,6 +47,23 @@ jobs:
       # -race keeps the goroutine-per-partition concurrency invariants honest;
       # -count=1 disables test caching so CI always re-runs the full suite.
       - run: go test ./... -race -count=1
+      # Compute total statement coverage on merge only (keeps PR CI fast). Runs
+      # here because this job has the Postgres service the integration test needs.
+      # Non-blocking: a coverage hiccup must never fail a merge.
+      - name: Coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        run: |
+          go test ./... -count=1 -coverprofile=cover.out -coverpkg=./...
+          go tool cover -func=cover.out | tail -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 > coverage.txt
+          echo "coverage: $(cat coverage.txt)%"
+      - name: Upload coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.txt
 
   # Rebuild the docs site and (on merge to main only) publish it to the
   # stochadex.github.io repo. The whole job runs after the test job passes
@@ -73,6 +90,16 @@ jobs:
         run: |
           go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      # Bring the coverage number (from the test job) to the repo root so build.sh's
+      # badge generator finds it. Absent on PRs (coverage runs on merge only), in
+      # which case the coverage badge renders "n/a" — fine, PRs don't publish.
+      - name: Download coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: .
       - name: Build site
         run: bash build.sh
         working-directory: docs

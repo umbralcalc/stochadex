@@ -69,7 +69,16 @@ check_dependencies() {
         done
         exit 1
     fi
-    
+
+    # Newer pandoc renamed --highlight-style to --syntax-highlighting (and warns on
+    # the old name); older pandoc (e.g. the Ubuntu apt build in CI) only knows
+    # --highlight-style. Probe which this pandoc accepts and use it everywhere, so the
+    # build is warning-free on new pandoc and still works on old.
+    HIGHLIGHT_FLAG="--highlight-style=pygments"
+    if printf '' | pandoc --syntax-highlighting=pygments -f markdown -t html >/dev/null 2>&1; then
+        HIGHLIGHT_FLAG="--syntax-highlighting=pygments"
+    fi
+
     log_success "All dependencies found"
 }
 
@@ -189,7 +198,7 @@ generate_html_pages() {
     pandoc --template "$WORK_TEMPLATE" \
         --wrap=preserve \
         --mathjax \
-        --highlight-style=pygments \
+        $HIGHLIGHT_FLAG \
         --metadata="is-home:true" \
         -f markdown \
         -t html \
@@ -203,7 +212,7 @@ generate_html_pages() {
         pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
-            --highlight-style=pygments \
+            $HIGHLIGHT_FLAG \
             --metadata="title:$title" \
             -f markdown \
             -t html \
@@ -218,7 +227,7 @@ generate_html_pages() {
         pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
-            --highlight-style=pygments \
+            $HIGHLIGHT_FLAG \
             --metadata="title:$title" \
             -f markdown \
             -t html \
@@ -234,7 +243,7 @@ generate_html_pages() {
         pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
-            --highlight-style=pygments \
+            $HIGHLIGHT_FLAG \
             --metadata="title:Cross-model index" \
             --metadata="logo:true" \
             -f markdown \
@@ -318,7 +327,7 @@ EOF
             -o "$DOCS_DIR/pkg/${pkg_name}.html" \
             --template="$WORK_TEMPLATE" \
             --mathjax \
-            --highlight-style=pygments
+            $HIGHLIGHT_FLAG
     done
     
     log_success "Package documentation generated"
@@ -358,7 +367,7 @@ EOF
             -o "$DOCS_DIR/pkg/model-${name}.html" \
             --template="$WORK_TEMPLATE" \
             --mathjax \
-            --highlight-style=pygments
+            $HIGHLIGHT_FLAG
     done
 
     log_success "Model card pages generated"
@@ -472,6 +481,64 @@ EOF
     log_success "robots.txt generated"
 }
 
+# make_badge writes a self-contained flat-style SVG badge (no external service) to
+# a file: make_badge <label> <message> <message-hex-color> <outfile>. Character
+# widths are approximated (~7px/char) — fine for the short label/message we use.
+make_badge() {
+    local label="$1" message="$2" color="$3" out="$4"
+    local lw=$(( ${#label} * 7 + 12 ))
+    local mw=$(( ${#message} * 7 + 12 ))
+    local total=$(( lw + mw ))
+    local lcx=$(( lw * 10 / 2 ))
+    local mcx=$(( (lw + mw / 2) * 10 ))
+    cat > "$out" << EOF
+<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="20" role="img" aria-label="${label}: ${message}">
+  <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+  <clipPath id="r"><rect width="${total}" height="20" rx="3" fill="#fff"/></clipPath>
+  <g clip-path="url(#r)">
+    <rect width="${lw}" height="20" fill="#555"/>
+    <rect x="${lw}" width="${mw}" height="20" fill="${color}"/>
+    <rect width="${total}" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+    <text x="${lcx}" y="15" transform="scale(.1)" fill="#010101" fill-opacity=".3" textLength="$(( ${#label} * 70 ))">${label}</text>
+    <text x="${lcx}" y="14" transform="scale(.1)" textLength="$(( ${#label} * 70 ))">${label}</text>
+    <text x="${mcx}" y="15" transform="scale(.1)" fill="#010101" fill-opacity=".3" textLength="$(( ${#message} * 70 ))">${message}</text>
+    <text x="${mcx}" y="14" transform="scale(.1)" textLength="$(( ${#message} * 70 ))">${message}</text>
+  </g>
+</svg>
+EOF
+}
+
+# Generate the self-hosted version and coverage badges into docs/ (served on the
+# Pages site at /version.svg and /coverage.svg). Version is read from the latest
+# released heading in CHANGELOG.md (the repo's own source of truth); coverage is
+# read from a coverage.txt the CI test job produced (falls back to "n/a" locally).
+generate_badges() {
+    log_info "Generating self-hosted badges..."
+
+    local version
+    version=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$DOCS_DIR/../CHANGELOG.md" \
+        | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+    [ -n "$version" ] && make_badge "version" "v${version}" "#4D7F37" "$DOCS_DIR/version.svg"
+
+    local cov=""
+    for f in "$DOCS_DIR/../coverage.txt" "$DOCS_DIR/coverage.txt"; do
+        [ -f "$f" ] && cov=$(tr -dc '0-9.' < "$f") && break
+    done
+    if [ -n "$cov" ]; then
+        # Colour by threshold: green >=80, yellow >=60, else red.
+        local ccolor="#e05d44"
+        if awk "BEGIN{exit !($cov >= 80)}"; then ccolor="#4D7F37"
+        elif awk "BEGIN{exit !($cov >= 60)}"; then ccolor="#dfb317"; fi
+        make_badge "coverage" "${cov}%" "$ccolor" "$DOCS_DIR/coverage.svg"
+    else
+        make_badge "coverage" "n/a" "#9f9f9f" "$DOCS_DIR/coverage.svg"
+    fi
+
+    log_success "Badges generated (version${cov:+, coverage ${cov}%})"
+}
+
 # Validate build
 validate_build() {
     log_info "Validating build..."
@@ -536,6 +603,7 @@ main() {
     wrap_tables
     generate_sitemap
     generate_robots
+    generate_badges
     validate_build
     
     # Clean up temporary files
