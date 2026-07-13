@@ -69,7 +69,16 @@ check_dependencies() {
         done
         exit 1
     fi
-    
+
+    # Newer pandoc renamed --highlight-style to --syntax-highlighting (and warns on
+    # the old name); older pandoc (e.g. the Ubuntu apt build in CI) only knows
+    # --highlight-style. Probe which this pandoc accepts and use it everywhere, so the
+    # build is warning-free on new pandoc and still works on old.
+    HIGHLIGHT_FLAG="--highlight-style=pygments"
+    if printf '' | pandoc --syntax-highlighting=pygments -f markdown -t html >/dev/null 2>&1; then
+        HIGHLIGHT_FLAG="--syntax-highlighting=pygments"
+    fi
+
     log_success "All dependencies found"
 }
 
@@ -189,7 +198,7 @@ generate_html_pages() {
     pandoc --template "$WORK_TEMPLATE" \
         --wrap=preserve \
         --mathjax \
-        --highlight-style=pygments \
+        $HIGHLIGHT_FLAG \
         --metadata="is-home:true" \
         -f markdown \
         -t html \
@@ -203,7 +212,7 @@ generate_html_pages() {
         pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
-            --highlight-style=pygments \
+            $HIGHLIGHT_FLAG \
             --metadata="title:$title" \
             -f markdown \
             -t html \
@@ -218,7 +227,7 @@ generate_html_pages() {
         pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
-            --highlight-style=pygments \
+            $HIGHLIGHT_FLAG \
             --metadata="title:$title" \
             -f markdown \
             -t html \
@@ -234,7 +243,7 @@ generate_html_pages() {
         pandoc --template "$WORK_TEMPLATE" \
             --wrap=preserve \
             --mathjax \
-            --highlight-style=pygments \
+            $HIGHLIGHT_FLAG \
             --metadata="title:Cross-model index" \
             --metadata="logo:true" \
             -f markdown \
@@ -318,7 +327,7 @@ EOF
             -o "$DOCS_DIR/pkg/${pkg_name}.html" \
             --template="$WORK_TEMPLATE" \
             --mathjax \
-            --highlight-style=pygments
+            $HIGHLIGHT_FLAG
     done
     
     log_success "Package documentation generated"
@@ -358,7 +367,7 @@ EOF
             -o "$DOCS_DIR/pkg/model-${name}.html" \
             --template="$WORK_TEMPLATE" \
             --mathjax \
-            --highlight-style=pygments
+            $HIGHLIGHT_FLAG
     done
 
     log_success "Model card pages generated"
