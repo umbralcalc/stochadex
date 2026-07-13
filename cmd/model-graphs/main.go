@@ -1,15 +1,21 @@
-// Command model-graphs regenerates the "Partition wiring" Mermaid diagram in
-// every models/<domain>/card.md from the domain's BuildStub wiring.
+// Command model-graphs regenerates the machine-derived blocks in every
+// models/<domain>/card.md:
 //
-// The diagram is derived statically by pkg/graph, so it always matches the
-// stub's actual partition wiring. Re-run after changing any stub's wiring:
+//   - the "Partition wiring" Mermaid diagram, from the domain's BuildStub wiring
+//     (via pkg/graph, so it always matches the stub's actual partition wiring); and
+//   - the "Observed behaviour" table, for models whose behaviour suite exposes an
+//     ObservedBehaviour() — the ensemble numbers emitted by the model's own tests,
+//     so a card's numbers are generated from the code, never hand-typed.
+//
+// Re-run after changing any stub's wiring or generative behaviour:
 //
 //	go run ./cmd/model-graphs
 //
-// It rewrites only the region between the generated-block markers (inserting it
-// just above the "## Ingests" heading on first run), so hand-written card prose
-// is never touched. TestCardsUpToDate guards that the committed cards match, so
-// CI fails if a stub's wiring changes without the diagrams being regenerated.
+// It rewrites only the regions between the generated-block markers (inserting the
+// wiring block above "## Ingests" and the observed-behaviour block above
+// "## Bespoke extensions" on first run), so hand-written card prose is never
+// touched. TestCardsUpToDate guards that the committed cards match, so CI fails if
+// a stub's wiring or numbers change without the cards being regenerated.
 package main
 
 //go:generate go run .
@@ -24,6 +30,8 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/graph"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 
+	"github.com/umbralcalc/stochadex/models/cardgen"
+
 	anglersim "github.com/umbralcalc/stochadex/models/anglersim"
 	amr "github.com/umbralcalc/stochadex/models/antimicrobial-resistance"
 	bathingwater "github.com/umbralcalc/stochadex/models/bathing-water-forecaster"
@@ -37,23 +45,27 @@ import (
 
 // model pairs a catalogue directory with its stub, built at a representative
 // driver value. The wiring graph is independent of the numeric driver, so any
-// in-range value yields the same diagram.
+// in-range value yields the same diagram. obs, when non-nil, is the model's
+// verified response claims with their observed numbers — rendered into the card's
+// "Observed behaviour" block. Only models whose behaviour suite exposes an
+// ObservedBehaviour() supply it (anglersim leads; others follow as generalised).
 type model struct {
 	dir string
 	gen *simulator.ConfigGenerator
+	obs []cardgen.Claim
 }
 
 func models() []model {
 	return []model{
-		{"anglersim", anglersim.BuildStub(anglersim.DefaultWarmingTrend, 60, 42)},
-		{"antimicrobial-resistance", amr.BuildStub(amr.BaselinePrescribingRate, 20)},
-		{"bathing-water-forecaster", bathingwater.BuildStub(bathingwater.DefaultAnomalyVolatility, 60, 42)},
-		{"business-survival", bizsurvival.BuildStub(bizsurvival.DefaultPolicyHazardScale, 24, 7001)},
-		{"energy-balancer", energybalancer.BuildStub(0.5, 60, 42)},
-		{"floodrisk", floodrisk.BuildStub(1.0, 60, 42)},
-		{"homark", homark.BuildStub(homark.DefaultApprovalRate, 48, 42)},
-		{"measles-risk-forecaster", measles.BuildStub(measles.DefaultMMR2Coverage, measles.DefaultMaxGenerations, 42)},
-		{"trywizard", rugby.BuildStub(rugby.DefaultHomeSubMinute, rugby.DefaultNumSteps, 7001)},
+		{dir: "anglersim", gen: anglersim.BuildStub(anglersim.DefaultWarmingTrend, 60, 42), obs: anglersim.ObservedBehaviour()},
+		{dir: "antimicrobial-resistance", gen: amr.BuildStub(amr.BaselinePrescribingRate, 20)},
+		{dir: "bathing-water-forecaster", gen: bathingwater.BuildStub(bathingwater.DefaultAnomalyVolatility, 60, 42)},
+		{dir: "business-survival", gen: bizsurvival.BuildStub(bizsurvival.DefaultPolicyHazardScale, 24, 7001)},
+		{dir: "energy-balancer", gen: energybalancer.BuildStub(0.5, 60, 42)},
+		{dir: "floodrisk", gen: floodrisk.BuildStub(1.0, 60, 42)},
+		{dir: "homark", gen: homark.BuildStub(homark.DefaultApprovalRate, 48, 42)},
+		{dir: "measles-risk-forecaster", gen: measles.BuildStub(measles.DefaultMMR2Coverage, measles.DefaultMaxGenerations, 42)},
+		{dir: "trywizard", gen: rugby.BuildStub(rugby.DefaultHomeSubMinute, rugby.DefaultNumSteps, 7001)},
 	}
 }
 
@@ -61,6 +73,12 @@ const (
 	beginMarker  = "<!-- BEGIN generated: partition-wiring (regenerate with `go run ./cmd/model-graphs`) -->"
 	endMarker    = "<!-- END generated: partition-wiring -->"
 	insertBefore = "\n## Ingests"
+
+	obsBeginMarker  = "<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->"
+	obsEndMarker    = "<!-- END generated: observed-behaviour -->"
+	obsInsertBefore = "\n## Bespoke extensions"
+
+	regenCmd = "go run ./cmd/model-graphs"
 )
 
 const intro = `## Partition wiring
@@ -83,19 +101,36 @@ func block(mermaid string) string {
 	return b.String()
 }
 
-// splice inserts or replaces the generated block in a card's content.
-func splice(content, generated string) (string, error) {
-	if b := strings.Index(content, beginMarker); b >= 0 {
-		e := strings.Index(content, endMarker)
+// obsBlock renders the marker-wrapped "Observed behaviour" block from a model's
+// claims. Returns "" when the model has no claims (so no block is spliced).
+func obsBlock(claims []cardgen.Claim) string {
+	body := cardgen.ObservedBehaviourMarkdown(claims, regenCmd)
+	if body == "" {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString(obsBeginMarker)
+	b.WriteString("\n\n")
+	b.WriteString(body)
+	b.WriteString("\n\n")
+	b.WriteString(obsEndMarker)
+	return b.String()
+}
+
+// splice inserts or replaces a marker-delimited generated block in a card's
+// content. If the begin/end markers are present it replaces between them; else it
+// inserts before the insertBefore heading; else it appends at the end.
+func splice(content, generated, begin, end, insertBefore string) (string, error) {
+	if b := strings.Index(content, begin); b >= 0 {
+		e := strings.Index(content, end)
 		if e < 0 {
-			return "", fmt.Errorf("found begin marker without end marker")
+			return "", fmt.Errorf("found begin marker %q without its end marker", begin)
 		}
-		return content[:b] + generated + content[e+len(endMarker):], nil
+		return content[:b] + generated + content[e+len(end):], nil
 	}
 	if i := strings.Index(content, insertBefore); i >= 0 {
 		return content[:i] + "\n\n" + generated + "\n" + content[i:], nil
 	}
-	// No "## Ingests" heading: append to the end as a fallback.
 	return strings.TrimRight(content, "\n") + "\n\n" + generated + "\n", nil
 }
 
@@ -105,17 +140,25 @@ func cardPath(root, dir string) string {
 }
 
 // desiredCard returns the card content a model should have: the on-disk content
-// with its generated wiring block inserted or refreshed.
+// with its generated wiring block — and, if the model exposes response claims, its
+// "Observed behaviour" block — inserted or refreshed.
 func desiredCard(root string, m model) (current, desired string, err error) {
 	content, err := os.ReadFile(cardPath(root, m.dir))
 	if err != nil {
 		return "", "", err
 	}
-	desired, err = splice(string(content), block(graph.Build(m.gen).Mermaid()))
+	out, err := splice(string(content), block(graph.Build(m.gen).Mermaid()),
+		beginMarker, endMarker, insertBefore)
 	if err != nil {
 		return "", "", err
 	}
-	return string(content), desired, nil
+	if ob := obsBlock(m.obs); ob != "" {
+		out, err = splice(out, ob, obsBeginMarker, obsEndMarker, obsInsertBefore)
+		if err != nil {
+			return "", "", err
+		}
+	}
+	return string(content), out, nil
 }
 
 // run regenerates every card's wiring block under root. When write is false it

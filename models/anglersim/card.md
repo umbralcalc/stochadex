@@ -126,24 +126,44 @@ manager can influence?*
 2. **Physical invariants** — flow ≥ 0 and dissolved oxygen ≥ 0 every step; all
    covariates and the log-density stay finite (no NaN / ±Inf divergence).
 3. **Correct direction of parameter response** — raising the `warming_trend` lowers
-   the ensemble-mean final log-density. (Observed: mean final logN
-   −0.297 → −0.375 → −0.460 for warming 0.00 → 0.04 → 0.08 °C/yr, a 16-member
-   ensemble averaged over the final 20 years.) A stub that merely "runs" would not
-   catch an inverted climate response.
+   the ensemble-mean final log-density (the observed warming sweep is the first row
+   of the generated **Observed behaviour** table below). A stub that merely "runs"
+   would not catch an inverted climate response.
 
 The **expected-behaviour suite** ([`behaviour_test.go`](behaviour_test.go)) adds
-named, plain-language response claims, covering both kinds of lever:
+named, plain-language response claims, covering both kinds of lever. The observed
+number for every claim is emitted by the test run and generated into the **Observed
+behaviour** table below — never hand-typed, so it cannot drift from the code:
 
 - **Decision-path (actionable habitat / water management).** Higher river flow
   (reduced abstraction) raises density; drought (lower flow) reduces it; a
   dissolved-oxygen improvement (pollution reduction) raises it. These map to the
-  downstream scenario levers (abstraction / drought / water-quality). (Observed at a
-  60-year horizon: base −0.29; flow 0.5→1.0 m³/s → −0.23; DO 9→12 mg/l → −0.11.)
+  downstream scenario levers (abstraction / drought / water-quality).
 - **Structural drivers (the world sets).** Warming reduces density (`β_temp<0`);
   higher intrinsic growth raises it; stronger density dependence lowers it; higher
   process noise widens the spread of outcomes; and the Allee effect (γ>0) slows
   recovery from low density relative to the standard Ricker — the mechanism behind a
   minimum viable population.
+
+
+<!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+
+## Observed behaviour
+
+Generated from the model's expected-behaviour suite — each row is a named response claim whose direction is asserted by a binding test, shown with the ensemble observations that claim produces (rounded to 2 dp). Regenerate with `go run ./cmd/model-graphs`; the card cannot silently drift because `TestCardsUpToDate` fails CI if these numbers no longer match the code.
+
+| Response claim | Binding test | Observed |
+|---|---|---|
+| Climate warming reduces density | `climate_warming_reduces_density` | ensemble-mean final log-density — +0.00 °C/yr -0.26 · +0.04 -0.34 · +0.08 -0.42 |
+| Higher river flow (reduced abstraction) raises density | `reduced_abstraction_higher_flow_raises_density` | ensemble-mean final log-density — base flow -0.29 · flow ×2 -0.23 |
+| Drought (lower flow) reduces density | `drought_lower_flow_reduces_density` | ensemble-mean final log-density — base flow -0.29 · flow ×0.25 -0.34 |
+| Higher dissolved oxygen (pollution reduction) raises density | `water_quality_improvement_higher_dissolved_oxygen_raises_density` | ensemble-mean final log-density — base DO -0.29 · DO +3 mg/l -0.11 |
+| Higher intrinsic growth rate raises density | `higher_growth_rate_raises_density` | ensemble-mean final log-density — base r0 -0.29 · r0=1.0 0.22 |
+| Stronger density dependence reduces density | `stronger_density_dependence_reduces_density` | ensemble-mean final log-density — base α -0.29 · α=2.0 -0.98 |
+| Higher process noise widens the outcome distribution | `higher_process_noise_widens_density_distribution` | ensemble std of final log-density — σ=0.05 0.08 · σ=0.6 0.60 |
+| The Allee effect slows recovery from low density | `allee_effect_slows_recovery_from_low_density` | ensemble-mean final log-density from a low start — standard Ricker -2.00 · Allee γ=30 -5.75 |
+
+<!-- END generated: observed-behaviour -->
 
 ## Bespoke extensions (staged beside the stub)
 
