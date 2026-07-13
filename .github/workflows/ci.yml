@@ -1,0 +1,49 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency: # cancel superseded runs to save iteration time
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        # These MUST match the credentials hardcoded in the integration test
+        # (test/postgres_writing_and_querying_test.go); the analysis package
+        # builds its connection string from user/password/dbname with no host,
+        # so PGHOST/PGPORT below steer lib/pq to this container over TCP.
+        env:
+          POSTGRES_USER: stochadexuser
+          POSTGRES_PASSWORD: stochadexpassword
+          POSTGRES_DB: stochadexdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stochadexuser -d stochadexdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # lib/pq honours these when the connection string omits host/port
+      # (pkg/analysis/postgres.go builds "user=… password=… dbname=… sslmode=disable").
+      # 127.0.0.1 (not "localhost") forces IPv4 — the service container's port
+      # mapping publishes on IPv4, and lib/pq otherwise resolves localhost to [::1].
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go build ./...
+      - run: go vet ./...
+      # -race keeps the goroutine-per-partition concurrency invariants honest;
+      # -count=1 disables test caching so CI always re-runs the full suite.
+      - run: go test ./... -race -count=1
