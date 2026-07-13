@@ -22,6 +22,15 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+_Nothing yet. New behaviour/API-changing PRs add their entries here._
+
+## [0.2.0] — 2026-07-13
+
+The trust layer: every published card claim is now bound to an enforced test and
+every card number is generated from the code, across all nine catalogue models, made
+checkable by a generated cross-model index — on top of the CI, docs-automation, and
+versioning foundation. (Phase 1 of the improvement plan — the credibility spine.)
+
 ### Added
 - **Generated card numbers (flagship: anglersim).** A model's card now shows an
   "Observed behaviour" table whose numbers are emitted by the model's own
@@ -182,5 +191,6 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/umbralcalc/stochadex/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/umbralcalc/stochadex/releases/tag/v0.1.0
