@@ -47,6 +47,15 @@ an exact version rather than assume stability across minors.
   net-seller `revenue > 0`, net-buyer `SoC > initial`) and difference-of-differences
   claims (AMR's "prescribing acts only through selection") bind the same way.
 
+- **Cross-model index (`cmd/model-index`).** A generated view across all nine catalogue
+  models — each model's core-package usage, the bespoke iterations beside its stub, and
+  whether its behaviour claims are test-bound — derived by inspecting the real stubs, never
+  hand-maintained. Makes the generality claim checkable (concrete core-package reuse:
+  `pkg/simulator` ×9, `pkg/continuous` ×3, `pkg/general` ×2, `pkg/discrete` ×1) and surfaces
+  the extension-promotion signal (bespoke concepts recurring across models). Published as a
+  human page (`models/INDEX.md`, rendered onto the docs site) and a machine-readable artifact
+  (`models/index.json`, served as `model-index.json`); `TestModelIndexUpToDate` guards it.
+
 ### Changed
 - `cmd/model-graphs` now regenerates both the partition-wiring diagram and the
   observed-behaviour block; each flagship's behaviour helpers moved from `_test.go`
