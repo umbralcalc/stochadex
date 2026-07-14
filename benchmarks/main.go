@@ -17,6 +17,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -24,10 +25,50 @@ import (
 	"time"
 
 	"gonum.org/v1/gonum/blas/blas64"
+	"gonum.org/v1/gonum/stat/distuv"
 
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
+
+// branchResponder is a bespoke coupled iteration: it decays each step, and ONLY when
+// its upstream driver crosses a threshold (a rare, per-path condition) does it do
+// expensive work — a sum of `terms` gamma draws. This is the coupling that is hard to
+// vectorize: SIMD over paths must either compute the expensive branch for every path
+// and mask, or gather the (few) triggered paths; a scalar per-path loop just takes the
+// branch. Reads the driver's current-step values via ParamsFromUpstream ("driver").
+type branchResponder struct {
+	gamma *distuv.Gamma
+}
+
+func (b *branchResponder) Configure(partitionIndex int, settings *simulator.Settings) {
+	seed := settings.Iterations[partitionIndex].Seed
+	b.gamma = &distuv.Gamma{Alpha: 2.0, Beta: 1.0, Src: rand.NewPCG(seed, seed)}
+}
+
+func (b *branchResponder) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	values := stateHistories[partitionIndex].GetNextStateRowToUpdate()
+	driver := params.Map["driver"]
+	threshold := params.GetIndex("threshold", 0)
+	decay := params.GetIndex("decay", 0)
+	terms := int(params.GetIndex("terms", 0))
+	for i := range values {
+		values[i] *= decay
+		if driver[i] > threshold { // rare per-path branch -> expensive work only here
+			sum := 0.0
+			for k := 0; k < terms; k++ {
+				sum += b.gamma.Rand()
+			}
+			values[i] += sum
+		}
+	}
+	return values
+}
 
 // stateWidth is the per-partition state dimension used for the scaling benchmark —
 // a modest vector so each partition does a little real work per step.
@@ -451,6 +492,79 @@ func benchmarkCoupled() []processResult {
 	return []processResult{{Process: "coupled_ou_chain_len4", TotalPaths: totalPaths, Steps: steps, Seconds: seconds}}
 }
 
+// branchCoupledGen builds `numSystems` independent 2-partition systems: an OU driver
+// and a branchResponder that reads the driver's current value and does expensive work
+// only when it crosses a threshold. The threshold/σ are set so ~7% of path-steps
+// trigger — the rare-branch regime where SIMD-over-paths wastes work.
+func branchCoupledGen(numSystems, width, steps int, strategy simulator.ExecutionStrategy) func() *simulator.ConfigGenerator {
+	return func() *simulator.ConfigGenerator {
+		gen := simulator.NewConfigGenerator()
+		for s := 0; s < numSystems; s++ {
+			aName, bName := fmt.Sprintf("a%d", s), fmt.Sprintf("b%d", s)
+			gen.SetPartition(&simulator.PartitionConfig{
+				Name:      aName,
+				Iteration: &continuous.OrnsteinUhlenbeckIteration{},
+				Params: simulator.NewParams(map[string][]float64{
+					"thetas": fill(width, 0.5), "mus": fill(width, 0.0), "sigmas": fill(width, 1.0),
+				}),
+				InitStateValues: make([]float64, width), StateHistoryDepth: 1, Seed: uint64(2*s + 1),
+			})
+			gen.SetPartition(&simulator.PartitionConfig{
+				Name:      bName,
+				Iteration: &branchResponder{},
+				Params: simulator.NewParams(map[string][]float64{
+					"threshold": {1.5}, "decay": {0.99}, "terms": {30},
+				}),
+				ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{"driver": {Upstream: aName}},
+				InitStateValues:    make([]float64, width), StateHistoryDepth: 1, Seed: uint64(2*s + 2),
+			})
+		}
+		gen.SetSimulation(&simulator.SimulationConfig{
+			OutputCondition:      &simulator.EveryStepOutputCondition{},
+			OutputFunction:       &simulator.NilOutputFunction{},
+			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+			TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 0.01},
+			ExecutionStrategy:    strategy,
+		})
+		return gen
+	}
+}
+
+// benchmarkBranchCoupled runs the threshold-triggered branching-coupled system through
+// the execution-model matrix — the case where the coupling is hard to vectorize.
+func benchmarkBranchCoupled() []processResult {
+	const totalPaths, steps, repeats = 10000, 2000, 3
+	nc := runtime.NumCPU()
+	width := totalPaths / nc
+	configs := []struct {
+		name             string
+		gen              func() *simulator.ConfigGenerator
+		members, maxConc int
+	}{
+		{"single wide inline (1 core)",
+			branchCoupledGen(1, totalPaths, steps, &simulator.InlineExecution{}), 1, 1},
+		{"one sim, N systems, spawn-per-step",
+			branchCoupledGen(nc, width, steps, &simulator.SpawnPerStepExecution{}), 1, 1},
+		{"one sim, N systems, inline (serial)",
+			branchCoupledGen(nc, width, steps, &simulator.InlineExecution{}), 1, 1},
+		{"ensemble, N inline systems (all cores)",
+			branchCoupledGen(1, width, steps, &simulator.InlineExecution{}), nc, nc},
+	}
+	seconds := map[string]float64{}
+	for _, c := range configs {
+		runProcessEnsemble(c.gen, c.members, c.maxConc) // warm
+		best := time.Duration(1 << 62)
+		for r := 0; r < repeats; r++ {
+			if d := runProcessEnsemble(c.gen, c.members, c.maxConc); d < best {
+				best = d
+			}
+		}
+		seconds[c.name] = best.Seconds()
+		fmt.Printf("  %-42s %.3fs\n", c.name, best.Seconds())
+	}
+	return []processResult{{Process: "branch_coupled", TotalPaths: totalPaths, Steps: steps, Seconds: seconds}}
+}
+
 func writeJSON(name string, v any) {
 	dir := "benchmarks/results"
 	if _, err := os.Stat("results"); err == nil {
@@ -489,6 +603,8 @@ func main() {
 	procs := benchmarkProcesses()
 	fmt.Println("coupled OU-chain across execution models (engine's home turf):")
 	coupled := benchmarkCoupled()
+	fmt.Println("branching-coupled (hard to vectorize) across execution models:")
+	branch := benchmarkBranchCoupled()
 
 	writeJSON("meta.json", meta)
 	writeJSON("ensemble_scaling.json", scaling)
@@ -496,5 +612,6 @@ func main() {
 	writeJSON("vectorized_ops_go.json", ops)
 	writeJSON("processes_go.json", procs)
 	writeJSON("coupled_go.json", coupled)
+	writeJSON("branch_coupled_go.json", branch)
 	fmt.Println("wrote benchmarks/results/*.json")
 }

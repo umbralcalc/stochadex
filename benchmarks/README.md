@@ -122,8 +122,37 @@ server this curve would be higher; on this laptop it is memory-bound.
 
 The honest reading: for a *linearly*-coupled system NumPy is a fine tool and stochadex's edge
 is expressiveness (declarative wiring) rather than raw speed. stochadex's speed advantage
-shows where the coupling is hard to vectorize, or on hardware whose cores it can actually
-fill — not on a linear chain on a 4-performance-core laptop.
+shows where the coupling is hard to vectorize — which is next.
+
+### 3c. Branching-coupled — hard to vectorize, where the engine wins
+
+Now the coupling has a **per-path conditional**: an OU driver, and a responder that does
+expensive work (a sum of 30 gamma draws) **only when the driver crosses a threshold** (~7%
+of path-steps). This is what SIMD-over-paths cannot do cleanly — it must either compute the
+expensive branch for *every* path and discard ~93%, or gather the few triggered paths with
+non-obvious index juggling. A scalar per-path `if` just takes the branch.
+
+![branching-coupled](plots/branch_coupled.svg)
+
+| implementation | coupled system (s) |
+|---|---|
+| NumPy — idiomatic (mask: compute every path, select) | 5.598 |
+| NumPy — optimized (gather only triggered paths) | 0.466 |
+| stochadex — single wide inline (1 core) | 0.896 |
+| stochadex — one sim, N systems, inline (1 core) | 0.351 |
+| stochadex — **ensemble, all cores** | **0.181** |
+
+**This is where the engine leads.** stochadex is **~31× faster than idiomatic NumPy**, and —
+the real point — **beats even the hand-optimized gather/scatter NumPy: 2.6× in parallel and
+1.3× even single-threaded**. A per-path branch costs nothing in a scalar loop; in NumPy it
+costs either wasted vectorized work (the idiomatic version) or gather/scatter overhead plus
+noticeably more complex code (the optimized version). And this is a *mild* branch — one rare
+condition, one kind of expensive work. Real coupled models (regime switches, thresholded
+dispatch, event cascades, mutually-exciting processes) branch far more, widening the gap.
+
+Together, 3b and 3c are the honest rule: **linearly-coupled → NumPy vectorizes it, ~parity;
+conditionally/branching-coupled → the engine's per-path model wins outright**, and that is
+where real decision-support models live.
 
 ## 4. Per-partition vector-op throughput vs NumPy — CPU-to-CPU parity (micro)
 

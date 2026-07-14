@@ -132,12 +132,44 @@ def plot_coupled():
     plt.close(fig)
 
 
+def plot_branch_coupled():
+    import numpy as np
+
+    go = load("branch_coupled_go.json")[0]["seconds"]
+    npv = load("branch_coupled_numpy.json")[0]
+    rows = [
+        ("NumPy — idiomatic (mask: compute every path)", npv["numpy_mask_seconds"], GREY),
+        ("NumPy — optimized (gather triggered paths)", npv["numpy_gather_seconds"], "#94a3b8"),
+        ("sx: single wide inline (1 core)", go["single wide inline (1 core)"], "#cfe0c3"),
+        ("sx: N systems, inline (1 core)", go["one sim, N systems, inline (serial)"], "#6b9457"),
+        ("sx: ensemble, all cores", go["ensemble, N inline systems (all cores)"], GREEN),
+    ]
+    labels = [r[0] for r in rows]
+    vals = [r[1] for r in rows]
+    colours = [r[2] for r in rows]
+    fig, ax = plt.subplots(figsize=(9.5, 4.2))
+    ax.barh(np.arange(len(vals)), vals, color=colours)
+    ax.set_yticks(np.arange(len(vals)))
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xscale("log")
+    ax.set_xlabel("seconds (log scale, lower is better)")
+    ax.set_title("Branching-coupled system (hard to vectorize) — 10,000 paths × 2,000 steps")
+    for i, v in enumerate(vals):
+        ax.text(v * 1.05, i, f"{v:.2f}s", va="center", fontsize=8)
+    ax.grid(True, axis="x", alpha=0.3, which="both")
+    fig.tight_layout()
+    fig.savefig(os.path.join(PLOTS, "branch_coupled.svg"))
+    plt.close(fig)
+
+
 def main():
     os.makedirs(PLOTS, exist_ok=True)
     plot_ensemble_scaling()
     plot_vectorized_ops()
     plot_processes()
     plot_coupled()
+    plot_branch_coupled()
     print("wrote", PLOTS, "*.svg")
 
 
