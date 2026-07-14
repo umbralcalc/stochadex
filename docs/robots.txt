@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://stochadex.github.io/sitemap.xml
