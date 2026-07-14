@@ -221,7 +221,7 @@ Structuring groups of [Iteration](http://stochadex.github.io/pkg/simulator.html#
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/inhomo-poisson-parallel-serial.svg" /></center>
 
-The single iteration above splits into two partitions: a stateless rate computation (Partition A) and a generic constant-rate Poisson sampler (Partition B) wired to A via params_from_upstream. The Poisson sampler no longer needs to know what the rate is; it just consumes whatever the upstream produces:
+The single iteration above splits into two partitions: a stateless rate computation (Partition A) and a generic constant-rate Poisson sampler (Partition B) wired to A via `params_from_upstream`. The Poisson sampler no longer needs to know what the rate is; it just consumes whatever the upstream produces:
 
 ```yaml
 # rate_function: produces λ(t) into its single state slot per step.
