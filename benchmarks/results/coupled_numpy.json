@@ -3,6 +3,6 @@
     "process": "coupled_ou_chain_len4",
     "total_paths": 10000,
     "steps": 2000,
-    "numpy_seconds": 0.3821202909994099
+    "numpy_seconds": 0.38080495900067035
   }
 ]

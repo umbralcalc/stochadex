@@ -100,26 +100,30 @@ version must hand-order the same cross-dependencies (the four updates cannot be 
 
 | execution model | coupled chain (s) | vs NumPy |
 |---|---|---|
-| NumPy — 1 thread | 0.382 | — |
-| stochadex: ensemble, all cores | 0.361 | 1.06× |
-| stochadex: one sim, N chains, inline (1 core) | 0.577 | 0.66× |
-| stochadex: one sim, N chains, spawn / persistent | ~0.57 | ~0.67× |
-| stochadex: 1 wide inline chain (1 core) | 1.556 | 0.25× |
+| NumPy — 1 thread | 0.381 | — |
+| stochadex: ensemble, all cores | 0.362 | 1.05× |
+| stochadex: one sim, N chains, inline (1 core) | 0.567 | 0.67× |
+| stochadex: one sim, N chains, spawn / persistent | ~0.56 | ~0.68× |
+| stochadex: 1 wide inline chain (1 core) | 1.543 | 0.25× |
 
-**Honest result, and a benchmark doing its job.** On a *linearly*-coupled chain, NumPy
-vectorizes the coupling fine (it is just sequential array reads), so stochadex is only ~at
-parity even using every core — and, tellingly, the coupled **ensemble parallelises poorly
-(~1.6×, vs ~3× for independent processes)**.
+**Honest result.** On a *linearly*-coupled chain, NumPy vectorizes the coupling fine (it is
+just sequential array reads), so stochadex is only ~at parity even using every core, and the
+coupled ensemble scales ~1.5× (0.567 s single-core → 0.362 s all cores).
 
-The cause is measurable, not fundamental: under inline execution, forwarding an upstream's
-output into a downstream's params allocates and copies the full state vector **every step,
-per coupled edge** (`UpdateUpstreamParamsInline`: `append([]float64(nil), values…)`). For
-this chain that is ~60M short-lived slice allocations, whose GC churn throttles the parallel
-ensemble. The copy is intentional (a downstream must not mutate the producer's buffer) but
-it need not *allocate* — reusing a per-edge buffer (the same copy-on-retain fix already
-applied to the `NextValues` write path) would remove it. That is exactly the
-allocation-at-the-boundary work Phase 2.3 targets; until then, this is a documented, honest
-bottleneck rather than a claimed win.
+That poor scaling is **hardware-bound on this machine, not an engine defect** — and the
+benchmark was used to establish that rather than to guess. On this Apple M4, even the
+*independent* processes above scale only ~2.4–3.1× (10 cores, but 4 performance + 6 slower
+efficiency cores, on shared memory bandwidth); the heavier coupled members (4 components +
+the cross-reads per step) hit the bandwidth wall sooner, hence ~1.5×. A first hypothesis —
+that per-step `ParamsFromUpstream` copying (`append([]float64(nil), values…)`) was the cause
+— was **tested and rejected**: reusing a per-edge buffer changed neither the allocation count
+nor the wall-clock, so that copy is not the bottleneck here. On a homogeneous many-core
+server this curve would be higher; on this laptop it is memory-bound.
+
+The honest reading: for a *linearly*-coupled system NumPy is a fine tool and stochadex's edge
+is expressiveness (declarative wiring) rather than raw speed. stochadex's speed advantage
+shows where the coupling is hard to vectorize, or on hardware whose cores it can actually
+fill — not on a linear chain on a 4-performance-core laptop.
 
 ## 4. Per-partition vector-op throughput vs NumPy — CPU-to-CPU parity (micro)
 
