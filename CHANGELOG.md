@@ -23,6 +23,9 @@ an exact version rather than assume stability across minors.
 ## [Unreleased]
 
 ### Added
+- **"When to use it" on the docs frontpage** — a short, defensible positioning section:
+  the combination stochadex uniquely offers in Go, and links ceding the ground it doesn't
+  hold (Stan/PyMC/SciML, `godes`, gonum, Python for neural-net training).
 - **Frontpage status badges.** Version (from the latest git tag), CI status, and test
   coverage badges on the docs frontpage. Coverage is published to Codecov from CI
   (`go test -coverprofile` → `codecov/codecov-action`); version and CI use shields.io.

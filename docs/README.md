@@ -15,6 +15,15 @@ For software engineers, the stochadex simulation framework abstracts away many o
 
 This simulation engine is designed based on the simulation software fundamentals described in [this collection of blog posts](https://umbralcalc.github.io/posts/simulating_real_world_systems_as_a_programmer_introduction.html).
 
+## When to use it
+
+stochadex fits when you're in [Go](https://go.dev/) and want stochastic simulation, online Bayesian inference, and simulation-based decision-making (MCTS) together over one composable primitive and a single deployable binary — a combination no other Go library offers. Reach for something else when:
+
+- **Large fixed-shape, GPU, or autodiff-heavy Bayesian modelling** → [Stan](https://mc-stan.org/), [PyMC](https://www.pymc.io/), or Julia's [SciML](https://sciml.ai/).
+- **Pure discrete-event simulation** (entities through queues and servers) → [godes](https://github.com/agoussia/godes).
+- **Plain numerics or classical ML in Go** → [gonum](https://github.com/gonum/gonum), which stochadex is built on.
+- **Training neural networks or deep RL** → train in Python, then import a frozen ONNX/TorchScript model to run inference behind an `Iteration`.
+
 ## Projects using the software
 
 - [Event-based rugby match simulations to evaluate manager decision-making](https://github.com/umbralcalc/trywizard)
