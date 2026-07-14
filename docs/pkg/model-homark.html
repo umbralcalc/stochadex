@@ -635,6 +635,7 @@
         <li><a href="../index.html">Home</a></li>
         <li><a href="../pkg/quickstart.html">Quickstart</a></li>
         <li><a href="../pkg/how_it_works.html">How it works</a></li>
+        <li><a href="../pkg/model_index.html">Cross-model index</a></li>
       </ul>
     </details>
 
@@ -919,7 +920,9 @@
       <p>The <strong>expected-behaviour suite</strong> (<a
       href="https://github.com/umbralcalc/stochadex/blob/main/models/homark/behaviour_test.go"><code>behaviour_test.go</code></a>)
       makes the decision-readiness explicit — each subtest is a named,
-      plain-language response claim:</p>
+      plain-language response claim, with the observed number for each
+      emitted by the test run into the <strong>Observed
+      behaviour</strong> table below (never hand-typed):</p>
       <ul>
       <li><em>Decision-path responses (actionable planning levers):</em>
       more approvals improve affordability; a lower market-delivery
@@ -940,6 +943,82 @@
       downstream; the stub exposes the underlying levers as swept
       params, so the actionable claims above are checked here while the
       scenario tooling stays out of the engine.</p>
+      <!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+      <h2 id="observed-behaviour">Observed behaviour</h2>
+      <p>Every row below is one <em>bound</em> object: a plain-language
+      response claim, the test subtest that enforces it, and the number
+      that test produced (ensemble values rounded to 2 dp). Nothing here
+      is hand-written — the claims and their numbers are emitted by
+      <code>TestHomarkExpectedBehaviour</code> (via
+      <code>go run ./cmd/model-graphs</code>), so a claim cannot drift
+      from its test or its result. If the model’s behaviour changes,
+      either the binding test fails (a claim’s assertion broke) or
+      <code>TestCardsUpToDate</code> fails (a number moved) — a broken
+      claim cannot reach the card silently.</p>
+      <div class="table-scroll"><table>
+      <colgroup>
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      </colgroup>
+      <thead>
+      <tr>
+      <th>Response claim</th>
+      <th>Enforced by</th>
+      <th>Observed</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>Higher planning approvals improve affordability (headline
+      supply lever)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/homark/behaviour_test.go"><code>TestHomarkExpectedBehaviour/higher_approval_rate_improves_affordability</code></a></td>
+      <td>ensemble-mean final price-to-earnings ratio — approvals=60
+      8.38 · approvals=240 6.57</td>
+      </tr>
+      <tr>
+      <td>A lower market-facing delivery fraction worsens
+      affordability</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/homark/behaviour_test.go"><code>TestHomarkExpectedBehaviour/lower_market_delivery_fraction_worsens_affordability</code></a></td>
+      <td>ensemble-mean final price-to-earnings ratio —
+      market_fraction=1.0 7.94 · market_fraction=0.3 8.76</td>
+      </tr>
+      <tr>
+      <td>A higher policy rate cools the market and lowers
+      price-to-earnings</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/homark/behaviour_test.go"><code>TestHomarkExpectedBehaviour/higher_policy_rate_lowers_price_to_earnings</code></a></td>
+      <td>ensemble-mean final price-to-earnings ratio — μ=3% 7.94 · μ=6%
+      7.44</td>
+      </tr>
+      <tr>
+      <td>Stronger demand pressure raises price-to-earnings</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/homark/behaviour_test.go"><code>TestHomarkExpectedBehaviour/stronger_demand_pressure_raises_price_to_earnings</code></a></td>
+      <td>ensemble-mean final price-to-earnings ratio — demand_beta=0
+      7.94 · demand_beta=0.03 13.58</td>
+      </tr>
+      <tr>
+      <td>Faster earnings growth improves affordability (income
+      denominator)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/homark/behaviour_test.go"><code>TestHomarkExpectedBehaviour/higher_earnings_growth_improves_affordability</code></a></td>
+      <td>ensemble-mean final price-to-earnings ratio — drift=0.0025
+      7.94 · drift=0.006 5.24</td>
+      </tr>
+      <tr>
+      <td>A faster pipeline completion rate lowers the mean pipeline
+      stock</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/homark/behaviour_test.go"><code>TestHomarkExpectedBehaviour/faster_pipeline_completion_lowers_pipeline_stock</code></a></td>
+      <td>ensemble-mean pipeline stock (units) — completion_rate=0.15
+      587.12 · completion_rate=0.30 319.35</td>
+      </tr>
+      </tbody>
+      </table></div>
+      <!-- END generated: observed-behaviour -->
       <h2 id="bespoke-extensions-staged-beside-the-stub">Bespoke
       extensions (staged beside the stub)</h2>
       <p><code>StochasticPipelineIteration</code> (<a

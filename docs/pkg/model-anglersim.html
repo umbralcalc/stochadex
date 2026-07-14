@@ -635,6 +635,7 @@
         <li><a href="../index.html">Home</a></li>
         <li><a href="../pkg/quickstart.html">Quickstart</a></li>
         <li><a href="../pkg/how_it_works.html">How it works</a></li>
+        <li><a href="../pkg/model_index.html">Cross-model index</a></li>
       </ul>
     </details>
 
@@ -861,23 +862,25 @@
       finite (no NaN / ±Inf divergence).</li>
       <li><strong>Correct direction of parameter response</strong> —
       raising the <code>warming_trend</code> lowers the ensemble-mean
-      final log-density. (Observed: mean final logN −0.297 → −0.375 →
-      −0.460 for warming 0.00 → 0.04 → 0.08 °C/yr, a 16-member ensemble
-      averaged over the final 20 years.) A stub that merely “runs” would
-      not catch an inverted climate response.</li>
+      final log-density (the observed warming sweep is the first row of
+      the generated <strong>Observed behaviour</strong> table below). A
+      stub that merely “runs” would not catch an inverted climate
+      response.</li>
       </ol>
       <p>The <strong>expected-behaviour suite</strong> (<a
       href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>behaviour_test.go</code></a>)
       adds named, plain-language response claims, covering both kinds of
-      lever:</p>
+      lever. The observed number for every claim is emitted by the test
+      run and generated into the <strong>Observed behaviour</strong>
+      table below — never hand-typed, so it cannot drift from the
+      code:</p>
       <ul>
       <li><strong>Decision-path (actionable habitat / water
       management).</strong> Higher river flow (reduced abstraction)
       raises density; drought (lower flow) reduces it; a
       dissolved-oxygen improvement (pollution reduction) raises it.
       These map to the downstream scenario levers (abstraction / drought
-      / water-quality). (Observed at a 60-year horizon: base −0.29; flow
-      0.5→1.0 m³/s → −0.23; DO 9→12 mg/l → −0.11.)</li>
+      / water-quality).</li>
       <li><strong>Structural drivers (the world sets).</strong> Warming
       reduces density (<code>β_temp&lt;0</code>); higher intrinsic
       growth raises it; stronger density dependence lowers it; higher
@@ -885,6 +888,92 @@
       (γ&gt;0) slows recovery from low density relative to the standard
       Ricker — the mechanism behind a minimum viable population.</li>
       </ul>
+      <!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+      <h2 id="observed-behaviour">Observed behaviour</h2>
+      <p>Every row below is one <em>bound</em> object: a plain-language
+      response claim, the test subtest that enforces it, and the number
+      that test produced (ensemble values rounded to 2 dp). Nothing here
+      is hand-written — the claims and their numbers are emitted by
+      <code>TestAnglersimExpectedBehaviour</code> (via
+      <code>go run ./cmd/model-graphs</code>), so a claim cannot drift
+      from its test or its result. If the model’s behaviour changes,
+      either the binding test fails (a claim’s assertion broke) or
+      <code>TestCardsUpToDate</code> fails (a number moved) — a broken
+      claim cannot reach the card silently.</p>
+      <div class="table-scroll"><table>
+      <colgroup>
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      </colgroup>
+      <thead>
+      <tr>
+      <th>Response claim</th>
+      <th>Enforced by</th>
+      <th>Observed</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>Climate warming reduces density</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>TestAnglersimExpectedBehaviour/climate_warming_reduces_density</code></a></td>
+      <td>ensemble-mean final log-density — +0.00 °C/yr -0.26 · +0.04
+      -0.34 · +0.08 -0.42</td>
+      </tr>
+      <tr>
+      <td>Higher river flow (reduced abstraction) raises density</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>TestAnglersimExpectedBehaviour/reduced_abstraction_higher_flow_raises_density</code></a></td>
+      <td>ensemble-mean final log-density — base flow -0.29 · flow ×2
+      -0.23</td>
+      </tr>
+      <tr>
+      <td>Drought (lower flow) reduces density</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>TestAnglersimExpectedBehaviour/drought_lower_flow_reduces_density</code></a></td>
+      <td>ensemble-mean final log-density — base flow -0.29 · flow ×0.25
+      -0.34</td>
+      </tr>
+      <tr>
+      <td>Higher dissolved oxygen (pollution reduction) raises
+      density</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>TestAnglersimExpectedBehaviour/water_quality_improvement_higher_dissolved_oxygen_raises_density</code></a></td>
+      <td>ensemble-mean final log-density — base DO -0.29 · DO +3 mg/l
+      -0.11</td>
+      </tr>
+      <tr>
+      <td>Higher intrinsic growth rate raises density</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>TestAnglersimExpectedBehaviour/higher_growth_rate_raises_density</code></a></td>
+      <td>ensemble-mean final log-density — base r0 -0.29 · r0=1.0
+      0.22</td>
+      </tr>
+      <tr>
+      <td>Stronger density dependence reduces density</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>TestAnglersimExpectedBehaviour/stronger_density_dependence_reduces_density</code></a></td>
+      <td>ensemble-mean final log-density — base α -0.29 · α=2.0
+      -0.98</td>
+      </tr>
+      <tr>
+      <td>Higher process noise widens the outcome distribution</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>TestAnglersimExpectedBehaviour/higher_process_noise_widens_density_distribution</code></a></td>
+      <td>ensemble std of final log-density — σ=0.05 0.08 · σ=0.6
+      0.60</td>
+      </tr>
+      <tr>
+      <td>The Allee effect slows recovery from low density</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/anglersim/behaviour_test.go"><code>TestAnglersimExpectedBehaviour/allee_effect_slows_recovery_from_low_density</code></a></td>
+      <td>ensemble-mean final log-density from a low start — standard
+      Ricker -2.00 · Allee γ=30 -5.75</td>
+      </tr>
+      </tbody>
+      </table></div>
+      <!-- END generated: observed-behaviour -->
       <h2 id="bespoke-extensions-staged-beside-the-stub">Bespoke
       extensions (staged beside the stub)</h2>
       <p><code>RickerIteration</code> (<a

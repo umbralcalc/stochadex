@@ -635,6 +635,7 @@
         <li><a href="../index.html">Home</a></li>
         <li><a href="../pkg/quickstart.html">Quickstart</a></li>
         <li><a href="../pkg/how_it_works.html">How it works</a></li>
+        <li><a href="../pkg/model_index.html">Cross-model index</a></li>
       </ul>
     </details>
 
@@ -958,16 +959,16 @@
       that trigger them. 3. <strong>Correct direction of parameter
       response</strong> — an earlier home substitution (minute 20 vs 70)
       raises the ensemble-mean home try count, averaged over a 24-member
-      ensemble. (Observed sweep over <code>homeSubMinute</code> 15 → 35
-      → 55 → 75, 200-run ensemble: home tries 6.08 → 5.37 → 4.64 → 4.01;
-      home score 47.6 → 42.5 → 37.4 → 32.9 against a flat away
-      35.8/36.0; home win probability 0.70 → 0.64 → 0.53 → 0.42. Away
-      scoring is flat because the away timing is held fixed — the
-      response is attributable to the home lever alone.)</p>
+      ensemble (the headline row of the generated <strong>Observed
+      behaviour</strong> table below). Away scoring is flat because the
+      away timing is held fixed — the response is attributable to the
+      home lever alone.</p>
       <p>The <strong>expected-behaviour suite</strong> (<a
       href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>behaviour_test.go</code></a>)
       makes the decision-readiness explicit — each subtest is a named,
-      plain-language response claim:</p>
+      plain-language response claim, with the observed number for each
+      emitted by the test run into the <strong>Observed
+      behaviour</strong> table below (never hand-typed):</p>
       <ul>
       <li><em>Decision-path responses (actionable levers a coach /
       analyst controls):</em> an earlier home substitution raises the
@@ -989,6 +990,96 @@
       covariate effect size, the home edge, and the card process — none
       of which the stub was tuned against.</li>
       </ul>
+      <!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+      <h2 id="observed-behaviour">Observed behaviour</h2>
+      <p>Every row below is one <em>bound</em> object: a plain-language
+      response claim, the test subtest that enforces it, and the number
+      that test produced (ensemble values rounded to 2 dp). Nothing here
+      is hand-written — the claims and their numbers are emitted by
+      <code>TestRugbyExpectedBehaviour</code> (via
+      <code>go run ./cmd/model-graphs</code>), so a claim cannot drift
+      from its test or its result. If the model’s behaviour changes,
+      either the binding test fails (a claim’s assertion broke) or
+      <code>TestCardsUpToDate</code> fails (a number moved) — a broken
+      claim cannot reach the card silently.</p>
+      <div class="table-scroll"><table>
+      <colgroup>
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      </colgroup>
+      <thead>
+      <tr>
+      <th>Response claim</th>
+      <th>Enforced by</th>
+      <th>Observed</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>Earlier home substitution raises home tries (headline
+      driver)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/earlier_home_substitution_raises_home_tries</code></a></td>
+      <td>ensemble-mean home tries — sub min 70 (late) 4.62 · sub min 20
+      (early) 6.29</td>
+      </tr>
+      <tr>
+      <td>Earlier home substitution raises home win probability</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/earlier_home_substitution_raises_home_win_probability</code></a></td>
+      <td>home win probability — sub min 65 (late) 0.48 · sub min 15
+      (early) 0.70</td>
+      </tr>
+      <tr>
+      <td>Substituting more position groups raises home tries</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/substituting_more_position_groups_raises_home_tries</code></a></td>
+      <td>ensemble-mean home tries — 1 group 4.90 · 4 groups 6.43</td>
+      </tr>
+      <tr>
+      <td>Earlier away substitution raises away tries</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/earlier_away_substitution_raises_away_tries</code></a></td>
+      <td>ensemble-mean away tries — sub min 70 (late) 3.70 · sub min 20
+      (early) 5.33</td>
+      </tr>
+      <tr>
+      <td>Higher home try intercept raises home tries</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/higher_try_intercept_raises_home_tries</code></a></td>
+      <td>ensemble-mean home tries — intercept -3.0 5.12 · intercept
+      -2.5 7.92</td>
+      </tr>
+      <tr>
+      <td>Higher conversion probability raises home score</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/higher_conversion_probability_raises_home_score</code></a></td>
+      <td>ensemble-mean home score — p=0.75 40.46 · p=0.98 42.96</td>
+      </tr>
+      <tr>
+      <td>Stronger per-group substitution effect raises home tries</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/stronger_substitution_effect_raises_home_tries</code></a></td>
+      <td>ensemble-mean home tries — β=0.15 6.43 · β=0.40 13.17</td>
+      </tr>
+      <tr>
+      <td>Home-advantage intercept makes home outscore away under
+      symmetric subs</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/home_advantage_intercept_makes_home_outscore_away</code></a></td>
+      <td>ensemble-mean tries — away tries 4.42 · home tries 5.20</td>
+      </tr>
+      <tr>
+      <td>Higher yellow-card intercept raises cards</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/trywizard/behaviour_test.go"><code>TestRugbyExpectedBehaviour/higher_yellow_card_intercept_raises_cards</code></a></td>
+      <td>ensemble-mean home yellow cards — intercept -4.5 0.70 ·
+      intercept -3.3 2.80</td>
+      </tr>
+      </tbody>
+      </table></div>
+      <!-- END generated: observed-behaviour -->
       <h2 id="bespoke-extensions-staged-beside-the-stub">Bespoke
       extensions (staged beside the stub)</h2>
       <p><code>ScoreEventRateFunction</code> /

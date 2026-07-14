@@ -635,6 +635,7 @@
         <li><a href="../index.html">Home</a></li>
         <li><a href="../pkg/quickstart.html">Quickstart</a></li>
         <li><a href="../pkg/how_it_works.html">How it works</a></li>
+        <li><a href="../pkg/model_index.html">Cross-model index</a></li>
       </ul>
     </details>
 
@@ -1013,22 +1014,18 @@
       saved are non-negative and monotonically non-decreasing; carbon
       intensity stays non-negative. 3. <strong>Correct direction of
       parameter response (both policies)</strong> — raising
-      <code>renewablePenetration</code> from 0.2 to 1.0 raises the
-      ensemble-mean cumulative EFC for the price policy <em>and</em> the
-      carbon policy. (Observed sweep for penetration 0.0 → 0.2 → 0.5 →
-      0.7 → 1.0: price-policy EFC 0.03 → 0.52 → 2.47 → 3.54 → 4.93;
-      carbon-policy EFC 0.00 → 0.05 → 0.82 → 1.73 → 3.37; price-policy
-      revenue −£68 → £1.0k → £6.3k → £9.9k → £16.0k — the slight loss at
-      zero volatility is round-trip efficiency with no arbitrage to
-      capture; carbon-policy CO₂ saved 0 → 3.9 → 40.7 → 84.1 → 155.4
-      tCO₂. The carbon policy cycles less than the price policy at every
-      penetration, reproducing its greater selectivity.) Averaged over a
-      12-member ensemble so the claim is about the distribution, not one
-      noisy realisation.</p>
+      <code>renewablePenetration</code> raises the ensemble-mean
+      cumulative EFC for the price policy <em>and</em> the carbon policy
+      (the observed penetration sweep is the first row of the generated
+      <strong>Observed behaviour</strong> table below). Averaged over an
+      ensemble so the claim is about the distribution, not one noisy
+      realisation.</p>
       <p>The <strong>expected-behaviour suite</strong> (<a
       href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>behaviour_test.go</code></a>)
       makes the decision-readiness explicit — each subtest is a named,
-      plain-language response claim:</p>
+      plain-language response claim, with the observed number for each
+      emitted by the test run into the <strong>Observed
+      behaviour</strong> table below (never hand-typed):</p>
       <ul>
       <li><em>Decision-path responses (actionable levers a downstream
       controls):</em> a higher discharge threshold reduces price-policy
@@ -1050,6 +1047,102 @@
       overriding one chain’s threshold leaked into later runs. The fix
       (fresh per-call specs) is exactly the kind of defect the suite
       exists to catch.</p>
+      <!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+      <h2 id="observed-behaviour">Observed behaviour</h2>
+      <p>Every row below is one <em>bound</em> object: a plain-language
+      response claim, the test subtest that enforces it, and the number
+      that test produced (ensemble values rounded to 2 dp). Nothing here
+      is hand-written — the claims and their numbers are emitted by
+      <code>TestEnergyBalancerExpectedBehaviour</code> (via
+      <code>go run ./cmd/model-graphs</code>), so a claim cannot drift
+      from its test or its result. If the model’s behaviour changes,
+      either the binding test fails (a claim’s assertion broke) or
+      <code>TestCardsUpToDate</code> fails (a number moved) — a broken
+      claim cannot reach the card silently.</p>
+      <div class="table-scroll"><table>
+      <colgroup>
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      </colgroup>
+      <thead>
+      <tr>
+      <th>Response claim</th>
+      <th>Enforced by</th>
+      <th>Observed</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>Higher renewable penetration raises battery cycling (headline
+      driver)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/higher_renewable_penetration_raises_cycling</code></a></td>
+      <td>ensemble-mean cumulative EFC — pen 0.0 0.02 · 0.5 0.95 · 1.0
+      2.52</td>
+      </tr>
+      <tr>
+      <td>Higher discharge threshold reduces price-policy cycling</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/higher_discharge_threshold_reduces_price_cycling</code></a></td>
+      <td>ensemble-mean cumulative EFC — base 1.24 · price_high=£60
+      0.24</td>
+      </tr>
+      <tr>
+      <td>Larger battery capacity lowers the cycle count</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/larger_battery_capacity_lowers_cycle_count</code></a></td>
+      <td>ensemble-mean cumulative EFC — base 1.24 · 400 MWh 0.80</td>
+      </tr>
+      <tr>
+      <td>A persistently expensive market drains the battery (net
+      seller) for positive revenue</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/persistently_expensive_market_makes_battery_net_seller</code></a></td>
+      <td>one expensive-market run (seed 42) — final SoC (MWh) 20.00 ·
+      revenue (£) 3476.94 (asserts final SoC (MWh) &lt; initial SoC,
+      revenue (£) &gt; £0)</td>
+      </tr>
+      <tr>
+      <td>A persistently cheap market fills the battery (net buyer) at a
+      cost</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/persistently_cheap_market_makes_battery_net_buyer</code></a></td>
+      <td>one cheap-market run (seed 42) — final SoC (MWh) 180.00 ·
+      revenue (£) -2033.69 (asserts final SoC (MWh) &gt; initial SoC,
+      revenue (£) &lt; £0)</td>
+      </tr>
+      <tr>
+      <td>Lower round-trip efficiency reduces revenue</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/lower_round_trip_efficiency_reduces_revenue</code></a></td>
+      <td>ensemble-mean price-policy revenue (£) — base 3047.35 · η=0.75
+      -405.32</td>
+      </tr>
+      <tr>
+      <td>Higher price noise raises cycling</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/higher_price_noise_raises_cycling</code></a></td>
+      <td>ensemble-mean cumulative EFC — base 1.24 · σ=15 3.19</td>
+      </tr>
+      <tr>
+      <td>Steeper price sensitivity (mean held) raises cycling</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/steeper_price_sensitivity_raises_cycling</code></a></td>
+      <td>ensemble-mean cumulative EFC — base 1.24 · slope=0.004
+      3.38</td>
+      </tr>
+      <tr>
+      <td>Steeper carbon sensitivity (mean held) raises carbon-policy
+      cycling</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/energy-balancer/behaviour_test.go"><code>TestEnergyBalancerExpectedBehaviour/higher_carbon_sensitivity_raises_carbon_cycling</code></a></td>
+      <td>ensemble-mean carbon-policy cumulative EFC — base 0.55 ·
+      slope=0.020 2.13</td>
+      </tr>
+      </tbody>
+      </table></div>
+      <!-- END generated: observed-behaviour -->
       <h2 id="bespoke-extensions-staged-beside-the-stub">Bespoke
       extensions (staged beside the stub)</h2>
       <p><code>ImbalancePriceIteration</code> (<a
