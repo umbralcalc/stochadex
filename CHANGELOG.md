@@ -29,6 +29,7 @@ an exact version rather than assume stability across minors.
   (Superseded the short-lived self-hosted-SVG badge approach.)
 
 ### Changed
+- Renamed the generated "Cross-model index" page to **"Domain model index"** (heading, docs nav, and page title).
 - **Docs pipeline reliability.** CI now explicitly requests a GitHub Pages build after
   force-pushing `gh-pages` — a force-push doesn't reliably auto-trigger a Pages
   redeploy (and rapid successive publishes get throttled), which could leave the live
