@@ -635,6 +635,7 @@
         <li><a href="../index.html">Home</a></li>
         <li><a href="../pkg/quickstart.html">Quickstart</a></li>
         <li><a href="../pkg/how_it_works.html">How it works</a></li>
+        <li><a href="../pkg/model_index.html">Cross-model index</a></li>
       </ul>
     </details>
 
@@ -901,16 +902,18 @@
       — a supportive hazard multiplier (<code>hazardScale = 0.85</code>)
       yields a higher back-half register stock than an adverse one
       (<code>1.15</code>), averaged over an 8-member stochastic
-      ensemble. (Deterministic back-half stock over the sweep
-      <code>hazardScale</code> 0.80 → 0.90 → 1.00 → 1.10 → 1.20: 1493 →
-      1418 → 1348 → 1285 → 1226 — monotone. The isolated five-year
-      cohort survival over 0.80 → 1.00 → 1.20: 0.4657 → 0.3840 → 0.3164,
-      with the baseline exactly matching the ONS ≈0.384 benchmark.)</p>
+      ensemble. The baseline isolated five-year cohort survival
+      reproduces the ONS ≈0.384 benchmark by construction.</p>
       <p>The <strong>expected-behaviour suite</strong> (<a
       href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>behaviour_test.go</code></a>)
       makes the decision-readiness explicit — each subtest is a named,
       plain-language response claim, run in deterministic mean-field
-      mode so each signed effect is exact:</p>
+      mode so each signed effect is exact. The full set of claims, with
+      the exact numbers each run produces, is emitted by the suite
+      itself and rendered in the <strong>Observed behaviour</strong>
+      table below — none of those numbers are hand-typed, so a claim’s
+      result can never drift from the assertion that enforces it. The
+      claims split into:</p>
       <ul>
       <li><em>Decision-path responses (actionable support levers a
       downstream controls):</em> a lower death-hazard scale raises
@@ -933,6 +936,120 @@
       demography, both macro channels, the distress channel, and sector
       heterogeneity — the model was not tuned against.</li>
       </ul>
+      <!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+      <h2 id="observed-behaviour">Observed behaviour</h2>
+      <p>Every row below is one <em>bound</em> object: a plain-language
+      response claim, the test subtest that enforces it, and the number
+      that test produced (ensemble values rounded to 2 dp). Nothing here
+      is hand-written — the claims and their numbers are emitted by
+      <code>TestBusinessSurvivalExpectedBehaviour</code> (via
+      <code>go run ./cmd/model-graphs</code>), so a claim cannot drift
+      from its test or its result. If the model’s behaviour changes,
+      either the binding test fails (a claim’s assertion broke) or
+      <code>TestCardsUpToDate</code> fails (a number moved) — a broken
+      claim cannot reach the card silently.</p>
+      <div class="table-scroll"><table>
+      <colgroup>
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      </colgroup>
+      <thead>
+      <tr>
+      <th>Response claim</th>
+      <th>Enforced by</th>
+      <th>Observed</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>A lower support-policy exit-hazard scale raises five-year
+      cohort survival</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/lower_death_hazard_scale_raises_five_year_cohort_survival</code></a></td>
+      <td>five-year cohort survival fraction — adverse (scale=1.15) 0.33
+      · supported (scale=0.85) 0.44</td>
+      </tr>
+      <tr>
+      <td>Formation support (higher birth scale) raises register
+      stock</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/higher_formation_support_raises_register_stock</code></a></td>
+      <td>deterministic back-half register stock — base 1348.24 ·
+      policy_birth_scale=1.2 1617.88</td>
+      </tr>
+      <tr>
+      <td>First-year (infant) hazard relief raises cohort survival</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/lower_infant_hazard_support_raises_cohort_survival</code></a></td>
+      <td>five-year cohort survival fraction — infant scale=1.7 0.38 ·
+      infant scale=0.3 0.39</td>
+      </tr>
+      <tr>
+      <td>A sector-targeted formation subsidy raises that sector’s stock
+      (Technology)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/targeted_sector_formation_support_raises_that_sector_stock</code></a></td>
+      <td>deterministic back-half sector stock — base 149.80 ·
+      Technology birth scale=1.5 224.71</td>
+      </tr>
+      <tr>
+      <td>Sector-targeted hazard relief raises that sector’s stock
+      (Hospitality)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/targeted_sector_hazard_relief_raises_that_sector_stock</code></a></td>
+      <td>deterministic back-half sector stock — base 199.74 ·
+      Hospitality hazard scale=0.8 221.25</td>
+      </tr>
+      <tr>
+      <td>A worse baseline ONS survival curve lowers register stock</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/worse_baseline_survival_curve_lowers_stock</code></a></td>
+      <td>deterministic back-half register stock — base curve 1348.24 ·
+      survival ×0.9 1230.40</td>
+      </tr>
+      <tr>
+      <td>A higher Bank Rate (negative birth elasticity) suppresses
+      formation</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/higher_bank_rate_suppresses_formation</code></a></td>
+      <td>deterministic back-half register stock — Bank Rate 0.5%
+      1348.24 · Bank Rate 3.0% 386.28</td>
+      </tr>
+      <tr>
+      <td>A higher claimant count (negative birth elasticity) suppresses
+      formation</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/higher_claimant_count_suppresses_formation</code></a></td>
+      <td>deterministic back-half register stock — claimants 12k 1348.24
+      · claimants 24k 1021.77</td>
+      </tr>
+      <tr>
+      <td>A higher Bank Rate (positive death elasticity) raises exit
+      hazards and lowers cohort survival</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/higher_bank_rate_raises_exit_hazard_and_lowers_survival</code></a></td>
+      <td>five-year cohort survival fraction — Bank Rate 0.5% 0.38 ·
+      Bank Rate 3.0% 0.03</td>
+      </tr>
+      <tr>
+      <td>A positive distress-hazard boost lowers cohort survival</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/distress_signal_lowers_cohort_survival</code></a></td>
+      <td>five-year cohort survival fraction — calm 0.38 · distress
+      boost +0.3 0.29</td>
+      </tr>
+      <tr>
+      <td>A higher structural sector baseline hazard lowers that
+      sector’s stock (Retail)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/business-survival/behaviour_test.go"><code>TestBusinessSurvivalExpectedBehaviour/higher_sector_baseline_hazard_lowers_that_sector_stock</code></a></td>
+      <td>deterministic back-half sector stock — base 249.67 · Retail
+      hazard scale=1.5 199.46</td>
+      </tr>
+      </tbody>
+      </table></div>
+      <!-- END generated: observed-behaviour -->
       <h2 id="bespoke-extensions-staged-beside-the-stub">Bespoke
       extensions (staged beside the stub)</h2>
       <p><code>SingleLAPopulationIteration</code> (<a

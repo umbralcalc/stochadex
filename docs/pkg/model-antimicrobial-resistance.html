@@ -635,6 +635,7 @@
         <li><a href="../index.html">Home</a></li>
         <li><a href="../pkg/quickstart.html">Quickstart</a></li>
         <li><a href="../pkg/how_it_works.html">How it works</a></li>
+        <li><a href="../pkg/model_index.html">Cross-model index</a></li>
       </ul>
     </details>
 
@@ -847,12 +848,14 @@ dR = [ turnover·(R_comm − R) + transmission·R·U + selection·ceph·S − fi
       <code>S + R ≤ 1</code> every step; BSI counts ≥ 0. 3.
       <strong>Correct direction of parameter response</strong> — raising
       <code>prescribing_rate</code> raises both the steady-state
-      resistant colonisation fraction and the total resistant BSI
-      burden. (Observed: resistant fraction 0.136 → 0.204 → 0.260 for
-      prescribing 0.02 → 0.3 → 0.8.)</p>
+      resistant colonisation fraction and the total resistant BSI burden
+      (the observed prescribing sweep is the first row of the generated
+      <strong>Observed behaviour</strong> table below).</p>
       <p>The <strong>expected-behaviour suite</strong> (<a
       href="https://github.com/umbralcalc/stochadex/blob/main/models/antimicrobial-resistance/behaviour_test.go"><code>behaviour_test.go</code></a>)
-      adds named, plain-language response claims:</p>
+      adds named, plain-language response claims, with the observed
+      number for each emitted by the test run into the <strong>Observed
+      behaviour</strong> table below (never hand-typed):</p>
       <ul>
       <li><em>Decision-path / mechanism (the actionable stewardship
       lever):</em> prescribing raises resistance <strong>only through
@@ -867,6 +870,74 @@ dR = [ turnover·(R_comm − R) + transmission·R·U + selection·ceph·S − fi
       raises the resistant BSI burden (the colonisation → infection
       outcome path).</li>
       </ul>
+      <!-- BEGIN generated: observed-behaviour (regenerate with `go run ./cmd/model-graphs`) -->
+      <h2 id="observed-behaviour">Observed behaviour</h2>
+      <p>Every row below is one <em>bound</em> object: a plain-language
+      response claim, the test subtest that enforces it, and the number
+      that test produced (ensemble values rounded to 2 dp). Nothing here
+      is hand-written — the claims and their numbers are emitted by
+      <code>TestAMRExpectedBehaviour</code> (via
+      <code>go run ./cmd/model-graphs</code>), so a claim cannot drift
+      from its test or its result. If the model’s behaviour changes,
+      either the binding test fails (a claim’s assertion broke) or
+      <code>TestCardsUpToDate</code> fails (a number moved) — a broken
+      claim cannot reach the card silently.</p>
+      <div class="table-scroll"><table>
+      <colgroup>
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      <col style="width: 33%" />
+      </colgroup>
+      <thead>
+      <tr>
+      <th>Response claim</th>
+      <th>Enforced by</th>
+      <th>Observed</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+      <td>Higher cephalosporin prescribing raises resistance (headline
+      lever)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/antimicrobial-resistance/behaviour_test.go"><code>TestAMRExpectedBehaviour/prescribing_raises_resistance</code></a></td>
+      <td>ensemble-mean resistant fraction — rate 0.02 0.13 · 0.3 0.20 ·
+      0.8 0.25</td>
+      </tr>
+      <tr>
+      <td>Prescribing moves resistance only through selection (off: no
+      effect; on: it moves)</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/antimicrobial-resistance/behaviour_test.go"><code>TestAMRExpectedBehaviour/prescribing_acts_only_through_selection</code></a></td>
+      <td>resistant-fraction change over the 0.02→0.8 prescribing sweep
+      — selection off Δ 0.00 · selection on Δ 0.12 (asserts selection
+      off Δ &lt; 0.01)</td>
+      </tr>
+      <tr>
+      <td>Higher fitness cost of resistance lowers resistance</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/antimicrobial-resistance/behaviour_test.go"><code>TestAMRExpectedBehaviour/higher_fitness_cost_lowers_resistance</code></a></td>
+      <td>ensemble-mean resistant fraction — base 0.20 ·
+      fitness_cost=0.15 0.10</td>
+      </tr>
+      <tr>
+      <td>Higher within-hospital transmission raises total
+      colonisation</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/antimicrobial-resistance/behaviour_test.go"><code>TestAMRExpectedBehaviour/higher_transmission_raises_total_colonisation</code></a></td>
+      <td>ensemble-mean total colonised fraction (S+R) — base 0.35 ·
+      transmission_rate=0.09 0.49</td>
+      </tr>
+      <tr>
+      <td>Higher infection probability raises resistant BSI burden</td>
+      <td><a
+      href="https://github.com/umbralcalc/stochadex/blob/main/models/antimicrobial-resistance/behaviour_test.go"><code>TestAMRExpectedBehaviour/higher_infection_probability_raises_bsi</code></a></td>
+      <td>ensemble-mean total resistant BSI count — base 190.00 ·
+      infection_probability=0.03 587.50</td>
+      </tr>
+      </tbody>
+      </table></div>
+      <!-- END generated: observed-behaviour -->
       <h2 id="bespoke-extensions-staged-beside-the-stub">Bespoke
       extensions (staged beside the stub)</h2>
       <p><code>ColonisationDynamicsIteration</code> (<a
