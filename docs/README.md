@@ -17,14 +17,16 @@ This simulation engine is designed based on the simulation software fundamentals
 
 ## When to use it
 
-stochadex fits when you're in [Go](https://go.dev/) and want stochastic simulation, online Bayesian inference, and simulation-based decision-making (MCTS) together over one composable primitive and a single deployable binary — a combination no other Go library offers. Reach for something else when:
+The stochadex fits best when you're in [Go](https://go.dev/) and want stochastic simulation and online inference or simulation-based decision-making (like MCTS) together over one composable primitive and a single deployable binary. This is a combination no other Go library offers (to our knowledge).
+
+It's a powerful framework with tons of features, really generalisable abstractions and principled design. However, you should probably reach for something else when:
 
 - **Large fixed-shape, GPU, or autodiff-heavy Bayesian modelling** → [Stan](https://mc-stan.org/), [PyMC](https://www.pymc.io/), or Julia's [SciML](https://sciml.ai/).
 - **Pure discrete-event simulation** (entities through queues and servers) → [godes](https://github.com/agoussia/godes).
-- **Plain numerics or classical ML in Go** → [gonum](https://github.com/gonum/gonum), which stochadex is built on.
+- **Plain numerics or classical ML in Go** → [gonum](https://github.com/gonum/gonum), which the stochadex is built on.
 - **Training neural networks or deep RL** → train in Python, then import a frozen ONNX/TorchScript model to run inference behind an `Iteration`.
 
-## Projects using the software
+## Projects using it
 
 - [Event-based rugby match simulations to evaluate manager decision-making](https://github.com/umbralcalc/trywizard)
 - [Fish ecosystem simulations using environment data to evaluate sustanability policies](https://github.com/umbralcalc/anglersim)
