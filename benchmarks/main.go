@@ -629,6 +629,140 @@ func benchmarkTunedOU() []processResult {
 	return []processResult{{Process: "tuned_ou", TotalPaths: totalPaths, Steps: steps, Seconds: seconds}}
 }
 
+// tunedBranchResponder is the hand-optimized counterpart to branchResponder — identical
+// behaviour (decay each step; on a threshold crossing add a sum of `terms` Gamma(2,1)
+// draws), but it owns ONE math/rand/v2 generator and samples gamma inline via
+// Marsaglia–Tsang (the exact algorithm distuv.Gamma uses for alpha≥1/3), instead of
+// distuv.Gamma.Rand() which allocates a fresh rand wrapper on every one of the 30 draws
+// per triggered path. The Marsaglia–Tsang constants (d, c) are precomputed in Configure.
+// Pure-Go/WASM-clean. This is the branching-coupled analogue of tunedOUIteration.
+type tunedBranchResponder struct {
+	rng    *rand.Rand
+	gammaD float64 // Marsaglia–Tsang d = alpha - 1/3
+	gammaC float64 // 1 / (3·sqrt(d))
+	gammaB float64 // rate (Beta)
+}
+
+func (b *tunedBranchResponder) Configure(partitionIndex int, settings *simulator.Settings) {
+	seed := settings.Iterations[partitionIndex].Seed
+	b.rng = rand.New(rand.NewPCG(seed, seed))
+	const alpha, beta = 2.0, 1.0 // matches branchResponder's distuv.Gamma{Alpha:2, Beta:1}
+	b.gammaD = alpha - 1.0/3
+	b.gammaC = 1 / (3 * math.Sqrt(b.gammaD))
+	b.gammaB = beta
+}
+
+// gammaRand draws Gamma(alpha, rate=Beta) via Marsaglia–Tsang from the owned generator —
+// the same math as distuv.Gamma for alpha≥1, minus the per-call rand.New(Src) allocation.
+func (b *tunedBranchResponder) gammaRand() float64 {
+	for {
+		x := b.rng.NormFloat64()
+		v := 1 + x*b.gammaC
+		if v <= 0 {
+			continue
+		}
+		v = v * v * v
+		u := b.rng.Float64()
+		if u < 1.0-0.0331*(x*x)*(x*x) {
+			return b.gammaD * v / b.gammaB
+		}
+		if math.Log(u) < 0.5*x*x+b.gammaD*(1-v+math.Log(v)) {
+			return b.gammaD * v / b.gammaB
+		}
+	}
+}
+
+func (b *tunedBranchResponder) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	values := stateHistories[partitionIndex].GetNextStateRowToUpdate()
+	driver := params.Map["driver"]
+	threshold := params.GetIndex("threshold", 0)
+	decay := params.GetIndex("decay", 0)
+	terms := int(params.GetIndex("terms", 0))
+	for i := range values {
+		values[i] *= decay
+		if driver[i] > threshold {
+			sum := 0.0
+			for k := 0; k < terms; k++ {
+				sum += b.gammaRand()
+			}
+			values[i] += sum
+		}
+	}
+	return values
+}
+
+// branchCoupledGenTuned mirrors branchCoupledGen but wires the tuned iterations — a tuned
+// OU driver and a tunedBranchResponder — so the branching-coupled system can be timed with
+// both hot loops hand-optimized (still pure-Go).
+func branchCoupledGenTuned(numSystems, width, steps int, strategy simulator.ExecutionStrategy) func() *simulator.ConfigGenerator {
+	return func() *simulator.ConfigGenerator {
+		gen := simulator.NewConfigGenerator()
+		for s := 0; s < numSystems; s++ {
+			aName, bName := fmt.Sprintf("a%d", s), fmt.Sprintf("b%d", s)
+			gen.SetPartition(&simulator.PartitionConfig{
+				Name:      aName,
+				Iteration: &tunedOUIteration{},
+				Params: simulator.NewParams(map[string][]float64{
+					"thetas": fill(width, 0.5), "mus": fill(width, 0.0), "sigmas": fill(width, 1.0),
+				}),
+				InitStateValues: make([]float64, width), StateHistoryDepth: 1, Seed: uint64(2*s + 1),
+			})
+			gen.SetPartition(&simulator.PartitionConfig{
+				Name:      bName,
+				Iteration: &tunedBranchResponder{},
+				Params: simulator.NewParams(map[string][]float64{
+					"threshold": {1.5}, "decay": {0.99}, "terms": {30},
+				}),
+				ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{"driver": {Upstream: aName}},
+				InitStateValues:    make([]float64, width), StateHistoryDepth: 1, Seed: uint64(2*s + 2),
+			})
+		}
+		gen.SetSimulation(&simulator.SimulationConfig{
+			OutputCondition:      &simulator.EveryStepOutputCondition{},
+			OutputFunction:       &simulator.NilOutputFunction{},
+			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+			TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 0.01},
+			ExecutionStrategy:    strategy,
+		})
+		return gen
+	}
+}
+
+// benchmarkTunedBranch compares, on ONE core (single wide inline system), the stock
+// branching-coupled system (stock OU driver + branchResponder) against the fully-tuned one
+// (tuned OU driver + tunedBranchResponder), against NumPy's optimized gather path (§3c) as
+// reference — the case where single-core stock stochadex lost to hand-optimized NumPy.
+func benchmarkTunedBranch() []processResult {
+	const totalPaths, steps, repeats = 10000, 2000, 5
+	configs := []struct {
+		name string
+		gen  func() *simulator.ConfigGenerator
+	}{
+		{"stock branch system (1 core inline)",
+			branchCoupledGen(1, totalPaths, steps, &simulator.InlineExecution{})},
+		{"tuned branch system (1 core inline)",
+			branchCoupledGenTuned(1, totalPaths, steps, &simulator.InlineExecution{})},
+	}
+	seconds := map[string]float64{}
+	for _, c := range configs {
+		runProcessEnsemble(c.gen, 1, 1) // warm
+		best := time.Duration(1 << 62)
+		for r := 0; r < repeats; r++ {
+			if d := runProcessEnsemble(c.gen, 1, 1); d < best {
+				best = d
+			}
+		}
+		seconds[c.name] = best.Seconds()
+		fmt.Printf("  %-40s %.3fs\n", c.name, best.Seconds())
+	}
+	return []processResult{{Process: "tuned_branch", TotalPaths: totalPaths, Steps: steps, Seconds: seconds}}
+}
+
 // stratGen builds one simulation of numPartitions independent busy partitions.
 func stratGen(numPartitions, width, ops, steps int, strategy simulator.ExecutionStrategy) func() *simulator.ConfigGenerator {
 	return func() *simulator.ConfigGenerator {
@@ -757,7 +891,9 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "tuned" {
 		fmt.Println("stock vs tuned OU iteration (single-core, pure-Go):")
 		writeJSON("tuned_ou_go.json", benchmarkTunedOU())
-		fmt.Println("wrote benchmarks/results/tuned_ou_go.json")
+		fmt.Println("stock vs tuned branching-coupled system (single-core, pure-Go):")
+		writeJSON("tuned_branch_go.json", benchmarkTunedBranch())
+		fmt.Println("wrote benchmarks/results/tuned_{ou,branch}_go.json")
 		return
 	}
 
@@ -775,9 +911,12 @@ func main() {
 	strats := benchmarkStrategies()
 	fmt.Println("stock vs tuned OU iteration (single-core, pure-Go):")
 	tuned := benchmarkTunedOU()
+	fmt.Println("stock vs tuned branching-coupled system (single-core, pure-Go):")
+	tunedBranch := benchmarkTunedBranch()
 
 	writeJSON("meta.json", meta)
 	writeJSON("tuned_ou_go.json", tuned)
+	writeJSON("tuned_branch_go.json", tunedBranch)
 	writeJSON("strategies.json", strats)
 	writeJSON("ensemble_scaling.json", scaling)
 	writeJSON("cold_start.json", cold)

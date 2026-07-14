@@ -193,6 +193,33 @@ def plot_tuned_ou():
     plt.close(fig)
 
 
+def plot_tuned_branch():
+    import numpy as np
+
+    tuned = load("tuned_branch_go.json")[0]["seconds"]
+    npv = load("branch_coupled_numpy.json")[0]
+    rows = [
+        ("stock branch system\n(1 core inline)", tuned["stock branch system (1 core inline)"], "#cfe0c3"),
+        ("tuned branch system\n(1 core inline, pure-Go)", tuned["tuned branch system (1 core inline)"], GREEN),
+        ("NumPy optimized\n(gather triggered paths)", npv["numpy_gather_seconds"], GREY),
+    ]
+    labels = [r[0] for r in rows]
+    vals = [r[1] for r in rows]
+    colours = [r[2] for r in rows]
+    fig, ax = plt.subplots(figsize=(7.5, 4.2))
+    bars = ax.bar(np.arange(len(vals)), vals, 0.6, color=colours)
+    ax.set_xticks(np.arange(len(vals)))
+    ax.set_xticklabels(labels, fontsize=9)
+    ax.set_ylabel("seconds (lower is better)")
+    ax.set_title("Tuning the branching-coupled hot loops — 1 core, 10,000 paths × 2,000 steps")
+    for b, v in zip(bars, vals):
+        ax.text(b.get_x() + b.get_width() / 2, v, f"{v:.3f}s", ha="center", va="bottom", fontsize=9)
+    ax.grid(True, axis="y", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(os.path.join(PLOTS, "tuned_branch.svg"))
+    plt.close(fig)
+
+
 def plot_strategies():
     import numpy as np
 
@@ -230,6 +257,7 @@ def main():
     plot_coupled()
     plot_branch_coupled()
     plot_tuned_ou()
+    plot_tuned_branch()
     plot_strategies()
     print("wrote", PLOTS, "*.svg")
 

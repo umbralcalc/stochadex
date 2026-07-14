@@ -31,9 +31,11 @@ an exact version rather than assume stability across minors.
   linearly-coupled (~parity) and branching-coupled (~32× over idiomatic NumPy, 2.7× over
   hand-optimized) chains, execution-strategy regimes (where `Inline`/`SpawnPerStep`/
   `PersistentWorker` each win), and per-partition vector-op throughput vs NumPy (AXPY
-  parity; DOT via the `cblas` backend below), and a stock-vs-tuned single-core OU
-  comparison (§3a) showing ~3.7× — to NumPy parity — is recoverable in pure Go by hoisting
-  param slices and owning one RNG instead of the stock iteration's per-element map lookups
+  parity; DOT via the `cblas` backend below), and stock-vs-tuned single-core comparisons
+  showing the single-core gap vs NumPy is mostly the *stock* iterations, recoverable in
+  pure Go: OU (§3a) ~3.7× to NumPy parity, and the branching-coupled system (§3c-tuned)
+  0.55×→0.90× of hand-optimized gather NumPy — by hoisting param slices, owning one RNG,
+  and sampling gamma inline via Marsaglia–Tsang instead of the stock per-element map lookups
   and per-draw `distuv` allocation. Deliberately not a GPU-framework race.
 - **Opt-in accelerated BLAS backend (`cblas` build tag).** `pkg/simulator/blas_accelerated.go`
   registers gonum's netlib backend against a linked system C BLAS (Apple Accelerate,

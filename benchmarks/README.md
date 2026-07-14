@@ -183,6 +183,34 @@ Together, 3b and 3c are the honest rule: **linearly-coupled → NumPy vectorizes
 conditionally/branching-coupled → the engine's per-path model wins outright**, and that is
 where real decision-support models live.
 
+### 3c-tuned. Closing the single-core branch gap in pure Go
+
+The one row above where stock stochadex loses is *single-core vs hand-optimized gather NumPy*
+(0.877 s vs 0.466 s). As with OU (§3a), most of that is the stock iterations, not the engine:
+this system has **two** hot loops — a stock OU driver (per-element map lookups + per-draw
+`distuv.Normal` allocation) and `branchResponder`, whose 30 `distuv.Gamma.Rand()` draws per
+triggered path each **allocate a fresh RNG wrapper**. Tuning both — a tuned OU driver and a
+`tunedBranchResponder` that owns one generator and samples gamma inline via Marsaglia–Tsang
+(the exact algorithm `distuv.Gamma` uses; verified same mean/variance) — stays pure-Go:
+
+![tuning the branching-coupled loops](plots/tuned_branch.svg)
+
+| branching system, 1 core, 10,000 paths × 2,000 steps | seconds | vs NumPy gather |
+|---|---|---|
+| stock (stock OU + `branchResponder`) inline | 0.846 | 0.55× |
+| **tuned (tuned OU + `tunedBranchResponder`) inline** | **0.518** | **0.90× — near-parity** |
+| NumPy — optimized gather (triggered paths only) | 0.466 | — |
+
+Tuning takes the single-core system from **0.55× to 0.90× of hand-optimized NumPy** — from
+clearly behind to neck-and-neck — with no engine change and nothing left Go. It does not quite
+reach gather parity here because gamma sampling is genuinely expensive (Marsaglia–Tsang
+rejection, ~30 draws per triggered path), and scalar-Go gamma still trails NumPy's *batched-C*
+gamma — the same RNG floor as §5's DOT. But that last sliver is the *only* remaining gap, and
+the engine erases it with cores: the **ensemble already runs this at 0.172 s (2.7× faster than
+gather)** with the stock iterations, and tuning stacks on top. So the full picture on the
+branching case: single-core near-parity after tuning, decisively ahead once you use cores —
+against the NumPy version you have to be an expert to write, versus a plain `if`.
+
 ## 4. Execution strategies — where each shines
 
 stochadex lets you choose how a simulation runs its partitions each step. Which strategy
@@ -251,7 +279,7 @@ From the repo root:
 
 ```bash
 go run ./benchmarks                # Go engine suite: ensemble scaling, cold start, process/coupled/tuned-OU models -> results/*.json
-go run ./benchmarks tuned          # just the stock-vs-tuned OU comparison (§3a) -> results/tuned_ou_go.json
+go run ./benchmarks tuned          # just the stock-vs-tuned comparisons (§3a, §3c-tuned) -> results/tuned_{ou,branch}_go.json
 
 # Vector-op micro-benchmark (§5), the only BLAS-dependent one — two builds:
 go run ./benchmarks/vectorops                                            # gonum default pure-Go BLAS -> vectorized_ops_go.json
