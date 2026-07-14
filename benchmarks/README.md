@@ -88,6 +88,39 @@ What the models teach — and why the freedom to choose matters:
 Takeaway: the more complex or path-dependent the process, the better the engine looks — and
 either way you have several execution models to tune, not one. Run *your* process.
 
+### 3b. Coupled systems — where the engine is designed to lead (and a bottleneck it found)
+
+The above simulate *independent* paths. Coupled systems — where components exchange
+state within a step — are what the partition coordinator exists for. Here each unit is a
+chain of **4 Ornstein–Uhlenbeck components**, where component *j* mean-reverts toward
+component *j−1*'s current-step value (a within-step `ParamsFromUpstream` edge). The NumPy
+version must hand-order the same cross-dependencies (the four updates cannot be fused).
+
+![coupled OU chain](plots/coupled.svg)
+
+| execution model | coupled chain (s) | vs NumPy |
+|---|---|---|
+| NumPy — 1 thread | 0.382 | — |
+| stochadex: ensemble, all cores | 0.361 | 1.06× |
+| stochadex: one sim, N chains, inline (1 core) | 0.577 | 0.66× |
+| stochadex: one sim, N chains, spawn / persistent | ~0.57 | ~0.67× |
+| stochadex: 1 wide inline chain (1 core) | 1.556 | 0.25× |
+
+**Honest result, and a benchmark doing its job.** On a *linearly*-coupled chain, NumPy
+vectorizes the coupling fine (it is just sequential array reads), so stochadex is only ~at
+parity even using every core — and, tellingly, the coupled **ensemble parallelises poorly
+(~1.6×, vs ~3× for independent processes)**.
+
+The cause is measurable, not fundamental: under inline execution, forwarding an upstream's
+output into a downstream's params allocates and copies the full state vector **every step,
+per coupled edge** (`UpdateUpstreamParamsInline`: `append([]float64(nil), values…)`). For
+this chain that is ~60M short-lived slice allocations, whose GC churn throttles the parallel
+ensemble. The copy is intentional (a downstream must not mutate the producer's buffer) but
+it need not *allocate* — reusing a per-edge buffer (the same copy-on-retain fix already
+applied to the `NextValues` write path) would remove it. That is exactly the
+allocation-at-the-boundary work Phase 2.3 targets; until then, this is a documented, honest
+bottleneck rather than a claimed win.
+
 ## 4. Per-partition vector-op throughput vs NumPy — CPU-to-CPU parity (micro)
 
 A supporting micro-benchmark: the raw elementwise/reduction ops (via gonum's pure-Go BLAS)
@@ -107,6 +140,7 @@ From the repo root:
 ```bash
 go run ./benchmarks                # Go: ensemble scaling, cold start, gonum ops, process models -> results/*.json
 python3 benchmarks/numpy_processes.py   # NumPy whole-process comparison -> results/processes_numpy.json
+ python3 benchmarks/numpy_coupled.py     # NumPy coupled-chain comparison -> results/coupled_numpy.json
 python3 benchmarks/numpy_ops.py         # NumPy vector-op micro-benchmark -> results/vectorized_ops_numpy.json
 python3 benchmarks/plot.py              # render plots/*.svg from results/*.json
 ```

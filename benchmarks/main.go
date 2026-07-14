@@ -371,6 +371,86 @@ func benchmarkProcesses() []processResult {
 	return out
 }
 
+// coupledGen builds `numChains` independent coupled chains of OU components. Within a
+// chain, component j mean-reverts toward component j-1's CURRENT-step value (a
+// within-step `ParamsFromUpstream` edge on "mus") — the coordinator resolves the
+// ordering. This is the regime the engine is designed for: NumPy must hand-order the
+// same cross-dependencies by writing them in the right sequence each step.
+func coupledGen(numChains, width, steps int, strategy simulator.ExecutionStrategy) func() *simulator.ConfigGenerator {
+	const chainLen = 4
+	return func() *simulator.ConfigGenerator {
+		gen := simulator.NewConfigGenerator()
+		for c := 0; c < numChains; c++ {
+			for j := 0; j < chainLen; j++ {
+				pc := &simulator.PartitionConfig{
+					Name:      fmt.Sprintf("c%d_%d", c, j),
+					Iteration: &continuous.OrnsteinUhlenbeckIteration{},
+					Params: simulator.NewParams(map[string][]float64{
+						"thetas": fill(width, 1.0),
+						"mus":    fill(width, 0.0),
+						"sigmas": fill(width, 0.3),
+					}),
+					InitStateValues:   make([]float64, width),
+					StateHistoryDepth: 1,
+					Seed:              uint64(c*chainLen + j + 1),
+				}
+				if j > 0 { // component j tracks component j-1's current-step value
+					pc.ParamsFromUpstream = map[string]simulator.NamedUpstreamConfig{
+						"mus": {Upstream: fmt.Sprintf("c%d_%d", c, j-1)},
+					}
+				}
+				gen.SetPartition(pc)
+			}
+		}
+		gen.SetSimulation(&simulator.SimulationConfig{
+			OutputCondition:      &simulator.EveryStepOutputCondition{},
+			OutputFunction:       &simulator.NilOutputFunction{},
+			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+			TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 0.01},
+			ExecutionStrategy:    strategy,
+		})
+		return gen
+	}
+}
+
+// benchmarkCoupled runs the coupled OU-chain system (chainLen=4 within-step-coupled
+// components) through the same execution-model matrix as benchmarkProcesses. Coupled
+// systems are the engine's home turf — each "unit" here is a chain, not a lone process.
+func benchmarkCoupled() []processResult {
+	const totalPaths, steps, repeats = 10000, 2000, 3
+	nc := runtime.NumCPU()
+	width := totalPaths / nc
+	configs := []struct {
+		name             string
+		gen              func() *simulator.ConfigGenerator
+		members, maxConc int
+	}{
+		{"single wide inline chain (1 core)",
+			coupledGen(1, totalPaths, steps, &simulator.InlineExecution{}), 1, 1},
+		{"one sim, N chains, spawn-per-step",
+			coupledGen(nc, width, steps, &simulator.SpawnPerStepExecution{}), 1, 1},
+		{"one sim, N chains, persistent-worker",
+			coupledGen(nc, width, steps, &simulator.PersistentWorkerExecution{}), 1, 1},
+		{"one sim, N chains, inline (serial)",
+			coupledGen(nc, width, steps, &simulator.InlineExecution{}), 1, 1},
+		{"ensemble, N inline chains (all cores)",
+			coupledGen(1, width, steps, &simulator.InlineExecution{}), nc, nc},
+	}
+	seconds := map[string]float64{}
+	for _, c := range configs {
+		runProcessEnsemble(c.gen, c.members, c.maxConc) // warm
+		best := time.Duration(1 << 62)
+		for r := 0; r < repeats; r++ {
+			if d := runProcessEnsemble(c.gen, c.members, c.maxConc); d < best {
+				best = d
+			}
+		}
+		seconds[c.name] = best.Seconds()
+		fmt.Printf("  %-42s %.3fs\n", c.name, best.Seconds())
+	}
+	return []processResult{{Process: "coupled_ou_chain_len4", TotalPaths: totalPaths, Steps: steps, Seconds: seconds}}
+}
+
 func writeJSON(name string, v any) {
 	dir := "benchmarks/results"
 	if _, err := os.Stat("results"); err == nil {
@@ -405,13 +485,16 @@ func main() {
 	cold := benchmarkColdStart()
 	fmt.Println("vectorized ops (gonum):")
 	ops := benchmarkVectorizedOps()
-	fmt.Println("whole-process simulation (engine vs NumPy):")
+	fmt.Println("whole-process simulation across execution models (engine vs NumPy):")
 	procs := benchmarkProcesses()
+	fmt.Println("coupled OU-chain across execution models (engine's home turf):")
+	coupled := benchmarkCoupled()
 
 	writeJSON("meta.json", meta)
 	writeJSON("ensemble_scaling.json", scaling)
 	writeJSON("cold_start.json", cold)
 	writeJSON("vectorized_ops_go.json", ops)
 	writeJSON("processes_go.json", procs)
+	writeJSON("coupled_go.json", coupled)
 	fmt.Println("wrote benchmarks/results/*.json")
 }

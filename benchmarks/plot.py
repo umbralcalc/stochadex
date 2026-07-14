@@ -103,11 +103,41 @@ def plot_processes():
     plt.close(fig)
 
 
+def plot_coupled():
+    import numpy as np
+
+    seconds = load("coupled_go.json")[0]["seconds"]
+    npy = load("coupled_numpy.json")[0]["numpy_seconds"]
+    order = [
+        ("__numpy__", "NumPy — 1 thread", GREY),
+        ("single wide inline chain (1 core)", "sx: 1 wide inline chain (1 core)", "#cfe0c3"),
+        ("one sim, N chains, spawn-per-step", "sx: N chains, spawn-per-step", "#a7c69a"),
+        ("one sim, N chains, persistent-worker", "sx: N chains, persistent-worker", "#84ab72"),
+        ("one sim, N chains, inline (serial)", "sx: N chains, inline (1 core)", "#6b9457"),
+        ("ensemble, N inline chains (all cores)", "sx: ensemble, all cores", GREEN),
+    ]
+    vals = [npy if k == "__numpy__" else seconds[k] for k, _, _ in order]
+    colours = [c for _, _, c in order]
+    labels = [l for _, l, _ in order]
+    fig, ax = plt.subplots(figsize=(9, 4.6))
+    ax.barh(np.arange(len(vals)), vals, color=colours)
+    ax.set_yticks(np.arange(len(vals)))
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.invert_yaxis()
+    ax.set_xlabel("seconds (lower is better)")
+    ax.set_title("Coupled OU chain (4 within-step-coupled components) — 10,000 paths × 2,000 steps")
+    ax.grid(True, axis="x", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(os.path.join(PLOTS, "coupled.svg"))
+    plt.close(fig)
+
+
 def main():
     os.makedirs(PLOTS, exist_ok=True)
     plot_ensemble_scaling()
     plot_vectorized_ops()
     plot_processes()
+    plot_coupled()
     print("wrote", PLOTS, "*.svg")
 
 

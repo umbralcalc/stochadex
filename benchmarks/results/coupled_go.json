@@ -1,0 +1,14 @@
+[
+  {
+    "process": "coupled_ou_chain_len4",
+    "total_paths": 10000,
+    "steps": 2000,
+    "seconds": {
+      "ensemble, N inline chains (all cores)": 0.36089025,
+      "one sim, N chains, inline (serial)": 0.577307875,
+      "one sim, N chains, persistent-worker": 0.565970958,
+      "one sim, N chains, spawn-per-step": 0.570591625,
+      "single wide inline chain (1 core)": 1.555583458
+    }
+  }
+]
