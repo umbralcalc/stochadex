@@ -1,0 +1,44 @@
+[
+  {
+    "regime": "few partitions, light work, many steps",
+    "detail": "1 partition, width 8, ops 1, 8000 steps",
+    "seconds": {
+      "inline": 0.000411625,
+      "persistent-worker": 0.004665292,
+      "spawn-per-step": 0.005578209
+    },
+    "allocs_k": {
+      "inline": 0,
+      "persistent-worker": 0.005,
+      "spawn-per-step": 32.001
+    }
+  },
+  {
+    "regime": "many partitions, light work, many steps",
+    "detail": "24 partitions, width 8, ops 1, 8000 steps",
+    "seconds": {
+      "inline": 0.008199833,
+      "persistent-worker": 0.106214833,
+      "spawn-per-step": 0.095457875
+    },
+    "allocs_k": {
+      "inline": 0,
+      "persistent-worker": 0.105,
+      "spawn-per-step": 768.56
+    }
+  },
+  {
+    "regime": "many partitions, heavy work",
+    "detail": "24 partitions, width 64, ops 400, 400 steps",
+    "seconds": {
+      "inline": 3.675922083,
+      "persistent-worker": 0.538667333,
+      "spawn-per-step": 0.545860459
+    },
+    "allocs_k": {
+      "inline": 0,
+      "persistent-worker": 0.147,
+      "spawn-per-step": 38.439
+    }
+  }
+]

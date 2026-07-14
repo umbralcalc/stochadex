@@ -1,0 +1,7 @@
+{
+  "go_version": "go1.25.2",
+  "goarch": "arm64",
+  "gomaxprocs": 10,
+  "goos": "darwin",
+  "num_cpu": 10
+}

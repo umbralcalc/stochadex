@@ -23,6 +23,28 @@ an exact version rather than assume stability across minors.
 ## [Unreleased]
 
 ### Added
+- **`benchmarks/`** — reproducible, fair CPU-to-CPU performance benchmarks with committed
+  numbers and plots (Apple M4 reference machine): ensemble scaling (independent simulations
+  via `RunSeededEnsemble` are embarrassingly parallel — ~4.4× on 10 heterogeneous cores),
+  warmup-free cold-start (~2 µs to first result), whole-process simulation vs NumPy across
+  **every execution model** (ensemble wins; branching processes favour the engine),
+  linearly-coupled (~parity) and branching-coupled (~32× over idiomatic NumPy, 2.7× over
+  hand-optimized) chains, execution-strategy regimes (where `Inline`/`SpawnPerStep`/
+  `PersistentWorker` each win), and per-partition vector-op throughput vs NumPy (AXPY
+  parity; DOT via the `cblas` backend below), and stock-vs-tuned single-core comparisons
+  showing the single-core gap vs NumPy is mostly the *stock* iterations, recoverable in
+  pure Go: OU (§3a) ~3.7× to NumPy parity, and the branching-coupled system (§3c-tuned)
+  0.55×→0.90× of hand-optimized gather NumPy — by hoisting param slices, owning one RNG,
+  and sampling gamma inline via Marsaglia–Tsang instead of the stock per-element map lookups
+  and per-draw `distuv` allocation. Deliberately not a GPU-framework race.
+- **Opt-in accelerated BLAS backend (`cblas` build tag).** `pkg/simulator/blas_accelerated.go`
+  registers gonum's netlib backend against a linked system C BLAS (Apple Accelerate,
+  OpenBLAS, or MKL) via a one-line `blas64.Use(...)` in `init()`, gated behind
+  `//go:build cblas`. It lifts BLAS-heavy ops for anyone building with `-tags cblas` — no
+  code change, just the flag (measured DOT ~2.7 → ~107 GFLOP/s at cache-resident sizes,
+  matching/edging NumPy's Accelerate). The default build
+  stays pure-Go and **WASM-clean** (Invariant B): cgo accelerators never sit on the default
+  path.
 - **"When to use it" on the docs frontpage** — a short, defensible positioning section:
   the combination stochadex uniquely offers in Go, and links ceding the ground it doesn't
   hold (Stan/PyMC/SciML, `godes`, gonum, Python for neural-net training).

@@ -1,0 +1,9 @@
+[
+  {
+    "process": "branch_coupled",
+    "total_paths": 10000,
+    "steps": 2000,
+    "numpy_mask_seconds": 5.598182167000232,
+    "numpy_gather_seconds": 0.4656611669997801
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "process": "gbm",
+    "total_paths": 10000,
+    "steps": 2000,
+    "numpy_seconds": 0.08059495799989236
+  },
+  {
+    "process": "ou",
+    "total_paths": 10000,
+    "steps": 2000,
+    "numpy_seconds": 0.0933229169995684
+  },
+  {
+    "process": "compound_poisson",
+    "total_paths": 10000,
+    "steps": 2000,
+    "numpy_seconds": 0.2579947499998525
+  }
+]
