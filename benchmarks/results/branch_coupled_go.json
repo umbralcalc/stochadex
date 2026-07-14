@@ -4,10 +4,10 @@
     "total_paths": 10000,
     "steps": 2000,
     "seconds": {
-      "ensemble, N inline systems (all cores)": 0.181107583,
-      "one sim, N systems, inline (serial)": 0.350580458,
-      "one sim, N systems, spawn-per-step": 0.353094708,
-      "single wide inline (1 core)": 0.895664083
+      "ensemble, N inline systems (all cores)": 0.171985,
+      "one sim, N systems, inline (serial)": 0.877460458,
+      "one sim, N systems, spawn-per-step": 0.347633709,
+      "single wide inline (1 core)": 0.849126416
     }
   }
 ]

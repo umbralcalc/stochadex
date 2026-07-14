@@ -2,61 +2,61 @@
   {
     "size": 1000,
     "op": "axpy",
-    "best_seconds": 2.5e-7,
-    "gflops": 8
+    "best_seconds": 2.91e-7,
+    "gflops": 6.872852233676976
   },
   {
     "size": 1000,
     "op": "dot",
-    "best_seconds": 8.75e-7,
-    "gflops": 2.285714285714286
+    "best_seconds": 9.16e-7,
+    "gflops": 2.183406113537118
   },
   {
     "size": 10000,
     "op": "axpy",
-    "best_seconds": 0.000002708,
-    "gflops": 7.385524372230428
+    "best_seconds": 0.000002875,
+    "gflops": 6.956521739130435
   },
   {
     "size": 10000,
     "op": "dot",
-    "best_seconds": 0.000008875,
-    "gflops": 2.2535211267605635
+    "best_seconds": 0.000009125,
+    "gflops": 2.191780821917808
   },
   {
     "size": 100000,
     "op": "axpy",
-    "best_seconds": 0.000027083,
-    "gflops": 7.3847062733079785
+    "best_seconds": 0.00002875,
+    "gflops": 6.956521739130435
   },
   {
     "size": 100000,
     "op": "dot",
-    "best_seconds": 0.000089166,
-    "gflops": 2.2430074243545746
+    "best_seconds": 0.000090209,
+    "gflops": 2.2170736844439025
   },
   {
     "size": 1000000,
     "op": "axpy",
-    "best_seconds": 0.000289875,
-    "gflops": 6.899525657611039
+    "best_seconds": 0.000300709,
+    "gflops": 6.650948258948019
   },
   {
     "size": 1000000,
     "op": "dot",
-    "best_seconds": 0.000885083,
-    "gflops": 2.259675081320057
+    "best_seconds": 0.0009005,
+    "gflops": 2.220988339811216
   },
   {
     "size": 10000000,
     "op": "axpy",
-    "best_seconds": 0.002752167,
-    "gflops": 7.267000876036956
+    "best_seconds": 0.0027935,
+    "gflops": 7.159477358152855
   },
   {
     "size": 10000000,
     "op": "dot",
-    "best_seconds": 0.008348917,
-    "gflops": 2.395520281253245
+    "best_seconds": 0.008538875,
+    "gflops": 2.3422289235994205
   }
 ]

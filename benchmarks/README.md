@@ -31,12 +31,13 @@ returns as the slower efficiency cores and memory bandwidth are added (a heterog
 Apple-silicon effect; on a homogeneous many-core server this curve is flatter and higher).
 
 > **Important — this is the right place to measure concurrency.** Partitions *within one
-> simulation* are step-synchronised (a barrier every step) because they are for **coupled**
-> components that exchange state each step; that is not the parallelism story and does not
-> scale with partition count. **Decoupled, embarrassingly-parallel work is an ensemble of
-> separate simulations**, which is what this benchmark measures. Each member here is a
-> single edge-free partition run under `InlineExecution` (no per-step goroutine spawn), with
-> all parallelism at the ensemble level.
+> simulation* are step-synchronised (a barrier every step) for **coupled** components that
+> exchange state each step. The within-sim strategies *do* parallelise those partitions
+> (see §3, §"Execution strategies"), but the barrier caps the speedup below this barrier-free
+> ensemble. **Decoupled, embarrassingly-parallel work is best run as an ensemble of separate
+> simulations**, which is what this benchmark measures. Each member here is a single edge-free
+> partition run under `InlineExecution` (no per-step goroutine spawn), with all parallelism at
+> the ensemble level.
 
 ## 2. Cold start — warmup-free
 
@@ -61,68 +62,59 @@ Wall-clock seconds (lower is better); **bold** = fastest per process:
 | execution model | GBM (simple) | Ornstein–Uhlenbeck | compound-Poisson (branching) |
 |---|---|---|---|
 | NumPy — 1 thread, SIMD over paths | 0.081 | 0.093 | 0.258 |
-| stochadex: 1 wide `Inline` partition (1 core) | 0.193 | 0.387 | 0.284 |
-| stochadex: one sim, N partitions, `SpawnPerStep` | 0.110 | 0.172 | 0.130 |
-| stochadex: one sim, N partitions, `PersistentWorker` | 0.110 | 0.170 | 0.127 |
-| stochadex: one sim, N partitions, `Inline` (1 core) | 0.112 | 0.173 | 0.128 |
-| stochadex: **ensemble, N `Inline` members, all cores** | **0.038** | **0.072** | **0.052** |
+| stochadex: 1 wide `Inline` partition (1 core) | 0.180 | 0.356 | 0.258 |
+| stochadex: one sim, N partitions, `Inline` (1 core) | 0.182 | 0.361 | 0.258 |
+| stochadex: one sim, N partitions, `SpawnPerStep` | 0.111 | 0.165 | 0.126 |
+| stochadex: one sim, N partitions, `PersistentWorker` | 0.109 | 0.163 | 0.127 |
+| stochadex: **ensemble, N `Inline` members, all cores** | **0.035** | **0.067** | **0.048** |
 
 What the models teach — and why the freedom to choose matters:
 
 - **The ensemble wins everything.** Independent paths are embarrassingly parallel; running
   them as an ensemble of separate simulations (no per-step barrier) uses every core and is
-  fastest on all three processes — 2.2× / 1.3× / 5.0× faster than idiomatic NumPy.
-- **Within one simulation, partition-parallelism gives ~no speedup** — `SpawnPerStep` ≈
-  `PersistentWorker` ≈ `Inline` (all ≈ 0.11 s for GBM). Partitions in one sim are
-  step-synchronised (a barrier every step) *for coupled components*; forcing independent
-  paths through it does not scale. Lesson: run decoupled work as an **ensemble**, not as
-  partitions of one sim. (stochadex lets you do either — the point is to pick the right one.)
-- **Layout matters too:** N narrow partitions beat one wide partition even single-threaded
-  (0.112 vs 0.193 s, GBM) — cache locality. Another free knob.
+  fastest on all three — 2.3× / 1.4× / 5.4× faster than idiomatic NumPy.
+- **Within one simulation, partition-parallelism does help — modestly.** Switching the
+  strategy from `Inline` (serial) to `SpawnPerStep`/`PersistentWorker` parallelises the
+  partitions within each step: GBM 0.182 → 0.11 s (~1.6×). But the per-step barrier caps it
+  below the barrier-free ensemble. Lesson: for *independent* work the ensemble is the better
+  parallel path; the within-sim strategies are for *coupled* work that needs the barrier.
+  (See §"Execution strategies" for where each strategy wins outright.)
 - **vs NumPy, it depends on the process.** On simple, trivially-vectorizable processes
-  (GBM, OU) NumPy's SIMD over paths beats stochadex's single-core configs; stochadex wins by
-  using cores. But on the **branching** compound-Poisson, stochadex is faster than NumPy
-  **even single-threaded** (0.128 vs 0.258 s) — masking + conditional draws are where
-  vectorization loses — and 5× faster in parallel.
+  (GBM, OU) NumPy's SIMD over paths beats stochadex's *single-core* configs; stochadex wins by
+  using cores. On the **branching** compound-Poisson, stochadex is already at parity
+  single-threaded (0.258 s) and pulls ahead as soon as it uses cores (0.126 s within-sim,
+  0.048 s ensemble) — masking + conditional draws are where vectorization loses.
 
 Takeaway: the more complex or path-dependent the process, the better the engine looks — and
 either way you have several execution models to tune, not one. Run *your* process.
 
-### 3b. Coupled systems — where the engine is designed to lead (and a bottleneck it found)
+### 3b. Coupled systems — linear coupling
 
-The above simulate *independent* paths. Coupled systems — where components exchange
-state within a step — are what the partition coordinator exists for. Here each unit is a
-chain of **4 Ornstein–Uhlenbeck components**, where component *j* mean-reverts toward
-component *j−1*'s current-step value (a within-step `ParamsFromUpstream` edge). The NumPy
-version must hand-order the same cross-dependencies (the four updates cannot be fused).
+The above simulate *independent* paths. Coupled systems — where components exchange state
+within a step — are what the partition coordinator exists for. Here each unit is a chain of
+**4 Ornstein–Uhlenbeck components**, where component *j* mean-reverts toward component *j−1*'s
+current-step value (a within-step `ParamsFromUpstream` edge). The NumPy version must
+hand-order the same cross-dependencies (the four updates cannot be fused).
 
 ![coupled OU chain](plots/coupled.svg)
 
 | execution model | coupled chain (s) | vs NumPy |
 |---|---|---|
 | NumPy — 1 thread | 0.381 | — |
-| stochadex: ensemble, all cores | 0.362 | 1.05× |
-| stochadex: one sim, N chains, inline (1 core) | 0.567 | 0.67× |
-| stochadex: one sim, N chains, spawn / persistent | ~0.56 | ~0.68× |
-| stochadex: 1 wide inline chain (1 core) | 1.543 | 0.25× |
+| stochadex: 1 wide inline chain (1 core) | 1.483 | 0.26× |
+| stochadex: one sim, N chains, inline (1 core) | 1.492 | 0.26× |
+| stochadex: one sim, N chains, spawn / persistent | ~0.55 | ~0.69× |
+| stochadex: **ensemble, all cores** | **0.344** | **1.11×** |
 
-**Honest result.** On a *linearly*-coupled chain, NumPy vectorizes the coupling fine (it is
-just sequential array reads), so stochadex is only ~at parity even using every core, and the
-coupled ensemble scales ~1.5× (0.567 s single-core → 0.362 s all cores).
+**Honest result: ~parity.** On a *linearly*-coupled chain, NumPy vectorizes the coupling fine
+(it is just sequential array reads), so stochadex's ensemble (0.344 s) only edges NumPy
+(0.381 s). The engine parallelises the coupling well — the within-sim strategies take it from
+1.49 s serial to ~0.55 s, and the ensemble to 0.344 s (**~4.3×** over serial) — but there is
+no *vectorization* gap to exploit here, so it comes out level.
 
-That poor scaling is **hardware-bound on this machine, not an engine defect** — and the
-benchmark was used to establish that rather than to guess. On this Apple M4, even the
-*independent* processes above scale only ~2.4–3.1× (10 cores, but 4 performance + 6 slower
-efficiency cores, on shared memory bandwidth); the heavier coupled members (4 components +
-the cross-reads per step) hit the bandwidth wall sooner, hence ~1.5×. A first hypothesis —
-that per-step `ParamsFromUpstream` copying (`append([]float64(nil), values…)`) was the cause
-— was **tested and rejected**: reusing a per-edge buffer changed neither the allocation count
-nor the wall-clock, so that copy is not the bottleneck here. On a homogeneous many-core
-server this curve would be higher; on this laptop it is memory-bound.
-
-The honest reading: for a *linearly*-coupled system NumPy is a fine tool and stochadex's edge
-is expressiveness (declarative wiring) rather than raw speed. stochadex's speed advantage
-shows where the coupling is hard to vectorize — which is next.
+The honest reading: for a *linearly*-coupled system NumPy is a perfectly good tool and
+stochadex's edge is expressiveness (declarative wiring), not raw speed. The speed advantage
+appears when the coupling is **hard to vectorize** — next.
 
 ### 3c. Branching-coupled — hard to vectorize, where the engine wins
 
@@ -138,23 +130,54 @@ non-obvious index juggling. A scalar per-path `if` just takes the branch.
 |---|---|
 | NumPy — idiomatic (mask: compute every path, select) | 5.598 |
 | NumPy — optimized (gather only triggered paths) | 0.466 |
-| stochadex — single wide inline (1 core) | 0.896 |
-| stochadex — one sim, N systems, inline (1 core) | 0.351 |
-| stochadex — **ensemble, all cores** | **0.181** |
+| stochadex — one sim, N systems, inline (1 core) | 0.877 |
+| stochadex — one sim, N systems, spawn / persistent | 0.348 |
+| stochadex — **ensemble, all cores** | **0.172** |
 
-**This is where the engine leads.** stochadex is **~31× faster than idiomatic NumPy**, and —
-the real point — **beats even the hand-optimized gather/scatter NumPy: 2.6× in parallel and
-1.3× even single-threaded**. A per-path branch costs nothing in a scalar loop; in NumPy it
-costs either wasted vectorized work (the idiomatic version) or gather/scatter overhead plus
-noticeably more complex code (the optimized version). And this is a *mild* branch — one rare
-condition, one kind of expensive work. Real coupled models (regime switches, thresholded
-dispatch, event cascades, mutually-exciting processes) branch far more, widening the gap.
+**This is where the engine leads.** stochadex is **~32× faster than idiomatic NumPy** (the
+version most people would write — masking computes the expensive branch for every path and
+discards ~93%). Against a *hand-optimized* gather/scatter NumPy (0.466 s), stochadex needs
+its cores but still wins clearly — **2.7× as an ensemble, 1.3× with within-sim
+parallelism** — because a scalar per-path branch has no wasted work and no gather overhead,
+and the code is far simpler (a plain `if`). Single-threaded, the optimized NumPy (0.466 s)
+does beat serial stochadex (0.877 s) — its gather *is* efficient on one thread — but that is
+the version you have to know to write. And this is a *mild* branch — one rare condition, one
+kind of expensive work; real coupled models (regime switches, thresholded dispatch, event
+cascades, mutually-exciting processes) branch far more, widening the gap.
 
 Together, 3b and 3c are the honest rule: **linearly-coupled → NumPy vectorizes it, ~parity;
 conditionally/branching-coupled → the engine's per-path model wins outright**, and that is
 where real decision-support models live.
 
-## 4. Per-partition vector-op throughput vs NumPy — CPU-to-CPU parity (micro)
+## 4. Execution strategies — where each shines
+
+stochadex lets you choose how a simulation runs its partitions each step. Which strategy
+wins depends on the workload — here are three regimes, each won by a different one. Bar
+labels (and the last column) are heap allocations during the run — GC pressure, which matters
+for sustained work even when wall-clock ties.
+
+![execution strategies](plots/strategies.svg)
+
+| regime | `Inline` | `SpawnPerStep` | `PersistentWorker` |
+|---|---|---|---|
+| few partitions, light work, many steps | **~0.000 s / 0 allocs** | 0.006 s / 32k | 0.005 s / 0 |
+| many partitions, light work, many steps | **0.008 s / 0** | 0.095 s / 769k | 0.106 s / 0 |
+| many partitions, **heavy** work | 3.68 s / 0 | 0.55 s / 38k | **0.54 s / 0** |
+
+- **`Inline` shines on light work** (few *or* many partitions): no goroutine/channel overhead
+  per step — 0.008 s vs 0.095 s in the many-light regime — and it is allocation-free and
+  deterministic. This is why ensemble members (single partitions) run inline.
+- **`SpawnPerStep` / `PersistentWorker` shine on heavy per-step work with many partitions:**
+  they parallelise the partitions across cores — ~6.7× over serial inline (0.54 s vs 3.68 s).
+- **`PersistentWorker` matches `SpawnPerStep`'s speed with near-zero allocations** — it reuses
+  a worker pool instead of spawning a goroutine per partition per step (769k → 0 allocs in the
+  many-light regime). For sustained or GC-sensitive runs, that is the one to pick.
+
+Rule of thumb: **light or single-partition → `Inline`; heavy multi-partition →
+`PersistentWorker`** (or `SpawnPerStep` for simplicity); and for embarrassingly-parallel
+independent work, an **ensemble** of inline members beats all of them.
+
+## 5. Per-partition vector-op throughput vs NumPy — CPU-to-CPU parity (micro)
 
 A supporting micro-benchmark: the raw elementwise/reduction ops (via gonum's pure-Go BLAS)
 vs NumPy (Apple Accelerate BLAS). No engine involved — just confirming you don't give up
@@ -173,8 +196,9 @@ From the repo root:
 ```bash
 go run ./benchmarks                # Go: ensemble scaling, cold start, gonum ops, process models -> results/*.json
 python3 benchmarks/numpy_processes.py   # NumPy whole-process comparison -> results/processes_numpy.json
- python3 benchmarks/numpy_coupled.py     # NumPy coupled-chain comparison -> results/coupled_numpy.json
-python3 benchmarks/numpy_ops.py         # NumPy vector-op micro-benchmark -> results/vectorized_ops_numpy.json
+python3 benchmarks/numpy_coupled.py        # NumPy coupled-chain comparison -> results/coupled_numpy.json
+python3 benchmarks/numpy_branch_coupled.py # NumPy branching-coupled comparison -> results/branch_coupled_numpy.json
+python3 benchmarks/numpy_ops.py            # NumPy vector-op micro-benchmark -> results/vectorized_ops_numpy.json
 python3 benchmarks/plot.py              # render plots/*.svg from results/*.json
 ```
 

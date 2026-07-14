@@ -5,9 +5,9 @@
 // on their own hardware and problem shapes, and comparing them on a laptop CPU would
 // be apples-to-oranges. These are the systems claims that are actually stochadex's:
 //
-//  1. partition-scaling — throughput vs partition count (goroutine concurrency scaling)
-//  2. cold-start        — time to first result (warmup-free, no JIT/interpreter)
-//  3. vectorized-ops    — gonum vector-op throughput (compared against NumPy by numpy_ops.py)
+//   - ensemble scaling, cold start, gonum vector ops
+//   - whole-process, coupled, and branching-coupled simulation vs NumPy
+//   - execution strategies across regimes (where each shines)
 //
 // Run: `go run ./benchmarks` (from the repo root) or `go run .` from here. Writes
 // benchmarks/results/*.json. Numbers are machine-specific — record the machine in the
@@ -17,6 +17,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
@@ -30,6 +31,32 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
+
+// busyIteration does a controllable amount of allocation-free compute per element per
+// step ("ops" transcendental iterations) — the knob that decides whether within-step
+// parallelism (spawn/persistent) can beat serial inline. Edge-free, so a coordinator
+// can run its partitions concurrently within a step.
+type busyIteration struct{}
+
+func (b *busyIteration) Configure(partitionIndex int, settings *simulator.Settings) {}
+
+func (b *busyIteration) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	values := stateHistories[partitionIndex].GetNextStateRowToUpdate()
+	ops := int(params.GetIndex("ops", 0))
+	for i := range values {
+		x := values[i]
+		for k := 0; k < ops; k++ {
+			x = math.Sin(x) + 1.0 // compute-heavy, allocation-free
+		}
+		values[i] = x
+	}
+	return values
+}
 
 // branchResponder is a bespoke coupled iteration: it decays each step, and ONLY when
 // its upstream driver crosses a threshold (a rare, per-path condition) does it do
@@ -112,11 +139,8 @@ func buildSim(numPartitions, numSteps int, strategy simulator.ExecutionStrategy)
 
 // runSim runs a prebuilt simulation to completion (the timed hot loop).
 func runSim(settings *simulator.Settings, implementations *simulator.Implementations) {
-	coord := simulator.NewPartitionCoordinator(settings, implementations)
-	var wg sync.WaitGroup
-	for !coord.ReadyToTerminate() {
-		coord.Step(&wg)
-	}
+	// Run() applies the configured ExecutionStrategy; a raw Step() loop would bypass it.
+	simulator.NewPartitionCoordinator(settings, implementations).Run()
 }
 
 type scalingPoint struct {
@@ -176,9 +200,9 @@ func benchmarkEnsembleScaling() []scalingPoint {
 }
 
 type coldStart struct {
-	Repeats             int     `json:"repeats"`
-	MedianMicroseconds  float64 `json:"median_microseconds"`
-	Note                string  `json:"note"`
+	Repeats            int     `json:"repeats"`
+	MedianMicroseconds float64 `json:"median_microseconds"`
+	Note               string  `json:"note"`
 }
 
 // benchmarkColdStart measures the time from an unbuilt simulation to the first
@@ -343,11 +367,7 @@ func runProcessEnsemble(gen func() *simulator.ConfigGenerator, members, maxConc 
 			g := gen()
 			g.SetGlobalSeed(seed)
 			settings, impl := g.GenerateConfigs()
-			coord := simulator.NewPartitionCoordinator(settings, impl)
-			var w sync.WaitGroup
-			for !coord.ReadyToTerminate() {
-				coord.Step(&w)
-			}
+			simulator.NewPartitionCoordinator(settings, impl).Run()
 		}(uint64(m + 1))
 	}
 	wg.Wait()
@@ -565,6 +585,101 @@ func benchmarkBranchCoupled() []processResult {
 	return []processResult{{Process: "branch_coupled", TotalPaths: totalPaths, Steps: steps, Seconds: seconds}}
 }
 
+// stratGen builds one simulation of numPartitions independent busy partitions.
+func stratGen(numPartitions, width, ops, steps int, strategy simulator.ExecutionStrategy) func() *simulator.ConfigGenerator {
+	return func() *simulator.ConfigGenerator {
+		gen := simulator.NewConfigGenerator()
+		for p := 0; p < numPartitions; p++ {
+			gen.SetPartition(&simulator.PartitionConfig{
+				Name:              fmt.Sprintf("p%d", p),
+				Iteration:         &busyIteration{},
+				Params:            simulator.NewParams(map[string][]float64{"ops": {float64(ops)}}),
+				InitStateValues:   fill(width, 0.5),
+				StateHistoryDepth: 1,
+				Seed:              uint64(p + 1),
+			})
+		}
+		gen.SetSimulation(&simulator.SimulationConfig{
+			OutputCondition:      &simulator.EveryStepOutputCondition{},
+			OutputFunction:       &simulator.NilOutputFunction{},
+			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+			TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+			ExecutionStrategy:    strategy,
+		})
+		return gen
+	}
+}
+
+// timeSteps builds a coordinator (setup excluded from timing — e.g. the persistent
+// worker pool is created once here) and times only its step loop.
+func timeSteps(gen func() *simulator.ConfigGenerator) time.Duration {
+	settings, impl := gen().GenerateConfigs()
+	coord := simulator.NewPartitionCoordinator(settings, impl)
+	start := time.Now()
+	coord.Run() // applies the configured ExecutionStrategy
+	return time.Since(start)
+}
+
+// allocsSteps returns the number of heap allocations during one step loop.
+func allocsSteps(gen func() *simulator.ConfigGenerator) uint64 {
+	settings, impl := gen().GenerateConfigs()
+	coord := simulator.NewPartitionCoordinator(settings, impl)
+	var m0, m1 runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&m0)
+	coord.Run() // applies the configured ExecutionStrategy
+	runtime.ReadMemStats(&m1)
+	return m1.Mallocs - m0.Mallocs
+}
+
+type strategyResult struct {
+	Regime  string             `json:"regime"`
+	Detail  string             `json:"detail"`
+	Seconds map[string]float64 `json:"seconds"`  // strategy -> best step-loop seconds
+	AllocsK map[string]float64 `json:"allocs_k"` // strategy -> heap allocs during the run (thousands)
+}
+
+// benchmarkStrategies sweeps regimes designed so a different execution strategy wins
+// each, reporting both wall-clock and allocations — the "pick the right strategy" knob.
+func benchmarkStrategies() []strategyResult {
+	const repeats = 5
+	strategies := []struct {
+		name string
+		make func() simulator.ExecutionStrategy
+	}{
+		{"inline", func() simulator.ExecutionStrategy { return &simulator.InlineExecution{} }},
+		{"spawn-per-step", func() simulator.ExecutionStrategy { return &simulator.SpawnPerStepExecution{} }},
+		{"persistent-worker", func() simulator.ExecutionStrategy { return &simulator.PersistentWorkerExecution{} }},
+	}
+	regimes := []struct {
+		name, detail            string
+		parts, width, ops, step int
+	}{
+		{"few partitions, light work, many steps", "1 partition, width 8, ops 1, 8000 steps", 1, 8, 1, 8000},
+		{"many partitions, light work, many steps", "24 partitions, width 8, ops 1, 8000 steps", 24, 8, 1, 8000},
+		{"many partitions, heavy work", "24 partitions, width 64, ops 400, 400 steps", 24, 64, 400, 400},
+	}
+	var out []strategyResult
+	for _, rg := range regimes {
+		res := strategyResult{Regime: rg.name, Detail: rg.detail, Seconds: map[string]float64{}, AllocsK: map[string]float64{}}
+		for _, s := range strategies {
+			gen := stratGen(rg.parts, rg.width, rg.ops, rg.step, s.make())
+			timeSteps(gen) // warm
+			best := time.Duration(1 << 62)
+			for r := 0; r < repeats; r++ {
+				if d := timeSteps(gen); d < best {
+					best = d
+				}
+			}
+			res.Seconds[s.name] = best.Seconds()
+			res.AllocsK[s.name] = float64(allocsSteps(gen)) / 1000
+			fmt.Printf("  %-40s %-18s %.3fs  %.0fk allocs\n", rg.name, s.name, best.Seconds(), res.AllocsK[s.name])
+		}
+		out = append(out, res)
+	}
+	return out
+}
+
 func writeJSON(name string, v any) {
 	dir := "benchmarks/results"
 	if _, err := os.Stat("results"); err == nil {
@@ -605,8 +720,11 @@ func main() {
 	coupled := benchmarkCoupled()
 	fmt.Println("branching-coupled (hard to vectorize) across execution models:")
 	branch := benchmarkBranchCoupled()
+	fmt.Println("execution strategies across regimes (where each shines):")
+	strats := benchmarkStrategies()
 
 	writeJSON("meta.json", meta)
+	writeJSON("strategies.json", strats)
 	writeJSON("ensemble_scaling.json", scaling)
 	writeJSON("cold_start.json", cold)
 	writeJSON("vectorized_ops_go.json", ops)

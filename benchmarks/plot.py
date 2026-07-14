@@ -163,6 +163,35 @@ def plot_branch_coupled():
     plt.close(fig)
 
 
+def plot_strategies():
+    import numpy as np
+
+    data = load("strategies.json")
+    strategies = [("inline", GREEN), ("spawn-per-step", "#a7c69a"), ("persistent-worker", GREY)]
+    regimes = [d["regime"] for d in data]
+    short = ["few partitions,\nlight work", "many partitions,\nlight work", "many partitions,\nheavy work"]
+    x = np.arange(len(regimes))
+    w = 0.26
+    fig, ax = plt.subplots(figsize=(9.5, 4.6))
+    for i, (name, colour) in enumerate(strategies):
+        vals = [max(d["seconds"][name], 1e-4) for d in data]
+        bars = ax.bar(x + (i - 1) * w, vals, w, color=colour, label=name)
+        for d, b in zip(data, bars):
+            allo = d["allocs_k"][name]
+            ax.text(b.get_x() + b.get_width() / 2, b.get_height(),
+                    f"{allo:.0f}k" if allo >= 1 else "0", ha="center", va="bottom", fontsize=7)
+    ax.set_yscale("log")
+    ax.set_xticks(x)
+    ax.set_xticklabels(short)
+    ax.set_ylabel("seconds (log scale, lower is better)")
+    ax.set_title("Execution strategies across regimes — bar labels are heap allocations")
+    ax.grid(True, axis="y", alpha=0.3, which="both")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(os.path.join(PLOTS, "strategies.svg"))
+    plt.close(fig)
+
+
 def main():
     os.makedirs(PLOTS, exist_ok=True)
     plot_ensemble_scaling()
@@ -170,6 +199,7 @@ def main():
     plot_processes()
     plot_coupled()
     plot_branch_coupled()
+    plot_strategies()
     print("wrote", PLOTS, "*.svg")
 
 
