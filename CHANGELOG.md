@@ -23,6 +23,11 @@ an exact version rather than assume stability across minors.
 ## [Unreleased]
 
 ### Added
+- **`benchmarks/`** — reproducible, fair CPU-to-CPU performance benchmarks with committed
+  numbers and plots (Apple M4 reference machine): ensemble scaling (independent simulations
+  via `RunSeededEnsemble` are embarrassingly parallel — ~4.4× on 10 heterogeneous cores),
+  warmup-free cold-start (~2 µs to first result), and per-partition vector-op throughput vs
+  NumPy (AXPY parity; DOT trails Accelerate BLAS). Deliberately not a GPU-framework race.
 - **"When to use it" on the docs frontpage** — a short, defensible positioning section:
   the combination stochadex uniquely offers in Go, and links ceding the ground it doesn't
   hold (Stan/PyMC/SciML, `godes`, gonum, Python for neural-net training).

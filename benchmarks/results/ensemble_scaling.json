@@ -1,0 +1,51 @@
+[
+  {
+    "max_concurrency": 1,
+    "members": 512,
+    "best_seconds": 0.18565275,
+    "members_per_sec": 2757.8368755647302,
+    "speedup_vs_1": 1
+  },
+  {
+    "max_concurrency": 2,
+    "members": 512,
+    "best_seconds": 0.09838175,
+    "members_per_sec": 5204.217245576542,
+    "speedup_vs_1": 1.8870649282006062
+  },
+  {
+    "max_concurrency": 3,
+    "members": 512,
+    "best_seconds": 0.067167334,
+    "members_per_sec": 7622.7530483791425,
+    "speedup_vs_1": 2.764033332036076
+  },
+  {
+    "max_concurrency": 4,
+    "members": 512,
+    "best_seconds": 0.059115833,
+    "members_per_sec": 8660.962283995897,
+    "speedup_vs_1": 3.1404911438869516
+  },
+  {
+    "max_concurrency": 6,
+    "members": 512,
+    "best_seconds": 0.048805708,
+    "members_per_sec": 10490.57622522349,
+    "speedup_vs_1": 3.8039146978464076
+  },
+  {
+    "max_concurrency": 8,
+    "members": 512,
+    "best_seconds": 0.046362666,
+    "members_per_sec": 11043.368386106184,
+    "speedup_vs_1": 4.004358808874365
+  },
+  {
+    "max_concurrency": 10,
+    "members": 512,
+    "best_seconds": 0.04182775,
+    "members_per_sec": 12240.677540627934,
+    "speedup_vs_1": 4.438506732970337
+  }
+]

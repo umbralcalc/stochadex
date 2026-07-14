@@ -1,0 +1,5 @@
+{
+  "repeats": 201,
+  "median_microseconds": 2,
+  "note": "config assembly + first step; statically compiled, no JIT/interpreter warmup"
+}
