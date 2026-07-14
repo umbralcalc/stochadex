@@ -186,8 +186,12 @@ vectorized throughput at the primitive level by being in Go.
 ![vectorized ops](plots/vectorized_ops.svg)
 
 - **AXPY** (`y += a·x`, elementwise): gonum ~7–8 GFLOP/s vs NumPy ~3–6.7 GFLOP/s → **parity**.
-- **DOT** (reduction): NumPy's Accelerate BLAS is faster on cache-resident sizes; gonum's
-  default pure-Go BLAS trails. gonum can be linked against a C BLAS to close it if needed.
+- **DOT** (reduction): gonum's *default pure-Go* BLAS trails NumPy's Accelerate BLAS on
+  cache-resident sizes (~2.7 GFLOP/s here). This is a one-line fix: building with
+  `-tags cblas` routes gonum to a linked system C BLAS — the *same* Accelerate/OpenBLAS
+  NumPy uses — taking DOT to **~38 GFLOP/s** (~14×), matching NumPy. The tradeoff is cgo
+  (no pure-Go/WASM binary), so it is opt-in and off the default path
+  (see [`pkg/simulator/blas_accelerated.go`](../pkg/simulator/blas_accelerated.go)).
 
 ## Reproducing
 

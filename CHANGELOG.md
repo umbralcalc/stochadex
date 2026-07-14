@@ -26,8 +26,19 @@ an exact version rather than assume stability across minors.
 - **`benchmarks/`** — reproducible, fair CPU-to-CPU performance benchmarks with committed
   numbers and plots (Apple M4 reference machine): ensemble scaling (independent simulations
   via `RunSeededEnsemble` are embarrassingly parallel — ~4.4× on 10 heterogeneous cores),
-  warmup-free cold-start (~2 µs to first result), and per-partition vector-op throughput vs
-  NumPy (AXPY parity; DOT trails Accelerate BLAS). Deliberately not a GPU-framework race.
+  warmup-free cold-start (~2 µs to first result), whole-process simulation vs NumPy across
+  **every execution model** (ensemble wins; branching processes favour the engine),
+  linearly-coupled (~parity) and branching-coupled (~32× over idiomatic NumPy, 2.7× over
+  hand-optimized) chains, execution-strategy regimes (where `Inline`/`SpawnPerStep`/
+  `PersistentWorker` each win), and per-partition vector-op throughput vs NumPy (AXPY
+  parity; DOT via the `cblas` backend below). Deliberately not a GPU-framework race.
+- **Opt-in accelerated BLAS backend (`cblas` build tag).** `pkg/simulator/blas_accelerated.go`
+  registers gonum's netlib backend against a linked system C BLAS (Apple Accelerate,
+  OpenBLAS, or MKL) via a one-line `blas64.Use(...)` in `init()`, gated behind
+  `//go:build cblas`. It lifts BLAS-heavy ops (e.g. DOT ~2.7 → ~38 GFLOP/s, matching NumPy)
+  for anyone building with `-tags cblas` — no code change, just the flag. The default build
+  stays pure-Go and **WASM-clean** (Invariant B): cgo accelerators never sit on the default
+  path.
 - **"When to use it" on the docs frontpage** — a short, defensible positioning section:
   the combination stochadex uniquely offers in Go, and links ceding the ground it doesn't
   hold (Stan/PyMC/SciML, `godes`, gonum, Python for neural-net training).
