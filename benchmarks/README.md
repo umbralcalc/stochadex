@@ -179,32 +179,60 @@ independent work, an **ensemble** of inline members beats all of them.
 
 ## 5. Per-partition vector-op throughput vs NumPy — CPU-to-CPU parity (micro)
 
-A supporting micro-benchmark: the raw elementwise/reduction ops (via gonum's pure-Go BLAS)
-vs NumPy (Apple Accelerate BLAS). No engine involved — just confirming you don't give up
-vectorized throughput at the primitive level by being in Go.
+A supporting micro-benchmark: the raw elementwise/reduction ops a partition does on its
+state, measured three ways — gonum on its **default pure-Go BLAS**, gonum with the
+[`cblas` build tag](../pkg/simulator/blas_accelerated.go) (linked against the **same Apple
+Accelerate BLAS** NumPy uses), and **NumPy**. No engine involved — just confirming you
+don't give up vectorized throughput at the primitive level by being in Go, and that the
+one gap has a one-flag fix.
 
 ![vectorized ops](plots/vectorized_ops.svg)
 
-- **AXPY** (`y += a·x`, elementwise): gonum ~7–8 GFLOP/s vs NumPy ~3–6.7 GFLOP/s → **parity**.
-- **DOT** (reduction): gonum's *default pure-Go* BLAS trails NumPy's Accelerate BLAS on
-  cache-resident sizes (~2.7 GFLOP/s here). This is a one-line fix: building with
-  `-tags cblas` routes gonum to a linked system C BLAS — the *same* Accelerate/OpenBLAS
-  NumPy uses — taking DOT to **~38 GFLOP/s** (~14×), matching NumPy. The tradeoff is cgo
+Peak (cache-resident, n=100k), GFLOP/s:
+
+| op | gonum default (pure-Go) | gonum `-tags cblas` (Accelerate) | NumPy (Accelerate) |
+|---|---|---|---|
+| **AXPY** (`y += a·x`) | 8.8 | **52.7** | 7.3 |
+| **DOT** (reduction) | 2.7 | **106.7** | 80.0 |
+
+- **AXPY** (elementwise): even the *default* pure-Go gonum is at parity with NumPy (~8.8 vs
+  ~7.3). It is memory-bandwidth-bound, so at the largest sizes all three converge (~8
+  GFLOP/s); the C BLAS pulls ahead only where the data is cache-resident.
+- **DOT** (reduction): the only real gap on the default build — gonum's *pure-Go* DOT
+  trails (~2.7 GFLOP/s) — but it is a one-line fix. Building with `-tags cblas` routes gonum
+  to a linked system C BLAS — the *same* Accelerate/OpenBLAS NumPy uses — taking DOT to
+  **~107 GFLOP/s** (a ~40× jump), matching and even edging NumPy's ~80. The tradeoff is cgo
   (no pure-Go/WASM binary), so it is opt-in and off the default path
   (see [`pkg/simulator/blas_accelerated.go`](../pkg/simulator/blas_accelerated.go)).
+
+So on the **same** BLAS the two are neck-and-neck — gonum with `-tags cblas` matches or
+beats NumPy on both ops; the choice is whether you want the pure-Go/WASM-clean default or
+NumPy-class BLAS behind one build flag. (All three series measured back-to-back in one
+session; DOT is the same libraries on both sides, so treat the small gonum-over-NumPy edge
+as "equal, not a win.")
 
 ## Reproducing
 
 From the repo root:
 
 ```bash
-go run ./benchmarks                # Go: ensemble scaling, cold start, gonum ops, process models -> results/*.json
-python3 benchmarks/numpy_processes.py   # NumPy whole-process comparison -> results/processes_numpy.json
+go run ./benchmarks                # Go engine suite: ensemble scaling, cold start, process/coupled models -> results/*.json
+
+# Vector-op micro-benchmark (§5), the only BLAS-dependent one — two builds:
+go run ./benchmarks/vectorops                                            # gonum default pure-Go BLAS -> vectorized_ops_go.json
+CGO_ENABLED=1 CGO_LDFLAGS="-framework Accelerate" \
+  go run -tags cblas ./benchmarks/vectorops                             # gonum + Accelerate (cblas) -> vectorized_ops_go_cblas.json
+                                                                         #   (Linux: CGO_LDFLAGS="-lopenblas")
+
+python3 benchmarks/numpy_processes.py      # NumPy whole-process comparison -> results/processes_numpy.json
 python3 benchmarks/numpy_coupled.py        # NumPy coupled-chain comparison -> results/coupled_numpy.json
 python3 benchmarks/numpy_branch_coupled.py # NumPy branching-coupled comparison -> results/branch_coupled_numpy.json
 python3 benchmarks/numpy_ops.py            # NumPy vector-op micro-benchmark -> results/vectorized_ops_numpy.json
-python3 benchmarks/plot.py              # render plots/*.svg from results/*.json
+python3 benchmarks/plot.py                 # render plots/*.svg from results/*.json
 ```
 
 `results/*.json` and `plots/*.svg` are committed (measured on the reference machine above).
-Re-running overwrites them with your machine's numbers.
+Re-running overwrites them with your machine's numbers. The three §5 series
+(`vectorized_ops_go.json`, `..._go_cblas.json`, `..._numpy.json`) are measured
+back-to-back in one session so they are mutually comparable; the `-tags cblas` build needs
+a system BLAS linked (Accelerate on macOS, OpenBLAS/MKL on Linux).

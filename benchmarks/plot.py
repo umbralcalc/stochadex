@@ -43,22 +43,25 @@ def plot_ensemble_scaling():
 
 
 def plot_vectorized_ops():
-    go = load("vectorized_ops_go.json")
-    npv = load("vectorized_ops_numpy.json")
+    go = load("vectorized_ops_go.json")            # gonum default (pure-Go BLAS)
+    goc = load("vectorized_ops_go_cblas.json")     # gonum -tags cblas (system Accelerate BLAS)
+    npv = load("vectorized_ops_numpy.json")        # NumPy (Accelerate BLAS)
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
     for ax, op in zip(axes, ["axpy", "dot"]):
         gx = [d["size"] for d in go if d["op"] == op]
         gy = [d["gflops"] for d in go if d["op"] == op]
+        cy = [d["gflops"] for d in goc if d["op"] == op]
         nx = [d["size"] for d in npv if d["op"] == op]
         ny = [d["gflops"] for d in npv if d["op"] == op]
-        ax.plot(gx, gy, "o-", color=GREEN, linewidth=2, label="gonum (Go, pure-Go BLAS)")
+        ax.plot(gx, gy, "o:", color="#a7c69a", linewidth=2, label="gonum (default, pure-Go BLAS)")
+        ax.plot(gx, cy, "o-", color=GREEN, linewidth=2, label="gonum (-tags cblas, Accelerate BLAS)")
         ax.plot(nx, ny, "s--", color=GREY, linewidth=2, label="NumPy (Accelerate BLAS)")
         ax.set_xscale("log")
         ax.set_xlabel("vector length")
         ax.set_ylabel("GFLOP/s")
         ax.set_title(op.upper())
         ax.grid(True, alpha=0.3)
-        ax.legend()
+        ax.legend(fontsize=8)
     fig.suptitle("Per-partition vector-op throughput — CPU-to-CPU (Apple M4)")
     fig.tight_layout()
     fig.savefig(os.path.join(PLOTS, "vectorized_ops.svg"))

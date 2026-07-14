@@ -5,9 +5,12 @@
 // on their own hardware and problem shapes, and comparing them on a laptop CPU would
 // be apples-to-oranges. These are the systems claims that are actually stochadex's:
 //
-//   - ensemble scaling, cold start, gonum vector ops
+//   - ensemble scaling, cold start
 //   - whole-process, coupled, and branching-coupled simulation vs NumPy
 //   - execution strategies across regimes (where each shines)
+//
+// The BLAS vector-op micro-benchmark (README §5) lives in ./benchmarks/vectorops — the
+// only benchmark that touches BLAS, so the only one the `cblas` backend changes.
 //
 // Run: `go run ./benchmarks` (from the repo root) or `go run .` from here. Writes
 // benchmarks/results/*.json. Numbers are machine-specific — record the machine in the
@@ -25,7 +28,6 @@ import (
 	"sync"
 	"time"
 
-	"gonum.org/v1/gonum/blas/blas64"
 	"gonum.org/v1/gonum/stat/distuv"
 
 	"github.com/umbralcalc/stochadex/pkg/continuous"
@@ -233,58 +235,6 @@ func benchmarkColdStart() coldStart {
 		MedianMicroseconds: med,
 		Note:               "config assembly + first step; statically compiled, no JIT/interpreter warmup",
 	}
-}
-
-type opPoint struct {
-	Size        int     `json:"size"`
-	Op          string  `json:"op"`
-	BestSeconds float64 `json:"best_seconds"`
-	GFLOPs      float64 `json:"gflops"`
-}
-
-// benchmarkVectorizedOps measures gonum (BLAS-backed) throughput for the elementwise
-// and reduction vector ops a partition does on its state — AXPY (y += a·x) and DOT.
-// numpy_ops.py runs the identical ops so the plot can show CPU-to-CPU parity.
-func benchmarkVectorizedOps() []opPoint {
-	sizes := []int{1_000, 10_000, 100_000, 1_000_000, 10_000_000}
-	const repeats = 20
-	var out []opPoint
-	for _, n := range sizes {
-		x := make([]float64, n)
-		y := make([]float64, n)
-		for i := range x {
-			x[i], y[i] = float64(i%7)+0.5, float64(i%5)+0.5
-		}
-		vx := blas64.Vector{N: n, Inc: 1, Data: x}
-		vy := blas64.Vector{N: n, Inc: 1, Data: y}
-
-		// AXPY: 2n flops.
-		best := time.Duration(1 << 62)
-		for r := 0; r < repeats; r++ {
-			start := time.Now()
-			blas64.Axpy(1.0000001, vx, vy)
-			if d := time.Since(start); d < best {
-				best = d
-			}
-		}
-		out = append(out, opPoint{Size: n, Op: "axpy", BestSeconds: best.Seconds(),
-			GFLOPs: 2 * float64(n) / best.Seconds() / 1e9})
-
-		// DOT: 2n flops.
-		best = time.Duration(1 << 62)
-		for r := 0; r < repeats; r++ {
-			start := time.Now()
-			_ = blas64.Dot(vx, vy)
-			if d := time.Since(start); d < best {
-				best = d
-			}
-		}
-		out = append(out, opPoint{Size: n, Op: "dot", BestSeconds: best.Seconds(),
-			GFLOPs: 2 * float64(n) / best.Seconds() / 1e9})
-		fmt.Printf("  vec n=%-9d  axpy %.2f GFLOP/s  dot %.2f GFLOP/s\n",
-			n, out[len(out)-2].GFLOPs, out[len(out)-1].GFLOPs)
-	}
-	return out
 }
 
 func fill(n int, v float64) []float64 {
@@ -712,8 +662,6 @@ func main() {
 	scaling := benchmarkEnsembleScaling()
 	fmt.Println("cold start:")
 	cold := benchmarkColdStart()
-	fmt.Println("vectorized ops (gonum):")
-	ops := benchmarkVectorizedOps()
 	fmt.Println("whole-process simulation across execution models (engine vs NumPy):")
 	procs := benchmarkProcesses()
 	fmt.Println("coupled OU-chain across execution models (engine's home turf):")
@@ -727,7 +675,6 @@ func main() {
 	writeJSON("strategies.json", strats)
 	writeJSON("ensemble_scaling.json", scaling)
 	writeJSON("cold_start.json", cold)
-	writeJSON("vectorized_ops_go.json", ops)
 	writeJSON("processes_go.json", procs)
 	writeJSON("coupled_go.json", coupled)
 	writeJSON("branch_coupled_go.json", branch)
