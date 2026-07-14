@@ -65,10 +65,49 @@ def plot_vectorized_ops():
     plt.close(fig)
 
 
+def plot_processes():
+    import numpy as np
+
+    go = {d["process"]: d for d in load("processes_go.json")}
+    npv = {d["process"]: d for d in load("processes_numpy.json")}
+    procs = ["gbm", "ou", "compound_poisson"]
+    pretty = {"gbm": "GBM (simple)", "ou": "Ornstein–Uhlenbeck", "compound_poisson": "compound-Poisson (branching)"}
+
+    # (json key, legend label, colour) — NumPy first, then stochadex models.
+    models = [
+        (None, "NumPy — 1 thread (SIMD/paths)", GREY),
+        ("single wide inline partition (1 core)", "sx: 1 wide inline partition (1 core)", "#cfe0c3"),
+        ("one sim, N partitions, spawn-per-step", "sx: N partitions, spawn-per-step", "#a7c69a"),
+        ("one sim, N partitions, persistent-worker", "sx: N partitions, persistent-worker", "#84ab72"),
+        ("one sim, N partitions, inline (serial)", "sx: N partitions, inline (1 core)", "#6b9457"),
+        ("ensemble, N inline members (all cores)", "sx: ensemble, all cores", GREEN),
+    ]
+    x = np.arange(len(procs))
+    n = len(models)
+    w = 0.8 / n
+    fig, ax = plt.subplots(figsize=(11, 5))
+    for i, (key, label, colour) in enumerate(models):
+        if key is None:
+            vals = [npv[p]["numpy_seconds"] for p in procs]
+        else:
+            vals = [go[p]["seconds"][key] for p in procs]
+        ax.bar(x + (i - (n - 1) / 2) * w, vals, w, color=colour, label=label)
+    ax.set_xticks(x)
+    ax.set_xticklabels([pretty[p] for p in procs])
+    ax.set_ylabel("seconds (lower is better)")
+    ax.set_title("Whole-process simulation across execution models — 10,000 paths × 2,000 steps (Apple M4)")
+    ax.grid(True, axis="y", alpha=0.3)
+    ax.legend(fontsize=8, ncol=2)
+    fig.tight_layout()
+    fig.savefig(os.path.join(PLOTS, "processes.svg"))
+    plt.close(fig)
+
+
 def main():
     os.makedirs(PLOTS, exist_ok=True)
     plot_ensemble_scaling()
     plot_vectorized_ops()
+    plot_processes()
     print("wrote", PLOTS, "*.svg")
 
 

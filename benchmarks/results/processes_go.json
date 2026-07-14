@@ -1,0 +1,38 @@
+[
+  {
+    "process": "gbm",
+    "total_paths": 10000,
+    "steps": 2000,
+    "seconds": {
+      "ensemble, N inline members (all cores)": 0.038267458,
+      "one sim, N partitions, inline (serial)": 0.111725708,
+      "one sim, N partitions, persistent-worker": 0.109640583,
+      "one sim, N partitions, spawn-per-step": 0.109548958,
+      "single wide inline partition (1 core)": 0.193391959
+    }
+  },
+  {
+    "process": "ou",
+    "total_paths": 10000,
+    "steps": 2000,
+    "seconds": {
+      "ensemble, N inline members (all cores)": 0.07246975,
+      "one sim, N partitions, inline (serial)": 0.173058416,
+      "one sim, N partitions, persistent-worker": 0.169762417,
+      "one sim, N partitions, spawn-per-step": 0.171987291,
+      "single wide inline partition (1 core)": 0.386614833
+    }
+  },
+  {
+    "process": "compound_poisson",
+    "total_paths": 10000,
+    "steps": 2000,
+    "seconds": {
+      "ensemble, N inline members (all cores)": 0.051587917,
+      "one sim, N partitions, inline (serial)": 0.128061333,
+      "one sim, N partitions, persistent-worker": 0.127246958,
+      "one sim, N partitions, spawn-per-step": 0.130136708,
+      "single wide inline partition (1 core)": 0.283837209
+    }
+  }
+]

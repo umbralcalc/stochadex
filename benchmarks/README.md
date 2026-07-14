@@ -45,29 +45,70 @@ step): **~2 µs**, stable run-to-run. A statically compiled Go binary has no int
 JIT to warm up — the warmup-free, single-binary deployment property, stated as an absolute
 rather than a rigged race against a JIT stack.
 
-## 3. Per-partition vector-op throughput vs NumPy — CPU-to-CPU parity
+## 3. Whole-process simulation across execution models — the engine in the comparison
 
-The elementwise/reduction ops a partition does on its state, via gonum's (pure-Go) BLAS,
-against NumPy (Apple Accelerate BLAS). The point is parity, not winning: you don't give up
-vectorized throughput by being in Go.
+The most representative comparison: simulate the *same stochastic process* — 10,000 paths ×
+2,000 steps — end to end, in NumPy (idiomatic: a step loop vectorized over paths, single
+thread) and in stochadex across **every execution model it offers**. This puts the whole
+engine (coordinator + `Iteration` + ensemble) in the loop, and makes explicit *which model
+wins, why, and that you are free to tune it* — where NumPy gives you exactly one way to run.
+Neither side stores history (fair timing of the simulation compute).
+
+![whole-process simulation across execution models](plots/processes.svg)
+
+Wall-clock seconds (lower is better); **bold** = fastest per process:
+
+| execution model | GBM (simple) | Ornstein–Uhlenbeck | compound-Poisson (branching) |
+|---|---|---|---|
+| NumPy — 1 thread, SIMD over paths | 0.081 | 0.093 | 0.258 |
+| stochadex: 1 wide `Inline` partition (1 core) | 0.193 | 0.387 | 0.284 |
+| stochadex: one sim, N partitions, `SpawnPerStep` | 0.110 | 0.172 | 0.130 |
+| stochadex: one sim, N partitions, `PersistentWorker` | 0.110 | 0.170 | 0.127 |
+| stochadex: one sim, N partitions, `Inline` (1 core) | 0.112 | 0.173 | 0.128 |
+| stochadex: **ensemble, N `Inline` members, all cores** | **0.038** | **0.072** | **0.052** |
+
+What the models teach — and why the freedom to choose matters:
+
+- **The ensemble wins everything.** Independent paths are embarrassingly parallel; running
+  them as an ensemble of separate simulations (no per-step barrier) uses every core and is
+  fastest on all three processes — 2.2× / 1.3× / 5.0× faster than idiomatic NumPy.
+- **Within one simulation, partition-parallelism gives ~no speedup** — `SpawnPerStep` ≈
+  `PersistentWorker` ≈ `Inline` (all ≈ 0.11 s for GBM). Partitions in one sim are
+  step-synchronised (a barrier every step) *for coupled components*; forcing independent
+  paths through it does not scale. Lesson: run decoupled work as an **ensemble**, not as
+  partitions of one sim. (stochadex lets you do either — the point is to pick the right one.)
+- **Layout matters too:** N narrow partitions beat one wide partition even single-threaded
+  (0.112 vs 0.193 s, GBM) — cache locality. Another free knob.
+- **vs NumPy, it depends on the process.** On simple, trivially-vectorizable processes
+  (GBM, OU) NumPy's SIMD over paths beats stochadex's single-core configs; stochadex wins by
+  using cores. But on the **branching** compound-Poisson, stochadex is faster than NumPy
+  **even single-threaded** (0.128 vs 0.258 s) — masking + conditional draws are where
+  vectorization loses — and 5× faster in parallel.
+
+Takeaway: the more complex or path-dependent the process, the better the engine looks — and
+either way you have several execution models to tune, not one. Run *your* process.
+
+## 4. Per-partition vector-op throughput vs NumPy — CPU-to-CPU parity (micro)
+
+A supporting micro-benchmark: the raw elementwise/reduction ops (via gonum's pure-Go BLAS)
+vs NumPy (Apple Accelerate BLAS). No engine involved — just confirming you don't give up
+vectorized throughput at the primitive level by being in Go.
 
 ![vectorized ops](plots/vectorized_ops.svg)
 
-- **AXPY** (`y += a·x`, elementwise — what iterations actually do): gonum ~7–8 GFLOP/s vs
-  NumPy ~3–6.7 GFLOP/s → **parity** (gonum is even ahead at small sizes; both are
-  memory-bound at large sizes).
+- **AXPY** (`y += a·x`, elementwise): gonum ~7–8 GFLOP/s vs NumPy ~3–6.7 GFLOP/s → **parity**.
 - **DOT** (reduction): NumPy's Accelerate BLAS is faster on cache-resident sizes; gonum's
-  default pure-Go BLAS trails here. If a workload is DOT-heavy, gonum can be linked against
-  a C BLAS (OpenBLAS/Accelerate) to close the gap — out of the box it is pure Go.
+  default pure-Go BLAS trails. gonum can be linked against a C BLAS to close it if needed.
 
 ## Reproducing
 
 From the repo root:
 
 ```bash
-go run ./benchmarks          # Go: ensemble scaling, cold start, gonum vector ops -> results/*.json
-python3 benchmarks/numpy_ops.py   # NumPy vector ops -> results/vectorized_ops_numpy.json
-python3 benchmarks/plot.py        # render plots/*.svg from results/*.json
+go run ./benchmarks                # Go: ensemble scaling, cold start, gonum ops, process models -> results/*.json
+python3 benchmarks/numpy_processes.py   # NumPy whole-process comparison -> results/processes_numpy.json
+python3 benchmarks/numpy_ops.py         # NumPy vector-op micro-benchmark -> results/vectorized_ops_numpy.json
+python3 benchmarks/plot.py              # render plots/*.svg from results/*.json
 ```
 
 `results/*.json` and `plots/*.svg` are committed (measured on the reference machine above).

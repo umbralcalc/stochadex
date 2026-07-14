@@ -222,6 +222,155 @@ func benchmarkVectorizedOps() []opPoint {
 	return out
 }
 
+func fill(n int, v float64) []float64 {
+	s := make([]float64, n)
+	for i := range s {
+		s[i] = v
+	}
+	return s
+}
+
+// newProcessIteration returns a fresh iteration + params + init state for one
+// stochastic process, with `width` independent paths in the state vector.
+func newProcessIteration(kind string, width int) (simulator.Iteration, map[string][]float64, []float64) {
+	params := map[string][]float64{}
+	init := make([]float64, width)
+	var iter simulator.Iteration
+	switch kind {
+	case "gbm":
+		iter = &continuous.GeometricBrownianMotionIteration{}
+		params["variances"] = fill(width, 0.04)
+		for i := range init {
+			init[i] = 1.0
+		}
+	case "ou":
+		iter = &continuous.OrnsteinUhlenbeckIteration{}
+		params["thetas"], params["mus"], params["sigmas"] = fill(width, 0.5), fill(width, 0.0), fill(width, 0.3)
+	case "compound_poisson":
+		iter = &continuous.CompoundPoissonProcessIteration{JumpDist: &continuous.GammaJumpDistribution{}}
+		params["rates"], params["gamma_alphas"], params["gamma_betas"] = fill(width, 5.0), fill(width, 2.0), fill(width, 1.0)
+	default:
+		panic("unknown process " + kind)
+	}
+	return iter, params, init
+}
+
+// processGen builds a simulation of `numPartitions` independent process partitions,
+// each carrying `width` paths, run for `steps` under the given execution strategy.
+// Output is discarded (NilOutputFunction) so we time the simulation compute, not
+// history storage — the same thing the NumPy comparison does. Varying
+// (numPartitions, width, strategy) and whether it is run as one sim or an ensemble
+// is exactly the execution-model freedom the benchmark surfaces.
+func processGen(kind string, numPartitions, width, steps int, strategy simulator.ExecutionStrategy) func() *simulator.ConfigGenerator {
+	return func() *simulator.ConfigGenerator {
+		gen := simulator.NewConfigGenerator()
+		for p := 0; p < numPartitions; p++ {
+			iter, params, init := newProcessIteration(kind, width)
+			gen.SetPartition(&simulator.PartitionConfig{
+				Name:              fmt.Sprintf("proc%d", p),
+				Iteration:         iter,
+				Params:            simulator.NewParams(params),
+				InitStateValues:   init,
+				StateHistoryDepth: 1,
+				Seed:              uint64(p + 1),
+			})
+		}
+		gen.SetSimulation(&simulator.SimulationConfig{
+			OutputCondition:      &simulator.EveryStepOutputCondition{},
+			OutputFunction:       &simulator.NilOutputFunction{},
+			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+			TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 0.01},
+			ExecutionStrategy:    strategy,
+		})
+		return gen
+	}
+}
+
+// runProcessEnsemble runs `members` independent simulations (built by gen) to
+// termination, up to maxConc at once, with output discarded, and returns the wall
+// time. This is a fair parallel ensemble runner (no per-step storage overhead).
+func runProcessEnsemble(gen func() *simulator.ConfigGenerator, members, maxConc int) time.Duration {
+	sem := make(chan struct{}, maxConc)
+	var wg sync.WaitGroup
+	start := time.Now()
+	for m := 0; m < members; m++ {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(seed uint64) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			g := gen()
+			g.SetGlobalSeed(seed)
+			settings, impl := g.GenerateConfigs()
+			coord := simulator.NewPartitionCoordinator(settings, impl)
+			var w sync.WaitGroup
+			for !coord.ReadyToTerminate() {
+				coord.Step(&w)
+			}
+		}(uint64(m + 1))
+	}
+	wg.Wait()
+	return time.Since(start)
+}
+
+type processResult struct {
+	Process    string             `json:"process"`
+	TotalPaths int                `json:"total_paths"`
+	Steps      int                `json:"steps"`
+	Seconds    map[string]float64 `json:"seconds"` // execution model -> best wall seconds
+}
+
+// benchmarkProcesses times whole-process simulation across every stochadex execution
+// model, so it is explicit which one wins, why, and that the user is free to tune it
+// (NumPy, added by numpy_processes.py, offers one way). All configs simulate the same
+// totalPaths × steps of the same process; the engine (coordinator + iteration +
+// ensemble) is fully in the loop, not just gonum primitives.
+//
+// The models, in order:
+//   - single wide inline partition, 1 core        — the optimal serial config
+//   - one sim, N partitions, spawn-per-step        — within-sim (default); the per-step
+//   - one sim, N partitions, persistent-worker         barrier limits decoupled work,
+//   - one sim, N partitions, inline (serial)           so these barely beat serial
+//   - ensemble of N inline members, all cores      — decoupled, no barrier: the winner
+func benchmarkProcesses() []processResult {
+	const totalPaths, steps, repeats = 10000, 2000, 3
+	nc := runtime.NumCPU()
+	width := totalPaths / nc
+	var out []processResult
+	for _, kind := range []string{"gbm", "ou", "compound_poisson"} {
+		configs := []struct {
+			name             string
+			gen              func() *simulator.ConfigGenerator
+			members, maxConc int
+		}{
+			{"single wide inline partition (1 core)",
+				processGen(kind, 1, totalPaths, steps, &simulator.InlineExecution{}), 1, 1},
+			{"one sim, N partitions, spawn-per-step",
+				processGen(kind, nc, width, steps, &simulator.SpawnPerStepExecution{}), 1, 1},
+			{"one sim, N partitions, persistent-worker",
+				processGen(kind, nc, width, steps, &simulator.PersistentWorkerExecution{}), 1, 1},
+			{"one sim, N partitions, inline (serial)",
+				processGen(kind, nc, width, steps, &simulator.InlineExecution{}), 1, 1},
+			{"ensemble, N inline members (all cores)",
+				processGen(kind, 1, width, steps, &simulator.InlineExecution{}), nc, nc},
+		}
+		seconds := map[string]float64{}
+		for _, c := range configs {
+			runProcessEnsemble(c.gen, c.members, c.maxConc) // warm
+			best := time.Duration(1 << 62)
+			for r := 0; r < repeats; r++ {
+				if d := runProcessEnsemble(c.gen, c.members, c.maxConc); d < best {
+					best = d
+				}
+			}
+			seconds[c.name] = best.Seconds()
+			fmt.Printf("  %-16s  %-42s %.3fs\n", kind, c.name, best.Seconds())
+		}
+		out = append(out, processResult{Process: kind, TotalPaths: totalPaths, Steps: steps, Seconds: seconds})
+	}
+	return out
+}
+
 func writeJSON(name string, v any) {
 	dir := "benchmarks/results"
 	if _, err := os.Stat("results"); err == nil {
@@ -256,10 +405,13 @@ func main() {
 	cold := benchmarkColdStart()
 	fmt.Println("vectorized ops (gonum):")
 	ops := benchmarkVectorizedOps()
+	fmt.Println("whole-process simulation (engine vs NumPy):")
+	procs := benchmarkProcesses()
 
 	writeJSON("meta.json", meta)
 	writeJSON("ensemble_scaling.json", scaling)
 	writeJSON("cold_start.json", cold)
 	writeJSON("vectorized_ops_go.json", ops)
+	writeJSON("processes_go.json", procs)
 	fmt.Println("wrote benchmarks/results/*.json")
 }
