@@ -28,6 +28,15 @@ an exact version rather than assume stability across minors.
   (`go test -coverprofile` → `codecov/codecov-action`); version and CI use shields.io.
   (Superseded the short-lived self-hosted-SVG badge approach.)
 
+### Changed
+- **Docs pipeline reliability.** CI now explicitly requests a GitHub Pages build after
+  force-pushing `gh-pages` — a force-push doesn't reliably auto-trigger a Pages
+  redeploy (and rapid successive publishes get throttled), which could leave the live
+  site stale even though `gh-pages` was current. Generated docs output
+  (`docs/index.html`, `docs/pkg/`, `docs/sitemap.xml`, `docs/robots.txt`,
+  `docs/model-index.json`) is now gitignored — CI builds it for `gh-pages`, so `main`
+  holds only sources.
+
 ## [0.2.0] — 2026-07-13
 
 The trust layer: every published card claim is now bound to an enforced test and

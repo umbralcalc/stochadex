@@ -9,3 +9,11 @@ tmp/
 nbs/data/*
 log/*
 .DS_Store
+
+# Generated docs site output — built by docs/build.sh and published to gh-pages by
+# CI. Not served from main (Pages serves gh-pages), so keep only sources in the repo.
+docs/index.html
+docs/pkg/
+docs/sitemap.xml
+docs/robots.txt
+docs/model-index.json
