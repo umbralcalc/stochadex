@@ -535,6 +535,100 @@ func benchmarkBranchCoupled() []processResult {
 	return []processResult{{Process: "branch_coupled", TotalPaths: totalPaths, Steps: steps, Seconds: seconds}}
 }
 
+// tunedOUIteration is a hand-optimized Ornstein–Uhlenbeck step: the SAME math as
+// continuous.OrnsteinUhlenbeckIteration, rewritten to shed the two per-element costs that
+// make the stock iteration slow on a single core (see README §3 discussion):
+//
+//   - it hoists the "thetas"/"mus"/"sigmas" param SLICES out of the loop, replacing three
+//     string-keyed map lookups per path per step (params.GetIndex) with plain slice reads;
+//   - it owns ONE math/rand/v2 generator (created once in Configure) and draws from it
+//     directly, instead of distuv.Normal.Rand() allocating a fresh rand wrapper every draw.
+//
+// It stays pure-Go and WASM-clean — no cgo, no assembly. This is the "tuned iteration"
+// companion to the stock one: it shows how much of the single-core gap vs NumPy is a
+// straightforward optimization of the Iteration body, not a limit of the engine.
+type tunedOUIteration struct {
+	rng *rand.Rand
+}
+
+func (o *tunedOUIteration) Configure(partitionIndex int, settings *simulator.Settings) {
+	seed := settings.Iterations[partitionIndex].Seed
+	o.rng = rand.New(rand.NewPCG(seed, seed))
+}
+
+func (o *tunedOUIteration) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	values := stateHistories[partitionIndex].GetNextStateRowToUpdate()
+	thetas, mus, sigmas := params.Map["thetas"], params.Map["mus"], params.Map["sigmas"]
+	dt := timestepsHistory.NextIncrement
+	sqrtDt := math.Sqrt(dt)
+	for i := range values {
+		values[i] += thetas[i]*(mus[i]-values[i])*dt + sigmas[i]*sqrtDt*o.rng.NormFloat64()
+	}
+	return values
+}
+
+// ouGen builds a single wide inline OU partition (1 core) using the iteration built by
+// makeIter — the shared config for the stock-vs-tuned single-core comparison. Params match
+// newProcessIteration("ou", ...) exactly so it is the identical workload.
+func ouGen(makeIter func() simulator.Iteration, width, steps int) func() *simulator.ConfigGenerator {
+	return func() *simulator.ConfigGenerator {
+		gen := simulator.NewConfigGenerator()
+		gen.SetPartition(&simulator.PartitionConfig{
+			Name:      "ou",
+			Iteration: makeIter(),
+			Params: simulator.NewParams(map[string][]float64{
+				"thetas": fill(width, 0.5), "mus": fill(width, 0.0), "sigmas": fill(width, 0.3),
+			}),
+			InitStateValues:   make([]float64, width),
+			StateHistoryDepth: 1,
+			Seed:              1,
+		})
+		gen.SetSimulation(&simulator.SimulationConfig{
+			OutputCondition:      &simulator.EveryStepOutputCondition{},
+			OutputFunction:       &simulator.NilOutputFunction{},
+			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+			TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 0.01},
+			ExecutionStrategy:    &simulator.InlineExecution{},
+		})
+		return gen
+	}
+}
+
+// benchmarkTunedOU compares, on ONE core (single wide inline partition), the stock
+// continuous.OrnsteinUhlenbeckIteration against tunedOUIteration — the same OU workload as
+// benchmarkProcesses' "ou" case, so its single-core NumPy number (from numpy_processes.py)
+// is the reference. It quantifies how much of the single-core gap is recoverable in pure Go.
+func benchmarkTunedOU() []processResult {
+	const totalPaths, steps, repeats = 10000, 2000, 5
+	configs := []struct {
+		name string
+		gen  func() *simulator.ConfigGenerator
+	}{
+		{"stock OU iteration (1 core inline)",
+			ouGen(func() simulator.Iteration { return &continuous.OrnsteinUhlenbeckIteration{} }, totalPaths, steps)},
+		{"tuned OU iteration (1 core inline)",
+			ouGen(func() simulator.Iteration { return &tunedOUIteration{} }, totalPaths, steps)},
+	}
+	seconds := map[string]float64{}
+	for _, c := range configs {
+		runProcessEnsemble(c.gen, 1, 1) // warm
+		best := time.Duration(1 << 62)
+		for r := 0; r < repeats; r++ {
+			if d := runProcessEnsemble(c.gen, 1, 1); d < best {
+				best = d
+			}
+		}
+		seconds[c.name] = best.Seconds()
+		fmt.Printf("  %-40s %.3fs\n", c.name, best.Seconds())
+	}
+	return []processResult{{Process: "tuned_ou", TotalPaths: totalPaths, Steps: steps, Seconds: seconds}}
+}
+
 // stratGen builds one simulation of numPartitions independent busy partitions.
 func stratGen(numPartitions, width, ops, steps int, strategy simulator.ExecutionStrategy) func() *simulator.ConfigGenerator {
 	return func() *simulator.ConfigGenerator {
@@ -658,6 +752,15 @@ func main() {
 	}
 	fmt.Printf("machine: %s/%s, %d CPU, Go %s\n", meta["goos"], meta["goarch"], meta["num_cpu"], meta["go_version"])
 
+	// `go run ./benchmarks tuned` regenerates only the stock-vs-tuned OU result (§3
+	// addendum) without re-running the heavy engine suite.
+	if len(os.Args) > 1 && os.Args[1] == "tuned" {
+		fmt.Println("stock vs tuned OU iteration (single-core, pure-Go):")
+		writeJSON("tuned_ou_go.json", benchmarkTunedOU())
+		fmt.Println("wrote benchmarks/results/tuned_ou_go.json")
+		return
+	}
+
 	fmt.Println("ensemble scaling (independent simulations, RunSeededEnsemble):")
 	scaling := benchmarkEnsembleScaling()
 	fmt.Println("cold start:")
@@ -670,8 +773,11 @@ func main() {
 	branch := benchmarkBranchCoupled()
 	fmt.Println("execution strategies across regimes (where each shines):")
 	strats := benchmarkStrategies()
+	fmt.Println("stock vs tuned OU iteration (single-core, pure-Go):")
+	tuned := benchmarkTunedOU()
 
 	writeJSON("meta.json", meta)
+	writeJSON("tuned_ou_go.json", tuned)
 	writeJSON("strategies.json", strats)
 	writeJSON("ensemble_scaling.json", scaling)
 	writeJSON("cold_start.json", cold)

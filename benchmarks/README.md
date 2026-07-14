@@ -88,6 +88,40 @@ What the models teach — and why the freedom to choose matters:
 Takeaway: the more complex or path-dependent the process, the better the engine looks — and
 either way you have several execution models to tune, not one. Run *your* process.
 
+### 3a. Tuning an Iteration — the single-core gap is the stock code, not the engine
+
+On the simple processes above, stochadex's *single-core* configs trail NumPy (OU: 0.356 s
+vs 0.093 s). It is worth being precise about *why*, because most of that gap is not the
+engine — it is the stock `OrnsteinUhlenbeckIteration` written for clarity, doing two
+avoidable things per path per step: three string-keyed param **map lookups**
+(`params.GetIndex("thetas", i)` …) and a `distuv.Normal.Rand()` call that **allocates a
+fresh RNG wrapper on every draw**. Both are properties of that convenience code, not of the
+coordinator.
+
+A `tunedOUIteration` with identical math — param slices hoisted out of the loop, one
+`math/rand/v2` generator owned and drawn from directly — closes almost the entire gap, and
+stays **pure-Go/WASM-clean** (no cgo, no assembly):
+
+![tuning an iteration](plots/tuned_ou.svg)
+
+| OU, 1 core, 10,000 paths × 2,000 steps | seconds | vs NumPy |
+|---|---|---|
+| stock `OrnsteinUhlenbeckIteration` (inline) | 0.356 | 0.26× |
+| **tuned OU iteration (inline, pure-Go)** | **0.095** | **0.98× — parity** |
+| NumPy — 1 thread, SIMD over paths | 0.093 | — |
+
+**~3.7× from tuning one `Iterate` body, landing at NumPy parity on a single core** — with no
+change to the engine and nothing left Go. (The RNG fix alone is ~1.5×; eliminating the
+per-element map lookups is the rest.) The engine's execution models then multiply *from
+here*: the same tuned iteration run as an ensemble across cores drops further still, exactly
+as §3's ensemble row does over its stock single-core row.
+
+So read the single-core rows in these tables as the *stock* iterations, chosen for
+readability. When one process is your hot loop, tuning its `Iterate` is a local, pure-Go
+optimization that recovers the SIMD/RNG gap — and you keep the engine's parallelism on top.
+(The residual vs NumPy is then the batched-C-vs-scalar-Go RNG floor from §5's DOT story; a
+vectorized native RNG behind a build tag, like `-tags cblas` for BLAS, would close that too.)
+
 ### 3b. Coupled systems — linear coupling
 
 The above simulate *independent* paths. Coupled systems — where components exchange state
@@ -216,7 +250,8 @@ as "equal, not a win.")
 From the repo root:
 
 ```bash
-go run ./benchmarks                # Go engine suite: ensemble scaling, cold start, process/coupled models -> results/*.json
+go run ./benchmarks                # Go engine suite: ensemble scaling, cold start, process/coupled/tuned-OU models -> results/*.json
+go run ./benchmarks tuned          # just the stock-vs-tuned OU comparison (§3a) -> results/tuned_ou_go.json
 
 # Vector-op micro-benchmark (§5), the only BLAS-dependent one — two builds:
 go run ./benchmarks/vectorops                                            # gonum default pure-Go BLAS -> vectorized_ops_go.json
