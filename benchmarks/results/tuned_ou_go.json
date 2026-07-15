@@ -4,8 +4,8 @@
     "total_paths": 10000,
     "steps": 2000,
     "seconds": {
-      "stock OU iteration (1 core inline)": 0.356642375,
-      "tuned OU iteration (1 core inline)": 0.095600791
+      "stock OU iteration (1 core inline)": 0.095107125,
+      "tuned OU iteration (1 core inline)": 0.094910416
     }
   }
 ]

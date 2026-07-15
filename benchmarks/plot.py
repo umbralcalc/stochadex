@@ -184,7 +184,7 @@ def plot_tuned_ou():
     ax.set_xticks(np.arange(len(vals)))
     ax.set_xticklabels(labels, fontsize=9)
     ax.set_ylabel("seconds (lower is better)")
-    ax.set_title("Tuning one Iteration recovers the single-core gap — OU, 10,000 paths × 2,000 steps")
+    ax.set_title("Stock vs hand-tuned OU (1 core) — the tuning now ships in the stock iteration")
     for b, v in zip(bars, vals):
         ax.text(b.get_x() + b.get_width() / 2, v, f"{v:.3f}s", ha="center", va="bottom", fontsize=9)
     ax.grid(True, axis="y", alpha=0.3)
@@ -211,7 +211,7 @@ def plot_tuned_branch():
     ax.set_xticks(np.arange(len(vals)))
     ax.set_xticklabels(labels, fontsize=9)
     ax.set_ylabel("seconds (lower is better)")
-    ax.set_title("Tuning the branching-coupled hot loops — 1 core, 10,000 paths × 2,000 steps")
+    ax.set_title("Branching-coupled, 1 core: stock vs hand-tuned — 10,000 paths × 2,000 steps")
     for b, v in zip(bars, vals):
         ax.text(b.get_x() + b.get_width() / 2, v, f"{v:.3f}s", ha="center", va="bottom", fontsize=9)
     ax.grid(True, axis="y", alpha=0.3)

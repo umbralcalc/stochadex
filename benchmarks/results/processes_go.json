@@ -4,11 +4,11 @@
     "total_paths": 10000,
     "steps": 2000,
     "seconds": {
-      "ensemble, N inline members (all cores)": 0.035461417,
-      "one sim, N partitions, inline (serial)": 0.18222975,
-      "one sim, N partitions, persistent-worker": 0.109483916,
-      "one sim, N partitions, spawn-per-step": 0.110616209,
-      "single wide inline partition (1 core)": 0.179801375
+      "ensemble, N inline members (all cores)": 0.016631709,
+      "one sim, N partitions, inline (serial)": 0.096476542,
+      "one sim, N partitions, persistent-worker": 0.059580125,
+      "one sim, N partitions, spawn-per-step": 0.058979583,
+      "single wide inline partition (1 core)": 0.095474625
     }
   },
   {
@@ -16,11 +16,11 @@
     "total_paths": 10000,
     "steps": 2000,
     "seconds": {
-      "ensemble, N inline members (all cores)": 0.066833292,
-      "one sim, N partitions, inline (serial)": 0.361093542,
-      "one sim, N partitions, persistent-worker": 0.162649916,
-      "one sim, N partitions, spawn-per-step": 0.165030458,
-      "single wide inline partition (1 core)": 0.355762042
+      "ensemble, N inline members (all cores)": 0.017406,
+      "one sim, N partitions, inline (serial)": 0.097282209,
+      "one sim, N partitions, persistent-worker": 0.058135625,
+      "one sim, N partitions, spawn-per-step": 0.058288041,
+      "single wide inline partition (1 core)": 0.09554725
     }
   },
   {
@@ -28,11 +28,11 @@
     "total_paths": 10000,
     "steps": 2000,
     "seconds": {
-      "ensemble, N inline members (all cores)": 0.048292208,
-      "one sim, N partitions, inline (serial)": 0.258025042,
-      "one sim, N partitions, persistent-worker": 0.126916583,
-      "one sim, N partitions, spawn-per-step": 0.126495875,
-      "single wide inline partition (1 core)": 0.258319583
+      "ensemble, N inline members (all cores)": 0.017966208,
+      "one sim, N partitions, inline (serial)": 0.108978708,
+      "one sim, N partitions, persistent-worker": 0.065039458,
+      "one sim, N partitions, spawn-per-step": 0.063188417,
+      "single wide inline partition (1 core)": 0.108031958
     }
   }
 ]

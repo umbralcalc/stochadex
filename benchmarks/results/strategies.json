@@ -3,9 +3,9 @@
     "regime": "few partitions, light work, many steps",
     "detail": "1 partition, width 8, ops 1, 8000 steps",
     "seconds": {
-      "inline": 0.000411625,
-      "persistent-worker": 0.004665292,
-      "spawn-per-step": 0.005578209
+      "inline": 0.000390125,
+      "persistent-worker": 0.00507775,
+      "spawn-per-step": 0.005248208
     },
     "allocs_k": {
       "inline": 0,
@@ -17,28 +17,28 @@
     "regime": "many partitions, light work, many steps",
     "detail": "24 partitions, width 8, ops 1, 8000 steps",
     "seconds": {
-      "inline": 0.008199833,
-      "persistent-worker": 0.106214833,
-      "spawn-per-step": 0.095457875
+      "inline": 0.007593375,
+      "persistent-worker": 0.107656333,
+      "spawn-per-step": 0.094416458
     },
     "allocs_k": {
       "inline": 0,
-      "persistent-worker": 0.105,
-      "spawn-per-step": 768.56
+      "persistent-worker": 0.168,
+      "spawn-per-step": 768.438
     }
   },
   {
     "regime": "many partitions, heavy work",
     "detail": "24 partitions, width 64, ops 400, 400 steps",
     "seconds": {
-      "inline": 3.675922083,
-      "persistent-worker": 0.538667333,
-      "spawn-per-step": 0.545860459
+      "inline": 3.563939834,
+      "persistent-worker": 0.566360375,
+      "spawn-per-step": 0.550983083
     },
     "allocs_k": {
       "inline": 0,
-      "persistent-worker": 0.147,
-      "spawn-per-step": 38.439
+      "persistent-worker": 0.083,
+      "spawn-per-step": 38.409
     }
   }
 ]

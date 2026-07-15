@@ -4,11 +4,11 @@
     "total_paths": 10000,
     "steps": 2000,
     "seconds": {
-      "ensemble, N inline chains (all cores)": 0.344189208,
-      "one sim, N chains, inline (serial)": 1.491953458,
-      "one sim, N chains, persistent-worker": 0.545444208,
-      "one sim, N chains, spawn-per-step": 0.554926916,
-      "single wide inline chain (1 core)": 1.482823583
+      "ensemble, N inline chains (all cores)": 0.114939291,
+      "one sim, N chains, inline (serial)": 0.42438075,
+      "one sim, N chains, persistent-worker": 0.210403042,
+      "one sim, N chains, spawn-per-step": 0.217641334,
+      "single wide inline chain (1 core)": 0.398935416
     }
   }
 ]
