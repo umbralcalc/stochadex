@@ -142,24 +142,74 @@ func TestStreamIdenticalSharedStream(t *testing.T) {
 	}
 }
 
-// BenchmarkNormal quantifies the win: Sampler.NormFloat64 vs distuv.Normal{Src}.Rand().
+func TestGammaPanics(t *testing.T) {
+	s := New(1)
+	assertPanic(t, "beta<=0", func() { s.Gamma(2.0, 0.0) })
+	assertPanic(t, "beta<0", func() { s.Gamma(2.0, -1.0) })
+	assertPanic(t, "alpha<=0", func() { s.Gamma(0.0, 1.0) })
+	assertPanic(t, "alpha<0", func() { s.Gamma(-1.0, 1.0) })
+}
+
+func assertPanic(t *testing.T, name string, f func()) {
+	t.Helper()
+	defer func() {
+		if recover() == nil {
+			t.Fatalf("%s: expected panic, got none", name)
+		}
+	}()
+	f()
+}
+
+// The benchmarks below quantify the win over distuv for each distribution: an owned
+// generator skips the per-call value-receiver copy and wrapper construction (and, for the
+// compound draws, the bound-method-value indirection). Run: go test ./pkg/rng -bench=. -benchmem
+func benchDraw(b *testing.B, draw func() float64) {
+	b.ReportAllocs()
+	var sink float64
+	for i := 0; i < b.N; i++ {
+		sink += draw()
+	}
+	_ = sink
+}
+
 func BenchmarkNormal(b *testing.B) {
-	b.Run("sampler", func(b *testing.B) {
-		s := New(1)
-		b.ReportAllocs()
-		var sink float64
-		for i := 0; i < b.N; i++ {
-			sink += s.NormFloat64()
-		}
-		_ = sink
-	})
-	b.Run("distuv", func(b *testing.B) {
-		d := &distuv.Normal{Mu: 0, Sigma: 1, Src: rand.NewPCG(1, 1)}
-		b.ReportAllocs()
-		var sink float64
-		for i := 0; i < b.N; i++ {
-			sink += d.Rand()
-		}
-		_ = sink
-	})
+	s := New(1)
+	d := &distuv.Normal{Mu: 0, Sigma: 1, Src: rand.NewPCG(1, 1)}
+	b.Run("rng", func(b *testing.B) { benchDraw(b, s.NormFloat64) })
+	b.Run("distuv", func(b *testing.B) { benchDraw(b, d.Rand) })
+}
+
+func BenchmarkUniform(b *testing.B) {
+	s := New(1)
+	d := &distuv.Uniform{Min: 0, Max: 1, Src: rand.NewPCG(1, 1)}
+	b.Run("rng", func(b *testing.B) { benchDraw(b, s.Float64) })
+	b.Run("distuv", func(b *testing.B) { benchDraw(b, d.Rand) })
+}
+
+func BenchmarkExponential(b *testing.B) {
+	s := New(1)
+	d := &distuv.Exponential{Rate: 2.5, Src: rand.NewPCG(1, 1)}
+	b.Run("rng", func(b *testing.B) { benchDraw(b, func() float64 { return s.Exponential(2.5) }) })
+	b.Run("distuv", func(b *testing.B) { benchDraw(b, d.Rand) })
+}
+
+func BenchmarkGamma(b *testing.B) {
+	s := New(1)
+	d := &distuv.Gamma{Alpha: 2.0, Beta: 1.0, Src: rand.NewPCG(1, 1)}
+	b.Run("rng", func(b *testing.B) { benchDraw(b, func() float64 { return s.Gamma(2.0, 1.0) }) })
+	b.Run("distuv", func(b *testing.B) { benchDraw(b, d.Rand) })
+}
+
+func BenchmarkBeta(b *testing.B) {
+	s := New(1)
+	d := &distuv.Beta{Alpha: 2.0, Beta: 5.0, Src: rand.NewPCG(1, 1)}
+	b.Run("rng", func(b *testing.B) { benchDraw(b, func() float64 { return s.Beta(2.0, 5.0) }) })
+	b.Run("distuv", func(b *testing.B) { benchDraw(b, d.Rand) })
+}
+
+func BenchmarkPoisson(b *testing.B) {
+	s := New(1)
+	d := &distuv.Poisson{Lambda: 12.0, Src: rand.NewPCG(1, 1)}
+	b.Run("rng", func(b *testing.B) { benchDraw(b, func() float64 { return s.Poisson(12.0) }) })
+	b.Run("distuv", func(b *testing.B) { benchDraw(b, d.Rand) })
 }
