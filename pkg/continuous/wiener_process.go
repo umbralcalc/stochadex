@@ -3,10 +3,8 @@ package continuous
 import (
 	"math"
 
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // WienerProcessIteration implements a standard Wiener process (Brownian motion)
@@ -53,21 +51,14 @@ import (
 //   - Memory usage: O(1) per dimension
 //   - Efficient for high-dimensional simulations
 type WienerProcessIteration struct {
-	unitNormalDist *distuv.Normal
+	sampler *rng.Sampler
 }
 
 func (w *WienerProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	w.unitNormalDist = &distuv.Normal{
-		Mu:    0.0,
-		Sigma: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	w.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (w *WienerProcessIteration) Iterate(
@@ -82,7 +73,7 @@ func (w *WienerProcessIteration) Iterate(
 	variances := params.Get("variances")
 	for i := range values {
 		values[i] += math.Sqrt(variances[i]*
-			timestepsHistory.NextIncrement) * w.unitNormalDist.Rand()
+			timestepsHistory.NextIncrement) * w.sampler.NormFloat64()
 	}
 	return values
 }

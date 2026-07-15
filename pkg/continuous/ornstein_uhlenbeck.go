@@ -3,10 +3,8 @@ package continuous
 import (
 	"math"
 
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // OrnsteinUhlenbeckIteration steps an Ornstein–Uhlenbeck mean-reverting
@@ -21,21 +19,14 @@ import (
 //     prefer OrnsteinUhlenbeckExactGaussianIteration or a smaller Δt.
 //   - Seed is taken from the partition's Settings for reproducibility.
 type OrnsteinUhlenbeckIteration struct {
-	unitNormalDist *distuv.Normal
+	sampler *rng.Sampler
 }
 
 func (o *OrnsteinUhlenbeckIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	o.unitNormalDist = &distuv.Normal{
-		Mu:    0.0,
-		Sigma: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	o.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (o *OrnsteinUhlenbeckIteration) Iterate(
@@ -56,7 +47,7 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(
 	sqrtDt := math.Sqrt(dt)
 	for i := range values {
 		values[i] += thetas[i]*(mus[i]-values[i])*dt +
-			sigmas[i]*sqrtDt*o.unitNormalDist.Rand()
+			sigmas[i]*sqrtDt*o.sampler.NormFloat64()
 	}
 	return values
 }

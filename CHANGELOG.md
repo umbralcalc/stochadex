@@ -54,15 +54,21 @@ an exact version rather than assume stability across minors.
   (Superseded the short-lived self-hosted-SVG badge approach.)
 
 ### Changed
-- **Iteration hot-loop performance.** Hoisted per-dimension `params.GetIndex(name, i)` reads
-  (each a string-keyed map lookup) out of the per-element loops in the stochastic iterations —
-  `OrnsteinUhlenbeck(Exact)`, `GeometricBrownianMotion`, `WienerProcess`, `DriftJumpDiffusion`,
-  `CompoundPoissonProcess`, `PoissonProcess`, plus `CopyValues` and `GroupedAggregation`. Each
-  param slice is now read once per step and indexed directly. **Bit-identical output** (same
-  seed → same stream; all unit tests and model card numbers unchanged), purely faster:
-  ~1.7× for one-param iterations, ~3.7× for three-param ones (e.g. OU: 0.36 s → 0.10 s over
-  10,000 paths × 2,000 steps). The `distuv` RNG draws were *not* the bottleneck — gonum's
-  `math/rand/v2`-backed samplers don't allocate per call — so they were left unchanged.
+- **Iteration hot-loop performance.** Two bit-identical optimisations to the stochastic
+  iterations (same seed → same stream; all unit tests and model card numbers unchanged):
+  1. **Hoisted per-dimension `params.GetIndex(name, i)` reads** (each a string-keyed map
+     lookup) out of the per-element loops in `OrnsteinUhlenbeck(Exact)`,
+     `GeometricBrownianMotion`, `WienerProcess`, `DriftJumpDiffusion`, `CompoundPoissonProcess`,
+     `PoissonProcess`, plus `CopyValues` and `GroupedAggregation` — each param slice is now read
+     once per step and indexed directly. This is the dominant win: ~1.7× for one-param
+     iterations, ~3.7× for three-param ones (OU: 0.36 s → 0.10 s over 10,000 paths × 2,000 steps).
+  2. **New `pkg/rng.Sampler`** — a small owned-`math/rand/v2` sampler that the Normal/Uniform
+     iterations now use instead of `distuv.{Normal,Uniform}{Src}.Rand()`. Reproduces distuv's
+     stream exactly (guaranteed by `pkg/rng`'s stream-identity tests), skipping distuv's
+     per-call value-copy and wrapper construction for a further ~10% on the draw. (gonum's
+     `math/rand/v2` distuv doesn't allocate, so this is throughput, not allocations; complex
+     distributions — Gamma/Poisson/Binomial/Beta — stay on distuv, where the algorithm, not the
+     wrapper, is the cost.)
 - Renamed the generated "Cross-model index" page to **"Domain model index"** (heading, docs nav, and page title).
 - **Docs pipeline reliability.** CI now explicitly requests a GitHub Pages build after
   force-pushing `gh-pages` — a force-push doesn't reliably auto-trigger a Pages

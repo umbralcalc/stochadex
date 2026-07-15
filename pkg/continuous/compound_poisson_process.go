@@ -3,6 +3,7 @@ package continuous
 import (
 	"math/rand/v2"
 
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/stat/distuv"
 )
@@ -56,8 +57,8 @@ func (g *GammaJumpDistribution) NewJump(
 //   - At each step, increments by a jump draw with probability approx. rate*dt.
 //   - Configure timestep size via the simulator to control event frequency.
 type CompoundPoissonProcessIteration struct {
-	JumpDist        JumpDistribution
-	unitUniformDist *distuv.Uniform
+	JumpDist JumpDistribution
+	sampler  *rng.Sampler
 }
 
 func (c *CompoundPoissonProcessIteration) Configure(
@@ -65,14 +66,7 @@ func (c *CompoundPoissonProcessIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	c.JumpDist.Configure(partitionIndex, settings)
-	c.unitUniformDist = &distuv.Uniform{
-		Min: 0.0,
-		Max: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	c.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (c *CompoundPoissonProcessIteration) Iterate(
@@ -87,7 +81,7 @@ func (c *CompoundPoissonProcessIteration) Iterate(
 	rates := params.Get("rates")
 	for i := range values {
 		if rates[i] > (rates[i]+
-			(1.0/timestepsHistory.NextIncrement))*c.unitUniformDist.Rand() {
+			(1.0/timestepsHistory.NextIncrement))*c.sampler.Float64() {
 			values[i] += c.JumpDist.NewJump(params, i)
 		}
 	}

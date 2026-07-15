@@ -3,17 +3,15 @@ package discrete
 import (
 	"strconv"
 
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // CategoricalStateTransitionIteration is essentially a state machine which
 // transitions between states according to the event rate parameters.
 type CategoricalStateTransitionIteration struct {
-	unitUniformDist *distuv.Uniform
-	rateSlices      [][]int
+	sampler    *rng.Sampler
+	rateSlices [][]int
 }
 
 func (c *CategoricalStateTransitionIteration) Configure(
@@ -21,11 +19,7 @@ func (c *CategoricalStateTransitionIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	seed := settings.Iterations[partitionIndex].Seed
-	c.unitUniformDist = &distuv.Uniform{
-		Min: 0.0,
-		Max: 1.0,
-		Src: rand.NewPCG(seed, seed),
-	}
+	c.sampler = rng.New(seed)
 	c.rateSlices = make([][]int, 0)
 	i := 0
 	transTotal := 0
@@ -62,7 +56,7 @@ func (c *CategoricalStateTransitionIteration) Iterate(
 		cumulatives = append(cumulatives, cumulative)
 	}
 	transitions := params.Get("transitions_from_" + strconv.Itoa(int(state[0])))
-	event := c.unitUniformDist.Rand()
+	event := c.sampler.Float64()
 	if event*cumulative < cumulatives[0] {
 		return state
 	}

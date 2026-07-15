@@ -3,10 +3,8 @@ package continuous
 import (
 	"math"
 
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // GeometricBrownianMotionIteration steps a multiplicative (geometric)
@@ -17,21 +15,14 @@ import (
 //   - Consider log-transforms if you need additive dynamics in log space.
 //   - Seed is taken from the partition's Settings for reproducibility.
 type GeometricBrownianMotionIteration struct {
-	unitNormalDist *distuv.Normal
+	sampler *rng.Sampler
 }
 
 func (g *GeometricBrownianMotionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.unitNormalDist = &distuv.Normal{
-		Mu:    0.0,
-		Sigma: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	g.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (g *GeometricBrownianMotionIteration) Iterate(
@@ -47,7 +38,7 @@ func (g *GeometricBrownianMotionIteration) Iterate(
 	for i := range values {
 		values[i] *= 1.0 +
 			math.Sqrt(variances[i]*
-				timestepsHistory.NextIncrement)*g.unitNormalDist.Rand()
+				timestepsHistory.NextIncrement)*g.sampler.NormFloat64()
 	}
 	return values
 }

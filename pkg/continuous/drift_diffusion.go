@@ -3,10 +3,8 @@ package continuous
 import (
 	"math"
 
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // DriftDiffusionIteration steps a general drift–diffusion SDE per dimension.
@@ -17,21 +15,14 @@ import (
 //   - Ensure the timestep function is configured; diffusion scales with sqrt(dt).
 //   - Seed is taken from the partition's Settings for reproducibility.
 type DriftDiffusionIteration struct {
-	unitNormalDist *distuv.Normal
+	sampler *rng.Sampler
 }
 
 func (d *DriftDiffusionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	d.unitNormalDist = &distuv.Normal{
-		Mu:    0.0,
-		Sigma: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	d.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (d *DriftDiffusionIteration) Iterate(
@@ -47,7 +38,7 @@ func (d *DriftDiffusionIteration) Iterate(
 	for i := range values {
 		values[i] += (driftCoefficients[i] * timestepsHistory.NextIncrement) +
 			diffusionCoefficients[i]*math.Sqrt(
-				timestepsHistory.NextIncrement)*d.unitNormalDist.Rand()
+				timestepsHistory.NextIncrement)*d.sampler.NormFloat64()
 	}
 	return values
 }
