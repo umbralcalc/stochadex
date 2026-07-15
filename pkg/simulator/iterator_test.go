@@ -122,6 +122,40 @@ func TestStateIterator(t *testing.T) {
 		},
 	)
 	t.Run(
+		"UpdateUpstreamParamsInline reads staged NextValues, whole and indexed",
+		func(t *testing.T) {
+			// Two producers have already staged their NextValues this step.
+			stateHistories := []*StateHistory{
+				{NextValues: []float64{10.0, 20.0, 30.0, 40.0}},
+				{NextValues: []float64{5.0, 6.0}},
+			}
+			channels := StateValueChannels{
+				Upstreams: map[string]*UpstreamStateValues{
+					"whole":   {Upstream: 1}, // nil Indices
+					"indexed": {Upstream: 0, Indices: []int{3, 1}},
+				},
+			}
+			params := NewParams(make(map[string][]float64))
+			channels.UpdateUpstreamParamsInline(&params, stateHistories)
+
+			if whole := params.Get("whole"); len(whole) != 2 ||
+				whole[0] != 5.0 || whole[1] != 6.0 {
+				t.Errorf("whole got %v, want [5 6]", whole)
+			}
+			if indexed := params.Get("indexed"); len(indexed) != 2 ||
+				indexed[0] != 40.0 || indexed[1] != 20.0 {
+				t.Errorf("indexed got %v, want [40 20]", indexed)
+			}
+
+			// The whole-slice branch must copy, so mutating the params slice
+			// cannot corrupt the producer's staged buffer.
+			params.Get("whole")[0] = -1.0
+			if stateHistories[1].NextValues[0] != 5.0 {
+				t.Error("inline params aliased the producer's NextValues buffer")
+			}
+		},
+	)
+	t.Run(
 		"broadcast sends independent buffers per downstream listener",
 		func(t *testing.T) {
 			downstream := &DownstreamStateValues{
