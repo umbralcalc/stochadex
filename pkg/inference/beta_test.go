@@ -3,7 +3,7 @@ package inference
 import (
 	"testing"
 
-	"math/rand/v2"
+	"github.com/umbralcalc/stochadex/pkg/rng"
 
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -81,7 +81,7 @@ func TestBetaLogLikelihoodGradient(t *testing.T) {
 		"test that the beta log-likelihood gradient runs",
 		func(t *testing.T) {
 			dist := &BetaLikelihoodDistribution{
-				Src: rand.NewPCG(123456, 123456),
+				sampler: rng.New(123456),
 			}
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("alpha", []float64{
@@ -132,7 +132,7 @@ func TestBetaLogLikelihoodGradient(t *testing.T) {
 		"test that the beta log-likelihood gradient runs with harnesses",
 		func(t *testing.T) {
 			dist := &BetaLikelihoodDistribution{
-				Src: rand.NewPCG(123456, 123456),
+				sampler: rng.New(123456),
 			}
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("alpha", []float64{

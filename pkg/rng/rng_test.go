@@ -78,6 +78,70 @@ func TestNewFromSourceMatchesDistuv(t *testing.T) {
 	}
 }
 
+// TestStreamIdenticalGamma exercises every branch of distuv.Gamma: alpha==1 (exponential),
+// alpha<0.2 (Liu–Martin–Syring), and alpha>=0.2 both >=1 and <1 (Marsaglia–Tsang boost).
+func TestStreamIdenticalGamma(t *testing.T) {
+	cases := []struct{ alpha, beta float64 }{
+		{1.0, 1.0}, {2.0, 1.0}, {2.0, 3.0}, {0.5, 2.0}, {0.1, 1.0}, {5.5, 0.4},
+	}
+	for _, c := range cases {
+		s := New(11)
+		d := &distuv.Gamma{Alpha: c.alpha, Beta: c.beta, Src: rand.NewPCG(11, 11)}
+		for i := 0; i < streamLen; i++ {
+			if got, want := s.Gamma(c.alpha, c.beta), d.Rand(); got != want {
+				t.Fatalf("alpha=%v beta=%v draw %d: Gamma=%v, distuv=%v", c.alpha, c.beta, i, got, want)
+			}
+		}
+	}
+}
+
+func TestStreamIdenticalBeta(t *testing.T) {
+	cases := []struct{ alpha, beta float64 }{{2.0, 5.0}, {0.5, 0.5}, {3.0, 1.0}}
+	for _, c := range cases {
+		s := New(13)
+		d := &distuv.Beta{Alpha: c.alpha, Beta: c.beta, Src: rand.NewPCG(13, 13)}
+		for i := 0; i < streamLen; i++ {
+			if got, want := s.Beta(c.alpha, c.beta), d.Rand(); got != want {
+				t.Fatalf("alpha=%v beta=%v draw %d: Beta=%v, distuv=%v", c.alpha, c.beta, i, got, want)
+			}
+		}
+	}
+}
+
+// TestStreamIdenticalPoisson covers both branches: lambda<10 (direct) and lambda>=10 (PTRS).
+func TestStreamIdenticalPoisson(t *testing.T) {
+	for _, lambda := range []float64{1.0, 5.0, 9.5, 10.0, 25.0, 100.0} {
+		s := New(17)
+		d := &distuv.Poisson{Lambda: lambda, Src: rand.NewPCG(17, 17)}
+		for i := 0; i < streamLen; i++ {
+			if got, want := s.Poisson(lambda), d.Rand(); got != want {
+				t.Fatalf("lambda=%v draw %d: Poisson=%v, distuv=%v", lambda, i, got, want)
+			}
+		}
+	}
+}
+
+// TestStreamIdenticalSharedStream reproduces NegativeBinomial's interleaved gamma-then-Poisson
+// draws from one source: the Sampler must match distuv distributions sharing a single Src.
+func TestStreamIdenticalSharedStream(t *testing.T) {
+	s := New(23)
+	dg := &distuv.Gamma{Alpha: 1.0, Beta: 1.0, Src: rand.NewPCG(23, 23)}
+	dp := &distuv.Poisson{Lambda: 1.0, Src: dg.Src}
+	for i := 0; i < 50_000; i++ {
+		alpha, beta := 2.0, 0.5
+		dg.Alpha, dg.Beta = alpha, beta
+		lam := s.Gamma(alpha, beta)
+		wantGamma := dg.Rand()
+		if lam != wantGamma {
+			t.Fatalf("draw %d gamma: %v vs %v", i, lam, wantGamma)
+		}
+		dp.Lambda = wantGamma
+		if got, want := s.Poisson(lam), dp.Rand(); got != want {
+			t.Fatalf("draw %d poisson: %v vs %v", i, got, want)
+		}
+	}
+}
+
 // BenchmarkNormal quantifies the win: Sampler.NormFloat64 vs distuv.Normal{Src}.Rand().
 func BenchmarkNormal(b *testing.B) {
 	b.Run("sampler", func(b *testing.B) {

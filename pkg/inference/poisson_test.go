@@ -3,7 +3,7 @@ package inference
 import (
 	"testing"
 
-	"math/rand/v2"
+	"github.com/umbralcalc/stochadex/pkg/rng"
 
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/general"
@@ -91,7 +91,7 @@ func TestPoissonLogLikelihoodGradient(t *testing.T) {
 		"test that the Poisson log-likelihood gradient runs",
 		func(t *testing.T) {
 			dist := &PoissonLikelihoodDistribution{
-				Src: rand.NewPCG(123456, 123456),
+				sampler: rng.New(123456),
 			}
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("mean", []float64{0.5, 1.0, 0.8})
@@ -139,7 +139,7 @@ func TestPoissonLogLikelihoodGradient(t *testing.T) {
 		"test that the Poisson log-likelihood gradient runs with harnesses",
 		func(t *testing.T) {
 			dist := &PoissonLikelihoodDistribution{
-				Src: rand.NewPCG(123456, 123456),
+				sampler: rng.New(123456),
 			}
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("mean", []float64{0.5, 1.0, 0.8})

@@ -3,9 +3,8 @@ package inference
 import (
 	"math"
 
-	"math/rand/v2"
-
 	"github.com/scientificgo/special"
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
@@ -64,19 +63,16 @@ import (
 //   - Memory usage: O(d) for parameter storage
 //   - Efficient for moderate dimensions (< 1000)
 type BetaLikelihoodDistribution struct {
-	Src   rand.Source
-	alpha *mat.VecDense
-	beta  *mat.VecDense
+	sampler *rng.Sampler
+	alpha   *mat.VecDense
+	beta    *mat.VecDense
 }
 
 func (b *BetaLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	b.Src = rand.NewPCG(
-		settings.Iterations[partitionIndex].Seed,
-		settings.Iterations[partitionIndex].Seed,
-	)
+	b.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (b *BetaLikelihoodDistribution) SetParams(
@@ -109,7 +105,7 @@ func (b *BetaLikelihoodDistribution) SetParams(
 func (b *BetaLikelihoodDistribution) EvaluateLogLike(
 	data []float64,
 ) float64 {
-	dist := &distuv.Beta{Alpha: 1.0, Beta: 1.0, Src: b.Src}
+	dist := &distuv.Beta{Alpha: 1.0, Beta: 1.0}
 	logLike := 0.0
 	for i := range b.alpha.Len() {
 		dist.Alpha = b.alpha.AtVec(i)
@@ -121,11 +117,8 @@ func (b *BetaLikelihoodDistribution) EvaluateLogLike(
 
 func (b *BetaLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
-	dist := &distuv.Beta{Alpha: 1.0, Beta: 1.0, Src: b.Src}
 	for i := range b.alpha.Len() {
-		dist.Alpha = b.alpha.AtVec(i)
-		dist.Beta = b.beta.AtVec(i)
-		samples = append(samples, dist.Rand())
+		samples = append(samples, b.sampler.Beta(b.alpha.AtVec(i), b.beta.AtVec(i)))
 	}
 	return samples
 }

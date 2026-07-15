@@ -1,11 +1,8 @@
 package continuous
 
 import (
-	"math/rand/v2"
-
 	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // JumpDistribution defines the interface to draw sudden jumps.
@@ -24,30 +21,24 @@ type JumpDistribution interface {
 //   - Param names per dimension: "gamma_alphas" and "gamma_betas".
 //   - Seed is taken from the partition's Settings for reproducibility.
 type GammaJumpDistribution struct {
-	dist *distuv.Gamma
+	sampler *rng.Sampler
 }
 
 func (g *GammaJumpDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.dist = &distuv.Gamma{
-		Alpha: 1.0,
-		Beta:  1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	g.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (g *GammaJumpDistribution) NewJump(
 	params *simulator.Params,
 	valueIndex int,
 ) float64 {
-	g.dist.Alpha = params.GetIndex("gamma_alphas", valueIndex)
-	g.dist.Beta = params.GetIndex("gamma_betas", valueIndex)
-	return g.dist.Rand()
+	return g.sampler.Gamma(
+		params.GetIndex("gamma_alphas", valueIndex),
+		params.GetIndex("gamma_betas", valueIndex),
+	)
 }
 
 // CompoundPoissonProcessIteration steps a compound Poisson process.

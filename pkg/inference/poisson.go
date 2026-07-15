@@ -1,8 +1,7 @@
 package inference
 
 import (
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
@@ -15,18 +14,15 @@ import (
 //   - Provide mean via params or upstream partition outputs.
 //   - GenerateNewSamples draws iid Poisson variates per dimension.
 type PoissonLikelihoodDistribution struct {
-	Src  rand.Source
-	mean *mat.VecDense
+	sampler *rng.Sampler
+	mean    *mat.VecDense
 }
 
 func (p *PoissonLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	p.Src = rand.NewPCG(
-		settings.Iterations[partitionIndex].Seed,
-		settings.Iterations[partitionIndex].Seed,
-	)
+	p.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (p *PoissonLikelihoodDistribution) SetParams(
@@ -39,7 +35,7 @@ func (p *PoissonLikelihoodDistribution) SetParams(
 }
 
 func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
-	dist := &distuv.Poisson{Lambda: 1.0, Src: p.Src}
+	dist := &distuv.Poisson{Lambda: 1.0}
 	logLike := 0.0
 	for i := range p.mean.Len() {
 		dist.Lambda = p.mean.AtVec(i)
@@ -50,10 +46,8 @@ func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64 
 
 func (p *PoissonLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
-	dist := &distuv.Poisson{Lambda: 1.0, Src: p.Src}
 	for i := range p.mean.Len() {
-		dist.Lambda = p.mean.AtVec(i)
-		samples = append(samples, dist.Rand())
+		samples = append(samples, p.sampler.Poisson(p.mean.AtVec(i)))
 	}
 	return samples
 }
