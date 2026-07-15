@@ -18,6 +18,11 @@ type TLikelihoodDistribution struct {
 	mean       *mat.VecDense
 	covariance *mat.SymDense
 	defaultCov []float64
+	// gradChol caches the covariance Cholesky for EvaluateLogLikeMeanGrad, which the
+	// gradient iteration calls once per row of a batch sharing this covariance. Invalidated
+	// in SetParams, recomputed lazily. See NormalLikelihoodDistribution for the rationale.
+	gradChol      mat.Cholesky
+	gradCholReady bool
 }
 
 func (t *TLikelihoodDistribution) SetSeed(
@@ -46,6 +51,7 @@ func (t *TLikelihoodDistribution) SetParams(
 	if c, ok := params.GetOk("default_covariance"); ok {
 		t.defaultCov = c
 	}
+	t.gradCholReady = false // covariance may have changed; recompute lazily on next gradient
 }
 
 func (t *TLikelihoodDistribution) getDist() *distmv.StudentsT {
@@ -84,17 +90,18 @@ func (t *TLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {
 	stateWidth := t.mean.Len()
-	var choleskyDecomp mat.Cholesky
-	ok := choleskyDecomp.Factorize(t.covariance)
-	if !ok {
-		panic("cholesky decomp for covariance matrix failed")
+	if !t.gradCholReady {
+		if ok := t.gradChol.Factorize(t.covariance); !ok {
+			panic("cholesky decomp for covariance matrix failed")
+		}
+		t.gradCholReady = true
 	}
 	logLikeGrad := mat.NewVecDense(stateWidth, nil)
 	diffVector := mat.NewVecDense(
 		stateWidth,
 		floats.SubTo(make([]float64, stateWidth), data, t.mean.RawVector().Data),
 	)
-	err := choleskyDecomp.SolveVecTo(logLikeGrad, diffVector)
+	err := t.gradChol.SolveVecTo(logLikeGrad, diffVector)
 	if err != nil {
 		panic(err)
 	}

@@ -34,6 +34,13 @@ type NormalLikelihoodDistribution struct {
 	// AllowDefaultCovarianceFallback must be true to substitute
 	// default_covariance when the primary matrix is not positive-definite.
 	AllowDefaultCovarianceFallback bool
+	// gradChol caches the covariance Cholesky for EvaluateLogLikeMeanGrad. The gradient
+	// iteration calls that method once per row of a data batch that all share this
+	// covariance, so without the cache it re-factorises (O(d^3)) every row. Invalidated in
+	// SetParams and recomputed lazily, so the log-like and sampling paths — which factorise
+	// inside distmv — never pay for it.
+	gradChol      mat.Cholesky
+	gradCholReady bool
 }
 
 func (n *NormalLikelihoodDistribution) SetSeed(
@@ -82,6 +89,7 @@ func (n *NormalLikelihoodDistribution) SetParams(
 	} else {
 		n.defaultCov = nil
 	}
+	n.gradCholReady = false // covariance may have changed; recompute lazily on next gradient
 }
 
 func (n *NormalLikelihoodDistribution) getDist() *distmv.Normal {
@@ -124,17 +132,18 @@ func (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {
 	stateWidth := n.mean.Len()
-	var choleskyDecomp mat.Cholesky
-	ok := choleskyDecomp.Factorize(n.covariance)
-	if !ok {
-		panic("cholesky decomp for covariance matrix failed")
+	if !n.gradCholReady {
+		if ok := n.gradChol.Factorize(n.covariance); !ok {
+			panic("cholesky decomp for covariance matrix failed")
+		}
+		n.gradCholReady = true
 	}
 	logLikeGrad := mat.NewVecDense(stateWidth, nil)
 	diffVector := mat.NewVecDense(
 		stateWidth,
 		floats.SubTo(make([]float64, stateWidth), data, n.mean.RawVector().Data),
 	)
-	err := choleskyDecomp.SolveVecTo(logLikeGrad, diffVector)
+	err := n.gradChol.SolveVecTo(logLikeGrad, diffVector)
 	if err != nil {
 		panic(err)
 	}

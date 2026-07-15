@@ -75,6 +75,16 @@ an exact version rather than assume stability across minors.
      gonum's `math/rand/v2` distuv doesn't allocate, so this is throughput, not allocations.
      Binomial (a three-branch algorithm, one site) and Categorical (a stateful sampling heap)
      stay on distuv — the copied-algorithm cost there outweighs the small per-draw saving.
+- **Multivariate likelihood-gradient performance.** `EvaluateLogLikeMeanGrad` on the
+  `Normal`, `T`, and `Wishart` likelihood distributions re-factorised the covariance/scale
+  matrix (O(d³) Cholesky, plus a matrix inverse for Wishart) on **every call** — and the
+  gradient iteration calls it once per row of a data batch that all share one covariance.
+  The factorisation now happens once per parameterisation (cached, invalidated in
+  `SetParams`, recomputed lazily so the log-like and sampling paths never pay for it) and is
+  reused across the batch. **Bit-identical** (deterministic factorisation, no RNG; all tests
+  and model card numbers unchanged); ~5× faster at batch depth 10, ~8× at depth 50. (For
+  these multivariate distributions the Cholesky, not the RNG draw, is the cost — so they are
+  left on gonum's `distmv`/`distmat` rather than moved to `pkg/rng`.)
 - Renamed the generated "Cross-model index" page to **"Domain model index"** (heading, docs nav, and page title).
 - **Docs pipeline reliability.** CI now explicitly requests a GitHub Pages build after
   force-pushing `gh-pages` — a force-push doesn't reliably auto-trigger a Pages
