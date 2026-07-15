@@ -3,7 +3,7 @@ package inference
 import (
 	"testing"
 
-	"math/rand/v2"
+	"github.com/umbralcalc/stochadex/pkg/rng"
 
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/general"
@@ -99,7 +99,7 @@ func TestGammaLogLikelihoodGradient(t *testing.T) {
 		"test that the Gamma log-likelihood gradient runs",
 		func(t *testing.T) {
 			dist := &GammaLikelihoodDistribution{
-				Src: rand.NewPCG(123, 123),
+				sampler: rng.New(123),
 			}
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("mean", []float64{3.0, 1.8, 7.2})
@@ -148,7 +148,7 @@ func TestGammaLogLikelihoodGradient(t *testing.T) {
 		"test that the Gamma log-likelihood gradient runs with harnesses",
 		func(t *testing.T) {
 			dist := &GammaLikelihoodDistribution{
-				Src: rand.NewPCG(123, 123),
+				sampler: rng.New(123),
 			}
 			params := simulator.NewParams(make(map[string][]float64))
 			params.Set("mean", []float64{3.0, 1.8, 7.2})

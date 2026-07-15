@@ -25,12 +25,15 @@ func (c *CopyValuesIteration) Iterate(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
 	state := make([]float64, 0)
+	// Hoist the per-element value-index slice out of the loop (params.GetIndex is a
+	// per-call map lookup); indexing it gives identical values.
+	stateValues := params.Get("partition_state_values")
 	for i, index := range params.Get("partitions") {
 		state = append(
 			state,
 			stateHistories[int(index)].Values.At(
 				0,
-				int(params.GetIndex("partition_state_values", i)),
+				int(stateValues[i]),
 			),
 		)
 	}

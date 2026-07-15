@@ -3,10 +3,8 @@ package continuous
 import (
 	"math"
 
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // OrnsteinUhlenbeckExactGaussianIteration advances each dimension with the
@@ -23,21 +21,14 @@ import (
 //   - Suitable when Euler–Maruyama error from OrnsteinUhlenbeckIteration would
 //     dominate (large θΔt) and the model is linear OU per dimension.
 type OrnsteinUhlenbeckExactGaussianIteration struct {
-	unitNormalDist *distuv.Normal
+	sampler *rng.Sampler
 }
 
 func (o *OrnsteinUhlenbeckExactGaussianIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	o.unitNormalDist = &distuv.Normal{
-		Mu:    0.0,
-		Sigma: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	o.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (o *OrnsteinUhlenbeckExactGaussianIteration) Iterate(
@@ -49,10 +40,15 @@ func (o *OrnsteinUhlenbeckExactGaussianIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	dt := timestepsHistory.NextIncrement
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the per-dimension param slices out of the loop (params.GetIndex is a per-call
+	// map lookup); indexing the slices gives identical values.
+	thetas := params.Get("thetas")
+	mus := params.Get("mus")
+	sigmas := params.Get("sigmas")
 	for i := range values {
-		th := params.GetIndex("thetas", i)
-		mu := params.GetIndex("mus", i)
-		sig := params.GetIndex("sigmas", i)
+		th := thetas[i]
+		mu := mus[i]
+		sig := sigmas[i]
 		x := values[i]
 		var mean, condVar float64
 		if th == 0 {
@@ -66,7 +62,7 @@ func (o *OrnsteinUhlenbeckExactGaussianIteration) Iterate(
 		if condVar < 0 {
 			condVar = 0
 		}
-		values[i] = mean + math.Sqrt(condVar)*o.unitNormalDist.Rand()
+		values[i] = mean + math.Sqrt(condVar)*o.sampler.NormFloat64()
 	}
 	return values
 }

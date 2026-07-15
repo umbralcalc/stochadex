@@ -3,8 +3,9 @@
 Fair, **CPU-to-CPU** measurements of the systems-performance claims that are actually
 stochadex's. Deliberately **not** a peak-FLOPs race against GPU frameworks (JAX, Julia
 SciML) — those win on their own hardware and problem shapes, and comparing them on a
-laptop CPU would be apples-to-oranges. See [`WHEN_TO_USE.md`](../WHEN_TO_USE.md) for where
-those tools are the right call.
+laptop CPU would be apples-to-oranges. See the docs frontpage
+[**When to use it**](../docs/README.md#when-to-use-it) section for where those tools are the
+right call.
 
 ## Reference machine
 
@@ -24,11 +25,16 @@ scales with `maxConcurrency` up to the core count.
 
 | workers | 1 | 2 | 3 | 4 | 6 | 8 | 10 |
 |---|---|---|---|---|---|---|---|
-| sims/sec | 2758 | 5204 | 7623 | 8661 | 10491 | 11043 | 12241 |
+| sims/sec | 4226 | 7705 | 11413 | 13245 | 14967 | 15614 | 15538 |
 
-~4.4× at 10 workers — near-linear across the **performance** cores, with diminishing
+~3.7× at 10 workers — near-linear across the **performance** cores, with diminishing
 returns as the slower efficiency cores and memory bandwidth are added (a heterogeneous
 Apple-silicon effect; on a homogeneous many-core server this curve is flatter and higher).
+Absolute throughput is well up on earlier numbers because each member is now a
+recently-optimised iteration (§3a); with the per-member *work* smaller, the fixed
+per-member cost that does not parallelise — a fresh `ConfigGenerator` plus seeding per
+member — is a larger share, so the scaling *ratio* is slightly lower even as members/sec is
+higher.
 
 > **Important — this is the right place to measure concurrency.** Partitions *within one
 > simulation* are step-synchronised (a barrier every step) for **coupled** components that
@@ -42,7 +48,7 @@ Apple-silicon effect; on a homogeneous many-core server this curve is flatter an
 ## 2. Cold start — warmup-free
 
 Time from an unbuilt simulation to the first produced result (config assembly + first
-step): **~2 µs**, stable run-to-run. A statically compiled Go binary has no interpreter or
+step): **~1 µs**, stable run-to-run. A statically compiled Go binary has no interpreter or
 JIT to warm up — the warmup-free, single-binary deployment property, stated as an absolute
 rather than a rigged race against a JIT stack.
 
@@ -62,65 +68,62 @@ Wall-clock seconds (lower is better); **bold** = fastest per process:
 | execution model | GBM (simple) | Ornstein–Uhlenbeck | compound-Poisson (branching) |
 |---|---|---|---|
 | NumPy — 1 thread, SIMD over paths | 0.081 | 0.093 | 0.258 |
-| stochadex: 1 wide `Inline` partition (1 core) | 0.180 | 0.356 | 0.258 |
-| stochadex: one sim, N partitions, `Inline` (1 core) | 0.182 | 0.361 | 0.258 |
-| stochadex: one sim, N partitions, `SpawnPerStep` | 0.111 | 0.165 | 0.126 |
-| stochadex: one sim, N partitions, `PersistentWorker` | 0.109 | 0.163 | 0.127 |
-| stochadex: **ensemble, N `Inline` members, all cores** | **0.035** | **0.067** | **0.048** |
+| stochadex: 1 wide `Inline` partition (1 core) | 0.095 | 0.096 | 0.108 |
+| stochadex: one sim, N partitions, `Inline` (1 core) | 0.096 | 0.097 | 0.109 |
+| stochadex: one sim, N partitions, `SpawnPerStep` | 0.059 | 0.058 | 0.063 |
+| stochadex: one sim, N partitions, `PersistentWorker` | 0.060 | 0.058 | 0.065 |
+| stochadex: **ensemble, N `Inline` members, all cores** | **0.017** | **0.017** | **0.018** |
 
 What the models teach — and why the freedom to choose matters:
 
 - **The ensemble wins everything.** Independent paths are embarrassingly parallel; running
   them as an ensemble of separate simulations (no per-step barrier) uses every core and is
-  fastest on all three — 2.3× / 1.4× / 5.4× faster than idiomatic NumPy.
-- **Within one simulation, partition-parallelism does help — modestly.** Switching the
-  strategy from `Inline` (serial) to `SpawnPerStep`/`PersistentWorker` parallelises the
-  partitions within each step: GBM 0.182 → 0.11 s (~1.6×). But the per-step barrier caps it
-  below the barrier-free ensemble. Lesson: for *independent* work the ensemble is the better
-  parallel path; the within-sim strategies are for *coupled* work that needs the barrier.
-  (See §"Execution strategies" for where each strategy wins outright.)
-- **vs NumPy, it depends on the process.** On simple, trivially-vectorizable processes
-  (GBM, OU) NumPy's SIMD over paths beats stochadex's *single-core* configs; stochadex wins by
-  using cores. On the **branching** compound-Poisson, stochadex is already at parity
-  single-threaded (0.258 s) and pulls ahead as soon as it uses cores (0.126 s within-sim,
-  0.048 s ensemble) — masking + conditional draws are where vectorization loses.
+  fastest on all three — **4.8× / 5.5× / 14× faster** than idiomatic NumPy.
+- **Single-core is now at NumPy parity.** After the iteration optimisations (§3a: param-slice
+  hoisting + an owned RNG, shipped in the stock iterations), stochadex's *single-core* configs
+  match NumPy on GBM (0.095 vs 0.081) and OU (0.096 vs 0.093), and **beat** it on
+  compound-Poisson (0.108 vs 0.258, ~2.4×). Earlier these single-core rows trailed NumPy by
+  2–4× on GBM/OU — that gap is gone.
+- **Within one simulation, partition-parallelism helps — modestly.** Switching from `Inline`
+  (serial) to `SpawnPerStep`/`PersistentWorker` parallelises the partitions within each step:
+  OU 0.096 → 0.058 s (~1.6×). The per-step barrier caps it below the barrier-free ensemble, so
+  for *independent* work the ensemble is the better parallel path; the within-sim strategies
+  are for *coupled* work that needs the barrier. (See §"Execution strategies".)
+- **vs NumPy, it depends on the process.** On simple, trivially-vectorizable processes (GBM,
+  OU) it is now a single-core dead heat, and stochadex pulls away with cores. On the
+  **branching** compound-Poisson, stochadex is ahead even single-threaded (0.108 s vs 0.258 s)
+  and runs away with cores (0.063 s within-sim, 0.018 s ensemble) — masking + conditional
+  draws are where vectorization loses.
 
 Takeaway: the more complex or path-dependent the process, the better the engine looks — and
 either way you have several execution models to tune, not one. Run *your* process.
 
-### 3a. Tuning an Iteration — the single-core gap is the stock code, not the engine
+### 3a. The single-core iterations are optimised — a hand-tuned copy no longer beats them
 
-On the simple processes above, stochadex's *single-core* configs trail NumPy (OU: 0.356 s
-vs 0.093 s). It is worth being precise about *why*, because most of that gap is not the
-engine — it is the stock `OrnsteinUhlenbeckIteration` written for clarity, doing two
-avoidable things per path per step: three string-keyed param **map lookups**
-(`params.GetIndex("thetas", i)` …) and a `distuv.Normal.Rand()` call that **allocates a
-fresh RNG wrapper on every draw**. Both are properties of that convenience code, not of the
-coordinator.
+The single-core rows above were, until recently, 2–4× slower. The stock iterations were
+written for clarity and paid two avoidable costs per path per step: three string-keyed param
+**map lookups** (`params.GetIndex("thetas", i)` …) and a `distuv.Normal.Rand()` call that
+copies the distribution and rebuilds an RNG wrapper on every draw. Neither is a property of
+the coordinator, so both were fixed **in the engine**: the stock iterations now hoist their
+param slices out of the loop and draw from an owned `math/rand/v2` generator
+([`pkg/rng`](../pkg/rng)), staying pure-Go/WASM-clean (see the CHANGELOG, "iteration hot-loop
+performance").
 
-A `tunedOUIteration` with identical math — param slices hoisted out of the loop, one
-`math/rand/v2` generator owned and drawn from directly — closes almost the entire gap, and
-stays **pure-Go/WASM-clean** (no cgo, no assembly):
-
-![tuning an iteration](plots/tuned_ou.svg)
+The proof it is fully applied: a hand-tuned `tunedOUIteration` — identical math, maximally
+hoisted, owned generator — no longer beats the stock one. They are the same speed, and both
+sit on NumPy:
 
 | OU, 1 core, 10,000 paths × 2,000 steps | seconds | vs NumPy |
 |---|---|---|
-| stock `OrnsteinUhlenbeckIteration` (inline) | 0.356 | 0.26× |
-| **tuned OU iteration (inline, pure-Go)** | **0.095** | **0.98× — parity** |
+| stock `OrnsteinUhlenbeckIteration` (inline) | 0.095 | 0.98× |
+| hand-tuned OU iteration (inline, pure-Go) | 0.095 | 0.98× |
 | NumPy — 1 thread, SIMD over paths | 0.093 | — |
 
-**~3.7× from tuning one `Iterate` body, landing at NumPy parity on a single core** — with no
-change to the engine and nothing left Go. (The RNG fix alone is ~1.5×; eliminating the
-per-element map lookups is the rest.) The engine's execution models then multiply *from
-here*: the same tuned iteration run as an ensemble across cores drops further still, exactly
-as §3's ensemble row does over its stock single-core row.
-
-So read the single-core rows in these tables as the *stock* iterations, chosen for
-readability. When one process is your hot loop, tuning its `Iterate` is a local, pure-Go
-optimization that recovers the SIMD/RNG gap — and you keep the engine's parallelism on top.
-(The residual vs NumPy is then the batched-C-vs-scalar-Go RNG floor from §5's DOT story; a
-vectorized native RNG behind a build tag, like `-tags cblas` for BLAS, would close that too.)
+So the single-core rows throughout this doc *are* the optimised code — there is no single-core
+overhead left to squeeze out of the `Iterate` body (the ~3.7× that tuning used to buy, e.g. OU
+0.356 → 0.095 s, now ships by default). The residual vs NumPy is the batched-C-vs-scalar-Go RNG
+floor from §5's DOT story; a vectorized native RNG behind a build tag, like `-tags cblas` for
+BLAS, would close that too.
 
 ### 3b. Coupled systems — linear coupling
 
@@ -135,20 +138,21 @@ hand-order the same cross-dependencies (the four updates cannot be fused).
 | execution model | coupled chain (s) | vs NumPy |
 |---|---|---|
 | NumPy — 1 thread | 0.381 | — |
-| stochadex: 1 wide inline chain (1 core) | 1.483 | 0.26× |
-| stochadex: one sim, N chains, inline (1 core) | 1.492 | 0.26× |
-| stochadex: one sim, N chains, spawn / persistent | ~0.55 | ~0.69× |
-| stochadex: **ensemble, all cores** | **0.344** | **1.11×** |
+| stochadex: 1 wide inline chain (1 core) | 0.399 | 0.95× |
+| stochadex: one sim, N chains, inline (1 core) | 0.424 | 0.90× |
+| stochadex: one sim, N chains, spawn / persistent | ~0.21 | ~1.8× |
+| stochadex: **ensemble, all cores** | **0.115** | **3.3×** |
 
-**Honest result: ~parity.** On a *linearly*-coupled chain, NumPy vectorizes the coupling fine
-(it is just sequential array reads), so stochadex's ensemble (0.344 s) only edges NumPy
-(0.381 s). The engine parallelises the coupling well — the within-sim strategies take it from
-1.49 s serial to ~0.55 s, and the ensemble to 0.344 s (**~4.3×** over serial) — but there is
-no *vectorization* gap to exploit here, so it comes out level.
+**~Parity single-core, a clear win with cores.** With the optimised iterations (§3a) a
+single-core chain (0.399 s) matches NumPy (0.381 s) — earlier it was 1.48 s, so this is the
+same ~3.7× iteration speedup landing on the coupled case. NumPy vectorizes *linear* coupling
+fine (it is just sequential array reads), so there is no vectorization gap to exploit; stochadex
+pulls ahead purely by using cores — the within-sim strategies parallelise the coupling to
+~0.21 s (~1.8× over NumPy) and the ensemble to 0.115 s (**3.3×**).
 
-The honest reading: for a *linearly*-coupled system NumPy is a perfectly good tool and
-stochadex's edge is expressiveness (declarative wiring), not raw speed. The speed advantage
-appears when the coupling is **hard to vectorize** — next.
+The honest reading: for a *linearly*-coupled system it is now a genuine speed win via cores
+(and a dead heat single-core), on top of the expressiveness of declarative wiring. The gap
+widens further when the coupling is **hard to vectorize** — next.
 
 ### 3c. Branching-coupled — hard to vectorize, where the engine wins
 
@@ -164,52 +168,33 @@ non-obvious index juggling. A scalar per-path `if` just takes the branch.
 |---|---|
 | NumPy — idiomatic (mask: compute every path, select) | 5.598 |
 | NumPy — optimized (gather only triggered paths) | 0.466 |
-| stochadex — one sim, N systems, inline (1 core) | 0.877 |
-| stochadex — one sim, N systems, spawn / persistent | 0.348 |
-| stochadex — **ensemble, all cores** | **0.172** |
+| stochadex — 1 core, stock `distuv.Gamma` responder | 0.579 |
+| stochadex — 1 core, owned-gamma responder | 0.518 |
+| stochadex — within-sim, spawn-per-step | 0.244 |
+| stochadex — **ensemble, all cores** | **0.129** |
 
-**This is where the engine leads.** stochadex is **~32× faster than idiomatic NumPy** (the
+**This is where the engine leads.** stochadex is **~43× faster than idiomatic NumPy** (the
 version most people would write — masking computes the expensive branch for every path and
-discards ~93%). Against a *hand-optimized* gather/scatter NumPy (0.466 s), stochadex needs
-its cores but still wins clearly — **2.7× as an ensemble, 1.3× with within-sim
-parallelism** — because a scalar per-path branch has no wasted work and no gather overhead,
-and the code is far simpler (a plain `if`). Single-threaded, the optimized NumPy (0.466 s)
-does beat serial stochadex (0.877 s) — its gather *is* efficient on one thread — but that is
-the version you have to know to write. And this is a *mild* branch — one rare condition, one
-kind of expensive work; real coupled models (regime switches, thresholded dispatch, event
-cascades, mutually-exciting processes) branch far more, widening the gap.
+discards ~93%). Against a *hand-optimized* gather/scatter NumPy (0.466 s), stochadex wins with
+cores — **3.6× as an ensemble, 1.9× with within-sim parallelism** — because a scalar per-path
+branch has no wasted work and no gather overhead, and the code is far simpler (a plain `if`).
+
+Single-threaded, the optimized NumPy still edges stochadex, and this is the one place the RNG
+detail shows: the responder's 30 gamma draws per triggered path are the cost. With the stock
+`distuv.Gamma` the single-core system runs 0.579 s (0.80× of gather); switching the responder
+to an owned generator that samples gamma inline (Marsaglia–Tsang, verified bit-identical) takes
+it to 0.518 s (**0.90× — near-parity**). That is not hypothetical: the engine's own jump
+distributions (e.g. `CompoundPoisson`'s `GammaJumpDistribution`) already sample from
+[`pkg/rng`](../pkg/rng), so real models get it. The last sliver is the batched-C-vs-scalar-Go
+gamma floor (§5's DOT story), which the engine erases with cores anyway.
+
+And this is a *mild* branch — one rare condition, one kind of expensive work; real coupled
+models (regime switches, thresholded dispatch, event cascades, mutually-exciting processes)
+branch far more, widening the gap.
 
 Together, 3b and 3c are the honest rule: **linearly-coupled → NumPy vectorizes it, ~parity;
 conditionally/branching-coupled → the engine's per-path model wins outright**, and that is
 where real decision-support models live.
-
-### 3c-tuned. Closing the single-core branch gap in pure Go
-
-The one row above where stock stochadex loses is *single-core vs hand-optimized gather NumPy*
-(0.877 s vs 0.466 s). As with OU (§3a), most of that is the stock iterations, not the engine:
-this system has **two** hot loops — a stock OU driver (per-element map lookups + per-draw
-`distuv.Normal` allocation) and `branchResponder`, whose 30 `distuv.Gamma.Rand()` draws per
-triggered path each **allocate a fresh RNG wrapper**. Tuning both — a tuned OU driver and a
-`tunedBranchResponder` that owns one generator and samples gamma inline via Marsaglia–Tsang
-(the exact algorithm `distuv.Gamma` uses; verified same mean/variance) — stays pure-Go:
-
-![tuning the branching-coupled loops](plots/tuned_branch.svg)
-
-| branching system, 1 core, 10,000 paths × 2,000 steps | seconds | vs NumPy gather |
-|---|---|---|
-| stock (stock OU + `branchResponder`) inline | 0.846 | 0.55× |
-| **tuned (tuned OU + `tunedBranchResponder`) inline** | **0.518** | **0.90× — near-parity** |
-| NumPy — optimized gather (triggered paths only) | 0.466 | — |
-
-Tuning takes the single-core system from **0.55× to 0.90× of hand-optimized NumPy** — from
-clearly behind to neck-and-neck — with no engine change and nothing left Go. It does not quite
-reach gather parity here because gamma sampling is genuinely expensive (Marsaglia–Tsang
-rejection, ~30 draws per triggered path), and scalar-Go gamma still trails NumPy's *batched-C*
-gamma — the same RNG floor as §5's DOT. But that last sliver is the *only* remaining gap, and
-the engine erases it with cores: the **ensemble already runs this at 0.172 s (2.7× faster than
-gather)** with the stock iterations, and tuning stacks on top. So the full picture on the
-branching case: single-core near-parity after tuning, decisively ahead once you use cores —
-against the NumPy version you have to be an expert to write, versus a plain `if`.
 
 ## 4. Execution strategies — where each shines
 
@@ -222,17 +207,17 @@ for sustained work even when wall-clock ties.
 
 | regime | `Inline` | `SpawnPerStep` | `PersistentWorker` |
 |---|---|---|---|
-| few partitions, light work, many steps | **~0.000 s / 0 allocs** | 0.006 s / 32k | 0.005 s / 0 |
-| many partitions, light work, many steps | **0.008 s / 0** | 0.095 s / 769k | 0.106 s / 0 |
-| many partitions, **heavy** work | 3.68 s / 0 | 0.55 s / 38k | **0.54 s / 0** |
+| few partitions, light work, many steps | **~0.000 s / 0 allocs** | 0.005 s / 32k | 0.005 s / 0 |
+| many partitions, light work, many steps | **0.008 s / 0** | 0.094 s / 768k | 0.108 s / 0 |
+| many partitions, **heavy** work | 3.56 s / 0 | 0.55 s / 38k | 0.57 s / 0 |
 
 - **`Inline` shines on light work** (few *or* many partitions): no goroutine/channel overhead
-  per step — 0.008 s vs 0.095 s in the many-light regime — and it is allocation-free and
+  per step — 0.008 s vs 0.094 s in the many-light regime — and it is allocation-free and
   deterministic. This is why ensemble members (single partitions) run inline.
 - **`SpawnPerStep` / `PersistentWorker` shine on heavy per-step work with many partitions:**
-  they parallelise the partitions across cores — ~6.7× over serial inline (0.54 s vs 3.68 s).
+  they parallelise the partitions across cores — ~6.5× over serial inline (0.55 s vs 3.56 s).
 - **`PersistentWorker` matches `SpawnPerStep`'s speed with near-zero allocations** — it reuses
-  a worker pool instead of spawning a goroutine per partition per step (769k → 0 allocs in the
+  a worker pool instead of spawning a goroutine per partition per step (768k → 0 allocs in the
   many-light regime). For sustained or GC-sensitive runs, that is the one to pick.
 
 Rule of thumb: **light or single-partition → `Inline`; heavy multi-partition →
@@ -279,7 +264,7 @@ From the repo root:
 
 ```bash
 go run ./benchmarks                # Go engine suite: ensemble scaling, cold start, process/coupled/tuned-OU models -> results/*.json
-go run ./benchmarks tuned          # just the stock-vs-tuned comparisons (§3a, §3c-tuned) -> results/tuned_{ou,branch}_go.json
+go run ./benchmarks tuned          # just the stock-vs-tuned comparisons (§3a and §3c) -> results/tuned_{ou,branch}_go.json
 
 # Vector-op micro-benchmark (§5), the only BLAS-dependent one — two builds:
 go run ./benchmarks/vectorops                                            # gonum default pure-Go BLAS -> vectorized_ops_go.json

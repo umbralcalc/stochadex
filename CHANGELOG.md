@@ -54,6 +54,37 @@ an exact version rather than assume stability across minors.
   (Superseded the short-lived self-hosted-SVG badge approach.)
 
 ### Changed
+- **Iteration hot-loop performance.** Two bit-identical optimisations to the stochastic
+  iterations (same seed → same stream; all unit tests and model card numbers unchanged):
+  1. **Hoisted per-dimension `params.GetIndex(name, i)` reads** (each a string-keyed map
+     lookup) out of the per-element loops in `OrnsteinUhlenbeck(Exact)`,
+     `GeometricBrownianMotion`, `WienerProcess`, `DriftJumpDiffusion`, `CompoundPoissonProcess`,
+     `PoissonProcess`, plus `CopyValues` and `GroupedAggregation` — each param slice is now read
+     once per step and indexed directly. This is the dominant win: ~1.7× for one-param
+     iterations, ~3.7× for three-param ones (OU: 0.36 s → 0.10 s over 10,000 paths × 2,000 steps).
+  2. **New `pkg/rng.Sampler`** — a small owned-`math/rand/v2` sampler (with its own `doc.go`)
+     that the stochastic draws now use instead of `distuv.X{Src}.Rand()`, skipping distuv's
+     per-call value-copy and wrapper construction (and, for the compound distributions, its
+     bound-method-value indirection) for a further ~7–13% on the draw. It covers Normal,
+     Uniform, Exponential, **Gamma, Beta, and Poisson** — the last three reproduce distuv's
+     exact algorithm (Marsaglia–Tsang / Liu–Martin–Syring gamma; two-gamma beta; direct/PTRS
+     Poisson), so every draw is **bit-identical** to distuv for the same seed, guaranteed by
+     `pkg/rng`'s stream-identity tests. Applied to the Normal/Uniform iterations, the
+     `CompoundPoisson` gamma jump, and the Gamma/Beta/Poisson/NegativeBinomial likelihood
+     samplers (which keep distuv for `LogProb`, using the Sampler only for `GenerateNewSamples`).
+     gonum's `math/rand/v2` distuv doesn't allocate, so this is throughput, not allocations.
+     Binomial (a three-branch algorithm, one site) and Categorical (a stateful sampling heap)
+     stay on distuv — the copied-algorithm cost there outweighs the small per-draw saving.
+- **Multivariate likelihood-gradient performance.** `EvaluateLogLikeMeanGrad` on the
+  `Normal`, `T`, and `Wishart` likelihood distributions re-factorised the covariance/scale
+  matrix (O(d³) Cholesky, plus a matrix inverse for Wishart) on **every call** — and the
+  gradient iteration calls it once per row of a data batch that all share one covariance.
+  The factorisation now happens once per parameterisation (cached, invalidated in
+  `SetParams`, recomputed lazily so the log-like and sampling paths never pay for it) and is
+  reused across the batch. **Bit-identical** (deterministic factorisation, no RNG; all tests
+  and model card numbers unchanged); ~5× faster at batch depth 10, ~8× at depth 50. (For
+  these multivariate distributions the Cholesky, not the RNG draw, is the cost — so they are
+  left on gonum's `distmv`/`distmat` rather than moved to `pkg/rng`.)
 - Renamed the generated "Cross-model index" page to **"Domain model index"** (heading, docs nav, and page title).
 - **Docs pipeline reliability.** CI now explicitly requests a GitHub Pages build after
   force-pushing `gh-pages` — a force-push doesn't reliably auto-trigger a Pages

@@ -4,8 +4,8 @@
     "total_paths": 10000,
     "steps": 2000,
     "seconds": {
-      "stock branch system (1 core inline)": 0.853018625,
-      "tuned branch system (1 core inline)": 0.518217542
+      "stock branch system (1 core inline)": 0.579042167,
+      "tuned branch system (1 core inline)": 0.517750792
     }
   }
 ]

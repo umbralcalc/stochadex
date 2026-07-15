@@ -19,6 +19,13 @@ type WishartLikelihoodDistribution struct {
 	dof          float64
 	scale        *mat.SymDense
 	defaultScale []float64
+	// gradInvScale caches the inverse of the scale matrix for EvaluateLogLikeMeanGrad,
+	// which the gradient iteration calls once per row of a data batch that all share this
+	// scale. Without the cache each call re-factorises and re-inverts (both O(d^3)).
+	// Invalidated in SetParams, recomputed lazily. Kept immutable across calls (the scaled
+	// term below is built separately) so the cache survives the batch.
+	gradInvScale mat.SymDense
+	gradInvReady bool
 }
 
 func (w *WishartLikelihoodDistribution) SetSeed(
@@ -44,6 +51,7 @@ func (w *WishartLikelihoodDistribution) SetParams(
 	if s, ok := params.GetOk("default_scale"); ok {
 		w.defaultScale = s
 	}
+	w.gradInvReady = false // scale may have changed; recompute the inverse lazily on next gradient
 }
 
 func (w *WishartLikelihoodDistribution) getDist() *distmat.Wishart {
@@ -77,21 +85,24 @@ func (w *WishartLikelihoodDistribution) GenerateNewSamples() []float64 {
 func (w *WishartLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {
-	var choleskyDecomp mat.Cholesky
-	ok := choleskyDecomp.Factorize(w.scale)
-	if !ok {
-		panic("cholesky decomp for scale matrix failed")
+	if !w.gradInvReady {
+		var choleskyDecomp mat.Cholesky
+		if ok := choleskyDecomp.Factorize(w.scale); !ok {
+			panic("cholesky decomp for scale matrix failed")
+		}
+		w.gradInvScale.CopySym(w.scale)
+		choleskyDecomp.InverseTo(&w.gradInvScale)
+		w.gradInvReady = true
 	}
-	var invScale mat.SymDense
-	invScale.CopySym(w.scale)
-	choleskyDecomp.InverseTo(&invScale)
 	llg := make([]float64, len(data))
 	copy(llg, data)
 	logLikeGrad := mat.NewDense(w.dims, w.dims, llg)
-	logLikeGrad.Mul(logLikeGrad, &invScale)
-	logLikeGrad.Mul(&invScale, logLikeGrad)
+	logLikeGrad.Mul(logLikeGrad, &w.gradInvScale)
+	logLikeGrad.Mul(&w.gradInvScale, logLikeGrad)
 	logLikeGrad.Scale(0.5, logLikeGrad)
-	invScale.ScaleSym(0.5*float64(w.dof), &invScale)
-	logLikeGrad.Sub(logLikeGrad, &invScale)
+	// Build the 0.5·dof·scale⁻¹ term separately so the cached inverse stays intact.
+	var scaledInv mat.SymDense
+	scaledInv.ScaleSym(0.5*float64(w.dof), &w.gradInvScale)
+	logLikeGrad.Sub(logLikeGrad, &scaledInv)
 	return logLikeGrad.RawMatrix().Data
 }

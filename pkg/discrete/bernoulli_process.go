@@ -1,10 +1,8 @@
 package discrete
 
 import (
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // BernoulliProcessIteration emits 1/0 based on per-dimension success probs.
@@ -14,21 +12,14 @@ import (
 //   - Outputs are written into the partition's reusable next-state buffer.
 //   - Seed is taken from the partition's Settings for reproducibility.
 type BernoulliProcessIteration struct {
-	uniformDist *distuv.Uniform
+	sampler *rng.Sampler
 }
 
 func (b *BernoulliProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	b.uniformDist = &distuv.Uniform{
-		Min: 0.0,
-		Max: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	b.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (b *BernoulliProcessIteration) Iterate(
@@ -40,7 +31,7 @@ func (b *BernoulliProcessIteration) Iterate(
 	outputValues := stateHistories[partitionIndex].GetNextStateRowToUpdate()
 	probs := params.Get("state_value_observation_probs")
 	for i := range outputValues {
-		if b.uniformDist.Rand() < probs[i] {
+		if b.sampler.Float64() < probs[i] {
 			outputValues[i] = 1.0
 		} else {
 			outputValues[i] = 0.0

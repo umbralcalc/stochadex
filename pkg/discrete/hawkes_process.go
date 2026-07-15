@@ -1,12 +1,10 @@
 package discrete
 
 import (
-	"math/rand/v2"
-
 	"github.com/umbralcalc/stochadex/pkg/kernels"
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // HawkesProcessIntensityIteration an iteration for a Hawkes process
@@ -72,21 +70,14 @@ func NewHawkesProcessIntensityIteration(
 
 // HawkesProcessIteration defines an iteration for a Hawkes process.
 type HawkesProcessIteration struct {
-	unitUniformDist *distuv.Uniform
+	sampler *rng.Sampler
 }
 
 func (h *HawkesProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	h.unitUniformDist = &distuv.Uniform{
-		Min: 0.0,
-		Max: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	h.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (h *HawkesProcessIteration) Iterate(
@@ -100,7 +91,7 @@ func (h *HawkesProcessIteration) Iterate(
 	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
 		if rates[i] > (rates[i]+
-			(1.0/timestepsHistory.NextIncrement))*h.unitUniformDist.Rand() {
+			(1.0/timestepsHistory.NextIncrement))*h.sampler.Float64() {
 			values[i] += 1.0
 		}
 	}

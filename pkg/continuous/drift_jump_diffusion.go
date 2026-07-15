@@ -5,8 +5,8 @@ import (
 
 	"math/rand/v2"
 
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // DriftJumpDiffusionIteration steps a general drift–jump–diffusion process.
@@ -18,9 +18,9 @@ import (
 //   - Jumps occur with Poisson hazard approx. rate*dt; set dt via timestep config.
 //   - Seed for RNGs derives from the partition's Settings for reproducibility.
 type DriftJumpDiffusionIteration struct {
-	JumpDist        JumpDistribution
-	unitNormalDist  *distuv.Normal
-	unitUniformDist *distuv.Uniform
+	JumpDist       JumpDistribution
+	normalSampler  *rng.Sampler
+	uniformSampler *rng.Sampler
 }
 
 func (d *DriftJumpDiffusionIteration) Configure(
@@ -31,16 +31,8 @@ func (d *DriftJumpDiffusionIteration) Configure(
 		settings.Iterations[partitionIndex].Seed,
 		settings.Iterations[partitionIndex].Seed,
 	))
-	d.unitNormalDist = &distuv.Normal{
-		Mu:    0.0,
-		Sigma: 1.0,
-		Src:   rand.NewPCG(uint64(r.IntN(1e8)), uint64(r.IntN(1e8))),
-	}
-	d.unitUniformDist = &distuv.Uniform{
-		Min: 0.0,
-		Max: 1.0,
-		Src: rand.NewPCG(uint64(r.IntN(1e8)), uint64(r.IntN(1e8))),
-	}
+	d.normalSampler = rng.NewFromSource(rand.NewPCG(uint64(r.IntN(1e8)), uint64(r.IntN(1e8))))
+	d.uniformSampler = rng.NewFromSource(rand.NewPCG(uint64(r.IntN(1e8)), uint64(r.IntN(1e8))))
 	d.JumpDist.Configure(partitionIndex, settings)
 }
 
@@ -53,13 +45,14 @@ func (d *DriftJumpDiffusionIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	driftCoefficients := params.Get("drift_coefficients")
 	diffusionCoefficients := params.Get("diffusion_coefficients")
+	jumpRates := params.Get("jump_rates")
 	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
 		values[i] += (driftCoefficients[i] * timestepsHistory.NextIncrement) +
 			diffusionCoefficients[i]*math.Sqrt(
-				timestepsHistory.NextIncrement)*d.unitNormalDist.Rand()
-		if params.GetIndex("jump_rates", i) > (params.GetIndex("jump_rates", i)+
-			(1.0/timestepsHistory.NextIncrement))*d.unitUniformDist.Rand() {
+				timestepsHistory.NextIncrement)*d.normalSampler.NormFloat64()
+		if jumpRates[i] > (jumpRates[i]+
+			(1.0/timestepsHistory.NextIncrement))*d.uniformSampler.Float64() {
 			values[i] += d.JumpDist.NewJump(params, i)
 		}
 	}

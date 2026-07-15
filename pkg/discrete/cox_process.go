@@ -1,29 +1,20 @@
 package discrete
 
 import (
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // CoxProcessIteration defines an iteration for a Cox process.
 type CoxProcessIteration struct {
-	unitUniformDist *distuv.Uniform
+	sampler *rng.Sampler
 }
 
 func (c *CoxProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	c.unitUniformDist = &distuv.Uniform{
-		Min: 0.0,
-		Max: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	c.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (c *CoxProcessIteration) Iterate(
@@ -37,7 +28,7 @@ func (c *CoxProcessIteration) Iterate(
 	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
 		if rates[i] > (rates[i]+
-			(1.0/timestepsHistory.NextIncrement))*c.unitUniformDist.Rand() {
+			(1.0/timestepsHistory.NextIncrement))*c.sampler.Float64() {
 			values[i] += 1.0
 		}
 	}

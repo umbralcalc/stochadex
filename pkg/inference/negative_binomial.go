@@ -3,18 +3,16 @@ package inference
 import (
 	"math"
 
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // NegativeBinomialLikelihoodDistribution assumes the real data are well
 // described by a negative binomial distribution, given the input mean
 // and variance.
 type NegativeBinomialLikelihoodDistribution struct {
-	Src      rand.Source
+	sampler  *rng.Sampler
 	mean     *mat.VecDense
 	variance *mat.VecDense
 }
@@ -23,10 +21,7 @@ func (n *NegativeBinomialLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	n.Src = rand.NewPCG(
-		settings.Iterations[partitionIndex].Seed,
-		settings.Iterations[partitionIndex].Seed,
-	)
+	n.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (n *NegativeBinomialLikelihoodDistribution) SetParams(
@@ -63,14 +58,14 @@ func (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLike(
 
 func (n *NegativeBinomialLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
-	distPoisson := &distuv.Poisson{Lambda: 1.0, Src: n.Src}
-	distGamma := &distuv.Gamma{Alpha: 1.0, Beta: 1.0, Src: n.Src}
 	for i := range n.mean.Len() {
-		distGamma.Beta = 1.0 /
-			((n.variance.AtVec(i) / n.mean.AtVec(i)) - 1.0)
-		distGamma.Alpha = n.mean.AtVec(i) * distGamma.Beta
-		distPoisson.Lambda = distGamma.Rand()
-		samples = append(samples, distPoisson.Rand())
+		// Gamma–Poisson mixture: draw lambda ~ Gamma(shape, rate), then Poisson(lambda).
+		// Both draws come from the one sampler, matching the two distuv distributions that
+		// previously shared a single Src (order: gamma then Poisson).
+		beta := 1.0 / ((n.variance.AtVec(i) / n.mean.AtVec(i)) - 1.0)
+		alpha := n.mean.AtVec(i) * beta
+		lambda := n.sampler.Gamma(alpha, beta)
+		samples = append(samples, n.sampler.Poisson(lambda))
 	}
 	return samples
 }

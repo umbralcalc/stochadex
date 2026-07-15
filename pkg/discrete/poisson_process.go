@@ -1,10 +1,8 @@
 package discrete
 
 import (
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // PoissonProcessIteration implements a Poisson counting process for event simulation.
@@ -52,21 +50,14 @@ import (
 //   - Memory usage: O(1) per dimension
 //   - Efficient for high-dimensional event modeling
 type PoissonProcessIteration struct {
-	unitUniformDist *distuv.Uniform
+	sampler *rng.Sampler
 }
 
 func (p *PoissonProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	p.unitUniformDist = &distuv.Uniform{
-		Min: 0.0,
-		Max: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	p.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (p *PoissonProcessIteration) Iterate(
@@ -77,9 +68,11 @@ func (p *PoissonProcessIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the rates slice out of the loop (params.GetIndex is a per-call map lookup).
+	rates := params.Get("rates")
 	for i := range values {
-		if params.GetIndex("rates", i) > (params.GetIndex("rates", i)+
-			(1.0/timestepsHistory.NextIncrement))*p.unitUniformDist.Rand() {
+		if rates[i] > (rates[i]+
+			(1.0/timestepsHistory.NextIncrement))*p.sampler.Float64() {
 			values[i] += 1.0
 		}
 	}

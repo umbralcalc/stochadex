@@ -186,9 +186,12 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	var ok bool
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	stateHistory := stateHistories[int(params.GetIndex("state_partition", 0))]
+	// Hoist the latest_states slice out of the loop (params.GetIndex is a per-call map
+	// lookup); indexing it gives identical values.
+	latestStates := params.Get("latest_states")
 	for i, stateValueIndex := range params.Get("state_value_indices") {
 		latestStateValueSlice := []float64{
-			params.GetIndex("latest_states", int(stateValueIndex))}
+			latestStates[int(stateValueIndex)]}
 		weight = v.Kernel.Evaluate(
 			latestStateValueSlice,
 			latestStateValueSlice,

@@ -1,8 +1,7 @@
 package inference
 
 import (
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/distuv"
@@ -11,7 +10,7 @@ import (
 // GammaLikelihoodDistribution assumes the real data are well described
 // by a gamma distribution, given the input mean and variance.
 type GammaLikelihoodDistribution struct {
-	Src      rand.Source
+	sampler  *rng.Sampler
 	mean     *mat.VecDense
 	variance *mat.VecDense
 }
@@ -20,10 +19,7 @@ func (g *GammaLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.Src = rand.NewPCG(
-		settings.Iterations[partitionIndex].Seed,
-		settings.Iterations[partitionIndex].Seed,
-	)
+	g.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (g *GammaLikelihoodDistribution) SetParams(
@@ -41,7 +37,7 @@ func (g *GammaLikelihoodDistribution) SetParams(
 }
 
 func (g *GammaLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
-	dist := &distuv.Gamma{Alpha: 1.0, Beta: 1.0, Src: g.Src}
+	dist := &distuv.Gamma{Alpha: 1.0, Beta: 1.0}
 	logLike := 0.0
 	var m, v float64
 	for i := range g.mean.Len() {
@@ -56,14 +52,12 @@ func (g *GammaLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
 
 func (g *GammaLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
-	dist := &distuv.Gamma{Alpha: 1.0, Beta: 1.0, Src: g.Src}
 	var m, v float64
 	for i := range g.mean.Len() {
 		m = g.mean.AtVec(i)
 		v = g.variance.AtVec(i)
-		dist.Beta = m / v
-		dist.Alpha = m * m / v
-		samples = append(samples, dist.Rand())
+		// Gamma(shape = m²/v, rate = m/v) — same parameterisation as the distuv path above.
+		samples = append(samples, g.sampler.Gamma(m*m/v, m/v))
 	}
 	return samples
 }

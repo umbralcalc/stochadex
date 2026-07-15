@@ -3,10 +3,8 @@ package continuous
 import (
 	"math"
 
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // OrnsteinUhlenbeckIteration steps an Ornstein–Uhlenbeck mean-reverting
@@ -21,21 +19,14 @@ import (
 //     prefer OrnsteinUhlenbeckExactGaussianIteration or a smaller Δt.
 //   - Seed is taken from the partition's Settings for reproducibility.
 type OrnsteinUhlenbeckIteration struct {
-	unitNormalDist *distuv.Normal
+	sampler *rng.Sampler
 }
 
 func (o *OrnsteinUhlenbeckIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	o.unitNormalDist = &distuv.Normal{
-		Mu:    0.0,
-		Sigma: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	o.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (o *OrnsteinUhlenbeckIteration) Iterate(
@@ -46,11 +37,17 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the per-dimension param slices (and the shared sqrt(dt)) out of the loop:
+	// params.GetIndex is a string-keyed map lookup, so reading them per element per step
+	// dominates the cost. Values are identical to the per-element GetIndex form.
+	thetas := params.Get("thetas")
+	mus := params.Get("mus")
+	sigmas := params.Get("sigmas")
+	dt := timestepsHistory.NextIncrement
+	sqrtDt := math.Sqrt(dt)
 	for i := range values {
-		values[i] += params.GetIndex("thetas", i)*(params.GetIndex("mus", i)-
-			values[i])*timestepsHistory.NextIncrement +
-			params.GetIndex("sigmas", i)*math.Sqrt(
-				timestepsHistory.NextIncrement)*o.unitNormalDist.Rand()
+		values[i] += thetas[i]*(mus[i]-values[i])*dt +
+			sigmas[i]*sqrtDt*o.sampler.NormFloat64()
 	}
 	return values
 }

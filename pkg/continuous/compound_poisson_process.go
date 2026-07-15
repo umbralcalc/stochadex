@@ -1,10 +1,8 @@
 package continuous
 
 import (
-	"math/rand/v2"
-
+	"github.com/umbralcalc/stochadex/pkg/rng"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // JumpDistribution defines the interface to draw sudden jumps.
@@ -23,30 +21,24 @@ type JumpDistribution interface {
 //   - Param names per dimension: "gamma_alphas" and "gamma_betas".
 //   - Seed is taken from the partition's Settings for reproducibility.
 type GammaJumpDistribution struct {
-	dist *distuv.Gamma
+	sampler *rng.Sampler
 }
 
 func (g *GammaJumpDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.dist = &distuv.Gamma{
-		Alpha: 1.0,
-		Beta:  1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	g.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (g *GammaJumpDistribution) NewJump(
 	params *simulator.Params,
 	valueIndex int,
 ) float64 {
-	g.dist.Alpha = params.GetIndex("gamma_alphas", valueIndex)
-	g.dist.Beta = params.GetIndex("gamma_betas", valueIndex)
-	return g.dist.Rand()
+	return g.sampler.Gamma(
+		params.GetIndex("gamma_alphas", valueIndex),
+		params.GetIndex("gamma_betas", valueIndex),
+	)
 }
 
 // CompoundPoissonProcessIteration steps a compound Poisson process.
@@ -56,8 +48,8 @@ func (g *GammaJumpDistribution) NewJump(
 //   - At each step, increments by a jump draw with probability approx. rate*dt.
 //   - Configure timestep size via the simulator to control event frequency.
 type CompoundPoissonProcessIteration struct {
-	JumpDist        JumpDistribution
-	unitUniformDist *distuv.Uniform
+	JumpDist JumpDistribution
+	sampler  *rng.Sampler
 }
 
 func (c *CompoundPoissonProcessIteration) Configure(
@@ -65,14 +57,7 @@ func (c *CompoundPoissonProcessIteration) Configure(
 	settings *simulator.Settings,
 ) {
 	c.JumpDist.Configure(partitionIndex, settings)
-	c.unitUniformDist = &distuv.Uniform{
-		Min: 0.0,
-		Max: 1.0,
-		Src: rand.NewPCG(
-			settings.Iterations[partitionIndex].Seed,
-			settings.Iterations[partitionIndex].Seed,
-		),
-	}
+	c.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
 func (c *CompoundPoissonProcessIteration) Iterate(
@@ -83,9 +68,11 @@ func (c *CompoundPoissonProcessIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the rates slice out of the loop (params.GetIndex is a per-call map lookup).
+	rates := params.Get("rates")
 	for i := range values {
-		if params.GetIndex("rates", i) > (params.GetIndex("rates", i)+
-			(1.0/timestepsHistory.NextIncrement))*c.unitUniformDist.Rand() {
+		if rates[i] > (rates[i]+
+			(1.0/timestepsHistory.NextIncrement))*c.sampler.Float64() {
 			values[i] += c.JumpDist.NewJump(params, i)
 		}
 	}
