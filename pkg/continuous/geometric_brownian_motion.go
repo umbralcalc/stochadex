@@ -42,9 +42,11 @@ func (g *GeometricBrownianMotionIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the variances slice out of the loop (params.GetIndex is a per-call map lookup).
+	variances := params.Get("variances")
 	for i := range values {
 		values[i] *= 1.0 +
-			math.Sqrt(params.GetIndex("variances", i)*
+			math.Sqrt(variances[i]*
 				timestepsHistory.NextIncrement)*g.unitNormalDist.Rand()
 	}
 	return values

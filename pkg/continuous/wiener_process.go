@@ -78,8 +78,10 @@ func (w *WienerProcessIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the variances slice out of the loop (params.GetIndex is a per-call map lookup).
+	variances := params.Get("variances")
 	for i := range values {
-		values[i] += math.Sqrt(params.GetIndex("variances", i)*
+		values[i] += math.Sqrt(variances[i]*
 			timestepsHistory.NextIncrement) * w.unitNormalDist.Rand()
 	}
 	return values

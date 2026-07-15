@@ -46,11 +46,17 @@ func (o *OrnsteinUhlenbeckIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the per-dimension param slices (and the shared sqrt(dt)) out of the loop:
+	// params.GetIndex is a string-keyed map lookup, so reading them per element per step
+	// dominates the cost. Values are identical to the per-element GetIndex form.
+	thetas := params.Get("thetas")
+	mus := params.Get("mus")
+	sigmas := params.Get("sigmas")
+	dt := timestepsHistory.NextIncrement
+	sqrtDt := math.Sqrt(dt)
 	for i := range values {
-		values[i] += params.GetIndex("thetas", i)*(params.GetIndex("mus", i)-
-			values[i])*timestepsHistory.NextIncrement +
-			params.GetIndex("sigmas", i)*math.Sqrt(
-				timestepsHistory.NextIncrement)*o.unitNormalDist.Rand()
+		values[i] += thetas[i]*(mus[i]-values[i])*dt +
+			sigmas[i]*sqrtDt*o.unitNormalDist.Rand()
 	}
 	return values
 }

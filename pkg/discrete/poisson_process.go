@@ -77,8 +77,10 @@ func (p *PoissonProcessIteration) Iterate(
 ) []float64 {
 	stateHistory := stateHistories[partitionIndex]
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the rates slice out of the loop (params.GetIndex is a per-call map lookup).
+	rates := params.Get("rates")
 	for i := range values {
-		if params.GetIndex("rates", i) > (params.GetIndex("rates", i)+
+		if rates[i] > (rates[i]+
 			(1.0/timestepsHistory.NextIncrement))*p.unitUniformDist.Rand() {
 			values[i] += 1.0
 		}

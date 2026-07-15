@@ -54,6 +54,15 @@ an exact version rather than assume stability across minors.
   (Superseded the short-lived self-hosted-SVG badge approach.)
 
 ### Changed
+- **Iteration hot-loop performance.** Hoisted per-dimension `params.GetIndex(name, i)` reads
+  (each a string-keyed map lookup) out of the per-element loops in the stochastic iterations —
+  `OrnsteinUhlenbeck(Exact)`, `GeometricBrownianMotion`, `WienerProcess`, `DriftJumpDiffusion`,
+  `CompoundPoissonProcess`, `PoissonProcess`, plus `CopyValues` and `GroupedAggregation`. Each
+  param slice is now read once per step and indexed directly. **Bit-identical output** (same
+  seed → same stream; all unit tests and model card numbers unchanged), purely faster:
+  ~1.7× for one-param iterations, ~3.7× for three-param ones (e.g. OU: 0.36 s → 0.10 s over
+  10,000 paths × 2,000 steps). The `distuv` RNG draws were *not* the bottleneck — gonum's
+  `math/rand/v2`-backed samplers don't allocate per call — so they were left unchanged.
 - Renamed the generated "Cross-model index" page to **"Domain model index"** (heading, docs nav, and page title).
 - **Docs pipeline reliability.** CI now explicitly requests a GitHub Pages build after
   force-pushing `gh-pages` — a force-push doesn't reliably auto-trigger a Pages

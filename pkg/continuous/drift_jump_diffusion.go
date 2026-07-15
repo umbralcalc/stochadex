@@ -53,12 +53,13 @@ func (d *DriftJumpDiffusionIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	driftCoefficients := params.Get("drift_coefficients")
 	diffusionCoefficients := params.Get("diffusion_coefficients")
+	jumpRates := params.Get("jump_rates")
 	values := stateHistory.GetNextStateRowToUpdate()
 	for i := range values {
 		values[i] += (driftCoefficients[i] * timestepsHistory.NextIncrement) +
 			diffusionCoefficients[i]*math.Sqrt(
 				timestepsHistory.NextIncrement)*d.unitNormalDist.Rand()
-		if params.GetIndex("jump_rates", i) > (params.GetIndex("jump_rates", i)+
+		if jumpRates[i] > (jumpRates[i]+
 			(1.0/timestepsHistory.NextIncrement))*d.unitUniformDist.Rand() {
 			values[i] += d.JumpDist.NewJump(params, i)
 		}

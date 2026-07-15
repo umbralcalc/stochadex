@@ -49,10 +49,15 @@ func (o *OrnsteinUhlenbeckExactGaussianIteration) Iterate(
 	stateHistory := stateHistories[partitionIndex]
 	dt := timestepsHistory.NextIncrement
 	values := stateHistory.GetNextStateRowToUpdate()
+	// Hoist the per-dimension param slices out of the loop (params.GetIndex is a per-call
+	// map lookup); indexing the slices gives identical values.
+	thetas := params.Get("thetas")
+	mus := params.Get("mus")
+	sigmas := params.Get("sigmas")
 	for i := range values {
-		th := params.GetIndex("thetas", i)
-		mu := params.GetIndex("mus", i)
-		sig := params.GetIndex("sigmas", i)
+		th := thetas[i]
+		mu := mus[i]
+		sig := sigmas[i]
 		x := values[i]
 		var mean, condVar float64
 		if th == 0 {
