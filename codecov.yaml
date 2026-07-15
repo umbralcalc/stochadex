@@ -1,2 +1,4 @@
 ignore:
   - "benchmarks/"
+  # cmd/ holds thin main() entrypoints and CLI wiring only
+  - "cmd/"
