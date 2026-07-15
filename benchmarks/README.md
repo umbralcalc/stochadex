@@ -3,8 +3,9 @@
 Fair, **CPU-to-CPU** measurements of the systems-performance claims that are actually
 stochadex's. Deliberately **not** a peak-FLOPs race against GPU frameworks (JAX, Julia
 SciML) — those win on their own hardware and problem shapes, and comparing them on a
-laptop CPU would be apples-to-oranges. See [`WHEN_TO_USE.md`](../WHEN_TO_USE.md) for where
-those tools are the right call.
+laptop CPU would be apples-to-oranges. See the docs frontpage
+[**When to use it**](../docs/README.md#when-to-use-it) section for where those tools are the
+right call.
 
 ## Reference machine
 
