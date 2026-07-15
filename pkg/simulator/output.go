@@ -140,6 +140,7 @@ func NewJsonLogOutputFunction(
 // goroutine using a channel for improved throughput.
 type JsonLogChannelOutputFunction struct {
 	logChannel chan JsonLogEntry
+	done       chan struct{}
 }
 
 func (j *JsonLogChannelOutputFunction) Configure(*Settings) {}
@@ -160,8 +161,12 @@ func (j *JsonLogChannelOutputFunction) Output(
 }
 
 // Close flushes and stops the background writer. Defer it after construction.
+// It blocks until the writer goroutine has drained the channel and flushed
+// every buffered entry to the file, so callers may read the file once Close
+// returns.
 func (j *JsonLogChannelOutputFunction) Close() {
 	close(j.logChannel)
+	<-j.done
 }
 
 // NewJsonLogChannelOutputFunction creates a JsonLogChannelOutputFunction.
@@ -170,12 +175,15 @@ func NewJsonLogChannelOutputFunction(
 	filePath string,
 ) *JsonLogChannelOutputFunction {
 	logChannel := make(chan JsonLogEntry)
+	done := make(chan struct{})
 	file, err := os.Create(filePath)
 	if err != nil {
 		log.Fatal("Error creating log file:", err)
 		panic(err)
 	}
 	go func() {
+		defer close(done)
+		defer file.Close()
 		for logEntry := range logChannel {
 			jsonData, err := json.Marshal(logEntry)
 			if err != nil {
@@ -188,7 +196,7 @@ func NewJsonLogChannelOutputFunction(
 			}
 		}
 	}()
-	return &JsonLogChannelOutputFunction{logChannel: logChannel}
+	return &JsonLogChannelOutputFunction{logChannel: logChannel, done: done}
 }
 
 // WebsocketOutputFunction serialises and sends outputs via a websocket
