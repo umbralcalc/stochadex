@@ -139,12 +139,16 @@ def plot_branch_coupled():
     import numpy as np
 
     go = load("branch_coupled_go.json")[0]["seconds"]
+    tuned = load("tuned_branch_go.json")[0]["seconds"]
     npv = load("branch_coupled_numpy.json")[0]
+    # One ladder: idiomatic vs optimized NumPy, then stochadex single-core (stock distuv-gamma
+    # responder vs owned-gamma responder), then within-sim and ensemble.
     rows = [
         ("NumPy — idiomatic (mask: compute every path)", npv["numpy_mask_seconds"], GREY),
         ("NumPy — optimized (gather triggered paths)", npv["numpy_gather_seconds"], "#94a3b8"),
-        ("sx: single wide inline (1 core)", go["single wide inline (1 core)"], "#cfe0c3"),
-        ("sx: N systems, inline (1 core)", go["one sim, N systems, inline (serial)"], "#6b9457"),
+        ("sx: 1 core, stock distuv-gamma responder", tuned["stock branch system (1 core inline)"], "#cfe0c3"),
+        ("sx: 1 core, owned-gamma responder", tuned["tuned branch system (1 core inline)"], "#a7c69a"),
+        ("sx: within-sim, spawn-per-step", go["one sim, N systems, spawn-per-step"], "#6b9457"),
         ("sx: ensemble, all cores", go["ensemble, N inline systems (all cores)"], GREEN),
     ]
     labels = [r[0] for r in rows]
@@ -166,65 +170,13 @@ def plot_branch_coupled():
     plt.close(fig)
 
 
-def plot_tuned_ou():
-    import numpy as np
-
-    tuned = load("tuned_ou_go.json")[0]["seconds"]
-    npy = {d["process"]: d for d in load("processes_numpy.json")}["ou"]["numpy_seconds"]
-    rows = [
-        ("stock OU iteration\n(1 core inline)", tuned["stock OU iteration (1 core inline)"], "#cfe0c3"),
-        ("tuned OU iteration\n(1 core inline, pure-Go)", tuned["tuned OU iteration (1 core inline)"], GREEN),
-        ("NumPy\n(1 thread, SIMD/paths)", npy, GREY),
-    ]
-    labels = [r[0] for r in rows]
-    vals = [r[1] for r in rows]
-    colours = [r[2] for r in rows]
-    fig, ax = plt.subplots(figsize=(7.5, 4.2))
-    bars = ax.bar(np.arange(len(vals)), vals, 0.6, color=colours)
-    ax.set_xticks(np.arange(len(vals)))
-    ax.set_xticklabels(labels, fontsize=9)
-    ax.set_ylabel("seconds (lower is better)")
-    ax.set_title("Stock vs hand-tuned OU (1 core) — the tuning now ships in the stock iteration")
-    for b, v in zip(bars, vals):
-        ax.text(b.get_x() + b.get_width() / 2, v, f"{v:.3f}s", ha="center", va="bottom", fontsize=9)
-    ax.grid(True, axis="y", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(os.path.join(PLOTS, "tuned_ou.svg"))
-    plt.close(fig)
-
-
-def plot_tuned_branch():
-    import numpy as np
-
-    tuned = load("tuned_branch_go.json")[0]["seconds"]
-    npv = load("branch_coupled_numpy.json")[0]
-    rows = [
-        ("stock branch system\n(1 core inline)", tuned["stock branch system (1 core inline)"], "#cfe0c3"),
-        ("tuned branch system\n(1 core inline, pure-Go)", tuned["tuned branch system (1 core inline)"], GREEN),
-        ("NumPy optimized\n(gather triggered paths)", npv["numpy_gather_seconds"], GREY),
-    ]
-    labels = [r[0] for r in rows]
-    vals = [r[1] for r in rows]
-    colours = [r[2] for r in rows]
-    fig, ax = plt.subplots(figsize=(7.5, 4.2))
-    bars = ax.bar(np.arange(len(vals)), vals, 0.6, color=colours)
-    ax.set_xticks(np.arange(len(vals)))
-    ax.set_xticklabels(labels, fontsize=9)
-    ax.set_ylabel("seconds (lower is better)")
-    ax.set_title("Branching-coupled, 1 core: stock vs hand-tuned — 10,000 paths × 2,000 steps")
-    for b, v in zip(bars, vals):
-        ax.text(b.get_x() + b.get_width() / 2, v, f"{v:.3f}s", ha="center", va="bottom", fontsize=9)
-    ax.grid(True, axis="y", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(os.path.join(PLOTS, "tuned_branch.svg"))
-    plt.close(fig)
-
-
 def plot_strategies():
     import numpy as np
 
     data = load("strategies.json")
-    strategies = [("inline", GREEN), ("spawn-per-step", "#a7c69a"), ("persistent-worker", GREY)]
+    # Three greens (dark → medium → light); persistent-worker is deliberately NOT grey, since
+    # grey means NumPy in every other plot.
+    strategies = [("inline", GREEN), ("spawn-per-step", "#84ab72"), ("persistent-worker", "#c2ddb0")]
     regimes = [d["regime"] for d in data]
     short = ["few partitions,\nlight work", "many partitions,\nlight work", "many partitions,\nheavy work"]
     x = np.arange(len(regimes))
@@ -256,8 +208,6 @@ def main():
     plot_processes()
     plot_coupled()
     plot_branch_coupled()
-    plot_tuned_ou()
-    plot_tuned_branch()
     plot_strategies()
     print("wrote", PLOTS, "*.svg")
 

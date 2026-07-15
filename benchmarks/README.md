@@ -112,8 +112,6 @@ The proof it is fully applied: a hand-tuned `tunedOUIteration` — identical mat
 hoisted, owned generator — no longer beats the stock one. They are the same speed, and both
 sit on NumPy:
 
-![stock vs tuned OU](plots/tuned_ou.svg)
-
 | OU, 1 core, 10,000 paths × 2,000 steps | seconds | vs NumPy |
 |---|---|---|
 | stock `OrnsteinUhlenbeckIteration` (inline) | 0.095 | 0.98× |
@@ -169,8 +167,9 @@ non-obvious index juggling. A scalar per-path `if` just takes the branch.
 |---|---|
 | NumPy — idiomatic (mask: compute every path, select) | 5.598 |
 | NumPy — optimized (gather only triggered paths) | 0.466 |
-| stochadex — one sim, N systems, inline (1 core) | 0.642 |
-| stochadex — one sim, N systems, spawn-per-step | 0.244 |
+| stochadex — 1 core, stock `distuv.Gamma` responder | 0.579 |
+| stochadex — 1 core, owned-gamma responder | 0.518 |
+| stochadex — within-sim, spawn-per-step | 0.244 |
 | stochadex — **ensemble, all cores** | **0.129** |
 
 **This is where the engine leads.** stochadex is **~43× faster than idiomatic NumPy** (the
@@ -178,39 +177,23 @@ version most people would write — masking computes the expensive branch for ev
 discards ~93%). Against a *hand-optimized* gather/scatter NumPy (0.466 s), stochadex wins with
 cores — **3.6× as an ensemble, 1.9× with within-sim parallelism** — because a scalar per-path
 branch has no wasted work and no gather overhead, and the code is far simpler (a plain `if`).
-Single-threaded the optimized NumPy (0.466 s) still edges serial stochadex (0.642 s, down from
-0.877 s after the iteration optimisations) — its gather *is* efficient on one thread — but that
-is the version you have to know to write. And this is a *mild* branch — one rare condition, one
-kind of expensive work; real coupled models (regime switches, thresholded dispatch, event
-cascades, mutually-exciting processes) branch far more, widening the gap.
+
+Single-threaded, the optimized NumPy still edges stochadex, and this is the one place the RNG
+detail shows: the responder's 30 gamma draws per triggered path are the cost. With the stock
+`distuv.Gamma` the single-core system runs 0.579 s (0.80× of gather); switching the responder
+to an owned generator that samples gamma inline (Marsaglia–Tsang, verified bit-identical) takes
+it to 0.518 s (**0.90× — near-parity**). That is not hypothetical: the engine's own jump
+distributions (e.g. `CompoundPoisson`'s `GammaJumpDistribution`) already sample from
+[`pkg/rng`](../pkg/rng), so real models get it. The last sliver is the batched-C-vs-scalar-Go
+gamma floor (§5's DOT story), which the engine erases with cores anyway.
+
+And this is a *mild* branch — one rare condition, one kind of expensive work; real coupled
+models (regime switches, thresholded dispatch, event cascades, mutually-exciting processes)
+branch far more, widening the gap.
 
 Together, 3b and 3c are the honest rule: **linearly-coupled → NumPy vectorizes it, ~parity;
 conditionally/branching-coupled → the engine's per-path model wins outright**, and that is
 where real decision-support models live.
-
-### 3c-tuned. What is left after the shipped tuning — the responder's gamma draws
-
-The single-core branch row above (0.642 s) already uses the optimised OU driver (§3a). What
-remains to tune is the *responder*: its 30 `distuv.Gamma` draws per triggered path. The
-benchmark keeps a stock responder (`distuv.Gamma`) alongside a `tunedBranchResponder` that owns
-one generator and samples gamma inline via Marsaglia–Tsang (the exact algorithm distuv uses,
-verified bit-identical), so the only difference between these two rows is the gamma source:
-
-![stock vs hand-tuned branching-coupled](plots/tuned_branch.svg)
-
-| branching system, 1 core, 10,000 paths × 2,000 steps | seconds | vs NumPy gather |
-|---|---|---|
-| stock OU driver + `distuv.Gamma` responder | 0.579 | 0.80× |
-| stock OU driver + owned-gamma responder | 0.518 | 0.90× |
-| NumPy — optimized gather (triggered paths only) | 0.466 | — |
-
-Owning the gamma generator buys the last ~12% (0.579 → 0.518 s), taking the single-core system
-to ~0.90× of hand-optimized NumPy. And this is not hypothetical: the engine's own jump
-distributions (e.g. `CompoundPoisson`'s `GammaJumpDistribution`) already sample from
-[`pkg/rng`](../pkg/rng), so real models get it for free. The remaining sliver is the
-batched-C-vs-scalar-Go gamma floor (§5's DOT story), which the engine erases with cores anyway:
-the **ensemble runs this at 0.129 s — 3.6× faster than gather**. Single-core near-parity,
-decisively ahead with cores — against the NumPy version you have to be an expert to write.
 
 ## 4. Execution strategies — where each shines
 
@@ -280,7 +263,7 @@ From the repo root:
 
 ```bash
 go run ./benchmarks                # Go engine suite: ensemble scaling, cold start, process/coupled/tuned-OU models -> results/*.json
-go run ./benchmarks tuned          # just the stock-vs-tuned comparisons (§3a, §3c-tuned) -> results/tuned_{ou,branch}_go.json
+go run ./benchmarks tuned          # just the stock-vs-tuned comparisons (§3a and §3c) -> results/tuned_{ou,branch}_go.json
 
 # Vector-op micro-benchmark (§5), the only BLAS-dependent one — two builds:
 go run ./benchmarks/vectorops                                            # gonum default pure-Go BLAS -> vectorized_ops_go.json
