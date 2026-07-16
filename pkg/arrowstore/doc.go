@@ -36,5 +36,5 @@
 // to the per-partition path — any of those trades the allocation win for contention.
 //
 // WASM note: the engine is WASM-clean; this module is not automatically so, since Arrow uses
-// assembly SIMD. Build it for WASM with Arrow's `noasm` build tag if you need that target.
+// assembly SIMD. Build it for WASM with Arrow's noasm build tag if you need that target.
 package arrowstore

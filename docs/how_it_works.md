@@ -8,15 +8,15 @@ logo: true
 
 ## Interfaces and data types
 
-The fundamental data types in the stochadex simulation engine are [Go](https://go.dev/) types which can be configured as [Settings](http://stochadex.github.io/pkg/simulator.html#Settings) (pure data) or [Implementations](http://stochadex.github.io/pkg/simulator.html#Implementations) (code which implements the provided interfaces).
+The fundamental data types in the stochadex simulation engine are [Go](https://go.dev/) types which can be configured as [`Settings`](http://stochadex.github.io/pkg/simulator.html#Settings) (pure data) or [`Implementations`](http://stochadex.github.io/pkg/simulator.html#Implementations) (code which implements the provided interfaces).
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/stochadex-data-types.svg" /></center>
 
-The key example among these is the [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration) interface.
+The key example among these is the [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) interface.
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/fundamental-loop-code.svg" /></center>
 
-The [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration) interface can be used to implement any simulation in practice.
+The [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) interface can be used to implement any simulation in practice.
 
 To illustrate this point, we can show how the internal logic may be implemented to recreate some well-known stochastic processes.
 
@@ -26,7 +26,7 @@ For example, the [Wiener process](https://en.wikipedia.org/wiki/Wiener_process) 
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/wiener-process.svg" /></center>
 
-The two diagram boxes (NewWienerProcessIncrement and AddToRecentState) map directly to two helper steps inside Iterate:
+The two diagram boxes (`NewWienerProcessIncrement` and `AddToRecentState`) map directly to two helper steps inside `Iterate`:
 
 ```go
 // X_{t+1} = X_t + sqrt(variance * dt) * Z,  Z ~ N(0, 1)
@@ -61,11 +61,11 @@ func (w *WienerProcessIteration) Iterate(
 
 It is well-known (especially by those in finance) that [Itô's lemma](https://en.wikipedia.org/wiki/It%C3%B4%27s_lemma) can be used to adapt the model formulae for a Wiener process after a mathematical function (a.k.a. transformation) has been applied to it. 
 
-We can demonstrate that the [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration) interface can support this kind of transformation as well, through some more complicated logic.
+We can demonstrate that the [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) interface can support this kind of transformation as well, through some more complicated logic.
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/ito-lemma.svg" /></center>
 
-For Y = g(X, t) with dX = sqrt(variance) dW, Itô gives dY = (DgDt + 0.5 * variance * D2gDx2) dt + DgDx * dW. The diagram splits the iterate into the same three named pieces (derivatives, Wiener increment, then the Itô combination) and the code mirrors that one-to-one:
+For `Y = g(X, t)` with `dX = sqrt(variance) dW`, Itô gives `dY = (DgDt + 0.5 * variance * D2gDx2) dt + DgDx * dW`. The diagram splits the iterate into the same three named pieces (derivatives, Wiener increment, then the Itô combination) and the code mirrors that one-to-one:
 
 ```go
 type ItoLemmaIteration struct{ wiener WienerProcessIteration }
@@ -110,11 +110,11 @@ What about event-based processes?
 
 The time-inhomogeneous [Poisson process](https://en.wikipedia.org/wiki/Poisson_point_process), is an example of an event-based process which counts the cumulative number of events in time, while its event rate varies.
 
-The [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration) interface can support this too.
+The [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) interface can support this too.
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/inhomogeneous-poisson.svg" /></center>
 
-The two diagram boxes (EventRateLambdaFunction and DrawNewEventIncrement) make the time-varying rate explicit. The rate function reads the current time directly from the timesteps history, which is what makes the process inhomogeneous:
+The two diagram boxes (`EventRateLambdaFunction` and `DrawNewEventIncrement`) make the time-varying rate explicit. The rate function reads the current time directly from the timesteps history, which is what makes the process inhomogeneous:
 
 ```go
 type InhomogeneousPoissonIteration struct{ uniform *distuv.Uniform }
@@ -167,11 +167,11 @@ The [Hawkes process](https://en.wikipedia.org/wiki/Hawkes_process) couples the h
 
 This means that the Hawkes process needs a memory of the state partition history in order to calculate its next state values. 
 
-The [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration) interface obviously supports this quite easily through accessing its own [StateHistory](http://stochadex.github.io/pkg/simulator.html#StateHistory).
+The [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) interface obviously supports this quite easily through accessing its own [`StateHistory`](http://stochadex.github.io/pkg/simulator.html#StateHistory).
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/hawkes-process.svg" /></center>
 
-Compared with the inhomogeneous Poisson, the only diagram box that changes is the rate computation: ExcitingKernel now sweeps the partition's own state history, accumulating a kernel-weighted contribution from each past event into the current LambdaValue. The DrawNewEventIncrement and AddToRecentState boxes are reused unchanged:
+Compared with the inhomogeneous Poisson, the only diagram box that changes is the rate computation: `ExcitingKernel` now sweeps the partition's own state history, accumulating a kernel-weighted contribution from each past event into the current `LambdaValue`. The `DrawNewEventIncrement` and `AddToRecentState` boxes are reused unchanged:
 
 ```go
 type HawkesProcessIteration struct{ uniform *distuv.Uniform }
@@ -213,11 +213,11 @@ func (h *HawkesProcessIteration) Iterate(
 
 ## Serial dependency graphs and modularity
 
-Multiple [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration)s can run within the stochadex for each step in time. In order to construct serial dependency graphs between them, we can utilise upstream-downstream [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration) relationships.
+Multiple [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration)s can run within the stochadex for each step in time. In order to construct serial dependency graphs between them, we can utilise upstream-downstream [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) relationships.
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/stochadex-parallel-serial.svg" /></center>
 
-Structuring groups of [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration)s in this way can increase modularity. For example, the time-inhomogeneous Poisson process can be implemented serially.
+Structuring groups of [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration)s in this way can increase modularity. For example, the time-inhomogeneous Poisson process can be implemented serially.
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/inhomo-poisson-parallel-serial.svg" /></center>
 
@@ -243,23 +243,23 @@ iterations:
     # Iteration: &discrete.PoissonProcessIteration{}
 ```
 
-This is exactly the relationship used by [CoxProcessIteration](http://stochadex.github.io/pkg/discrete.html#CoxProcessIteration); when the upstream rate is itself stochastic, the same wiring becomes a Cox (doubly stochastic) process for free.
+This is exactly the relationship used by [`CoxProcessIteration`](http://stochadex.github.io/pkg/discrete.html#CoxProcessIteration); when the upstream rate is itself stochastic, the same wiring becomes a Cox (doubly stochastic) process for free.
 
 ## Simulation loop and embedded simulation runs
 
-The simulation run loop coordinates the serial relationships between [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration)s while maximising concurrency in execution of each [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration) per step in time.
+The simulation run loop coordinates the serial relationships between [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration)s while maximising concurrency in execution of each [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) per step in time.
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/stochadex-loop.svg" /></center>
 
-Given that this loop always runs for any stochadex simulation, it is sufficient to describe any simulation uniquely through the dependency diagram between its [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration)s.
+Given that this loop always runs for any stochadex simulation, it is sufficient to describe any simulation uniquely through the dependency diagram between its [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration)s.
 
-Given the simulation run loop, we are also able to implement an [EmbeddedSimulationRunIteration](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration).
+Given the simulation run loop, we are also able to implement an [`EmbeddedSimulationRunIteration`](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration).
 
-The [EmbeddedSimulationRunIteration](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration) is a special [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration) which performs entire simulation runs from start to end for every timestep and outputs the end state as its next state values. Its presence can make the diagrams a little more complex, but way more flexible in application.
+The [`EmbeddedSimulationRunIteration`](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration) is a special [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) which performs entire simulation runs from start to end for every timestep and outputs the end state as its next state values. Its presence can make the diagrams a little more complex, but way more flexible in application.
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/embedded-simulations.svg" /></center>
 
-Concretely, the inner simulation is just another [Settings](http://stochadex.github.io/pkg/simulator.html#Settings) + [Implementations](http://stochadex.github.io/pkg/simulator.html#Implementations) pair. The embedded iteration owns its own [PartitionCoordinator](http://stochadex.github.io/pkg/simulator.html#PartitionCoordinator), runs it to termination on every outer step, and returns the concatenated final state as its row:
+Concretely, the inner simulation is just another [`Settings`](http://stochadex.github.io/pkg/simulator.html#Settings) + [`Implementations`](http://stochadex.github.io/pkg/simulator.html#Implementations) pair. The embedded iteration owns its own [`PartitionCoordinator`](http://stochadex.github.io/pkg/simulator.html#PartitionCoordinator), runs it to termination on every outer step, and returns the concatenated final state as its row:
 
 ```go
 // Inner simulation; runs to its own TerminationCondition once per outer step.
@@ -278,7 +278,7 @@ innerImpls := &simulator.Implementations{
 outerEmbedded := general.NewEmbeddedSimulationRunIteration(innerSettings, innerImpls)
 ```
 
-Composing [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration)s together and [EmbeddedSimulationRunIteration](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration)s unlocks a huge universe of possible simulation algorithms. Here are just a few examples.
+Composing [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration)s together and [`EmbeddedSimulationRunIteration`](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration)s unlocks a huge universe of possible simulation algorithms. Here are just a few examples.
 
 ## Example: Probabilistic sample weighting
 
@@ -286,7 +286,7 @@ This algorithm estimates historically-weighted statistics and uses them to const
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/prob-reweighting-code.svg" /></center>
 
-Each diagram box is a partition stacked over a shared [StateTimeStorage](http://stochadex.github.io/pkg/simulator.html#StateTimeStorage): a data source feeds an exponentially-weighted rolling mean, which feeds an exponentially-weighted rolling covariance. The kernel choice is what makes the statistics 'probabilistic'; it controls how strongly past data is reweighted at each step:
+Each diagram box is a partition stacked over a shared [`StateTimeStorage`](http://stochadex.github.io/pkg/simulator.html#StateTimeStorage): a data source feeds an exponentially-weighted rolling mean, which feeds an exponentially-weighted rolling covariance. The kernel choice is what makes the statistics 'probabilistic'; it controls how strongly past data is reweighted at each step:
 
 ```go
 // `data` is loaded from CSV (the .DataGeneration box in the diagram).
@@ -327,7 +327,7 @@ This algorithm uses a sequence of probabilities (typically estimated by the algo
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/simulation-inference-code.svg"/></center>
 
-The diagram's 'Embedded Simulation' block (IterateSimulation + IterateFromHistory + DataComparison) is exactly an [EmbeddedSimulationRunIteration](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration) configured to replay rolling statistics over a window of history; the outer block (ComputePosteriorParams + SamplePosterior) is the posterior log-norm / mean / covariance / sampler chain. [NewPosteriorEstimationPartitions](http://stochadex.github.io/pkg/analysis.html#NewPosteriorEstimationPartitions) wires all of this together from a single spec:
+The diagram's 'Embedded Simulation' block (`IterateSimulation` + `IterateFromHistory` + `DataComparison`) is exactly an [`EmbeddedSimulationRunIteration`](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration) configured to replay rolling statistics over a window of history; the outer block (`ComputePosteriorParams` + `SamplePosterior`) is the posterior log-norm / mean / covariance / sampler chain. [`NewPosteriorEstimationPartitions`](http://stochadex.github.io/pkg/analysis.html#NewPosteriorEstimationPartitions) wires all of this together from a single spec:
 
 ```go
 // `model` is the parameterised likelihood; `simPartition` is the inner-sim
@@ -372,7 +372,7 @@ This algorithm relies on sorting the sampled simulation trajectories according t
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/discounted-return-optimiser-code.svg"/></center>
 
-Each diagram box becomes a named partition in the spec passed to [NewEvolutionStrategyOptimisationPartitions](http://stochadex.github.io/pkg/analysis.html#NewEvolutionStrategyOptimisationPartitions): the embedded simulation accumulates UpdateDiscountedReturn, SortPolicyByReturn keeps a top-k collection, and UpdateBestPolicy / UpdateCovariance move the sampling distribution toward the winners. The rewardCfg and simCfg below are user-supplied [PartitionConfig](http://stochadex.github.io/pkg/simulator.html#PartitionConfig)s for the reward and inner-simulation iterations:
+Each diagram box becomes a named partition in the spec passed to [`NewEvolutionStrategyOptimisationPartitions`](http://stochadex.github.io/pkg/analysis.html#NewEvolutionStrategyOptimisationPartitions): the embedded simulation accumulates `UpdateDiscountedReturn`, `SortPolicyByReturn` keeps a top-k collection, and `UpdateBestPolicy` / `UpdateCovariance` move the sampling distribution toward the winners. The `rewardCfg` and `simCfg` below are user-supplied [`PartitionConfig`](http://stochadex.github.io/pkg/simulator.html#PartitionConfig)s for the reward and inner-simulation iterations:
 
 ```go
 partitions := analysis.NewEvolutionStrategyOptimisationPartitions(

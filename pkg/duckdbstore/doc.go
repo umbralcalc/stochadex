@@ -11,15 +11,15 @@
 //
 // Two build requirements, both intentional:
 //   - CGO must be enabled (the default), with a C toolchain available;
-//   - the driver's Arrow interface lives behind ITS OWN `duckdb_arrow` build tag, so this
-//     package's implementation carries `//go:build duckdb_arrow` too. Build/test with:
+//   - the driver's Arrow interface lives behind ITS OWN duckdb_arrow build tag, so this
+//     package's implementation carries a //go:build duckdb_arrow constraint too. Build/test with:
 //
 //	CGO_ENABLED=1 go test -tags duckdb_arrow ./...
 //
 // Without the tag only this doc compiles — nothing pulls in DuckDB or cgo.
 //
 // How it works:
-// arrowstore.ArrowStateTimeStorage finishes into a single Arrow Record (a `time` column plus
+// arrowstore.ArrowStateTimeStorage finishes into a single Arrow Record (a time column plus
 // one fixed-size ARRAY<DOUBLE> column per partition). IngestToTable wraps that record in an
 // arrow.RecordReader and hands it to the driver's zero-copy RegisterView, then materialises it
 // into a DuckDB table with one CREATE TABLE AS SELECT. The Arrow types are shared (both this

@@ -80,7 +80,7 @@ func Run(config *ApiRunConfig, socket *SocketConfig) {
 }
 
 // RunWithParsedArgs generates a temporary main program from the templated
-// config and executes it via `go run`, enabling dynamic iteration wiring.
+// config and executes it via go run, enabling dynamic iteration wiring.
 func RunWithParsedArgs(args ParsedArgs) {
 	// hydrate the template code and write it to a /tmp/*main.go
 	fileName := WriteMainProgram(args)

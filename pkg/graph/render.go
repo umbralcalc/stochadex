@@ -68,7 +68,7 @@ func (g *Graph) Mermaid() string {
 }
 
 // DOT renders the graph in Graphviz DOT for users who want a rendered image
-// (`stochadex-graph --format dot ... | dot -Tsvg`). CrossHistory reads of past
+// (stochadex-graph --format dot ... | dot -Tsvg). CrossHistory reads of past
 // state render as differently coloured past-copy nodes, exactly as in Mermaid,
 // so the drawn graph is a DAG (see the Mermaid doc for the rationale).
 func (g *Graph) DOT() string {
