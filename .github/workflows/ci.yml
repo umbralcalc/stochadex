@@ -48,6 +48,12 @@ jobs:
       # -count=1 disables test caching so CI always re-runs the full suite.
       # -coverprofile writes a merged coverage profile for the Codecov upload.
       - run: go test ./... -race -count=1 -coverprofile=cover.out
+      # The opt-in pkg/arrowstore/ module (Apache Arrow egress) is a SEPARATE Go module, so the
+      # root `./...` above excludes it — keeping Arrow (and its gonum v0.17 requirement) out of
+      # the engine's go.mod. Build and test it explicitly against the local engine (its go.mod
+      # uses replace => ../..) so PRs still catch breakage.
+      - name: Build and test arrowstore module (opt-in Arrow egress)
+        run: cd pkg/arrowstore && go build ./... && go test ./... -race -count=1
       # Publish coverage to Codecov (external) for the coverage badge. Non-blocking:
       # a coverage-upload hiccup must never fail a merge. Needs the CODECOV_TOKEN
       # secret (from Codecov after enabling its app on the repo).

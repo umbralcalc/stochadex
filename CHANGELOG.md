@@ -23,6 +23,17 @@ an exact version rather than assume stability across minors.
 ## [Unreleased]
 
 ### Added
+- **Opt-in Apache Arrow egress (`pkg/arrowstore`, a separate module).** An Arrow-native
+  `simulator.OutputFunction` + storage (`ArrowStateTimeStorage`) at the output boundary, kept
+  in a **separate Go module** so Arrow and its gonum-v0.17 requirement stay entirely out of the
+  engine's `go.mod` (the engine stays lean and WASM-clean; opt in by importing it). It builds
+  Arrow arrays directly — one contiguous `FixedSizeListBuilder` per partition (lock-free) and a
+  shared deduplicated time column — so output lands ready for DuckDB/Polars/pandas with no
+  conversion pass. Measured (M4): getting output *into Arrow* is ~2.2–2.7× faster with far fewer
+  allocations than appending to `StateTimeStorage` and converting; the append hot path itself
+  trades a constant allocation count (a GC-pressure win) for higher transient memory, so it is
+  **interchange-optimized, not a general-purpose faster store** — the pure-Go `StateTimeStorage`
+  stays the default. Foundation for the analytical-sink integrations (DuckDB next).
 - **`benchmarks/`** — reproducible, fair CPU-to-CPU performance benchmarks with committed
   numbers and plots (Apple M4 reference machine): ensemble scaling (independent simulations
   via `RunSeededEnsemble` are embarrassingly parallel — ~4.4× on 10 heterogeneous cores),
