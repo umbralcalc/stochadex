@@ -75,6 +75,12 @@ an exact version rather than assume stability across minors.
   (Superseded the short-lived self-hosted-SVG badge approach.)
 
 ### Changed
+- **Quickstart rewritten to lead with a win (2.4).** The quickstart now opens with a complete,
+  runnable ~25-line Go program (a recorded random walk that prints its output) before any
+  partition/iteration/history vocabulary — then backfills that worldview, points at where
+  results flow (CSV/DB/Arrow → pandas/DuckDB), and demotes the CLI/YAML/Docker path to a
+  secondary section. Directly targets the plan's "biggest bounce risk is the mental model —
+  lead with a win, explain second." The example is verified to run and produce the shown output.
 - **Clean `database/sql` write path (2.3.c).** `analysis.PostgresDb` now accepts a
   caller-provided `*sql.DB` (new exported `DB` field + `NewPostgresDb(db, table)` constructor);
   `OpenTableConnection` only opens a local Postgres from `User`/`Password`/`Dbname` when no
