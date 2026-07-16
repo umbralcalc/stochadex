@@ -75,6 +75,12 @@ an exact version rather than assume stability across minors.
   (Superseded the short-lived self-hosted-SVG badge approach.)
 
 ### Changed
+- **Clean `database/sql` write path (2.3.c).** `analysis.PostgresDb` now accepts a
+  caller-provided `*sql.DB` (new exported `DB` field + `NewPostgresDb(db, table)` constructor);
+  `OpenTableConnection` only opens a local Postgres from `User`/`Password`/`Dbname` when no
+  handle is supplied. So output/read can target **any Postgres-wire database** — a remote
+  TimescaleDB or QuestDB with host/port/sslmode, or a pooled `*sql.DB` — through the interfaces
+  already owned, no bespoke connector. The credential-based path is unchanged (back-compatible).
 - **Iteration hot-loop performance.** Two bit-identical optimisations to the stochastic
   iterations (same seed → same stream; all unit tests and model card numbers unchanged):
   1. **Hoisted per-dimension `params.GetIndex(name, i)` reads** (each a string-keyed map
