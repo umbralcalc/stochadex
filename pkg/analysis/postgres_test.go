@@ -20,7 +20,7 @@ func TestPostgresDb(t *testing.T) {
 
 			p := &PostgresDb{
 				TableName: "test",
-				db:        db,
+				DB:        db,
 			}
 			partitionName := "test_partition"
 			startTime := 1234.0
@@ -72,6 +72,47 @@ func TestPostgresDb(t *testing.T) {
 					t.Error("too much data")
 				}
 				i += 1
+			}
+
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+
+	t.Run(
+		"uses a caller-provided *sql.DB (the clean database/sql write path)",
+		func(t *testing.T) {
+			// A handle the caller opened themselves — here a mock, but in practice
+			// sql.Open("postgres", anyDSN) against a remote Timescale/QuestDB, or a pool.
+			db, mock, err := sqlmock.New()
+			if err != nil {
+				t.Fatalf("error opening a stub database connection: %v", err)
+			}
+			defer db.Close()
+
+			p := NewPostgresDb(db, "sim")
+
+			// OpenTableConnection must use the provided handle (CREATE TABLE runs on the
+			// mock) rather than opening a fresh local "postgres" connection, and must not
+			// replace the caller's handle.
+			mock.ExpectExec("CREATE TABLE IF NOT EXISTS sim").
+				WillReturnResult(sqlmock.NewResult(0, 0))
+			if err := p.OpenTableConnection(); err != nil {
+				t.Fatalf("OpenTableConnection: %v", err)
+			}
+			if p.DB != db {
+				t.Fatal("caller-provided DB was replaced by OpenTableConnection")
+			}
+
+			// Writes go through the same provided handle.
+			mock.ExpectBegin()
+			mock.ExpectPrepare("INSERT INTO sim").
+				ExpectExec().
+				WithArgs("p0", 1.0, sqlmock.AnyArg()).
+				WillReturnResult(sqlmock.NewResult(1, 1))
+			mock.ExpectCommit()
+			if err := p.WriteState("p0", 1.0, []float64{1.0, 2.0}); err != nil {
+				t.Fatalf("WriteState: %v", err)
 			}
 
 			if err := mock.ExpectationsWereMet(); err != nil {

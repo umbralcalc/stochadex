@@ -16,18 +16,34 @@ type PostgresDb struct {
 	Password  string
 	Dbname    string
 	TableName string
-	db        *sql.DB
+	// DB is the database/sql handle used for reads and writes. Set it to your own handle —
+	// sql.Open with any DSN or driver (a remote TimescaleDB or another Postgres-wire database
+	// with host/port/sslmode, or a pooled *sql.DB) — to use the clean database/sql write path.
+	// Leave it nil and OpenTableConnection opens a local Postgres from User/Password/Dbname.
+	DB *sql.DB
+}
+
+// NewPostgresDb returns a PostgresDb backed by a caller-provided database/sql handle — the
+// clean database/sql write path. The handle may target any Postgres-wire database (Postgres,
+// TimescaleDB, QuestDB, …) opened with any DSN or driver; tableName is the destination table.
+func NewPostgresDb(db *sql.DB, tableName string) *PostgresDb {
+	return &PostgresDb{DB: db, TableName: tableName}
 }
 
 // OpenTableConnection connects to the PostgreSQL database or creates it
 // if it doesn't exist.
 func (p *PostgresDb) OpenTableConnection() error {
-	var err error
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		p.User, p.Password, p.Dbname)
-	p.db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		return err
+	// Open a local Postgres from the credential fields only when the caller has not supplied
+	// their own handle. A caller-provided DB (any DSN/driver — remote Timescale, QuestDB, a
+	// pool) is used as-is; the CREATE TABLE below still runs so the destination table exists.
+	if p.DB == nil {
+		connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
+			p.User, p.Password, p.Dbname)
+		var err error
+		p.DB, err = sql.Open("postgres", connStr)
+		if err != nil {
+			return err
+		}
 	}
 	createTableQuery := fmt.Sprintf(`
 	CREATE TABLE IF NOT EXISTS %s (
@@ -36,8 +52,7 @@ func (p *PostgresDb) OpenTableConnection() error {
 		state FLOAT8[] NOT NULL,
 		PRIMARY KEY (partition_name, time)
 	);`, p.TableName)
-	_, err = p.db.Exec(createTableQuery)
-	if err != nil {
+	if _, err := p.DB.Exec(createTableQuery); err != nil {
 		return err
 	}
 	return nil
@@ -49,7 +64,7 @@ func (p *PostgresDb) WriteState(
 	time float64,
 	state []float64,
 ) error {
-	tx, err := p.db.Begin()
+	tx, err := p.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %v", err)
 	}
@@ -91,7 +106,7 @@ func (p *PostgresDb) ReadStateInRange(
         WHERE partition_name = $1 AND time BETWEEN $2 AND $3
         ORDER BY time ASC
     `, p.TableName)
-	rows, err := p.db.Query(query, partitionName, startTime, endTime)
+	rows, err := p.DB.Query(query, partitionName, startTime, endTime)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query data: %v", err)
 	}
