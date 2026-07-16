@@ -34,6 +34,16 @@ an exact version rather than assume stability across minors.
   trades a constant allocation count (a GC-pressure win) for higher transient memory, so it is
   **interchange-optimized, not a general-purpose faster store** — the pure-Go `StateTimeStorage`
   stays the default. Foundation for the analytical-sink integrations (DuckDB next).
+- **Opt-in DuckDB analytical egress (`pkg/duckdbstore`, a separate module).** Lands
+  `arrowstore` output in DuckDB for SQL analytics, fed **zero-copy** via the DuckDB Go driver's
+  Arrow `RegisterView` interface — `IngestToTable` registers the storage's finished Arrow record
+  as a view and materialises it with one `CREATE TABLE AS SELECT` (a `time` column plus one
+  `ARRAY<DOUBLE>` column per partition), no `[][]float64` round-trip. Both sides use
+  `arrow-go/v18`, so the record crosses into DuckDB as shared arrays. Kept in its own module
+  because, unlike the engine and `arrowstore`, it is **CGO and not WASM-compatible** (statically
+  links the DuckDB C++ library); the driver's Arrow API sits behind its `duckdb_arrow` build tag,
+  so this package does too — without the tag nothing pulls in DuckDB or cgo. Edge/server only,
+  never core, never on the default path.
 - **`benchmarks/`** — reproducible, fair CPU-to-CPU performance benchmarks with committed
   numbers and plots (Apple M4 reference machine): ensemble scaling (independent simulations
   via `RunSeededEnsemble` are embarrassingly parallel — ~4.4× on 10 heterogeneous cores),
