@@ -54,6 +54,12 @@ jobs:
       # uses replace => ../..) so PRs still catch breakage.
       - name: Build and test arrowstore module (opt-in Arrow egress)
         run: cd pkg/arrowstore && go build ./... && go test ./... -race -count=1
+      # The opt-in pkg/duckdbstore/ module (DuckDB analytical egress) is a SEPARATE Go module,
+      # CGO and not WASM-compatible, so it stays out of the engine's and arrowstore's go.mod.
+      # Its Arrow ingest lives behind the driver's `duckdb_arrow` tag. Build and test it
+      # explicitly (CGO on) against the local sibling modules (replace => ../.. and ../arrowstore).
+      - name: Build and test duckdbstore module (opt-in DuckDB egress)
+        run: cd pkg/duckdbstore && CGO_ENABLED=1 go build -tags duckdb_arrow ./... && CGO_ENABLED=1 go test -tags duckdb_arrow ./... -count=1
       # Publish coverage to Codecov (external) for the coverage badge. Non-blocking:
       # a coverage-upload hiccup must never fail a merge. Needs the CODECOV_TOKEN
       # secret (from Codecov after enabling its app on the repo).

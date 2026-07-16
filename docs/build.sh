@@ -137,8 +137,12 @@ prepare_template() {
 
     # Packages: auto-discover from the module's pkg/ tree — the same source the package
     # docs are generated from — so a new package appears in the sidebar automatically.
-    for pkg in $(go list ../... | grep '/pkg/'); do
-        local pkg_name=$(basename "$pkg")
+    # Engine packages (from go list) plus the nested opt-in egress modules (separate go.mod, so
+    # absent from go list). Merge and sort so the modules interleave alphabetically — arrowstore
+    # after api, duckdbstore after discrete — instead of trailing at the end.
+    local pkg_names=$( { go list ../... | grep '/pkg/' | sed 's#.*/##'; \
+                         printf 'arrowstore\nduckdbstore\n'; } | sort )
+    for pkg_name in $pkg_names; do
         case "$pkg_name" in
             api) local label="API" ;;                            # known acronym
             *)   local label=$(echo "$pkg_name" \
@@ -351,6 +355,46 @@ EOF
     log_success "Package documentation generated"
 }
 
+# Generate docs for the nested opt-in modules (pkg/arrowstore, pkg/duckdbstore). They live in
+# separate go.mod trees, so `go list ../...` above excludes them; gomarkdoc must run from inside
+# each module. duckdbstore's public API is behind the driver's duckdb_arrow build tag (cgo).
+generate_nested_module_docs() {
+    log_info "Generating nested opt-in module documentation..."
+    mkdir -p "$DOCS_DIR/pkg"
+    # "<module-dir>:<extra gomarkdoc flags>"
+    for spec in "arrowstore:" "duckdbstore:--tags duckdb_arrow"; do
+        local name="${spec%%:*}"
+        local tags="${spec#*:}"
+        log_info "Generating nested module: $name"
+        # Run inside the module so its own go.mod and build tags resolve; write to the shared
+        # temp dir by absolute path. Pass the FULL import path (not ".") so the generated docs
+        # show `import "github.com/.../pkg/<name>"` rather than `import "."`. --repository.path
+        # gives source links the module's subdirectory prefix (auto-detect fails in CI).
+        ( cd "$DOCS_DIR/../pkg/$name" && \
+          gomarkdoc $tags "github.com/umbralcalc/stochadex/pkg/$name" \
+              --output "$TEMP_DIR/${name}.md" --format github --verbose \
+              --repository.url "$REPO_URL" \
+              --repository.default-branch "$REPO_DEFAULT_BRANCH" \
+              --repository.path "/pkg/$name" )
+        # Same </a> newline fix as the engine-package loop, then frontmatter + HTML.
+        perl -0777 -i -pe 's#</a>#</a>\n#g' "$TEMP_DIR/${name}.md"
+        cat > "$TEMP_DIR/${name}_with_meta.md" << EOF
+---
+title: "$name"
+logo: true
+---
+
+$(cat "$TEMP_DIR/${name}.md")
+EOF
+        pandoc "$TEMP_DIR/${name}_with_meta.md" \
+            -o "$DOCS_DIR/pkg/${name}.html" \
+            --template="$WORK_TEMPLATE" \
+            --mathjax \
+            $HIGHLIGHT_FLAG
+    done
+    log_success "Nested opt-in module documentation generated"
+}
+
 # Generate model card pages from models/*/card.md
 generate_model_docs() {
     log_info "Generating model card pages..."
@@ -558,6 +602,7 @@ main() {
     prepare_template
     generate_html_pages
     generate_package_docs
+    generate_nested_module_docs
     generate_model_docs
     render_mermaid
     wrap_tables
