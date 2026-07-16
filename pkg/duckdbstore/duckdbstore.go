@@ -20,10 +20,10 @@ import (
 // is copied into the target table. It exists only for the duration of one IngestToTable call.
 const ingestViewName = "__stochadex_ingest_view"
 
-// IngestToTable materialises the simulation output held in s into a DuckDB table named `table`
+// IngestToTable materialises the simulation output held in s into a DuckDB table named table
 // (created or replaced) on db, zero-copy via the driver's Arrow interface: s's finished Arrow
 // record is registered as a view and copied into the table with a single CREATE TABLE AS
-// SELECT — no [][]float64 round-trip. The table has a `time` column plus one fixed-size
+// SELECT — no [][]float64 round-trip. The table has a time column plus one fixed-size
 // ARRAY<DOUBLE> column per partition (named by the partition). It requires s to be row-aligned
 // (every partition produced the same number of rows as the time axis); otherwise it returns an
 // error. Returns the number of rows ingested.
