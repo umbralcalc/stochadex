@@ -14,7 +14,7 @@ Add the module:
 go get github.com/umbralcalc/stochadex
 ```
 
-Then this is a complete, runnable program — a random walk advanced for five steps, with every step recorded and printed:
+Then this is a complete, runnable program: a random walk advanced for five steps, with every step recorded and printed:
 
 ```go
 package main
@@ -71,25 +71,25 @@ That is a working stochastic simulation. Change `MaxNumberOfSteps` for a longer 
 
 Three ideas, in the order they appear above:
 
-- A **partition** is one component of the simulation — here, the single `walk`. A simulation is a *set* of partitions advancing together each step; add more `SetPartition` calls to run and couple several.
-- An **`Iteration`** is the rule that advances a partition one step. `WienerProcessIteration` is one of many built in — but you write your own by implementing the two-method [`Iteration`](https://stochadex.github.io/pkg/simulator.html#Iteration) interface (`Configure` once, `Iterate` each step), and it slots in exactly the same way. This one interface is what the whole engine is built on.
-- The **state history** is what each partition remembers. `StateHistoryDepth: 1` keeps only the latest value; a larger depth lets an iteration read its own past (needed for memory-ful processes like Hawkes). The `OutputFunction` copies each step into storage so you can read it back — as above, or straight to CSV, a database, or Apache Arrow.
+- A **partition** is one component of the simulation (here, the single `walk`). A simulation is a *set* of partitions advancing together each step; add more `SetPartition` calls to run and couple several.
+- An **`Iteration`** is the rule that advances a partition one step. `WienerProcessIteration` is one of many built in, but you write your own by implementing the two-method [`Iteration`](https://stochadex.github.io/pkg/simulator.html#Iteration) interface (`Configure` once, `Iterate` each step), and it slots in exactly the same way. This one interface is what the whole engine is built on.
+- The **state history** is what each partition remembers. `StateHistoryDepth: 1` keeps only the latest value; a larger depth lets an iteration read its own past (needed for memory-ful processes like Hawkes). The `OutputFunction` copies each step into storage so you can read it back, as above, or straight to CSV, a database, or Apache Arrow.
 
-For the full picture — coupling partitions, writing custom iterations, and worked examples (Itô's lemma, Hawkes processes, embedded simulations, online parameter inference) — see [How it works](https://stochadex.github.io/pkg/how_it_works.html).
+See [How it works](https://stochadex.github.io/pkg/how_it_works.html) for the full picture: coupling partitions, writing custom iterations, and worked examples (Itô's lemma, Hawkes processes, embedded simulations, online parameter inference).
 
 ## Where the results go
 
 The `walk` output above is plain `[][]float64`, but the same recorded run flows straight into the data ecosystem:
 
-- **CSV / DataFrame / JSON logs** — the [`analysis`](https://stochadex.github.io/pkg/analysis.html) package reads and writes these directly.
-- **PostgreSQL / TimescaleDB / QuestDB** — write output to, or load history from, any Postgres-wire database (supply your own `*sql.DB`).
-- **Apache Arrow → Polars / pandas / DuckDB** — the opt-in [`arrowstore`](https://stochadex.github.io/pkg/arrowstore.html) module builds Arrow directly, for zero-conversion columnar interchange.
+- **CSV / DataFrame / JSON logs**: the [`analysis`](https://stochadex.github.io/pkg/analysis.html) package reads and writes these directly.
+- **PostgreSQL / TimescaleDB / QuestDB**: write output to, or load history from, any Postgres-wire database (supply your own `*sql.DB`).
+- **Apache Arrow → Polars / pandas / DuckDB**: the opt-in [`arrowstore`](https://stochadex.github.io/pkg/arrowstore.html) module builds Arrow directly, for zero-conversion columnar interchange.
 
 See the [Integrations table](https://stochadex.github.io/#integrations) for the full set.
 
 ## Running from a config file
 
-You can also drive the engine from YAML instead of Go — build the CLI once and point it at a config:
+You can also drive the engine from YAML instead of Go. Build the CLI once and point it at a config:
 
 ```bash
 git clone git@github.com:umbralcalc/stochadex.git && cd stochadex
