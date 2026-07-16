@@ -24,7 +24,16 @@ It's a powerful framework with tons of features, really generalisable abstractio
 - **Large fixed-shape, GPU, or autodiff-heavy Bayesian modelling** → [Stan](https://mc-stan.org/), [PyMC](https://www.pymc.io/), or Julia's [SciML](https://sciml.ai/).
 - **Pure discrete-event simulation** (entities through queues and servers) → [godes](https://github.com/agoussia/godes).
 - **Plain numerics or classical ML in Go** → [gonum](https://github.com/gonum/gonum), which the stochadex is built on.
-- **Training neural networks or deep RL** → train in Python, then import a frozen ONNX/TorchScript model to run inference behind an `Iteration`.
+- **Training neural networks or deep RL** → train in Python, then import a frozen ONNX/TorchScript model to run inference behind an [Iteration](http://stochadex.github.io/pkg/simulator.html#Iteration).
+
+## Integrations
+
+| Integration | What it does | Where |
+|---|---|---|
+| <img src="./assets/postgres-integration-logo.svg" height="40"/><br/> | Load state history into a simulation and write output back over `database/sql`. Built into the engine. | [read](https://stochadex.github.io/pkg/analysis.html#NewStateTimeStorageFromPostgresDb) · [write](https://stochadex.github.io/pkg/analysis.html#NewPostgresDbOutputFunction) |
+| <img src="./assets/arrow-integration-logo.svg" height="40"/><br/> | Build simulation output directly as Apache Arrow for columnar interchange (Polars / pandas / Parquet). Opt-in module. | [read](https://stochadex.github.io/pkg/arrowstore.html#ArrowStateTimeStorage.Record) · [write](https://stochadex.github.io/pkg/arrowstore.html#ArrowStateTimeStorageOutputFunction) |
+| <img src="./assets/duckdb-integration-logo.svg" height="40"/><br/> | Land the Arrow output in DuckDB for SQL analytics, zero-copy. Opt-in module. | [write](https://stochadex.github.io/pkg/duckdbstore.html#IngestToTable) |
+| <img src="./assets/onnx-integration-logo.svg" height="40"/><br/> | Import a model trained elsewhere and run inference behind an [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration). Leaf-only, opt-in. | *planned* |
 
 ## Projects using it
 
