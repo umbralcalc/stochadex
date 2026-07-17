@@ -52,19 +52,51 @@ type ExpressionBinding struct {
 //   - any binding declared earlier.
 //
 // Functions: where, clamp, min, max, abs, floor, exp, log, sqrt, pow, sin, cos, erf, erfc,
-// fill, sum, dot, iid and shared, plus the draws normal, uniform, exponential, poisson,
-// gamma, beta and binomial. Draws take expressions as their parameters, so compound sampling
-// composes naturally: a negative-binomial branching step is just poisson(gamma(shape, rate)).
+// fill, slice, concat, sum, dot, lag, each, iid and shared, plus the draws normal, uniform,
+// exponential, poisson, gamma, beta and binomial. Draws take expressions as their parameters,
+// so compound sampling composes naturally: a negative-binomial branching step is just
+// poisson(gamma(shape, rate)).
 //
 // sin and cos carry seasonality; erfc is the primitive a Gaussian CDF is built from, as
 // 0.5 * erfc(-x / sqrt(2)), which is what a probit link or a threshold-exceedance
 // probability needs.
 //
+// # Reaching past the current element, and past the current row
+//
+// Everything above is elementwise over the current row, which four things in the model
+// catalogue could not be written with. Each has one construct:
+//
+//   - slice(v, start, width) takes a block out of a vector, and concat(a, b, ...) joins
+//     values, for state and params that pack several quantities end to end.
+//   - lag(name, n) reads a partition's committed state n rows back, where a bare field name
+//     or an Upstreams alias only ever gives row 0. The partition must keep that many rows
+//     (its state_history_depth), and lag(x, 0) is x.
+//   - each(n, i, expr) builds a width-n value whose element i is expr evaluated with the lane
+//     index i bound. See below.
+//
+// each is the one construct that is not elementwise, and it is what makes an index shift,
+// a per-lane guard and a per-lane draw order sayable:
+//
+//   - Element i may read element i-1 of something, so a cohort can age: each(60, age,
+//     where(age == 0, births, survivors[age-1] * p)).
+//   - Inside a lane every value is a scalar, so where is lazy there. A lane that is switched
+//     off evaluates nothing and draws nothing — unlike a vector-guarded where, which must
+//     evaluate both branches and so consumes randomness in every lane.
+//   - Lanes run in order, so a lane's draws are taken before the next lane starts. An
+//     elementwise gamma(shape, rate) followed by poisson takes every gamma before any
+//     poisson; each(n, i, poisson(gamma(shape[i], rate[i]))) interleaves them per lane, the
+//     way a loop over areas does.
+//
+// each binds only the index and returns only values, so there is still no assignment and no
+// recursion, and an expression still always terminates. Draws inside it are explicit in the
+// sense below, exactly as they are inside iid.
+//
 // Conditionals are expressions, not statements: where(cond, a, b). When cond is a scalar the
 // untaken branch is not evaluated, so a guard such as where(n > 0, binomial(n, p), 0) is safe
 // and draws no randomness on the guarded path. When cond is a vector both branches must be
 // evaluated to select elementwise, as in NumPy, which means a vector-guarded draw consumes
-// randomness in every lane. Prefer scalar guards where that matters.
+// randomness in every lane. Prefer scalar guards where that matters — and see each below,
+// which makes a per-element guard scalar and so gets laziness back.
 //
 // # How wide a draw is
 //
@@ -80,8 +112,9 @@ type ExpressionBinding struct {
 // So x + normal(0, 1) over a 40-wide x is an error rather than quietly adding the same shock
 // to all forty elements. Draws with a vector parameter need no annotation.
 //
-// This is deliberately not a general-purpose language: there are no loops, no assignment and
-// no recursion, so an expression always terminates and can be read at a glance.
+// This is deliberately not a general-purpose language: there is no assignment and no
+// recursion, and the only repetition is each's bounded comprehension, so an expression always
+// terminates.
 type ExpressionIteration struct {
 	// Fields names the blocks of this partition's state, in layout order.
 	Fields []ExpressionField `yaml:"fields"`
@@ -96,6 +129,7 @@ type ExpressionIteration struct {
 	offsets        []int
 	width          int
 	upstreamIndex  map[string]int
+	fieldIndex     map[string]int
 	parsedBindings []parsedExprBinding
 	parsedOutputs  []ast.Expr
 	sampler        *rng.Sampler
@@ -128,6 +162,7 @@ func (e *ExpressionIteration) Configure(
 			len(e.Outputs), len(e.Fields)))
 	}
 	e.offsets = make([]int, len(e.Fields))
+	e.fieldIndex = make(map[string]int, len(e.Fields))
 	e.width = 0
 	for i, f := range e.Fields {
 		if f.Name == "" {
@@ -138,6 +173,7 @@ func (e *ExpressionIteration) Configure(
 		}
 		e.offsets[i] = e.width
 		e.width += e.fieldWidth(i)
+		e.fieldIndex[f.Name] = i
 	}
 	e.out = make([]float64, e.width)
 
@@ -201,7 +237,29 @@ func (e *ExpressionIteration) Iterate(
 	env["step"] = exprValue{float64(timestepsHistory.CurrentStepNumber)}
 	env["pi"] = exprValue{math.Pi}
 
-	ctx := &exprCtx{env: env, sampler: e.sampler}
+	// Resolved lazily rather than copied into env like the current row: a partition may hold
+	// a deep history, and almost no expression reads past row 0.
+	lag := func(name string, row int) exprValue {
+		read := func(index int, from, width int) exprValue {
+			history := stateHistories[index]
+			if row < 0 || row >= history.StateHistoryDepth {
+				panic(fmt.Sprintf(
+					"expression: lag(%s, %d) is outside the %d rows %s keeps; raise its "+
+						"state_history_depth", name, row, history.StateHistoryDepth, name))
+			}
+			return exprValue(history.Values.RawRowView(row)[from : from+width])
+		}
+		if index, ok := e.upstreamIndex[name]; ok {
+			return read(index, 0, stateHistories[index].StateWidth)
+		}
+		if i, ok := e.fieldIndex[name]; ok {
+			return read(partitionIndex, e.offsets[i], e.fieldWidth(i))
+		}
+		panic("expression: lag needs an upstream alias or one of this partition's own " +
+			"fields, got " + name)
+	}
+
+	ctx := &exprCtx{env: env, sampler: e.sampler, lag: lag}
 	for _, b := range e.parsedBindings {
 		env[b.name] = ctx.eval(b.expr)
 	}
@@ -231,15 +289,16 @@ type exprValue []float64
 type exprEnv map[string]exprValue
 
 // exprCtx carries the evaluation environment. drawsAreExplicit records whether evaluation is
-// inside an iid or shared call, which is where a scalar-parameter draw is unambiguous.
+// inside an iid, shared or each call, which is where a scalar-parameter draw is unambiguous.
 type exprCtx struct {
 	env              exprEnv
 	sampler          *rng.Sampler
+	lag              func(name string, row int) exprValue
 	drawsAreExplicit bool
 }
 
 func (c *exprCtx) explicit() *exprCtx {
-	return &exprCtx{env: c.env, sampler: c.sampler, drawsAreExplicit: true}
+	return &exprCtx{env: c.env, sampler: c.sampler, lag: c.lag, drawsAreExplicit: true}
 }
 
 func exprBool(b bool) float64 {
@@ -446,6 +505,67 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		// sample is meant to apply across a whole field.
 		need(1)
 		return c.explicit().eval(n.Args[0])
+	case "each":
+		// iid with the lane index in scope: a vector of width count whose element i is the
+		// expression evaluated with that i bound.
+		//
+		// This is the one construct that is not elementwise, and it buys three things nothing
+		// else can. Element i may read element i-1 of something (a cohort ages), so an index
+		// shift becomes sayable. Everything inside a lane is a scalar, so where is lazy per
+		// lane and a skipped lane draws nothing. And lanes run in order, so a draw per lane
+		// interleaves the way a Go loop does rather than taking every gamma before any
+		// poisson. It is a bounded comprehension with no assignment and no recursion, so an
+		// expression still always terminates.
+		need(3)
+		countValue := arg(0)
+		if len(countValue) != 1 {
+			panic("expression: each's count must be a scalar")
+		}
+		count := int(countValue[0])
+		if count < 1 {
+			panic("expression: each's count must be at least 1")
+		}
+		index, ok := n.Args[1].(*ast.Ident)
+		if !ok {
+			panic("expression: each's second argument must be a name to bind the lane " +
+				"index to, as in each(40, i, ...)")
+		}
+		inner := c.explicit()
+		shadowed, wasBound := inner.env[index.Name]
+		out := make(exprValue, count)
+		for i := 0; i < count; i++ {
+			inner.env[index.Name] = exprValue{float64(i)}
+			v := inner.eval(n.Args[2])
+			if len(v) != 1 {
+				panic(fmt.Sprintf(
+					"expression: each expects a scalar-valued expression per lane, got "+
+						"width %d", len(v)))
+			}
+			out[i] = v[0]
+		}
+		// The env is shared with the enclosing scope, so the binding must not outlive the loop.
+		if wasBound {
+			inner.env[index.Name] = shadowed
+		} else {
+			delete(inner.env, index.Name)
+		}
+		return out
+	case "lag":
+		// A read of a partition's committed state further back than the current row, which is
+		// all a bare name or an upstreams alias ever gives.
+		need(2)
+		name, ok := n.Args[0].(*ast.Ident)
+		if !ok {
+			panic("expression: lag's first argument must be an upstream alias or a field name")
+		}
+		rowValue := arg(1)
+		if len(rowValue) != 1 {
+			panic("expression: lag's row must be a scalar")
+		}
+		if c.lag == nil {
+			panic("expression: lag is unavailable here")
+		}
+		return c.lag(name.Name, int(rowValue[0]))
 	}
 
 	switch name {
@@ -505,6 +625,35 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		out := make(exprValue, w)
 		for i := 0; i < w; i++ {
 			out[i] = at(x, i)
+		}
+		return out
+	case "slice":
+		// A block of a vector, for state and params that pack several quantities end to end:
+		// the nine coefficients of a channel inside one flat thirty-six-wide param, say.
+		need(3)
+		v, fromValue, widthValue := arg(0), arg(1), arg(2)
+		if len(fromValue) != 1 || len(widthValue) != 1 {
+			panic("expression: slice's start and width must be scalars")
+		}
+		from, width := int(fromValue[0]), int(widthValue[0])
+		if width < 1 {
+			panic("expression: slice's width must be at least 1")
+		}
+		if from < 0 || from+width > len(v) {
+			panic(fmt.Sprintf(
+				"expression: slice(%d, %d) is outside a width-%d value", from, width, len(v)))
+		}
+		return append(make(exprValue, 0, width), v[from:from+width]...)
+	case "concat":
+		// The other half of slice: assemble a field from pieces that are computed
+		// differently, such as a cohort's boundary buckets against its interior.
+		if len(n.Args) < 2 {
+			panic("expression: concat takes at least 2 arguments, got " +
+				strconv.Itoa(len(n.Args)))
+		}
+		out := make(exprValue, 0, len(n.Args))
+		for i := range n.Args {
+			out = append(out, arg(i)...)
 		}
 		return out
 	case "sum":

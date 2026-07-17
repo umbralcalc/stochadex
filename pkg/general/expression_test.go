@@ -7,6 +7,8 @@ import (
 
 	"gonum.org/v1/gonum/mat"
 
+	"github.com/umbralcalc/stochadex/pkg/rng"
+
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -296,6 +298,243 @@ func TestExpressionSemantics(t *testing.T) {
 				t.Fatalf("got %v, want all 7s", got)
 			}
 		}
+	})
+}
+
+// Each of these closes a gap the catalogue proved was real: a model existed that could not be
+// stated as data without it. The subtests name the model that asked.
+
+func TestExpressionStructuredAccess(t *testing.T) {
+	t.Run("slice addresses a block inside a flat vector", func(t *testing.T) {
+		// trywizard packs a channel's coefficients at a stride offset inside one flat param,
+		// and had to write 36 terms out longhand by scalar index to reach them.
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 3}},
+			Outputs: []string{"slice(coefficients, 3, 3) * 2"},
+		}
+		got := evalOnce(t, e, []float64{0, 0, 0}, map[string][]float64{
+			"coefficients": {1, 2, 3, 4, 5, 6, 7, 8, 9},
+		})
+		for i, want := range []float64{8, 10, 12} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [8 10 12]", got)
+			}
+		}
+	})
+
+	t.Run("concat assembles a field from differently-computed pieces", func(t *testing.T) {
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 4}},
+			Outputs: []string{"concat(99, slice(v, 0, 2) + 1, 77)"},
+		}
+		got := evalOnce(t, e, []float64{1, 2, 3, 4}, map[string][]float64{})
+		for i, want := range []float64{99, 2, 3, 77} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [99 2 3 77]", got)
+			}
+		}
+	})
+
+	t.Run("slice and concat reject an out-of-range block", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Fatal("expected a panic for a slice past the end")
+			} else if !strings.Contains(stringifyPanic(r), "outside a width-3") {
+				t.Errorf("panic should say what it ran off the end of, got: %q", r)
+			}
+		}()
+		evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 3}},
+			Outputs: []string{"slice(v, 2, 2)"},
+		}, []float64{1, 2, 3}, map[string][]float64{})
+	})
+}
+
+func TestExpressionEach(t *testing.T) {
+	t.Run("an index shift ages a cohort", func(t *testing.T) {
+		// business-survival's shape, and the reason it had no declarative twin: element i of
+		// the next state reads element i-1 of the current one, with an absorbing top bucket
+		// taking both the inflow from below and its own survivors. Elementwise cannot say it.
+		e := &ExpressionIteration{
+			Fields: []ExpressionField{{Name: "cohort", Width: 5}},
+			Outputs: []string{
+				"each(5, age, where(age == 0, births," +
+					"where(age == 4, cohort[3] * survival + cohort[4] * survival," +
+					"cohort[age - 1] * survival)))",
+			},
+		}
+		got := evalOnce(t, e, []float64{100, 80, 60, 40, 20}, map[string][]float64{
+			"births": {10}, "survival": {0.5},
+		})
+		// age 0 takes births; 1..3 take half of the bucket below; 4 is absorbing, taking half
+		// of bucket 3 plus half of its own.
+		for i, want := range []float64{10, 50, 40, 30, 30} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [10 50 40 30 30]", got)
+			}
+		}
+	})
+
+	t.Run("a skipped lane draws nothing", func(t *testing.T) {
+		// measles skips inactive areas entirely. A vector-guarded where must evaluate both
+		// branches, so it draws in every lane; inside each, the guard is scalar and lazy.
+		// Two lanes are active, so exactly two draws are taken and the third lane's identical
+		// specification cannot have consumed one.
+		mk := func(output string) *ExpressionIteration {
+			return &ExpressionIteration{
+				Fields:  []ExpressionField{{Name: "v"}},
+				Outputs: []string{output},
+			}
+		}
+		// Lanes 0 and 2 active: the values drawn must be the first two of the stream.
+		gated := evalOnce(t, mk("sum(each(3, i, where(active[i] > 0, normal(0, 1), 0)))"),
+			[]float64{0}, map[string][]float64{"active": {1, 0, 1}})
+		// The same stream, drawn without any gating at all.
+		ungated := evalOnce(t, mk("sum(iid(2, normal(0, 1)))"),
+			[]float64{0}, map[string][]float64{})
+		if gated[0] != ungated[0] {
+			t.Fatalf("the inactive lane consumed randomness: gated=%v ungated=%v",
+				gated[0], ungated[0])
+		}
+	})
+
+	t.Run("draws interleave in lane order", func(t *testing.T) {
+		// The other half of the measles blocker: an elementwise gamma takes all its draws
+		// before any poisson, where a Go loop interleaves them per area. Inside each, a lane
+		// takes its gamma and its poisson before the next lane starts, so the stream matches.
+		interleaved := evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 2}},
+			Outputs: []string{"each(2, i, gamma(shape, rate) + uniform(0, 1))"},
+		}, []float64{0, 0}, map[string][]float64{"shape": {2}, "rate": {1}})
+
+		// Reproduce the same stream by hand, in the order a per-lane loop would take it.
+		sampler := rng.New(1)
+		want := make([]float64, 2)
+		for i := range want {
+			want[i] = sampler.Gamma(2, 1) + sampler.Uniform(0, 1)
+		}
+		for i := range want {
+			if interleaved[i] != want[i] {
+				t.Fatalf("lane %d: got %v, want %v — draws are not interleaving per lane",
+					i, interleaved[i], want[i])
+			}
+		}
+	})
+
+	t.Run("each binds the index without leaking it", func(t *testing.T) {
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v"}},
+			Outputs: []string{"sum(each(3, i, i)) + i"},
+		}
+		got := evalOnce(t, e, []float64{0}, map[string][]float64{"i": {100}})
+		// each's i shadows the param inside the loop (0+1+2), and the param is intact after.
+		if got[0] != 103 {
+			t.Fatalf("got %v, want 103 (3 from the loop plus the outer i of 100)", got[0])
+		}
+	})
+
+	t.Run("a lane must produce a scalar, and the index must be a name", func(t *testing.T) {
+		for _, c := range []struct {
+			name, expr string
+		}{
+			{"vector-valued lane", "each(2, i, fill(3, i))"},
+			{"index is not a name", "each(2, 7, 1)"},
+			{"count below one", "each(0, i, 1)"},
+		} {
+			t.Run(c.name, func(t *testing.T) {
+				defer func() {
+					if recover() == nil {
+						t.Fatalf("expected a panic for %s", c.name)
+					}
+				}()
+				evalOnce(t, &ExpressionIteration{
+					Fields:  []ExpressionField{{Name: "v"}},
+					Outputs: []string{c.expr},
+				}, []float64{0}, map[string][]float64{})
+			})
+		}
+	})
+}
+
+func TestExpressionLag(t *testing.T) {
+	// trywizard's match_state ages yellow cards out by differencing against a partition's
+	// state ten rows back. A bare name and an upstreams alias both give row 0 only.
+	newHistory := func(rows [][]float64) *simulator.StateHistory {
+		flat := make([]float64, 0, len(rows)*len(rows[0]))
+		for _, r := range rows {
+			flat = append(flat, r...)
+		}
+		return &simulator.StateHistory{
+			Values:            mat.NewDense(len(rows), len(rows[0]), flat),
+			StateWidth:        len(rows[0]),
+			StateHistoryDepth: len(rows),
+		}
+	}
+
+	evalWithHistory := func(t *testing.T, e *ExpressionIteration) []float64 {
+		t.Helper()
+		settings := &simulator.Settings{
+			Iterations: []simulator.IterationSettings{{Name: "p", Seed: 1}},
+		}
+		e.Configure(0, settings)
+		params := simulator.NewParams(map[string][]float64{})
+		histories := []*simulator.StateHistory{
+			newHistory([][]float64{{5, 50}, {4, 40}, {3, 30}}),
+		}
+		return e.Iterate(&params, 0, histories, &simulator.CumulativeTimestepsHistory{
+			Values:            mat.NewVecDense(1, []float64{0}),
+			NextIncrement:     1,
+			CurrentStepNumber: 1,
+		})
+	}
+
+	t.Run("reads a field's own state further back than the current row", func(t *testing.T) {
+		got := evalWithHistory(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "a"}, {Name: "b"}},
+			Outputs: []string{"lag(a, 2)", "lag(b, 1)"},
+		})
+		if got[0] != 3 || got[1] != 40 {
+			t.Fatalf("got %v, want [3 40]", got)
+		}
+	})
+
+	t.Run("lag at row 0 is the current row", func(t *testing.T) {
+		got := evalWithHistory(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "a"}, {Name: "b"}},
+			Outputs: []string{"lag(a, 0) - a", "lag(b, 0) - b"},
+		})
+		if got[0] != 0 || got[1] != 0 {
+			t.Fatalf("lag(x, 0) must equal x, got %v", got)
+		}
+	})
+
+	t.Run("reading past the kept history says so", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("expected a panic for a lag past the history")
+			}
+			msg := stringifyPanic(r)
+			if !strings.Contains(msg, "state_history_depth") {
+				t.Errorf("panic should name the fix, got: %q", msg)
+			}
+		}()
+		evalWithHistory(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "a"}, {Name: "b"}},
+			Outputs: []string{"lag(a, 3)", "b"},
+		})
+	})
+
+	t.Run("an unknown name is rejected", func(t *testing.T) {
+		defer func() {
+			if recover() == nil {
+				t.Fatal("expected a panic for lagging a name that is not a field or alias")
+			}
+		}()
+		evalWithHistory(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "a"}, {Name: "b"}},
+			Outputs: []string{"lag(some_param, 1)", "b"},
+		})
 	})
 }
 
