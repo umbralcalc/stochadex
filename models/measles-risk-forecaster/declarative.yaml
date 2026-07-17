@@ -65,23 +65,41 @@ main:
     - {name: infectious, width: 30}
     - {name: cumulative, width: 30}
     bindings:
+    # Go truncates the infectious count to an int before both the guard and the shape, so
+    # floor is what the state actually contributes. These bindings take no draws, so being
+    # eager costs only arithmetic.
+    - {name: cases, expr: "floor(infectious)"}
     - {name: remaining, expr: "susceptible_pool - cumulative"}
     # The max on the divisor only guards lanes that are inactive anyway: a lane is active
     # only when its pool is at least 1, so the quotient is untouched wherever it is used.
     - {name: r_eff, expr: "r0 * susceptibility * (remaining / max(susceptible_pool, 1))"}
-    - {name: active, expr: "infectious > 0 && remaining > 0 && susceptible_pool >= 1 && r_eff > 0"}
-    # Sum of n iid negative-binomial offspring counts is Poisson(Gamma(n*k, k/R_local)), so
-    # a whole generation is one Gamma plus one Poisson per area. The maxes keep both shape
-    # and rate positive in the inactive lanes, whose draws are discarded by the mask below.
-    - {name: shape, expr: "max(infectious, 1) * dispersion"}
-    - {name: rate, expr: "dispersion / max(r_eff, 0.000001)"}
+    - {name: active, expr: "cases > 0 && remaining > 0 && susceptible_pool >= 1 && r_eff > 0"}
     # Both the seeding and the branching draw, so they must sit inside a lazy where rather
-    # than in bindings of their own: bindings are eager, and would draw on every step.
-    # min against floor(remaining) is the Go cap (next = int(remaining) when next exceeds
-    # it), which agrees because next is already integral.
+    # than in bindings of their own: bindings are eager, and would draw on every step. step
+    # is a scalar, so this where evaluates only the generation it selects.
+    #
+    # The branching generations are a per-area loop in the Go, and each is what says that:
+    # lanes run in order and a lane finishes before the next starts, so each area takes its
+    # Gamma and then its Poisson before the next area draws at all — the interleaving an
+    # elementwise gamma(...) followed by poisson(...) cannot produce, since it would take
+    # all 30 Gammas first. Inside a lane every value is a scalar, so the guard is lazy and
+    # an inactive area evaluates nothing and draws nothing, exactly as the Go skips it.
+    # Together those are what put the two models on the same draw stream.
+    #
+    # Sum of n iid negative-binomial offspring counts is Poisson(Gamma(n*k, k/R_local)), so
+    # a whole generation is one Gamma plus one Poisson per area. min against floor(remaining)
+    # is the Go cap (next = int(remaining) when next exceeds it), which agrees because next
+    # is already integral.
+    #
+    # Generation 0 seeds each area from the shared national total: one Poisson per area over
+    # a 30-wide rate, which is already in area order, so it needs no each.
     - name: new_infectious
       expr: "where(step > 1,
-                   where(active, min(poisson(gamma(shape, rate)), floor(remaining)), 0),
+                   each(30, i, where(active[i] > 0,
+                                     min(poisson(gamma(cases[i] * dispersion,
+                                                       dispersion / r_eff[i])),
+                                         floor(remaining[i])),
+                                     0)),
                    poisson(national_seed_total * receptivity))"
     # Generation 0's cumulative is its seed count; afterwards it accrues. Inactive lanes
     # contribute a masked zero, so the accrual needs no guard of its own.

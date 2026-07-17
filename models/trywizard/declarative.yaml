@@ -7,13 +7,9 @@
 # (substitution strategy, horizon, seed) are injected by the caller; everything below is the
 # model.
 #
-# Seven of the eight partitions are expressions. match_state is declared here for its wiring
-# and params but carries NO expression entry: it reads the card_events history ten steps back
-# to age out yellow cards, and the DSL only ever exposes a partition's current row (an
-# upstreams alias is RawRowView(0)). Its one Go function value is attached by the caller —
-# that lag-10 read is the single thing here that is not sayable as data.
+# All eight partitions are expressions: the model is entirely data, with no Go left in it.
 #
-# Two departures from stub.go's params, both replacing something the Go carries as structure
+# Three departures from stub.go's params, each replacing something the Go carries as structure
 # rather than as data:
 #
 #   sub_minutes  stands in for the whole SubstitutionStrategy → GenerateCovariates → replay
@@ -24,10 +20,15 @@
 #   score_prev   is conversion_events' upstreams alias for score_events, replacing the Go's
 #                params_as_partitions index plus a manual row-0 history read. Both are the
 #                same lag-1 read; the alias just names it.
+#   card_hist    is match_state's upstreams alias for card_events, replacing its
+#                params_as_partitions index plus a manual lag-10 history read. lag(card_hist,
+#                10) is that same read, named; see the match_state expression below.
 #
-# The coefficient blocks are indexed longhand because the DSL has no slicing: a channel's
-# nine coefficients sit at a stride-9 offset in one flat vector, and there is no way to say
-# "the nine starting at 18" other than to name them.
+# A channel's nine rate coefficients sit at a stride-9 offset in one flat vector, which
+# slice addresses directly: dot(concat(1, covariates), slice(coefficients, 18, 9)) is the
+# home-penalty channel's whole log-rate. The leading 1 is the design-matrix statement of the
+# intercept — it also makes the evaluator accumulate the sum in exactly the order the Go's
+# loop does, starting from the intercept.
 main:
   partitions:
 
@@ -115,7 +116,7 @@ main:
     seed: 0
 
   # Derived match state: [home_score, away_score, diff, home_active_yellows,
-  # away_active_yellows, half]. Wiring only — the iteration is Go, see the header.
+  # away_active_yellows, half].
   - name: match_state
     params_from_upstream:
       score_values:
@@ -124,8 +125,6 @@ main:
         upstream: conversion_events
       card_values:
         upstream: card_events
-    params_as_partitions:
-      card_partition: [card_events]
     init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     state_history_depth: 1
     seed: 0
@@ -146,18 +145,21 @@ main:
     outputs: ["where(sub_minutes > 0 && step >= sub_minutes, 1, 0)"]
 
   - partition: score_rates
-    # One field per channel rather than a single width-4 block: a channel's coefficients can
-    # only be reached by scalar index, so each output has to be written on its own.
+    # One field per channel rather than a single width-4 block, because each channel selects
+    # its own baseline element and so needs its own scalar (hence lazy) guard.
     fields:
     - {name: home_try}
     - {name: away_try}
     - {name: home_penalty}
     - {name: away_penalty}
+    # A channel's log-rate is its nine coefficients against [1, covariates]: the design row
+    # whose leading 1 picks up the intercept.
     bindings:
-    - {name: lr_home_try, expr: "coefficients[0] + coefficients[1] * covariates[0] + coefficients[2] * covariates[1] + coefficients[3] * covariates[2] + coefficients[4] * covariates[3] + coefficients[5] * covariates[4] + coefficients[6] * covariates[5] + coefficients[7] * covariates[6] + coefficients[8] * covariates[7]"}
-    - {name: lr_away_try, expr: "coefficients[9] + coefficients[10] * covariates[0] + coefficients[11] * covariates[1] + coefficients[12] * covariates[2] + coefficients[13] * covariates[3] + coefficients[14] * covariates[4] + coefficients[15] * covariates[5] + coefficients[16] * covariates[6] + coefficients[17] * covariates[7]"}
-    - {name: lr_home_penalty, expr: "coefficients[18] + coefficients[19] * covariates[0] + coefficients[20] * covariates[1] + coefficients[21] * covariates[2] + coefficients[22] * covariates[3] + coefficients[23] * covariates[4] + coefficients[24] * covariates[5] + coefficients[25] * covariates[6] + coefficients[26] * covariates[7]"}
-    - {name: lr_away_penalty, expr: "coefficients[27] + coefficients[28] * covariates[0] + coefficients[29] * covariates[1] + coefficients[30] * covariates[2] + coefficients[31] * covariates[3] + coefficients[32] * covariates[4] + coefficients[33] * covariates[5] + coefficients[34] * covariates[6] + coefficients[35] * covariates[7]"}
+    - {name: design, expr: "concat(1, covariates)"}
+    - {name: lr_home_try, expr: "dot(design, slice(coefficients, 0, 9))"}
+    - {name: lr_away_try, expr: "dot(design, slice(coefficients, 9, 9))"}
+    - {name: lr_home_penalty, expr: "dot(design, slice(coefficients, 18, 9))"}
+    - {name: lr_away_penalty, expr: "dot(design, slice(coefficients, 27, 9))"}
     # A zero baseline entry means "no baseline", not "a rate of zero", so it multiplies only
     # where it is positive. The guard is scalar, hence lazy.
     outputs:
@@ -171,8 +173,9 @@ main:
     - {name: home_yellow}
     - {name: away_yellow}
     bindings:
-    - {name: lr_home_yellow, expr: "coefficients[0] + coefficients[1] * covariates[0] + coefficients[2] * covariates[1] + coefficients[3] * covariates[2] + coefficients[4] * covariates[3] + coefficients[5] * covariates[4] + coefficients[6] * covariates[5] + coefficients[7] * covariates[6] + coefficients[8] * covariates[7]"}
-    - {name: lr_away_yellow, expr: "coefficients[9] + coefficients[10] * covariates[0] + coefficients[11] * covariates[1] + coefficients[12] * covariates[2] + coefficients[13] * covariates[3] + coefficients[14] * covariates[4] + coefficients[15] * covariates[5] + coefficients[16] * covariates[6] + coefficients[17] * covariates[7]"}
+    - {name: design, expr: "concat(1, covariates)"}
+    - {name: lr_home_yellow, expr: "dot(design, slice(coefficients, 0, 9))"}
+    - {name: lr_away_yellow, expr: "dot(design, slice(coefficients, 9, 9))"}
     # The card channels sit after the four score channels in the shared baseline vector.
     outputs:
     - "where(baseline[4] > 0, baseline[4] * exp(lr_home_yellow), exp(lr_home_yellow))"
@@ -208,3 +211,34 @@ main:
     outputs:
     - "home_conv + home_hits"
     - "away_conv + away_hits"
+
+  # The three event streams arrive within-step as params_from_upstream, exactly as they do in
+  # the Go, so every output here is derived rather than accumulated.
+  - partition: match_state
+    fields:
+    - {name: home_score}
+    - {name: away_score}
+    - {name: score_diff}
+    - {name: home_active_yellow}
+    - {name: away_active_yellow}
+    - {name: half}
+    upstreams:
+      card_hist: card_events
+    bindings:
+    # 5 for a try, 2 for its conversion, 3 for a penalty — the sport's rules, carried as
+    # literals exactly as the Go carries them.
+    - {name: home_points, expr: "score_values[0] * 5 + conversion_values[0] * 2 + score_values[2] * 3"}
+    - {name: away_points, expr: "score_values[1] * 5 + conversion_values[1] * 2 + score_values[3] * 3"}
+    # Yellow cards expire after ten minutes and card_values is cumulative, so the cards still
+    # active are the ones accumulated since the row ten steps back. This is the read the DSL
+    # could not make until lag existed: card_hist alone is row 0. card_events keeps
+    # state_history_depth 11 for it — one row per minute of the window, plus the row itself.
+    - {name: cards_ten_back, expr: "lag(card_hist, 10)"}
+    outputs:
+    - "home_points"
+    - "away_points"
+    - "home_points - away_points"
+    - "card_values[0] - cards_ten_back[0]"
+    - "card_values[1] - cards_ten_back[1]"
+    # Second half from the 40th minute on.
+    - "where(t >= 40, 1, 0)"

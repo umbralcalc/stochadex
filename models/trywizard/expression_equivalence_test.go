@@ -20,11 +20,10 @@ package rugby
 // free to contract a + b*c into a fused multiply-add, which rounds differently from the
 // evaluator's separate operations.
 //
-// match_state has no step-for-step test because it has no declarative form: it reads the
-// card_events history ten rows back and the DSL exposes only the current row. The suite
-// test still covers it — the claims that read match_state (win probability, home score)
-// run through the same Go function value in both builds, over declaratively-generated
-// inputs.
+// Every partition is compared, match_state included: its lag-10 read of the card_events
+// history — once the one thing here with no declarative form, since an upstreams alias only
+// ever gives row 0 — is now lag(card_hist, 10), so the declarative build carries no Go at
+// all.
 
 import (
 	"math"
@@ -58,10 +57,8 @@ func subMinutes(strategy *SubstitutionStrategy) []float64 {
 // declarativeBuildStub assembles the model from declarative.yaml, matching
 // buildStubWithStrategy's signature so it can be dropped into the behaviour helpers. The
 // YAML holds the model; the run knobs the Go builder takes as arguments are injected here,
-// exactly as it injects them into its Go partitions.
-//
-// match_state is the one partition the YAML cannot carry, so its Go function value is
-// attached here — see the file header.
+// exactly as it injects them into its Go partitions. No iteration is attached: every
+// partition, match_state included, comes out of the file.
 func declarativeBuildStub(
 	strategy *SubstitutionStrategy,
 	numSteps int,
@@ -81,9 +78,6 @@ func declarativeBuildStub(
 	gen.GetPartition("score_events").Seed = seed
 	gen.GetPartition("card_events").Seed = seed + 1
 	gen.GetPartition("conversion_events").Seed = seed + 2
-	matchState := gen.GetPartition("match_state")
-	matchState.Iteration = &general.ValuesFunctionIteration{Function: MatchStateFunction}
-	gen.ResetPartition("match_state", matchState)
 	return gen
 }
 
@@ -450,6 +444,157 @@ func TestDeclarativeConversionsMatchBespoke(t *testing.T) {
 	}
 	for _, b := range []string{
 		"no_new_tries", "new_tries", "conversion_made", "conversion_missed",
+	} {
+		if branches[b] == 0 {
+			t.Errorf("branch %q never exercised; the comparison is weaker than it looks", b)
+		}
+	}
+	t.Logf("branches exercised: %v", branches)
+	t.Logf("max deviation: %g", maxDev)
+}
+
+// cardHistory builds card_events' cumulative history: depth rows of two non-decreasing
+// counts, newest first, so row r is the total r steps ago. Increments are drawn per row and
+// per channel, which is what makes the rows differ — a history that were flat across the
+// window would agree with any lag offset at all and so pin nothing.
+func cardHistory(rng *rand.Rand, depth int) *simulator.StateHistory {
+	rows := mat.NewDense(depth, CardRateWidth, nil)
+	total := make([]float64, CardRateWidth)
+	for r := depth - 1; r >= 0; r-- {
+		for k := range total {
+			if rng.IntN(3) == 0 {
+				total[k]++
+			}
+		}
+		rows.SetRow(r, total)
+	}
+	return &simulator.StateHistory{
+		Values:            rows,
+		StateWidth:        CardRateWidth,
+		StateHistoryDepth: depth,
+	}
+}
+
+// atTime returns a timesteps history at cumulative time now. match_state reads t rather than
+// the step number, so the two are decoupled here.
+func atTime(now, increment float64, step int) *simulator.CumulativeTimestepsHistory {
+	return &simulator.CumulativeTimestepsHistory{
+		Values:            mat.NewVecDense(1, []float64{now}),
+		NextIncrement:     increment,
+		CurrentStepNumber: step,
+	}
+}
+
+// MatchStateFunction clamps its lookback to historyDepth-1 when a partition keeps fewer rows
+// than the ten-minute window. The clamp is unreachable in this stub's wiring — card_events is
+// built at YellowCardMinutes+1 rows precisely so the window fits — and it has no declarative
+// counterpart, since lag panics rather than silently shortening the read. So the comparison
+// below runs at the model's depth only, and the clamp is deliberately not swept.
+func TestDeclarativeMatchStateMatchesBespoke(t *testing.T) {
+	// Index 1 is card_events: the bespoke function reaches it through the card_partition
+	// param and reads Values.At(10, k) by hand, the declarative one through its card_hist
+	// upstream alias and lag(card_hist, 10). Both are the same read of the same row. The
+	// other three inputs are within-step params_from_upstream on both sides, so they arrive
+	// as params either way.
+	settings := &simulator.Settings{
+		Iterations: []simulator.IterationSettings{
+			{Name: "match_state", Seed: 5},
+			{Name: "card_events", Seed: 0},
+		},
+	}
+	bespoke := &general.ValuesFunctionIteration{Function: MatchStateFunction}
+	declarative, _ := declarativeIteration(t, "match_state")
+	bespoke.Configure(0, settings)
+	declarative.Configure(0, settings)
+
+	rng := rand.New(rand.NewPCG(91, 92))
+	branches := map[string]int{}
+	maxDev := 0.0
+
+	const cases = 20000
+	for i := 0; i < cases; i++ {
+		cards := cardHistory(rng, YellowCardMinutes+1)
+		current := cards.Values.RawRowView(0)
+		// card_values is card_events' within-step output, so it is this step's total: at or
+		// above row 0, which is last step's.
+		cardValues := []float64{
+			current[0] + float64(rng.IntN(2)),
+			current[1] + float64(rng.IntN(2)),
+		}
+		scoreValues := []float64{
+			float64(rng.IntN(6)), float64(rng.IntN(6)),
+			float64(rng.IntN(8)), float64(rng.IntN(8)),
+		}
+		convValues := []float64{
+			float64(rng.IntN(int(scoreValues[0]) + 1)),
+			float64(rng.IntN(int(scoreValues[1]) + 1)),
+		}
+		// Time is swept across the half boundary, and lands exactly on it often enough to pin
+		// the >= rather than a >. The increment does not enter match_state at all — no output
+		// here uses dt — but it is varied anyway so that a twin which had reached for it
+		// would show up.
+		now := float64(rng.IntN(81))
+		if i%7 == 0 {
+			now = 40
+		}
+		increment := []float64{1.0, 0.5, 2.0}[i%3]
+
+		p := simulator.NewParams(map[string][]float64{
+			"score_values":      scoreValues,
+			"conversion_values": convValues,
+			"card_values":       cardValues,
+			"card_partition":    {1},
+		})
+		ts := atTime(now, increment, i+1)
+		mk := func() []*simulator.StateHistory {
+			return []*simulator.StateHistory{
+				history(make([]float64, MatchStateWidth), 1),
+				cards,
+			}
+		}
+
+		want := bespoke.Iterate(&p, 0, mk(), ts)
+		wantCopy := append([]float64(nil), want...)
+		got := declarative.Iterate(&p, 0, mk(), ts)
+
+		if now >= 40 {
+			branches["second_half"]++
+		} else {
+			branches["first_half"]++
+		}
+		switch {
+		case wantCopy[StateIdxScoreDiff] > 0:
+			branches["home_leading"]++
+		case wantCopy[StateIdxScoreDiff] < 0:
+			branches["away_leading"]++
+		default:
+			branches["scores_level"]++
+		}
+		for k, idx := range []int{StateIdxHomeActiveYellow, StateIdxAwayActiveYellow} {
+			if wantCopy[idx] > 0 {
+				branches["yellow_active"]++
+			} else {
+				branches["no_active_yellow"]++
+			}
+			// A card that has left the window: the row ten back is non-zero, so the lag term
+			// is load-bearing rather than a subtraction of zero.
+			if cards.Values.At(YellowCardMinutes, k) > 0 {
+				branches["yellow_aged_out"]++
+			}
+			// The rows either side of the window differ, so reading one row too few or too
+			// many would give a different answer here.
+			if cards.Values.At(YellowCardMinutes, k) !=
+				cards.Values.At(YellowCardMinutes-1, k) {
+				branches["window_edge_pinned"]++
+			}
+		}
+		for k := range wantCopy {
+			maxDev = math.Max(maxDev, assertClose(t, got[k], wantCopy[k], "match_state"))
+		}
+	}
+	for _, b := range []string{
+		"first_half", "second_half", "home_leading", "away_leading", "scores_level",
+		"yellow_active", "no_active_yellow", "yellow_aged_out", "window_edge_pinned",
 	} {
 		if branches[b] == 0 {
 			t.Errorf("branch %q never exercised; the comparison is weaker than it looks", b)

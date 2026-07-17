@@ -9,32 +9,30 @@ package measles
 // declarative build, which catches a model that is subtly different in a way per-step
 // agreement would not: wrong wiring, wrong param values, wrong state layout.
 //
-// # Where the two streams part company, and why
+// # The oracle: exact, throughout
 //
-// national_importation and the outbreaks seeding generation are exactly comparable:
-// rng.New(seed) and rand.New(rand.NewPCG(seed, seed)) are the same generator, pkg/rng's
-// draws are bit-identical to the distuv ones the bespoke code uses, and the declarative
-// spec takes the same draws in the same order, so the two stay in lockstep and agreement
-// is asserted to a tight tolerance.
+// Every partition here is compared exactly, because both models run on the same draw
+// stream. rng.New(seed) and rand.New(rand.NewPCG(seed, seed)) are the same generator,
+// pkg/rng's Gamma and Poisson are bit-identical to the distuv ones the bespoke code uses,
+// and each spec takes the same draws in the same order as its Go counterpart. Agreement is
+// therefore asserted to a tight tolerance rather than to bit-identity: compiled Go
+// contracts a + b*c into an FMA, which rounds differently from the evaluator's separate
+// operations, and that residue is the FMA rather than the model.
 //
-// The outbreaks BRANCHING generations cannot be aligned, and this is a property of the
-// DSL, not of how the spec is written. JointOutbreakIteration walks the areas in order and,
-// for each ACTIVE one, takes a Gamma then a Poisson — so its stream is per-area
-// interleaved, and skips inactive areas entirely. An expression evaluates elementwise over
-// the whole vector: gamma(shape, rate) takes all 30 Gammas before poisson(...) takes any
-// Poisson, and a vector-conditioned where must evaluate both branches, so the masked-out
-// areas draw too. Neither the interleaving nor the skipping is expressible without a loop
-// construct the DSL deliberately does not have. The two models are therefore equal in
-// distribution but not path-equal, and the branching comparison below is distributional:
-// the deterministic structure (which areas are frozen, the depletion cap, the cumulative
-// accrual) is still checked exactly, per replicate, and only the drawn magnitudes are
-// compared through their sampling distribution.
+// The outbreaks branching generations are what makes this interesting. Go walks the areas
+// in order and, for each ACTIVE one, takes a Gamma and then a Poisson — a per-area
+// interleaved stream that skips inactive areas entirely. Elementwise evaluation cannot say
+// that: gamma(shape, rate) would take all 30 Gammas before poisson(...) took any, and a
+// vector-conditioned where must evaluate both branches, so masked-out areas would draw too.
+// each(30, i, ...) says both halves at once. Lanes run in order and a lane completes before
+// the next begins, which is the interleaving; and inside a lane every value is a scalar, so
+// the guard is lazy and a skipped area draws nothing. The two models are path-equal, so
+// this file asserts equality of values and not of distributions.
 //
-// That parting is inherited by the suite test: the claim ensembles are means over 12–50
-// realisations of a heavy-tailed branching process, so the declarative build answers each
-// claim correctly but not with the bespoke build's exact numbers. The suite test therefore
-// asserts what is true — every claim still verifies — and reports the ensemble spread
-// rather than pretending to a tolerance the streams cannot support.
+// Exactness carries into the suite test: the claim ensembles are means over realisations of
+// a heavy-tailed branching process, and on a shared stream they are the SAME realisations,
+// so the declarative build reproduces the bespoke build's numbers rather than merely its
+// directions.
 
 import (
 	"math"
@@ -261,11 +259,12 @@ func TestDeclarativeOutbreakSeedingMatchesBespoke(t *testing.T) {
 	t.Logf("max deviation: %g", maxDev)
 }
 
-func TestDeclarativeOutbreakBranchingStructureMatchesBespoke(t *testing.T) {
-	// The branching generations' draw streams cannot be aligned (see the file comment), so
-	// this checks everything about them that is NOT a drawn magnitude: which areas are
-	// frozen, the depletion cap, and the cumulative accrual. Those are the parts of the
-	// spec a mis-statement would break, and they are exactly checkable per replicate.
+func TestDeclarativeOutbreakBranchingMatchesBespoke(t *testing.T) {
+	// The branching generations, compared value for value: each puts both sides on one draw
+	// stream (see the file comment), so the drawn magnitudes must agree and not merely their
+	// distributions. The structural checks are kept alongside — which areas are frozen, the
+	// depletion cap, the cumulative accrual — because they hold each side to the model
+	// independently, and so still fail if both sides drifted together.
 	bespoke := &JointOutbreakIteration{}
 	declarative, params := declarativeIteration(t, "outbreaks")
 	settings := &simulator.Settings{
@@ -278,6 +277,7 @@ func TestDeclarativeOutbreakBranchingStructureMatchesBespoke(t *testing.T) {
 	n := len(susceptibility)
 	rng := rand.New(rand.NewPCG(51, 52))
 	branches := map[string]int{}
+	maxDev := 0.0
 
 	check := func(out, state, pool []float64, r0 float64, side string, i int) {
 		for k := 0; k < n; k++ {
@@ -338,12 +338,23 @@ func TestDeclarativeOutbreakBranchingStructureMatchesBespoke(t *testing.T) {
 		if i%9 == 0 {
 			r0 = 0
 		}
+		// The Gamma shape is cases*dispersion, and pkg/rng switches sampler on it: the
+		// Liu–Martin–Syring log-space method below 0.2, a plain exponential at exactly 1, and
+		// Marsaglia–Tsang otherwise. Sweeping dispersion across all three puts every branch of
+		// the sampler on the stream, so a divergence in any of them would surface here.
+		dispersion := 0.2 + rng.Float64()
+		switch {
+		case i%11 == 0:
+			dispersion = 0.01 // shape below 0.2 for the small generations above
+		case i%13 == 0:
+			dispersion = 1.0 // shape of exactly 1 wherever a lane holds a single case
+		}
 		p := simulator.NewParams(map[string][]float64{
 			"susceptibility":      susceptibility,
 			"receptivity":         params["receptivity"],
 			"susceptible_pool":    pool,
 			"r0":                  {r0},
-			"dispersion":          {0.2 + rng.Float64()},
+			"dispersion":          {dispersion},
 			"national_seed_total": {50.0},
 		})
 		step := 2 + rng.IntN(12)
@@ -352,6 +363,10 @@ func TestDeclarativeOutbreakBranchingStructureMatchesBespoke(t *testing.T) {
 		got := declarative.Iterate(&p, 0, historyOf(state), stepsAt(step))
 		check(want, state, pool, r0, "bespoke", i)
 		check(got, state, pool, r0, "declarative", i)
+		// The whole point: same stream, so same values, not merely the same distribution.
+		for k := range want {
+			maxDev = math.Max(maxDev, assertClose(t, got[k], want[k], "branching"))
+		}
 
 		// Counted in the order the Go guards test them, so each area lands in the branch
 		// that actually decided its update.
@@ -368,111 +383,41 @@ func TestDeclarativeOutbreakBranchingStructureMatchesBespoke(t *testing.T) {
 				branches["zero_r_local"]++
 			default:
 				branches["branched"]++
-				// Counted per side: the two streams differ, so an area whose cap binds on
-				// one need not have binding on the other.
 				if want[k] == math.Floor(remaining) {
-					branches["cap_bound_bespoke"]++
+					branches["cap_bound"]++
 				}
-				if got[k] == math.Floor(remaining) {
-					branches["cap_bound_declarative"]++
+				// Which of pkg/rng's three Gamma samplers this lane's shape selects.
+				switch shape := math.Floor(state[k]) * dispersion; {
+				case shape < 0.2:
+					branches["gamma_small_shape"]++
+				case shape == 1:
+					branches["gamma_unit_shape"]++
+				default:
+					branches["gamma_marsaglia_tsang"]++
 				}
 			}
 		}
 	}
 	for _, b := range []string{
-		"zero_r_local", "extinct", "depleted", "sub_unit_pool", "branched",
-		"cap_bound_bespoke", "cap_bound_declarative",
+		"zero_r_local", "extinct", "depleted", "sub_unit_pool", "branched", "cap_bound",
+		"gamma_small_shape", "gamma_unit_shape", "gamma_marsaglia_tsang",
 	} {
 		if branches[b] == 0 {
 			t.Errorf("branch %q never exercised; the comparison is weaker than it looks", b)
 		}
 	}
 	t.Logf("branches exercised: %v", branches)
-}
-
-func TestDeclarativeOutbreakBranchingMatchesInDistribution(t *testing.T) {
-	// The magnitudes the structural test above leaves alone, checked the only way the
-	// unalignable streams allow: both sides' per-area sample means over a common scenario
-	// must sit on the analytic mean of the branching kernel, E[next_i] = I_i * R_local_i,
-	// and on each other.
-	bespoke := &JointOutbreakIteration{}
-	declarative, params := declarativeIteration(t, "outbreaks")
-	settings := &simulator.Settings{
-		Iterations: []simulator.IterationSettings{{Name: "outbreaks", Seed: 23}},
-	}
-	bespoke.Configure(0, settings)
-	declarative.Configure(0, settings)
-
-	susceptibility := params["susceptibility"]
-	pool := params["susceptible_pool"]
-	n := len(susceptibility)
-	const r0, dispersion = 15.0, DefaultDispersion
-
-	// A scenario chosen so the depletion cap never binds — with an empty pool of 400 and at
-	// most 3 infectious at R_local well under 3, hitting 400 in one generation has no
-	// meaningful probability — because the cap would bias the mean away from the analytic
-	// value this compares against.
-	state := make([]float64, 2*n)
-	for k := 0; k < n; k++ {
-		state[k] = float64(1 + k%3)
-	}
-	p := simulator.NewParams(map[string][]float64{
-		"susceptibility":      susceptibility,
-		"receptivity":         params["receptivity"],
-		"susceptible_pool":    pool,
-		"r0":                  {r0},
-		"dispersion":          {dispersion},
-		"national_seed_total": {50.0},
-	})
-
-	const replicates = 20000
-	sums := [2][]float64{make([]float64, n), make([]float64, n)}
-	squares := [2][]float64{make([]float64, n), make([]float64, n)}
-	for i := 0; i < replicates; i++ {
-		for side, out := range [2][]float64{
-			bespoke.Iterate(&p, 0, historyOf(state), stepsAt(2)),
-			declarative.Iterate(&p, 0, historyOf(state), stepsAt(2)),
-		} {
-			for k := 0; k < n; k++ {
-				sums[side][k] += out[k]
-				squares[side][k] += out[k] * out[k]
-			}
-		}
-	}
-
-	worst := 0.0
-	for k := 0; k < n; k++ {
-		rLocal := r0 * susceptibility[k] * ((pool[k] - state[n+k]) / pool[k])
-		analytic := state[k] * rLocal
-		var mean, se [2]float64
-		for side := 0; side < 2; side++ {
-			mean[side] = sums[side][k] / replicates
-			variance := squares[side][k]/replicates - mean[side]*mean[side]
-			se[side] = math.Sqrt(variance / replicates)
-			// Four standard errors: a false failure needs a ~1-in-16,000 deviation, and 60
-			// comparisons run here.
-			if z := math.Abs(mean[side]-analytic) / se[side]; z > 4 {
-				t.Errorf("area %d %s: mean %v is %.1f standard errors from the analytic %v",
-					k, [2]string{"bespoke", "declarative"}[side], mean[side], z, analytic)
-			}
-		}
-		z := math.Abs(mean[0]-mean[1]) / math.Sqrt(se[0]*se[0]+se[1]*se[1])
-		if z > 4 {
-			t.Errorf("area %d: declarative mean %v and bespoke mean %v differ by %.1f "+
-				"standard errors", k, mean[1], mean[0], z)
-		}
-		worst = math.Max(worst, z)
-	}
-	t.Logf("largest declarative-vs-bespoke separation across the 30 areas: %.2f "+
-		"standard errors", worst)
+	t.Logf("max deviation: %g", maxDev)
 }
 
 func TestDeclarativeMeaslesAnswersTheSameClaims(t *testing.T) {
 	// The oracle is the model's own behaviour suite: every claim recomputed against the
-	// declarative build must still hold. It cannot hold with the SAME numbers — the
-	// branching streams do not align (see the file comment), so each claim's ensemble is a
-	// different set of realisations of the same distribution — so the numbers are reported
-	// rather than asserted on, and what is asserted is what the claims actually say.
+	// declarative build must still hold, AND must hold with the same numbers. The second
+	// half is the stronger half. Verify only checks that each claim moves in its stated
+	// direction, and direction is cheap — a claim suite cannot tell two mechanisms apart if
+	// both respond the same way. Reproducing the observations exactly says the declarative
+	// build is running the same model over the same draws, which is what a wrong param,
+	// wrong wiring or wrong state layout would break.
 	if testing.Short() {
 		t.Skip("runs the full claim ensemble twice")
 	}
@@ -482,6 +427,7 @@ func TestDeclarativeMeaslesAnswersTheSameClaims(t *testing.T) {
 	if len(declarative) != len(bespoke) {
 		t.Fatalf("got %d claims, want %d", len(declarative), len(bespoke))
 	}
+	maxDev := 0.0
 	for i, claim := range declarative {
 		reference := bespoke[i]
 		if claim.ID != reference.ID {
@@ -498,19 +444,13 @@ func TestDeclarativeMeaslesAnswersTheSameClaims(t *testing.T) {
 		}
 		for k, obs := range claim.Observations {
 			want := reference.Observations[k].Value
-			relative := math.Abs(obs.Value-want) / math.Max(math.Abs(want), 1e-12)
-			t.Logf("%s / %s: declarative=%.4g bespoke=%.4g relative=%.1f%%",
-				claim.ID, obs.Label, obs.Value, want, 100*relative)
-			// A stochastic band, not an equivalence: both ensembles are fixed-seed and so
-			// this is deterministic, and it is set well above the ensemble noise between
-			// two independent realisations (the worst seen is ~21%) but far below what a
-			// wrong param, wrong wiring or wrong state layout does to these totals, which
-			// is multiples rather than percentages.
-			if relative > 0.5 {
-				t.Errorf("%s / %s: declarative=%v and bespoke=%v differ by %.0f%%, "+
-					"more than ensemble noise explains",
-					claim.ID, obs.Label, obs.Value, want, 100*relative)
+			if obs.Label != reference.Observations[k].Label {
+				t.Fatalf("claim %q observation %d: got label %q, want %q",
+					claim.ID, k, obs.Label, reference.Observations[k].Label)
 			}
+			maxDev = math.Max(maxDev,
+				assertClose(t, obs.Value, want, claim.ID+" / "+obs.Label))
 		}
 	}
+	t.Logf("max deviation across every claim observation: %g", maxDev)
 }
