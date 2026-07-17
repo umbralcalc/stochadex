@@ -6,7 +6,6 @@ main:
     params:
       drift: [0.5]
     init_state_values: [0.0]
-    state_width: 1
     state_history_depth: 1
     seed: 3
   expressions:

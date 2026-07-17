@@ -37,7 +37,6 @@ main:
     params:
       param_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    state_width: 6
     state_history_depth: 1
     seed: 0
 
@@ -46,7 +45,6 @@ main:
     params:
       sub_minutes: [55.0, 55.0, 55.0, 55.0, 55.0, 55.0, 55.0, 55.0]
     init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    state_width: 8
     state_history_depth: 1
     seed: 0
 
@@ -65,7 +63,6 @@ main:
       baseline:
         upstream: baseline_rates
     init_state_values: [0.0, 0.0, 0.0, 0.0]
-    state_width: 4
     state_history_depth: 1
     seed: 0
 
@@ -84,7 +81,6 @@ main:
       baseline:
         upstream: baseline_rates
     init_state_values: [0.0, 0.0]
-    state_width: 2
     state_history_depth: 1
     seed: 0
 
@@ -94,7 +90,6 @@ main:
       rates:
         upstream: score_rates
     init_state_values: [0.0, 0.0, 0.0, 0.0]
-    state_width: 4
     state_history_depth: 2
     seed: 0
 
@@ -105,7 +100,6 @@ main:
       rates:
         upstream: card_rates
     init_state_values: [0.0, 0.0]
-    state_width: 2
     state_history_depth: 11
     seed: 0
 
@@ -117,7 +111,6 @@ main:
       try_values:
         upstream: score_events
     init_state_values: [0.0, 0.0]
-    state_width: 2
     state_history_depth: 1
     seed: 0
 
@@ -134,7 +127,6 @@ main:
     params_as_partitions:
       card_partition: [card_events]
     init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    state_width: 6
     state_history_depth: 1
     seed: 0
 

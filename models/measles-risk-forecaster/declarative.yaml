@@ -23,7 +23,6 @@ main:
       seed_low: [20.0]
       seed_high: [120.0]
     init_state_values: [0.0]
-    state_width: 1
     state_history_depth: 2
     seed: 0
 
@@ -43,7 +42,6 @@ main:
       national_seed_total:
         upstream: national_importation
     init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    state_width: 60
     state_history_depth: 2
     seed: 7919
 

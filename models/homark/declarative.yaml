@@ -26,7 +26,6 @@ main:
       mus: [3.0]
       sigmas: [0.3]
     init_state_values: [3.0]
-    state_width: 1
     state_history_depth: 1
     seed: 0
 
@@ -38,7 +37,6 @@ main:
       attrition_rate: [0.02]
       approval_rate: [100.0]
     init_state_values: [400.0]
-    state_width: 1
     state_history_depth: 1
     seed: 1
 
@@ -55,7 +53,6 @@ main:
       demand_beta: [0.0]
       init_log_earnings: [10.308952660644293]
     init_state_values: [0.0025999999999999999]
-    state_width: 1
     state_history_depth: 1
     seed: 0
 
@@ -64,7 +61,6 @@ main:
       drift_coefficients: [0.0025]
       diffusion_coefficients: [0.003]
     init_state_values: [10.308952660644293]
-    state_width: 1
     state_history_depth: 1
     seed: 2
 
@@ -77,14 +73,12 @@ main:
       drift_coefficients:
         upstream: price_drift
     init_state_values: [12.388394202324129]
-    state_width: 1
     state_history_depth: 1
     seed: 3
 
   - name: affordability
     params: {}
     init_state_values: [8.0000000000000018]
-    state_width: 1
     state_history_depth: 1
     seed: 0
 

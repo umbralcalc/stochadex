@@ -56,8 +56,8 @@ func TestBathingWaterStub(t *testing.T) {
 	t.Run("more volatile anomaly raises mean exceedance", func(t *testing.T) {
 		const numSteps, nMembers = 400, 16
 
-		calm := meanPExceedEnsemble(0.3, numSteps, nMembers, "site_0")
-		stormy := meanPExceedEnsemble(0.8, numSteps, nMembers, "site_0")
+		calm := meanPExceedEnsemble(BuildStub, 0.3, numSteps, nMembers, "site_0")
+		stormy := meanPExceedEnsemble(BuildStub, 0.8, numSteps, nMembers, "site_0")
 
 		if !(stormy > calm) {
 			t.Fatalf("expected a more volatile anomaly to raise mean exceedance: "+

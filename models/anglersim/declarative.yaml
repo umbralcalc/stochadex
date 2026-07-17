@@ -24,7 +24,6 @@ main:
       warming_mask: [0.0, 1.0, 0.0]
       nonneg_mask: [1.0, 0.0, 1.0]
     init_state_values: [0.5, 12.0, 9.0]
-    state_width: 3
     state_history_depth: 1
     seed: 0
 
@@ -40,7 +39,6 @@ main:
       covariates:
         upstream: covariates
     init_state_values: [-0.27]
-    state_width: 1
     state_history_depth: 1
     seed: 997
 

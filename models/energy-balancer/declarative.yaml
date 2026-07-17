@@ -1,0 +1,341 @@
+# The energy-balancer generative core, written entirely as data: no Go, no compilation.
+#
+# This is the same model BuildStub assembles in stub.go, with the same partition names,
+# param keys, state layout and wiring, so the two can be compared directly (see
+# expression_equivalence_test.go, which checks per-step agreement and re-runs the whole
+# behaviour suite against this file). The run knobs BuildStub takes as arguments (renewable
+# penetration, horizon, seed) are injected by the caller; everything below is the model.
+#
+# Read semantics, which the two channels below do NOT share:
+#   - upstreams: is a lag-1 read of another partition's state history, and is what every
+#     bespoke iteration here does when it resolves a *_partition index and reads
+#     stateHistories[idx] (price, carbon_intensity, both dispatches, and all six
+#     accumulators). Their Go doc comments say so explicitly: "one-step lag".
+#   - params_from_upstream: is a within-step read, and is used for exactly one edge — the
+#     battery's dispatch_mw — matching BuildStub, where the battery applies this step's
+#     dispatch to the current SoC.
+# Mixing the two is also what keeps dispatch -> battery -> dispatch from deadlocking.
+#
+# One mask appears here with no counterpart in the params of stub.go, because the Go code
+# carries it as a hardcoded index instead: actual_dispatch_mask selects the battery's
+# actual_dispatch_mw, which the Go reads as the bare constant state index 1 (the accumulator
+# comments literally say "state index 1 of the battery partition"). Stating it as data is
+# what removes the index constant.
+main:
+  partitions:
+
+  # ---- Shared signals -----------------------------------------------------------------
+  # Residual demand (net load): the data-free stand-in for NESO half-hourly replay. sigmas
+  # is the headline driver — the caller injects baseline + penetration * per-penetration MW,
+  # exactly as BuildStub translates its renewablePenetration argument.
+  - name: residual_demand
+    params:
+      thetas: [0.5]
+      mus: [22500.0]
+      sigmas: [1000.0]
+    init_state_values: [22500.0]
+    state_history_depth: 1
+    seed: 0
+
+  # Mean-reverting price noise (mu = 0).
+  - name: price_noise
+    params:
+      thetas: [2.0]
+      mus: [0.0]
+      sigmas: [5.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  # Mean-reverting carbon-intensity noise (mu = 0).
+  - name: carbon_noise
+    params:
+      thetas: [2.0]
+      mus: [0.0]
+      sigmas: [20.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  # Structural imbalance price. init = 0.002 * 22500 - 10.
+  - name: price
+    params:
+      demand_slope: [0.002]
+      demand_intercept: [-10.0]
+    init_state_values: [35.0]
+    state_history_depth: 1
+    seed: 0
+
+  # Structural carbon intensity, driven off the same residual demand as the price, which is
+  # what reproduces their real co-movement. init = 0.012 * 22500 - 95.
+  - name: carbon_intensity
+    params:
+      carbon_slope: [0.012]
+      carbon_intercept: [-95.0]
+    init_state_values: [175.0]
+    state_history_depth: 1
+    seed: 0
+
+  # ---- Price-threshold policy chain ---------------------------------------------------
+  - name: price_dispatch
+    params:
+      price_high: [45.0]
+      price_low: [25.0]
+      power_rating_mw: [100.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: price_battery
+    params:
+      energy_capacity_mwh: [200.0]
+      power_rating_mw: [100.0]
+      charge_efficiency: [0.92]
+      discharge_efficiency: [0.92]
+      min_soc_fraction: [0.1]
+      max_soc_fraction: [0.9]
+    params_from_upstream:
+      dispatch_mw:
+        upstream: price_dispatch
+        indices: [0]
+    init_state_values: [100.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: price_efc
+    params:
+      energy_capacity_mwh: [200.0]
+      actual_dispatch_mask: [0.0, 1.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: price_revenue
+    params:
+      actual_dispatch_mask: [0.0, 1.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: price_co2_saved
+    params:
+      actual_dispatch_mask: [0.0, 1.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  # ---- Carbon-threshold policy chain --------------------------------------------------
+  # Physically identical battery to the price chain, arbitraging the same market against a
+  # different signal, so the two policies' cycling can be compared under identical conditions.
+  - name: carbon_dispatch
+    params:
+      carbon_high: [250.0]
+      carbon_low: [100.0]
+      power_rating_mw: [100.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: carbon_battery
+    params:
+      energy_capacity_mwh: [200.0]
+      power_rating_mw: [100.0]
+      charge_efficiency: [0.92]
+      discharge_efficiency: [0.92]
+      min_soc_fraction: [0.1]
+      max_soc_fraction: [0.9]
+    params_from_upstream:
+      dispatch_mw:
+        upstream: carbon_dispatch
+        indices: [0]
+    init_state_values: [100.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: carbon_efc
+    params:
+      energy_capacity_mwh: [200.0]
+      actual_dispatch_mask: [0.0, 1.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: carbon_revenue
+    params:
+      actual_dispatch_mask: [0.0, 1.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: carbon_co2_saved
+    params:
+      actual_dispatch_mask: [0.0, 1.0]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  expressions:
+
+  # The exact conditional-Gaussian OU transition, shared by all three noise processes: the
+  # three differ only in their params, so the anchor states the process once. X_{t+dt} | X_t
+  # is Gaussian with mean mu + (X_t - mu) exp(-theta dt) and variance
+  # (sigma^2 / 2theta)(1 - exp(-2 theta dt)); at theta = 0 it degenerates to Brownian motion,
+  # which the scalar where guards lazily so the 1/theta is never evaluated there.
+  #
+  # shared() is what makes this exactly one draw per step, matching the bespoke iteration's
+  # single NormFloat64 call. That holds because each of these fields is one element wide; a
+  # wider field would need iid(width, ...) to stay in lockstep.
+  - partition: residual_demand
+    fields:
+    - {name: x}
+    bindings: &ou_transition
+    - {name: decay, expr: "exp(-thetas * dt)"}
+    - {name: mean, expr: "where(thetas > 0, mus + (x - mus) * decay, x)"}
+    - {name: cond_var, expr: "where(thetas > 0,
+        sigmas * sigmas / (2 * thetas) * (1 - exp(-2 * thetas * dt)),
+        sigmas * sigmas * dt)"}
+    - {name: sd, expr: "sqrt(max(cond_var, 0))"}
+    outputs: ["shared(normal(mean, sd))"]
+
+  - partition: price_noise
+    fields:
+    - {name: x}
+    bindings: *ou_transition
+    outputs: ["shared(normal(mean, sd))"]
+
+  - partition: carbon_noise
+    fields:
+    - {name: x}
+    bindings: *ou_transition
+    outputs: ["shared(normal(mean, sd))"]
+
+  # Both structural signals are the same reduced form — a linear response to residual demand
+  # plus its own mean-reverting noise — which is why they co-move.
+  - partition: price
+    fields:
+    - {name: price_gbp_per_mwh}
+    upstreams:
+      demand: residual_demand
+      noise: price_noise
+    outputs: ["demand_slope * demand + demand_intercept + noise"]
+
+  - partition: carbon_intensity
+    fields:
+    - {name: carbon_gco2_kwh}
+    upstreams:
+      demand: residual_demand
+      noise: carbon_noise
+    outputs: ["carbon_slope * demand + carbon_intercept + noise"]
+
+  # Buy cheap, sell dear: full power across a threshold, nothing between.
+  - partition: price_dispatch
+    fields:
+    - {name: dispatch}
+    upstreams:
+      signal: price
+    outputs:
+    - "where(signal > price_high, power_rating_mw,
+        where(signal < price_low, -power_rating_mw, 0))"
+
+  # Discharge when the grid is dirty (displace gas), charge when it is clean (absorb surplus
+  # renewables): the same shape as the price policy against a different signal.
+  - partition: carbon_dispatch
+    fields:
+    - {name: dispatch}
+    upstreams:
+      signal: carbon_intensity
+    outputs:
+    - "where(signal > carbon_high, power_rating_mw,
+        where(signal < carbon_low, -power_rating_mw, 0))"
+
+  # The battery: clip the dispatch to the power rating, apply it to SoC through the one-way
+  # efficiency for its direction, then enforce the SoC limits and back-calculate the dispatch
+  # actually achieved. actual is the back-calculation: at a limit the battery only moved the
+  # energy it had room for, so the achieved dispatch is that energy converted back through
+  # the same efficiency.
+  - partition: price_battery
+    fields:
+    - {name: soc}
+    - {name: actual_dispatch}
+    bindings: &battery_dynamics
+    - {name: min_soc, expr: "min_soc_fraction * energy_capacity_mwh"}
+    - {name: max_soc, expr: "max_soc_fraction * energy_capacity_mwh"}
+    - {name: dispatch, expr: "clamp(dispatch_mw, -power_rating_mw, power_rating_mw)"}
+    - {name: energy_delta, expr: "where(dispatch >= 0,
+        -dispatch * dt / discharge_efficiency,
+        -dispatch * dt * charge_efficiency)"}
+    - {name: soc_raw, expr: "soc + energy_delta"}
+    - {name: new_soc, expr: "clamp(soc_raw, min_soc, max_soc)"}
+    - {name: actual, expr: "where(soc_raw < min_soc,
+        (soc - min_soc) * discharge_efficiency / dt,
+        where(soc_raw > max_soc,
+        -(max_soc - soc) / (charge_efficiency * dt), dispatch))"}
+    outputs: ["new_soc", "actual"]
+
+  - partition: carbon_battery
+    fields:
+    - {name: soc}
+    - {name: actual_dispatch}
+    bindings: *battery_dynamics
+    outputs: ["new_soc", "actual"]
+
+  # Equivalent full cycles: energy moved per step over twice the capacity (a full cycle is a
+  # charge and a discharge), accumulated.
+  - partition: price_efc
+    fields:
+    - {name: cumulative_efc}
+    upstreams:
+      battery: price_battery
+    bindings: &efc_accumulation
+    - {name: actual_dispatch, expr: "dot(actual_dispatch_mask, battery)"}
+    outputs: ["cumulative_efc + abs(actual_dispatch * dt) / (2 * energy_capacity_mwh)"]
+
+  - partition: carbon_efc
+    fields:
+    - {name: cumulative_efc}
+    upstreams:
+      battery: carbon_battery
+    bindings: *efc_accumulation
+    outputs: ["cumulative_efc + abs(actual_dispatch * dt) / (2 * energy_capacity_mwh)"]
+
+  # Revenue: positive when discharging (selling), negative when charging (buying).
+  - partition: price_revenue
+    fields:
+    - {name: cumulative_revenue}
+    upstreams:
+      battery: price_battery
+      market_price: price
+    bindings: &revenue_accumulation
+    - {name: actual_dispatch, expr: "dot(actual_dispatch_mask, battery)"}
+    outputs: ["cumulative_revenue + actual_dispatch * market_price * dt"]
+
+  - partition: carbon_revenue
+    fields:
+    - {name: cumulative_revenue}
+    upstreams:
+      battery: carbon_battery
+      market_price: price
+    bindings: *revenue_accumulation
+    outputs: ["cumulative_revenue + actual_dispatch * market_price * dt"]
+
+  # Carbon displaced by discharging only: charging does not save carbon, hence the max at 0.
+  # MWh * gCO2/kWh / 1000 = tCO2.
+  - partition: price_co2_saved
+    fields:
+    - {name: cumulative_carbon_tco2}
+    upstreams:
+      battery: price_battery
+      carbon: carbon_intensity
+    bindings: &carbon_savings_accumulation
+    - {name: actual_dispatch, expr: "dot(actual_dispatch_mask, battery)"}
+    - {name: discharge_mwh, expr: "max(actual_dispatch, 0) * dt"}
+    outputs: ["cumulative_carbon_tco2 + discharge_mwh * carbon / 1000"]
+
+  - partition: carbon_co2_saved
+    fields:
+    - {name: cumulative_carbon_tco2}
+    upstreams:
+      battery: carbon_battery
+      carbon: carbon_intensity
+    bindings: *carbon_savings_accumulation
+    outputs: ["cumulative_carbon_tco2 + discharge_mwh * carbon / 1000"]

@@ -26,16 +26,23 @@ func runStub(renewablePenetration float64, numSteps int, seed uint64) *simulator
 	return store
 }
 
+// stubBuilder assembles the model, matching BuildStub's signature. The behaviour
+// helpers take one rather than calling BuildStub directly so that an alternative
+// assembly of the same model — notably the declarative one in declarative.yaml —
+// can be put through this exact claim suite instead of a re-stated copy of it.
+type stubBuilder func(renewablePenetration float64, numSteps int, seed uint64) *simulator.ConfigGenerator
+
 // runStubOverride runs the stub with an override hook applied to the generated
 // config before the run, so a behaviour can vary any partition's params without
 // bloating BuildStub's signature.
 func runStubOverride(
+	build stubBuilder,
 	renewablePenetration float64,
 	numSteps int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := BuildStub(renewablePenetration, numSteps, seed)
+	gen := build(renewablePenetration, numSteps, seed)
 	if override != nil {
 		override(gen)
 	}
@@ -75,6 +82,7 @@ func meanFinalEFC(policy string, renewablePenetration float64, numSteps, nMember
 // meanFinalValue ensemble-averages finalValue over nMembers seeds under a fixed
 // penetration and override, damping single-run noise.
 func meanFinalValue(
+	build stubBuilder,
 	renewablePenetration float64,
 	numSteps, nMembers int,
 	partition string,
@@ -83,7 +91,7 @@ func meanFinalValue(
 ) float64 {
 	var sum float64
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(renewablePenetration, numSteps, uint64(3000+m), override)
+		store := runStubOverride(build, renewablePenetration, numSteps, uint64(3000+m), override)
 		sum += finalValue(store, partition, idx)
 	}
 	return sum / float64(nMembers)
@@ -103,45 +111,52 @@ func setParam(gen *simulator.ConfigGenerator, partition, key string, value float
 //
 // Claim IDs match the subtest names under TestEnergyBalancerExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(BuildStub)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only model
+// answers the same claims, measured the same way.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const steps, nMembers, pen = 168, 8, 0.6
 	const efcUnit = "ensemble-mean cumulative EFC"
 
-	baseEFC := meanFinalValue(pen, steps, nMembers, "price_efc", 0, nil)
-	baseRevenue := meanFinalValue(pen, steps, nMembers, "price_revenue", 0, nil)
-	baseCarbonEFC := meanFinalValue(pen, steps, nMembers, "carbon_efc", 0, nil)
+	baseEFC := meanFinalValue(build, pen, steps, nMembers, "price_efc", 0, nil)
+	baseRevenue := meanFinalValue(build, pen, steps, nMembers, "price_revenue", 0, nil)
+	baseCarbonEFC := meanFinalValue(build, pen, steps, nMembers, "carbon_efc", 0, nil)
 
 	// Headline: storage value grows with intermittency — more renewable penetration
 	// raises price-policy cycling.
-	pen00 := meanFinalValue(0.0, steps, nMembers, "price_efc", 0, nil)
-	pen05 := meanFinalValue(0.5, steps, nMembers, "price_efc", 0, nil)
-	pen10 := meanFinalValue(1.0, steps, nMembers, "price_efc", 0, nil)
+	pen00 := meanFinalValue(build, 0.0, steps, nMembers, "price_efc", 0, nil)
+	pen05 := meanFinalValue(build, 0.5, steps, nMembers, "price_efc", 0, nil)
+	pen10 := meanFinalValue(build, 1.0, steps, nMembers, "price_efc", 0, nil)
 
-	strict := meanFinalValue(pen, steps, nMembers, "price_efc", 0, func(g *simulator.ConfigGenerator) {
+	strict := meanFinalValue(build, pen, steps, nMembers, "price_efc", 0, func(g *simulator.ConfigGenerator) {
 		setParam(g, "price_dispatch", "price_high", 60.0)
 	})
-	big := meanFinalValue(pen, steps, nMembers, "price_efc", 0, func(g *simulator.ConfigGenerator) {
+	big := meanFinalValue(build, pen, steps, nMembers, "price_efc", 0, func(g *simulator.ConfigGenerator) {
 		setParam(g, "price_battery", "energy_capacity_mwh", 400.0)
 		setParam(g, "price_efc", "energy_capacity_mwh", 400.0)
 	})
-	leaky := meanFinalValue(pen, steps, nMembers, "price_revenue", 0, func(g *simulator.ConfigGenerator) {
+	leaky := meanFinalValue(build, pen, steps, nMembers, "price_revenue", 0, func(g *simulator.ConfigGenerator) {
 		setParam(g, "price_battery", "charge_efficiency", 0.75)
 		setParam(g, "price_battery", "discharge_efficiency", 0.75)
 	})
-	noisy := meanFinalValue(pen, steps, nMembers, "price_efc", 0, func(g *simulator.ConfigGenerator) {
+	noisy := meanFinalValue(build, pen, steps, nMembers, "price_efc", 0, func(g *simulator.ConfigGenerator) {
 		setParam(g, "price_noise", "sigmas", 15.0)
 	})
-	steep := meanFinalValue(pen, steps, nMembers, "price_efc", 0, func(g *simulator.ConfigGenerator) {
+	steep := meanFinalValue(build, pen, steps, nMembers, "price_efc", 0, func(g *simulator.ConfigGenerator) {
 		setParam(g, "price", "demand_slope", 0.004)
 		setParam(g, "price", "demand_intercept", 35.0-0.004*DefaultResidualMeanMW)
 	})
-	carbonSteep := meanFinalValue(pen, steps, nMembers, "carbon_efc", 0, func(g *simulator.ConfigGenerator) {
+	carbonSteep := meanFinalValue(build, pen, steps, nMembers, "carbon_efc", 0, func(g *simulator.ConfigGenerator) {
 		setParam(g, "carbon_intensity", "carbon_slope", 0.020)
 		setParam(g, "carbon_intensity", "carbon_intercept", 175.0-0.020*DefaultResidualMeanMW)
 	})
 
 	// (state, action) → outcome sign claims — single seeded runs driven hard into
 	// the branch (expensive vs cheap market), asserting the trade's sign.
-	expensive := runStubOverride(pen, steps, 42, func(g *simulator.ConfigGenerator) {
+	expensive := runStubOverride(build, pen, steps, 42, func(g *simulator.ConfigGenerator) {
 		setParam(g, "residual_demand", "mus", 30000.0) // price ≈ £50 > £45 sell bar
 		setParam(g, "residual_demand", "sigmas", 50.0)
 		setParam(g, "price_noise", "sigmas", 0.5)
@@ -149,7 +164,7 @@ func ObservedBehaviour() []cardgen.Claim {
 	sellSoC := finalValue(expensive, "price_battery", 0)
 	sellRevenue := finalValue(expensive, "price_revenue", 0)
 
-	cheap := runStubOverride(pen, steps, 42, func(g *simulator.ConfigGenerator) {
+	cheap := runStubOverride(build, pen, steps, 42, func(g *simulator.ConfigGenerator) {
 		setParam(g, "residual_demand", "mus", 15000.0) // price ≈ £20 < £25 buy bar
 		setParam(g, "residual_demand", "sigmas", 50.0)
 		setParam(g, "price_noise", "sigmas", 0.5)

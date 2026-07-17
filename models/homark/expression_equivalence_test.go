@@ -116,10 +116,17 @@ func singleHistory(values []float64) []*simulator.StateHistory {
 	return histories
 }
 
+// stepTimesteps varies the increment rather than pinning it at the model's own
+// stepSizeMonths of 1. At dt = 1 every dt and sqrt(dt) factor is a no-op, so a twin that
+// dropped one would agree anyway and this comparison would assert less than it looks like it
+// does — verified by mutation: deleting dt from the bank-rate update passes at a fixed dt of
+// 1 and fails here. The cycle covers dt below, at and above 1, since sqrt(dt) moves the
+// opposite way either side of it.
 func stepTimesteps(i int) *simulator.CumulativeTimestepsHistory {
+	dt := []float64{stepSizeMonths, 0.25, 2.5, 0.75}[i%4]
 	return &simulator.CumulativeTimestepsHistory{
-		Values:            mat.NewVecDense(1, []float64{float64(i) * stepSizeMonths}),
-		NextIncrement:     stepSizeMonths,
+		Values:            mat.NewVecDense(1, []float64{float64(i) * dt}),
+		NextIncrement:     dt,
 		CurrentStepNumber: i + 1,
 	}
 }
