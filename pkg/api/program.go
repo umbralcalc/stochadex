@@ -51,6 +51,32 @@ type PartitionConfigStrings struct {
 	ExtraVars     []map[string]string `yaml:"extra_vars,omitempty"`
 }
 
+// ExpressionConfig binds a declarative expression specification to a partition by name, so
+// that a partition's whole update can be written as data in the config file.
+//
+// Unlike the `iteration` field — which is a Go expression, and so requires this package's
+// code-generation step and a Go toolchain — an expression specification is just data: it is
+// loaded straight from the YAML and evaluated at run time. A config using only expressions
+// therefore needs no compilation at all, which is what lets a simulation be specified by
+// something that does not write Go.
+//
+// A partition named here may omit its `iteration` field, exactly as a partition backed by an
+// embedded run may. The specification is inlined, so its keys are those of
+// general.ExpressionIteration:
+//
+//	expressions:
+//	  - partition: battery
+//	    fields:
+//	      - {name: soc}
+//	      - {name: actual_dispatch}
+//	    bindings:
+//	      - {name: dispatch, expr: "clamp(dispatch_mw, -power_rating_mw, power_rating_mw)"}
+//	    outputs: ["clamp(soc + dispatch * dt, 0, energy_capacity_mwh)", "dispatch"]
+type ExpressionConfig struct {
+	Partition                   string `yaml:"partition"`
+	general.ExpressionIteration `yaml:",inline"`
+}
+
 // RunConfig represents a complete simulation run configuration with partitions
 // and simulation settings.
 //
@@ -80,18 +106,30 @@ type PartitionConfigStrings struct {
 //   - See simulator.PartitionConfig for partition configuration details
 //   - See simulator.SimulationConfig for simulation control parameters
 //   - See ApiRunConfig for API-level configuration with embedded runs
+//   - See ExpressionConfig for supplying a partition's iteration as data instead of Go
 type RunConfig struct {
 	Partitions []simulator.PartitionConfig `yaml:"partitions"`
-	Simulation simulator.SimulationConfig  `yaml:"-"`
+	// Expressions declaratively supply the iteration for the partitions they name.
+	Expressions []ExpressionConfig         `yaml:"expressions,omitempty"`
+	Simulation  simulator.SimulationConfig `yaml:"-"`
 }
 
 // GetConfigGenerator constructs a ConfigGenerator preloaded with the run's
-// SimulationConfig and Partitions.
+// SimulationConfig and Partitions, and gives any partition named by an Expressions entry a
+// declarative ExpressionIteration built from that entry.
 func (r *RunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	generator := simulator.NewConfigGenerator()
 	generator.SetSimulation(&r.Simulation)
 	for _, partition := range r.Partitions {
 		generator.SetPartition(&partition)
+	}
+	// Index rather than range by value: the iteration is the embedded struct, so it has to
+	// be the one owned by this config, not a copy of the loop variable.
+	for i := range r.Expressions {
+		expression := &r.Expressions[i]
+		partition := generator.GetPartition(expression.Partition)
+		partition.Iteration = &expression.ExpressionIteration
+		generator.ResetPartition(expression.Partition, partition)
 	}
 	return generator
 }
@@ -106,8 +144,12 @@ type EmbeddedRunConfig struct {
 // RunConfigStrings provides the string-templated inputs required to generate
 // a runnable main for a simulation run.
 type RunConfigStrings struct {
-	Partitions []PartitionConfigStrings          `yaml:"partitions"`
-	Simulation simulator.SimulationConfigStrings `yaml:"simulation"`
+	Partitions []PartitionConfigStrings `yaml:"partitions"`
+	// Expressions are pure data and need no code generation, so this view holds the same
+	// type as RunConfig: it is here so that validation knows which partitions legitimately
+	// omit an `iteration`, and so the same YAML parses in both views.
+	Expressions []ExpressionConfig                `yaml:"expressions,omitempty"`
+	Simulation  simulator.SimulationConfigStrings `yaml:"simulation"`
 }
 
 // EmbeddedRunConfigStrings names and provides string-templated inputs for an
@@ -225,13 +267,16 @@ func validateApiRunConfigStrings(config *ApiRunConfigStrings) {
 	for _, embedded := range config.Embedded {
 		embeddedNames[embedded.Name] = true
 	}
+	expressionNames := make(map[string]bool)
+	for _, expression := range config.Main.Expressions {
+		expressionNames[expression.Partition] = true
+	}
 	for _, partition := range config.Main.Partitions {
 		if partition.Iteration == "" {
-			_, ok := embeddedNames[partition.Name]
-			if !ok {
+			if !embeddedNames[partition.Name] && !expressionNames[partition.Name] {
 				panic("config omits iteration for partition name: " +
 					partition.Name +
-					" and no embedded simulation runs have this name")
+					" and no embedded simulation runs or expression specs have this name")
 			}
 		}
 	}
