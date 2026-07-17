@@ -68,12 +68,32 @@ func TestPostgresWritingAndQuerying(t *testing.T) {
 			analysis.WriteStateTimeStorageToPostgresDb(db, storage)
 
 			// Create a simulator.StateTimeStorage using data from a DB table
-			storage, _ = analysis.NewStateTimeStorageFromPostgresDb(
+			storage, err := analysis.NewStateTimeStorageFromPostgresDb(
 				db,
 				[]string{"gamma_compound_poisson", "group_numbers"},
 				0.0,
 				1000.0,
 			)
+			if err != nil {
+				t.Fatalf("the data did not read back from the DB: %v", err)
+			}
+
+			// Read back what was just written. The table keys on (partition_name, time), so a
+			// re-run overwrites rather than accumulates and these counts stay put.
+			jumps := storage.GetValues("gamma_compound_poisson")
+			groups := storage.GetValues("group_numbers")
+			if len(jumps) != 1001 || len(groups) != 1001 {
+				t.Fatalf("got %d and %d rows, want 1001 each (the initial state plus 1000)",
+					len(jumps), len(groups))
+			}
+			if len(jumps[0]) != 3 || len(groups[0]) != 3 {
+				t.Fatalf("got widths %d and %d, want 3 and 3", len(jumps[0]), len(groups[0]))
+			}
+			times := storage.GetTimes()
+			if len(times) != 1001 || times[0] != 0 || times[len(times)-1] != 1000 {
+				t.Errorf("got %d times spanning %v to %v, want 1001 spanning 0 to 1000",
+					len(times), times[0], times[len(times)-1])
+			}
 
 			// Reference the plotting data for the x-axis
 			xRef := analysis.DataRef{Plotting: &analysis.DataPlotting{IsTime: true}}
@@ -82,7 +102,9 @@ func TestPostgresWritingAndQuerying(t *testing.T) {
 			yRefs := []analysis.DataRef{{PartitionName: "gamma_compound_poisson"}}
 
 			// Create a scatter plot from partitions in a simulator.StateTimeStorage
-			_ = analysis.NewScatterPlotFromPartition(storage, xRef, yRefs)
+			if plot := analysis.NewScatterPlotFromPartition(storage, xRef, yRefs); plot == nil {
+				t.Error("expected a plot from the data read back from the DB")
+			}
 		},
 	)
 }
