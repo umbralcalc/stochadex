@@ -128,6 +128,10 @@ func (r *RunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 	for i := range r.Expressions {
 		expression := &r.Expressions[i]
 		partition := generator.GetPartition(expression.Partition)
+		if partition == nil {
+			panic("api: expression names partition " + expression.Partition +
+				" but no partition of that name is defined")
+		}
 		partition.Iteration = &expression.ExpressionIteration
 		generator.ResetPartition(expression.Partition, partition)
 	}

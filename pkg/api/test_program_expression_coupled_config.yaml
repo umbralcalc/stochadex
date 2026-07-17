@@ -1,0 +1,33 @@
+# Two partitions specified entirely as data, one reading the other: exercises upstream
+# resolution by name and params_from_upstream through the config layer, with no Go anywhere.
+main:
+  partitions:
+  - name: driver
+    params:
+      rate: [2.0]
+    init_state_values: [1.0]
+    state_width: 1
+    state_history_depth: 1
+    seed: 0
+  - name: responder
+    params:
+      gain: [10.0]
+    init_state_values: [0.0]
+    state_width: 1
+    state_history_depth: 1
+    seed: 0
+  expressions:
+  - partition: driver
+    fields:
+    - name: d
+    outputs:
+    - "d + rate * dt"
+  - partition: responder
+    fields:
+    - name: r
+    upstreams:
+      drv: driver
+    outputs:
+    - "r + gain * drv[0]"
+  simulation:
+    output_condition: "&simulator.NilOutputCondition{}"
