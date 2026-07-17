@@ -127,7 +127,15 @@ into the **Observed behaviour** table below (never hand-typed):
 - *Decision-path / mechanism (the actionable stewardship lever):* prescribing raises
   resistance **only through the selection term** — with `selection_coefficient` set to zero,
   a low-vs-high prescribing sweep leaves the resistant fraction unchanged, while with
-  selection on the same sweep moves it. This pins down *why* the stewardship lever works.
+  selection on the same sweep moves it. This establishes that selection is *necessary* for
+  the stewardship lever to work. It does **not** identify which selection-gated pathway
+  carries the effect: prescribing reaches resistance both by direct conversion
+  (`selection · ceph · S`) and by competitive release (suppressing S frees uncolonised
+  capacity for R), and both vanish when selection is off. Deleting the conversion term
+  outright still satisfies every claim here — competitive release alone reproduces the same
+  direction. No behavioural claim in this suite separates the two; only the per-step
+  comparison in `expression_equivalence_test.go` does. Treat the mechanism as *selection-gated*
+  rather than *attributed*.
 - *Structural drivers (out-of-sample credibility):* a higher fitness cost lowers resistance;
   higher transmission raises total colonisation; a higher per-patient infection probability
   raises the resistant BSI burden (the colonisation → infection outcome path).

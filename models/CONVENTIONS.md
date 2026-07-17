@@ -219,17 +219,30 @@ constant out into data is a genuine improvement, not a translation artifact.
 
 #### How the twin is verified
 
-Two independent checks, because they fail differently. **Step-for-step**: randomised inputs
-through single `Iterate` calls on both, which catches a mis-stated formula exactly. **Whole
-suite**: re-run `ObservedBehaviour()` against the declarative build, which catches what
-per-step agreement cannot — wrong wiring, wrong params, wrong state layout. To make the
-second possible, thread a `stubBuilder` through the behaviour helpers so `ObservedBehaviour()`
-delegates to an `observedBehaviour(build)`; the claim suite is then *pointed at* either
-assembly rather than restated for each. `ObservedBehaviour()` must keep its no-arg signature —
-`cmd/model-index` detects it by AST.
+**Both layers are required.** They are not alternatives and neither subsumes the other:
 
-Prefer the **strongest oracle the model allows**, and say in the test header which one you
-used and why:
+1. **Step-for-step** — randomised inputs through single `Iterate` calls on both sides. Catches
+   a mis-stated formula, exactly and immediately.
+2. **Whole-suite** — re-run `ObservedBehaviour()` against the declarative build. Catches what
+   per-step agreement cannot: wrong wiring, wrong param values, wrong state layout, a missing
+   partition.
+
+Neither is optional, because each is blind where the other sees. A perturbed coefficient
+survives step tests that feed their own randomised params, and only the suite catches it.
+Conversely — and this is the one that should settle the argument — in
+`antimicrobial-resistance`, **deleting the direct conversion term from the resistant drift, the
+model's stated causal heart, passes the entire claim suite**: competitive release reproduces
+the same directional response, so the claims cannot tell the two mechanisms apart. The step
+test catches it instantly. A claim suite checks *direction*; it does not pin *mechanism*.
+
+To make the suite layer possible, thread a `stubBuilder` through the behaviour helpers so
+`ObservedBehaviour()` delegates to an `observedBehaviour(build)`; the claim suite is then
+*pointed at* either assembly rather than restated for each. `ObservedBehaviour()` must keep
+its no-arg signature — `cmd/model-index` detects it by AST.
+
+Within each layer, use the **strongest oracle the model allows**, and say in the test header
+which one you used and why. The two layers step down independently — a model can be exact
+per-step and claim-level in the suite:
 
 1. **Exact (~1e-16).** Available when the bespoke iteration draws from the same generator the
    evaluator does (`rng.New(seed)` is `rand.New(rand.NewPCG(seed, seed))`) *and* the
@@ -239,11 +252,16 @@ used and why:
    the evaluator's separate operations. That residue is the FMA, not the model.
 2. **Claim-level.** When the streams cannot be aligned — a model on `math/rand` v1, or one
    hand-rolling a sampler the engine implements differently — assert that every claim still
-   `cardgen.Verify`s, and do *not* assert the numbers match. The claims are ensemble-level and
-   threshold-based precisely so they survive a different stream while still discriminating a
-   wrong model.
+   `cardgen.Verify`s, and do *not* assert the numbers match. Know what you have bought: this
+   covers direction, not mechanism, which is exactly why the step layer stays mandatory.
 3. **Distributional.** Per-step moments with a tolerance justified as a Monte Carlo sampling
    bound. Say in a comment that it is a sampling bound, not a rounding bound.
+
+Where the streams do not align, look for a **regime that recovers exactness** before settling
+for moments. `antimicrobial-resistance` compares exactly at `noise_scale = 0`, where both
+sides multiply their draw by zero and the streams stop mattering: the drift, the clamps and
+the renormalisation are then decidable value by value, and only the noise itself is left to
+distributional testing.
 
 Two rules that matter more than the tests passing:
 
