@@ -240,6 +240,9 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 	if err != nil {
 		panic(err)
 	}
+	if deadKeyErr := validateNoDeadKeys(yamlFile); deadKeyErr != nil {
+		panic(deadKeyErr)
+	}
 	var config ApiRunConfig
 	err = yaml.Unmarshal(yamlFile, &config)
 	for index := range config.Main.Partitions {
@@ -291,6 +294,9 @@ func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
+	}
+	if deadKeyErr := validateNoDeadKeys(yamlFile); deadKeyErr != nil {
+		panic(deadKeyErr)
 	}
 	var config ApiRunConfigStrings
 	err = yaml.Unmarshal(yamlFile, &config)
