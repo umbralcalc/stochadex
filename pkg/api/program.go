@@ -54,13 +54,13 @@ type PartitionConfigStrings struct {
 // ExpressionConfig binds a declarative expression specification to a partition by name, so
 // that a partition's whole update can be written as data in the config file.
 //
-// Unlike the `iteration` field — which is a Go expression, and so requires this package's
+// Unlike the iteration field — which is a Go expression, and so requires this package's
 // code-generation step and a Go toolchain — an expression specification is just data: it is
 // loaded straight from the YAML and evaluated at run time. A config using only expressions
 // therefore needs no compilation at all, which is what lets a simulation be specified by
 // something that does not write Go.
 //
-// A partition named here may omit its `iteration` field, exactly as a partition backed by an
+// A partition named here may omit its iteration field, exactly as a partition backed by an
 // embedded run may. The specification is inlined, so its keys are those of
 // general.ExpressionIteration:
 //
@@ -145,9 +145,8 @@ type EmbeddedRunConfig struct {
 // a runnable main for a simulation run.
 type RunConfigStrings struct {
 	Partitions []PartitionConfigStrings `yaml:"partitions"`
-	// Expressions are pure data and need no code generation, so this view holds the same
-	// type as RunConfig: it is here so that validation knows which partitions legitimately
-	// omit an `iteration`, and so the same YAML parses in both views.
+	// Expressions are data, so this view holds the same type as RunConfig. Validation reads
+	// it to know which partitions may legitimately omit an iteration.
 	Expressions []ExpressionConfig                `yaml:"expressions,omitempty"`
 	Simulation  simulator.SimulationConfigStrings `yaml:"simulation"`
 }

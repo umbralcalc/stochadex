@@ -2,12 +2,24 @@ package general
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"gonum.org/v1/gonum/mat"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
+
+// stringifyPanic renders a recovered panic value for substring assertions.
+func stringifyPanic(v any) string {
+	switch value := v.(type) {
+	case error:
+		return value.Error()
+	case string:
+		return value
+	}
+	return ""
+}
 
 // driverExpr advances a two-scalar partition; responderExpr reads it, exercising a vector
 // field, scalar broadcasting, upstream indexing and a reduction.
@@ -170,36 +182,60 @@ func TestExpressionSemantics(t *testing.T) {
 		}
 	})
 
-	t.Run("a draw's width comes from its parameters", func(t *testing.T) {
-		// Scalar parameters mean ONE sample, which then broadcasts across the field: the
-		// documented sharp edge. Widening (fill, or a vector-valued parameter) is what
-		// gives independent noise per element.
-		shared := evalOnce(t, &ExpressionIteration{
-			Fields:  []ExpressionField{{Name: "v", Width: 4}},
-			Outputs: []string{"normal(0, 1)"},
-		}, []float64{0, 0, 0, 0}, map[string][]float64{})
-		for i := 1; i < 4; i++ {
-			if shared[i] != shared[0] {
-				t.Fatalf("scalar-parameter draw should broadcast one sample, got %v", shared)
+	t.Run("an unannotated scalar-parameter draw is rejected", func(t *testing.T) {
+		// The whole point: silently adding the same shock to every element of a wide field
+		// is a modelling bug, and both readings are things people mean, so the ambiguity is
+		// refused rather than guessed at.
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Fatal("expected a panic for an ambiguous scalar-parameter draw")
 			}
-		}
+			msg := stringifyPanic(r)
+			if !strings.Contains(msg, "iid(") || !strings.Contains(msg, "shared(") {
+				t.Errorf("panic should name both fixes, got: %q", msg)
+			}
+		}()
+		evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 4}},
+			Outputs: []string{"v + normal(0, 1)"},
+		}, []float64{0, 0, 0, 0}, map[string][]float64{})
+	})
+
+	t.Run("iid gives independent samples, shared gives one", func(t *testing.T) {
 		independent := evalOnce(t, &ExpressionIteration{
 			Fields:  []ExpressionField{{Name: "v", Width: 4}},
-			Outputs: []string{"normal(fill(4, 0), sigmas)"},
-		}, []float64{0, 0, 0, 0}, map[string][]float64{"sigmas": {1, 1, 1, 1}})
+			Outputs: []string{"iid(4, normal(0, 1))"},
+		}, []float64{0, 0, 0, 0}, map[string][]float64{})
 		if independent[0] == independent[1] && independent[1] == independent[2] {
-			t.Fatalf("widened draw should be independent per element, got %v", independent)
+			t.Fatalf("iid should sample independently per element, got %v", independent)
+		}
+		one := evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 4}},
+			Outputs: []string{"v + shared(normal(0, 1))"},
+		}, []float64{0, 0, 0, 0}, map[string][]float64{})
+		for i := 1; i < 4; i++ {
+			if one[i] != one[0] {
+				t.Fatalf("shared should reuse one sample across the field, got %v", one)
+			}
+		}
+	})
+
+	t.Run("a vector-parameter draw needs no annotation", func(t *testing.T) {
+		got := evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 3}},
+			Outputs: []string{"poisson(rates)"},
+		}, []float64{0, 0, 0}, map[string][]float64{"rates": {5, 5, 5}})
+		if len(got) != 3 {
+			t.Fatalf("got width %d, want 3", len(got))
 		}
 	})
 
 	t.Run("compound draws compose (poisson of a gamma)", func(t *testing.T) {
 		// The negative-binomial branching shape the measles model needs.
 		e := &ExpressionIteration{
-			Fields: []ExpressionField{{Name: "n"}},
-			Bindings: []ExpressionBinding{
-				{Name: "lambda", Expr: "gamma(shape, rate)"},
-			},
-			Outputs: []string{"poisson(lambda)"},
+			Fields:  []ExpressionField{{Name: "n"}},
+			Outputs: []string{"iid(1, poisson(gamma(shape, rate)))"},
 		}
 		got := evalOnce(t, e, []float64{0}, map[string][]float64{
 			"shape": {20}, "rate": {2},
