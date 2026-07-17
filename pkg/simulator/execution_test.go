@@ -46,6 +46,41 @@ func runStrategyConfig(
 	return store
 }
 
+// stepStrategyConfig drives the given topology to termination one step at a
+// time through the strategy's Stepper (nil for the default), rather than via
+// coordinator.Run, and returns the recorded output. This is the stepwise path
+// callers use for interactive / externally-coupled runs, and it must match the
+// batch Run output exactly for every strategy.
+func stepStrategyConfig(
+	settings *Settings,
+	makeIterations func() []Iteration,
+	maxSteps int,
+	strategy ExecutionStrategy,
+) *StateTimeStorage {
+	iterations := makeIterations()
+	for index, iteration := range iterations {
+		iteration.Configure(index, settings)
+	}
+	store := NewStateTimeStorage()
+	implementations := &Implementations{
+		Iterations:      iterations,
+		OutputCondition: &EveryStepOutputCondition{},
+		OutputFunction:  &StateTimeStorageOutputFunction{Store: store},
+		TerminationCondition: &NumberOfStepsTerminationCondition{
+			MaxNumberOfSteps: maxSteps,
+		},
+		TimestepFunction:  &ConstantTimestepFunction{Stepsize: 1.0},
+		ExecutionStrategy: strategy,
+	}
+	coordinator := NewPartitionCoordinator(settings, implementations)
+	stepper := coordinator.NewStepper()
+	defer stepper.Close()
+	for !coordinator.ReadyToTerminate() {
+		stepper.Step()
+	}
+	return store
+}
+
 // assertStoresEqual fails the test unless got matches want for every partition,
 // timestep and value index exactly.
 func assertStoresEqual(t *testing.T, want, got *StateTimeStorage, label string) {
@@ -170,6 +205,26 @@ func TestExecutionStrategies(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("stepwise NewStepper matches batch Run for every strategy",
+		func(t *testing.T) {
+			// Every strategy must be driveable one Step at a time and produce
+			// the same output as its own batch Run — the property that lets
+			// interactive / externally-coupled callers pick any strategy.
+			strategies := namedStrategies()
+			strategies["default"] = nil
+			for topologyName, build := range topologies {
+				settings, makeIterations := build()
+				for strategyName, strategy := range strategies {
+					batch := runStrategyConfig(
+						settings, makeIterations, maxSteps, strategy)
+					stepwise := stepStrategyConfig(
+						settings, makeIterations, maxSteps, strategy)
+					assertStoresEqual(t, batch, stepwise,
+						"stepwise/"+topologyName+"/"+strategyName)
+				}
+			}
+		})
 
 	t.Run("default Run matches explicit SpawnPerStepExecution", func(t *testing.T) {
 		settings, makeIterations := chainSettings()

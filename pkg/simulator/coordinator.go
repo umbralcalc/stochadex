@@ -51,10 +51,11 @@ import (
 //	// Run simulation until termination
 //	coordinator.Run()
 //
-//	// Or step-by-step control
+//	// Or step-by-step control under the configured execution strategy
+//	stepper := coordinator.NewStepper()
+//	defer stepper.Close()
 //	for !coordinator.ReadyToTerminate() {
-//	    var wg sync.WaitGroup
-//	    coordinator.Step(&wg)
+//	    stepper.Step()
 //	}
 //
 // Performance:
@@ -111,6 +112,25 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 		channel <- c.Shared
 	}
 
+	c.advanceTimestepsHistory()
+}
+
+// beginStep opens a simulation tick: it advances the step counter and computes
+// the next timestep increment. It is the shared prologue of every strategy's
+// Stepper (and of Step), so the "how do we start a step" logic lives in one
+// place.
+func (c *PartitionCoordinator) beginStep() {
+	c.Shared.TimestepsHistory.CurrentStepNumber += 1
+	c.Shared.TimestepsHistory.NextIncrement = c.TimestepFunction.NextIncrement(
+		c.Shared.TimestepsHistory,
+	)
+}
+
+// advanceTimestepsHistory closes a simulation tick: it shifts the timesteps
+// history back one and appends the next time value. It is the shared epilogue
+// of every strategy's Stepper (and of UpdateHistory), so the "how do we commit
+// the new time" logic lives in one place.
+func (c *PartitionCoordinator) advanceTimestepsHistory() {
 	// iterate over the history of timesteps and shift them back one
 	for i := c.Shared.TimestepsHistory.StateHistoryDepth - 1; i > 0; i-- {
 		c.Shared.TimestepsHistory.Values.SetVec(i,
@@ -122,14 +142,14 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 			c.Shared.TimestepsHistory.NextIncrement)
 }
 
-// Step performs one simulation tick: compute dt, request iterations, then
-// apply state/time updates.
+// Step performs one simulation tick under the default spawn-per-step execution:
+// compute dt, request iterations, then apply state/time updates. It is the
+// single-step primitive the SpawnPerStepExecution stepper delegates to; other
+// strategies advance a step through their own Stepper. Callers that want to
+// drive a step under the coordinator's configured strategy should use
+// NewStepper instead.
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
-	// update the overall step count and get the next time increment
-	c.Shared.TimestepsHistory.CurrentStepNumber += 1
-	c.Shared.TimestepsHistory.NextIncrement = c.TimestepFunction.NextIncrement(
-		c.Shared.TimestepsHistory,
-	)
+	c.beginStep()
 
 	// begin by requesting iterations for the next step and waiting
 	c.RequestMoreIterations(wg)
@@ -148,22 +168,40 @@ func (c *PartitionCoordinator) ReadyToTerminate() bool {
 	)
 }
 
-// Run advances by repeatedly calling Step until termination.
+// NewStepper returns a Stepper that advances the coordinator one step at a
+// time under its configured RunStrategy (a nil RunStrategy selects the default
+// spawn-per-step execution). This is the strategy-aware counterpart to Step:
+// it lets callers drive any execution strategy stepwise — inspecting or
+// mutating state between steps — exactly as the default algorithm can be driven
+// with Step, while keeping that strategy's execution policy (persistent
+// workers, inline execution, ...).
 //
-// When RunStrategy is non-nil it owns the whole run loop; otherwise Run uses
-// the default spawn-per-step two-phase execution that is equivalent to
-// repeatedly calling Step.
-func (c *PartitionCoordinator) Run() {
+// The caller drives Step until ReadyToTerminate reports true and must call the
+// stepper's Close when done to release any resources it holds:
+//
+//	stepper := coordinator.NewStepper()
+//	defer stepper.Close()
+//	for !coordinator.ReadyToTerminate() {
+//	    stepper.Step()
+//	}
+func (c *PartitionCoordinator) NewStepper() Stepper {
 	if c.RunStrategy != nil {
-		c.RunStrategy.Run(c)
-		return
+		return c.RunStrategy.NewStepper(c)
 	}
+	return (&SpawnPerStepExecution{}).NewStepper(c)
+}
 
-	var wg sync.WaitGroup
+// Run advances the coordinator to termination under its configured RunStrategy
+// (a nil RunStrategy selects the default spawn-per-step two-phase execution).
+// It is the canonical run loop shared by every strategy: build a Stepper, step
+// until termination, then release the stepper.
+func (c *PartitionCoordinator) Run() {
+	stepper := c.NewStepper()
+	defer stepper.Close()
 
 	// terminate the for loop if the condition has been met
 	for !c.ReadyToTerminate() {
-		c.Step(&wg)
+		stepper.Step()
 	}
 }
 

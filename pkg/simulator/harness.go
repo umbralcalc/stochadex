@@ -2,7 +2,6 @@ package simulator
 
 import (
 	"fmt"
-	"sync"
 	"unsafe"
 
 	"gonum.org/v1/gonum/floats"
@@ -252,30 +251,24 @@ func RunWithHarnessesUsing(
 }
 
 // runHarnessedToTermination advances the coordinator to termination and
-// returns the first harness error found. For the default execution (no
-// strategy) it uses the manual Step loop so the per-step checks run between
-// every step exactly as before; for an explicit strategy it delegates the loop
-// to Run and checks the harnesses once it returns.
+// returns the first harness error found. It drives the coordinator through the
+// configured strategy's Stepper, checking the harnesses between every step, so
+// the per-step correctness checks run at the same granularity under every
+// strategy — not just the default. Between two Steps the strategy has committed
+// a full step and holds no work in flight, so inspecting the harnesses there is
+// safe for the concurrent strategies too.
 func runHarnessedToTermination(
 	coordinator *PartitionCoordinator,
 	harnesses []*IterationTestHarness,
 ) error {
-	if coordinator.RunStrategy == nil {
-		var wg sync.WaitGroup
-		for !coordinator.ReadyToTerminate() {
-			coordinator.Step(&wg)
-			for _, harness := range harnesses {
-				if harness.Err != nil {
-					return harness.Err
-				}
+	stepper := coordinator.NewStepper()
+	defer stepper.Close()
+	for !coordinator.ReadyToTerminate() {
+		stepper.Step()
+		for _, harness := range harnesses {
+			if harness.Err != nil {
+				return harness.Err
 			}
-		}
-		return nil
-	}
-	coordinator.Run()
-	for _, harness := range harnesses {
-		if harness.Err != nil {
-			return harness.Err
 		}
 	}
 	return nil

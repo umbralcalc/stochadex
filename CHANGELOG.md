@@ -22,6 +22,8 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-17
+
 ### Added
 - **Opt-in Apache Arrow egress (`pkg/arrowstore`, a separate module).** An Arrow-native
   `simulator.OutputFunction` + storage (`ArrowStateTimeStorage`) at the output boundary, kept
@@ -75,6 +77,24 @@ an exact version rather than assume stability across minors.
   (Superseded the short-lived self-hosted-SVG badge approach.)
 
 ### Changed
+- **Every execution strategy is now steppable (breaking: the `ExecutionStrategy`
+  interface).** Execution strategies previously owned the whole run loop via a single
+  `Run(c)` method, so selecting `PersistentWorkerExecution` or `InlineExecution` silently
+  gave up the step-by-step driving the default algorithm supports — the interactive,
+  keyboard, websocket, and embedded paths, plus the harness's per-step checks, all fell back
+  to default execution. The interface's single primitive is now `NewStepper(c) Stepper`
+  (`Stepper` is `{ Step(); Close() }`), which holds whatever per-run state the policy needs
+  (e.g. persistent worker goroutines) and advances exactly one committed tick per `Step`.
+  Both batch `PartitionCoordinator.Run` and the new stepwise
+  `PartitionCoordinator.NewStepper` are expressed in terms of it, so **any** strategy can be
+  driven one step at a time exactly as the default can — dropping `Run` from the interface
+  makes steppability structural rather than per-strategy. The test harness now runs its
+  per-step correctness checks (params mutation, NaN, state width, history integrity) under
+  *every* strategy instead of only the default, and the websocket run path honours the
+  configured strategy. Output stays byte-identical and performance is unchanged (benchstat
+  over 8 runs: timing within run-to-run noise, allocations flat — the one extra `Stepper`
+  allocation is per-run, not per-step). `PartitionCoordinator.Step(wg)` is retained for the
+  default single-step path.
 - **Quickstart rewritten to lead with a win (2.4).** The quickstart now opens with a complete,
   runnable ~25-line Go program (a recorded random walk that prints its output) before any
   partition/iteration/history vocabulary — then backfills that worldview, points at where
@@ -294,6 +314,7 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/umbralcalc/stochadex/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/umbralcalc/stochadex/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/umbralcalc/stochadex/releases/tag/v0.1.0
