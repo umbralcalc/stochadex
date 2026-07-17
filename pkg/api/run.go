@@ -47,10 +47,13 @@ func StepAndServeWebsocket(
 				generator.GenerateConfigs(),
 			)
 
-			var wg sync.WaitGroup
+			// step under the configured execution strategy, sleeping between
+			// steps so the websocket streams state at a watchable rate
+			stepper := coordinator.NewStepper()
+			defer stepper.Close()
 			// terminate the for loop if the condition has been met
 			for !coordinator.ReadyToTerminate() {
-				coordinator.Step(&wg)
+				stepper.Step()
 				time.Sleep(stepDelay * time.Millisecond)
 			}
 		},
