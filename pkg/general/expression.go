@@ -48,12 +48,17 @@ type ExpressionBinding struct {
 //   - each entry of the partition's params, by key;
 //   - each alias in Upstreams, holding that partition's current state (index it as alias[i]);
 //   - dt, the timestep increment; t, the current cumulative time; step, the step number;
+//   - pi;
 //   - any binding declared earlier.
 //
-// Functions: where, clamp, min, max, abs, floor, exp, log, sqrt, pow, fill, sum, dot, iid and
-// shared, plus the draws normal, uniform, exponential, poisson, gamma, beta and binomial.
-// Draws take expressions as their parameters, so compound sampling composes naturally: a
-// negative-binomial branching step is just poisson(gamma(shape, rate)).
+// Functions: where, clamp, min, max, abs, floor, exp, log, sqrt, pow, sin, cos, erf, erfc,
+// fill, sum, dot, iid and shared, plus the draws normal, uniform, exponential, poisson,
+// gamma, beta and binomial. Draws take expressions as their parameters, so compound sampling
+// composes naturally: a negative-binomial branching step is just poisson(gamma(shape, rate)).
+//
+// sin and cos carry seasonality; erfc is the primitive a Gaussian CDF is built from, as
+// 0.5 * erfc(-x / sqrt(2)), which is what a probit link or a threshold-exceedance
+// probability needs.
 //
 // Conditionals are expressions, not statements: where(cond, a, b). When cond is a scalar the
 // untaken branch is not evaluated, so a guard such as where(n > 0, binomial(n, p), 0) is safe
@@ -194,6 +199,7 @@ func (e *ExpressionIteration) Iterate(
 	env["dt"] = exprValue{timestepsHistory.NextIncrement}
 	env["t"] = exprValue{timestepsHistory.Values.AtVec(0)}
 	env["step"] = exprValue{float64(timestepsHistory.CurrentStepNumber)}
+	env["pi"] = exprValue{math.Pi}
 
 	ctx := &exprCtx{env: env, sampler: e.sampler}
 	for _, b := range e.parsedBindings {
@@ -471,6 +477,21 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 	case "sqrt":
 		need(1)
 		return mapExpr(arg(0), math.Sqrt)
+	case "sin":
+		need(1)
+		return mapExpr(arg(0), math.Sin)
+	case "cos":
+		need(1)
+		return mapExpr(arg(0), math.Cos)
+	case "erf":
+		need(1)
+		return mapExpr(arg(0), math.Erf)
+	case "erfc":
+		// The primitive a Gaussian CDF is built from: 0.5 * erfc(-x / sqrt(2)). Kept as
+		// erfc rather than offering the CDF directly so it matches math.Erfc exactly, which
+		// is what lets a model expressed here agree with compiled Go to rounding.
+		need(1)
+		return mapExpr(arg(0), math.Erfc)
 	case "fill":
 		need(2)
 		nv, x := arg(0), arg(1)

@@ -245,6 +245,46 @@ func TestExpressionSemantics(t *testing.T) {
 		}
 	})
 
+	t.Run("seasonality and a Gaussian CDF are expressible", func(t *testing.T) {
+		// These exist because the catalogue asked for them: a seasonal driver needs sin, and
+		// a threshold-exceedance probability needs the normal CDF, which is 0.5*erfc(-x/√2).
+		// They must agree with the Go math package exactly, since that is what a declarative
+		// model is compared against.
+		e := &ExpressionIteration{
+			Fields: []ExpressionField{{Name: "season"}, {Name: "p"}},
+			Outputs: []string{
+				"amplitude * sin(2 * pi * t / period + phase)",
+				"0.5 * erfc(-(x - threshold) / (sigma * sqrt(2)))",
+			},
+		}
+		got := evalOnce(t, e, []float64{0, 0}, map[string][]float64{
+			"amplitude": {2}, "period": {12}, "phase": {0.3},
+			"x": {1.4}, "threshold": {0.9}, "sigma": {0.7},
+		})
+		wantSeason := 2 * math.Sin(2*math.Pi*3.0/12+0.3)
+		wantP := 0.5 * math.Erfc(-(1.4-0.9)/(0.7*math.Sqrt2))
+		if got[0] != wantSeason {
+			t.Errorf("season: got %v, want %v", got[0], wantSeason)
+		}
+		if got[1] != wantP {
+			t.Errorf("exceedance probability: got %v, want %v", got[1], wantP)
+		}
+	})
+
+	t.Run("cos and erf match the Go math package elementwise", func(t *testing.T) {
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 3}},
+			Outputs: []string{"cos(v) + erf(v)"},
+		}
+		in := []float64{-1.25, 0.0, 2.5}
+		got := evalOnce(t, e, in, map[string][]float64{})
+		for i, x := range in {
+			if want := math.Cos(x) + math.Erf(x); got[i] != want {
+				t.Errorf("element %d: got %v, want %v", i, got[i], want)
+			}
+		}
+	})
+
 	t.Run("a scalar output broadcasts across its field", func(t *testing.T) {
 		e := &ExpressionIteration{
 			Fields:  []ExpressionField{{Name: "v", Width: 3}},
