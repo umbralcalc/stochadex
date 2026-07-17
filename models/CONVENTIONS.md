@@ -258,6 +258,29 @@ if any count is zero — an untriggered branch is a comparison that looks strong
 Choose input ranges that actually reach the clips and guards, including ranges the model would
 not ordinarily visit.
 
+**Both layers are load-bearing; neither is redundant.** In `antimicrobial-resistance`, deleting
+the direct conversion term from the resistant drift — the model's stated causal heart — passes
+the *entire* claim suite, because competitive release reproduces the same directional response.
+The step test catches it instantly. Conversely, a perturbed coefficient survives step tests that
+feed their own randomised params, and is caught only by the suite. Where a model can only have
+the claim-level oracle, know that you are covering direction and not mechanism.
+
+**Mutation-test the twin; do not trust a green run.** Deliberately corrupt the YAML — perturb a
+param, drop a term, mis-wire an upstream, unguard a draw — and confirm each is caught. This is
+how the reference twin's own defects were found, and two traps recur:
+
+- **A stepsize of 1 hides every `dt`.** At `dt = 1`, `* dt` and `sqrt(dt)` are no-ops, so a twin
+  that dropped one agrees anyway. Every model here runs at a constant stepsize of 1, so step
+  tests must **vary `dt`** — below, at, and above 1, since `sqrt(dt)` moves the opposite way
+  either side.
+- **Unknown YAML keys are ignored silently.** `yaml.v2` does not reject them, so a key that
+  does nothing looks load-bearing. `state_width` sat in seven twins doing nothing —
+  `PartitionConfig` has no such field, and the width comes from `init_state_values`.
+
+Verify the mutation actually landed before believing it passed: a `sed` that silently matched
+nothing reports the same green as a test that missed a real bug (BSD `sed` supports neither
+`\s` nor GNU's `0,/re/`).
+
 Where a model resists the DSL, the twin's **absence is the artifact**: record what could not
 be expressed and why, as a category 2 finding below.
 
@@ -311,13 +334,23 @@ Two shapes, with very different costs:
   `bathing-water-forecaster`. Prefer the mathematical primitive over the convenience wrapper:
   `erfc` rather than a `normal_cdf`, because it matches what compiled Go computes term for
   term, which is what keeps a twin exact.
-- **A missing structure.** The model's update is not elementwise at all, so no set of
-  functions rescues it. `business-survival` is the worked example: a cohort stock-and-flow
-  whose output element *i* reads input element *i−1* (an age shift), with an absorbing top
-  bucket. The DSL aligns element *i* with element *i* by construction, so this is a shape gap,
-  not a vocabulary gap. Resolving it means either a new operator (a shift, which enlarges what
-  the DSL *is*) or a core `Iteration` — a real design decision, and correspondingly slow.
-  Record it and let it wait for a second instance before choosing.
+- **A missing structure.** The model's update is not elementwise over the current row, so no
+  set of functions rescues it: the shape is what is wrong. These are slow and expensive —
+  each means either an operator that enlarges what the DSL *is*, or a core `Iteration`.
+  Record them and let a second instance argue for the design. The catalogue has surfaced
+  four, and they rhyme — all four are about *structured access* or *lane-wise control of
+  draws*, which is exactly the axis a strictly elementwise evaluator gives up:
+
+  | Gap | Found by | What it needs |
+  |---|---|---|
+  | Index shift — output *i* reads input *i−1*, with an absorbing boundary | `business-survival` (cohort/Leslie flow) | a shift, or a core aged-cohort iteration |
+  | Lag-*N* history read — only the current row is exposed | `trywizard` (ageing yellow cards out ten rows back) | a `lag(alias, n)` accessor |
+  | Slicing — no way to address a block within a flat vector | `trywizard` (9 coefficients at a stride-9 offset) | a slice/reshape primitive |
+  | Draw ordering and lane-wise laziness — an expression takes all its Gammas before any Poisson, and a vector-guarded `where` draws in every lane | `measles-risk-forecaster` (per-area interleaved draws, inactive areas skipped) | per-lane control the evaluator does not have |
+
+  The last one is worth reading twice: the DSL's own doc comment already predicts it ("a
+  vector-guarded draw consumes randomness in every lane"). A limitation you documented is
+  still a limitation — a model hitting it is evidence, not a duplicate of the note.
 
 **Do not resolve a category 2 finding by changing the model to suit the DSL.** The finding is
 the value; a model bent to fit tells you nothing. The promotion decision stays a maintainer
