@@ -125,7 +125,9 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 			}
 
 			// Create a scatter plot from partitions in a simulator.StateTimeStorage
-			_ = analysis.NewScatterPlotFromPartition(storage, xRef, yRefs)
+			if plot := analysis.NewScatterPlotFromPartition(storage, xRef, yRefs); plot == nil {
+				t.Error("expected a scatter plot")
+			}
 
 			// Reference the mean update plotting data for the y-axis
 			yRefs = []analysis.DataRef{
@@ -133,7 +135,9 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 			}
 
 			// Create a line plot from partitions in a simulator.StateTimeStorage
-			_ = analysis.NewLinePlotFromPartition(storage, xRef, yRefs, nil)
+			if plot := analysis.NewLinePlotFromPartition(storage, xRef, yRefs, nil); plot == nil {
+				t.Error("expected a line plot")
+			}
 		},
 	)
 }

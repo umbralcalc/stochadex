@@ -14,6 +14,12 @@ import (
 // computation here — not in a _test.go file — is what lets the card show exactly
 // the numbers the test asserts on, so the two can never disagree.
 
+// stubBuilder assembles the model, matching BuildStub's signature. The behaviour
+// helpers take one rather than calling BuildStub directly so that an alternative
+// assembly of the same model — notably the declarative one in declarative.yaml —
+// can be put through this exact claim suite instead of a re-stated copy of it.
+type stubBuilder func(mmr2Coverage float64, maxGenerations int, seed uint64) *simulator.ConfigGenerator
+
 // stepAll drives a coordinator to termination.
 func stepAll(coordinator *simulator.PartitionCoordinator) {
 	var wg sync.WaitGroup
@@ -24,8 +30,13 @@ func stepAll(coordinator *simulator.PartitionCoordinator) {
 
 // runStub runs the stub to completion and returns the recorded state history for
 // every partition, keyed by partition name.
-func runStub(mmr2Coverage float64, maxGenerations int, seed uint64) *simulator.StateTimeStorage {
-	settings, implementations := BuildStub(mmr2Coverage, maxGenerations, seed).GenerateConfigs()
+func runStub(
+	build stubBuilder,
+	mmr2Coverage float64,
+	maxGenerations int,
+	seed uint64,
+) *simulator.StateTimeStorage {
+	settings, implementations := build(mmr2Coverage, maxGenerations, seed).GenerateConfigs()
 	store := simulator.NewStateTimeStorage()
 	implementations.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: store}
 	coordinator := simulator.NewPartitionCoordinator(settings, implementations)
@@ -38,12 +49,13 @@ func runStub(mmr2Coverage float64, maxGenerations int, seed uint64) *simulator.S
 // dispersion, the importation band, the per-UTLA surface) without bloating
 // BuildStub's signature — BuildStub still exposes only the one headline driver.
 func runScenarioOverride(
+	build stubBuilder,
 	mmr2Coverage float64,
 	maxGenerations int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := BuildStub(mmr2Coverage, maxGenerations, seed)
+	gen := build(mmr2Coverage, maxGenerations, seed)
 	if override != nil {
 		override(gen)
 	}
@@ -70,10 +82,10 @@ func totalCases(store *simulator.StateTimeStorage) float64 {
 
 // meanTotalCases ensemble-averages the national total across nScenarios seeds (each
 // seed draws its own shared national importation total M).
-func meanTotalCases(mmr2Coverage float64, maxGenerations, nScenarios int) float64 {
+func meanTotalCases(build stubBuilder, mmr2Coverage float64, maxGenerations, nScenarios int) float64 {
 	var sum float64
 	for k := 0; k < nScenarios; k++ {
-		sum += totalCases(runStub(mmr2Coverage, maxGenerations, uint64(1000+k)))
+		sum += totalCases(runStub(build, mmr2Coverage, maxGenerations, uint64(1000+k)))
 	}
 	return sum / float64(nScenarios)
 }
@@ -81,12 +93,14 @@ func meanTotalCases(mmr2Coverage float64, maxGenerations, nScenarios int) float6
 // meanTotalOverride ensemble-averages the national total across nScenarios seeds
 // under a fixed coverage (the illustrative baseline) and override.
 func meanTotalOverride(
+	build stubBuilder,
 	maxGenerations, nScenarios int,
 	override func(*simulator.ConfigGenerator),
 ) float64 {
 	var sum float64
 	for k := 0; k < nScenarios; k++ {
-		sum += totalCases(runScenarioOverride(DefaultMMR2Coverage, maxGenerations, uint64(4000+k), override))
+		sum += totalCases(runScenarioOverride(
+			build, DefaultMMR2Coverage, maxGenerations, uint64(4000+k), override))
 	}
 	return sum / float64(nScenarios)
 }
@@ -109,10 +123,15 @@ func finalCumulativeVector(store *simulator.StateTimeStorage) []float64 {
 
 // meanCumulativeVector ensemble-averages the per-UTLA final cumulative case counts
 // across nMembers seeds (baseSeed+k), damping the branching noise in any one run.
-func meanCumulativeVector(mmr2Coverage float64, maxGenerations, nMembers int, baseSeed uint64) []float64 {
+func meanCumulativeVector(
+	build stubBuilder,
+	mmr2Coverage float64,
+	maxGenerations, nMembers int,
+	baseSeed uint64,
+) []float64 {
 	var mean []float64
 	for k := 0; k < nMembers; k++ {
-		cum := finalCumulativeVector(runStub(mmr2Coverage, maxGenerations, baseSeed+uint64(k)))
+		cum := finalCumulativeVector(runStub(build, mmr2Coverage, maxGenerations, baseSeed+uint64(k)))
 		if mean == nil {
 			mean = make([]float64, len(cum))
 		}
@@ -130,10 +149,10 @@ func meanCumulativeVector(mmr2Coverage float64, maxGenerations, nMembers int, ba
 // then returns the mean count of the bottom third vs the top third of areas ranked
 // by effective susceptibility — the core causal gradient (susceptibility, not
 // chance, drives where cases concentrate) as a two-point [bottom, top] comparison.
-func susceptibilityTertileCases(maxGenerations, ensemble int) (bottom, top float64) {
+func susceptibilityTertileCases(build stubBuilder, maxGenerations, ensemble int) (bottom, top float64) {
 	susceptibility, _, _ := BuildUTLASurface(DefaultMMR2Coverage)
 	n := len(susceptibility)
-	meanCum := meanCumulativeVector(DefaultMMR2Coverage, maxGenerations, ensemble, 6000)
+	meanCum := meanCumulativeVector(build, DefaultMMR2Coverage, maxGenerations, ensemble, 6000)
 	// Rank areas by descending susceptibility (simple selection sort; n is small).
 	order := make([]int, n)
 	for i := range order {
@@ -161,11 +180,16 @@ func susceptibilityTertileCases(maxGenerations, ensemble int) (bottom, top float
 // cvNationalTotal returns the coefficient of variation of the national total across
 // nScenarios seeds under the given importation override — the summary statistic for
 // how over-dispersed the national total is.
-func cvNationalTotal(maxGenerations, nScenarios int, override func(*simulator.ConfigGenerator)) float64 {
+func cvNationalTotal(
+	build stubBuilder,
+	maxGenerations, nScenarios int,
+	override func(*simulator.ConfigGenerator),
+) float64 {
 	xs := make([]float64, nScenarios)
 	var mean float64
 	for k := 0; k < nScenarios; k++ {
-		xs[k] = totalCases(runScenarioOverride(DefaultMMR2Coverage, maxGenerations, uint64(5000+k), override))
+		xs[k] = totalCases(runScenarioOverride(
+			build, DefaultMMR2Coverage, maxGenerations, uint64(5000+k), override))
 		mean += xs[k]
 	}
 	mean /= float64(nScenarios)
@@ -189,35 +213,42 @@ func cvNationalTotal(maxGenerations, nScenarios int, override func(*simulator.Co
 //
 // The claim IDs match the subtest names under TestMeaslesExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(BuildStub)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only model
+// answers the same claims, measured the same way.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const gens, nScenarios = DefaultMaxGenerations, 12
 	const total = "ensemble-mean national total cases"
 
 	// ----- Decision-path response (the actionable public-health lever) -----
-	lowCov := meanTotalCases(0.82, gens, nScenarios)
-	highCov := meanTotalCases(0.92, gens, nScenarios)
+	lowCov := meanTotalCases(build, 0.82, gens, nScenarios)
+	highCov := meanTotalCases(build, 0.92, gens, nScenarios)
 
 	// ----- Structural-driver responses -----
-	bottomThird, topThird := susceptibilityTertileCases(gens, 40)
+	bottomThird, topThird := susceptibilityTertileCases(build, gens, 40)
 
-	baseR0 := meanTotalOverride(gens, nScenarios, func(g *simulator.ConfigGenerator) {
+	baseR0 := meanTotalOverride(build, gens, nScenarios, func(g *simulator.ConfigGenerator) {
 		setParam(g, "outbreaks", "r0", 12.0)
 	})
-	hotterR0 := meanTotalOverride(gens, nScenarios, func(g *simulator.ConfigGenerator) {
+	hotterR0 := meanTotalOverride(build, gens, nScenarios, func(g *simulator.ConfigGenerator) {
 		setParam(g, "outbreaks", "r0", 18.0)
 	})
 
-	calm := meanTotalOverride(gens, nScenarios, func(g *simulator.ConfigGenerator) {
+	calm := meanTotalOverride(build, gens, nScenarios, func(g *simulator.ConfigGenerator) {
 		setParam(g, "national_importation", "seed_low", 10.0)
 		setParam(g, "national_importation", "seed_high", 30.0)
 	})
-	surging := meanTotalOverride(gens, nScenarios, func(g *simulator.ConfigGenerator) {
+	surging := meanTotalOverride(build, gens, nScenarios, func(g *simulator.ConfigGenerator) {
 		setParam(g, "national_importation", "seed_low", 100.0)
 		setParam(g, "national_importation", "seed_high", 300.0)
 	})
 
 	const cvEnsemble = 50
-	sharedCV := cvNationalTotal(gens, cvEnsemble, nil) // wide band [20, 120]
-	fixedCV := cvNationalTotal(gens, cvEnsemble, func(g *simulator.ConfigGenerator) {
+	sharedCV := cvNationalTotal(build, gens, cvEnsemble, nil) // wide band [20, 120]
+	fixedCV := cvNationalTotal(build, gens, cvEnsemble, func(g *simulator.ConfigGenerator) {
 		setParam(g, "national_importation", "seed_low", 56.0)
 		setParam(g, "national_importation", "seed_high", 56.0) // fixed M ≈ band mean
 	})

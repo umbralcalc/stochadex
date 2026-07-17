@@ -1,0 +1,109 @@
+# The measles-risk-forecaster generative core, written entirely as data: no Go, no
+# compilation.
+#
+# This is the same model BuildStub assembles in stub.go, with the same partition names,
+# param keys, state layout and wiring, so the two can be compared directly (see
+# expression_equivalence_test.go). The run knobs BuildStub takes as arguments (central MMR2
+# coverage, horizon, seed) are injected by the caller; everything below is the model.
+#
+# The per-UTLA vectors below are BuildUTLASurface(DefaultMMR2Coverage) — the illustrative
+# 0.88-coverage surface — so this file runs standalone. A caller sweeping coverage
+# overwrites them exactly as BuildStub rebuilds them from its argument.
+#
+# The Go code carries the two-block state layout as an index constant (out[i] vs out[n+i],
+# with n = len(susceptibility)); here it is two named fields of width 30, which is what
+# removes the constant.
+main:
+  partitions:
+
+  # The shared national importation latent: one log-uniform seed total M per scenario,
+  # held across generations. Sharing it is what correlates the UTLAs.
+  - name: national_importation
+    params:
+      seed_low: [20.0]
+      seed_high: [120.0]
+    init_state_values: [0.0]
+    state_history_depth: 2
+    seed: 0
+
+  # All UTLAs jointly: [infectious_1..30, cumulative_1..30]. Generation 0 seeds each area
+  # from the shared national total; later generations branch each area at its own
+  # R_local = R0 * s, depleted by the cases it has already accumulated.
+  - name: outbreaks
+    params:
+      susceptibility: [0.15809999999999991, 0.15408620689655161, 0.15007241379310332, 0.14605862068965503, 0.14204482758620685, 0.13803103448275855, 0.13401724137931026, 0.13000344827586197, 0.12598965517241378, 0.12197586206896549, 0.11796206896551709, 0.1139482758620689, 0.10993448275862061, 0.10592068965517232, 0.10190689655172402, 0.097893103448275842, 0.093879310344827549, 0.089865517241379256, 0.085851724137930963, 0.081837931034482669, 0.077824137931034376, 0.073810344827586083, 0.069796551724137901, 0.065782758620689608, 0.061768965517241314, 0.057755172413793021, 0.053741379310344839, 0.049727586206896435, 0.045713793103448142, 0.041699999999999959]
+      receptivity: [0.016, 0.031540229885057475, 0.047080459770114942, 0.026758620689655174, 0.042298850574712644, 0.021977011494252872, 0.037517241379310347, 0.017195402298850575, 0.032735632183908049, 0.048275862068965517, 0.027954022988505748, 0.043494252873563226, 0.023172413793103447, 0.038712643678160921, 0.018390804597701149, 0.033931034482758624, 0.049471264367816091, 0.029149425287356322, 0.044689655172413786, 0.024367816091954025, 0.039908045977011496, 0.019586206896551727, 0.035126436781609198, 0.050666666666666665, 0.030344827586206893, 0.045885057471264361, 0.025563218390804599, 0.04110344827586207, 0.020781609195402298, 0.036321839080459772]
+      susceptible_pool: [400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400, 400]
+      r0: [15.0]
+      dispersion: [0.5]
+      national_seed_total: [0.0]
+    # The shared national total feeds this step's seeding within the step.
+    params_from_upstream:
+      national_seed_total:
+        upstream: national_importation
+    init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    state_history_depth: 2
+    seed: 7919
+
+  expressions:
+
+  - partition: national_importation
+    fields:
+    - {name: m}
+    bindings:
+    # Mirrors the Go floor on a non-positive band edge, which exists so the log below is
+    # finite. seed_low is a scalar, so this where takes no draw either way.
+    - {name: low, expr: "where(seed_low > 0, seed_low, 0.000001)"}
+    outputs:
+    # M is drawn once and then held. step is a scalar, so the where is lazy and the hold
+    # path consumes no randomness — which is what keeps this stream aligned with the Go
+    # iteration's single uniform draw.
+    - "where(step > 1, m, shared(exp(uniform(log(low), log(seed_high)))))"
+
+  - partition: outbreaks
+    fields:
+    - {name: infectious, width: 30}
+    - {name: cumulative, width: 30}
+    bindings:
+    # Go truncates the infectious count to an int before both the guard and the shape, so
+    # floor is what the state actually contributes. These bindings take no draws, so being
+    # eager costs only arithmetic.
+    - {name: cases, expr: "floor(infectious)"}
+    - {name: remaining, expr: "susceptible_pool - cumulative"}
+    # The max on the divisor only guards lanes that are inactive anyway: a lane is active
+    # only when its pool is at least 1, so the quotient is untouched wherever it is used.
+    - {name: r_eff, expr: "r0 * susceptibility * (remaining / max(susceptible_pool, 1))"}
+    - {name: active, expr: "cases > 0 && remaining > 0 && susceptible_pool >= 1 && r_eff > 0"}
+    # Both the seeding and the branching draw, so they must sit inside a lazy where rather
+    # than in bindings of their own: bindings are eager, and would draw on every step. step
+    # is a scalar, so this where evaluates only the generation it selects.
+    #
+    # The branching generations are a per-area loop in the Go, and each is what says that:
+    # lanes run in order and a lane finishes before the next starts, so each area takes its
+    # Gamma and then its Poisson before the next area draws at all — the interleaving an
+    # elementwise gamma(...) followed by poisson(...) cannot produce, since it would take
+    # all 30 Gammas first. Inside a lane every value is a scalar, so the guard is lazy and
+    # an inactive area evaluates nothing and draws nothing, exactly as the Go skips it.
+    # Together those are what put the two models on the same draw stream.
+    #
+    # Sum of n iid negative-binomial offspring counts is Poisson(Gamma(n*k, k/R_local)), so
+    # a whole generation is one Gamma plus one Poisson per area. min against floor(remaining)
+    # is the Go cap (next = int(remaining) when next exceeds it), which agrees because next
+    # is already integral.
+    #
+    # Generation 0 seeds each area from the shared national total: one Poisson per area over
+    # a 30-wide rate, which is already in area order, so it needs no each.
+    - name: new_infectious
+      expr: "where(step > 1,
+                   each(30, i, where(active[i] > 0,
+                                     min(poisson(gamma(cases[i] * dispersion,
+                                                       dispersion / r_eff[i])),
+                                         floor(remaining[i])),
+                                     0)),
+                   poisson(national_seed_total * receptivity))"
+    # Generation 0's cumulative is its seed count; afterwards it accrues. Inactive lanes
+    # contribute a masked zero, so the accrual needs no guard of its own.
+    - {name: new_cumulative, expr: "where(step > 1, cumulative + new_infectious, new_infectious)"}
+    outputs:
+    - "new_infectious"
+    - "new_cumulative"

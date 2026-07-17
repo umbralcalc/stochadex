@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/go-gota/gota/dataframe"
@@ -33,7 +34,11 @@ func TestRollingVectorAggregations(t *testing.T) {
 		"integration test: rolling vector aggregations",
 		func(t *testing.T) {
 			// Initialise a csv file reader
-			file, _ := os.Open("data/test_df.csv")
+			file, err := os.Open("data/test_df.csv")
+			if err != nil {
+				t.Fatalf("the fixture did not open: %v", err)
+			}
+			defer file.Close()
 
 			// Create a dataframe from the file
 			df := dataframe.ReadCSV(file)
@@ -43,6 +48,25 @@ func TestRollingVectorAggregations(t *testing.T) {
 
 			// Add the dataframe data to the storage as a partition
 			analysis.SetPartitionFromDataFrame(storage, "poisson_data", df, true)
+
+			// The aggregations below run over this data, so the fixture has to have landed
+			// before any of it means anything — the columns are read by name and a renamed or
+			// dropped one silently yields NaNs rather than an error.
+			if got, want := df.Names(), []string{"time", "0", "1", "2", "3"}; !slices.Equal(got, want) {
+				t.Fatalf("got columns %v, want %v", got, want)
+			}
+			data := storage.GetValues("poisson_data")
+			if len(data) != 1001 || len(data[0]) != 4 {
+				t.Fatalf("got %d rows of width %d, want 1001 of width 4", len(data), len(data[0]))
+			}
+			dataTimes := storage.GetTimes()
+			if dataTimes[0] != 1667980544.0 || dataTimes[len(dataTimes)-1] != 1668980544.0 {
+				t.Fatalf("got times spanning %v to %v, want 1667980544 to 1668980544",
+					dataTimes[0], dataTimes[len(dataTimes)-1])
+			}
+			if got, want := data[1000][0], 708.0; got != want {
+				t.Fatalf("poisson_data column 0 at row 1000: got %v, want %v", got, want)
+			}
 
 			// Configure a partition for differencing of the Poisson data
 			diffPartition := &simulator.PartitionConfig{

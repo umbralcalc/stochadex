@@ -91,7 +91,9 @@ func TestGroupedAggregations(t *testing.T) {
 			yRefs := []analysis.DataRef{{PartitionName: "grouped_sum"}}
 
 			// Create a scatter plot from partitions in a simulator.StateTimeStorage
-			_ = analysis.NewScatterPlotFromPartition(storage, xRef, yRefs)
+			if plot := analysis.NewScatterPlotFromPartition(storage, xRef, yRefs); plot == nil {
+				t.Error("expected a scatter plot")
+			}
 
 		},
 	)

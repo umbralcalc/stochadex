@@ -22,6 +22,82 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-17
+
+### Added
+- **`general.ExpressionIteration`: a whole partition specified as data (`pkg/general`).** The
+  per-step update is given as string expressions rather than Go, so a model needs no
+  compilation step and no Go toolchain — which is what lets a simulation be written by
+  something that does not write Go. The update is a small DAG: ordered `Bindings` are named
+  intermediates, then one `Outputs` expression per field. Everything is elementwise over
+  vectors with length-1 broadcasting, so one expression serves a scalar partition and a
+  10,000-element one. Expressions are parsed once at `Configure` by `go/parser`, so a
+  malformed spec is a configuration error rather than something found mid-run. Draws come from
+  `pkg/rng`, seeded exactly as a hand-written iteration's is, which is what makes a
+  declarative model comparable to compiled Go *by value* rather than only in distribution.
+  Deliberately not a general-purpose language: no assignment, no recursion, and the only
+  repetition is a bounded comprehension, so an expression always terminates.
+- **An `expressions:` root field on the API config (`pkg/api`).** Binds a declarative spec to a
+  partition by name, so a partition may omit its `iteration` exactly as an embedded-run-backed
+  one may. Unlike `iteration` — a Go expression requiring code generation — this is loaded
+  straight from YAML and evaluated at run time. Wired on `RunConfig` rather than
+  `ApiRunConfig`, so embedded runs get it too.
+- **A declarative twin for every catalogue entry (9 of 9).** Each model is now also stated as
+  data in a `declarative.yaml`, with an `expression_equivalence_test.go` proving it is the
+  *same* model rather than one that behaves similarly. Where the streams align — the common
+  case — agreement is exact to rounding (deviations of 0 to ~1e-14), so a twin reproduces its
+  card's numbers, not merely their directions. Verification is two mandatory layers, because
+  each is blind where the other sees: step-for-step catches a mis-stated formula, and re-running
+  `ObservedBehaviour()` against the declarative build catches wrong wiring, params or state
+  layout. Documented in `models/CONVENTIONS.md` §5.
+- **DSL constructs, each added because a real model proved it was needed.** `sin`/`cos`/`erf`/
+  `erfc` and `pi` (seasonality, and the Gaussian CDF a probit or exceedance probability needs);
+  `slice`/`concat` (a block inside a flat vector, and its assembly); `width`; `lag(name, n)` (a
+  partition's committed state *n* rows back, where a bare name gives only row 0); and
+  `each(n, i, expr)`, the one construct that is not elementwise — element *i* may read element
+  *i-1* (so a cohort ages), a lane's `where` is scalar and therefore lazy (so a switched-off
+  lane draws nothing), and lanes run in order (so a lane's draws interleave as a loop's do).
+
+### Changed
+- **A config key that nothing reads is now rejected (breaking: `pkg/api` config loading).**
+  `yaml.v2` ignores an unknown key in silence, so a typo, or a key left behind by an older
+  schema, did nothing at all while looking load-bearing — `state_width` sat in every config in
+  this repo doing exactly that (width comes from `init_state_values`), and `pkg/simulator`'s
+  partition fixture still named a wiring schema that no longer exists. Strict parsing alone
+  cannot express the rule, because the two views deliberately share one file and split its
+  keys: the concrete view owns `params` and `seed` but has no `iteration`, the
+  code-generation view owns `iteration` and `simulation` but has no `params`, and each rejects
+  the other's. Neither is the whole schema; their union is. A key is therefore dead only when
+  **both** views reject it, which is what is checked — needing no second copy of the schema to
+  drift out of sync. Configs carrying a dead key now panic naming it, where they previously
+  loaded and quietly ignored it.
+- **Promotion triage is no longer a frequency test (`models/CONVENTIONS.md`).** The old rule —
+  an extension recurring across several entries wants promoting — cannot fire until several
+  stubs exist. "Can the DSL express it?" is decidable on the *first* model, and splits
+  candidates in two: if it can, the bespoke Go is a convenience and promotion must be earned by
+  a measurement; if it cannot, the engine has a real capability gap and one model proves it.
+  All five gaps the catalogue surfaced are closed, and the four structural ones rhymed — every
+  one was about structured access or per-lane control of draws, the axis a strictly elementwise
+  evaluator gives up.
+- **`models/*/behaviour.go` helpers take a `stubBuilder`** so the claim suite can be *pointed
+  at* either assembly of a model rather than restated for each. `ObservedBehaviour()` keeps its
+  no-arg signature, which `cmd/model-index` detects by AST.
+
+### Fixed
+- **A NaN index silently read element 0 on arm64 and panicked on amd64
+  (`general.ExpressionIteration`).** Go leaves `int(NaN)` undefined: on arm64 it is 0, so a
+  non-finite index passed the bounds check and read the wrong element, while on amd64 it is the
+  most negative int and the same expression failed. An architecture-dependent wrong answer, in
+  a repo whose cards claim architecture stability. Every float that becomes an index or a count
+  is now checked. Found by writing a twin, not by running a model.
+- **`antimicrobial-resistance`'s card overclaimed its mechanism.** It said the selection test
+  "pins down *why* the stewardship lever works". It does not: prescribing reaches resistance
+  both by direct conversion and by competitive release, and *both* are selection-gated, so
+  switching selection off cannot separate them — deleting the model's stated causal heart
+  passes the entire claim suite. The card now says selection is *necessary* rather than
+  attributed, and names the test that does discriminate. The claim itself was always true, so
+  no generated number moved.
+
 ## [0.3.0] — 2026-07-17
 
 ### Added
@@ -314,7 +390,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/umbralcalc/stochadex/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/umbralcalc/stochadex/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/umbralcalc/stochadex/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/umbralcalc/stochadex/releases/tag/v0.1.0

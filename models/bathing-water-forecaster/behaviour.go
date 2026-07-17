@@ -28,17 +28,24 @@ func runStub(anomalyVolatility float64, numSteps int, seed uint64) *simulator.St
 	return store
 }
 
+// stubBuilder assembles the model, matching BuildStub's signature. The behaviour
+// helpers take one rather than calling BuildStub directly so that an alternative
+// assembly of the same model — notably the declarative one in declarative.yaml —
+// can be put through this exact claim suite instead of a re-stated copy of it.
+type stubBuilder func(anomalyVolatility float64, numSteps int, seed uint64) *simulator.ConfigGenerator
+
 // runStubOverride runs the stub with an override hook applied to the generated
 // config before the run, so a behaviour can vary any partition's params without
 // bloating BuildStub's signature — BuildStub still exposes only the one headline
 // driver (the anomaly volatility).
 func runStubOverride(
+	build stubBuilder,
 	anomalyVolatility float64,
 	numSteps int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := BuildStub(anomalyVolatility, numSteps, seed)
+	gen := build(anomalyVolatility, numSteps, seed)
 	if override != nil {
 		override(gen)
 	}
@@ -66,10 +73,15 @@ func meanPExceed(store *simulator.StateTimeStorage, site string) float64 {
 // meanPExceedEnsemble averages meanPExceed over an ensemble of independent
 // realisations (varying the anomaly seed), so each claim is about the distribution
 // rather than one noisy anomaly trajectory.
-func meanPExceedEnsemble(anomalyVolatility float64, numSteps, nMembers int, site string) float64 {
+func meanPExceedEnsemble(
+	build stubBuilder,
+	anomalyVolatility float64,
+	numSteps, nMembers int,
+	site string,
+) float64 {
 	sum := 0.0
 	for m := 0; m < nMembers; m++ {
-		store := runStub(anomalyVolatility, numSteps, uint64(1000+m))
+		store := runStubOverride(build, anomalyVolatility, numSteps, uint64(1000+m), nil)
 		sum += meanPExceed(store, site)
 	}
 	return sum / float64(nMembers)
@@ -78,13 +90,15 @@ func meanPExceedEnsemble(anomalyVolatility float64, numSteps, nMembers int, site
 // meanPExceedOverride is the ensemble-mean exceedance probability for a site under
 // an override, averaged over an ensemble of anomaly seeds.
 func meanPExceedOverride(
+	build stubBuilder,
 	numSteps, nMembers int,
 	site string,
 	override func(*simulator.ConfigGenerator),
 ) float64 {
 	sum := 0.0
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(DefaultAnomalyVolatility, numSteps, uint64(3000+m), override)
+		store := runStubOverride(
+			build, DefaultAnomalyVolatility, numSteps, uint64(3000+m), override)
 		sum += meanPExceed(store, site)
 	}
 	return sum / float64(nMembers)
@@ -93,6 +107,7 @@ func meanPExceedOverride(
 // maxPExceedOverride is the ensemble-mean of the per-run peak exceedance
 // probability for a site under an override.
 func maxPExceedOverride(
+	build stubBuilder,
 	anomalyVolatility float64,
 	numSteps, nMembers int,
 	site string,
@@ -100,7 +115,7 @@ func maxPExceedOverride(
 ) float64 {
 	sum := 0.0
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(anomalyVolatility, numSteps, uint64(6000+m), override)
+		store := runStubOverride(build, anomalyVolatility, numSteps, uint64(6000+m), override)
 		rows := store.GetValues(site)
 		peak := 0.0
 		for _, r := range rows {
@@ -139,13 +154,15 @@ func corr(a, b []float64) float64 {
 // meanCrossSiteCorrOverride is the ensemble-mean Pearson correlation between two
 // sites' exceedance-probability series under an override.
 func meanCrossSiteCorrOverride(
+	build stubBuilder,
 	numSteps, nMembers int,
 	siteA, siteB string,
 	override func(*simulator.ConfigGenerator),
 ) float64 {
 	sum := 0.0
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(DefaultAnomalyVolatility, numSteps, uint64(9000+m), override)
+		store := runStubOverride(
+			build, DefaultAnomalyVolatility, numSteps, uint64(9000+m), override)
 		a := col(store.GetValues(siteA), 1)
 		b := col(store.GetValues(siteB), 1)
 		sum += corr(a, b)
@@ -182,28 +199,35 @@ func setAnomalyParam(gen *simulator.ConfigGenerator, key string, value float64) 
 //
 // The claim IDs match the subtest names under TestBathingWaterExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(BuildStub)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only model
+// answers the same claims, measured the same way.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const pExceed = "ensemble-mean exceedance probability"
 
 	// Shared 365-step / 12-member clean baselines, reused across the actionable and
 	// structural claims that perturb one input against them (avoids recomputing the
 	// same base each time).
 	const steps, nMembers = 365, 12
-	baseSite0 := meanPExceedOverride(steps, nMembers, "site_0", nil)
-	baseSite1 := meanPExceedOverride(steps, nMembers, "site_1", nil)
+	baseSite0 := meanPExceedOverride(build, steps, nMembers, "site_0", nil)
+	baseSite1 := meanPExceedOverride(build, steps, nMembers, "site_1", nil)
 
 	// Decision-path: pollution reduction (halving a site's clean-water baseline count).
-	cleaned := meanPExceedOverride(steps, nMembers, "site_1", func(g *simulator.ConfigGenerator) {
+	cleaned := meanPExceedOverride(build, steps, nMembers, "site_1", func(g *simulator.ConfigGenerator) {
 		setSiteParam(g, "site_1", "baseline", math.Log(75.0))
 	})
 
 	// Decision-path: a stricter (lower) statutory threshold.
-	stricter := meanPExceedOverride(steps, nMembers, "site_0", func(g *simulator.ConfigGenerator) {
+	stricter := meanPExceedOverride(build, steps, nMembers, "site_0", func(g *simulator.ConfigGenerator) {
 		setSiteParam(g, "site_0", "log_threshold", math.Log(250.0))
 	})
 
 	// Structural headline: a more volatile shared regional anomaly.
-	calm := meanPExceedEnsemble(0.3, 400, 16, "site_0")
-	stormy := meanPExceedEnsemble(0.8, 400, 16, "site_0")
+	calm := meanPExceedEnsemble(build, 0.3, 400, 16, "site_0")
+	stormy := meanPExceedEnsemble(build, 0.8, 400, 16, "site_0")
 
 	// Structural: stronger regional coupling (larger anomaly loading on both sites),
 	// with the seasonal terms in antiphase so near-zero coupling decorrelates them.
@@ -211,36 +235,36 @@ func ObservedBehaviour() []cardgen.Claim {
 		setSiteParam(g, "site_0", "seasonal_phase", 0.0)
 		setSiteParam(g, "site_1", "seasonal_phase", math.Pi)
 	}
-	weakCorr := meanCrossSiteCorrOverride(600, 10, "site_0", "site_1", func(g *simulator.ConfigGenerator) {
+	weakCorr := meanCrossSiteCorrOverride(build, 600, 10, "site_0", "site_1", func(g *simulator.ConfigGenerator) {
 		antiphase(g)
 		setSiteParam(g, "site_0", "anomaly_loading", 0.05)
 		setSiteParam(g, "site_1", "anomaly_loading", 0.05)
 	})
-	strongCorr := meanCrossSiteCorrOverride(600, 10, "site_0", "site_1", func(g *simulator.ConfigGenerator) {
+	strongCorr := meanCrossSiteCorrOverride(build, 600, 10, "site_0", "site_1", func(g *simulator.ConfigGenerator) {
 		antiphase(g)
 		setSiteParam(g, "site_0", "anomaly_loading", 1.5)
 		setSiteParam(g, "site_1", "anomaly_loading", 1.5)
 	})
 
 	// Structural: faster anomaly mean-reversion (higher theta) shrinks its variance.
-	persistent := meanPExceedOverride(400, 16, "site_0", func(g *simulator.ConfigGenerator) {
+	persistent := meanPExceedOverride(build, 400, 16, "site_0", func(g *simulator.ConfigGenerator) {
 		setAnomalyParam(g, "thetas", 0.15)
 	})
-	fleeting := meanPExceedOverride(400, 16, "site_0", func(g *simulator.ConfigGenerator) {
+	fleeting := meanPExceedOverride(build, 400, 16, "site_0", func(g *simulator.ConfigGenerator) {
 		setAnomalyParam(g, "thetas", 0.6)
 	})
 
 	// Structural: a larger within-site sample scale fattens the tail.
-	noisier := meanPExceedOverride(steps, nMembers, "site_0", func(g *simulator.ConfigGenerator) {
+	noisier := meanPExceedOverride(build, steps, nMembers, "site_0", func(g *simulator.ConfigGenerator) {
 		setSiteParam(g, "site_0", "sample_scale", 1.4)
 	})
 
 	// Structural: a larger seasonal amplitude raises the peak-season exceedance,
 	// measured as the per-run peak with the anomaly volatility damped.
-	flat := maxPExceedOverride(0.1, 365, 8, "site_0", func(g *simulator.ConfigGenerator) {
+	flat := maxPExceedOverride(build, 0.1, 365, 8, "site_0", func(g *simulator.ConfigGenerator) {
 		setSiteParam(g, "site_0", "seasonal_amplitude", 0.2)
 	})
-	swingy := maxPExceedOverride(0.1, 365, 8, "site_0", func(g *simulator.ConfigGenerator) {
+	swingy := maxPExceedOverride(build, 0.1, 365, 8, "site_0", func(g *simulator.ConfigGenerator) {
 		setSiteParam(g, "site_0", "seasonal_amplitude", 1.2)
 	})
 

@@ -14,12 +14,30 @@ func TestSimulationInference(t *testing.T) {
 		"integration test: simulation inference",
 		func(t *testing.T) {
 			// Read in CSV data directly into a simulator.StateTimeStorage
-			storage, _ := analysis.NewStateTimeStorageFromCsv(
+			storage, err := analysis.NewStateTimeStorageFromCsv(
 				"data/test_csv.csv",
 				0,
 				map[string][]int{"generated_data": {1, 2, 3, 4}},
 				true,
 			)
+			if err != nil {
+				t.Fatalf("the fixture did not load: %v", err)
+			}
+
+			// Everything below infers from this data, so the fixture has to have landed before
+			// any of it means anything.
+			data := storage.GetValues("generated_data")
+			if len(data) != 1001 || len(data[0]) != 4 {
+				t.Fatalf("got %d rows of width %d, want 1001 of width 4", len(data), len(data[0]))
+			}
+			dataTimes := storage.GetTimes()
+			if dataTimes[0] != 0 || dataTimes[len(dataTimes)-1] != 1000 {
+				t.Fatalf("got times spanning %v to %v, want 0 to 1000",
+					dataTimes[0], dataTimes[len(dataTimes)-1])
+			}
+			if got, want := data[15][0], 0.57021; got != want {
+				t.Fatalf("generated_data at t=15: got %v, want %v", got, want)
+			}
 
 			// Configure a partition for computing the exponentially-weighted rolling mean
 			meanPartition := analysis.NewVectorMeanPartition(
@@ -166,19 +184,25 @@ func TestSimulationInference(t *testing.T) {
 			}}
 
 			// Create a line plot from partitions in a simulator.StateTimeStorage
-			_ = analysis.NewLinePlotFromPartition(storage, xRef, yRefs, nil)
+			if plot := analysis.NewLinePlotFromPartition(storage, xRef, yRefs, nil); plot == nil {
+				t.Error("expected a line plot")
+			}
 
 			// Reference the posterior samples plotting data for the y-axis
 			yRefs = []analysis.DataRef{{PartitionName: "posterior_sampler"}}
 
 			// Create a scatter plot from partitions in a simulator.StateTimeStorage
-			_ = analysis.NewScatterPlotFromPartition(storage, xRef, yRefs)
+			if plot := analysis.NewScatterPlotFromPartition(storage, xRef, yRefs); plot == nil {
+				t.Error("expected a scatter plot")
+			}
 
 			// Reference the rolling mean plotting data (the target params) for the y-axis
 			yRefs = []analysis.DataRef{{PartitionName: "mean"}}
 
 			// Create a line plot from partitions in a simulator.StateTimeStorage
-			_ = analysis.NewLinePlotFromPartition(storage, xRef, yRefs, nil)
+			if plot := analysis.NewLinePlotFromPartition(storage, xRef, yRefs, nil); plot == nil {
+				t.Error("expected a line plot")
+			}
 		},
 	)
 }

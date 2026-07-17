@@ -1,0 +1,141 @@
+# The homark generative core, written entirely as data: no Go, no compilation.
+#
+# This is the same model BuildStub assembles in stub.go, with the same partition names,
+# param keys and wiring, so the two can be compared directly (see
+# expression_equivalence_test.go, which checks per-step agreement and re-runs the whole
+# behaviour suite against this file). The run knobs BuildStub takes as arguments (approval
+# rate, horizon, seed) are injected by the caller; everything below is the model.
+#
+# Partitions are declared in BuildStub's order, because the Go price_drift partition reads
+# its inputs by hardcoded index (bankRatePartition, pipelinePartition, logEarningsPartition)
+# and the two builds must agree on what those indices name.
+#
+# Two things the Go code carries as constants appear here as data instead. The partition
+# index constants above become named upstream aliases, which is what an expression reads a
+# state history by. And init_log_earnings — baked into the HousingPriceDriftFunction closure
+# in Go — becomes a param on price_drift, since the demand channel measures earnings against
+# it; it is log(DefaultInitEarnings), the same value BuildStub passes to the closure.
+main:
+  partitions:
+
+  # Mean-reverting policy rate (data-free stand-in for a BoE bank-rate replay), stepped by
+  # the same Euler-Maruyama update as continuous.OrnsteinUhlenbeckIteration.
+  - name: bank_rate
+    params:
+      thetas: [0.1]
+      mus: [3.0]
+      sigmas: [0.3]
+    init_state_values: [3.0]
+    state_history_depth: 1
+    seed: 0
+
+  # Planning-supply stock: per-unit binomial completions, then binomial attrition on what
+  # survives them, then the approval inflow.
+  - name: pipeline
+    params:
+      completion_rate: [0.15]
+      attrition_rate: [0.02]
+      approval_rate: [100.0]
+    init_state_values: [400.0]
+    state_history_depth: 1
+    seed: 1
+
+  # Reduced-form log-price drift: baseline + mortgage-cost + supply (+ demand) channels.
+  # Its three inputs are lag-1 state-history reads in the Go model too, so upstreams — which
+  # is exactly that read — is the faithful wiring here, not params_from_upstream.
+  - name: price_drift
+    params:
+      drift_base: [0.004]
+      bank_beta: [-0.02]
+      pipeline_beta: [0.002]
+      pipeline_ref: [1000.0]
+      market_fraction: [1.0]
+      demand_beta: [0.0]
+      init_log_earnings: [10.308952660644293]
+    init_state_values: [0.0025999999999999999]
+    state_history_depth: 1
+    seed: 0
+
+  - name: log_earnings
+    params:
+      drift_coefficients: [0.0025]
+      diffusion_coefficients: [0.003]
+    init_state_values: [10.308952660644293]
+    state_history_depth: 1
+    seed: 2
+
+  # Drift is supplied within-step by price_drift, so this is params_from_upstream and not an
+  # upstream alias: the drift must be this step's, not the previous step's.
+  - name: log_price
+    params:
+      diffusion_coefficients: [0.010]
+    params_from_upstream:
+      drift_coefficients:
+        upstream: price_drift
+    init_state_values: [12.388394202324129]
+    state_history_depth: 1
+    seed: 3
+
+  - name: affordability
+    params: {}
+    init_state_values: [8.0000000000000018]
+    state_history_depth: 1
+    seed: 0
+
+  expressions:
+
+  - partition: bank_rate
+    fields:
+    - {name: rate}
+    outputs:
+    - "rate + (thetas * (mus - rate) * dt + sigmas * sqrt(dt) * shared(normal(0, 1)))"
+
+  - partition: pipeline
+    fields:
+    - {name: pipeline_stock}
+    bindings:
+    # Only whole units can complete or lapse, and a negative stock offers none.
+    - {name: n, expr: "max(floor(pipeline_stock), 0)"}
+    # Both guards are scalar, so the untaken branch draws nothing and the two builds stay in
+    # step on the same stream.
+    - {name: completions,
+       expr: "where(n > 0 && completion_rate > 0, shared(binomial(n, completion_rate)), 0)"}
+    - {name: remaining, expr: "n - completions"}
+    - {name: attritions,
+       expr: "where(remaining > 0 && attrition_rate > 0, shared(binomial(remaining, attrition_rate)), 0)"}
+    outputs: ["max(pipeline_stock - completions - attritions + approval_rate, 0)"]
+
+  - partition: price_drift
+    fields:
+    - {name: drift}
+    upstreams:
+      bank: bank_rate
+      pipe: pipeline
+      earnings: log_earnings
+    bindings:
+    # A non-positive reference stock would divide the supply channel by zero, so it falls
+    # back to one — the pipeline stock then reads as an absolute unit count.
+    - {name: ref, expr: "where(pipeline_ref <= 0, 1, pipeline_ref)"}
+    - {name: cost, expr: "drift_base + bank_beta * (bank / 100.0)"}
+    - {name: supply, expr: "cost - pipeline_beta * (market_fraction * pipe / ref)"}
+    outputs: ["supply + demand_beta * (earnings - init_log_earnings)"]
+
+  - partition: log_earnings
+    fields:
+    - {name: log_earnings}
+    outputs:
+    - "log_earnings + (drift_coefficients * dt + diffusion_coefficients * sqrt(dt) * shared(normal(0, 1)))"
+
+  - partition: log_price
+    fields:
+    - {name: log_price}
+    outputs:
+    - "log_price + (drift_coefficients * dt + diffusion_coefficients * sqrt(dt) * shared(normal(0, 1)))"
+
+  - partition: affordability
+    fields:
+    - {name: ratio}
+    upstreams:
+      log_price: log_price
+      log_earnings: log_earnings
+    outputs: ["exp(log_price - log_earnings)"]

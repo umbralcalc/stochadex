@@ -26,16 +26,23 @@ func runStub(rainfallMultiplier float64, numSteps int, seed uint64) *simulator.S
 	return store
 }
 
+// stubBuilder assembles the model, matching BuildStub's signature. The behaviour
+// helpers take one rather than calling BuildStub directly so that an alternative
+// assembly of the same model — notably the declarative one in declarative.yaml —
+// can be put through this exact claim suite instead of a re-stated copy of it.
+type stubBuilder func(rainfallMultiplier float64, numSteps int, seed uint64) *simulator.ConfigGenerator
+
 // runStubOverride runs the stub with an override hook applied to the generated
 // config before the run, so a behaviour can vary any partition's params without
 // bloating BuildStub's signature (which exposes only the rainfall multiplier).
 func runStubOverride(
+	build stubBuilder,
 	rainfallMultiplier float64,
 	numSteps int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := BuildStub(rainfallMultiplier, numSteps, seed)
+	gen := build(rainfallMultiplier, numSteps, seed)
 	if override != nil {
 		override(gen)
 	}
@@ -76,13 +83,14 @@ func meanPeakFlow(rainfallMultiplier float64, numSteps, nMembers, spinUp int) fl
 // meanPeakFlowOverride averages peak flow across an ensemble under a fixed
 // override, damping the sampling noise in a single run.
 func meanPeakFlowOverride(
+	build stubBuilder,
 	rainfallMultiplier float64,
 	numSteps, nMembers, spinUp int,
 	override func(*simulator.ConfigGenerator),
 ) float64 {
 	var sum float64
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(rainfallMultiplier, numSteps, uint64(5000+m), override)
+		store := runStubOverride(build, rainfallMultiplier, numSteps, uint64(5000+m), override)
 		sum += peakFlow(store.GetValues("runoff"), spinUp)
 	}
 	return sum / float64(nMembers)
@@ -104,23 +112,30 @@ func setRainfallParam(gen *simulator.ConfigGenerator, key string, value float64)
 //
 // Claim IDs match the subtest names under TestFloodRiskExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(BuildStub)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only model
+// answers the same claims, measured the same way.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const steps, nMembers, spinUp = 730, 8, 60
 	const peak = "ensemble-mean peak flow (m³/s)"
 
-	base := meanPeakFlowOverride(1.0, steps, nMembers, spinUp, nil)
+	base := meanPeakFlowOverride(build, 1.0, steps, nMembers, spinUp, nil)
 
-	rain115 := meanPeakFlowOverride(1.15, steps, nMembers, spinUp, nil)
-	rain130 := meanPeakFlowOverride(1.3, steps, nMembers, spinUp, nil)
-	persistent := meanPeakFlowOverride(1.0, steps, nMembers, spinUp, func(g *simulator.ConfigGenerator) {
+	rain115 := meanPeakFlowOverride(build, 1.15, steps, nMembers, spinUp, nil)
+	rain130 := meanPeakFlowOverride(build, 1.3, steps, nMembers, spinUp, nil)
+	persistent := meanPeakFlowOverride(build, 1.0, steps, nMembers, spinUp, func(g *simulator.ConfigGenerator) {
 		setRainfallParam(g, "p_wet_given_wet", 0.95)
 	})
-	thirsty := meanPeakFlowOverride(1.0, steps, nMembers, spinUp, func(g *simulator.ConfigGenerator) {
+	thirsty := meanPeakFlowOverride(build, 1.0, steps, nMembers, spinUp, func(g *simulator.ConfigGenerator) {
 		setRunoffParam(g, "et_rate", 5.0)
 	})
-	bigger := meanPeakFlowOverride(1.0, steps, nMembers, spinUp, func(g *simulator.ConfigGenerator) {
+	bigger := meanPeakFlowOverride(build, 1.0, steps, nMembers, spinUp, func(g *simulator.ConfigGenerator) {
 		setRunoffParam(g, "catchment_area_km2", 2.0*DefaultCatchmentAreaKm2)
 	})
-	spongy := meanPeakFlowOverride(1.0, steps, nMembers, spinUp, func(g *simulator.ConfigGenerator) {
+	spongy := meanPeakFlowOverride(build, 1.0, steps, nMembers, spinUp, func(g *simulator.ConfigGenerator) {
 		setRunoffParam(g, "field_capacity", 700.0)
 	})
 

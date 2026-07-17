@@ -28,16 +28,23 @@ func runStub(warmingTrend float64, numSteps int, seed uint64) *simulator.StateTi
 	return store
 }
 
+// stubBuilder assembles the model, matching BuildStub's signature. The behaviour
+// helpers take one rather than calling BuildStub directly so that an alternative
+// assembly of the same model — notably the declarative one in declarative.yaml —
+// can be put through this exact claim suite instead of a re-stated copy of it.
+type stubBuilder func(warmingTrend float64, numSteps int, seed uint64) *simulator.ConfigGenerator
+
 // runStubOverride runs the stub with an override hook applied to the generated
 // config before the run, so a behaviour can vary any partition's params without
 // bloating BuildStub's signature — BuildStub still exposes only the one headline
 // driver (the warming trend).
 func runStubOverride(
+	build stubBuilder,
 	numSteps int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := BuildStub(DefaultWarmingTrend, numSteps, seed)
+	gen := build(DefaultWarmingTrend, numSteps, seed)
 	if override != nil {
 		override(gen)
 	}
@@ -81,12 +88,13 @@ func meanFinalLogDensityEnsemble(warmingTrend float64, numSteps, window, nMember
 // meanFinalDensityOverride returns the ensemble-mean final log-density under an
 // override, averaging over both the final-window and an ensemble of seeds.
 func meanFinalDensityOverride(
+	build stubBuilder,
 	numSteps, window, nMembers int,
 	override func(*simulator.ConfigGenerator),
 ) float64 {
 	sum := 0.0
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(numSteps, uint64(4000+m), override)
+		store := runStubOverride(build, numSteps, uint64(4000+m), override)
 		sum += meanFinalLogDensity(store.GetValues("population"), window)
 	}
 	return sum / float64(nMembers)
@@ -96,13 +104,14 @@ func meanFinalDensityOverride(
 // final log-density under an override — the spread of outcomes, used for the
 // process-noise claim.
 func stdFinalDensityOverride(
+	build stubBuilder,
 	numSteps, nMembers int,
 	override func(*simulator.ConfigGenerator),
 ) float64 {
 	finals := make([]float64, nMembers)
 	mean := 0.0
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(numSteps, uint64(7000+m), override)
+		store := runStubOverride(build, numSteps, uint64(7000+m), override)
 		rows := store.GetValues("population")
 		finals[m] = rows[len(rows)-1][0]
 		mean += finals[m]
@@ -142,37 +151,44 @@ func setWarmingTrend(gen *simulator.ConfigGenerator, value float64) {
 //
 // The claim IDs match the subtest names under TestAnglersimExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(BuildStub)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only model
+// answers the same claims, measured the same way.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const logDensity = "ensemble-mean final log-density"
 
 	// Shared 60-year baseline, reused across the actionable/structural claims that
 	// perturb one input against it (avoids recomputing the same base each time).
-	base60 := meanFinalDensityOverride(60, 20, 12, nil)
+	base60 := meanFinalDensityOverride(build, 60, 20, 12, nil)
 
 	// Headline climate sweep at the horizon/ensemble the warming claim uses.
-	warm0 := meanFinalDensityOverride(80, 20, 16, nil)
-	warm4 := meanFinalDensityOverride(80, 20, 16, func(g *simulator.ConfigGenerator) { setWarmingTrend(g, 0.04) })
-	warm8 := meanFinalDensityOverride(80, 20, 16, func(g *simulator.ConfigGenerator) { setWarmingTrend(g, 0.08) })
+	warm0 := meanFinalDensityOverride(build, 80, 20, 16, nil)
+	warm4 := meanFinalDensityOverride(build, 80, 20, 16, func(g *simulator.ConfigGenerator) { setWarmingTrend(g, 0.04) })
+	warm8 := meanFinalDensityOverride(build, 80, 20, 16, func(g *simulator.ConfigGenerator) { setWarmingTrend(g, 0.08) })
 
-	higherFlow := meanFinalDensityOverride(60, 20, 12, func(g *simulator.ConfigGenerator) {
+	higherFlow := meanFinalDensityOverride(build, 60, 20, 12, func(g *simulator.ConfigGenerator) {
 		setCovariateBaseline(g, 0, 2.0*DefaultBaselineFlow)
 	})
-	drought := meanFinalDensityOverride(60, 20, 12, func(g *simulator.ConfigGenerator) {
+	drought := meanFinalDensityOverride(build, 60, 20, 12, func(g *simulator.ConfigGenerator) {
 		setCovariateBaseline(g, 0, 0.25*DefaultBaselineFlow)
 	})
-	cleaner := meanFinalDensityOverride(60, 20, 12, func(g *simulator.ConfigGenerator) {
+	cleaner := meanFinalDensityOverride(build, 60, 20, 12, func(g *simulator.ConfigGenerator) {
 		setCovariateBaseline(g, 2, DefaultBaselineDO+3.0)
 	})
-	faster := meanFinalDensityOverride(60, 20, 12, func(g *simulator.ConfigGenerator) {
+	faster := meanFinalDensityOverride(build, 60, 20, 12, func(g *simulator.ConfigGenerator) {
 		setPopulationParam(g, "growth_rate", 1.0)
 	})
-	crowded := meanFinalDensityOverride(60, 20, 12, func(g *simulator.ConfigGenerator) {
+	crowded := meanFinalDensityOverride(build, 60, 20, 12, func(g *simulator.ConfigGenerator) {
 		setPopulationParam(g, "density_dependence", 2.0)
 	})
 
-	lowNoise := stdFinalDensityOverride(60, 40, func(g *simulator.ConfigGenerator) {
+	lowNoise := stdFinalDensityOverride(build, 60, 40, func(g *simulator.ConfigGenerator) {
 		setPopulationParam(g, "process_noise_sd", 0.05)
 	})
-	highNoise := stdFinalDensityOverride(60, 40, func(g *simulator.ConfigGenerator) {
+	highNoise := stdFinalDensityOverride(build, 60, 40, func(g *simulator.ConfigGenerator) {
 		setPopulationParam(g, "process_noise_sd", 0.6)
 	})
 
@@ -180,11 +196,11 @@ func ObservedBehaviour() []cardgen.Claim {
 		setPopulationParam(g, "process_noise_sd", 0.001)
 		g.GetPartition("population").InitStateValues = []float64{-8.0}
 	}
-	noAllee := meanFinalDensityOverride(8, 1, 8, func(g *simulator.ConfigGenerator) {
+	noAllee := meanFinalDensityOverride(build, 8, 1, 8, func(g *simulator.ConfigGenerator) {
 		lowStart(g)
 		setPopulationParam(g, "allee_effect", 0.0)
 	})
-	withAllee := meanFinalDensityOverride(8, 1, 8, func(g *simulator.ConfigGenerator) {
+	withAllee := meanFinalDensityOverride(build, 8, 1, 8, func(g *simulator.ConfigGenerator) {
 		lowStart(g)
 		setPopulationParam(g, "allee_effect", 30.0)
 	})

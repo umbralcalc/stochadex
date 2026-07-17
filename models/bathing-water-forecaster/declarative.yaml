@@ -1,0 +1,126 @@
+# The bathing-water-forecaster generative core, written entirely as data: no Go, no
+# compilation.
+#
+# This is the same model BuildStub assembles in stub.go, with the same partition names,
+# param keys, state layout and wiring, so the two can be compared directly (see
+# expression_equivalence_test.go, which checks per-step agreement and re-runs the whole
+# behaviour suite against this file). The run knobs BuildStub takes as arguments (seed,
+# horizon, anomaly volatility) are injected by the caller; everything below is the model.
+#
+# No index constant needed replacing by a data mask here, unlike anglersim's tempIndex:
+# every param this model reads is width 1, so the Go [0] subscripts are scalar reads that
+# broadcasting already expresses.
+#
+# The baseline and log_threshold literals are logs of counts in CFU/100ml, written as the
+# shortest decimal that round-trips to the same float64 math.Log returns in stub.go — an
+# approximate transcription would show up as a real disagreement rather than as rounding.
+main:
+  partitions:
+
+  # Shared regional wet-week anomaly z(t): an Ornstein-Uhlenbeck process under the same
+  # Euler-Maruyama discretisation continuous.OrnsteinUhlenbeckIteration applies. sigmas is
+  # the swept headline driver and is injected per run.
+  - name: anomaly
+    params:
+      thetas: [0.3]
+      mus: [0.0]
+      sigmas: [0.5]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  # The three designated sites, each mapping its latent log-concentration to an exceedance
+  # probability. They are separate partitions rather than one 3-wide partition because that
+  # is the shape BuildStub gives them, and they read the one shared anomaly within-step via
+  # params_from_upstream — the param key is simply the name the expressions then see.
+  # Sites draw no randomness, so their seeds are immaterial (BuildStub also pins them to 0).
+
+  # Clean, moderately coherent.
+  - name: site_0
+    params:
+      baseline: [4.605170185988092]
+      seasonal_amplitude: [0.5]
+      seasonal_phase: [0.0]
+      period: [365.0]
+      anomaly_loading: [0.7]
+      sample_scale: [0.8]
+      log_threshold: [6.214608098422191]
+    params_from_upstream:
+      anomaly:
+        upstream: anomaly
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+
+  # More urban, strongly coherent.
+  - name: site_1
+    params:
+      baseline: [5.0106352940962555]
+      seasonal_amplitude: [0.5]
+      seasonal_phase: [0.0]
+      period: [365.0]
+      anomaly_loading: [0.9]
+      sample_scale: [0.8]
+      log_threshold: [6.214608098422191]
+    params_from_upstream:
+      anomaly:
+        upstream: anomaly
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+
+  # Clean, weakly coherent (mostly local).
+  - name: site_2
+    params:
+      baseline: [4.499809670330265]
+      seasonal_amplitude: [0.5]
+      seasonal_phase: [0.0]
+      period: [365.0]
+      anomaly_loading: [0.4]
+      sample_scale: [0.8]
+      log_threshold: [6.214608098422191]
+    params_from_upstream:
+      anomaly:
+        upstream: anomaly
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+
+  expressions:
+
+  # One normal draw per step, matching the single NormFloat64 the Go loop takes for this
+  # one-dimensional state, which is what keeps the two draw streams in lockstep. Both
+  # params are scalar, so shared() states that the one sample applies to the whole field.
+  - partition: anomaly
+    fields:
+    - {name: z}
+    outputs: ["z + thetas * (mus - z) * dt + shared(normal(0, sigmas * sqrt(dt)))"]
+
+  # The site update is identical across the three; only their params differ. It is written
+  # once and aliased so the three cannot drift apart.
+  #
+  # The step is deterministic: all stochastic, cross-site-correlated variation arrives
+  # through the shared anomaly, while sample_scale is integrated out analytically inside
+  # the Gaussian CDF. That CDF is spelled out as 0.5 * erfc(-x / sqrt(2)) — the same
+  # formula the Go normalCDF uses, term for term, so the two agree to rounding.
+  - partition: site_0
+    fields: &site_fields
+    - {name: mu}
+    - {name: p_exceed}
+    bindings: &site_bindings
+    - {name: season, expr: "seasonal_amplitude * sin(2 * pi * t / period + seasonal_phase)"}
+    - {name: latent, expr: "baseline + season + anomaly_loading * anomaly"}
+    - {name: z_score, expr: "(latent - log_threshold) / sample_scale"}
+    outputs: &site_outputs
+    - "latent"
+    - "0.5 * erfc(-z_score / sqrt(2))"
+
+  - partition: site_1
+    fields: *site_fields
+    bindings: *site_bindings
+    outputs: *site_outputs
+
+  - partition: site_2
+    fields: *site_fields
+    bindings: *site_bindings
+    outputs: *site_outputs

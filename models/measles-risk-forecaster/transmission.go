@@ -46,7 +46,7 @@ func effectivePool(s, population, fraction, reachableCeiling float64) float64 {
 }
 
 // nextGeneration draws the total number of secondary cases produced by the current
-// generation of `infectious` cases, each with negative-binomial offspring (mean
+// generation of infectious cases, each with negative-binomial offspring (mean
 // rLocal, dispersion k). Because the sum of n iid NegBin offspring counts is itself
 // Poisson(Gamma(shape = n*k, rate = k/rLocal)), the whole generation is one Gamma
 // draw plus one Poisson draw — exact, and O(1) in the generation size. This single

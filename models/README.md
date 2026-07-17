@@ -7,12 +7,11 @@ This catalogue enables downstream stochadex applications to 'teach' the engine w
 The repo boundary follows the **generative / inferential split**. This engine owns the
 **forward model** — the thing that *simulates*. Downstream project repos own inference,
 data ingestion, calibration, and the decision layer. Each catalogue entry is therefore
-three artifacts:
+these artifacts:
 
 1. **Methodology card** (`card.md`) — the primary human- and agent-legible description:
    the real-world system, what it ingests, its assumptions, validity regime, failure
-   modes, and the question it answers. Because the stub is Go (not a declarative YAML
-   file), the card carries the structural spec.
+   modes, and the question it answers.
 2. **SDK-based, data-free simulation stub** (`stub.go` + `*_test.go`) — the generative
    core only, built via the stochadex SDK (`Settings` + `Implementations`), wired into
    this engine's CI with at least one *meaningful* assertion about generative behaviour
@@ -20,12 +19,18 @@ three artifacts:
    "it runs."
 3. **Downstream pointer** — a link, in the card, to the project repo where inference,
    data, and the decision layer live.
+4. **Declarative twin** (`declarative.yaml` + `expression_equivalence_test.go`) — the same
+   model stated as data rather than Go, and a test proving it is the same model. It shows the
+   engine can be driven by something that does not write Go, which is a question the Go stub
+   cannot answer for itself.
 
 Any **bespoke `simulator.Iteration` implementations** a model needs sit *beside* its stub
 (e.g. `colonisation.go`). The catalogue is the staging ground for the "should this be in
-core?" question — an extension that recurs across several models, doing substantially the
-same job, is signalling it wants promoting. That mechanism is deliberately not designed up
-front; it emerges from the recurrence.
+core?" question, and the twin is what triages it: a model that *can* be stated as data says
+its bespoke Go is a convenience, so promotion must be earned by a benchmark; a model that
+*cannot* has found a real gap in the engine, and one model is enough to prove it. Recurrence
+across entries remains a second, slower signal. See
+[`CONVENTIONS.md`](CONVENTIONS.md#bespoke-extensions) for the triage.
 
 ## Entries
 

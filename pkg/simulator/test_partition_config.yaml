@@ -1,15 +1,17 @@
+# The upstream wiring was once split across params_from_upstream_partition and
+# params_from_indices; it is now the single params_from_upstream below. This fixture kept the
+# old spelling long after the fields went away — yaml ignores a key it does not know, so both
+# loaded silently and did nothing, and the test asserted too little to notice.
 name: test
-iteration: "iterationTest"
 params:
   test_params: [0, 1, 2]
   more_test_params: [3, 4, 5, 6]
 params_as_partitions:
   some_partition_params: [other_partition, another_partition]
-params_from_upstream_partition:
-  other_test_params: from_this_partition
-params_from_indices:
-  other_test_params: [0, 1, 2, 3, 4, 5]
+params_from_upstream:
+  other_test_params:
+    upstream: from_this_partition
+    indices: [0, 1, 2, 3, 4, 5]
 init_state_values: [0, 0, 0, 0, 0, 0, 0]
 seed: 12345
-state_width: 7
 state_history_depth: 1

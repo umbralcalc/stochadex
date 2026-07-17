@@ -13,7 +13,21 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 		"integration test: likelihood mean function fit",
 		func(t *testing.T) {
 			// Create a simulator.StateTimeStorage from a log entries file
-			storage, _ := analysis.NewStateTimeStorageFromJsonLogEntries("./data/test.log")
+			storage, err := analysis.NewStateTimeStorageFromJsonLogEntries("./data/test.log")
+			if err != nil {
+				t.Fatalf("the fixture did not load: %v", err)
+			}
+
+			// The fit below runs against this data, so the fixture has to have landed before
+			// any of it means anything.
+			data := storage.GetValues("first_wiener_process")
+			if len(data) != 201 || len(data[0]) != 4 {
+				t.Fatalf("got %d entries of width %d, want 201 of width 4",
+					len(data), len(data[0]))
+			}
+			if got, want := data[15][0], 1.22168049752109; got != want {
+				t.Fatalf("first_wiener_process at t=15: got %v, want %v", got, want)
+			}
 
 			// Configure a partition to dynamically fit the mean of the data values
 			fitPartition := analysis.NewLikelihoodMeanFunctionFitPartition(
@@ -67,7 +81,9 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 			}
 
 			// Create a scatter plot from partitions in a simulator.StateTimeStorage
-			_ = analysis.NewScatterPlotFromPartition(storage, xRef, yRefs)
+			if plot := analysis.NewScatterPlotFromPartition(storage, xRef, yRefs); plot == nil {
+				t.Error("expected a scatter plot")
+			}
 		},
 	)
 }

@@ -13,17 +13,24 @@ import (
 // computation here — not in a _test.go file — is what lets the card show exactly
 // the numbers the test checks, so the two can never disagree.
 
+// stubBuilder assembles the model, matching BuildStub's signature. The behaviour
+// helpers take one rather than calling BuildStub directly so that an alternative
+// assembly of the same model — notably the declarative one in declarative.yaml —
+// can be put through this exact claim suite instead of a re-stated copy of it.
+type stubBuilder func(approvalRate float64, numSteps int, seed uint64) *simulator.ConfigGenerator
+
 // runStubOverride runs the stub with an override hook applied to the generated
 // config before the run, so a behaviour can vary any partition's params
 // (approvals, thresholds, coefficients, rates) without bloating BuildStub's
 // signature — BuildStub still exposes only the one headline driver.
 func runStubOverride(
+	build stubBuilder,
 	approvalRate float64,
 	numSteps int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := BuildStub(approvalRate, numSteps, seed)
+	gen := build(approvalRate, numSteps, seed)
 	if override != nil {
 		override(gen)
 	}
@@ -52,13 +59,14 @@ func finalAffordability(store *simulator.StateTimeStorage) float64 {
 // meanFinalAff ensemble-averages the final price-to-earnings ratio over nMembers
 // seeds under a fixed approval rate and override, damping single-run noise.
 func meanFinalAff(
+	build stubBuilder,
 	approvalRate float64,
 	numSteps, nMembers int,
 	override func(*simulator.ConfigGenerator),
 ) float64 {
 	var sum float64
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(approvalRate, numSteps, uint64(3000+m), override)
+		store := runStubOverride(build, approvalRate, numSteps, uint64(3000+m), override)
 		sum += finalAffordability(store)
 	}
 	return sum / float64(nMembers)
@@ -67,6 +75,7 @@ func meanFinalAff(
 // meanPipelineStock ensemble-averages the pipeline stock over every step and
 // nMembers seeds — the cleanest summary of how full the supply pipeline runs.
 func meanPipelineStock(
+	build stubBuilder,
 	approvalRate float64,
 	numSteps, nMembers int,
 	override func(*simulator.ConfigGenerator),
@@ -74,7 +83,7 @@ func meanPipelineStock(
 	var sum float64
 	var count int
 	for m := 0; m < nMembers; m++ {
-		store := runStubOverride(approvalRate, numSteps, uint64(3000+m), override)
+		store := runStubOverride(build, approvalRate, numSteps, uint64(3000+m), override)
 		for _, row := range store.GetValues("pipeline") {
 			sum += row[0]
 			count++
@@ -92,39 +101,46 @@ func meanPipelineStock(
 //
 // The claim IDs match the subtest names under TestHomarkExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(BuildStub)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only model
+// answers the same claims, measured the same way.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const steps, nMembers = DefaultNumSteps, 8
 	const pe = "ensemble-mean final price-to-earnings ratio"
 
 	// Shared baseline at the default approval rate, reused across the structural
 	// claims that perturb one input against it (avoids recomputing the same base).
-	base := meanFinalAff(DefaultApprovalRate, steps, nMembers, nil)
+	base := meanFinalAff(build, DefaultApprovalRate, steps, nMembers, nil)
 
 	// Actionable supply lever: raising planning approvals from 60 to 240 units/month.
-	lowApprovals := meanFinalAff(60.0, steps, nMembers, nil)
-	highApprovals := meanFinalAff(240.0, steps, nMembers, nil)
+	lowApprovals := meanFinalAff(build, 60.0, steps, nMembers, nil)
+	highApprovals := meanFinalAff(build, 240.0, steps, nMembers, nil)
 
 	// Actionable tenure lever: cutting the market-facing delivery fraction.
-	fullMarket := meanFinalAff(DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	fullMarket := meanFinalAff(build, DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		setParam(g, "price_drift", "market_fraction", 1.0)
 	})
-	reducedMarket := meanFinalAff(DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	reducedMarket := meanFinalAff(build, DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		setParam(g, "price_drift", "market_fraction", 0.3)
 	})
 
 	// Structural drivers.
-	hikedRate := meanFinalAff(DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	hikedRate := meanFinalAff(build, DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		setParam(g, "bank_rate", "mus", 6.0)
 	})
-	coupledDemand := meanFinalAff(DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	coupledDemand := meanFinalAff(build, DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		setParam(g, "price_drift", "demand_beta", 0.03)
 	})
-	fastEarnings := meanFinalAff(DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	fastEarnings := meanFinalAff(build, DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		setParam(g, "log_earnings", "drift_coefficients", 0.006)
 	})
 
 	// Pipeline throughput invariant (mean standing stock, not affordability).
-	basePipeline := meanPipelineStock(DefaultApprovalRate, steps, nMembers, nil)
-	fasterPipeline := meanPipelineStock(DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	basePipeline := meanPipelineStock(build, DefaultApprovalRate, steps, nMembers, nil)
+	fasterPipeline := meanPipelineStock(build, DefaultApprovalRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		setParam(g, "pipeline", "completion_rate", 0.30)
 	})
 

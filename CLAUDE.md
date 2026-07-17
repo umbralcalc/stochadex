@@ -116,11 +116,20 @@ models look like, and recurring bespoke extensions surface for promotion into co
 repo boundary follows the **generative/inferential split** — this engine owns the forward
 model; downstream repos own inference, data, calibration, and the decision layer.
 
-The full spec (four artifacts per entry — `card.md`, `stub.go`, `stub_test.go`, and the
-mandatory `behaviour_test.go` expected-behaviour suite — plus the actionable/structural
-response-claim taxonomy) lives in **`models/CONVENTIONS.md`**. Add entries with the
-`/new-model` skill; the reference entries are `models/antimicrobial-resistance/`,
-`models/floodrisk/`, and `models/energy-balancer/`.
+The full spec (per-entry artifacts — `card.md`, `stub.go`, `stub_test.go`, the mandatory
+`behaviour_test.go` expected-behaviour suite, and a `declarative.yaml` twin with its
+equivalence test — plus the actionable/structural response-claim taxonomy and the two-category
+promotion triage) lives in **`models/CONVENTIONS.md`**. Add entries with the `/new-model`
+skill; the reference entries are `models/antimicrobial-resistance/`, `models/floodrisk/`,
+and `models/energy-balancer/`.
+
+**The declarative twin is the promotion triage.** Each entry is also stated as data
+(`declarative.yaml`, a `general.ExpressionIteration` per partition, run through `pkg/api` with
+no Go). Whether that twin can be written is the test: if it can, the bespoke Go is a
+convenience and promotion is optional (earn it with a benchmark); if it cannot, the engine has
+a real capability gap and one model is enough to prove it. Never change a model to make its
+twin agree, and never widen a tolerance to hide a gap — step the oracle down instead
+(exact → claim-level → distributional) and say which you used.
 
 ## Build, run, and docs
 
