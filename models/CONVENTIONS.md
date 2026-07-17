@@ -20,8 +20,13 @@ models/
     stub.go            # data-free SDK generative core (BuildStub)
     stub_test.go       # engine-CI test: harness + invariants + headline direction-of-response
     behaviour_test.go  # expected-behaviour suite: named, human-legible response claims
+    declarative.yaml   # the same model stated as data — no Go, no compilation
+    expression_equivalence_test.go  # proves the twin is the same model
     <iteration>.go     # bespoke simulator.Iteration implementations, beside the stub
 ```
+
+The declarative twin is expected but not always possible — where the model resists the DSL,
+its absence is itself a recorded finding (see §5 and [Bespoke extensions](#bespoke-extensions)).
 
 The Go **package name** is a short identifier for the domain (`amr`, `floodrisk`) — it
 need not equal the directory name, but must be a valid Go identifier (no hyphens).
@@ -32,7 +37,7 @@ bespoke extensions lifted from the downstream repo and staged here for the "shou
 promoted into core?" question (see [Bespoke extensions](#bespoke-extensions)). Keep the
 comment in `doc.go` alone — do not also attach a package comment to a source file.
 
-## The three artifacts
+## The artifacts
 
 ### 1. Methodology card (`card.md`)
 
@@ -184,18 +189,139 @@ break a claim's sign and the binding test fails; change a number without regener
 card guard fails. New entries should adopt this from birth; older entries are being migrated
 to it.
 
+### 5. Declarative twin (`declarative.yaml` + `expression_equivalence_test.go`)
+
+The same model, stated as data: partitions and a `general.ExpressionIteration` spec per
+partition, loaded through `pkg/api` with no Go and no compilation step. See
+[`anglersim/declarative.yaml`](anglersim/declarative.yaml) for the reference entry.
+
+It earns its place twice over. It is the catalogue's answer to "can this engine be driven by
+something that does not write Go?" — a question the stub, being Go, cannot answer. And
+writing it is what triages the model for promotion (see [Bespoke extensions](#bespoke-extensions)):
+a twin that *can* be written says the bespoke Go is a convenience; a twin that *cannot* says
+the engine is missing something.
+
+The twin must be the **same model**, not a rewrite that behaves similarly: same partition
+names, same param keys, same state layout, same wiring. Two traps:
+
+- **Match the Go's actual read semantics**, not its surface. `params_from_upstream` is a
+  *within-step* read; the DSL's `upstreams:` alias is a *lag-1* state-history read. A model
+  that resolves an index via `params_as_partitions` and then reads `stateHistories` is doing
+  the lag-1 thing, so `upstreams:` is its faithful translation and `params_from_upstream`
+  would be a different model. Say which, and why, in a YAML comment.
+- **Draws must line up.** A draw's position in the stream is part of the model. Bindings are
+  eager, and a scalar `where` is lazy — so a guarded draw belongs *inside* the `where`, which
+  is what reproduces a Go early-return that skips the draw.
+
+Where the Go hardcodes an index constant, state it as a mask param instead
+(`anglersim`'s `warming_mask`/`nonneg_mask` replace a `tempIndex` constant). Pushing a
+constant out into data is a genuine improvement, not a translation artifact.
+
+#### How the twin is verified
+
+Two independent checks, because they fail differently. **Step-for-step**: randomised inputs
+through single `Iterate` calls on both, which catches a mis-stated formula exactly. **Whole
+suite**: re-run `ObservedBehaviour()` against the declarative build, which catches what
+per-step agreement cannot — wrong wiring, wrong params, wrong state layout. To make the
+second possible, thread a `stubBuilder` through the behaviour helpers so `ObservedBehaviour()`
+delegates to an `observedBehaviour(build)`; the claim suite is then *pointed at* either
+assembly rather than restated for each. `ObservedBehaviour()` must keep its no-arg signature —
+`cmd/model-index` detects it by AST.
+
+Prefer the **strongest oracle the model allows**, and say in the test header which one you
+used and why:
+
+1. **Exact (~1e-16).** Available when the bespoke iteration draws from the same generator the
+   evaluator does (`rng.New(seed)` is `rand.New(rand.NewPCG(seed, seed))`) *and* the
+   expressions take the same number of draws per step. Then both models run on the same
+   stream and equivalence is decidable directly. Assert a tight tolerance (1e-12), never
+   bit-identity: compiled Go contracts `a + b*c` into an FMA, which rounds differently from
+   the evaluator's separate operations. That residue is the FMA, not the model.
+2. **Claim-level.** When the streams cannot be aligned — a model on `math/rand` v1, or one
+   hand-rolling a sampler the engine implements differently — assert that every claim still
+   `cardgen.Verify`s, and do *not* assert the numbers match. The claims are ensemble-level and
+   threshold-based precisely so they survive a different stream while still discriminating a
+   wrong model.
+3. **Distributional.** Per-step moments with a tolerance justified as a Monte Carlo sampling
+   bound. Say in a comment that it is a sampling bound, not a rounding bound.
+
+Two rules that matter more than the tests passing:
+
+- **Step the oracle down, never the tolerance.** A fat tolerance that no longer tells
+  equivalence from similarity is a test that has stopped working while still going green.
+- **Never change the model to make the twin agree.** That inverts the point of the exercise,
+  and it can silently falsify the card. If a model and the engine disagree, that is a finding
+  to record, not a diff to apply.
+
+Step-for-step tests must **exercise every branch and count the cases that hit each**, failing
+if any count is zero — an untriggered branch is a comparison that looks stronger than it is.
+Choose input ranges that actually reach the clips and guards, including ranges the model would
+not ordinarily visit.
+
+Where a model resists the DSL, the twin's **absence is the artifact**: record what could not
+be expressed and why, as a category 2 finding below.
+
 ## Bespoke extensions
 
 Custom `simulator.Iteration` implementations a model needs live *beside* its stub, lifted
 from the downstream repo. Leave the downstream's data-fitting / calibration / inference
 helpers downstream — only the generative iterations travel. The catalogue is the staging
-ground for the "should this be promoted into core?" question: **an extension that recurs
-across several entries, doing substantially the same job, is signalling it wants
-promoting.** Do not design the promotion mechanism up front — let it emerge from the
-recurrence once several stubs exist. The **domain model index** ([`INDEX.md`](INDEX.md),
-generated by `cmd/model-index`) is where that recurrence becomes visible: it lists every
-model's core-package usage and bespoke iterations, so a concept appearing beside three or
-four models is legible at a glance. The promotion decision stays a maintainer judgement.
+ground for the "should this be promoted into core?" question.
+
+Recurrence is one signal: **an extension that recurs across several entries, doing
+substantially the same job, is signalling it wants promoting.** The **domain model index**
+([`INDEX.md`](INDEX.md), generated by `cmd/model-index`) is where that becomes visible — it
+lists every model's core-package usage and bespoke iterations, so a concept appearing beside
+three or four entries is legible at a glance.
+
+But recurrence is a slow signal: it cannot fire until several stubs exist. The declarative
+twin (§5) gives a sharper one that fires on the *first* model, because it asks a question
+with a decidable answer: **can `general.ExpressionIteration` express this?** That splits
+promotion candidates into two categories which are not the same kind of thing and should not
+be triaged the same way.
+
+### Category 1 — standardisation candidate (the DSL *can* express it)
+
+The evidence is a declarative twin that exists and whose claims hold. The bespoke Go is then
+a convenience or a performance choice, **not a capability**: the engine can already do this,
+just not as fast or not as tidily.
+
+Promotion here is **optional, and must be earned by a measurement** — a benchmark showing the
+evaluator is too slow for the job, or the same expression block recurring across entries.
+"It would be nicer in Go" is not evidence. Absent a measurement, the twin is the answer and
+no promotion is needed.
+
+One sub-signal lives here and is easy to misread as an engine gap: a twin that had to fall
+back to a weaker oracle (§5) because the bespoke hand-rolls what the engine already ships —
+`math/rand` v1 where core has standardised on `pkg/rng`'s v2 PCG, or a hand-written sampler
+beside `pkg/rng`'s. That is standardisation debt **in the model**, not a gap in core. It is
+still a category 1 finding, and the fix is to the model, on its own merits and its own PR —
+never as a side effect of making an equivalence test pass (see §5).
+
+### Category 2 — capability gap (the DSL *cannot* express it)
+
+The evidence is a twin that **cannot be written**, and the reason why. This is the strong
+signal: something is genuinely missing from the engine, and one model is enough to prove it.
+Two shapes, with very different costs:
+
+- **A missing primitive.** The model needs a function the evaluator lacks, but which fits its
+  existing shape — pure, elementwise, no draw-width question. Cheap and safe to promote
+  straight into the evaluator. Seasonality (`sin`) and a threshold-exceedance probability
+  (`erfc`, the primitive a Gaussian CDF is built from) arrived exactly this way, from
+  `bathing-water-forecaster`. Prefer the mathematical primitive over the convenience wrapper:
+  `erfc` rather than a `normal_cdf`, because it matches what compiled Go computes term for
+  term, which is what keeps a twin exact.
+- **A missing structure.** The model's update is not elementwise at all, so no set of
+  functions rescues it. `business-survival` is the worked example: a cohort stock-and-flow
+  whose output element *i* reads input element *i−1* (an age shift), with an absorbing top
+  bucket. The DSL aligns element *i* with element *i* by construction, so this is a shape gap,
+  not a vocabulary gap. Resolving it means either a new operator (a shift, which enlarges what
+  the DSL *is*) or a core `Iteration` — a real design decision, and correspondingly slow.
+  Record it and let it wait for a second instance before choosing.
+
+**Do not resolve a category 2 finding by changing the model to suit the DSL.** The finding is
+the value; a model bent to fit tells you nothing. The promotion decision stays a maintainer
+judgement.
 
 ## Adding an entry
 
