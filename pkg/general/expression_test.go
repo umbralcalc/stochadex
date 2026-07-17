@@ -85,6 +85,62 @@ func TestExpressionIteration(t *testing.T) {
 	)
 }
 
+// cohortExpr ages a four-bucket cohort with an absorbing top and a guarded draw at the
+// intake; readerExpr reads it through slice, a lag past the current row, and width. Together
+// they put every construct that is not elementwise through the run harnesses.
+func cohortExpr() *ExpressionIteration {
+	return &ExpressionIteration{
+		Fields: []ExpressionField{{Name: "bucket", Width: 4}},
+		Outputs: []string{
+			"each(4, age, where(age == 0, poisson(births)," +
+				"where(age == 3, bucket[2] * survival + bucket[3] * survival," +
+				"bucket[age - 1] * survival)))",
+		},
+	}
+}
+
+func readerExpr() *ExpressionIteration {
+	return &ExpressionIteration{
+		Fields:    []ExpressionField{{Name: "total"}, {Name: "aged"}},
+		Upstreams: map[string]string{"coh": "cohort"},
+		// Three of the six coefficients, with the top bucket deliberately unweighted.
+		Bindings: []ExpressionBinding{
+			{Name: "weights", Expr: "concat(slice(coefficients, 0, 3), 0)"},
+		},
+		Outputs: []string{
+			"dot(weights, coh)",
+			"sum(lag(coh, 2)) + width(coefficients)",
+		},
+	}
+}
+
+func TestExpressionConstructsRunWithHarnesses(t *testing.T) {
+	// The harnesses are what catch what a unit test cannot: NaNs, a wrong state width, a
+	// mutated params map, and statefulness residue, the last by running the whole simulation
+	// twice and comparing. That last one is the reason this exists — each binds its lane index
+	// into an environment it shares with the enclosing scope, so a restore that leaked would
+	// show up here and nowhere else.
+	t.Run("each, lag, slice, concat and width survive the harnesses", func(t *testing.T) {
+		settings := simulator.LoadSettingsFromYaml("./expression_constructs_settings.yaml")
+		iterations := []simulator.Iteration{cohortExpr(), readerExpr()}
+		for i, iteration := range iterations {
+			iteration.Configure(i, settings)
+		}
+		implementations := &simulator.Implementations{
+			Iterations:      iterations,
+			OutputCondition: &simulator.EveryStepOutputCondition{},
+			OutputFunction:  &simulator.NilOutputFunction{},
+			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
+				MaxNumberOfSteps: 100,
+			},
+			TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		}
+		if err := simulator.RunWithHarnesses(settings, implementations); err != nil {
+			t.Errorf("test harness failed: %v", err)
+		}
+	})
+}
+
 // evalOnce configures a one-partition expression iteration over the given state and params
 // and returns a single Iterate result, for testing evaluation semantics directly.
 func evalOnce(
