@@ -52,10 +52,10 @@ type ExpressionBinding struct {
 //   - any binding declared earlier.
 //
 // Functions: where, clamp, min, max, abs, floor, exp, log, sqrt, pow, sin, cos, erf, erfc,
-// fill, slice, concat, sum, dot, lag, each, iid and shared, plus the draws normal, uniform,
-// exponential, poisson, gamma, beta and binomial. Draws take expressions as their parameters,
-// so compound sampling composes naturally: a negative-binomial branching step is just
-// poisson(gamma(shape, rate)).
+// fill, width, slice, concat, sum, dot, lag, each, iid and shared, plus the draws normal,
+// uniform, exponential, poisson, gamma, beta and binomial. Draws take expressions as their
+// parameters, so compound sampling composes naturally: a negative-binomial branching step is
+// just poisson(gamma(shape, rate)).
 //
 // sin and cos carry seasonality; erfc is the primitive a Gaussian CDF is built from, as
 // 0.5 * erfc(-x / sqrt(2)), which is what a probit link or a threshold-exceedance
@@ -67,7 +67,8 @@ type ExpressionBinding struct {
 // catalogue could not be written with. Each has one construct:
 //
 //   - slice(v, start, width) takes a block out of a vector, and concat(a, b, ...) joins
-//     values, for state and params that pack several quantities end to end.
+//     values, for state and params that pack several quantities end to end. width(v) is how
+//     many elements v has, for a spec that adapts to a param's length rather than fixing it.
 //   - lag(name, n) reads a partition's committed state n rows back, where a bare field name
 //     or an Upstreams alias only ever gives row 0. The partition must keep that many rows
 //     (its state_history_depth), and lag(x, 0) is x.
@@ -321,6 +322,18 @@ func broadcastLen(a, b exprValue, what string) int {
 	panic(fmt.Sprintf("expression: cannot combine widths %d and %d in %s", len(a), len(b), what))
 }
 
+// toIndex converts a computed index or count to an int, rejecting the values Go leaves
+// undefined. This is not pedantry: int(NaN) does not panic and is not portable — on arm64 it
+// is 0, so a NaN index sails through a bounds check and silently reads element 0, while on
+// amd64 it is the most negative int and the same expression panics. An expression that
+// answers differently per architecture is worse than one that fails.
+func toIndex(x float64, what string) int {
+	if math.IsNaN(x) || math.IsInf(x, 0) {
+		panic(fmt.Sprintf("expression: %s is %v, which is not a whole number", what, x))
+	}
+	return int(x)
+}
+
 func at(v exprValue, i int) float64 {
 	if len(v) == 1 {
 		return v[0]
@@ -377,7 +390,7 @@ func (c *exprCtx) eval(node ast.Expr) exprValue {
 		if len(idx) != 1 {
 			panic("expression: index must be a scalar")
 		}
-		i := int(idx[0])
+		i := toIndex(idx[0], "an index")
 		if i < 0 || i >= len(v) {
 			panic(fmt.Sprintf("expression: index %d out of range for width %d", i, len(v)))
 		}
@@ -485,7 +498,7 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		if len(nv) != 1 {
 			panic("expression: iid's count must be a scalar")
 		}
-		count := int(nv[0])
+		count := toIndex(nv[0], "iid's count")
 		if count < 1 {
 			panic("expression: iid's count must be at least 1")
 		}
@@ -521,7 +534,7 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		if len(countValue) != 1 {
 			panic("expression: each's count must be a scalar")
 		}
-		count := int(countValue[0])
+		count := toIndex(countValue[0], "each's count")
 		if count < 1 {
 			panic("expression: each's count must be at least 1")
 		}
@@ -565,7 +578,7 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		if c.lag == nil {
 			panic("expression: lag is unavailable here")
 		}
-		return c.lag(name.Name, int(rowValue[0]))
+		return c.lag(name.Name, toIndex(rowValue[0], "lag's row"))
 	}
 
 	switch name {
@@ -618,7 +631,7 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		if len(nv) != 1 {
 			panic("expression: fill's width must be a scalar")
 		}
-		w := int(nv[0])
+		w := toIndex(nv[0], "fill's width")
 		if w < 1 {
 			panic("expression: fill's width must be at least 1")
 		}
@@ -635,7 +648,8 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		if len(fromValue) != 1 || len(widthValue) != 1 {
 			panic("expression: slice's start and width must be scalars")
 		}
-		from, width := int(fromValue[0]), int(widthValue[0])
+		from := toIndex(fromValue[0], "slice's start")
+		width := toIndex(widthValue[0], "slice's width")
 		if width < 1 {
 			panic("expression: slice's width must be at least 1")
 		}
@@ -656,6 +670,12 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 			out = append(out, arg(i)...)
 		}
 		return out
+	case "width":
+		// How many elements a value has, for a spec that must adapt to a param's length
+		// rather than hard-code it. Without it the only way to ask is a trick, and the
+		// obvious spelling of that trick, sum(0 * x + 1), is silently wrong: 0 * NaN is NaN.
+		need(1)
+		return exprValue{float64(len(arg(0)))}
 	case "sum":
 		need(1)
 		total := 0.0

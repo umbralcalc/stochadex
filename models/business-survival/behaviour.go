@@ -13,17 +13,24 @@ import (
 // computation here — not in a _test.go file — is what lets the card show exactly
 // the numbers the test asserts on, so the two can never disagree.
 
+// stubBuilder assembles the model, matching BuildStub's signature. The behaviour
+// helpers take one rather than calling BuildStub directly so that an alternative
+// assembly of the same model — notably the declarative one in declarative.yaml —
+// can be put through this exact claim suite instead of a re-stated copy of it.
+type stubBuilder func(hazardScale float64, numSteps int, seed uint64) *simulator.ConfigGenerator
+
 // runStubOverride runs the stub with an override hook applied to the generated
 // config before the run, so a behaviour can vary any partition's params (policy
 // multipliers, elasticities, covariates, survival curve) without bloating
 // BuildStub's signature — BuildStub still exposes only the one headline driver.
 func runStubOverride(
+	build stubBuilder,
 	hazardScale float64,
 	numSteps int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := BuildStub(hazardScale, numSteps, seed)
+	gen := build(hazardScale, numSteps, seed)
 	if override != nil {
 		override(gen)
 	}
@@ -101,10 +108,11 @@ func meanBackHalfSectorStock(rows [][]float64, sec int) float64 {
 // deterministicBackHalfStock runs one deterministic stub and returns the back-half
 // mean register stock. Deterministic mode makes a single run sufficient.
 func deterministicBackHalfStock(
+	build stubBuilder,
 	hazardScale float64,
 	extra func(*simulator.ConfigGenerator),
 ) float64 {
-	store := runStubOverride(hazardScale, DefaultNumSteps, 7001, func(g *simulator.ConfigGenerator) {
+	store := runStubOverride(build, hazardScale, DefaultNumSteps, 7001, func(g *simulator.ConfigGenerator) {
 		deterministic(g)
 		if extra != nil {
 			extra(g)
@@ -130,10 +138,11 @@ func cohortInit() []float64 {
 // deterministic), seeding one cohort at age 0 and returning the fraction still
 // active after 60 months. This is the model's signature decision metric.
 func cohortSurvival(
+	build stubBuilder,
 	hazardScale float64,
 	extra func(*simulator.ConfigGenerator),
 ) float64 {
-	store := runStubOverride(hazardScale, 60, 7001, func(g *simulator.ConfigGenerator) {
+	store := runStubOverride(build, hazardScale, 60, 7001, func(g *simulator.ConfigGenerator) {
 		deterministic(g)
 		setVec(g, "base_birth_rates", make([]float64, numSectors)) // formation off
 		g.GetPartition("population").InitStateValues = cohortInit()
@@ -154,6 +163,13 @@ func cohortSurvival(
 //
 // The claim IDs match the subtest names under TestBusinessSurvivalExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(BuildStub)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only
+// model answers the same claims, measured the same way.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const (
 		stock       = "deterministic back-half register stock"
 		sectorStk   = "deterministic back-half sector stock"
@@ -165,32 +181,32 @@ func ObservedBehaviour() []cardgen.Claim {
 
 	// Shared deterministic baselines, reused across the claims that perturb one
 	// input against them (avoids recomputing the same base each time).
-	detBase := deterministicBackHalfStock(DefaultPolicyHazardScale, nil)
-	baseRun := runStubOverride(DefaultPolicyHazardScale, DefaultNumSteps, 7001, deterministic)
+	detBase := deterministicBackHalfStock(build, DefaultPolicyHazardScale, nil)
+	baseRun := runStubOverride(build, DefaultPolicyHazardScale, DefaultNumSteps, 7001, deterministic)
 	baseRows := baseRun.GetValues("population")
 	baseTech := meanBackHalfSectorStock(baseRows, tech)
 	baseHosp := meanBackHalfSectorStock(baseRows, hospitality)
 	baseRetail := meanBackHalfSectorStock(baseRows, retail)
-	calm := cohortSurvival(DefaultPolicyHazardScale, nil)
+	calm := cohortSurvival(build, DefaultPolicyHazardScale, nil)
 
 	// ----- Decision-path responses (actionable support levers) -----
 
-	supported := cohortSurvival(0.85, nil)
-	adverse := cohortSurvival(1.15, nil)
+	supported := cohortSurvival(build, 0.85, nil)
+	adverse := cohortSurvival(build, 1.15, nil)
 
-	boostedFormation := deterministicBackHalfStock(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	boostedFormation := deterministicBackHalfStock(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "policy_birth_scale", 1.2)
 	})
 
-	infantHelped := cohortSurvival(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	infantHelped := cohortSurvival(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "policy_infant_hazard_scale", 0.3)
 	})
-	infantHurt := cohortSurvival(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	infantHurt := cohortSurvival(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "policy_infant_hazard_scale", 1.7)
 	})
 
 	targetedTech := meanBackHalfSectorStock(
-		runStubOverride(DefaultPolicyHazardScale, DefaultNumSteps, 7001, func(g *simulator.ConfigGenerator) {
+		runStubOverride(build, DefaultPolicyHazardScale, DefaultNumSteps, 7001, func(g *simulator.ConfigGenerator) {
 			deterministic(g)
 			scale := make([]float64, numSectors)
 			for i := range scale {
@@ -201,7 +217,7 @@ func ObservedBehaviour() []cardgen.Claim {
 		}).GetValues("population"), tech)
 
 	relievedHosp := meanBackHalfSectorStock(
-		runStubOverride(DefaultPolicyHazardScale, DefaultNumSteps, 7001, func(g *simulator.ConfigGenerator) {
+		runStubOverride(build, DefaultPolicyHazardScale, DefaultNumSteps, 7001, func(g *simulator.ConfigGenerator) {
 			deterministic(g)
 			scale := make([]float64, numSectors)
 			for i := range scale {
@@ -213,7 +229,7 @@ func ObservedBehaviour() []cardgen.Claim {
 
 	// ----- Structural-driver responses (non-actionable; out-of-sample credibility) -----
 
-	worseCurve := deterministicBackHalfStock(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	worseCurve := deterministicBackHalfStock(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		scaled := make([]float64, len(DefaultSurvivalFracs))
 		for i, v := range DefaultSurvivalFracs {
 			scaled[i] = v * 0.9 // uniformly worse survival at every horizon
@@ -221,39 +237,39 @@ func ObservedBehaviour() []cardgen.Claim {
 		setVec(g, "survival_fracs", scaled)
 	})
 
-	lowRate := deterministicBackHalfStock(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	lowRate := deterministicBackHalfStock(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "birth_elasticity_rate", -0.5)
 		setVec(g, "covariate_bank_rates", []float64{0.5}) // = reference → neutral
 	})
-	highRate := deterministicBackHalfStock(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	highRate := deterministicBackHalfStock(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "birth_elasticity_rate", -0.5)
 		setVec(g, "covariate_bank_rates", []float64{3.0}) // tighter → fewer births
 	})
 
-	lowClaimant := deterministicBackHalfStock(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	lowClaimant := deterministicBackHalfStock(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "birth_elasticity_claimant", -0.4)
 		setVec(g, "covariate_claimants", []float64{12000.0}) // = reference → neutral
 	})
-	highClaimant := deterministicBackHalfStock(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	highClaimant := deterministicBackHalfStock(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "birth_elasticity_claimant", -0.4)
 		setVec(g, "covariate_claimants", []float64{24000.0}) // weaker economy
 	})
 
-	lowDeathRate := cohortSurvival(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	lowDeathRate := cohortSurvival(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "death_elasticity_rate", 0.5)
 		setVec(g, "covariate_bank_rates", []float64{0.5}) // = reference → neutral
 	})
-	highDeathRate := cohortSurvival(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	highDeathRate := cohortSurvival(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setParam(g, "death_elasticity_rate", 0.5)
 		setVec(g, "covariate_bank_rates", []float64{3.0}) // tighter → higher hazard
 	})
 
-	distressed := cohortSurvival(DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
+	distressed := cohortSurvival(build, DefaultPolicyHazardScale, func(g *simulator.ConfigGenerator) {
 		setVec(g, "distress_hazard_boost", []float64{0.3}) // +30% hazard
 	})
 
 	burdenedRetail := meanBackHalfSectorStock(
-		runStubOverride(DefaultPolicyHazardScale, DefaultNumSteps, 7001, func(g *simulator.ConfigGenerator) {
+		runStubOverride(build, DefaultPolicyHazardScale, DefaultNumSteps, 7001, func(g *simulator.ConfigGenerator) {
 			deterministic(g)
 			scale := append([]float64(nil), DefaultSectorHazardScales...)
 			scale[retail] = 1.5

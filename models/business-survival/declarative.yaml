@@ -1,0 +1,242 @@
+# The business-survival generative core, written entirely as data: no Go, no compilation.
+#
+# This is the same model BuildStub assembles in stub.go — same partition name, same param
+# keys, same state layout — so the two can be compared directly (see
+# expression_equivalence_test.go, which checks per-step agreement and re-runs the whole
+# behaviour suite against this file). The run knobs BuildStub takes as arguments (the
+# support-policy hazard scale, the horizon, the seed) are injected by the caller; everything
+# below is the model.
+#
+# This is the entry that had no twin until each/slice/concat existed. The register is a
+# flattened sector × age grid, element i of the next state reads element i-1 (a business ages
+# one month), age 0 takes formation, and the top bucket is absorbing — an index shift, which
+# an elementwise evaluator cannot say. each(360, k, ...) says it: the lane index carries both
+# coordinates (sec = floor(k/60), age = k%60, exactly SingleLAPopulationIteration's
+# offset(sec, age) = sec*60 + age), the lane reads register[k-1], and everything inside a lane
+# is scalar so the boundary guards are lazy and register[-1] is never evaluated.
+#
+# Three params-as-data notes:
+#
+#  - The Go derives its 60 monthly hazards in Configure, from survival_fracs and
+#    sector_hazard_scales. Here they are derived per step from the same params, in bindings —
+#    same arithmetic, no cached table. That is a strictly more faithful statement of the model:
+#    the Go's cache means a mid-run change to survival_fracs is silently ignored, which is a
+#    property of the implementation and not of the demography.
+#  - Same for deterministic, which the Go also snapshots in Configure and this reads live.
+#    Every assembly sets it before Configure, so the two agree everywhere it is used.
+#  - The Go treats several params as optional, defaulting when absent (GetOk). A declarative
+#    partition has no notion of an absent name, so each optional param is stated here at its
+#    no-effect value, which is exactly what the Go's absent branch computes. The *validity*
+#    guards on those params (a negative scalar or a non-positive per-sector multiplier falls
+#    back to the default) are real branches and are stated below.
+main:
+  partitions:
+
+  # The monthly sector × age Leslie register for one local authority: 6 sectors × 60 age
+  # buckets, flattened, sec-major.
+  - name: population
+    params:
+      survival_fracs: [0.946, 0.747, 0.559, 0.45, 0.384]
+      sector_hazard_scales: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      base_birth_rates: [5.0, 4.0, 6.0, 4.0, 5.0, 3.0]
+      covariate_bank_rates: [0.5]
+      covariate_claimants: [12000.0]
+      rate_ref: [0.5]
+      claimant_ref: [12000.0]
+      birth_elasticity_rate: [0.0]
+      birth_elasticity_claimant: [0.0]
+      death_elasticity_rate: [0.0]
+      # The one swept driver: support-policy hazard multiplier.
+      policy_death_hazard_scale: [1.0]
+      # Optional in the Go, stated here at the value its absent branch computes.
+      deterministic: [0.0]
+      policy_birth_scale: [1.0]
+      policy_infant_hazard_scale: [1.0]
+      policy_sector_birth_scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      policy_sector_hazard_scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+      distress_hazard_boost: [0.0]
+      covariate_gdp_growth: [0.0]
+      gdp_ref: [0.0]
+      birth_elasticity_gdp: [0.0]
+    # The register starts empty and fills from formation. 360 = 6 sectors × 60 age buckets;
+    # this is what sets the partition's state width.
+    init_state_values:
+      [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+
+  expressions:
+
+  - partition: population
+    fields:
+    # One flat block, sec-major: element sec*60 + age, matching offset(sec, age) in the Go.
+    - {name: register, width: 360}
+
+    bindings:
+
+    # ---- the ONS survival curve, turned into 60 monthly hazards ----
+    #
+    # Within each year of life the hazard is piecewise constant, chosen so that twelve months
+    # of survival compound to that year's conditional survival ratio surv[y]/surv[y-1] (with
+    # surv[-1] = 1). concat supplies the shifted denominator, which is the whole of what the
+    # Go's running prev variable does.
+    - {name: surv5, expr: "slice(survival_fracs, 0, 5)"}
+    - {name: prev_surv, expr: "concat(1.0, slice(survival_fracs, 0, 4))"}
+    - {name: raw_ratio, expr: "surv5 / prev_surv"}
+    # A ratio outside (0, 1] is a non-monotone or non-positive survival curve: clamped, exactly
+    # as the Go clamps it. The guard is vector-valued, so both branches evaluate — harmless,
+    # since neither draws.
+    - name: year_ratio
+      expr: >-
+        where(raw_ratio > 0 && raw_ratio <= 1, raw_ratio,
+        clamp(raw_ratio, 1e-12, 1.0))
+    - {name: year_monthly_surv, expr: "pow(year_ratio, 1.0 / 12.0)"}
+    - {name: base_hazard, expr: "each(60, m, 1 - year_monthly_surv[floor(m / 12)])"}
+
+    # ---- macroeconomic covariates ----
+    #
+    # The Go indexes each covariate series by floor(current_time), clamped into the series, and
+    # repeats the last value past its end. The DSL has no len(), so a vector's width has to be
+    # recovered: a vector-valued condition makes where select elementwise, so where(x == x, 1, 1)
+    # is a vector of ones exactly as wide as x, and summing it counts them. Keeping the twin
+    # general in the series length beats freezing today's into a param.
+    #
+    # The arithmetic spelling of the same trick, sum(0 * x + 1), is WRONG and was caught by the
+    # equivalence test: 0 * NaN is NaN, so one NaN covariate poisons the count, and a NaN index
+    # does not panic — a float-to-int conversion of NaN is undefined in Go and silently read
+    # element 0 here. x == x is false for NaN and 1 either way, so this form is NaN-safe. The
+    # model reaches that case: it guards its multipliers against NaN explicitly.
+    - {name: n_rates, expr: "sum(where(covariate_bank_rates == covariate_bank_rates, 1, 1))"}
+    - {name: t_index, expr: "clamp(floor(t), 0, n_rates - 1)"}
+    - {name: rate, expr: "covariate_bank_rates[t_index]"}
+    # Each series is re-clamped to its own length, so a shorter claimant or GDP series holds at
+    # its last value while the rate series keeps advancing.
+    - name: claimant
+      expr: >-
+        covariate_claimants[min(t_index, sum(where(covariate_claimants == covariate_claimants, 1, 1)) - 1)]
+    - name: gdp
+      expr: >-
+        covariate_gdp_growth[min(t_index, sum(where(covariate_gdp_growth == covariate_gdp_growth, 1, 1)) - 1)]
+    - {name: gdp_term, expr: "birth_elasticity_gdp * (gdp - gdp_ref)"}
+
+    # ---- log-linear economic multipliers on formation and exit ----
+    #
+    # where(m >= 0, m, 1) is the Go's "if m < 0 || IsNaN(m) { m = 1 }": exp is never negative,
+    # so the guard only ever fires on a NaN, and a NaN fails >= 0.
+    - name: birth_mult_raw
+      expr: >-
+        exp(birth_elasticity_rate * (rate - rate_ref)
+        + birth_elasticity_claimant * (log(claimant / claimant_ref))
+        + gdp_term)
+    - {name: birth_mult, expr: "where(birth_mult_raw >= 0, birth_mult_raw, 1)"}
+    - {name: death_mult_raw, expr: "exp(death_elasticity_rate * (rate - rate_ref))"}
+    - {name: death_mult_econ, expr: "where(death_mult_raw >= 0, death_mult_raw, 1)"}
+    # The distress / leading-indicator channel, applied after the NaN guard, as in the Go.
+    - name: boost
+      expr: >-
+        distress_hazard_boost[min(t_index, sum(where(distress_hazard_boost == distress_hazard_boost, 1, 1)) - 1)]
+    - {name: death_mult, expr: "death_mult_econ * where(boost > 0, 1 + boost, 1)"}
+
+    # ---- support-policy multipliers, with the Go's validity fallbacks ----
+    #
+    # A scalar policy param falls back to its default when negative or NaN (zero is a
+    # legitimate switch-everything-off); a per-sector one falls back when non-positive or NaN.
+    # The two thresholds differ in the Go and differ here.
+    - {name: policy_birth, expr: "where(policy_birth_scale >= 0, policy_birth_scale, 1)"}
+    - name: policy_death
+      expr: >-
+        where(policy_death_hazard_scale >= 0, policy_death_hazard_scale, 1)
+    - name: infant
+      expr: >-
+        where(policy_infant_hazard_scale >= 0, policy_infant_hazard_scale, 1)
+    - name: sec_birth
+      expr: >-
+        where(policy_sector_birth_scale > 0, policy_sector_birth_scale, 1)
+    - name: sec_haz
+      expr: >-
+        where(policy_sector_hazard_scale > 0, policy_sector_hazard_scale, 1)
+
+    # ---- per-sector formation rate ----
+    - {name: lam, expr: "base_birth_rates * birth_mult * policy_birth * sec_birth"}
+
+    # ---- the effective monthly exit hazard, over the whole sector × age grid ----
+    #
+    # haz is the Go's cached monthlyHazard table, flattened: element sec*60 + m. eff applies
+    # the economic, policy and sector multipliers; eff_infant is the same with the first-year
+    # relief folded in, which only the age 0 -> 1 transition reads. Both clamps are kept
+    # separate because the Go clamps twice (once building the table, once after the
+    # multipliers), and the inner clamp is observable whenever a sector scale alone pushes the
+    # hazard past 1.
+    - name: haz
+      expr: >-
+        each(360, k, clamp(base_hazard[k % 60]
+        * sector_hazard_scales[floor(k / 60)], 0, 1))
+    - name: eff
+      expr: >-
+        each(360, k, clamp(haz[k] * death_mult * policy_death
+        * sec_haz[floor(k / 60)], 0, 1))
+    - name: eff_infant
+      expr: >-
+        each(360, k, clamp(haz[k] * death_mult * policy_death
+        * sec_haz[floor(k / 60)] * infant, 0, 1))
+
+    # ---- survival probabilities, per lane ----
+    #
+    # p_in[k] is the probability a business in the bucket below survives into lane k, so it
+    # reads the hazard at k-1 — the index shift itself. Age 1 takes the infant-relief hazard.
+    # Age 0 has no bucket below; its entry is unused (formation fills that lane) and is only
+    # here to keep the vector 360 wide, so the guard also keeps register[-1] out of reach.
+    # p_stay[k] is the probability a business already in lane k survives another month, which
+    # only the absorbing top bucket uses.
+    - name: p_in
+      expr: >-
+        each(360, k, where(k % 60 == 0, 0,
+        1 - where(k % 60 == 1, eff_infant[k - 1], eff[k - 1])))
+    - {name: p_stay, expr: "1 - eff"}
+
+    outputs:
+    # One lane per sector × age bucket, in the Go's own loop order, so a lane's draws are taken
+    # before the next lane starts exactly as the Go's nested loop takes them: a sector's
+    # formation Poisson, then its 58 ageing binomials, then the two feeding the top bucket.
+    #
+    #   age 0        formation: Poisson(lambda), or lambda itself in deterministic mean-field
+    #   age 1..58    the bucket below, thinned by survival
+    #   age 59       absorbing: the bucket below plus its own survivors
+    #
+    # The binomial is the Go's binomialSample: round the count, and return early — drawing
+    # nothing — for an empty bucket or a certain outcome. Those guards are scalar inside a
+    # lane, so where is lazy and the early returns are reproduced rather than approximated.
+    - >-
+      each(360, k,
+      where(k % 60 == 0,
+      where(deterministic >= 0.5, lam[floor(k / 60)],
+      where(lam[floor(k / 60)] > 0, poisson(lam[floor(k / 60)]), 0)),
+      where(deterministic >= 0.5, register[k - 1] * p_in[k],
+      where(floor(register[k - 1] + 0.5) <= 0, 0,
+      where(p_in[k] <= 0, 0,
+      where(p_in[k] >= 1, floor(register[k - 1] + 0.5),
+      binomial(floor(register[k - 1] + 0.5), p_in[k])))))
+      + where(k % 60 == 59,
+      where(deterministic >= 0.5, register[k] * p_stay[k],
+      where(floor(register[k] + 0.5) <= 0, 0,
+      where(p_stay[k] <= 0, 0,
+      where(p_stay[k] >= 1, floor(register[k] + 0.5),
+      binomial(floor(register[k] + 0.5), p_stay[k]))))),
+      0)))

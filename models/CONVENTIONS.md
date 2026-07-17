@@ -25,8 +25,9 @@ models/
     <iteration>.go     # bespoke simulator.Iteration implementations, beside the stub
 ```
 
-The declarative twin is expected but not always possible — where the model resists the DSL,
-its absence is itself a recorded finding (see §5 and [Bespoke extensions](#bespoke-extensions)).
+The declarative twin is expected. Every entry currently has one, so a model that resists the
+DSL is now news: its absence would be a recorded finding, not a gap to leave quiet (see §5 and
+[Bespoke extensions](#bespoke-extensions)).
 
 The Go **package name** is a short identifier for the domain (`amr`, `floodrisk`) — it
 need not equal the directory name, but must be a valid Go identifier (no hyphens).
@@ -339,6 +340,17 @@ beside `pkg/rng`'s. That is standardisation debt **in the model**, not a gap in 
 still a category 1 finding, and the fix is to the model, on its own merits and its own PR —
 never as a side effect of making an equivalence test pass (see §5).
 
+**Check what the sampler actually does before concluding the oracle must weaken**, because the
+two cases look identical from the outside and only one bites. `antimicrobial-resistance` really
+does hand-roll: a Knuth loop with a normal approximation above λ=30, a different algorithm
+consuming a different number of draws, so its streams cannot be aligned at all.
+`business-survival` reads the same way and is not: its `poissonSample` and `binomialSample` are
+thin wrappers that set `Lambda`/`N`/`P` on a `distuv` distribution and call `Rand`, and
+`pkg/rng` is a deliberate bit-identical reimplementation of `distuv`'s algorithms. Same
+generator, same algorithm, same draw order — so that twin is exact on its stochastic path, and
+the debt is cosmetic rather than semantic. Assuming otherwise costs the strongest oracle
+available for no reason.
+
 ### Category 2 — capability gap (the DSL *cannot* express it)
 
 The evidence is a twin that **cannot be written**, and the reason why. This is the strong
@@ -353,22 +365,32 @@ Two shapes, with very different costs:
   `erfc` rather than a `normal_cdf`, because it matches what compiled Go computes term for
   term, which is what keeps a twin exact.
 - **A missing structure.** The model's update is not elementwise over the current row, so no
-  set of functions rescues it: the shape is what is wrong. These are slow and expensive —
-  each means either an operator that enlarges what the DSL *is*, or a core `Iteration`.
-  Record them and let a second instance argue for the design. The catalogue has surfaced
-  four, and they rhyme — all four are about *structured access* or *lane-wise control of
-  draws*, which is exactly the axis a strictly elementwise evaluator gives up:
+  set of functions rescues it: the shape is what is wrong. These are the expensive ones —
+  each means either an operator that enlarges what the DSL *is*, or a core `Iteration`. Record
+  them and let a second instance argue for the design rather than reaching for it on the first.
 
-  | Gap | Found by | What it needs |
-  |---|---|---|
-  | Index shift — output *i* reads input *i−1*, with an absorbing boundary | `business-survival` (cohort/Leslie flow) | a shift, or a core aged-cohort iteration |
-  | Lag-*N* history read — only the current row is exposed | `trywizard` (ageing yellow cards out ten rows back) | a `lag(alias, n)` accessor |
-  | Slicing — no way to address a block within a flat vector | `trywizard` (9 coefficients at a stride-9 offset) | a slice/reshape primitive |
-  | Draw ordering and lane-wise laziness — an expression takes all its Gammas before any Poisson, and a vector-guarded `where` draws in every lane | `measles-risk-forecaster` (per-area interleaved draws, inactive areas skipped) | per-lane control the evaluator does not have |
+The catalogue has surfaced five capability gaps, and **all five are closed** — the table is the
+worked precedent for what the triage produces, not an open-issues list:
 
-  The last one is worth reading twice: the DSL's own doc comment already predicts it ("a
-  vector-guarded draw consumes randomness in every lane"). A limitation you documented is
-  still a limitation — a model hitting it is evidence, not a duplicate of the note.
+| Gap | Found by | What closed it |
+|---|---|---|
+| Seasonality, and a threshold-exceedance probability | `bathing-water-forecaster` | `sin`/`cos`/`erf`/`erfc` + `pi` (a missing primitive) |
+| Index shift — output *i* reads input *i−1*, with an absorbing boundary | `business-survival` (cohort/Leslie flow) | `each` |
+| Lag-*N* history read — only the current row is exposed | `trywizard` (ageing yellow cards out ten rows back) | `lag(name, n)` |
+| Slicing — no way to address a block within a flat vector | `trywizard` (9 coefficients at a stride-9 offset) | `slice` + `concat` |
+| Draw ordering and lane-wise laziness — an expression takes all its Gammas before any Poisson, and a vector-guarded `where` draws in every lane | `measles-risk-forecaster` (per-area interleaved draws, inactive areas skipped) | `each` |
+
+Two things that table is worth reading twice for. **The four structural gaps rhymed**: every
+one was about *structured access* or *per-lane control of draws*, which is exactly the axis a
+strictly elementwise evaluator gives up — so they were one design question, not four chores,
+and `each` closed two of them at once. And **the draw-ordering row was predicted by the DSL's
+own doc comment** ("a vector-guarded draw consumes randomness in every lane") long before a
+model hit it. A limitation you have documented is still a limitation: a model hitting it is
+evidence that it is time to fix it, not a duplicate of the note.
+
+Writing a twin also finds bugs in the engine that no model would: `business-survival`'s
+exposed a NaN index silently reading element 0 on arm64 while panicking on amd64, because Go
+leaves `int(NaN)` undefined. An architecture-dependent wrong answer, found by a config file.
 
 **Do not resolve a category 2 finding by changing the model to suit the DSL.** The finding is
 the value; a model bent to fit tells you nothing. The promotion decision stays a maintainer

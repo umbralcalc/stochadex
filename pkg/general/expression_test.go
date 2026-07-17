@@ -456,6 +456,78 @@ func TestExpressionEach(t *testing.T) {
 	})
 }
 
+func TestExpressionNonFiniteIndex(t *testing.T) {
+	// Found while writing business-survival's twin, whose first width probe was NaN-poisoned.
+	// int(NaN) neither panics nor is portable: on arm64 it is 0, so a NaN index passes a
+	// bounds check and silently reads element 0; on amd64 it is the most negative int and the
+	// same expression panics. An answer that depends on the architecture is worse than a
+	// failure, and these cards claim to be architecture-stable.
+	for _, c := range []struct {
+		name, expr string
+	}{
+		{"index", "v[bad]"},
+		{"iid count", "sum(iid(bad, 1))"},
+		{"each count", "sum(each(bad, i, 1))"},
+		{"each lane index", "sum(each(2, i, v[i * bad]))"},
+		{"fill width", "sum(fill(bad, 1))"},
+		{"slice start", "sum(slice(v, bad, 1))"},
+		{"slice width", "sum(slice(v, 0, bad))"},
+	} {
+		for _, bad := range []struct {
+			label string
+			value float64
+		}{
+			{"NaN", math.NaN()},
+			{"+Inf", math.Inf(1)},
+			{"-Inf", math.Inf(-1)},
+		} {
+			t.Run(c.name+" of "+bad.label, func(t *testing.T) {
+				defer func() {
+					if recover() == nil {
+						t.Fatalf("a %s %s was accepted rather than rejected", bad.label, c.name)
+					}
+				}()
+				evalOnce(t, &ExpressionIteration{
+					Fields:  []ExpressionField{{Name: "v", Width: 3}},
+					Outputs: []string{c.expr},
+				}, []float64{111, 222, 333}, map[string][]float64{"bad": {bad.value}})
+			})
+		}
+	}
+}
+
+func TestExpressionWidth(t *testing.T) {
+	t.Run("reports how many elements a value has", func(t *testing.T) {
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 3}},
+			Outputs: []string{"width(rates) + width(v) * 10 + width(k) * 100"},
+		}
+		got := evalOnce(t, e, []float64{0, 0, 0}, map[string][]float64{
+			"rates": {1, 2, 3, 4, 5}, "k": {7},
+		})
+		// A scalar is width 1, not width 0.
+		if want := 5.0 + 30 + 100; got[0] != want {
+			t.Fatalf("got %v, want %v", got[0], want)
+		}
+	})
+
+	t.Run("the obvious hand-rolled alternative is the one that is wrong", func(t *testing.T) {
+		// Why this exists rather than leaving people to spell it themselves: sum(0*x + 1)
+		// reads like a width probe and silently is not, because 0 * NaN is NaN. Any real
+		// vector carrying a NaN turns the probe into NaN, and a NaN index is undefined.
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v"}},
+			Outputs: []string{"width(x)"},
+		}
+		got := evalOnce(t, e, []float64{0}, map[string][]float64{
+			"x": {1, math.NaN(), 3},
+		})
+		if got[0] != 3 {
+			t.Fatalf("width must not care what the values are, got %v", got[0])
+		}
+	})
+}
+
 func TestExpressionLag(t *testing.T) {
 	// trywizard's match_state ages yellow cards out by differencing against a partition's
 	// state ten rows back. A bare name and an upstreams alias both give row 0 only.
