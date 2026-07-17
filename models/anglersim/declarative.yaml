@@ -1,0 +1,68 @@
+# The anglersim generative core, written entirely as data: no Go, no compilation.
+#
+# This is the same model BuildStub assembles in stub.go, with the same partition names,
+# param keys and wiring, so the two can be compared directly (see
+# expression_equivalence_test.go, which checks per-step agreement and re-runs the whole
+# behaviour suite against this file). The run knobs BuildStub takes as arguments (seed,
+# horizon, warming trend) are injected by the caller; everything below is the model.
+#
+# Two masks appear here that have no counterpart in the params of stub.go, because the Go
+# code carries them as a hardcoded index instead (tempIndex): warming_mask selects the
+# covariate the warming drift acts on, and nonneg_mask selects the ones that are physically
+# non-negative. Stating them as data is what removes the index constant.
+main:
+  partitions:
+
+  # Mean-reverting flow, temperature and dissolved oxygen; temperature also carries the
+  # deterministic per-step warming drift.
+  - name: covariates
+    params:
+      baseline_levels: [0.5, 12.0, 9.0]
+      reversion_rates: [0.3, 0.0, 0.3]
+      volatilities: [0.05, 0.25, 0.4]
+      warming_trend: [0.0]
+      warming_mask: [0.0, 1.0, 0.0]
+      nonneg_mask: [1.0, 0.0, 1.0]
+    init_state_values: [0.5, 12.0, 9.0]
+    state_width: 3
+    state_history_depth: 1
+    seed: 0
+
+  # Stochastic Ricker log-density, forced within-step by the covariates above.
+  - name: population
+    params:
+      growth_rate: [0.5]
+      density_dependence: [1.0]
+      covariate_coefficients: [0.10, -0.02, 0.05]
+      process_noise_sd: [0.1]
+      allee_effect: [0.0]
+    params_from_upstream:
+      covariates:
+        upstream: covariates
+    init_state_values: [-0.27]
+    state_width: 1
+    state_history_depth: 1
+    seed: 997
+
+  expressions:
+
+  - partition: covariates
+    fields:
+    - {name: x, width: 3}
+    bindings:
+    - {name: reverted, expr: "x + reversion_rates * (baseline_levels - x)"}
+    - {name: shocked, expr: "reverted + normal(0, volatilities) + warming_trend * warming_mask"}
+    outputs: ["where(nonneg_mask > 0, max(shocked, 0), shocked)"]
+
+  - partition: population
+    fields:
+    - {name: log_density}
+    bindings:
+    - {name: density, expr: "exp(log_density)"}
+    # allee_effect = 0 means the standard Ricker, so the multiplier is 1 rather than the
+    # 1 - exp(0) = 0 the formula would give.
+    - {name: allee, expr: "where(allee_effect > 0, 1 - exp(-allee_effect * density), 1)"}
+    - {name: env, expr: "dot(covariate_coefficients, covariates)"}
+    - {name: noise, expr: "where(process_noise_sd > 0, shared(normal(0, process_noise_sd)), 0)"}
+    outputs:
+    - "log_density + growth_rate * allee + env - density_dependence * density + noise"
