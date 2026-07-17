@@ -1,0 +1,98 @@
+# The floodrisk generative core, written entirely as data: no Go, no compilation.
+#
+# This is the same model BuildStub assembles in stub.go, with the same partition names,
+# param keys, state layout and wiring, so the two can be compared directly (see
+# expression_equivalence_test.go, which checks per-step agreement and re-runs the whole
+# behaviour suite against this file). The run knobs BuildStub takes as arguments (seed,
+# horizon, rainfall multiplier) are injected by the caller; everything below is the model.
+#
+# Wiring note: runoff reads rainfall through upstreams, not params_from_upstream. The Go
+# runoff resolves a partition *index* (params_as_partitions: upstream_partition) and then
+# reads stateHistories at that index, which is a lag-1 read of the previous step's committed
+# rainfall. upstreams is the same lag-1 state-history read, so it is the faithful
+# translation; params_from_upstream would be a within-step read and hence a different model.
+# The upstream_partition param disappears because it only ever carried the index that
+# upstreams now resolves by name.
+main:
+  partitions:
+
+  # Two-state Markov (wet/dry) chain with Gamma-distributed wet-day amounts.
+  - name: rainfall
+    params:
+      wet_day_shape: [0.609]
+      wet_day_scale: [7.944]
+      p_wet_given_dry: [0.40]
+      p_wet_given_wet: [0.83]
+      rainfall_multiplier: [1.0]
+      wet_threshold: [0.1]
+    init_state_values: [0.0]
+    state_width: 1
+    state_history_depth: 1
+    seed: 0
+
+  # PDM-style nonlinear runoff generation feeding parallel fast/slow flow stores.
+  - name: runoff
+    params:
+      field_capacity: [330.0]
+      drainage_rate: [0.03]
+      et_rate: [1.1]
+      runoff_shape: [2.7]
+      fast_recession_rate: [0.40]
+      slow_recession_rate: [0.32]
+      catchment_area_km2: [297.0]
+    init_state_values: [100.0, 0.0, 0.0, 0.0]
+    state_width: 4
+    state_history_depth: 1
+    seed: 0
+
+  expressions:
+
+  - partition: rainfall
+    fields:
+    - {name: rainfall_mm}
+    bindings:
+    # Yesterday's committed rainfall classifies yesterday as wet or dry, which selects
+    # today's transition probability.
+    - {name: p_wet, expr: "where(rainfall_mm > wet_threshold, p_wet_given_wet, p_wet_given_dry)"}
+    - {name: today_wet, expr: "shared(uniform(0, 1)) < p_wet"}
+    # The Gamma draw stays inside the output's where rather than becoming a binding:
+    # bindings are eager, and a dry day must take exactly one draw (the uniform above), as
+    # the Go code's early return does. The scalar where is lazy, so it does.
+    # The shape/scale floors at 0.01 keep the draw well-defined for degenerate params.
+    outputs:
+    - "where(today_wet,
+            max(shared(gamma(max(wet_day_shape, 0.01), 1 / max(wet_day_scale, 0.01)))
+                * rainfall_multiplier, wet_threshold),
+            0)"
+
+  - partition: runoff
+    fields:
+    - {name: soil_moisture}
+    - {name: total_flow}
+    - {name: fast_flow}
+    - {name: slow_flow}
+    upstreams:
+      rainfall_mm: rainfall
+    bindings:
+    - {name: net_rainfall, expr: "max(rainfall_mm - et_rate, 0) * dt"}
+    - {name: saturation, expr: "clamp(soil_moisture / field_capacity, 0, 1)"}
+    - {name: runoff_fraction, expr: "1 - pow(1 - saturation, runoff_shape)"}
+    - {name: direct_runoff, expr: "net_rainfall * runoff_fraction"}
+    - {name: wetted_soil, expr: "soil_moisture + (net_rainfall - direct_runoff)"}
+    # Anything the soil store cannot hold spills straight into direct runoff.
+    - {name: excess, expr: "max(wetted_soil - field_capacity, 0)"}
+    - {name: capped_soil, expr: "wetted_soil - excess"}
+    - {name: total_direct_runoff, expr: "direct_runoff + excess"}
+    # Drainage is charged against the capped store and is *not* reduced when the store is
+    # subsequently floored at zero — matching the Go order of operations.
+    - {name: drainage, expr: "drainage_rate * capped_soil * dt"}
+    - {name: mm_to_m3s, expr: "catchment_area_km2 * 1000 / (86400 * dt)"}
+    - {name: next_fast_flow, expr: "fast_recession_rate * (total_direct_runoff * mm_to_m3s)
+                                    + (1 - fast_recession_rate) * fast_flow"}
+    - {name: next_slow_flow, expr: "slow_recession_rate * (drainage * mm_to_m3s)
+                                    + (1 - slow_recession_rate) * slow_flow"}
+    outputs:
+    - "max(capped_soil - drainage, 0)"
+    - "next_fast_flow + next_slow_flow"
+    - "next_fast_flow"
+    - "next_slow_flow"

@@ -1,0 +1,96 @@
+# The antimicrobial-resistance generative core, written entirely as data: no Go, no
+# compilation.
+#
+# This is the same model BuildStub assembles in stub.go, with the same partition names,
+# param keys, state layout and wiring, so the two can be compared (see
+# expression_equivalence_test.go). The run knobs BuildStub takes as arguments (the
+# prescribing rate, the horizon) are injected by the caller; everything below is the model.
+#
+# Unlike anglersim's twin, this one is NOT a step-for-step reproduction of the Go model's
+# draw stream — colonisation.go and infection.go sample from math/rand v1 while the
+# expression evaluator samples from pkg/rng's v2 PCG, and infection.go rolls its own Poisson
+# sampler where the evaluator calls the engine's. The two are the same generative process
+# drawn from different samplers. expression_equivalence_test.go says exactly what that costs
+# and what is still checked.
+#
+# infection reads colonisation with `upstreams:` rather than `params_from_upstream:` because
+# that is what the Go model actually does: stub.go wires it with params_as_partitions and
+# infection.go then reads stateHistories[colonisation] directly, which is a lag-1 read of the
+# previous step's committed state. params_from_upstream would be a within-step read — a
+# different model. The rule is to match the Go model's read semantics, not its config keys.
+main:
+  partitions:
+
+  # Two-strain S/R colonisation SDE, integrated Euler-Maruyama, with a constant prescribing
+  # pressure entering through the selection term. prescribing_rate is a plain param, not an
+  # upstream partition: the policy layer is downstream, not part of the generative core.
+  - name: colonisation
+    params:
+      community_susceptible_prevalence: [0.15]
+      community_resistant_prevalence: [0.1164]
+      turnover_rate: [0.1]
+      transmission_rate: [0.0384]
+      selection_coefficient: [0.1351]
+      fitness_cost: [0.0170]
+      noise_scale: [0.01]
+      prescribing_rate: [0.3]
+    init_state_values: [0.15, 0.05]
+    state_width: 2
+    state_history_depth: 1
+    seed: 9182
+
+  # Poisson bloodstream-infection counts, driven by the colonisation fractions of the
+  # previous step.
+  - name: infection
+    params:
+      infection_probability: [0.01]
+      patient_population: [500.0]
+    init_state_values: [0.0, 0.0]
+    state_width: 2
+    state_history_depth: 1
+    seed: 3347
+
+  expressions:
+
+  - partition: colonisation
+    fields:
+    - {name: susceptible}
+    - {name: resistant}
+    bindings:
+    - {name: uncolonised, expr: "max(1 - susceptible - resistant, 0)"}
+    - {name: drift_s, expr: "turnover_rate * (community_susceptible_prevalence - susceptible)
+        + transmission_rate * susceptible * uncolonised
+        - selection_coefficient * prescribing_rate * susceptible
+        + fitness_cost * resistant"}
+    - {name: drift_r, expr: "turnover_rate * (community_resistant_prevalence - resistant)
+        + transmission_rate * resistant * uncolonised
+        + selection_coefficient * prescribing_rate * susceptible
+        - fitness_cost * resistant"}
+    # Demographic noise scales with sqrt(fraction), so it vanishes as a strain does. Two
+    # separate shared() draws rather than one 2-wide draw: the Go code draws susceptible
+    # first and resistant second, and bindings evaluate in order, so this keeps the two
+    # sides drawing the same quantities in the same order even though the streams differ.
+    - {name: noise_s, expr: "shared(normal(0, noise_scale * sqrt(max(susceptible, 0)) * sqrt(dt)))"}
+    - {name: noise_r, expr: "shared(normal(0, noise_scale * sqrt(max(resistant, 0)) * sqrt(dt)))"}
+    - {name: raw_s, expr: "max(susceptible + drift_s * dt + noise_s, 0)"}
+    - {name: raw_r, expr: "max(resistant + drift_r * dt + noise_r, 0)"}
+    # S and R partition the population, so renormalise only when the step has pushed the
+    # pair outside the simplex; a scale of 1 leaves an in-range pair untouched.
+    - {name: total, expr: "raw_s + raw_r"}
+    - {name: scale, expr: "where(total > 1, total, 1)"}
+    outputs:
+    - "raw_s / scale"
+    - "raw_r / scale"
+
+  - partition: infection
+    fields:
+    - {name: susceptible_bsi}
+    - {name: resistant_bsi}
+    upstreams:
+      colonisation: colonisation
+    bindings:
+    - {name: lambda_s, expr: "infection_probability * (patient_population * colonisation[0]) * dt"}
+    - {name: lambda_r, expr: "infection_probability * (patient_population * colonisation[1]) * dt"}
+    outputs:
+    - "shared(poisson(lambda_s))"
+    - "shared(poisson(lambda_r))"

@@ -28,7 +28,7 @@ func TestMeaslesStub(t *testing.T) {
 		const cov = DefaultMMR2Coverage
 		_, _, pool := BuildUTLASurface(cov)
 		n := len(pool)
-		store := runStub(cov, DefaultMaxGenerations, 42)
+		store := runStub(BuildStub, cov, DefaultMaxGenerations, 42)
 		rows := store.GetValues("outbreaks")
 
 		var prevCumulative []float64
@@ -100,8 +100,8 @@ func TestMeaslesStub(t *testing.T) {
 	// scenarios so the claim is about the distribution.
 	t.Run("lower coverage raises total cases", func(t *testing.T) {
 		const gens, nScenarios = DefaultMaxGenerations, 16
-		lowCoverage := meanTotalCases(0.80, gens, nScenarios)
-		highCoverage := meanTotalCases(0.94, gens, nScenarios)
+		lowCoverage := meanTotalCases(BuildStub, 0.80, gens, nScenarios)
+		highCoverage := meanTotalCases(BuildStub, 0.94, gens, nScenarios)
 		if !(lowCoverage > highCoverage) {
 			t.Fatalf("expected lower coverage to raise total cases: "+
 				"low(0.80)=%.0f high(0.94)=%.0f", lowCoverage, highCoverage)

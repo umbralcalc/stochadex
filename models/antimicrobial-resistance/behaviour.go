@@ -27,16 +27,23 @@ func runStub(prescribingRate float64, numSteps int) *simulator.StateTimeStorage 
 	return store
 }
 
+// stubBuilder assembles the model, matching BuildStub's signature. The behaviour
+// helpers take one rather than calling BuildStub directly so that an alternative
+// assembly of the same model — notably the declarative one in declarative.yaml —
+// can be put through this exact claim suite instead of a re-stated copy of it.
+type stubBuilder func(prescribingRate float64, numSteps int) *simulator.ConfigGenerator
+
 // runStubOverride runs the stub with an override hook applied to the generated
 // config before the run. BuildStub takes no seed, so the ensemble varies via
 // SetGlobalSeed.
 func runStubOverride(
+	build stubBuilder,
 	prescribingRate float64,
 	numSteps int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := BuildStub(prescribingRate, numSteps)
+	gen := build(prescribingRate, numSteps)
 	gen.SetGlobalSeed(seed)
 	if override != nil {
 		override(gen)
@@ -90,6 +97,7 @@ func totalResistantBSI(rows [][]float64) float64 {
 // ensemble averages a per-run sample over nMembers seeds under a fixed prescribing
 // rate and override.
 func ensemble(
+	build stubBuilder,
 	prescribingRate float64,
 	numSteps, nMembers int,
 	override func(*simulator.ConfigGenerator),
@@ -97,7 +105,7 @@ func ensemble(
 ) float64 {
 	var sum float64
 	for m := 0; m < nMembers; m++ {
-		sum += sample(runStubOverride(prescribingRate, numSteps, uint64(7000+m), override))
+		sum += sample(runStubOverride(build, prescribingRate, numSteps, uint64(7000+m), override))
 	}
 	return sum / float64(nMembers)
 }
@@ -120,6 +128,16 @@ func resistantBSI(s *simulator.StateTimeStorage) float64 {
 //
 // Claim IDs match the subtest names under TestAMRExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(BuildStub)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only model
+// answers the same claims, measured the same way. Its numbers will not match the
+// bespoke build's — the two sample from different generators — but the claims are
+// ensemble-level and threshold-based precisely so that they discriminate the model
+// rather than the draw stream.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const steps, nMembers = 200, 8
 	const rFrac = "ensemble-mean resistant fraction"
 
@@ -128,28 +146,28 @@ func ObservedBehaviour() []cardgen.Claim {
 	}
 
 	// Prescribing sweep with selection ON (the default) — the headline lever.
-	r002 := ensemble(0.02, steps, nMembers, nil, resistantFrac)
-	r030 := ensemble(0.3, steps, nMembers, nil, resistantFrac)
-	r080 := ensemble(0.8, steps, nMembers, nil, resistantFrac)
+	r002 := ensemble(build, 0.02, steps, nMembers, nil, resistantFrac)
+	r030 := ensemble(build, 0.3, steps, nMembers, nil, resistantFrac)
+	r080 := ensemble(build, 0.8, steps, nMembers, nil, resistantFrac)
 
 	// Same sweep with selection OFF — prescribing should have no pathway to act.
-	offLow := ensemble(0.02, steps, nMembers, noSelection, resistantFrac)
-	offHigh := ensemble(0.8, steps, nMembers, noSelection, resistantFrac)
+	offLow := ensemble(build, 0.02, steps, nMembers, noSelection, resistantFrac)
+	offHigh := ensemble(build, 0.8, steps, nMembers, noSelection, resistantFrac)
 	offDelta := math.Abs(offHigh - offLow)
 	onDelta := r080 - r002
 
-	base := ensemble(BaselinePrescribingRate, steps, nMembers, nil, resistantFrac)
-	costly := ensemble(BaselinePrescribingRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	base := ensemble(build, BaselinePrescribingRate, steps, nMembers, nil, resistantFrac)
+	costly := ensemble(build, BaselinePrescribingRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		g.GetPartition("colonisation").Params.Map["fitness_cost"] = []float64{0.15}
 	}, resistantFrac)
 
-	colBase := ensemble(BaselinePrescribingRate, steps, nMembers, nil, totalColonisation)
-	colHigh := ensemble(BaselinePrescribingRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	colBase := ensemble(build, BaselinePrescribingRate, steps, nMembers, nil, totalColonisation)
+	colHigh := ensemble(build, BaselinePrescribingRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		g.GetPartition("colonisation").Params.Map["transmission_rate"] = []float64{0.09}
 	}, totalColonisation)
 
-	bsiBase := ensemble(BaselinePrescribingRate, steps, nMembers, nil, resistantBSI)
-	bsiHigh := ensemble(BaselinePrescribingRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
+	bsiBase := ensemble(build, BaselinePrescribingRate, steps, nMembers, nil, resistantBSI)
+	bsiHigh := ensemble(build, BaselinePrescribingRate, steps, nMembers, func(g *simulator.ConfigGenerator) {
 		g.GetPartition("infection").Params.Map["infection_probability"] = []float64{0.03}
 	}, resistantBSI)
 

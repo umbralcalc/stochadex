@@ -13,17 +13,31 @@ import (
 // computation here — not in a _test.go file — is what lets the card show exactly
 // the numbers the test asserts on, so the two can never disagree.
 
+// stubBuilder assembles the model, matching buildStubWithStrategy's signature —
+// the constructor these helpers use, rather than BuildStub, because the claims
+// sweep the whole substitution plan and not just its one headline minute. The
+// helpers take one rather than calling buildStubWithStrategy directly so that an
+// alternative assembly of the same model — notably the declarative one in
+// declarative.yaml — can be put through this exact claim suite instead of a
+// re-stated copy of it.
+type stubBuilder func(
+	strategy *SubstitutionStrategy,
+	numSteps int,
+	seed uint64,
+) *simulator.ConfigGenerator
+
 // runStrategy runs the stub for an arbitrary substitution strategy with an
 // optional override hook applied to the generated config, so a behaviour can vary
 // the substitution plan and/or any partition's params (coefficients, conversion
 // probabilities) without bloating BuildStub's one-driver signature.
 func runStrategy(
+	build stubBuilder,
 	strategy *SubstitutionStrategy,
 	numSteps int,
 	seed uint64,
 	override func(*simulator.ConfigGenerator),
 ) *simulator.StateTimeStorage {
-	gen := buildStubWithStrategy(strategy, numSteps, seed)
+	gen := build(strategy, numSteps, seed)
 	if override != nil {
 		override(gen)
 	}
@@ -47,6 +61,7 @@ func finalRow(store *simulator.StateTimeStorage, partition string) []float64 {
 // meanFinal ensemble-averages the final value of component idx of the named
 // partition over nMembers seeds, for a given strategy and override.
 func meanFinal(
+	build stubBuilder,
 	strategy *SubstitutionStrategy,
 	numSteps, nMembers int,
 	partition string,
@@ -55,7 +70,7 @@ func meanFinal(
 ) float64 {
 	var sum float64
 	for m := 0; m < nMembers; m++ {
-		store := runStrategy(strategy, numSteps, uint64(5000+m), override)
+		store := runStrategy(build, strategy, numSteps, uint64(5000+m), override)
 		sum += finalRow(store, partition)[idx]
 	}
 	return sum / float64(nMembers)
@@ -64,12 +79,13 @@ func meanFinal(
 // homeWinProbability is the fraction of an nMembers ensemble in which the home
 // side finishes ahead (final score difference > 0).
 func homeWinProbability(
+	build stubBuilder,
 	strategy *SubstitutionStrategy,
 	numSteps, nMembers int,
 ) float64 {
 	wins := 0
 	for m := 0; m < nMembers; m++ {
-		store := runStrategy(strategy, numSteps, uint64(6000+m), nil)
+		store := runStrategy(build, strategy, numSteps, uint64(6000+m), nil)
 		if finalRow(store, "match_state")[StateIdxScoreDiff] > 0 {
 			wins++
 		}
@@ -102,6 +118,13 @@ func scoreCoeffsWith(edit func(c []float64)) []float64 {
 //
 // The claim IDs match the subtest names under TestRugbyExpectedBehaviour.
 func ObservedBehaviour() []cardgen.Claim {
+	return observedBehaviour(buildStubWithStrategy)
+}
+
+// observedBehaviour computes the claims against a given assembly of the model. The
+// equivalence test runs it against the declarative build so that the data-only model
+// answers the same claims, measured the same way.
+func observedBehaviour(build stubBuilder) []cardgen.Claim {
 	const steps = DefaultNumSteps
 	const (
 		homeTries = "ensemble-mean home tries"
@@ -109,42 +132,42 @@ func ObservedBehaviour() []cardgen.Claim {
 	)
 
 	// --- Headline: earlier home substitution raises the home try count ---
-	lateHomeTries := meanFinal(homeSubsAll(70, DefaultAwaySubMinute), steps, 24, "score_events", 0, nil)
-	earlyHomeTries := meanFinal(homeSubsAll(20, DefaultAwaySubMinute), steps, 24, "score_events", 0, nil)
+	lateHomeTries := meanFinal(build, homeSubsAll(70, DefaultAwaySubMinute), steps, 24, "score_events", 0, nil)
+	earlyHomeTries := meanFinal(build, homeSubsAll(20, DefaultAwaySubMinute), steps, 24, "score_events", 0, nil)
 
 	// --- Decision-path responses (actionable levers) ---
-	lateWinProb := homeWinProbability(homeSubsAll(65, DefaultAwaySubMinute), steps, 60)
-	earlyWinProb := homeWinProbability(homeSubsAll(15, DefaultAwaySubMinute), steps, 60)
+	lateWinProb := homeWinProbability(build, homeSubsAll(65, DefaultAwaySubMinute), steps, 60)
+	earlyWinProb := homeWinProbability(build, homeSubsAll(15, DefaultAwaySubMinute), steps, 60)
 
 	partial := &SubstitutionStrategy{}
 	partial.HomeSubs[0] = 20 // only one home group
 	for g := 0; g < NumPositionGroups; g++ {
 		partial.AwaySubs[g] = DefaultAwaySubMinute
 	}
-	partialTries := meanFinal(partial, steps, 30, "score_events", 0, nil)
-	fullTries := meanFinal(homeSubsAll(20, DefaultAwaySubMinute), steps, 30, "score_events", 0, nil)
+	partialTries := meanFinal(build, partial, steps, 30, "score_events", 0, nil)
+	fullTries := meanFinal(build, homeSubsAll(20, DefaultAwaySubMinute), steps, 30, "score_events", 0, nil)
 
-	lateAwayTries := meanFinal(homeSubsAll(DefaultHomeSubMinute, 70), steps, 30, "score_events", 1, nil)
-	earlyAwayTries := meanFinal(homeSubsAll(DefaultHomeSubMinute, 20), steps, 30, "score_events", 1, nil)
+	lateAwayTries := meanFinal(build, homeSubsAll(DefaultHomeSubMinute, 70), steps, 30, "score_events", 1, nil)
+	earlyAwayTries := meanFinal(build, homeSubsAll(DefaultHomeSubMinute, 20), steps, 30, "score_events", 1, nil)
 
 	// --- Structural-driver responses (non-actionable) ---
 	defaultStrategy := DefaultSubstitutionStrategy(DefaultHomeSubMinute)
 
-	interceptBase := meanFinal(defaultStrategy, steps, 24, "score_events", 0, nil)
-	interceptStrong := meanFinal(defaultStrategy, steps, 24, "score_events", 0, func(g *simulator.ConfigGenerator) {
+	interceptBase := meanFinal(build, defaultStrategy, steps, 24, "score_events", 0, nil)
+	interceptStrong := meanFinal(build, defaultStrategy, steps, 24, "score_events", 0, func(g *simulator.ConfigGenerator) {
 		g.GetPartition("score_rates").Params.Map["coefficients"] = scoreCoeffsWith(func(c []float64) {
 			c[0] = -2.5 // raise home try intercept from -3.0
 		})
 	})
 
-	convBase := meanFinal(defaultStrategy, steps, 24, "match_state", StateIdxHomeScore, nil)
-	convHigh := meanFinal(defaultStrategy, steps, 24, "match_state", StateIdxHomeScore, func(g *simulator.ConfigGenerator) {
+	convBase := meanFinal(build, defaultStrategy, steps, 24, "match_state", StateIdxHomeScore, nil)
+	convHigh := meanFinal(build, defaultStrategy, steps, 24, "match_state", StateIdxHomeScore, func(g *simulator.ConfigGenerator) {
 		g.GetPartition("conversion_events").Params.Map["conversion_probs"] = []float64{0.98, DefaultAwayConversionProb}
 	})
 
 	subEffectStrategy := homeSubsAll(20, DefaultAwaySubMinute) // early sub so the boost window is large
-	subEffectBase := meanFinal(subEffectStrategy, steps, 30, "score_events", 0, nil)
-	subEffectStrong := meanFinal(subEffectStrategy, steps, 30, "score_events", 0, func(g *simulator.ConfigGenerator) {
+	subEffectBase := meanFinal(build, subEffectStrategy, steps, 30, "score_events", 0, nil)
+	subEffectStrong := meanFinal(build, subEffectStrategy, steps, 30, "score_events", 0, func(g *simulator.ConfigGenerator) {
 		g.GetPartition("score_rates").Params.Map["coefficients"] = scoreCoeffsWith(func(c []float64) {
 			for j := 1; j <= NumPositionGroups; j++ {
 				c[j] = 0.4 // stronger home try covariate effect (from 0.15)
@@ -153,11 +176,11 @@ func ObservedBehaviour() []cardgen.Claim {
 	})
 
 	symmetric := homeSubsAll(DefaultHomeSubMinute, DefaultHomeSubMinute)
-	symHomeTries := meanFinal(symmetric, steps, 40, "score_events", 0, nil)
-	symAwayTries := meanFinal(symmetric, steps, 40, "score_events", 1, nil)
+	symHomeTries := meanFinal(build, symmetric, steps, 40, "score_events", 0, nil)
+	symAwayTries := meanFinal(build, symmetric, steps, 40, "score_events", 1, nil)
 
-	cardBase := meanFinal(defaultStrategy, steps, 30, "card_events", 0, nil)
-	cardStrict := meanFinal(defaultStrategy, steps, 30, "card_events", 0, func(g *simulator.ConfigGenerator) {
+	cardBase := meanFinal(build, defaultStrategy, steps, 30, "card_events", 0, nil)
+	cardStrict := meanFinal(build, defaultStrategy, steps, 30, "card_events", 0, func(g *simulator.ConfigGenerator) {
 		c := DefaultCardCoefficients()
 		c[0] = -3.3 // raise home yellow intercept from -4.5
 		g.GetPartition("card_rates").Params.Map["coefficients"] = c
