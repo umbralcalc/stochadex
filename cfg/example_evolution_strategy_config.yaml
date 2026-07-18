@@ -1,0 +1,29 @@
+# Evolution-strategy optimisation as a LIVE macro (no data: block) — it runs
+# its own optimisation loop as a fresh simulation for 'steps' rounds.
+macros:
+- type: evolution_strategy_optimisation
+  steps: 20
+  timestep: 1.0
+  seed: 12345
+  sampler: {name: test_sampler, default: [0.0, 0.0]}
+  sorting: {name: test_sorting, collection_size: 5, empty_value: -9999.0}
+  mean: {name: test_mean, default: [0.0, 0.0], weights: [0.6, 0.4], learning_rate: 0.5}
+  covariance: {name: test_covariance, default: [1.0, 0.0, 0.0, 1.0], learning_rate: 0.5}
+  reward:
+    discount_factor: 0.9
+    partition:
+      partition:
+        name: reward
+        iteration: {type: constant_values}
+        init_state_values: [1.0]
+        state_history_depth: 1
+        seed: 0
+  window:
+    depth: 5
+    partitions:
+    - partition:
+        name: sim_partition
+        iteration: {type: constant_values}
+        init_state_values: [1.0]
+        state_history_depth: 1
+        seed: 0

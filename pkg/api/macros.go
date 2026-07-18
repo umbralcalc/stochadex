@@ -40,14 +40,16 @@ type macroSpec interface {
 // models are user closures), and evolution-strategy optimisation is a live run,
 // not an against-storage analysis.
 var macroSpecFactories = map[string]func() macroSpec{
-	"vector_mean":                  func() macroSpec { return &vectorMeanSpec{} },
-	"vector_variance":              func() macroSpec { return &vectorVarianceSpec{} },
-	"vector_covariance":            func() macroSpec { return &vectorCovarianceSpec{} },
-	"grouped_aggregation":          func() macroSpec { return &groupedAggregationSpec{} },
-	"scalar_regression_stats":      func() macroSpec { return &scalarRegressionStatsSpec{} },
-	"likelihood_comparison":        func() macroSpec { return &likelihoodComparisonSpec{} },
-	"posterior_estimation":         func() macroSpec { return &posteriorEstimationSpec{} },
-	"likelihood_mean_function_fit": func() macroSpec { return &likelihoodMeanFunctionFitSpec{} },
+	"vector_mean":                     func() macroSpec { return &vectorMeanSpec{} },
+	"vector_variance":                 func() macroSpec { return &vectorVarianceSpec{} },
+	"vector_covariance":               func() macroSpec { return &vectorCovarianceSpec{} },
+	"grouped_aggregation":             func() macroSpec { return &groupedAggregationSpec{} },
+	"scalar_regression_stats":         func() macroSpec { return &scalarRegressionStatsSpec{} },
+	"likelihood_comparison":           func() macroSpec { return &likelihoodComparisonSpec{} },
+	"posterior_estimation":            func() macroSpec { return &posteriorEstimationSpec{} },
+	"likelihood_mean_function_fit":    func() macroSpec { return &likelihoodMeanFunctionFitSpec{} },
+	"evolution_strategy_optimisation": func() macroSpec { return &evolutionStrategySpec{} },
+	"smc_inference":                   func() macroSpec { return &smcInferenceSpec{} },
 }
 
 // DataConfig is the data: tier: it produces the StateTimeStorage that macros
@@ -146,24 +148,58 @@ func resolveIterations(partitions []simulator.PartitionConfig) error {
 	return nil
 }
 
-// runMacros builds the data: storage, then expands and runs each macro in turn —
-// so a later macro can reference an earlier macro's output partition (only in
-// storage once it has been run) — and returns the augmented storage.
+// runMacros expands and runs each macro in turn, returning the resulting storage.
+// A live macro (evolution_strategy_optimisation) runs its partitions as a fresh
+// simulation; an against-storage macro runs against the data: storage, which is
+// built lazily on first use — so a live-only config needs no data: block. Running
+// in turn lets a later against-storage macro reference an earlier one's output.
 func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
-	if config.Data == nil {
-		return nil, fmt.Errorf("api: macros require a data: block to analyse")
-	}
-	storage, err := config.Data.buildStorage()
-	if err != nil {
-		return nil, err
+	var storage *simulator.StateTimeStorage
+	ensureStorage := func() error {
+		if storage != nil {
+			return nil
+		}
+		if config.Data == nil {
+			return fmt.Errorf("api: against-storage macros require a data: block to analyse")
+		}
+		built, err := config.Data.buildStorage()
+		storage = built
+		return err
 	}
 	for i := range config.Macros {
 		macro := &config.Macros[i]
+		if live, ok := macro.Spec.(liveMacroSpec); ok {
+			// A live macro may still need observed data (smc_inference): build the
+			// data: storage when one is configured, but tolerate its absence for
+			// live macros that need none (evolution_strategy_optimisation).
+			if storage == nil && config.Data != nil {
+				if err := ensureStorage(); err != nil {
+					return nil, err
+				}
+			}
+			partitions, steps, timestep, err := live.resolveLive(storage)
+			if err != nil {
+				return nil, fmt.Errorf("macro %q: %w", macro.Type, err)
+			}
+			storage = analysis.NewStateTimeStorageFromPartitions(
+				partitions,
+				&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+				&simulator.ConstantTimestepFunction{Stepsize: timestep},
+				0.0,
+			)
+			continue
+		}
+		if err := ensureStorage(); err != nil {
+			return nil, err
+		}
 		partitions, windows, err := macro.Spec.resolve(storage)
 		if err != nil {
 			return nil, fmt.Errorf("macro %q: %w", macro.Type, err)
 		}
 		storage = analysis.AddPartitionsToStateTimeStorage(storage, partitions, windows)
+	}
+	if storage == nil {
+		return nil, fmt.Errorf("api: no macros produced any output")
 	}
 	return storage, nil
 }
