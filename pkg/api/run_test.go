@@ -77,6 +77,33 @@ func TestCheckForDeadlock(t *testing.T) {
 		}
 	})
 
+	t.Run("a three-partition within-step cycle is flagged", func(t *testing.T) {
+		gen := genFrom(
+			deadlockPartition("a", map[string]simulator.NamedUpstreamConfig{"in": {Upstream: "c"}}),
+			deadlockPartition("b", map[string]simulator.NamedUpstreamConfig{"in": {Upstream: "a"}}),
+			deadlockPartition("c", map[string]simulator.NamedUpstreamConfig{"in": {Upstream: "b"}}),
+		)
+		if err := CheckForDeadlock(gen); err == nil {
+			t.Error("expected a deadlock error for a 3-partition within-step ring")
+		}
+	})
+
+	t.Run("a three-partition ring with one lag edge passes", func(t *testing.T) {
+		// a -> b -> c within-step, and c -> a via a state-history (lag) read: the
+		// lag edge breaks the ring, so no deadlock.
+		gen := genFrom(
+			&simulator.PartitionConfig{
+				Name: "a", InitStateValues: []float64{0.0}, StateHistoryDepth: 1,
+				ParamsAsPartitions: map[string][]string{"peer": {"c"}},
+			},
+			deadlockPartition("b", map[string]simulator.NamedUpstreamConfig{"in": {Upstream: "a"}}),
+			deadlockPartition("c", map[string]simulator.NamedUpstreamConfig{"in": {Upstream: "b"}}),
+		)
+		if err := CheckForDeadlock(gen); err != nil {
+			t.Errorf("a ring broken by a lag edge should pass, got: %v", err)
+		}
+	})
+
 	t.Run("a mutual dependency broken by a lag-1 read passes", func(t *testing.T) {
 		// predator reads prey within-step; prey reads predator via a state-history
 		// read (params_as_partitions), which is lag-1 and so breaks the cycle.

@@ -171,3 +171,30 @@ func TestResolveDataComponents(t *testing.T) {
 		}
 	})
 }
+
+func TestRegisterComponentAndResolveExtra(t *testing.T) {
+	// A downstream-registered timestep function resolves via the fallback.
+	RegisterComponent("timestep_function", "test_constant_downstream",
+		func(spec ComponentSpec) (interface{}, error) {
+			return &ConstantTimestepFunction{Stepsize: 7.0}, nil
+		})
+	resolved, err := ResolveTimestepFunction(ComponentSpec{Type: "test_constant_downstream"})
+	if err != nil {
+		t.Fatalf("resolving a downstream-registered component: %v", err)
+	}
+	if got := resolved.(*ConstantTimestepFunction).Stepsize; got != 7.0 {
+		t.Errorf("downstream builder not used: stepsize %v", got)
+	}
+}
+
+func TestRegisterComponentDuplicatePanics(t *testing.T) {
+	RegisterComponent("output_function", "dup_test",
+		func(ComponentSpec) (interface{}, error) { return &NilOutputFunction{}, nil })
+	defer func() {
+		if recover() == nil {
+			t.Error("expected a panic registering a duplicate component name")
+		}
+	}()
+	RegisterComponent("output_function", "dup_test",
+		func(ComponentSpec) (interface{}, error) { return &NilOutputFunction{}, nil })
+}
