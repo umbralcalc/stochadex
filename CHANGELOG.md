@@ -22,6 +22,82 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-07-18
+
+The whole engine becomes drivable as data. 0.4.0 made a single partition's *update*
+expressible without Go (`expressions:`); this release extends that to everything a run
+is — its iterations, simulation controls, run mode, analysis/inference/optimisation
+macros, and data sources — so a config that names no Go anywhere resolves and runs
+**in-process with no toolchain**. This was chosen over designing a bespoke modelling
+language: experiments (a fresh agent authoring working configs from a doc alone,
+including the mutual-coupling deadlock case) showed YAML passes because agents already
+know it, a notation was no shorter, and the one thing a grammar buys — catching bad
+wiring — was already built in `pkg/graph` and merely unwired.
+
+### Added
+- **Iteration registry — `iteration: {type: wiener_process, ...}` (`pkg/api`).** 35 of the
+  framework's iterations are constructible as data: 21 data-only (their numeric parameters come
+  from `params:`, so the spec carries no fields) and 14 composable, whose interface- or func-typed
+  fields nest recursively — a kernel, likelihood, jump distribution, prior, nested iteration, or a
+  framework-shipped named function (`{type: data_generation, likelihood: {type: normal}}`, the
+  recursive `product` kernel, etc.). Two drift tests keep it honest: every registered name
+  constructs the type it claims, and a `go/ast` scan requires every `Iterate`-implementing type in
+  the candidate packages to be registered or excluded with a reason — so a new iteration fails CI
+  until it is classified. A behaviour-equivalence test proves a data-spec iteration produces output
+  *identical* to its Go-expr twin, not merely similar.
+- **Simulation controls as data (`pkg/simulator`).** The four `SimulationConfig` families
+  (output condition/function, termination, timestep) each gain a `{type: ...}` data spelling
+  resolved at load. `simulator.RegisterComponent` lets a package downstream of `simulator` add its
+  own (e.g. the embedded-window `from_history` timestep), so the registry is not closed to the rest
+  of the module.
+- **`run:` tier (`pkg/api`).** `{mode: batch | ensemble, seeds, concurrency}` — the one construct
+  the partition tiers cannot express (what the coordinator *does* with the assembled generator).
+  `ensemble` runs one seeded member per seed via `simulator.RunSeededEnsemble`.
+- **In-process execution.** A fully-data config (no `iteration:` string, `extra_vars`, or
+  Go-expression simulation component, in the main run and every embedded run) is detected and run
+  with no code generation and no `go run`. Measured with `go` absent from `PATH`.
+- **`api.CheckForDeadlock`, wired into `api.Run`.** Pre-flights the within-step
+  (`params_from_upstream`) dependency graph via `pkg/graph`, turning the opaque
+  `all goroutines are asleep - deadlock!` hang into a located error naming the cyclic partitions.
+- **Macro / `analysis:` tier (`pkg/api`).** Analysis is nine partition-set-producing constructors;
+  a macro expands to a *set* of partitions rather than one. A `data:` tier (a sub-simulation, or a
+  file/database source) produces a `StateTimeStorage`, and each macro's `AppliedX` — expressed as
+  nested data — is expanded against it. Against-storage macros: `vector_mean`/`variance`/
+  `covariance`, `grouped_aggregation`, `scalar_regression_stats`, `likelihood_comparison`,
+  `likelihood_mean_function_fit`, and `posterior_estimation` (the full online-Bayesian model as one
+  macro, equivalence-tested byte-identical to the hand-written constructor call). Live macros (run
+  as a fresh simulation, no storage): `evolution_strategy_optimisation`, and `smc_inference` — whose
+  inner particle model is a per-particle template (`{particle}` in partition names and upstream
+  references is instantiated once per particle, with a deep-copied params map so particles cannot
+  cross-contaminate).
+- **`data:` file/database sources.** `data.source.csv`, `data.source.json_log`, and
+  `data.source.postgres` load storage from a file or a table, instead of running a sub-simulation.
+- **Example configs and a guard test.** `cfg/example_*_config.yaml` for the data-only, composition,
+  ensemble, macro, posterior, SMC, evolution-strategy, and CSV-source paths, each exercised in-process
+  by `TestExampleConfigsRun`. The full 220-line posterior-estimation model is also shipped as data
+  (`cfg/example_inference_data_config.yaml`).
+
+### Changed
+- **`simulator.SimulationConfigStrings` and `api.PartitionConfigStrings` component fields are now
+  `ComponentSpec` unions, not `string`.** A `ComponentSpec` decodes a YAML value as either a
+  Go-expression string (the previous meaning, unchanged in behaviour) or a `{type: ...}` data spec.
+  This is a breaking change for code that constructed those structs with bare string literals —
+  wrap them as `ComponentSpec{GoExpr: "..."}`. Macro fields decode straight into typed specs (never
+  an untyped map), which is load-bearing: YAML 1.1 coerces a bare `y`/`n`/`yes`/`no`/`on`/`off` to a
+  boolean for `interface{}` targets but preserves the string for string fields, so a partition named
+  `y` only survives typed decoding.
+- **`simulator.PartitionConfig` gains an `IterationSpec` field** (the loaded `iteration:` value as a
+  `ComponentSpec`); `api.ApiRunConfig` gains `Run`, `Data`, and `Macros`. Existing configs are
+  unaffected — an omitted field is zero-valued and the Go-expression path behaves exactly as before.
+
+### Boundary
+- **`mcts_self_play` remains Go, by design.** Its `agents.Environment[S, A]`
+  (`Legal`/`Apply`/`Terminal`/`Actor`/`Players` over generic types) is arbitrary game rules — not
+  representable as data without a general-purpose language — and MCTS self-play is the decision
+  layer, which the repo boundary assigns downstream. A `postgres` write path likewise stays Go
+  (a live `*sql.DB`). Everything in the engine's own domain — generative forward models plus
+  inferential/analysis/optimisation — is now data.
+
 ## [0.4.0] — 2026-07-17
 
 ### Added
