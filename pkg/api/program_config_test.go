@@ -31,7 +31,7 @@ func TestValidateApiRunConfigStrings(t *testing.T) {
 			config := &ApiRunConfigStrings{
 				Main: RunConfigStrings{
 					Partitions: []PartitionConfigStrings{
-						{Name: "has_iteration", Iteration: "&continuous.WienerProcessIteration{}"},
+						{Name: "has_iteration", Iteration: simulator.ComponentSpec{GoExpr: "&continuous.WienerProcessIteration{}"}},
 						{Name: "orphan"}, // no iteration, no embedded run
 					},
 				},
@@ -74,8 +74,8 @@ func TestValidateApiRunConfigStrings(t *testing.T) {
 			config := &ApiRunConfigStrings{
 				Main: RunConfigStrings{
 					Partitions: []PartitionConfigStrings{
-						{Name: "a", Iteration: "&continuous.WienerProcessIteration{}"},
-						{Name: "b", Iteration: "&general.ConstantValuesIteration{}"},
+						{Name: "a", Iteration: simulator.ComponentSpec{GoExpr: "&continuous.WienerProcessIteration{}"}},
+						{Name: "b", Iteration: simulator.ComponentSpec{GoExpr: "&general.ConstantValuesIteration{}"}},
 					},
 				},
 			}
@@ -149,10 +149,10 @@ func TestLoadApiRunConfigStringsFromYaml(t *testing.T) {
 				config.Main.Partitions[0].Name != "wiener" {
 				t.Fatalf("unexpected parse result: %+v", config.Main.Partitions)
 			}
-			if config.Main.Partitions[0].Iteration !=
+			if config.Main.Partitions[0].Iteration.GoExpr !=
 				"&continuous.WienerProcessIteration{}" {
 				t.Errorf("iteration string not parsed: %q",
-					config.Main.Partitions[0].Iteration)
+					config.Main.Partitions[0].Iteration.GoExpr)
 			}
 		},
 	)

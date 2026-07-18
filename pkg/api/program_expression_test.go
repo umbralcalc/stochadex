@@ -304,10 +304,10 @@ func TestExpressionsParseInTheStringsView(t *testing.T) {
 				t.Errorf("spec partition: got %q, want walk",
 					config.Main.Expressions[0].Partition)
 			}
-			// The partition carries no iteration string, and validation accepted it purely
+			// The partition carries no iteration spec, and validation accepted it purely
 			// because the expression spec names it.
-			if config.Main.Partitions[0].Iteration != "" {
-				t.Errorf("expected no iteration string, got %q",
+			if !config.Main.Partitions[0].Iteration.IsZero() {
+				t.Errorf("expected no iteration spec, got %+v",
 					config.Main.Partitions[0].Iteration)
 			}
 		},

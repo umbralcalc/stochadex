@@ -1,0 +1,38 @@
+# A fully-data config: no Go named anywhere. Partitions are specified by
+# `expressions:` (bespoke maths) or by a data-spec `iteration:` naming a framework
+# iteration from the registry (e.g. `iteration: {type: wiener_process}`), and every
+# `simulation:` component is a {type: ...} data spec.
+#
+# Because nothing here is a Go expression, `stochadex --config` resolves it and
+# runs it IN-PROCESS — no code generation, no `go run`, no Go toolchain on the
+# machine. (A config that names any Go — an `iteration:` string, `extra_vars`, or
+# a Go-expression simulation component — falls back to the code-generation path.)
+#
+# This is a stochastic logistic-growth SDE written as an expression. For a library
+# iteration instead, a partition would read e.g.
+#   iteration: {type: wiener_process}    # params (variances, …) go in params:
+# with no expressions entry.
+main:
+  partitions:
+  - name: growth
+    params:
+      rate: [0.05]
+      noise: [0.1]
+      capacity: [100.0]
+    init_state_values: [10.0]
+    state_history_depth: 1
+    seed: 42
+  expressions:
+  - partition: growth
+    fields:
+    - {name: x}
+    bindings:
+    - {name: drift, expr: "rate * x * (1 - x / capacity)"}
+    outputs:
+    - "x + drift * dt + noise * x * shared(normal(0, 1)) * sqrt(dt)"
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: stdout}
+    termination_condition: {type: number_of_steps, max_steps: 50}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0

@@ -1,0 +1,39 @@
+# A data-only (expressions) config run as a seeded ensemble via the run: tier.
+#
+# The run: block selects what the coordinator DOES with the assembled simulation
+# — here, one member per seed, run concurrently with a varied global seed, via
+# simulator.RunSeededEnsemble. Each member's trajectory is written to stdout
+# prefixed with `member=<i> seed=<s>`.
+#
+# Ensemble mode currently requires a file-backed, data-only config (partitions
+# specified by `expressions:`, no embedded runs): members are rebuilt by re-loading
+# this file to get fresh, non-shared iteration instances. Omit the run: block, or
+# set `mode: batch`, for the default single run.
+main:
+  partitions:
+  - name: growth
+    params:
+      rate: [0.05]
+      noise: [0.2]
+    init_state_values: [10.0]
+    state_history_depth: 1
+    seed: 1
+  expressions:
+  - partition: growth
+    fields:
+    - {name: x}
+    outputs:
+    - "x + rate * x * dt + noise * x * shared(normal(0, 1)) * sqrt(dt)"
+  # Simulation components as data specs (not Go strings), so this whole config is
+  # data-only: it resolves and runs in-process, with no Go toolchain.
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: stdout}
+    termination_condition: {type: number_of_steps, max_steps: 20}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+
+run:
+  mode: ensemble
+  seeds: [11, 22, 33, 44]
+  # concurrency: 4   # optional; defaults to GOMAXPROCS
