@@ -1,0 +1,44 @@
+# Phase B (composition): framework iterations built entirely from nested data
+# specs — no Go anywhere, so this resolves and runs IN-PROCESS (no toolchain).
+#
+# `data_generation` is a composable iteration: its `likelihood:` field is itself a
+# data spec resolved recursively. `values_function_vector_mean` composes a named
+# framework function (`data_values`) with a nested `kernel:` spec. Nested kernels
+# compose too, e.g. kernel: {type: product, kernel_a: {...}, kernel_b: {...}}.
+#
+# A Normal data stream, and its exponential-kernel rolling mean, which converges
+# toward the stream's true mean [1.8, 5.0].
+main:
+  partitions:
+  - name: data_stream
+    iteration:
+      type: data_generation
+      likelihood: {type: normal, allow_default_covariance_fallback: true}
+    params:
+      mean: [1.8, 5.0]
+      covariance_matrix: [2.5, 0.0, 0.0, 9.0]
+    init_state_values: [1.3, 8.3]
+    state_history_depth: 100
+    seed: 291
+
+  - name: rolling_mean
+    iteration:
+      type: values_function_vector_mean
+      function: data_values
+      kernel: {type: exponential}
+    params:
+      exponential_weighting_timescale: [20.0]
+    params_as_partitions:
+      data_values_partition: [data_stream]
+    params_from_upstream:
+      latest_data_values: {upstream: data_stream}
+    init_state_values: [1.8, 5.0]
+    state_history_depth: 100
+    seed: 0
+
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: stdout}
+    termination_condition: {type: number_of_steps, max_steps: 500}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0

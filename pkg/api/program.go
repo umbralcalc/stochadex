@@ -45,10 +45,12 @@ import (
 //   - ExtraPackages must be valid import paths
 //   - ExtraVars must be valid Go variable declarations
 type PartitionConfigStrings struct {
-	Name          string              `yaml:"name"`
-	Iteration     string              `yaml:"iteration,omitempty"`
-	ExtraPackages []string            `yaml:"extra_packages,omitempty"`
-	ExtraVars     []map[string]string `yaml:"extra_vars,omitempty"`
+	Name string `yaml:"name"`
+	// Iteration is the ComponentSpec union: a Go-expression string (resolved by
+	// codegen) or a {type: ...} data spec (resolved at load by the registry).
+	Iteration     simulator.ComponentSpec `yaml:"iteration,omitempty"`
+	ExtraPackages []string                `yaml:"extra_packages,omitempty"`
+	ExtraVars     []map[string]string     `yaml:"extra_vars,omitempty"`
 }
 
 // ExpressionConfig binds a declarative expression specification to a partition by name, so
@@ -110,8 +112,37 @@ type ExpressionConfig struct {
 type RunConfig struct {
 	Partitions []simulator.PartitionConfig `yaml:"partitions"`
 	// Expressions declaratively supply the iteration for the partitions they name.
-	Expressions []ExpressionConfig         `yaml:"expressions,omitempty"`
-	Simulation  simulator.SimulationConfig `yaml:"-"`
+	Expressions []ExpressionConfig `yaml:"expressions,omitempty"`
+	// SimulationStrings holds the simulation block as loaded (component fields are
+	// ComponentSpec unions). Data-spec components are resolved into Simulation at
+	// load time; Go-expression components are filled by the code-generation step.
+	SimulationStrings simulator.SimulationConfigStrings `yaml:"simulation"`
+	// Simulation is the resolved simulation config used to build the generator.
+	Simulation simulator.SimulationConfig `yaml:"-"`
+}
+
+// resolve fills the run's data-spec components at load time: the simulation
+// components given as data specs, and each partition whose iteration: was given
+// as a data spec. Go-expression components and iterations are left for codegen.
+func (r *RunConfig) resolve() error {
+	resolved, err := r.SimulationStrings.ResolveDataComponents()
+	if err != nil {
+		return err
+	}
+	r.Simulation = *resolved
+	for index := range r.Partitions {
+		if !r.Partitions[index].IterationSpec.IsData() {
+			continue
+		}
+		iteration, err := ResolveIteration(r.Partitions[index].IterationSpec)
+		if err != nil {
+			return fmt.Errorf(
+				"partition %q: %w", r.Partitions[index].Name, err,
+			)
+		}
+		r.Partitions[index].Iteration = iteration
+	}
+	return nil
 }
 
 // GetConfigGenerator constructs a ConfigGenerator preloaded with the run's
@@ -162,11 +193,44 @@ type EmbeddedRunConfigStrings struct {
 	Run  RunConfigStrings `yaml:",inline"`
 }
 
+// RunModeConfig selects what a run *does* with the assembled simulation — the
+// one thing that is not a partition and that the partition tiers cannot express.
+// It is pure data (no Go expressions), so the same type serves both the concrete
+// and the code-generation views of a config.
+//
+// Modes:
+//   - "" or "batch": run once to completion (or serve a websocket when a socket
+//     config is active). This is the default and matches pre-run:-tier behaviour
+//     exactly, so no existing config changes meaning.
+//   - "ensemble": run one member per seed concurrently, varying the global seed,
+//     via simulator.RunSeededEnsemble. Currently supports data-only (expressions)
+//     configs, because each member is rebuilt by re-loading the source file to get
+//     fresh, non-shared iteration instances.
+type RunModeConfig struct {
+	Mode string `yaml:"mode,omitempty"`
+	// Seeds are the per-member global seeds for ensemble mode (one member each).
+	Seeds []uint64 `yaml:"seeds,omitempty"`
+	// Concurrency bounds how many ensemble members run at once; <= 0 defaults to
+	// GOMAXPROCS.
+	Concurrency int `yaml:"concurrency,omitempty"`
+}
+
 // ApiRunConfig is the concrete, YAML-loadable configuration for an API run:
-// a main RunConfig and optional embedded runs.
+// a main RunConfig, optional embedded runs, and an optional run-mode selector.
 type ApiRunConfig struct {
 	Main     RunConfig           `yaml:"main"`
 	Embedded []EmbeddedRunConfig `yaml:"embedded,omitempty"`
+	Run      RunModeConfig       `yaml:"run,omitempty"`
+	// Data is the optional data: tier — a sub-simulation run to produce storage
+	// for the macros: tier to analyse.
+	Data *DataConfig `yaml:"data,omitempty"`
+	// Macros is the optional macros: tier — partition-set-producing analysis
+	// functions expanded against Data's storage.
+	Macros []MacroConfig `yaml:"macros,omitempty"`
+	// sourcePath records the file this config was loaded from, so ensemble mode
+	// can re-load it to build fresh, isolated members. Empty for a config built
+	// in-memory rather than via LoadApiRunConfigFromYaml.
+	sourcePath string `yaml:"-"`
 }
 
 // GetConfigGenerator returns a ConfigGenerator for the main run. Any partition
@@ -245,17 +309,28 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 	}
 	var config ApiRunConfig
 	err = yaml.Unmarshal(yamlFile, &config)
-	for index := range config.Main.Partitions {
-		config.Main.Partitions[index].Init()
-	}
-	for _, embedded := range config.Embedded {
-		for index := range embedded.Run.Partitions {
-			embedded.Run.Partitions[index].Init()
-		}
-	}
 	if err != nil {
 		panic(err)
 	}
+	for index := range config.Main.Partitions {
+		config.Main.Partitions[index].Init()
+	}
+	for index := range config.Embedded {
+		for pIndex := range config.Embedded[index].Run.Partitions {
+			config.Embedded[index].Run.Partitions[pIndex].Init()
+		}
+	}
+	// Resolve any data-spec simulation components and data-spec iterations at load
+	// time, so a config that is fully data needs no code generation.
+	if simErr := config.Main.resolve(); simErr != nil {
+		panic(simErr)
+	}
+	for index := range config.Embedded {
+		if simErr := config.Embedded[index].Run.resolve(); simErr != nil {
+			panic(simErr)
+		}
+	}
+	config.sourcePath = path
 	return &config
 }
 
@@ -264,6 +339,44 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 type ApiRunConfigStrings struct {
 	Main     RunConfigStrings           `yaml:"main"`
 	Embedded []EmbeddedRunConfigStrings `yaml:"embedded,omitempty"`
+	// Run is pure data and identical across views, so the templated view holds it
+	// too — both so the code-generation path can honour it and so the dead-key
+	// check (which flags a key only when BOTH views reject it) accepts `run:`.
+	Run RunModeConfig `yaml:"run,omitempty"`
+	// Data and Macros are pure data; the templated view holds them so the dead-key
+	// check accepts data: and macros:. Analysis runs are always in-process.
+	Data   *DataConfig   `yaml:"data,omitempty"`
+	Macros []MacroConfig `yaml:"macros,omitempty"`
+}
+
+// runIsData reports whether a single run's partitions and simulation are entirely
+// data (no Go): no partition names a Go iteration, extra_packages or extra_vars (a
+// data-spec iteration or an expression is fine), and all four simulation
+// components are data specs.
+func runIsData(run RunConfigStrings) bool {
+	for _, partition := range run.Partitions {
+		if partition.Iteration.GoExpr != "" ||
+			len(partition.ExtraPackages) > 0 ||
+			len(partition.ExtraVars) > 0 {
+			return false
+		}
+	}
+	return run.Simulation.FullyData()
+}
+
+// IsFullyData reports whether the whole config — main and every embedded run — is
+// data-only, so it can be resolved and run in-process with no code generation and
+// no Go toolchain.
+func (a *ApiRunConfigStrings) IsFullyData() bool {
+	if !runIsData(a.Main) {
+		return false
+	}
+	for _, embedded := range a.Embedded {
+		if !runIsData(embedded.Run) {
+			return false
+		}
+	}
+	return true
 }
 
 // validateApiRunConfigStrings asserts the templated config is coherent.
@@ -278,7 +391,7 @@ func validateApiRunConfigStrings(config *ApiRunConfigStrings) {
 		expressionNames[expression.Partition] = true
 	}
 	for _, partition := range config.Main.Partitions {
-		if partition.Iteration == "" {
+		if partition.Iteration.IsZero() {
 			if !embeddedNames[partition.Name] && !expressionNames[partition.Name] {
 				panic("config omits iteration for partition name: " +
 					partition.Name +
@@ -307,67 +420,65 @@ func LoadApiRunConfigStringsFromYaml(path string) *ApiRunConfigStrings {
 	return &config
 }
 
-// executionStrategyField returns the trailing SimulationConfig field fragment
-// for an optional execution strategy expression, or an empty string when none
-// is configured (preserving the default execution).
-func executionStrategyField(expr string) string {
-	if expr == "" {
-		return ""
+// simComponentAssignments emits a Go assignment for each simulation component
+// given in Go-expression form, targeting fields of an already-loaded
+// SimulationConfig (the target, e.g. "config.Main.Simulation"). Components given
+// in data-spec form are skipped — LoadApiRunConfigFromYaml has already resolved
+// them into the loaded config, so codegen must not overwrite them. InitTimeValue
+// is likewise set at load and not re-emitted.
+func simComponentAssignments(target string, sim simulator.SimulationConfigStrings) string {
+	code := ""
+	fields := []struct {
+		name string
+		spec simulator.ComponentSpec
+	}{
+		{"OutputCondition", sim.OutputCondition},
+		{"OutputFunction", sim.OutputFunction},
+		{"TerminationCondition", sim.TerminationCondition},
+		{"TimestepFunction", sim.TimestepFunction},
 	}
-	return ",\n	ExecutionStrategy: " + expr
+	for _, field := range fields {
+		if field.spec.GoExpr == "" {
+			continue
+		}
+		code += fmt.Sprintf("%s.%s = %s\n    ", target, field.name, field.spec.GoExpr)
+	}
+	if sim.ExecutionStrategy != "" {
+		code += fmt.Sprintf("%s.ExecutionStrategy = %s\n    ", target, sim.ExecutionStrategy)
+	}
+	return code
 }
 
-// formatExtraCode serialises Iteration factories and SimulationConfig into
-// Go code fragments for main and embedded runs.
+// formatExtraCode serialises Iteration factories and the Go-expression simulation
+// components into Go code fragments for main and embedded runs. Data-spec
+// components are resolved at load and need no code here.
 func formatExtraCode(args ParsedArgs) string {
 	extraCode := ""
 	for i, partition := range args.ConfigStrings.Main.Partitions {
-		if partition.Iteration == "" {
+		if partition.Iteration.GoExpr == "" {
 			continue
 		}
 		extraCode += fmt.Sprintf(
 			`config.Main.Partitions[%d].Iteration = %s`+"\n    ",
-			i, partition.Iteration,
+			i, partition.Iteration.GoExpr,
 		)
 	}
-	extraCode += fmt.Sprintf(
-		`config.Main.Simulation = simulator.SimulationConfig{
-	OutputCondition: %s,
-	OutputFunction: %s,
-	TerminationCondition: %s,
-	TimestepFunction: %s,
-	InitTimeValue: %f%s}`+"\n    ",
-		args.ConfigStrings.Main.Simulation.OutputCondition,
-		args.ConfigStrings.Main.Simulation.OutputFunction,
-		args.ConfigStrings.Main.Simulation.TerminationCondition,
-		args.ConfigStrings.Main.Simulation.TimestepFunction,
-		args.ConfigStrings.Main.Simulation.InitTimeValue,
-		executionStrategyField(args.ConfigStrings.Main.Simulation.ExecutionStrategy),
+	extraCode += simComponentAssignments(
+		"config.Main.Simulation", args.ConfigStrings.Main.Simulation,
 	)
 	for i, embedded := range args.ConfigStrings.Embedded {
 		for j, partition := range embedded.Run.Partitions {
-			if partition.Iteration == "" {
+			if partition.Iteration.GoExpr == "" {
 				continue
 			}
 			extraCode += fmt.Sprintf(
 				`config.Embedded[%d].Run.Partitions[%d].Iteration = %s`+"\n    ",
-				i, j, partition.Iteration,
+				i, j, partition.Iteration.GoExpr,
 			)
 		}
-		extraCode += fmt.Sprintf(
-			`config.Embedded[%d].Run.Simulation = simulator.SimulationConfig{
-		OutputCondition: %s,
-		OutputFunction: %s,
-		TerminationCondition: %s,
-		TimestepFunction: %s,
-		InitTimeValue: %f%s}`+"\n    ",
-			i,
-			embedded.Run.Simulation.OutputCondition,
-			embedded.Run.Simulation.OutputFunction,
-			embedded.Run.Simulation.TerminationCondition,
-			embedded.Run.Simulation.TimestepFunction,
-			embedded.Run.Simulation.InitTimeValue,
-			executionStrategyField(embedded.Run.Simulation.ExecutionStrategy),
+		extraCode += simComponentAssignments(
+			fmt.Sprintf("config.Embedded[%d].Run.Simulation", i),
+			embedded.Run.Simulation,
 		)
 	}
 	return extraCode

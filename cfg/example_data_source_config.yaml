@@ -1,0 +1,20 @@
+# The data: tier loading a FILE instead of running a sub-simulation. `source.csv`
+# reads a CSV into storage, then the macros: tier analyses it — here a rolling
+# mean of a two-column "stream" partition. Runs in-process, no Go toolchain.
+#
+# Point `path` at a CSV whose columns are: time, then the state values named by
+# state_columns. `json_log:` is the other file source (a JSON-lines run log).
+data:
+  source:
+    csv:
+      path: "cfg/example_data.csv"
+      time_column: 0
+      state_columns: {stream: [1, 2]}
+      skip_header: false
+macros:
+- type: vector_mean
+  name: rolling_mean
+  data: {partition_name: stream}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [100.0]}
+  window: 150

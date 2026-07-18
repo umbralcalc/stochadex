@@ -15,7 +15,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 					Partitions: []PartitionConfigStrings{
 						{
 							Name:          "first_wiener_process",
-							Iteration:     "firstWienerProcess",
+							Iteration:     simulator.ComponentSpec{GoExpr: "firstWienerProcess"},
 							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
 							ExtraVars: []map[string]string{
 								{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},
@@ -23,7 +23,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 						},
 						{
 							Name:          "second_wiener_process",
-							Iteration:     "secondWienerProcess",
+							Iteration:     simulator.ComponentSpec{GoExpr: "secondWienerProcess"},
 							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
 							ExtraVars: []map[string]string{
 								{"secondWienerProcess": "&continuous.WienerProcessIteration{}"},
@@ -31,7 +31,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 						},
 						{
 							Name:          "other_thing",
-							Iteration:     "constantValues",
+							Iteration:     simulator.ComponentSpec{GoExpr: "constantValues"},
 							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/general"},
 							ExtraVars: []map[string]string{
 								{"constantValues": "&general.ConstantValuesIteration{}"},
@@ -39,10 +39,10 @@ func TestRunWithParsedArgs(t *testing.T) {
 						},
 					},
 					Simulation: simulator.SimulationConfigStrings{
-						OutputCondition:      "&simulator.NilOutputCondition{}",
-						OutputFunction:       "&simulator.NilOutputFunction{}",
-						TerminationCondition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
-						TimestepFunction:     "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
+						OutputCondition:      simulator.ComponentSpec{GoExpr: "&simulator.NilOutputCondition{}"},
+						OutputFunction:       simulator.ComponentSpec{GoExpr: "&simulator.NilOutputFunction{}"},
+						TerminationCondition: simulator.ComponentSpec{GoExpr: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"},
+						TimestepFunction:     simulator.ComponentSpec{GoExpr: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"},
 						InitTimeValue:        0.0,
 					},
 				},
@@ -64,7 +64,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 					Partitions: []PartitionConfigStrings{
 						{
 							Name:          "first_wiener_process",
-							Iteration:     "firstWienerProcess",
+							Iteration:     simulator.ComponentSpec{GoExpr: "firstWienerProcess"},
 							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
 							ExtraVars: []map[string]string{
 								{"firstWienerProcess": "&continuous.WienerProcessIteration{}"},
@@ -72,7 +72,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 						},
 						{
 							Name:          "second_wiener_process",
-							Iteration:     "secondWienerProcess",
+							Iteration:     simulator.ComponentSpec{GoExpr: "secondWienerProcess"},
 							ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
 							ExtraVars: []map[string]string{
 								{"secondWienerProcess": "&continuous.WienerProcessIteration{}"},
@@ -84,10 +84,10 @@ func TestRunWithParsedArgs(t *testing.T) {
 						},
 					},
 					Simulation: simulator.SimulationConfigStrings{
-						OutputCondition:      "&simulator.NilOutputCondition{}",
-						OutputFunction:       "&simulator.NilOutputFunction{}",
-						TerminationCondition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
-						TimestepFunction:     "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
+						OutputCondition:      simulator.ComponentSpec{GoExpr: "&simulator.NilOutputCondition{}"},
+						OutputFunction:       simulator.ComponentSpec{GoExpr: "&simulator.NilOutputFunction{}"},
+						TerminationCondition: simulator.ComponentSpec{GoExpr: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"},
+						TimestepFunction:     simulator.ComponentSpec{GoExpr: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"},
 						InitTimeValue:        0.0,
 					},
 				},
@@ -98,7 +98,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 							Partitions: []PartitionConfigStrings{
 								{
 									Name:          "first_wiener_process_embed_sim",
-									Iteration:     "firstWienerProcessEmbedSim",
+									Iteration:     simulator.ComponentSpec{GoExpr: "firstWienerProcessEmbedSim"},
 									ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
 									ExtraVars: []map[string]string{
 										{"firstWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
@@ -106,7 +106,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 								},
 								{
 									Name:          "second_wiener_process_embed_sim",
-									Iteration:     "secondWienerProcessEmbedSim",
+									Iteration:     simulator.ComponentSpec{GoExpr: "secondWienerProcessEmbedSim"},
 									ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/continuous"},
 									ExtraVars: []map[string]string{
 										{"secondWienerProcessEmbedSim": "&continuous.WienerProcessIteration{}"},
@@ -114,7 +114,7 @@ func TestRunWithParsedArgs(t *testing.T) {
 								},
 								{
 									Name:          "constant_values_embed_sim",
-									Iteration:     "constantValuesEmbedSim",
+									Iteration:     simulator.ComponentSpec{GoExpr: "constantValuesEmbedSim"},
 									ExtraPackages: []string{"github.com/umbralcalc/stochadex/pkg/general"},
 									ExtraVars: []map[string]string{
 										{"constantValuesEmbedSim": "&general.ConstantValuesIteration{}"},
@@ -122,10 +122,10 @@ func TestRunWithParsedArgs(t *testing.T) {
 								},
 							},
 							Simulation: simulator.SimulationConfigStrings{
-								OutputCondition:      "&simulator.NilOutputCondition{}",
-								OutputFunction:       "&simulator.NilOutputFunction{}",
-								TerminationCondition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}",
-								TimestepFunction:     "&simulator.ConstantTimestepFunction{Stepsize: 1.0}",
+								OutputCondition:      simulator.ComponentSpec{GoExpr: "&simulator.NilOutputCondition{}"},
+								OutputFunction:       simulator.ComponentSpec{GoExpr: "&simulator.NilOutputFunction{}"},
+								TerminationCondition: simulator.ComponentSpec{GoExpr: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"},
+								TimestepFunction:     simulator.ComponentSpec{GoExpr: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"},
 								InitTimeValue:        0.0,
 							},
 						},

@@ -1,0 +1,36 @@
+# The macro / analysis tier: a three-tier data program with no Go.
+#
+#   data:   a sub-simulation, run once to produce a StateTimeStorage.
+#   macros: partition-set-producing analysis functions (the pkg/analysis
+#           constructors) expanded and run AGAINST that storage, in order, so a
+#           later macro may reference an earlier macro's output partition.
+#
+# Presence of macros: selects the analysis run context (in-process, no toolchain).
+# Here: a Normal data stream, its exponential-kernel rolling mean (-> [1.8, 5.0])
+# and rolling variance (-> diag[2.5, 9.0]).
+data:
+  steps: 500
+  timestep: 1.0
+  partitions:
+  - name: data_stream
+    iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
+    params:
+      mean: [1.8, 5.0]
+      covariance_matrix: [2.5, 0.0, 0.0, 9.0]
+    init_state_values: [1.3, 8.3]
+    state_history_depth: 200
+    seed: 291
+macros:
+- type: vector_mean
+  name: rolling_mean
+  data: {partition_name: data_stream}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [100.0]}
+  window: 150
+- type: vector_variance
+  name: rolling_var
+  mean: {partition_name: rolling_mean}
+  data: {partition_name: data_stream}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [100.0]}
+  window: 150
