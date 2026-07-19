@@ -58,7 +58,7 @@ main:
   - name: params_posterior_log_norm
     iteration: paramsPosteriorLogNorm
     params:
-      past_discounting_factor: [0.5]
+      past_discounting_factor: [0.999]
       loglike_indices: [24]
     params_as_partitions:
       loglike_partitions: [ornstein_uhlenbeck_simulation]
@@ -100,7 +100,7 @@ main:
         upstream: params_posterior_log_norm
       mean: 
         upstream: params_posterior_mean
-    init_state_values: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    init_state_values: [9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0]
     state_history_depth: 1
     seed: 0
     extra_packages:
@@ -111,7 +111,7 @@ main:
   - name: params_generating_process
     iteration: paramsGeneratingProcess
     params:
-      default_covariance: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+      default_covariance: [9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0]
     params_from_upstream:
       mean: 
         upstream: params_posterior_mean

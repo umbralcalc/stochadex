@@ -336,26 +336,24 @@ func TestComposableRunsInProcess(t *testing.T) {
 
 // TestFullInferenceConfigAsData is the Phase B acceptance test: the complete
 // posterior-estimation inference model (cfg/example_inference_data_config.yaml),
-// with embedded runs and from_history, is fully data, resolves at load, and runs
-// in-process to the same posterior mean the Go-codegen config produces.
+// with embedded runs and from_history, is fully data, resolves at load, runs
+// in-process, and — the point of doing inference at all — actually recovers the
+// parameters that generated the data.
 func TestFullInferenceConfigAsData(t *testing.T) {
 	path := "../../cfg/example_inference_data_config.yaml"
 	if !LoadApiRunConfigStringsFromYaml(path).IsFullyData() {
 		t.Fatal("the data inference config should be detected as fully data")
 	}
 	config := LoadApiRunConfigFromYaml(path)
-	// Capture output into storage instead of stdout, and shorten the run.
 	// Run the fully-data config twice and capture params_posterior_mean each time.
 	//
-	// The assertions are deliberately architecture-independent: this is a 2000-step
-	// nonlinear Bayesian inference loop, and it amplifies sub-ULP differences in
-	// exp/log/sqrt (which differ in the last bit between architectures) into large
-	// trajectory divergence. So a hard-coded expected value is not portable. What IS
-	// portable, and what this guards, is that the whole 220-line inference model
-	// resolves and runs as data, deterministically, without diverging to NaN/Inf.
-	// (Byte-for-byte agreement with the Go-codegen version holds per-machine — the
-	// data path and Go path share the same floating point — and is verified by the
-	// macro equivalence tests above; it cannot be a cross-machine assertion here.)
+	// Determinism and finiteness are architecture-independent; a hard-coded exact
+	// value is not, because this nonlinear Bayesian loop amplifies sub-ULP exp/log/sqrt
+	// differences (last-bit between architectures) into trajectory divergence. But the
+	// *converged* estimate is a stable fixed point, so the meaningful, portable property
+	// is convergence to the data-generating mean — asserted below with a generous
+	// tolerance. Byte-for-byte data-path == Go-path agreement holds per machine (shared
+	// float) and is covered by the macro equivalence tests above.
 	first := runInferenceData(t, config)
 	second := runInferenceData(t, LoadApiRunConfigFromYaml(path))
 
@@ -369,6 +367,22 @@ func TestFullInferenceConfigAsData(t *testing.T) {
 		if v != second[i] {
 			t.Errorf("posterior mean[%d] not deterministic: %v vs %v", i, v, second[i])
 		}
+	}
+
+	// The data stream is generated with mean [1.8, 5, -7.3, 2.2]; the posterior over the
+	// model's mean parameter must converge toward it. With the shipped tuning it lands
+	// within ~0.3 (L2); the threshold is generous so "it converged" is guarded without
+	// being brittle. This is what catches an under-tuned config that runs but does not
+	// infer — e.g. the previous past_discount 0.5 / diag(1) settings sat at L2 ~3.8.
+	target := []float64{1.8, 5.0, -7.3, 2.2}
+	var l2 float64
+	for i := range target {
+		d := first[i] - target[i]
+		l2 += d * d
+	}
+	if l2 = math.Sqrt(l2); l2 > 1.5 {
+		t.Errorf("posterior did not converge to the data mean: got %v, want ~%v (L2 %.2f > 1.5)",
+			first, target, l2)
 	}
 }
 
