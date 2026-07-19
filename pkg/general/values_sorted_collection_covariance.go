@@ -38,8 +38,22 @@ func (v *ValuesSortedCollectionCovarianceIteration) Iterate(
 	weights := params.Get("weights")
 	learningRate := params.GetIndex("learning_rate", 0)
 	valuesWidth := int(params.GetIndex("values_state_width", 0))
-	mean := params.Get("mean")
 	entryWidth := valuesWidth + 1
+
+	// Centre the covariance on the elite weighted mean (rank-µ), not on an
+	// externally-supplied mean. Centring on a lagging blended mean folds the
+	// per-step mean shift into the covariance as spurious variance, which
+	// compounds and diverges (the estimate runs away to 1e6+). The spread of the
+	// elites around their own centroid is the search width that must shrink as the
+	// collection concentrates on the optimum, so the covariance contracts and the
+	// search converges instead of exploding.
+	eliteMean := make([]float64, valuesWidth)
+	for i := range len(weights) {
+		offset := i*entryWidth + 1
+		for j := range valuesWidth {
+			eliteMean[j] += weights[i] * sortedCollection[offset+j]
+		}
+	}
 
 	newCov := mat.NewSymDense(valuesWidth, nil)
 	diff := mat.NewVecDense(valuesWidth, nil)
@@ -47,7 +61,7 @@ func (v *ValuesSortedCollectionCovarianceIteration) Iterate(
 	for i := range len(weights) {
 		offset := i*entryWidth + 1
 		for j := range valuesWidth {
-			diff.SetVec(j, sortedCollection[offset+j]-mean[j])
+			diff.SetVec(j, sortedCollection[offset+j]-eliteMean[j])
 		}
 		newCov.SymRankOne(newCov, weights[i], diff)
 	}
