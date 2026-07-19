@@ -22,6 +22,11 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-07-19
+
+Closes out the data-drivable config arc (0.5.0): a real fix, two silent-footgun guards, the
+code-generation-path CI gap, and hardening tests. No new capability.
+
 ### Fixed
 - **`general.CumulativeIteration` / `DiscountedCumulativeIteration` now propagate `Configure`
   to the iteration they wrap.** Previously a sampler-based inner iteration (Wiener, OU, …) had
