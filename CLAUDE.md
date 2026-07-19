@@ -90,10 +90,36 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
 
 1. **Programmatic Go** — build `Settings` + `Implementations` (or a `ConfigGenerator`)
    directly in Go. Used in unit tests and when embedding stochadex as a library.
-2. **YAML API path** — define the run in YAML (`ApiRunConfig`); iteration types are Go
-   expressions as strings (e.g. `"&continuous.WienerProcessIteration{}"`), with
-   `extra_packages` / `extra_vars` declaring imports and variables. The API generates and
-   runs Go from a template.
+2. **YAML API path** — define the run in YAML (`ApiRunConfig`). Every position that holds a
+   framework component is a **union**: a Go-expression string (e.g.
+   `"&continuous.WienerProcessIteration{}"`, resolved by generating and running Go from a
+   template, with `extra_packages` / `extra_vars` declaring imports and variables) **or** a
+   `{type: ...}` data spec resolved at load with no toolchain (`iteration: {type:
+   wiener_process}`; `timestep_function: {type: constant, stepsize: 1.0}`). A config that names
+   no Go anywhere runs **in-process** — no codegen, no `go run`.
+
+   The registries and tiers (all in `pkg/api`, with the four simulation-component families in
+   `pkg/simulator`):
+   - **Iterations** — `pkg/api/registry.go` (data-only) and `registry_compose.go` (composable,
+     recursive kernel/likelihood/jump/prior/nested-iteration/named-func specs). A partition's
+     bespoke *maths* still goes through `expressions:`; the registry is for the framework's own
+     catalogue. Two drift tests guard it (`registry_test.go`, `registry_coverage_test.go`): every
+     registered name constructs the type it claims, and a `go/ast` scan requires every `Iterate`
+     type to be registered or excluded-with-reason.
+   - **`run:`** — `{mode: batch | ensemble, seeds, concurrency}` (`RunModeConfig`).
+   - **`data:` + `macros:`** (`pkg/api/macros*.go`) — the analysis tier. `data:` (a sub-simulation
+     or a `csv`/`json_log`/`postgres` source) produces a `StateTimeStorage`; each macro expands one
+     of the `pkg/analysis` constructors against it (`posterior_estimation`, `likelihood_comparison`,
+     the aggregations, `scalar_regression_stats`) or runs live (`evolution_strategy_optimisation`,
+     `smc_inference`). Macro inputs are typed spec structs decoded straight from YAML.
+
+**Invariant A restated for this surface (repo boundary).** Inference-*as-forward-simulation* — a
+posterior being stepped as a partition — is in scope here; `posterior_estimation` and the other
+inference macros belong in this engine. Inference *against real data* is the `data:` resource
+(the observed dataset), which a downstream repo supplies. The engine owns the forward and
+inferential model; it does not own the dataset, the calibration loop, or the decision layer.
+`mcts_self_play` stays Go on purpose — its `agents.Environment` is arbitrary game rules (the
+decision layer), not representable as data.
 
 ## Testing conventions
 

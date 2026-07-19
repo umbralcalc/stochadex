@@ -105,6 +105,18 @@ func TestIterationRegistryBehaviourEquivalence(t *testing.T) {
 			init:   []float64{2.0, -1.0},
 		},
 		{
+			// A nested iteration that needs Configure (a sampler) — guards the
+			// Configure-propagation fix in CumulativeIteration.
+			name: "cumulative wrapping wiener_process",
+			spec: simulator.ComponentSpec{
+				Type:   "cumulative",
+				Fields: map[string]interface{}{"iteration": map[string]interface{}{"type": "wiener_process"}},
+			},
+			goIter: &general.CumulativeIteration{Iteration: &continuous.WienerProcessIteration{}},
+			params: map[string][]float64{"variances": {1.0}},
+			init:   []float64{0.0},
+		},
+		{
 			// A composable one with a nested JumpDistribution.
 			name: "compound_poisson_process with gamma_jump",
 			spec: simulator.ComponentSpec{

@@ -22,6 +22,29 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Fixed
+- **`general.CumulativeIteration` / `DiscountedCumulativeIteration` now propagate `Configure`
+  to the iteration they wrap.** Previously a sampler-based inner iteration (Wiener, OU, …) had
+  its RNG left nil and panicked mid-run; the data-config form `{type: cumulative, iteration:
+  {type: wiener_process}}` made that easy to hit. They now configure the inner, so cumulative
+  wraps any iteration.
+
+### Added
+- **Macro-path guards.** A config that sets both `main.partitions` and `macros:` is rejected
+  (macros run in their own context and ignore `main`), and the `data:` sub-simulation is
+  deadlock-pre-flighted like any other run — so a cyclic data block fails with a located error
+  instead of an opaque hang.
+- **`test/binary_configs_test.go`** runs example configs through the built CLI end-to-end —
+  covering the code-generation path (`go run` of a generated main) that the in-process `pkg/api`
+  tests do not. Replaces the never-in-CI `test/configs_test.sh`. It exposed that
+  `cfg/example_config.yaml` only runs from the repo root (a repo-relative `json_log` output
+  path); the test runs configs from there accordingly.
+- **Behaviour, invariant and regression tests** across the config system: data-spec iterations
+  produce output identical to their Go-expr twins; SMC particle templates substitute and
+  deep-copy per particle; YAML boolean-like names (`y`/`n`/`on`/`off`) survive typed decoding;
+  the in-process/codegen boundary; a 3-partition deadlock ring; and a config Wiener process
+  diffusing as Brownian motion.
+
 ## [0.5.0] — 2026-07-18
 
 The whole engine becomes drivable as data. 0.4.0 made a single partition's *update*
