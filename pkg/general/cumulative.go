@@ -17,6 +17,9 @@ func (c *CumulativeIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
+	// Propagate configuration to the wrapped iteration so a sampler-based inner
+	// (Wiener, OU, …) has its RNG and buffers initialised rather than nil.
+	c.Iteration.Configure(partitionIndex, settings)
 }
 
 func (c *CumulativeIteration) Iterate(

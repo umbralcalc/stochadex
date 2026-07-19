@@ -116,6 +116,11 @@ func (d *DataConfig) buildStorage() (*simulator.StateTimeStorage, error) {
 		return nil, err
 	}
 	generator := run.GetConfigGenerator()
+	// Pre-flight the data: sub-simulation's within-step wiring, so a cyclic data
+	// block fails with a located error rather than an opaque runtime deadlock.
+	if err := CheckForDeadlock(generator); err != nil {
+		return nil, err
+	}
 	partitions := make([]*simulator.PartitionConfig, 0, len(d.Partitions))
 	for _, name := range generator.PartitionNames() {
 		partitions = append(partitions, generator.GetPartition(name))
@@ -154,6 +159,11 @@ func resolveIterations(partitions []simulator.PartitionConfig) error {
 // built lazily on first use — so a live-only config needs no data: block. Running
 // in turn lets a later against-storage macro reference an earlier one's output.
 func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
+	if len(config.Main.Partitions) > 0 {
+		return nil, fmt.Errorf("api: a config sets both main.partitions and macros:; " +
+			"macros run in their own context and ignore main — put data-generating " +
+			"partitions under data:, not main")
+	}
 	var storage *simulator.StateTimeStorage
 	ensureStorage := func() error {
 		if storage != nil {

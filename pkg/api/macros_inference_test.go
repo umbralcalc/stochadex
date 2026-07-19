@@ -213,3 +213,24 @@ macros:
 		}
 	}
 }
+
+// TestPosteriorJustVarianceWiring guards that the covariance.just_variance flag
+// survives the spec->Applied translation (it selects a variance-only posterior
+// path in NewPosteriorEstimationPartitions, so silently dropping it would produce
+// a different, wrong estimator).
+func TestPosteriorJustVarianceWiring(t *testing.T) {
+	spec := posteriorEstimationSpec{}
+	spec.Covariance.JustVariance = true
+	spec.Covariance.Default = []float64{1.0, 1.0}
+	spec.Sampler.Distribution.Likelihood = simulator.ComponentSpec{Type: "normal"}
+	spec.Comparison.Model.Likelihood = simulator.ComponentSpec{Type: "normal"}
+	spec.Comparison.Window.Depth = 1
+
+	applied, err := spec.resolveApplied()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !applied.Covariance.JustVariance {
+		t.Error("just_variance was dropped in the spec->Applied translation")
+	}
+}
