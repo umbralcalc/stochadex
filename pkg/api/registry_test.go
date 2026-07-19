@@ -52,6 +52,7 @@ var wantIterationType = map[string]string{
 	"values_sorting_collection":         "*general.ValuesSortingCollectionIteration",
 	"data_generation":                   "*inference.DataGenerationIteration",
 	"data_comparison":                   "*inference.DataComparisonIteration",
+	"expression":                        "*general.ExpressionIteration",
 	"posterior_mean":                    "*inference.PosteriorMeanIteration",
 	"smc_proposal":                      "*inference.SMCProposalIteration",
 }
@@ -70,6 +71,7 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 	"values_function":                   {"transform": "params", "reduce": "sum"},
 	"values_collection":                 {"pop_index": "next_non_empty", "push": "param_values"},
 	"values_sorting_collection":         {"push_and_sort": "param_values"},
+	"expression":                        {"fields": []interface{}{map[string]interface{}{"name": "x"}}, "outputs": []interface{}{"x"}},
 	"data_generation":                   {"likelihood": map[string]interface{}{"type": "normal"}},
 	"data_comparison":                   {"likelihood": map[string]interface{}{"type": "normal"}},
 	"posterior_mean":                    {"transform": "mean"},

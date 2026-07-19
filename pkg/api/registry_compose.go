@@ -9,6 +9,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/mat"
+	"gopkg.in/yaml.v2"
 )
 
 // This file is Phase B: composition. A composable iteration has an interface- or
@@ -472,6 +473,25 @@ func registerComposableIterations() {
 			PushAndSort: namedFunc(r, "push_and_sort", pushAndSortFunctions),
 		}
 		return it, r.done()
+	}
+	// expression makes the whole expressions DSL usable as an inline iteration data
+	// spec — anywhere an iteration is expected, including inside a macro's window or
+	// an embedded run, not only via the top-level expressions: block. Its fields
+	// (fields/upstreams/bindings/outputs) are pure data, decoded straight into the
+	// ExpressionIteration. This is what lets a reward/objective be written as maths
+	// (e.g. a negative squared distance) where the block form cannot reach.
+	iterationBuilders["expression"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+		// Re-encode the spec fields and strictly decode them into the typed
+		// ExpressionIteration (fields/upstreams/bindings/outputs), rejecting unknown keys.
+		encoded, err := yaml.Marshal(f)
+		if err != nil {
+			return nil, fmt.Errorf("expression: %w", err)
+		}
+		iteration := &general.ExpressionIteration{}
+		if err := yaml.UnmarshalStrict(encoded, iteration); err != nil {
+			return nil, fmt.Errorf("expression: %w", err)
+		}
+		return iteration, nil
 	}
 }
 
