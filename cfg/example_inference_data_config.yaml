@@ -36,7 +36,7 @@ main:
     seed: 0
   - name: params_posterior_log_norm
     iteration: {type: posterior_log_normalisation}
-    params: {past_discounting_factor: [0.5], loglike_indices: [24]}
+    params: {past_discounting_factor: [0.999], loglike_indices: [24]}   # near 1 so evidence accumulates (0.5 forgets too fast to converge)
     params_as_partitions: {loglike_partitions: [ornstein_uhlenbeck_simulation]}
     init_state_values: [0.0]
     state_history_depth: 1
@@ -60,12 +60,13 @@ main:
     params_from_upstream:
       posterior_log_normalisation: {upstream: params_posterior_log_norm}
       mean: {upstream: params_posterior_mean}
-    init_state_values: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
+    # posterior/proposal covariance prior: wide (diag 9) so the sampler explores to the truth.
+    init_state_values: [9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0]
     state_history_depth: 1
     seed: 0
   - name: params_generating_process
     iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
-    params: {default_covariance: [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]}
+    params: {default_covariance: [9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0, 0.0, 0.0, 0.0, 0.0, 9.0]}
     params_from_upstream:
       mean: {upstream: params_posterior_mean}
       covariance_matrix: {upstream: params_posterior_cov}
