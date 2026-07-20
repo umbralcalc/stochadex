@@ -1,0 +1,42 @@
+# Sequential Monte Carlo (particle filter) inference as config. The inner
+# per-particle model is a template: {particle} in partition names and upstream
+# refs is instantiated once per particle. Recovers the observed stream's mean.
+data:
+  steps: 60
+  timestep: 1.0
+  partitions:
+  - name: obs
+    iteration: {type: data_generation, likelihood: {type: normal}}
+    params: {mean: [2.0], covariance_matrix: [0.5]}
+    init_state_values: [2.0]
+    state_history_depth: 1
+    seed: 7
+macros:
+- type: smc_inference
+  proposal_name: smc_proposals
+  sim_name: smc_sim
+  posterior_name: smc_posterior
+  num_particles: 100
+  num_rounds: 3
+  seed: 42
+  priors: [{type: uniform, lo: -5.0, hi: 10.0}]
+  param_names: [mean]
+  model:
+    observed_data: {name: observed_data, ref: {partition_name: obs}}
+    per_particle_partitions:
+    - name: "pred_{particle}"
+      iteration: {type: param_values}
+      params: {param_values: [0.0]}
+      init_state_values: [0.0]
+      state_history_depth: 2
+    - name: "loglike_{particle}"
+      iteration: {type: data_comparison, likelihood: {type: normal}}
+      params: {mean: [0.0], variance: [0.5], latest_data_values: [2.0], cumulative: [1], burn_in_steps: [0]}
+      params_from_upstream:
+        mean: {upstream: "pred_{particle}"}
+        latest_data_values: {upstream: observed_data}
+      init_state_values: [0.0]
+      state_history_depth: 2
+    loglike_partition: "loglike_{particle}"
+    param_forwarding:
+      "pred_{particle}/param_values": [0]

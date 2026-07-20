@@ -181,6 +181,30 @@ Notable macros (all take a `data:` block): `vector_mean` / `vector_variance` / `
 `comparison:` with a windowed embedded model). `evolution_strategy_optimisation` and `smc_inference`
 run live (no `data:` needed; give them `steps:`).
 
+## Worked recipes (start here for the inference/optimisation macros)
+
+The three learning macros have levers that decide whether they *converge* or merely *run* — so
+don't write one from the catalogue alone. Copy the matching recipe in `recipes/` and adapt it.
+Each is a complete, in-process config, verified by an engine test that pins it to a known answer.
+
+- **`recipes/evolution_strategy_optimisation.yaml`** — maximise a reward (here the negative
+  squared distance from a target) by adapting a sampling mean + covariance; converges to the
+  target `[3, -2]`. Write your objective as the `reward` partition's `{type: expression}`.
+  **Levers:** keep the covariance `learning_rate` *slow* (≈0.1) — a fast rate collapses the search
+  width before the mean arrives and freezes it short; use `discount_factor: 0.0` for a static
+  objective (the sample is fixed across the window, so a discount only rescales a constant reward).
+- **`recipes/posterior_estimation.yaml`** — online Bayesian recovery of a data stream's parameters;
+  recovers the mean `[1.8, 5.0]` from an off-truth prior `[0, 0]`. **The one thing you must not
+  omit:** the `comparison.model` has to read the sampler via `params_from_upstream`
+  (`mean: {upstream: <sampler_name>}`) — the posterior is a loglike-weighted average of the
+  *sampled* params, so if the loglike doesn't depend on the sample the mean just drifts. (The macro
+  now panics if you forget, naming the fix.) **Levers:** proposal covariance wide enough to explore
+  prior→truth (diag ≈9); `past_discount` near 1 (0.999) so evidence accumulates instead of being
+  forgotten; enough `steps` to concentrate.
+- **`recipes/smc_inference.yaml`** — particle-filter inference; the inner per-particle model is a
+  template (`{particle}` is instantiated per particle) and it recovers the observed stream's mean.
+  **Levers:** `num_particles` (more = tighter posterior), `num_rounds`, and the `priors` ranges.
+
 ## Running and debugging
 
 ```

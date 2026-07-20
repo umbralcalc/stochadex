@@ -1,0 +1,44 @@
+# Evolution-strategy optimisation as a LIVE macro (no data: block) — it runs
+# its own optimisation loop as a fresh simulation for 'steps' rounds, adapting a
+# sampling mean and covariance to maximise a reward.
+#
+# Here the reward is the negative squared distance from a fixed target, so the
+# known optimum is the target itself: es_mean converges on [3, -2].
+#
+# Tuning notes:
+#   - covariance learning_rate is deliberately slow (0.1): a fast rate collapses
+#     the search width before the mean reaches the optimum and freezes it short.
+#   - the reward is static across the window, so discount_factor: 0.0 keeps the
+#     ranking simplest (a discount would only rescale a constant reward).
+macros:
+- type: evolution_strategy_optimisation
+  steps: 1000
+  timestep: 1.0
+  seed: 12345
+  sampler: {name: es_sampler, default: [0.0, 0.0]}
+  sorting: {name: es_sorting, collection_size: 10, empty_value: -9999.0}
+  mean: {name: es_mean, default: [0.0, 0.0], weights: [0.5, 0.3, 0.2], learning_rate: 0.5}
+  covariance: {name: es_covariance, default: [4.0, 0.0, 0.0, 4.0], learning_rate: 0.1}
+  reward:
+    discount_factor: 0.0
+    partition:
+      partition:
+        name: reward
+        iteration:
+          type: expression
+          fields: [{name: r}]
+          outputs: ["-((sample_values[0]-3)*(sample_values[0]-3) + (sample_values[1]+2)*(sample_values[1]+2))"]
+        params: {sample_values: [0.0, 0.0]}
+        init_state_values: [0.0]
+        state_history_depth: 1
+        seed: 0
+      outside_upstreams: {sample_values: {upstream: es_sampler}}
+  window:
+    depth: 5
+    partitions:
+    - partition:
+        name: sim_partition
+        iteration: {type: constant_values}
+        init_state_values: [0.0]
+        state_history_depth: 1
+        seed: 0
