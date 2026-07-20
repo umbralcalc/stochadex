@@ -73,6 +73,9 @@ func TestInference(t *testing.T) {
 						Model: ParameterisedModel{
 							Likelihood: &inference.NormalLikelihoodDistribution{},
 							Params:     params,
+							ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+								"mean": {Upstream: "test_post_sampler"},
+							},
 						},
 						Data: DataRef{PartitionName: "test_data"},
 						Window: WindowedPartitions{
@@ -168,6 +171,9 @@ func TestInference(t *testing.T) {
 						Model: ParameterisedModel{
 							Likelihood: &inference.NormalLikelihoodDistribution{},
 							Params:     params,
+							ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+								"mean": {Upstream: "jv_post_sampler"},
+							},
 						},
 						Data: DataRef{PartitionName: "test_data"},
 						Window: WindowedPartitions{

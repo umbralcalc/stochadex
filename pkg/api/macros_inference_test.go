@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,7 +39,9 @@ macros:
     name: test_likelihood
     model:
       likelihood: {type: normal}
-      params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
+      params: {covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
+      params_from_upstream:
+        mean: {upstream: test_post_sampler}
     data: {partition_name: test_data}
     window:
       data: [{partition_name: test_data}]
@@ -87,8 +90,11 @@ func directPosteriorStorage() *simulator.StateTimeStorage {
 				Model: analysis.ParameterisedModel{
 					Likelihood: &inference.NormalLikelihoodDistribution{},
 					Params: simulator.NewParams(map[string][]float64{
-						"mean": {1.8, 5.0}, "covariance_matrix": {2.5, 0, 0, 9.0},
+						"covariance_matrix": {2.5, 0, 0, 9.0},
 					}),
+					ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+						"mean": {Upstream: "test_post_sampler"},
+					},
 				},
 				Data:                   analysis.DataRef{PartitionName: "test_data"},
 				Window:                 analysis.WindowedPartitions{Data: []analysis.DataRef{{PartitionName: "test_data"}}, Depth: 200},
@@ -129,6 +135,37 @@ func TestPosteriorEstimationMacroEquivalence(t *testing.T) {
 					name, i, gotFinal[i], wantFinal[i])
 			}
 		}
+	}
+}
+
+// TestPosteriorEstimationMacroConverges guards the shipped example end-to-end:
+// the posterior_estimation macro recovers the data-generating mean [1.8, 5.0]
+// from an off-truth prior [0, 0]. This is the behaviour the sampler->comparison
+// coupling exists to enable — without it the comparison loglike is independent of
+// the proposal, the weights are uniform, and the mean drifts instead of
+// converging (the previously-shipped degenerate config). The tolerance leaves
+// room for honest sampling residual on the high-variance (covariance 9) second
+// coordinate.
+func TestPosteriorEstimationMacroConverges(t *testing.T) {
+	storage, err := runMacros(LoadApiRunConfigFromYaml(
+		"../../cfg/example_posterior_macro_config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	means := storage.GetValues("test_post_mean")
+	if len(means) == 0 {
+		t.Fatal("no test_post_mean output recorded")
+	}
+	final := means[len(means)-1]
+	target := []float64{1.8, 5.0}
+	var sumSq float64
+	for i := range target {
+		d := final[i] - target[i]
+		sumSq += d * d
+	}
+	if l2 := math.Sqrt(sumSq); l2 > 0.5 {
+		t.Errorf("posterior mean did not converge: got %v, want ~%v (L2 %.3f > 0.5)",
+			final, target, l2)
 	}
 }
 

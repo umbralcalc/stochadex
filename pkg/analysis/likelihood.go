@@ -152,6 +152,30 @@ func NewLikelihoodComparisonPartition(
 			Upstream: applied.Data.PartitionName,
 			Indices:  applied.Data.ValueIndices,
 		}
+	// Partition the model's upstream wiring into inner and outer. Names that
+	// resolve to a partition inside this embedded window (the replayed data
+	// sources, other window partitions) stay on the inner "comparison"
+	// partition. Names that don't — e.g. a posterior sampler living in the outer
+	// simulation — cannot be resolved by the inner generator, so route them as
+	// outside upstreams (comparison/<param> <- outer partition); the embedded-run
+	// machinery injects the outer value into the inner param each step. This is
+	// what lets posterior_estimation drive the comparison likelihood with the
+	// sampled parameters, so the loglike actually depends on the proposal.
+	innerNames := make(map[string]bool)
+	for _, partition := range applied.Window.Partitions {
+		innerNames[partition.Partition.Name] = true
+	}
+	for _, ref := range applied.Window.Data {
+		innerNames[ref.PartitionName] = true
+	}
+	innerModelUpstreams := make(map[string]simulator.NamedUpstreamConfig)
+	for key, upstream := range applied.Model.ParamsFromUpstream {
+		if innerNames[upstream.Upstream] {
+			innerModelUpstreams[key] = upstream
+		} else {
+			simParamsFromUpstream["comparison/"+key] = upstream
+		}
+	}
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "comparison",
 		Iteration: &inference.DataComparisonIteration{
@@ -159,7 +183,7 @@ func NewLikelihoodComparisonPartition(
 		},
 		Params:             applied.Model.Params,
 		ParamsAsPartitions: applied.Model.ParamsAsPartitions,
-		ParamsFromUpstream: applied.Model.ParamsFromUpstream,
+		ParamsFromUpstream: innerModelUpstreams,
 		InitStateValues:    []float64{0.0},
 		StateHistoryDepth:  1,
 		Seed:               0,
