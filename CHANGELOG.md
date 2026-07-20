@@ -22,6 +22,13 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-07-20
+
+Two convergence fixes to the shipped live-macro examples (evolution-strategy optimisation
+and posterior-estimation inference), each now guarded by a convergence test rather than a
+runs-without-error check, plus the `{type: expression}` inline-iteration registration that
+lets a reward/objective be stated as config maths. No breaking changes.
+
 ### Fixed
 - **Evolution-strategy optimisation now converges on the optimum instead of diverging or
   stalling.** Three bugs compounded in the rank-based `general.ValuesSortedCollection*`
