@@ -22,6 +22,13 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.5.3] — 2026-07-20
+
+The agent-facing payoff of the data-drivable-config arc: the `stochadex-model` skill, backed by
+a set of validated, drift-bound worked recipes — plus a third macro convergence fix
+(`posterior_estimation`) so every learning macro the skill ships genuinely recovers a known
+answer rather than merely running.
+
 ### Added
 - **The `stochadex-model` agent skill (`.claude/skills/stochadex-model/`).** A self-contained,
   agent-facing guide to authoring, running, and analysing a simulation as a single YAML config —
@@ -571,7 +578,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/umbralcalc/stochadex/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/umbralcalc/stochadex/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/umbralcalc/stochadex/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/umbralcalc/stochadex/compare/v0.4.0...v0.5.0
