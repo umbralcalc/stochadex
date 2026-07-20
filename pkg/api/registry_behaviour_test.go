@@ -117,6 +117,24 @@ func TestIterationRegistryBehaviourEquivalence(t *testing.T) {
 			init:   []float64{0.0},
 		},
 		{
+			// The expressions DSL as an inline iteration (the general fix that lets a
+			// reward/objective be written as maths inside a macro window).
+			name: "expression iteration (inline)",
+			spec: simulator.ComponentSpec{
+				Type: "expression",
+				Fields: map[string]interface{}{
+					"fields":  []interface{}{map[string]interface{}{"name": "x"}},
+					"outputs": []interface{}{"x + rate * dt"},
+				},
+			},
+			goIter: &general.ExpressionIteration{
+				Fields:  []general.ExpressionField{{Name: "x"}},
+				Outputs: []string{"x + rate * dt"},
+			},
+			params: map[string][]float64{"rate": {0.5}},
+			init:   []float64{0.0},
+		},
+		{
 			// A composable one with a nested JumpDistribution.
 			name: "compound_poisson_process with gamma_jump",
 			spec: simulator.ComponentSpec{

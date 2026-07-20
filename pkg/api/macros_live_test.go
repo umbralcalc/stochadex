@@ -61,27 +61,51 @@ macros:
 }
 
 // TestEvolutionStrategyMacro checks the live evolution-strategy macro runs (with
-// no data: block) and produces a mean-parameter trajectory.
+// no data: block) and, on the fully-data path (an {type: expression} reward), the
+// mean update converges on the reward's known optimum. The objective is the
+// negative squared distance from [3, -2], so the optimum is [3, -2] itself. This
+// exercises the same convergence the Go integration test guards, but end-to-end
+// through YAML: it would fail on the covariance divergence and init-placeholder
+// bugs, or if the covariance contracted before the mean reached the optimum.
 func TestEvolutionStrategyMacro(t *testing.T) {
 	const cfg = `macros:
 - type: evolution_strategy_optimisation
-  steps: 20
+  steps: 1000
   seed: 12345
   sampler: {name: test_sampler, default: [0.0, 0.0]}
-  sorting: {name: test_sorting, collection_size: 5, empty_value: -9999.0}
-  mean: {name: test_mean, default: [0.0, 0.0], weights: [0.6, 0.4], learning_rate: 0.5}
-  covariance: {name: test_covariance, default: [1.0, 0.0, 0.0, 1.0], learning_rate: 0.5}
+  sorting: {name: test_sorting, collection_size: 10, empty_value: -9999.0}
+  mean: {name: test_mean, default: [0.0, 0.0], weights: [0.5, 0.3, 0.2], learning_rate: 0.5}
+  covariance: {name: test_covariance, default: [4.0, 0.0, 0.0, 4.0], learning_rate: 0.1}
   reward:
-    discount_factor: 0.9
+    discount_factor: 0.0
     partition:
-      partition: {name: reward, iteration: {type: constant_values}, init_state_values: [1.0], state_history_depth: 1, seed: 0}
+      partition:
+        name: reward
+        iteration:
+          type: expression
+          fields: [{name: r}]
+          outputs: ["-((sample_values[0]-3)*(sample_values[0]-3) + (sample_values[1]+2)*(sample_values[1]+2))"]
+        params: {sample_values: [0.0, 0.0]}
+        init_state_values: [0.0]
+        state_history_depth: 1
+        seed: 0
+      outside_upstreams: {sample_values: {upstream: test_sampler}}
   window:
     depth: 5
     partitions:
-    - partition: {name: sim_partition, iteration: {type: constant_values}, init_state_values: [1.0], state_history_depth: 1, seed: 0}
+    - partition: {name: sim_partition, iteration: {type: constant_values}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
 `
 	out := runMacroConfig(t, cfg)
-	if len(out["test_mean"]) == 0 {
-		t.Error("evolution strategy produced no test_mean output")
+	means := out["test_mean"]
+	if len(means) == 0 {
+		t.Fatal("evolution strategy produced no test_mean output")
+	}
+	final := means[len(means)-1]
+	target := []float64{3.0, -2.0}
+	for i, want := range target {
+		if math.Abs(final[i]-want) > 1e-2 {
+			t.Errorf("test_mean did not converge: got %v, want %v", final, target)
+			break
+		}
 	}
 }

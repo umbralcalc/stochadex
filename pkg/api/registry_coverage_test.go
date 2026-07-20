@@ -16,8 +16,6 @@ import (
 //     positional partition index that is fragile to express as raw data.
 //   - "live-object": holds a live object, channel, RNG source, or bulk [][]float64
 //     data with no data form at all.
-//   - "expression": the ExpressionIteration is reached through the expressions:
-//     tier, not the iteration registry.
 //
 // Drift test 2 asserts every Iterate-implementing type in the candidate packages
 // is either registered (wantIterationType) or listed here. A NEW iteration then
@@ -35,9 +33,6 @@ var excludedIterations = map[string]string{
 	"ValuesWeightedResamplingIteration": "live-object: rand.Source",
 	"DataComparisonGradientIteration":   "live-object: *StateHistory batch + gradient func",
 	"EmbeddedSimulationRunIteration":    "live-object: *Settings/*Implementations",
-
-	// reached through the expressions: tier, not the registry
-	"ExpressionIteration": "expression: reached via the expressions: config tier",
 }
 
 // candidatePackages are the packages whose Iteration implementations are
