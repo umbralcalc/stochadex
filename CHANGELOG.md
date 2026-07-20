@@ -36,6 +36,16 @@ an exact version rather than assume stability across minors.
   covariance now skip unfilled (`empty_value`) collection slots during warm-up. A converging
   example (`cfg/example_evolution_strategy_config.yaml`) and Go + fully-data convergence tests
   replace the previous plot-exists / runs-without-panic checks.
+- **The shipped posterior-estimation inference example now actually converges.**
+  `cfg/example_inference_config.yaml` and its data twin `cfg/example_inference_data_config.yaml`
+  shipped with `past_discounting_factor: 0.5` and a `diag(1)` proposal covariance — settings under
+  which the online estimator *runs but does not recover the data-generating parameters* (it sat
+  ~3.8 in L2 from the target). Retuned to `past_discounting_factor: 0.999` (near 1, so evidence
+  accumulates instead of being forgotten each step) and a `diag(9)` proposal covariance (wide enough
+  for the sampler to explore from the prior to the truth); the posterior now converges to the data
+  mean `[1.8, 5, -7.3, 2.2]` within ~0.3 (L2). `TestFullInferenceConfigAsData` now asserts that
+  convergence — the equivalence-only check it had before passed because the data path and the Go
+  path were identically under-tuned. Both configs remain byte-for-byte identical to each other.
 
 ### Added
 - **`{type: expression}` is registered as an inline iteration.** A partition's bespoke maths
