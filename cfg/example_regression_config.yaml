@@ -1,0 +1,27 @@
+# Ordinary least squares as a macro: recover the slope and intercept of a noisy
+# linear relation. x ramps deterministically; y = 2.5 x + 1 + N(0, 1.5). The
+# closed-form OLS recovers slope ~2.5 and intercept ~1.0 from the noise.
+#
+# Output layout — the one non-obvious thing. With intercept, cumulative mode, the
+# `ols` state is width 9: [n, Sx, Sy, Sxx, Sxy, Syy, alpha, beta, sigma2]. So
+# index 6 is the intercept (alpha), index 7 the slope (beta), index 8 the residual
+# variance (sigma2 ~ 1.5^2). (No intercept drops alpha; `window` mode keeps a
+# rolling buffer ahead of the same tail — see analysis/regression.go for the exact
+# layouts.) There are no convergence levers here: OLS is closed-form, so more
+# `steps` just tightens the estimate against the noise.
+data:
+  steps: 400
+  timestep: 1.0
+  partitions:
+  - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+  - {name: y, init_state_values: [0.0], state_history_depth: 1, seed: 71}
+  expressions:
+  - {partition: x, fields: [{name: v}], outputs: ["0.05 * t"]}
+  - {partition: y, fields: [{name: v}], outputs: ["2.5 * (0.05 * t) + 1.0 + shared(normal(0, 1.5))"]}
+macros:
+- type: scalar_regression_stats
+  name: ols
+  y: {partition_name: y}
+  x: {partition_name: x}
+  intercept: true
+  mode: cumulative
