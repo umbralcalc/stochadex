@@ -6,6 +6,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/floats"
 )
 
 // NegativeSquaredDistanceIteration computes a scalar reward equal to the
@@ -62,9 +63,12 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 						LearningRate: 0.5,
 					},
 					Covariance: analysis.EvolutionStrategyCovariance{
-						Name:         "es_covariance",
-						Default:      []float64{4.0, 0.0, 0.0, 4.0},
-						LearningRate: 0.3,
+						Name:    "es_covariance",
+						Default: []float64{4.0, 0.0, 0.0, 4.0},
+						// A slow covariance learning rate lets the mean reach the
+						// optimum before the search width contracts; a fast rate
+						// collapses the covariance and freezes the mean short of it.
+						LearningRate: 0.1,
 					},
 					Reward: analysis.EvolutionStrategyReward{
 						Partition: analysis.WindowedPartition{
@@ -83,7 +87,10 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 								"sample_values": {Upstream: "es_sampler"},
 							},
 						},
-						DiscountFactor: 0.9,
+						// The objective is static (the sample is fixed across the
+						// window), so any discount only rescales a constant reward and
+						// leaves the ranking unchanged — zero keeps it simplest.
+						DiscountFactor: 0.0,
 					},
 					Window: analysis.WindowedPartitions{
 						Partitions: []analysis.WindowedPartition{{
@@ -108,35 +115,24 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 			storage := analysis.NewStateTimeStorageFromPartitions(
 				partitions,
 				&simulator.NumberOfStepsTerminationCondition{
-					MaxNumberOfSteps: 100,
+					MaxNumberOfSteps: 1000,
 				},
 				&simulator.ConstantTimestepFunction{Stepsize: 1.0},
 				0.0,
 			)
 
-			// Reference the plotting data for the x-axis
-			xRef := analysis.DataRef{
-				Plotting: &analysis.DataPlotting{IsTime: true},
-			}
-
-			// Reference the sampler plotting data for the y-axis
-			yRefs := []analysis.DataRef{
-				{PartitionName: "es_sampler"},
-			}
-
-			// Create a scatter plot from partitions in a simulator.StateTimeStorage
-			if plot := analysis.NewScatterPlotFromPartition(storage, xRef, yRefs); plot == nil {
-				t.Error("expected a scatter plot")
-			}
-
-			// Reference the mean update plotting data for the y-axis
-			yRefs = []analysis.DataRef{
-				{PartitionName: "es_mean"},
-			}
-
-			// Create a line plot from partitions in a simulator.StateTimeStorage
-			if plot := analysis.NewLinePlotFromPartition(storage, xRef, yRefs, nil); plot == nil {
-				t.Error("expected a line plot")
+			// The mean update should converge on the reward's target: with
+			// the divergence and init-placeholder bugs fixed and the covariance
+			// learning rate slow enough to avoid premature contraction, the
+			// search settles on the optimum rather than stalling short of it.
+			meanHistory := storage.GetValues("es_mean")
+			finalMean := meanHistory[len(meanHistory)-1]
+			target := []float64{3.0, -2.0}
+			if !floats.EqualApprox(finalMean, target, 1e-2) {
+				t.Errorf(
+					"es_mean did not converge on the optimum: got %v, want %v",
+					finalMean, target,
+				)
 			}
 		},
 	)

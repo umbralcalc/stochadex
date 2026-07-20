@@ -39,10 +39,28 @@ func (v *ValuesSortedCollectionMeanIteration) Iterate(
 	previousMean := stateHistories[partitionIndex].Values.RawRowView(0)
 	newMean := make([]float64, valuesWidth)
 
+	// Skip unfilled collection slots (sort-by == empty_value) so the sentinel
+	// never enters the weighted mean before the collection fills; renormalise the
+	// weights over the filled entries. Absent empty_value this is a no-op (the
+	// weights are used as given). If nothing is filled yet, hold the previous mean.
+	emptyValue, hasEmpty := params.GetOk("empty_value")
+	totalWeight := 0.0
 	for i := range len(weights) {
-		offset := i*entryWidth + 1
+		base := i * entryWidth
+		if hasEmpty && sortedCollection[base] == emptyValue[0] {
+			continue
+		}
 		for j := range valuesWidth {
-			newMean[j] += weights[i] * sortedCollection[offset+j]
+			newMean[j] += weights[i] * sortedCollection[base+1+j]
+		}
+		totalWeight += weights[i]
+	}
+	if hasEmpty {
+		if totalWeight == 0 {
+			return stateHistories[partitionIndex].CopyStateRow(0)
+		}
+		for j := range newMean {
+			newMean[j] /= totalWeight
 		}
 	}
 

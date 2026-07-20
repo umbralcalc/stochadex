@@ -149,9 +149,17 @@ func NewEvolutionStrategyOptimisationPartitions(
 			rewardParamsFromUpstream[k] = v
 		}
 	}
-	rewardInitState := make(
-		[]float64, len(rewardPartition.InitStateValues))
-	copy(rewardInitState, rewardPartition.InitStateValues)
+	// Seed the discounted-reward accumulator with the sorting sentinel, not the
+	// user's init. At the first (outer) step the embedded sim has not run, so this
+	// value is what the sorter would rank the never-sampled initial point by; the
+	// user's init reward is typically 0, which for a maximise-me objective outranks
+	// every real (negative) reward and pins the initial point at the top of the
+	// collection, dragging the mean toward it forever. Seeding with empty_value
+	// sinks that placeholder to the bottom (and the mean/covariance updates skip it).
+	rewardInitState := make([]float64, len(rewardPartition.InitStateValues))
+	for i := range rewardInitState {
+		rewardInitState[i] = applied.Sorting.EmptyValue
+	}
 	generator.SetPartition(&simulator.PartitionConfig{
 		Name: "discounted_reward",
 		Iteration: &general.DiscountedCumulativeIteration{
@@ -253,6 +261,7 @@ func NewEvolutionStrategyOptimisationPartitions(
 			"weights":            applied.Mean.Weights,
 			"learning_rate":      {applied.Mean.LearningRate},
 			"values_state_width": {float64(sampleDim)},
+			"empty_value":        {applied.Sorting.EmptyValue},
 		}),
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
 			"sorted_collection": {Upstream: applied.Sorting.Name},
@@ -271,6 +280,7 @@ func NewEvolutionStrategyOptimisationPartitions(
 			"weights":            applied.Mean.Weights,
 			"learning_rate":      {applied.Covariance.LearningRate},
 			"values_state_width": {float64(sampleDim)},
+			"empty_value":        {applied.Sorting.EmptyValue},
 		}),
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
 			"sorted_collection": {Upstream: applied.Sorting.Name},
