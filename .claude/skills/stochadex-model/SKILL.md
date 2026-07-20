@@ -186,6 +186,9 @@ run live (no `data:` needed; give them `steps:`).
 The three learning macros have levers that decide whether they *converge* or merely *run* — so
 don't write one from the catalogue alone. Copy the matching recipe in `recipes/` and adapt it.
 Each is a complete, in-process config, verified by an engine test that pins it to a known answer.
+**The recipes are the schema** for these macros' sub-fields (`sorting`, `sampler.distribution`,
+`comparison.window`, `window_data_history_depth`, `memory_depth`, …) — the catalogue below lists
+macro *names* only, so change the numbers and the objective/model, but keep the field shapes.
 
 - **`recipes/evolution_strategy_optimisation.yaml`** — maximise a reward (here the negative
   squared distance from a target) by adapting a sampling mean + covariance; converges to the

@@ -22,6 +22,19 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+- **The `stochadex-model` agent skill (`.claude/skills/stochadex-model/`).** A self-contained,
+  agent-facing guide to authoring, running, and analysing a simulation as a single YAML config —
+  the payoff of the data-drivable-config arc: install it next to an agent and it produces a
+  running, validated config with no Go, compilation, or repo access. Covers the `expressions:`
+  DSL, the `{type: ...}` registries, partition wiring and the deadlock rule, run modes, and the
+  `data:`/`macros:` tier. Ships three converging worked recipes (evolution-strategy, posterior
+  estimation, SMC) with the tuning levers that decide convergence; `TestSkillRecipesMatchExamples`
+  pins each recipe byte-for-byte to its engine-tested `cfg/` twin so the convergence tests
+  transitively validate the shipped recipes. Verified end-to-end by a fresh-agent falsifier
+  (an agent given only the skill authored unseen custom, optimisation, and inference configs
+  that all ran and converged).
+
 ### Fixed
 - **The `posterior_estimation` macro can now converge from a prior instead of drifting.**
   The posterior mean/covariance are loglike-weighted averages of the *sampled* parameters, so
