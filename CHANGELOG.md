@@ -22,6 +22,27 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Fixed
+- **Evolution-strategy optimisation now converges on the optimum instead of diverging or
+  stalling.** Three bugs compounded in the rank-based `general.ValuesSortedCollection*`
+  updates behind the `evolution_strategy_optimisation` macro: (1) the covariance was centred
+  on an externally-supplied lagging mean, which folded the per-step mean shift into the
+  estimate as spurious variance and ran it away to 1e6+; it now centres on the elite weighted
+  mean (rank-µ), so the search width contracts as the collection concentrates. (2) At the
+  first step the embedded reward sim has not run, so the sorter ranked the never-sampled
+  initial point by the reward accumulator's init (typically 0), which outranks every real
+  (negative) reward and pinned the mean short of the optimum; the accumulator is now seeded
+  with the sorting sentinel so that placeholder sinks to the bottom. (3) The weighted mean and
+  covariance now skip unfilled (`empty_value`) collection slots during warm-up. A converging
+  example (`cfg/example_evolution_strategy_config.yaml`) and Go + fully-data convergence tests
+  replace the previous plot-exists / runs-without-panic checks.
+
+### Added
+- **`{type: expression}` is registered as an inline iteration.** A partition's bespoke maths
+  can now be written as a data spec (`iteration: {type: expression, fields: [...], outputs:
+  [...]}`) resolving to `general.ExpressionIteration` with no Go toolchain — e.g. an
+  evolution-strategy reward stated as an objective expression directly in YAML.
+
 ## [0.5.1] — 2026-07-19
 
 Closes out the data-drivable config arc (0.5.0): a real fix, two silent-footgun guards, the
