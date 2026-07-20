@@ -34,6 +34,15 @@ an exact version rather than assume stability across minors.
   transitively validate the shipped recipes. Verified end-to-end by a fresh-agent falsifier
   (an agent given only the skill authored unseen custom, optimisation, and inference configs
   that all ran and converged).
+- **A validated `scalar_regression_stats` recipe + noisy-recovery test.** The regression macro
+  now ships a worked example (`cfg/example_regression_config.yaml`, mirrored as a fourth skill
+  recipe) that recovers the slope (2.5) and intercept (1.0) of a line observed through `N(0, 1.5)`
+  noise, guarded by `TestScalarRegressionMacroRecoversNoisy` — the "recovers from noise" bar the
+  other macros are held to. The pre-existing macro test was tightened from "2.5 appears somewhere
+  in the state" to asserting the specific slope/intercept/residual-variance slots of the width-9
+  `[n, Sx, Sy, Sxx, Sxy, Syy, alpha, beta, sigma2]` layout, which the skill now documents. No
+  engine change — the closed-form OLS was already batch-validated in `pkg/analysis`; this closes
+  the macro-path and skill-recipe coverage gap.
 
 ### Fixed
 - **The `posterior_estimation` macro can now converge from a prior instead of drifting.**

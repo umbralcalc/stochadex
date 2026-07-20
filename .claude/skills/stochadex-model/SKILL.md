@@ -207,6 +207,12 @@ macro *names* only, so change the numbers and the objective/model, but keep the 
 - **`recipes/smc_inference.yaml`** — particle-filter inference; the inner per-particle model is a
   template (`{particle}` is instantiated per particle) and it recovers the observed stream's mean.
   **Levers:** `num_particles` (more = tighter posterior), `num_rounds`, and the `priors` ranges.
+- **`recipes/scalar_regression_stats.yaml`** — closed-form OLS of scalar `y` on scalar `x`;
+  recovers slope 2.5 and intercept 1.0 of a noisy line. No convergence levers (it's closed-form —
+  more `steps` just tighten the estimate). **The gotcha is the output layout:** with `intercept:
+  true`, `mode: cumulative` the state is width 9 `[n, Sx, Sy, Sxx, Sxy, Syy, alpha, beta, sigma2]`,
+  so index 6 is the intercept, 7 the slope, 8 the residual variance — read the slot, don't hunt
+  for the number.
 
 ## Running and debugging
 

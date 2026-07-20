@@ -18,6 +18,7 @@ func TestSkillRecipesMatchExamples(t *testing.T) {
 		"../../.claude/skills/stochadex-model/recipes/evolution_strategy_optimisation.yaml": "../../cfg/example_evolution_strategy_config.yaml",
 		"../../.claude/skills/stochadex-model/recipes/smc_inference.yaml":                    "../../cfg/example_smc_config.yaml",
 		"../../.claude/skills/stochadex-model/recipes/posterior_estimation.yaml":             "../../cfg/example_posterior_macro_config.yaml",
+		"../../.claude/skills/stochadex-model/recipes/scalar_regression_stats.yaml":          "../../cfg/example_regression_config.yaml",
 	}
 	for recipe, twin := range pairs {
 		t.Run(recipe, func(t *testing.T) {

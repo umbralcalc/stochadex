@@ -51,16 +51,52 @@ macros:
 		t.Fatal("no ols output")
 	}
 	final := rows[len(rows)-1]
-	// With-intercept cumulative state ends [..., beta, alpha? ]: the slope estimate
-	// is one of the closed-form outputs; assert some element recovers 2.5.
-	foundSlope := false
-	for _, v := range final {
-		if math.Abs(v-2.5) < 1e-6 {
-			foundSlope = true
-		}
+	// With-intercept cumulative layout is width 9:
+	// [n, Sx, Sy, Sxx, Sxy, Syy, alpha, beta, sigma2] — so index 6 is the intercept
+	// (alpha) and index 7 the slope (beta). Assert the SPECIFIC slots recover the
+	// exact relation (not merely that 2.5 appears somewhere in the state), and that
+	// the residual variance is ~0 for a noise-free line.
+	if len(final) != 9 {
+		t.Fatalf("expected width-9 with-intercept state, got %d: %v", len(final), final)
 	}
-	if !foundSlope {
-		t.Errorf("regression did not recover slope 2.5; final state = %v", final)
+	if got := final[7]; math.Abs(got-2.5) > 1e-6 {
+		t.Errorf("slope (beta, index 7) = %v, want 2.5", got)
+	}
+	if got := final[6]; math.Abs(got-1.0) > 1e-6 {
+		t.Errorf("intercept (alpha, index 6) = %v, want 1.0", got)
+	}
+	if got := final[8]; math.Abs(got) > 1e-6 {
+		t.Errorf("residual variance (sigma2, index 8) = %v, want ~0 for a noise-free line", got)
+	}
+}
+
+// TestScalarRegressionMacroRecoversNoisy guards the shipped example end-to-end:
+// the regression macro recovers the slope (2.5) and intercept (1.0) of a linear
+// relation observed through N(0, 1.5) noise, and estimates the residual variance
+// (~1.5^2). This is the "does its job" bar — recovery from noise, not exact
+// algebra on a clean line — matching the convergence tests for the other macros.
+func TestScalarRegressionMacroRecoversNoisy(t *testing.T) {
+	storage, err := runMacros(LoadApiRunConfigFromYaml(
+		"../../cfg/example_regression_config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := storage.GetValues("ols")
+	if len(rows) == 0 {
+		t.Fatal("no ols output recorded")
+	}
+	final := rows[len(rows)-1]
+	if len(final) != 9 {
+		t.Fatalf("expected width-9 with-intercept state, got %d: %v", len(final), final)
+	}
+	if got := final[7]; math.Abs(got-2.5) > 0.1 {
+		t.Errorf("slope (beta) = %v, want ~2.5", got)
+	}
+	if got := final[6]; math.Abs(got-1.0) > 0.2 {
+		t.Errorf("intercept (alpha) = %v, want ~1.0", got)
+	}
+	if got := final[8]; math.Abs(got-2.25) > 0.75 {
+		t.Errorf("residual variance (sigma2) = %v, want ~2.25 (1.5^2)", got)
 	}
 }
 

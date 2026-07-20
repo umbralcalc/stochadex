@@ -36,6 +36,7 @@ func TestExampleConfigsRun(t *testing.T) {
 		"cfg/example_posterior_macro_config.yaml",
 		"cfg/example_smc_config.yaml",
 		"cfg/example_evolution_strategy_config.yaml",
+		"cfg/example_regression_config.yaml",
 		"cfg/example_data_source_config.yaml",
 	}
 	for _, path := range examples {
