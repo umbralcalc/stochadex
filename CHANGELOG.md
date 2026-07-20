@@ -22,6 +22,23 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Fixed
+- **The `posterior_estimation` macro can now converge from a prior instead of drifting.**
+  The posterior mean/covariance are loglike-weighted averages of the *sampled* parameters, so
+  the comparison's loglike has to depend on the sample — but the macro's comparison model was
+  wired with fixed parameters and no path to the sampler, so every sample scored identically,
+  the weights were uniform, and the mean random-walked away from the truth (the shipped example
+  drifted *off* the data mean even when started on it). Two changes fix it: (1)
+  `NewLikelihoodComparisonPartition` now routes a comparison-model `params_from_upstream` entry
+  whose upstream is not an inner window partition (i.e. the sampler, which lives in the outer
+  simulation) to an embedded *outside upstream*, so the sampled parameters drive the comparison
+  likelihood each step; (2) `NewPosteriorEstimationPartitions` now requires the comparison to
+  read the sampler — directly via the model's `params_from_upstream` or indirectly via a window
+  partition's `OutsideUpstreams` — and panics with an actionable message otherwise, turning the
+  silent-non-convergence footgun into a loud, located error. The shipped
+  `cfg/example_posterior_macro_config.yaml` is retuned to recover the data mean `[1.8, 5.0]`
+  from an off-truth prior `[0, 0]`, and `TestPosteriorEstimationMacroConverges` asserts it.
+
 ## [0.5.2] — 2026-07-20
 
 Two convergence fixes to the shipped live-macro examples (evolution-strategy optimisation

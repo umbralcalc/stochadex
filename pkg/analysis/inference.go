@@ -77,6 +77,40 @@ func NewPosteriorEstimationPartitions(
 	if applied.MemoryDepth < 1 {
 		panic(fmt.Sprintf("analysis: MemoryDepth must be >= 1, got %d", applied.MemoryDepth))
 	}
+	// The posterior mean/covariance are loglike-weighted averages of the sampled
+	// parameters, so the comparison's loglike MUST depend on the sample. If it does
+	// not, every sample scores identically, the weights are uniform, and the
+	// posterior mean just random-walks away from the truth instead of converging
+	// (the classic silently-degenerate posterior_estimation config). The sample can
+	// reach the loglike two ways, both accepted here: directly, the comparison model
+	// reads the sampler via params_from_upstream (simple case — a normal model feeds
+	// the sample into `mean`); or indirectly, a window partition consumes it as an
+	// OutsideUpstream and the comparison scores that partition's output (the embedded
+	// forward-simulation case — e.g. the sample drives an OU `mus`). The coupling is
+	// model-specific so it cannot be auto-wired; require one of the two and fail loud.
+	samplerRead := false
+	for _, upstream := range applied.Comparison.Model.ParamsFromUpstream {
+		if upstream.Upstream == applied.Sampler.Name {
+			samplerRead = true
+		}
+	}
+	for _, partition := range applied.Comparison.Window.Partitions {
+		for _, upstream := range partition.OutsideUpstreams {
+			if upstream.Upstream == applied.Sampler.Name {
+				samplerRead = true
+			}
+		}
+	}
+	if !samplerRead {
+		panic(fmt.Sprintf(
+			"analysis: posterior comparison must read the sampler %q so the loglike "+
+				"depends on the proposal, else the posterior cannot converge — either "+
+				"the comparison model reads it via params_from_upstream (e.g. {mean: "+
+				"{upstream: %q}}), or a window partition consumes it as an "+
+				"OutsideUpstream",
+			applied.Sampler.Name, applied.Sampler.Name,
+		))
+	}
 	compPartition := NewLikelihoodComparisonPartition(
 		applied.Comparison,
 		storage,
