@@ -22,6 +22,20 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+- **Installable as a Claude Code plugin + prebuilt CLI binaries — the distribution layer that makes
+  "install a skill next to your agent" real.** The repo is now a plugin marketplace
+  (`.claude-plugin/marketplace.json` + `plugin.json`, with the plugin's `skills` pointing at the
+  existing `.claude/skills/` so there is no duplicated copy): `claude plugin marketplace add
+  umbralcalc/stochadex` then `claude plugin install stochadex@stochadex` bundles the
+  `stochadex-model` skill and its four validated recipes. A release workflow
+  (`.github/workflows/release.yml`) cross-compiles the pure-Go CLI for macOS/Linux/Windows
+  (amd64/arm64) on every version tag and attaches the binaries to the GitHub Release, so a user
+  with no Go toolchain can `curl` a prebuilt `stochadex` (or `go install …/cmd/stochadex@latest`).
+  A top-level `README.md` documents all three entry paths (plugin, CLI, Go library), and the skill
+  gained a CLI-install prerequisite. `v0.5.3`'s binaries are attached retroactively so the install
+  path works today.
+
 ## [0.5.3] — 2026-07-20
 
 The agent-facing payoff of the data-drivable-config arc: the `stochadex-model` skill, backed by

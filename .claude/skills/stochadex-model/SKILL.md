@@ -9,6 +9,23 @@ Build, run, and analyse a stochastic simulation by writing **one YAML file** —
 compilation, no toolchain. You describe a system; `stochadex --config file.yaml` resolves and
 runs it in-process. Everything you need to author a working config is here.
 
+## Prerequisite: the `stochadex` CLI
+
+Authoring needs the `stochadex` binary on PATH to run configs. It is a single prebuilt
+executable — no Go toolchain required to run a data-spec config (the kind this skill writes).
+
+```bash
+# Prebuilt binary (no Go needed) — pick your platform's asset:
+curl -L https://github.com/umbralcalc/stochadex/releases/latest/download/stochadex-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') -o stochadex
+chmod +x stochadex && ./stochadex --config model.yaml
+
+# Or, if a Go toolchain is present:
+go install github.com/umbralcalc/stochadex/cmd/stochadex@latest
+```
+
+If `stochadex` is missing, stop and tell the user to install it (above) rather than guessing —
+authoring is fine, but you cannot *run* a config without it.
+
 ## The 60-second mental model
 
 A simulation is a set of **partitions**. Each partition advances a vector **state** every step,
