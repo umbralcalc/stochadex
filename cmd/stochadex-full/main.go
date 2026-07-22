@@ -22,9 +22,38 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"runtime"
+	"sort"
+	"strings"
+
 	"github.com/umbralcalc/stochadex/pkg/api"
 )
 
+// version is stamped at build time with -ldflags "-X main.version=<tag>". It is a real
+// variable, not a placeholder: without one the -X flag silently does nothing.
+var version = "dev"
+
 func main() {
+	// Handled before ArgParse so it needs no config and cannot be refused by argument
+	// validation — `--version` must answer even on a machine with nothing set up.
+	for _, arg := range os.Args[1:] {
+		if arg == "--version" || arg == "-version" || arg == "version" {
+			printVersion()
+			return
+		}
+	}
 	api.RunWithParsedArgs(api.ArgParse())
+}
+
+// printVersion reports the build and, crucially, the optional capabilities compiled in.
+// The portable and accelerated assets are the same CLI with different features, so this
+// is how a caller confirms it has the binary it needs — e.g. before writing a config that
+// uses `output_function: {type: duckdb}`, which only the accelerated build can serve.
+func printVersion() {
+	compiled := append([]string(nil), features...)
+	sort.Strings(compiled)
+	fmt.Printf("stochadex %s %s/%s\n", version, runtime.GOOS, runtime.GOARCH)
+	fmt.Printf("features: %s\n", strings.Join(compiled, " "))
 }
