@@ -32,9 +32,12 @@ an exact version rather than assume stability across minors.
   (`.github/workflows/release.yml`) cross-compiles the pure-Go CLI for macOS/Linux/Windows
   (amd64/arm64) on every version tag and attaches the binaries to the GitHub Release, so a user
   with no Go toolchain can `curl` a prebuilt `stochadex` (or `go install …/cmd/stochadex@latest`).
-  A top-level `README.md` documents all three entry paths (plugin, CLI, Go library), and the skill
-  gained a CLI-install prerequisite. `v0.5.3`'s binaries are attached retroactively so the install
-  path works today. `TestPluginManifestsMatchRelease` guards the packaging: both manifests' versions
+  A new **"Running with configs"** docs page covers the no-toolchain YAML/CLI path in full —
+  partition anatomy, the two ways to write an update, the coupling/deadlock rule, run modes, and
+  the analysis/inference tier including the levers that decide whether each learning macro
+  converges. A lean top-level `README.md` (the repo had none) points at it rather than restating
+  it, and the skill gained a CLI-install prerequisite. `v0.5.3`'s binaries are attached
+  retroactively so the install path works today. `TestPluginManifestsMatchRelease` guards the packaging: both manifests' versions
   must track the newest released CHANGELOG heading, and `plugin.json`'s `skills` path must still
   resolve to the bundled skill — a broken pointer would otherwise install a plugin that silently
   ships no skill.
