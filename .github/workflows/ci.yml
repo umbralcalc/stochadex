@@ -29,6 +29,23 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # S3-compatible server for the pkg/s3store integration test. MinIO speaks the S3
+      # API, so the same code path that talks to Amazon S3 is exercised for real —
+      # compilation and config validation cannot prove that bytes actually move. The
+      # bitnami image starts the server on entry and creates MINIO_DEFAULT_BUCKETS.
+      minio:
+        image: bitnami/minio:latest
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+          MINIO_DEFAULT_BUCKETS: stochadex-test
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "mc ready local || curl -sf http://localhost:9000/minio/health/live"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
     env:
       # lib/pq honours these when the connection string omits host/port
       # (pkg/analysis/postgres.go builds "user=… password=… dbname=… sslmode=disable").
@@ -58,7 +75,23 @@ jobs:
       # SEPARATE module too, keeping the AWS SDK's dependency tree out of the engine's
       # go.mod. Pure Go, so it builds and tests like any other module.
       - name: Build and test s3store module (opt-in object-storage egress)
-        run: cd pkg/s3store && go build ./... && go test ./... -race -count=1
+        # S3STORE_TEST_ENDPOINT switches the integration test on; without it the test
+        # skips, so a local `go test` needs no MinIO. Credentials go through the normal
+        # AWS chain (the package never reads them itself), which is what the env vars
+        # below feed.
+        env:
+          S3STORE_TEST_ENDPOINT: http://127.0.0.1:9000
+          S3STORE_TEST_BUCKET: stochadex-test
+          AWS_ACCESS_KEY_ID: minioadmin
+          AWS_SECRET_ACCESS_KEY: minioadmin
+          AWS_REGION: us-east-1
+        run: |
+          # Wait for MinIO to accept requests before the transfers start.
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:9000/minio/health/live && break
+            echo "waiting for MinIO ($i)"; sleep 2
+          done
+          cd pkg/s3store && go build ./... && go test ./... -race -count=1 -v
       # The opt-in pkg/duckdbstore/ module (DuckDB analytical egress) is a SEPARATE Go module,
       # CGO and not WASM-compatible, so it stays out of the engine's and arrowstore's go.mod.
       # Its Arrow ingest lives behind the driver's `duckdb_arrow` tag. Build and test it

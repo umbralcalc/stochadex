@@ -46,6 +46,10 @@ an exact version rather than assume stability across minors.
   present and future format works over object storage without bespoke S3 code for each. It is a
   separate module, like arrowstore, so the AWS SDK's dependency tree stays out of the engine's
   `go.mod`; credentials come from the standard AWS chain and are never read from a config file.
+  CI runs a MinIO service and `TestS3StoreRoundTrip` against it, so the transfers are proven
+  to move real bytes over the S3 API — including that the sink defers its upload to
+  `Finalize` and cleans up its staging file — rather than only compiling. The test skips
+  when `S3STORE_TEST_ENDPOINT` is unset, so a local `go test` needs no server.
 - **An Arrow data source** (`data: {source: {arrow: {path: …}}}`), closing the round trip: a run
   written with `{type: arrow}` can be read straight back as a macro's dataset.
 - **`api.RegisterDataSource`** — `data.source` was a closed struct, so a source whose dependency
