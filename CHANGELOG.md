@@ -38,6 +38,20 @@ an exact version rather than assume stability across minors.
   publishing it, since a binary that cannot resolve its BLAS at runtime is worse than none;
   Linux links OpenBLAS statically where the archive is available so the asset stays
   self-contained. Both flavours are compiled in CI so a release is never the first build.
+- **`pkg/s3store` — object storage as an opt-in module.** Reading and writing runs to Amazon
+  S3 (or any S3-compatible store: MinIO, Cloudflare R2, Ceph) is available both as a Go package
+  and from config (`data: {source: {s3: {bucket, key, format}}}` and
+  `output_function: {type: s3, bucket, key, format}`). It is a **transport, not a format**: the
+  object is moved and then handed to the existing reader/sink for its `format:`, so every
+  present and future format works over object storage without bespoke S3 code for each. It is a
+  separate module, like arrowstore, so the AWS SDK's dependency tree stays out of the engine's
+  `go.mod`; credentials come from the standard AWS chain and are never read from a config file.
+- **An Arrow data source** (`data: {source: {arrow: {path: …}}}`), closing the round trip: a run
+  written with `{type: arrow}` can be read straight back as a macro's dataset.
+- **`api.RegisterDataSource`** — `data.source` was a closed struct, so a source whose dependency
+  the engine cannot carry had no way in. It now dispatches unknown keys to registered builders,
+  mirroring `simulator.RegisterComponent`, and an unknown source lists the ones the binary *does*
+  support — which is how a caller discovers what it can reach.
 - **`simulator.FinalizingOutputFunction`** — an optional interface an `OutputFunction` may
   implement to flush, seal or release a resource once the run is over. `PartitionCoordinator.Run`
   calls `Finalize` exactly once, after the final step. `OutputFunction` itself is unchanged

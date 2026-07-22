@@ -54,6 +54,11 @@ jobs:
       # uses replace => ../..) so PRs still catch breakage.
       - name: Build and test arrowstore module (opt-in Arrow egress)
         run: cd pkg/arrowstore && go build ./... && go test ./... -race -count=1
+      # The opt-in pkg/s3store/ module (Amazon S3 / S3-compatible object storage) is a
+      # SEPARATE module too, keeping the AWS SDK's dependency tree out of the engine's
+      # go.mod. Pure Go, so it builds and tests like any other module.
+      - name: Build and test s3store module (opt-in object-storage egress)
+        run: cd pkg/s3store && go build ./... && go test ./... -race -count=1
       # The opt-in pkg/duckdbstore/ module (DuckDB analytical egress) is a SEPARATE Go module,
       # CGO and not WASM-compatible, so it stays out of the engine's and arrowstore's go.mod.
       # Its Arrow ingest lives behind the driver's `duckdb_arrow` tag. Build and test it

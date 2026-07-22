@@ -141,7 +141,7 @@ prepare_template() {
     # absent from go list). Merge and sort so the modules interleave alphabetically — arrowstore
     # after api, duckdbstore after discrete — instead of trailing at the end.
     local pkg_names=$( { go list ../... | grep '/pkg/' | sed 's#.*/##'; \
-                         printf 'arrowstore\nduckdbstore\n'; } | sort )
+                         printf 'arrowstore\nduckdbstore\ns3store\n'; } | sort )
     for pkg_name in $pkg_names; do
         case "$pkg_name" in
             api) local label="API" ;;                            # known acronym
@@ -377,7 +377,7 @@ generate_nested_module_docs() {
     log_info "Generating nested opt-in module documentation..."
     mkdir -p "$DOCS_DIR/pkg"
     # "<module-dir>:<extra gomarkdoc flags>"
-    for spec in "arrowstore:" "duckdbstore:--tags duckdb_arrow"; do
+    for spec in "arrowstore:" "duckdbstore:--tags duckdb_arrow" "s3store:"; do
         local name="${spec%%:*}"
         local tags="${spec#*:}"
         log_info "Generating nested module: $name"

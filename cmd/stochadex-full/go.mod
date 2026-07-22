@@ -19,6 +19,7 @@ require (
 	github.com/umbralcalc/stochadex v0.5.3
 	github.com/umbralcalc/stochadex/pkg/arrowstore v0.0.0
 	github.com/umbralcalc/stochadex/pkg/duckdbstore v0.0.0
+	github.com/umbralcalc/stochadex/pkg/s3store v0.0.0
 )
 
 require (
@@ -80,3 +81,5 @@ replace github.com/umbralcalc/stochadex => ../../
 replace github.com/umbralcalc/stochadex/pkg/arrowstore => ../../pkg/arrowstore
 
 replace github.com/umbralcalc/stochadex/pkg/duckdbstore => ../../pkg/duckdbstore
+
+replace github.com/umbralcalc/stochadex/pkg/s3store => ../../pkg/s3store
