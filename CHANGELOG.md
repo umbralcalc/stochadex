@@ -34,7 +34,10 @@ an exact version rather than assume stability across minors.
   with no Go toolchain can `curl` a prebuilt `stochadex` (or `go install …/cmd/stochadex@latest`).
   A top-level `README.md` documents all three entry paths (plugin, CLI, Go library), and the skill
   gained a CLI-install prerequisite. `v0.5.3`'s binaries are attached retroactively so the install
-  path works today.
+  path works today. `TestPluginManifestsMatchRelease` guards the packaging: both manifests' versions
+  must track the newest released CHANGELOG heading, and `plugin.json`'s `skills` path must still
+  resolve to the bundled skill — a broken pointer would otherwise install a plugin that silently
+  ships no skill.
 
 ## [0.5.3] — 2026-07-20
 
