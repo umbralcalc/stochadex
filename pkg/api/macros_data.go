@@ -2,9 +2,12 @@ package api
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gopkg.in/yaml.v2"
 )
 
 // DataSource is the data: tier's optional pre-recorded source: instead of running
@@ -14,6 +17,31 @@ type DataSource struct {
 	Csv      *csvSource      `yaml:"csv,omitempty"`
 	JsonLog  *jsonLogSource  `yaml:"json_log,omitempty"`
 	Postgres *postgresSource `yaml:"postgres,omitempty"`
+	// Extra captures any source key not named above, so a package layered on top of
+	// api can contribute one through RegisterDataSource without this struct (and
+	// therefore the engine's go.mod) having to know about its dependencies. The Arrow
+	// source is registered this way by the distributed CLI, because arrow-go lives in
+	// a separate opt-in module.
+	Extra map[string]map[string]interface{} `yaml:",inline"`
+}
+
+// extraDataSources holds sources registered from above this package, keyed by the YAML
+// key that selects them (e.g. "arrow" for `source: {arrow: {path: run.arrow}}`).
+var extraDataSources = map[string]func(
+	fields map[string]interface{},
+) (*simulator.StateTimeStorage, error){}
+
+// RegisterDataSource adds a data: source spelling that this package cannot depend on
+// directly. It mirrors simulator.RegisterComponent: the engine stays lean, and the
+// distributed CLI contributes the sources whose dependencies it alone carries.
+func RegisterDataSource(
+	name string,
+	build func(fields map[string]interface{}) (*simulator.StateTimeStorage, error),
+) {
+	if _, exists := extraDataSources[name]; exists {
+		panic("api: duplicate data source registration " + name)
+	}
+	extraDataSources[name] = build
 }
 
 type csvSource struct {
@@ -42,7 +70,7 @@ type postgresSource struct {
 
 // load reads storage from whichever single source is configured.
 func (s *DataSource) load() (*simulator.StateTimeStorage, error) {
-	set := 0
+	set := len(s.Extra)
 	for _, present := range []bool{s.Csv != nil, s.JsonLog != nil, s.Postgres != nil} {
 		if present {
 			set++
@@ -71,6 +99,44 @@ func (s *DataSource) load() (*simulator.StateTimeStorage, error) {
 			s.Postgres.EndTime,
 		)
 	default:
+		// A registered source (see RegisterDataSource) — or an unknown key, which must
+		// name what is actually available rather than fail vaguely.
+		for name, fields := range s.Extra {
+			build, ok := extraDataSources[name]
+			if !ok {
+				available := []string{"csv", "json_log", "postgres"}
+				for registered := range extraDataSources {
+					available = append(available, registered)
+				}
+				sort.Strings(available)
+				return nil, fmt.Errorf(
+					"api: unknown data.source %q; this binary supports: %s",
+					name, strings.Join(available, ", "))
+			}
+			return build(fields)
+		}
 		return nil, fmt.Errorf("api: data.source is empty; set csv:, json_log: or postgres:")
 	}
+}
+
+// LoadFormat loads storage for a single named source format from raw fields. It exists so
+// a transport registered above this package — the S3 source, which fetches an object and
+// then needs it parsed — can reuse the local loaders verbatim instead of re-implementing
+// their field handling (a CSV's time_column/state_columns/skip_header, and so on).
+//
+// The fields are round-tripped through YAML into the same typed structs the config path
+// uses, so a transported source validates exactly like a local one.
+func LoadFormat(
+	format string,
+	fields map[string]interface{},
+) (*simulator.StateTimeStorage, error) {
+	encoded, err := yaml.Marshal(map[string]interface{}{format: fields})
+	if err != nil {
+		return nil, fmt.Errorf("api: encoding %s source fields: %w", format, err)
+	}
+	var source DataSource
+	if err := yaml.UnmarshalStrict(encoded, &source); err != nil {
+		return nil, fmt.Errorf("api: %s source: %w", format, err)
+	}
+	return source.load()
 }

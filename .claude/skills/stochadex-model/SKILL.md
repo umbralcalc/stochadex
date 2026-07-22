@@ -26,10 +26,19 @@ go install github.com/umbralcalc/stochadex/cmd/stochadex@latest
 If `stochadex` is missing, stop and tell the user to install it (above) rather than guessing —
 authoring is fine, but you cannot *run* a config without it.
 
-**Two builds exist.** The default asset above is pure Go and includes Arrow output. An
-`stochadex-accel-<os>-<arch>` asset (same URL with `stochadex-accel-`) adds an optimised system
-BLAS and `duckdb` output; suggest it only if the user wants DuckDB or has a BLAS-heavy workload.
-Both accept identical configs.
+**Check what you have before writing a config that needs it:**
+
+```bash
+stochadex --version
+# stochadex v0.5.3 darwin/arm64
+# features: arrow postgres s3          <- portable build
+# features: arrow cblas duckdb postgres s3   <- accelerated build
+```
+
+**Two builds exist.** The default asset above is pure Go. An `stochadex-accel-<os>-<arch>` asset
+(same URL with `stochadex-accel-`) adds `cblas` (an optimised system BLAS — worth it for
+BLAS-heavy workloads, see the performance page) and `duckdb` output. Both accept identical
+configs; only the compiled-in features differ, and `--version` is how you tell them apart.
 
 ## The 60-second mental model
 
@@ -194,9 +203,25 @@ default when you omit `kernel:`) needs none. `vector_covariance` takes the same 
 `vector_variance` (both need a `mean:` reference). Macro results are written to stdout
 automatically — an analysis run needs no `simulation:` block. A later macro may reference an earlier
 macro's output partition by name (they run in order).
-`data.source` can load a file instead of running a sub-simulation:
-`source: {csv: {path: x.csv, time_column: 0, state_columns: {series: [1,2]}}}` or
-`source: {json_log: {path: run.log}}`.
+### Reading and writing data (I/O)
+
+`data.source` loads a dataset instead of running a sub-simulation; `output_function` writes a
+run out. The same formats work in both directions, so a run can be written and read back:
+
+| Source (`data.source:`) | Sink (`output_function:`) |
+|---|---|
+| `{csv: {path: x.csv, time_column: 0, state_columns: {series: [1,2]}}}` | `{type: stdout}` / `{type: json_log, path: run.log}` |
+| `{json_log: {path: run.log}}` | `{type: arrow, path: run.arrow}` |
+| `{arrow: {path: run.arrow}}` | `{type: duckdb, path: db.duckdb, table: results}` *(accel build)* |
+| `{postgres: {user, password, dbname, table, partition_names, start_time, end_time}}` | `{type: postgres, table: results, user/password/dbname}` — or `{type: postgres, driver: pgx, dsn: "…", table: t}` for **any Postgres-wire database** |
+| `{s3: {bucket, key, format: arrow\|csv\|json_log}}` | `{type: s3, bucket, key, format: arrow\|json_log}` |
+
+**S3 is a transport, not a format** — give it the `format:` of the object and it reuses the
+normal loader/sink, so anything above works over S3. Credentials come from the standard AWS
+chain (env, shared config, IAM role) — never put them in the config. Optional `region:` and
+`endpoint:` (set `endpoint` for MinIO / R2 / any S3-compatible store).
+
+If you name a source this binary doesn't have, the error lists the ones it does.
 
 Notable macros (all take a `data:` block): `vector_mean` / `vector_variance` / `vector_covariance`,
 `grouped_aggregation`, `scalar_regression_stats`, `likelihood_comparison`, and

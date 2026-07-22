@@ -28,7 +28,7 @@ Two are published with each release, and the default is the right choice for alm
 
 | Asset | Contains | Notes |
 |---|---|---|
-| `stochadex-<os>-<arch>` | engine, Postgres, **Arrow** | The default above. Pure Go, so it runs on every platform with no system dependencies at all. |
+| `stochadex-<os>-<arch>` | engine, **Postgres**, **Arrow**, **S3** | The default above. Pure Go, so it runs on every platform with no system dependencies at all. |
 | `stochadex-accel-<os>-<arch>` | the above, plus an **optimised system BLAS** and **DuckDB** output | For BLAS-heavy workloads (see [performance](performance.html)) or when you want to write straight to DuckDB. macOS links Accelerate, which ships with the OS; Linux builds statically where possible. Available for macOS and Linux (amd64/arm64). |
 
 Swap `stochadex-` for `stochadex-accel-` in the download URL to get the accelerated build.
@@ -86,7 +86,7 @@ A simulation is a set of **partitions**, each advancing a vector state every ste
 
 The `simulation` block is all data specs too: `output_condition`
 (`every_step` / `every_n_steps` / `only_given_partitions` / `nil`), `output_function`
-(`stdout` / `json_log` / `arrow` / `duckdb` / `nil`), `termination_condition`
+(`stdout` / `json_log` / `arrow` / `duckdb` / `postgres` / `s3` / `nil`), `termination_condition`
 (`number_of_steps` / `time_elapsed`), and `timestep_function`
 (`constant` / `exponential_distribution`).
 
@@ -98,6 +98,27 @@ Beyond `stdout` and `json_log`, the released binary can write columnar output di
     output_function: {type: arrow, path: run.arrow}          # Arrow IPC file
     output_function: {type: duckdb, path: run.duckdb, table: results}   # DuckDB table
 ```
+
+`postgres` writes to a database — either local credentials, or `driver`/`dsn` which goes
+through `database/sql` and so reaches **any Postgres-wire database** (TimescaleDB,
+CockroachDB, a managed instance):
+
+```yaml
+    output_function: {type: postgres, driver: pgx, dsn: "postgres://...", table: results}
+```
+
+`s3` is a **transport, not a format**: give it the `format:` of the object and it reuses the
+normal sink, so anything writable locally is writable to object storage. Credentials come from
+the standard AWS chain (environment, shared config, IAM role) — never the config file. Set
+`endpoint:` for any S3-compatible store (MinIO, Cloudflare R2, Ceph):
+
+```yaml
+    output_function: {type: s3, bucket: my-bucket, key: runs/out.arrow, format: arrow}
+```
+
+The same formats work as `data:` sources, so a run can be read back in — `{arrow: {path:
+run.arrow}}`, `{postgres: {...}}`, or `{s3: {bucket, key, format}}`. If you name a source the
+binary does not have, the error lists the ones it does.
 
 `arrow` writes one Arrow IPC file — a `time` column plus a fixed-size list column per
 partition — which Polars, pandas and DuckDB all read natively:
@@ -111,7 +132,9 @@ table = ipc.open_file("run.arrow").read_all()
 the same Arrow record). Both accumulate during the run and write once at the end, so they
 need an `output_condition` that emits every partition every step.
 
-> `arrow` is in every released binary. `duckdb` needs the **accelerated** build — see below.
+> `arrow`, `postgres` and `s3` are in every released binary. `duckdb` needs the
+> **accelerated** build. Run `stochadex --version` to see exactly what yours has:
+> it prints a `features:` line.
 
 ## Two ways to write an update
 

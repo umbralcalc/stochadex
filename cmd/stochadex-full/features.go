@@ -4,4 +4,4 @@ package main
 // append to it at init, so `stochadex --version` reports exactly what this executable can
 // do — the question an agent (or a user) otherwise has no way to answer, since the
 // portable and accelerated assets share a name and a CLI.
-var features = []string{"arrow", "postgres"}
+var features = []string{"arrow", "postgres", "s3"}
