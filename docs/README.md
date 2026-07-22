@@ -26,6 +26,30 @@ It's a powerful framework with tons of features, really generalisable abstractio
 - **Plain numerics or classical ML in Go** → [gonum](https://github.com/gonum/gonum), which the stochadex is built on.
 - **Training neural networks or deep RL** → train in Python, then import a frozen ONNX/TorchScript model to run inference behind an [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration).
 
+## Install
+
+There are three ways in, depending on whether you're writing Go, writing YAML, or letting an agent write it for you.
+
+**As a Go library** — build simulations against the `Iteration` interface. Start with the [quickstart](https://stochadex.github.io/pkg/quickstart.html).
+
+```bash
+go get github.com/umbralcalc/stochadex
+```
+
+**As a CLI** — describe a whole run in one YAML file and execute it with a prebuilt binary. A config that names no Go anywhere runs in-process, so no Go toolchain is needed. See [running with configs](https://stochadex.github.io/pkg/configs.html).
+
+```bash
+curl -L "https://github.com/umbralcalc/stochadex/releases/latest/download/stochadex-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" -o stochadex
+chmod +x stochadex
+```
+
+**As a Claude Code plugin** — installs an authoring skill next to your agent, so you can describe a system in plain language and get a running, validated simulation. It drives the same CLI.
+
+```bash
+claude plugin marketplace add umbralcalc/stochadex
+claude plugin install stochadex@stochadex
+```
+
 ## Integrations
 
 | Integration | What it does | Where |

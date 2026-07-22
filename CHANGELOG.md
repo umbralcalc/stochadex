@@ -35,9 +35,10 @@ an exact version rather than assume stability across minors.
   A new **"Running with configs"** docs page covers the no-toolchain YAML/CLI path in full —
   partition anatomy, the two ways to write an update, the coupling/deadlock rule, run modes, and
   the analysis/inference tier including the levers that decide whether each learning macro
-  converges. A lean top-level `README.md` (the repo had none) points at it rather than restating
-  it, and the skill gained a CLI-install prerequisite. `v0.5.3`'s binaries are attached
-  retroactively so the install path works today. `TestPluginManifestsMatchRelease` guards the packaging: both manifests' versions
+  converges. The docs home gains the **Install** section it never had (Go library / CLI / plugin),
+  and the skill gained a CLI-install prerequisite. No top-level `README.md` is added: GitHub
+  already resolves the repo landing to `docs/README.md`, so a root README would only override the
+  richer page. `v0.5.3`'s binaries are attached retroactively so the install path works today. `TestPluginManifestsMatchRelease` guards the packaging: both manifests' versions
   must track the newest released CHANGELOG heading, and `plugin.json`'s `skills` path must still
   resolve to the bundled skill — a broken pointer would otherwise install a plugin that silently
   ships no skill.
