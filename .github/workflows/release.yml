@@ -1,0 +1,53 @@
+name: Release binaries
+# On every version tag, cross-compile the stochadex CLI for the common
+# platforms and attach the binaries to that tag's GitHub Release. This is what
+# makes the "no Go toolchain" promise real: a user (or an agent installing the
+# plugin) downloads a prebuilt binary instead of needing `go` to build it.
+#
+# Only the root module's ./cmd/stochadex is built — it is pure Go (CGO disabled),
+# so it cross-compiles cleanly. The opt-in arrowstore/duckdbstore modules are not
+# part of the CLI and are excluded (duckdbstore needs CGO and is not portable).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create/upload to the tag's Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Cross-compile the CLI
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          # os/arch pairs to ship; extend as demand appears.
+          targets="darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64"
+          for t in $targets; do
+            os="${t%/*}"; arch="${t#*/}"
+            out="dist/stochadex-${os}-${arch}"
+            [ "$os" = "windows" ] && out="${out}.exe"
+            echo "building $out"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
+              go build -trimpath -ldflags "-s -w -X main.version=${TAG}" \
+              -o "$out" ./cmd/stochadex
+          done
+          ls -la dist
+      - name: Attach binaries to the Release
+        run: |
+          set -euo pipefail
+          # Create the Release from the tag's annotation if it does not exist yet
+          # (a manual `gh release create` with richer notes wins if it ran first);
+          # then upload/replace the binaries. --clobber makes re-runs idempotent.
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --notes-from-tag --verify-tag
+          gh release upload "$TAG" dist/* --clobber
