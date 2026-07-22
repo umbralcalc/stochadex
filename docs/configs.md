@@ -22,6 +22,18 @@ chmod +x stochadex
 go install github.com/umbralcalc/stochadex/cmd/stochadex@latest
 ```
 
+### Which binary?
+
+Two are published with each release, and the default is the right choice for almost everyone.
+
+| Asset | Contains | Notes |
+|---|---|---|
+| `stochadex-<os>-<arch>` | engine, Postgres, **Arrow** | The default above. Pure Go, so it runs on every platform with no system dependencies at all. |
+| `stochadex-accel-<os>-<arch>` | the above, plus an **optimised system BLAS** and **DuckDB** output | For BLAS-heavy workloads (see [performance](performance.html)) or when you want to write straight to DuckDB. macOS links Accelerate, which ships with the OS; Linux builds statically where possible. Available for macOS and Linux (amd64/arm64). |
+
+Swap `stochadex-` for `stochadex-accel-` in the download URL to get the accelerated build.
+Both accept exactly the same configs — the only difference is what's compiled in.
+
 ## Your first config
 
 A 1-D random walk, recorded every step:
@@ -74,8 +86,32 @@ A simulation is a set of **partitions**, each advancing a vector state every ste
 
 The `simulation` block is all data specs too: `output_condition`
 (`every_step` / `every_n_steps` / `only_given_partitions` / `nil`), `output_function`
-(`stdout` / `json_log` / `nil`), `termination_condition` (`number_of_steps` / `time_elapsed`),
-and `timestep_function` (`constant` / `exponential_distribution`).
+(`stdout` / `json_log` / `arrow` / `duckdb` / `nil`), `termination_condition`
+(`number_of_steps` / `time_elapsed`), and `timestep_function`
+(`constant` / `exponential_distribution`).
+
+### Writing results out
+
+Beyond `stdout` and `json_log`, the released binary can write columnar output directly:
+
+```yaml
+    output_function: {type: arrow, path: run.arrow}          # Arrow IPC file
+    output_function: {type: duckdb, path: run.duckdb, table: results}   # DuckDB table
+```
+
+`arrow` writes one Arrow IPC file — a `time` column plus a fixed-size list column per
+partition — which Polars, pandas and DuckDB all read natively:
+
+```python
+import pyarrow.ipc as ipc
+table = ipc.open_file("run.arrow").read_all()
+```
+
+`duckdb` lands the same data straight into a DuckDB table for SQL analytics (zero-copy, via
+the same Arrow record). Both accumulate during the run and write once at the end, so they
+need an `output_condition` that emits every partition every step.
+
+> `arrow` is in every released binary. `duckdb` needs the **accelerated** build — see below.
 
 ## Two ways to write an update
 

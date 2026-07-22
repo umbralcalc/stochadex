@@ -23,6 +23,20 @@ type OutputFunction interface {
 	Output(partitionName string, state []float64, cumulativeTimesteps float64)
 }
 
+// FinalizingOutputFunction is the optional counterpart to OutputFunction for sinks
+// that hold a resource which must be flushed, sealed or released once the run is
+// over — a columnar buffer that only becomes a readable batch after the last row, a
+// database handle that ingests in one shot, an open file.
+//
+// PartitionCoordinator.Run calls Finalize exactly once, after the final step and
+// before returning, on an OutputFunction that implements this. It is an OPTIONAL
+// interface deliberately: OutputFunction stays two methods, every existing sink is
+// unaffected, and a sink that needs no teardown simply does not implement it.
+type FinalizingOutputFunction interface {
+	OutputFunction
+	Finalize()
+}
+
 // NilOutputFunction outputs nothing from the simulation.
 type NilOutputFunction struct{}
 

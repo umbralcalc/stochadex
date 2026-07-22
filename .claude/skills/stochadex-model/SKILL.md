@@ -26,6 +26,11 @@ go install github.com/umbralcalc/stochadex/cmd/stochadex@latest
 If `stochadex` is missing, stop and tell the user to install it (above) rather than guessing —
 authoring is fine, but you cannot *run* a config without it.
 
+**Two builds exist.** The default asset above is pure Go and includes Arrow output. An
+`stochadex-accel-<os>-<arch>` asset (same URL with `stochadex-accel-`) adds an optimised system
+BLAS and `duckdb` output; suggest it only if the user wants DuckDB or has a BLAS-heavy workload.
+Both accept identical configs.
+
 ## The 60-second mental model
 
 A simulation is a set of **partitions**. Each partition advances a vector **state** every step,
@@ -133,7 +138,8 @@ deadlock, the run tells you exactly which partitions form the cycle.
 ```yaml
   simulation:
     output_condition:      {type: every_step}            # or nil, every_n_steps{n}, only_given_partitions{partitions:[...]}
-    output_function:       {type: stdout}                # or nil, json_log{path}
+    output_function:       {type: stdout}                # or nil, json_log{path},
+                                                         # arrow{path}, duckdb{path,table}
     termination_condition: {type: number_of_steps, max_steps: 100}   # or time_elapsed{max_time_elapsed}
     timestep_function:     {type: constant, stepsize: 1.0}           # or exponential_distribution{mean, seed}
     init_time_value:       0.0

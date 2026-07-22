@@ -23,6 +23,33 @@ an exact version rather than assume stability across minors.
 ## [Unreleased]
 
 ### Added
+- **The released binary now carries the integrations: Arrow output everywhere, plus an
+  accelerated build with an optimised system BLAS and DuckDB output.** Imports drive
+  `go.mod`, so putting Arrow/DuckDB in `cmd/stochadex` would impose them on every repo that
+  imports the engine as a library. Instead a new module `cmd/stochadex-full` bundles the
+  opt-in egress modules and registers the extra sinks through the existing
+  `simulator.RegisterComponent` hook — the engine's own `go.mod` stays lean and WASM-clean.
+  One main package yields two builds: a **pure-Go** binary (`stochadex-<os>-<arch>`, the
+  default download) that cross-compiles to every platform and includes
+  `output_function: {type: arrow, path: …}`, and an **accelerated** binary
+  (`stochadex-accel-<os>-<arch>`, built on native runners) adding `-tags "cblas
+  duckdb_arrow"` for NumPy-class BLAS and `output_function: {type: duckdb, path: …, table: …}`.
+  The release workflow builds both tiers and smoke-tests every accelerated binary before
+  publishing it, since a binary that cannot resolve its BLAS at runtime is worse than none;
+  Linux links OpenBLAS statically where the archive is available so the asset stays
+  self-contained. Both flavours are compiled in CI so a release is never the first build.
+- **`simulator.FinalizingOutputFunction`** — an optional interface an `OutputFunction` may
+  implement to flush, seal or release a resource once the run is over. `PartitionCoordinator.Run`
+  calls `Finalize` exactly once, after the final step. `OutputFunction` itself is unchanged
+  (still two methods) and every existing sink is unaffected; this is what lets a columnar sink
+  — which only becomes a readable batch after the last row — work at all.
+
+### Changed
+- **The engine now requires gonum v0.17** (was v0.16), matching the version the Arrow/DuckDB
+  modules already resolved to, so the shipped binary runs the same version the engine's tests
+  cover. The full suite, including every convergence test, passes unchanged.
+
+### Added
 - **Installable as a Claude Code plugin + prebuilt CLI binaries — the distribution layer that makes
   "install a skill next to your agent" real.** The repo is now a plugin marketplace
   (`.claude-plugin/marketplace.json` + `plugin.json`, with the plugin's `skills` pointing at the

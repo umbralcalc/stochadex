@@ -74,7 +74,10 @@ type PartitionCoordinator struct {
 	TimestepFunction     TimestepFunction
 	TerminationCondition TerminationCondition
 	RunStrategy          ExecutionStrategy
-	newWorkChannels      [](chan *IteratorInputMessage)
+	// OutputFunction is retained solely so Run can Finalize a sink that implements
+	// FinalizingOutputFunction; per-step output goes through the iterators.
+	OutputFunction  OutputFunction
+	newWorkChannels [](chan *IteratorInputMessage)
 }
 
 // RequestMoreIterations spawns a goroutine per partition to run
@@ -203,6 +206,13 @@ func (c *PartitionCoordinator) Run() {
 	for !c.ReadyToTerminate() {
 		stepper.Step()
 	}
+
+	// Give a resource-holding sink its one chance to flush/seal once no further
+	// output can arrive (see FinalizingOutputFunction). Sinks that do not implement
+	// it are untouched.
+	if f, ok := c.OutputFunction.(FinalizingOutputFunction); ok {
+		f.Finalize()
+	}
 }
 
 // NewPartitionCoordinator wires Settings and Implementations into a runnable
@@ -293,6 +303,7 @@ func NewPartitionCoordinator(
 		TimestepFunction:     implementations.TimestepFunction,
 		TerminationCondition: implementations.TerminationCondition,
 		RunStrategy:          implementations.ExecutionStrategy,
+		OutputFunction:       implementations.OutputFunction,
 		newWorkChannels:      newWorkChannels,
 	}
 }

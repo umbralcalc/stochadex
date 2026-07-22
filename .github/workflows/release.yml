@@ -1,12 +1,23 @@
 name: Release binaries
-# On every version tag, cross-compile the stochadex CLI for the common
-# platforms and attach the binaries to that tag's GitHub Release. This is what
-# makes the "no Go toolchain" promise real: a user (or an agent installing the
-# plugin) downloads a prebuilt binary instead of needing `go` to build it.
+# On every version tag, build the stochadex CLI and attach it to that tag's GitHub
+# Release. This is what makes the "no Go toolchain" promise real: a user (or an agent
+# installing the plugin) downloads a prebuilt binary instead of needing `go`.
 #
-# Only the root module's ./cmd/stochadex is built — it is pure Go (CGO disabled),
-# so it cross-compiles cleanly. The opt-in arrowstore/duckdbstore modules are not
-# part of the CLI and are excluded (duckdbstore needs CGO and is not portable).
+# Two tiers, both from cmd/stochadex-full (one main package, two builds):
+#
+#   stochadex-<os>-<arch>        pure Go, CGO off, CROSS-compiled from one runner.
+#                                Engine + Postgres + Arrow. Runs everywhere, no deps.
+#                                This is the default download.
+#
+#   stochadex-accel-<os>-<arch>  cgo, -tags "cblas duckdb_arrow", built on NATIVE
+#                                runners (cgo cannot cross-compile). Adds an optimised
+#                                system BLAS and DuckDB output.
+#
+# Why native runners for the accel tier: cgo needs a target-native toolchain, and the
+# DuckDB driver links a prebuilt static library per platform. macOS links Accelerate,
+# which ships with the OS, so that binary has no runtime dependency at all. On Linux we
+# try to link OpenBLAS *statically* for the same property, falling back to dynamic (and
+# saying so in the release notes) if the static archive is unavailable.
 on:
   push:
     tags: ["v*"]
@@ -15,7 +26,8 @@ permissions:
   contents: write # create/upload to the tag's Release
 
 jobs:
-  release:
+  # Tier 1 — the default asset. Pure Go, so one runner cross-compiles every platform.
+  portable:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -26,28 +38,135 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Cross-compile the CLI
+      - name: Cross-compile the portable CLI
+        working-directory: cmd/stochadex-full
         run: |
           set -euo pipefail
           mkdir -p dist
-          # os/arch pairs to ship; extend as demand appears.
-          targets="darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64"
-          for t in $targets; do
+          for t in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64; do
             os="${t%/*}"; arch="${t#*/}"
             out="dist/stochadex-${os}-${arch}"
             [ "$os" = "windows" ] && out="${out}.exe"
             echo "building $out"
             CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" \
-              go build -trimpath -ldflags "-s -w -X main.version=${TAG}" \
-              -o "$out" ./cmd/stochadex
+              go build -trimpath -ldflags "-s -w -X main.version=${TAG}" -o "$out" .
           done
           ls -la dist
-      - name: Attach binaries to the Release
+      - name: Attach to the Release
+        working-directory: cmd/stochadex-full
         run: |
           set -euo pipefail
-          # Create the Release from the tag's annotation if it does not exist yet
-          # (a manual `gh release create` with richer notes wins if it ran first);
-          # then upload/replace the binaries. --clobber makes re-runs idempotent.
+          # Create the Release from the tag annotation if it does not exist yet (a manual
+          # `gh release create` with richer notes wins if it ran first); --clobber makes
+          # re-runs idempotent.
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --notes-from-tag --verify-tag
+          gh release upload "$TAG" dist/* --clobber
+
+  # Tier 2 — the accelerated asset. cgo, so one native runner per target.
+  accelerated:
+    strategy:
+      fail-fast: false # one platform failing to link must not withhold the others
+      matrix:
+        include:
+          - runner: macos-14      # Apple silicon
+            goos: darwin
+            goarch: arm64
+          - runner: macos-13      # Intel
+            goos: darwin
+            goarch: amd64
+          - runner: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - runner: ubuntu-24.04-arm
+            goos: linux
+            goarch: arm64
+    runs-on: ${{ matrix.runner }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install OpenBLAS (Linux only)
+        if: matrix.goos == 'linux'
+        # libopenblas-dev carries both the shared and the static (.a) archive; we prefer
+        # the static one so the shipped binary has no runtime dependency.
+        run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
+      - name: Build the accelerated CLI
+        working-directory: cmd/stochadex-full
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          out="dist/stochadex-accel-${{ matrix.goos }}-${{ matrix.goarch }}"
+
+          if [ "${{ matrix.goos }}" = "darwin" ]; then
+            # Accelerate is part of macOS — nothing to install, nothing to ship alongside.
+            export CGO_LDFLAGS="-framework Accelerate"
+          else
+            # Prefer a statically linked OpenBLAS so the binary is self-contained. Fall
+            # back to dynamic linking if the static archive is not where we expect.
+            static_lib=$(find /usr/lib -name 'libopenblas*.a' 2>/dev/null | head -1 || true)
+            if [ -n "$static_lib" ]; then
+              echo "linking OpenBLAS statically from $static_lib"
+              export CGO_LDFLAGS="$static_lib -lm -lpthread -lgfortran"
+              echo "BLAS_LINKAGE=static" >> "$GITHUB_ENV"
+            else
+              echo "::warning::no static libopenblas found — linking dynamically; " \
+                   "this binary will need libopenblas installed at runtime"
+              export CGO_LDFLAGS="-lopenblas"
+              echo "BLAS_LINKAGE=dynamic" >> "$GITHUB_ENV"
+            fi
+          fi
+
+          CGO_ENABLED=1 go build -trimpath \
+            -ldflags "-s -w -X main.version=${TAG}" \
+            -tags "cblas duckdb_arrow" -o "$out" .
+          ls -la dist
+
+      # Prove the accelerated binary actually starts and runs a simulation on this
+      # platform before publishing it. A binary that cannot resolve its BLAS at runtime
+      # is worse than no accelerated binary at all, so a failure here must not upload.
+      - name: Smoke-test the binary
+        working-directory: cmd/stochadex-full
+        run: |
+          set -euo pipefail
+          cat > /tmp/smoke.yaml <<'EOF'
+          main:
+            partitions:
+            - name: walk
+              iteration: {type: wiener_process}
+              params: {variances: [1.0]}
+              init_state_values: [0.0]
+              state_history_depth: 1
+              seed: 7
+            simulation:
+              output_condition: {type: every_step}
+              output_function: {type: stdout}
+              termination_condition: {type: number_of_steps, max_steps: 3}
+              timestep_function: {type: constant, stepsize: 1.0}
+              init_time_value: 0.0
+          EOF
+          ./dist/stochadex-accel-${{ matrix.goos }}-${{ matrix.goarch }} \
+            --config /tmp/smoke.yaml | tee /tmp/out.txt
+          grep -q "3 walk" /tmp/out.txt || {
+            echo "accelerated binary did not produce the expected output"; exit 1; }
+
+      - name: Report BLAS linkage (Linux)
+        if: matrix.goos == 'linux'
+        run: |
+          echo "BLAS linkage: ${BLAS_LINKAGE:-unknown}"
+          ldd "cmd/stochadex-full/dist/stochadex-accel-${{ matrix.goos }}-${{ matrix.goarch }}" \
+            | grep -i openblas && echo "::warning::binary dynamically links OpenBLAS" || \
+            echo "no dynamic OpenBLAS dependency — binary is self-contained"
+
+      - name: Attach to the Release
+        working-directory: cmd/stochadex-full
+        run: |
+          set -euo pipefail
           gh release view "$TAG" >/dev/null 2>&1 \
             || gh release create "$TAG" --title "$TAG" --notes-from-tag --verify-tag
           gh release upload "$TAG" dist/* --clobber

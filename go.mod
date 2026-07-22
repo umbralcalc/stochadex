@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/akamensky/argparse v1.4.0
-	gonum.org/v1/gonum v0.16.0
+	gonum.org/v1/gonum v0.17.0
 	google.golang.org/protobuf v1.36.9
 	gopkg.in/yaml.v2 v2.4.0
 )
