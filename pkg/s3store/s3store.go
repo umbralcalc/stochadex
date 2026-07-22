@@ -1,14 +1,3 @@
-// Package s3store is the opt-in object-storage integration: it moves simulation input and
-// output between the engine and Amazon S3 (or any S3-compatible store).
-//
-// It is deliberately a TRANSPORT, not a format. Object storage is orthogonal to what the
-// bytes contain, so rather than reimplementing CSV, JSON-log and Arrow parsing against S3 —
-// and needing extension again for the next format — this package moves whole objects, and
-// the caller pairs it with whichever reader or sink already handles that format. Every
-// present and future format is reachable over S3 for free.
-//
-// Credentials are never taken from configuration. They come from the standard AWS chain:
-// environment variables, shared config/credentials files, or an instance/pod IAM role.
 package s3store
 
 import (
