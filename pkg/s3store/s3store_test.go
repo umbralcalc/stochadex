@@ -3,10 +3,13 @@ package s3store
 import (
 	"bytes"
 	"context"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3mem"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -26,30 +29,51 @@ func (s *stagingSink) Output(name string, state []float64, t float64) {
 
 func (s *stagingSink) Finalize() { os.WriteFile(s.path, s.rows.Bytes(), 0o644) }
 
-// testConfig points at the S3-compatible server CI provides (MinIO). Credentials come from
-// the standard AWS chain, so CI sets AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY as usual —
-// this package never reads them itself.
+// testConfig starts an in-process S3 server and points a Config at it.
+//
+// Deliberately NOT a container: a service image is an external dependency that can be
+// re-licensed, renamed or abandoned out from under the test, and it forces CI-only
+// execution plus health-check waiting. An in-process server has none of that, runs on a
+// developer machine with a plain `go test`, and still exercises the real SDK path — actual
+// HTTP requests, real request signing and response parsing — which is what this package's
+// correctness depends on.
+//
+// S3STORE_TEST_ENDPOINT overrides it, so the same test can be aimed at a real S3 bucket or
+// any S3-compatible server when you want to confirm against the genuine article.
 func testConfig(t *testing.T) (Config, string) {
 	t.Helper()
-	endpoint := os.Getenv("S3STORE_TEST_ENDPOINT")
-	if endpoint == "" {
-		t.Skip("set S3STORE_TEST_ENDPOINT to an S3-compatible server (CI runs MinIO) " +
-			"to exercise real transfers")
+	const bucket = "stochadex-test"
+
+	if endpoint := os.Getenv("S3STORE_TEST_ENDPOINT"); endpoint != "" {
+		name := os.Getenv("S3STORE_TEST_BUCKET")
+		if name == "" {
+			name = bucket
+		}
+		region := os.Getenv("AWS_REGION")
+		if region == "" {
+			region = "us-east-1"
+		}
+		return Config{Region: region, Endpoint: endpoint}, name
 	}
-	bucket := os.Getenv("S3STORE_TEST_BUCKET")
-	if bucket == "" {
-		bucket = "stochadex-test"
+
+	backend := s3mem.New()
+	if err := backend.CreateBucket(bucket); err != nil {
+		t.Fatalf("creating test bucket: %v", err)
 	}
-	region := os.Getenv("AWS_REGION")
-	if region == "" {
-		region = "us-east-1"
-	}
-	return Config{Region: region, Endpoint: endpoint}, bucket
+	server := httptest.NewServer(gofakes3.New(backend).Server())
+	t.Cleanup(server.Close)
+
+	// The SDK still signs requests, so it needs credentials present; they are never read
+	// by this package itself.
+	t.Setenv("AWS_ACCESS_KEY_ID", "test")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "test")
+
+	return Config{Region: "us-east-1", Endpoint: server.URL}, bucket
 }
 
-// TestS3StoreRoundTrip is the live-endpoint check: it proves bytes actually move, which
-// compilation and config-validation tests cannot. Everything else about this package is
-// plumbing around these two transfers.
+// TestS3StoreRoundTrip proves bytes actually move over the S3 API — which compilation and
+// config-validation tests cannot show. Everything else in this package is plumbing around
+// these two transfers.
 func TestS3StoreRoundTrip(t *testing.T) {
 	config, bucket := testConfig(t)
 	ctx := context.Background()

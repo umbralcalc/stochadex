@@ -34,6 +34,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.0 // indirect
 	github.com/aws/smithy-go v1.27.3 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/johannesboyne/gofakes3 v1.2.0 // indirect
+	github.com/ryszard/goskiplist v0.0.0-20150312221310-2dfbae5fcf46 // indirect
+	go.shabbyrobe.org/gocovmerge v0.0.0-20230507111327-fa4f82cfbf4d // indirect
+	golang.org/x/tools v0.37.0 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
