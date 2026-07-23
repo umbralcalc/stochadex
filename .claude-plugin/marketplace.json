@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "The stochadex simulation engine, packaged as an installable Claude Code plugin.",
-    "version": "0.6.0"
+    "version": "0.6.1"
   },
   "plugins": [
     {
