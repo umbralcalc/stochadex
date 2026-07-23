@@ -72,7 +72,13 @@ jobs:
           - runner: macos-14      # Apple silicon
             goos: darwin
             goarch: arm64
-          - runner: macos-13      # Intel
+          # macos-15-intel, not macos-13: the macOS 13 image was deprecated in
+          # September 2025 and fully retired that December. A retired label does not
+          # fail the job — nothing ever claims it, so it sits queued until the 24h
+          # limit cancels it, which is how v0.6.0 shipped without this asset.
+          # x86_64 macOS goes away entirely when the macos-15 image retires in
+          # autumn 2027; drop this leg then rather than hunting for another label.
+          - runner: macos-15-intel # Intel
             goos: darwin
             goarch: amd64
           - runner: ubuntu-latest
