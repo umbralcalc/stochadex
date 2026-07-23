@@ -9,8 +9,13 @@ import (
 
 // HawkesProcessIntensityIteration an iteration for a Hawkes process
 // self-exciting intensity function.
+//
+// Usage hints:
+//   - Provide: "background_rates" and "hawkes_partition_index" (the partition
+//     running the HawkesProcessIteration whose history excites this intensity).
+//   - Set ExcitingKernel to the kernel weighting past events by their age.
 type HawkesProcessIntensityIteration struct {
-	excitingKernel       kernels.IntegrationKernel
+	ExcitingKernel       kernels.IntegrationKernel
 	hawkesPartitionIndex int
 }
 
@@ -18,7 +23,7 @@ func (h *HawkesProcessIntensityIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	h.excitingKernel.Configure(partitionIndex, settings)
+	h.ExcitingKernel.Configure(partitionIndex, settings)
 	h.hawkesPartitionIndex = int(
 		settings.Iterations[partitionIndex].Params.GetIndex(
 			"hawkes_partition_index", 0),
@@ -31,7 +36,7 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	h.excitingKernel.SetParams(params)
+	h.ExcitingKernel.SetParams(params)
 	hawkesHistory := stateHistories[h.hawkesPartitionIndex]
 	values := params.GetCopy("background_rates")
 	for i := 1; i < hawkesHistory.StateHistoryDepth; i++ {
@@ -42,7 +47,7 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 			hawkesHistory.Values.RawRowView(i),
 		)
 		floats.Scale(
-			h.excitingKernel.Evaluate(
+			h.ExcitingKernel.Evaluate(
 				hawkesHistory.Values.RawRowView(0),
 				hawkesHistory.Values.RawRowView(i),
 				timestepsHistory.Values.AtVec(0),
@@ -53,19 +58,6 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 		floats.Add(values, sumValues)
 	}
 	return values
-}
-
-// NewHawkesProcessIntensityIteration creates a new
-// HawkesProcessIntensityIteration given a partition index
-// for the Hawkes process itself.
-func NewHawkesProcessIntensityIteration(
-	excitingKernel kernels.IntegrationKernel,
-	hawkesPartitionIndex int,
-) *HawkesProcessIntensityIteration {
-	return &HawkesProcessIntensityIteration{
-		excitingKernel:       excitingKernel,
-		hawkesPartitionIndex: hawkesPartitionIndex,
-	}
 }
 
 // HawkesProcessIteration defines an iteration for a Hawkes process.

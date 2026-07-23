@@ -47,6 +47,10 @@ var iterationBuilders = map[string]iterationBuilder{
 	"constant_values":                     nullary(func() simulator.Iteration { return &general.ConstantValuesIteration{} }),
 	"copy_values":                         nullary(func() simulator.Iteration { return &general.CopyValuesIteration{} }),
 	"param_values":                        nullary(func() simulator.Iteration { return &general.ParamValuesIteration{} }),
+	// values_weighted_resampling holds a rand.Source, but Configure assigns it from
+	// the partition seed, so the zero value is a complete construction and every
+	// other input (log_weight_partitions, data_values_partitions, …) is params.
+	"values_weighted_resampling": nullary(func() simulator.Iteration { return &general.ValuesWeightedResamplingIteration{} }),
 
 	// pkg/inference
 	"posterior_covariance":        nullary(func() simulator.Iteration { return &inference.PosteriorCovarianceIteration{} }),

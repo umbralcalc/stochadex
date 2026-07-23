@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -29,11 +30,13 @@ var wantIterationType = map[string]string{
 	"binomial_observation_process":        "*discrete.BinomialObservationProcessIteration",
 	"categorical_state_transition":        "*discrete.CategoricalStateTransitionIteration",
 	"hawkes_process":                      "*discrete.HawkesProcessIteration",
+	"hawkes_process_intensity":            "*discrete.HawkesProcessIntensityIteration",
 	"values_sorted_collection_mean":       "*general.ValuesSortedCollectionMeanIteration",
 	"values_sorted_collection_covariance": "*general.ValuesSortedCollectionCovarianceIteration",
 	"constant_values":                     "*general.ConstantValuesIteration",
 	"copy_values":                         "*general.CopyValuesIteration",
 	"param_values":                        "*general.ParamValuesIteration",
+	"values_weighted_resampling":          "*general.ValuesWeightedResamplingIteration",
 	"posterior_covariance":                "*inference.PosteriorCovarianceIteration",
 	"posterior_log_normalisation":         "*inference.PosteriorLogNormalisationIteration",
 	"smc_posterior":                       "*inference.SMCPosteriorIteration",
@@ -48,6 +51,7 @@ var wantIterationType = map[string]string{
 	"cumulative":                        "*general.CumulativeIteration",
 	"discounted_cumulative":             "*general.DiscountedCumulativeIteration",
 	"values_function":                   "*general.ValuesFunctionIteration",
+	"values_changing_events":            "*general.ValuesChangingEventsIteration",
 	"values_collection":                 "*general.ValuesCollectionIteration",
 	"values_sorting_collection":         "*general.ValuesSortingCollectionIteration",
 	"data_generation":                   "*inference.DataGenerationIteration",
@@ -69,13 +73,23 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 	"cumulative":                        {"iteration": map[string]interface{}{"type": "wiener_process"}},
 	"discounted_cumulative":             {"iteration": map[string]interface{}{"type": "wiener_process"}},
 	"values_function":                   {"transform": "params", "reduce": "sum"},
-	"values_collection":                 {"pop_index": "next_non_empty", "push": "param_values"},
-	"values_sorting_collection":         {"push_and_sort": "param_values"},
-	"expression":                        {"fields": []interface{}{map[string]interface{}{"name": "x"}}, "outputs": []interface{}{"x"}},
-	"data_generation":                   {"likelihood": map[string]interface{}{"type": "normal"}},
-	"data_comparison":                   {"likelihood": map[string]interface{}{"type": "normal"}},
-	"posterior_mean":                    {"transform": "mean"},
-	"smc_proposal":                      {"priors": []interface{}{map[string]interface{}{"type": "uniform", "lo": 0.0, "hi": 1.0}}},
+	"hawkes_process_intensity":          {"kernel": map[string]interface{}{"type": "exponential"}},
+	"values_changing_events": {
+		"event_iteration": map[string]interface{}{"type": "values_function", "function": "params_event"},
+		"iteration_by_event": []interface{}{
+			map[string]interface{}{
+				"event":     1.0,
+				"iteration": map[string]interface{}{"type": "constant_values"},
+			},
+		},
+	},
+	"values_collection":         {"pop_index": "next_non_empty", "push": "param_values"},
+	"values_sorting_collection": {"push_and_sort": "param_values"},
+	"expression":                {"fields": []interface{}{map[string]interface{}{"name": "x"}}, "outputs": []interface{}{"x"}},
+	"data_generation":           {"likelihood": map[string]interface{}{"type": "normal"}},
+	"data_comparison":           {"likelihood": map[string]interface{}{"type": "normal"}},
+	"posterior_mean":            {"transform": "mean"},
+	"smc_proposal":              {"priors": []interface{}{map[string]interface{}{"type": "uniform", "lo": 0.0, "hi": 1.0}}},
 }
 
 // TestIterationRegistryConstructs is drift test 1: every registered name builds a
@@ -141,6 +155,74 @@ func TestResolveIterationErrors(t *testing.T) {
 			t.Error("expected an error for an unknown smc_posterior field")
 		}
 	})
+
+	t.Run("values_function takes either a whole function or transform+reduce", func(t *testing.T) {
+		if _, err := ResolveIteration(simulator.ComponentSpec{
+			Type: "values_function", Fields: map[string]interface{}{"function": "params_event"},
+		}); err != nil {
+			t.Errorf("a whole named function should be accepted: %v", err)
+		}
+		if _, err := ResolveIteration(simulator.ComponentSpec{
+			Type: "values_function", Fields: map[string]interface{}{"function": "no_such_function"},
+		}); err == nil {
+			t.Error("expected an error for an unknown function name")
+		}
+		// The whole-function form takes over completely: a stray transform is not
+		// silently ignored alongside it.
+		if _, err := ResolveIteration(simulator.ComponentSpec{
+			Type: "values_function",
+			Fields: map[string]interface{}{
+				"function": "params_event", "transform": "params",
+			},
+		}); err == nil {
+			t.Error("expected an error for transform alongside function")
+		}
+	})
+
+	t.Run("values_changing_events validates its event/iteration pairs", func(t *testing.T) {
+		eventIteration := map[string]interface{}{
+			"type": "values_function", "function": "params_event",
+		}
+		pair := func(event interface{}) map[string]interface{} {
+			return map[string]interface{}{
+				"event":     event,
+				"iteration": map[string]interface{}{"type": "constant_values"},
+			}
+		}
+		resolve := func(byEvent []interface{}) error {
+			_, err := ResolveIteration(simulator.ComponentSpec{
+				Type: "values_changing_events",
+				Fields: map[string]interface{}{
+					"event_iteration": eventIteration, "iteration_by_event": byEvent,
+				},
+			})
+			return err
+		}
+		// An integer event key is accepted: yaml.v2 decodes `1` as an int and `1.0`
+		// as a float64, and both must reach the same map key.
+		if err := resolve([]interface{}{pair(1)}); err != nil {
+			t.Errorf("an integer event value should be accepted: %v", err)
+		}
+		if err := resolve([]interface{}{pair(1.0), pair(1)}); err == nil {
+			t.Error("expected an error for a duplicate event value")
+		}
+		if err := resolve([]interface{}{pair("one")}); err == nil {
+			t.Error("expected an error for a non-numeric event value")
+		}
+		if err := resolve([]interface{}{
+			map[string]interface{}{"event": 1.0, "nope": 2},
+		}); err == nil {
+			t.Error("expected an error for an unknown field in a pair")
+		}
+		if _, err := ResolveIteration(simulator.ComponentSpec{
+			Type: "values_changing_events",
+			Fields: map[string]interface{}{
+				"event_iteration": eventIteration, "iteration_by_event": "not-a-list",
+			},
+		}); err == nil {
+			t.Error("expected an error for a non-list iteration_by_event")
+		}
+	})
 }
 
 // TestDataSpecIterationRunsInProcess is the integration test: a config using a
@@ -177,6 +259,131 @@ func TestDataSpecIterationRunsInProcess(t *testing.T) {
 		t.Errorf("resolved iteration is %s, want a WienerProcessIteration", got)
 	}
 	// Run it: no panic, produces a generator that steps to termination.
+	Run(loaded, &SocketConfig{})
+}
+
+// TestNewlyRegisteredIterationsRunFromYaml is the end-to-end proof for the three
+// iterations that closed the last non-MCTS config gaps: a Hawkes self-exciting
+// intensity (kernel + a partition it reads by name), an event-switched map of
+// nested iterations, and weighted resampling over other partitions' histories.
+// It goes through the YAML loader rather than ComponentSpec literals on purpose:
+// yaml.v2 delivers nested mappings as map[interface{}]interface{}, which the
+// in-Go spec tests never exercise.
+func TestNewlyRegisteredIterationsRunFromYaml(t *testing.T) {
+	const config = `main:
+  partitions:
+  - name: intensity
+    iteration: {type: hawkes_process_intensity, kernel: {type: exponential}}
+    params:
+      background_rates: [1.4, 1.2]
+      exponential_weighting_timescale: [1.1]
+    params_as_partitions: {hawkes_partition_index: [counter]}
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 10
+    seed: 253
+  - name: counter
+    iteration: {type: hawkes_process}
+    params: {}
+    params_from_upstream:
+      intensity: {upstream: intensity}
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 10
+    seed: 1112
+  - name: switcher
+    iteration:
+      type: values_changing_events
+      event_iteration: {type: values_function, function: params_event}
+      iteration_by_event:
+      - event: 1.0
+        iteration: {type: wiener_process}
+      - event: 2.0
+        iteration: {type: constant_values}
+    params: {event: [1.0], variances: [1.0]}
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 99
+  - name: weights_a
+    iteration: {type: constant_values}
+    params: {}
+    init_state_values: [-0.5]
+    state_history_depth: 5
+    seed: 0
+  - name: weights_b
+    iteration: {type: constant_values}
+    params: {}
+    init_state_values: [-1.5]
+    state_history_depth: 5
+    seed: 0
+  - name: data_a
+    iteration: {type: constant_values}
+    params: {}
+    init_state_values: [1.0, 2.0, 3.0]
+    state_history_depth: 5
+    seed: 0
+  - name: data_b
+    iteration: {type: constant_values}
+    params: {}
+    init_state_values: [4.0, 5.0, 6.0]
+    state_history_depth: 5
+    seed: 0
+  - name: resampled
+    iteration: {type: values_weighted_resampling}
+    params: {past_discounting_factor: [0.98]}
+    params_as_partitions:
+      log_weight_partitions: [weights_a, weights_b]
+      data_values_partitions: [data_a, data_b]
+    init_state_values: [0.0, 0.0, 0.0]
+    state_history_depth: 2
+    seed: 1735
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: nil}
+    termination_condition: {type: number_of_steps, max_steps: 20}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+`
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(config), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !LoadApiRunConfigStringsFromYaml(path).IsFullyData() {
+		t.Fatal("this config names no Go anywhere — it should be fully data")
+	}
+	loaded := LoadApiRunConfigFromYaml(path)
+	want := map[string]string{
+		"intensity": "*discrete.HawkesProcessIntensityIteration",
+		"switcher":  "*general.ValuesChangingEventsIteration",
+		"resampled": "*general.ValuesWeightedResamplingIteration",
+	}
+	for _, partition := range loaded.Main.Partitions {
+		expected, checked := want[partition.Name]
+		if !checked {
+			continue
+		}
+		if partition.Iteration == nil {
+			t.Fatalf("%s: iteration not resolved at load", partition.Name)
+		}
+		if got := reflect.TypeOf(partition.Iteration).String(); got != expected {
+			t.Errorf("%s resolved to %s, want %s", partition.Name, got, expected)
+		}
+		// The event keys must survive YAML decoding as the exact float values the
+		// iteration switches on. A key that arrived mis-typed would simply never
+		// match, and the partition would silently fall through to its previous
+		// state — a failure the type check above cannot see.
+		if switcher, ok := partition.Iteration.(*general.ValuesChangingEventsIteration); ok {
+			for _, event := range []float64{1.0, 2.0} {
+				if _, found := switcher.IterationByEvent[event]; !found {
+					t.Errorf("switcher has no iteration keyed by event %v: got keys %v",
+						event, switcher.IterationByEvent)
+				}
+			}
+		}
+		delete(want, partition.Name)
+	}
+	if len(want) > 0 {
+		t.Fatalf("partitions missing from the loaded config: %v", want)
+	}
+	// No Go toolchain involved: this steps to termination in-process.
 	Run(loaded, &SocketConfig{})
 }
 

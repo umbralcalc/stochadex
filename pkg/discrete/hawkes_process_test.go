@@ -15,7 +15,7 @@ func TestHawkesProcess(t *testing.T) {
 				"hawkes_process_settings.yaml",
 			)
 			intensityIteration := &HawkesProcessIntensityIteration{
-				excitingKernel: &kernels.ExponentialIntegrationKernel{},
+				ExcitingKernel: &kernels.ExponentialIntegrationKernel{},
 			}
 			intensityIteration.Configure(0, settings)
 			hawkesIteration := &HawkesProcessIteration{}
@@ -47,7 +47,7 @@ func TestHawkesProcess(t *testing.T) {
 				"hawkes_process_settings.yaml",
 			)
 			intensityIteration := &HawkesProcessIntensityIteration{
-				excitingKernel: &kernels.ExponentialIntegrationKernel{},
+				ExcitingKernel: &kernels.ExponentialIntegrationKernel{},
 			}
 			hawkesIteration := &HawkesProcessIteration{}
 			store := simulator.NewStateTimeStorage()

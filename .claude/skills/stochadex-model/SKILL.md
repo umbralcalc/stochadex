@@ -291,13 +291,22 @@ error; it tells you what to fix.
 `compound_poisson_process` (`rates`,`gamma_alphas`,`gamma_betas`; field `jump_dist: {type: gamma_jump}`),
 `drift_jump_diffusion`, `hawkes_process`, `binomial_observation_process`,
 `categorical_state_transition`, `cumulative_time`, `gradient_descent`,
-`ornstein_uhlenbeck_exact_gaussian`.
+`ornstein_uhlenbeck_exact_gaussian`,
+`hawkes_process_intensity` (params: `background_rates`; field `kernel: {...}`; wire the counting
+partition it is excited by with `params_as_partitions: {hawkes_partition_index: [<name>]}`).
 
 **Iterations — utility / composable:** `constant_values`, `copy_values`, `param_values`,
 `cumulative` (field `iteration: {...}`), `discounted_cumulative` (`iteration`),
 `data_generation` (`likelihood: {...}`), `data_comparison` (`likelihood`),
 `values_function_vector_mean` / `values_function_vector_covariance` (`function: <name>`, `kernel: {...}`),
-`values_grouped_aggregation` (`aggregation: <name>`, `kernel`), `values_function`,
+`values_grouped_aggregation` (`aggregation: <name>`, `kernel`),
+`values_function` (either `function: <name>` or `transform: <name>` + `reduce: <name>`),
+`values_changing_events` (fields `event_iteration: {...}` and `iteration_by_event:` — a *list* of
+`{event: <number>, iteration: {...}}` pairs; falls back to `default_values` params, else the
+previous state, when no event matches),
+`values_weighted_resampling` (params: `log_weight_partitions`, `data_values_partitions`,
+optional `log_weight_indices`, `past_discounting_factor` — wire the partition lists by name with
+`params_as_partitions`),
 `posterior_mean` (`transform: mean|variance`), `posterior_covariance`, `posterior_log_normalisation`.
 
 **Kernels:** `exponential` `periodic` `gaussian_state` `t_distribution_state` `binned`
@@ -306,8 +315,11 @@ error; it tells you what to fix.
 `wishart` `beta` `poisson` `gamma` `negative_binomial`.
 **Priors:** `uniform` (`lo`,`hi`) `truncated_normal` (`mu`,`sigma`,`lo`,`hi`) `half_normal` (`sigma`)
 `log_normal` (`mu`,`sigma`).
-**Value functions:** `data_values` `data_values_variance` `other_values` `unit_value`
-`past_discounted_data_values` `past_discounted_other_values`.
+**Value functions** (`function:` on the vector mean/covariance iterations): `data_values`
+`data_values_variance` `other_values` `unit_value` `past_discounted_data_values`
+`past_discounted_other_values`.
+**Whole value functions** (`function:` on `values_function`): `params_event` (reads the `event`
+params) `partition_event` (reads `event_partition_index` / `event_state_value_index`).
 **Aggregations:** `count` `sum` `mean` `max` `min`.
 **Macros:** `vector_mean` `vector_variance` `vector_covariance` `grouped_aggregation`
 `scalar_regression_stats` `likelihood_comparison` `posterior_estimation`
