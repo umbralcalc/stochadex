@@ -22,6 +22,17 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-07-23
+
+The release that makes the engine reachable from outside itself. Egress stops being a Go-only
+concern — Arrow, DuckDB and S3 are carried by the released binaries and reachable from config —
+and the CLI plus the `stochadex-model` skill install without a Go toolchain. On the config side,
+the iteration registry closes the last gaps that were not MCTS, so **the decision layer is now
+the only capability that is deliberately Go-only**.
+
+A minor bump rather than a patch because it is breaking twice over: gonum v0.17 is now required,
+and two exported symbols that did nothing were removed.
+
 ### Added
 - **The released binary now carries the integrations: Arrow output everywhere, plus an
   accelerated build with an optimised system BLAS and DuckDB output.** Imports drive
@@ -64,12 +75,6 @@ an exact version rather than assume stability across minors.
   (still two methods) and every existing sink is unaffected; this is what lets a columnar sink
   — which only becomes a readable batch after the last row — work at all.
 
-### Changed
-- **The engine now requires gonum v0.17** (was v0.16), matching the version the Arrow/DuckDB
-  modules already resolved to, so the shipped binary runs the same version the engine's tests
-  cover. The full suite, including every convergence test, passes unchanged.
-
-### Added
 - **Installable as a Claude Code plugin + prebuilt CLI binaries — the distribution layer that makes
   "install a skill next to your agent" real.** The repo is now a plugin marketplace
   (`.claude-plugin/marketplace.json` + `plugin.json`, with the plugin's `skills` pointing at the
@@ -90,7 +95,6 @@ an exact version rather than assume stability across minors.
   resolve to the bundled skill — a broken pointer would otherwise install a plugin that silently
   ships no skill.
 
-### Added
 - **Three more iterations reachable from pure config, leaving MCTS as the only capability that
   is deliberately Go-only.** Auditing the registry's own exclusion list showed two of its four
   non-MCTS entries were misclassified rather than genuinely unreachable:
@@ -116,6 +120,11 @@ an exact version rather than assume stability across minors.
   invariant to iterations that read *other* partitions' histories, which the existing
   single-partition runner could not reach, and it fails if the subject's trajectory never varies
   so the comparison cannot quietly become vacuous.
+
+### Changed
+- **The engine now requires gonum v0.17** (was v0.16), matching the version the Arrow/DuckDB
+  modules already resolved to, so the shipped binary runs the same version the engine's tests
+  cover. The full suite, including every convergence test, passes unchanged.
 
 ### Removed
 - **`discrete.NewHawkesProcessIntensityIteration`** — it had no callers anywhere in the repo
@@ -684,7 +693,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/umbralcalc/stochadex/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/umbralcalc/stochadex/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/umbralcalc/stochadex/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/umbralcalc/stochadex/compare/v0.5.0...v0.5.1
