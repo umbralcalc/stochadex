@@ -11,30 +11,27 @@ title: "Home"
 
 It's a simulation engine written in [Go](https://go.dev/) which can be used to sample from, and learn computational models for, a whole 'Pokédex' of possible real-world systems.
 
-For software engineers, the stochadex simulation framework abstracts away many of the common features that sampling algorithms have for performing these computations behind a highly-configurable interface.
+The framework abstracts away the machinery that sampling algorithms have in common behind a single configurable interface; so a whole simulation, and the analysis and inference layered on top of it, **can be stated as pure configuration**.
 
 This simulation engine is designed based on the simulation software fundamentals described in [this collection of blog posts](https://umbralcalc.github.io/posts/simulating_real_world_systems_as_a_programmer_introduction.html).
 
 ## When to use it
 
-The stochadex fits best when you're in [Go](https://go.dev/) and want stochastic simulation and online inference or simulation-based decision-making (like MCTS) together over one composable primitive and a single deployable binary. This is a combination no other Go library offers (to our knowledge).
+The stochadex fits best when you want stochastic simulation, online inference and simulation-based decision-making over one composable primitive and you want a whole run to be a **single config file**.
 
-It's a powerful framework with tons of features, really generalisable abstractions and principled design. However, you should probably reach for something else when:
+The model, its wiring, the run mode, the data in/out and any inference or optimisation on top are **all data**: one YAML file, run by one prebuilt binary, with no Go toolchain anywhere in the loop. Maths outside the built-in catalogue can be written as expressions in the same file, so Go is only for genuinely new primitives.
+
+Other declarative formats are narrower ([SBML](https://sbml.org/), [Modelica](https://modelica.org/)) or are languages with their own compilers ([Stan](https://mc-stan.org/), [GAML](https://gama-platform.org/)). However, you should probably reach for something else when:
 
 - **Large fixed-shape, GPU, or autodiff-heavy Bayesian modelling** → [Stan](https://mc-stan.org/), [PyMC](https://www.pymc.io/), or Julia's [SciML](https://sciml.ai/).
-- **Pure discrete-event simulation** (entities through queues and servers) → [godes](https://github.com/agoussia/godes).
+- **Pure discrete-event simulation** (entities through queues and servers) → [godes](https://github.com/agoussia/godes) or [SimPy](https://gitlab.com/team-simpy/simpy/).
+- **A standards-based interchange format** (systems biology, physical plant) → [SBML](https://sbml.org/) with [COPASI](https://copasi.org/), or [Modelica](https://modelica.org/).
 - **Plain numerics or classical ML in Go** → [gonum](https://github.com/gonum/gonum), which the stochadex is built on.
 - **Training neural networks or deep RL** → train in Python, then import a frozen ONNX/TorchScript model to run inference behind an [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration).
 
 ## Install
 
-There are three ways in, depending on whether you're writing Go, writing YAML, or letting an agent write it for you.
-
-**As a Go library** → build simulations against the `Iteration` interface. Start with the [quickstart](https://stochadex.github.io/pkg/quickstart.html).
-
-```bash
-go get github.com/umbralcalc/stochadex
-```
+Three ways in, depending on whether you're writing YAML, letting an agent write it for you, or writing Go.
 
 **As a CLI** → describe a whole run in one YAML file and execute it with a prebuilt binary. A config that names no Go anywhere runs in-process, so no Go toolchain is needed. See [running with configs](https://stochadex.github.io/pkg/configs.html).
 
@@ -48,6 +45,12 @@ chmod +x stochadex
 ```bash
 claude plugin marketplace add umbralcalc/stochadex
 claude plugin install stochadex@stochadex
+```
+
+**As a Go library** → implement the `Iteration` interface to add a primitive the catalogue doesn't have, or embed the engine in your own service. Start with the [quickstart](https://stochadex.github.io/pkg/quickstart.html).
+
+```bash
+go get github.com/umbralcalc/stochadex
 ```
 
 ## Integrations
