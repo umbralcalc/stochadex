@@ -22,6 +22,25 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-07-23
+
+### Fixed
+- **The accelerated `darwin/amd64` release asset builds again.** `v0.6.0`'s release run asked
+  for the `macos-13` runner label, which GitHub deprecated in September 2025 and retired that
+  December. A retired label does not fail the job: nothing ever claims it, so it sits queued
+  until the 24-hour limit cancels it — which is why one leg of that run was still pending
+  ~13 hours after the tag. It was the release workflow's *first* execution (`v0.5.3`'s binaries
+  were attached retroactively), so the label had never actually been exercised; it was stale
+  from the day it was written. `fail-fast: false` and the create-or-upload publish step
+  contained the damage: the other three legs published normally, so `v0.6.0` shipped 8 of its
+  9 assets, missing only `stochadex-accel-darwin-amd64`. Intel macOS users still had the
+  portable `stochadex-darwin-amd64` — what was absent for that platform was the BLAS/DuckDB
+  acceleration tier. The label is now `macos-15-intel`, the free-tier Intel replacement, and
+  this release is also the proof that it resolves: a tag-triggered run reads the workflow from
+  the tag ref, so the fix could not be validated by the pull request that made it. x86_64 macOS
+  disappears entirely when the macos-15 image retires in autumn 2027, at which point the leg
+  should be dropped rather than re-pointed at another label.
+
 ## [0.6.0] — 2026-07-23
 
 The release that makes the engine reachable from outside itself. Egress stops being a Go-only
@@ -693,7 +712,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/umbralcalc/stochadex/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/umbralcalc/stochadex/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/umbralcalc/stochadex/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/umbralcalc/stochadex/compare/v0.5.1...v0.5.2
