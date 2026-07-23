@@ -40,10 +40,10 @@ curl -L "https://github.com/umbralcalc/stochadex/releases/latest/download/stocha
 chmod +x stochadex
 ```
 
-**As a container** → the same YAML surface, with every integration already built in (Arrow, Postgres, S3, DuckDB, accelerated BLAS) and nothing to install. This is the unit a pipeline composes: a Kubernetes Job, an Argo step or a Cloud Run Job takes an image, not a binary. It runs configs that name no Go.
+**As a container** → the same YAML surface, with every integration already built in (Arrow, Postgres, S3, DuckDB, accelerated BLAS) and nothing to install. This is the unit a pipeline composes: a Kubernetes Job, an Argo step or a Cloud Run Job takes an image, not a binary. See [running with configs](https://stochadex.github.io/pkg/configs.html).
 
 ```bash
-docker run --rm -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest --config your-config.yaml
+docker pull ghcr.io/umbralcalc/stochadex:latest
 ```
 
 **As a Claude Code plugin** → installs an authoring skill next to your agent, so you can describe a system in plain language and get a running, validated simulation. It drives the same CLI.

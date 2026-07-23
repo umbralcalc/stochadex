@@ -20,6 +20,16 @@ chmod +x stochadex
 
 # Or, if you have Go:
 go install github.com/umbralcalc/stochadex/cmd/stochadex@latest
+
+# Or as a container, with nothing installed but Docker:
+docker pull ghcr.io/umbralcalc/stochadex:latest
+```
+
+The image's working directory is `/work`, so mounting your project there lets every
+path in this guide stay exactly as written:
+
+```bash
+docker run --rm -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest --config my_config.yaml
 ```
 
 ### Which binary?
@@ -33,6 +43,10 @@ Two are published with each release, and the default is the right choice for alm
 
 Swap `stochadex-` for `stochadex-accel-` in the download URL to get the accelerated build.
 Both accept exactly the same configs — the only difference is what's compiled in.
+
+There is nothing to choose with the container: the image carries the accelerated set.
+The split above exists so a *binary* can survive whatever host it lands on, and an
+image brings its own. Run `--version` on any of them to see what yours has.
 
 ## Your first config
 
