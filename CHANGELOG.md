@@ -60,6 +60,16 @@ an exact version rather than assume stability across minors.
   runs as a non-root user on a slim base carrying only the libraries the accelerated binary
   links against — including `ca-certificates`, without which S3 egress and any HTTPS data
   source fail.
+- **The "Running with configs" guide is now the second half of the quickstart, and
+  `/pkg/configs.html` no longer exists.** The two pages told one story twice: the quickstart
+  built a simulation in Go and then re-introduced the engine to show the YAML route, while
+  `configs.md` re-introduced it again from the top. Merged, the page reads Go → YAML → analysis
+  in one pass. Every reference in the repo now points at
+  `quickstart.html#running-from-a-config-file`, including the site-wide nav entry, which is
+  baked into every generated page and would otherwise have been a dead link on all of them
+  rather than just one. **The `v0.6.0` entry below announced that page, so an external link to
+  `https://stochadex.github.io/pkg/configs.html` will 404** — the content is unchanged, only
+  relocated. S3 also joins the integrations table, having been named everywhere else but there.
 
 ## [0.6.1] — 2026-07-23
 
