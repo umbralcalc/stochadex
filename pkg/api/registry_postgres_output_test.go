@@ -59,3 +59,29 @@ func TestPostgresOutputRegistered(t *testing.T) {
 		}
 	})
 }
+
+// TestPostgresOutputDsnForm covers the driver/dsn spelling — the branch that makes any
+// Postgres-wire database (TimescaleDB, CockroachDB, a managed instance with sslmode)
+// reachable, rather than only a local Postgres opened from credentials.
+//
+// Only the failing path is exercised: sql.Open is lazy, so a well-formed DSN returns a
+// handle without connecting, and constructing the sink then opens a real connection (and
+// panics if it fails). An unregistered driver, though, fails inside sql.Open itself — which
+// is exactly the branch under test.
+func TestPostgresOutputDsnForm(t *testing.T) {
+	_, err := simulator.ResolveOutputFunction(simulator.ComponentSpec{
+		Type: "postgres",
+		Fields: map[string]interface{}{
+			"table":  "results",
+			"driver": "not_a_real_driver",
+			"dsn":    "postgres://user:pass@localhost:5432/db",
+		},
+	})
+	if err == nil {
+		t.Fatal("expected an error for an unknown sql driver")
+	}
+	// The message must name the driver, or a typo there is opaque.
+	if !strings.Contains(err.Error(), "not_a_real_driver") {
+		t.Errorf("error should name the driver, got: %v", err)
+	}
+}
