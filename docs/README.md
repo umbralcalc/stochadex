@@ -33,14 +33,14 @@ Other declarative formats are narrower ([SBML](https://sbml.org/), [Modelica](ht
 
 Four ways in, depending on whether you're writing YAML, running it as a pipeline step, letting an agent write it for you, or writing Go.
 
-**As a CLI** → describe a whole run in one YAML file and execute it with a prebuilt binary. A config that names no Go anywhere runs in-process, so no Go toolchain is needed. See [running with configs](https://stochadex.github.io/pkg/configs.html).
+**As a CLI** → describe a whole run in one YAML file and execute it with a prebuilt binary. A config that names no Go anywhere runs in-process, so no Go toolchain is needed. See [running from a config file](https://stochadex.github.io/pkg/quickstart.html#running-from-a-config-file).
 
 ```bash
 curl -L "https://github.com/umbralcalc/stochadex/releases/latest/download/stochadex-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" -o stochadex
 chmod +x stochadex
 ```
 
-**As a container** → the same YAML surface, with every integration already built in (Arrow, Postgres, S3, DuckDB, accelerated BLAS) and nothing to install. This is the unit a pipeline composes: a Kubernetes Job, an Argo step or a Cloud Run Job takes an image, not a binary. See [running with configs](https://stochadex.github.io/pkg/configs.html).
+**As a container** → the same YAML surface, with every integration already built in (Arrow, Postgres, S3, DuckDB, accelerated BLAS) and nothing to install. See [running from a config file](https://stochadex.github.io/pkg/quickstart.html#running-from-a-config-file).
 
 ```bash
 docker pull ghcr.io/umbralcalc/stochadex:latest
