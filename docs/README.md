@@ -66,6 +66,7 @@ go get github.com/umbralcalc/stochadex
 | <img src="./assets/postgres-integration-logo.svg" height="40"/><br/> | Load state history into a simulation and write output back over `database/sql`. Point it at any Postgres-wire database. | [read](https://stochadex.github.io/pkg/analysis.html#NewStateTimeStorageFromPostgresDb) · [write](https://stochadex.github.io/pkg/analysis.html#NewPostgresDbOutputFunction) |
 | <img src="./assets/arrow-integration-logo.svg" height="40"/><br/> | Build simulation output directly as Apache Arrow for columnar interchange (Polars / pandas / Parquet). Opt-in module. | [read](https://stochadex.github.io/pkg/arrowstore.html#ArrowStateTimeStorage.Record) · [write](https://stochadex.github.io/pkg/arrowstore.html#ArrowStateTimeStorageOutputFunction) |
 | <img src="./assets/duckdb-integration-logo.svg" height="40"/><br/> | Land the Arrow output in DuckDB for SQL analytics, zero-copy. Opt-in module. | [write](https://stochadex.github.io/pkg/duckdbstore.html#IngestToTable) |
+| <img src="./assets/s3-integration-logo.svg" height="40"/><br/> | Read and write runs to Amazon S3 or any S3-compatible store (MinIO, Cloudflare R2, Ceph). A *transport, not a format*: the object is handed to the normal reader or sink for its `format:`, so every format works over object storage. Opt-in module. | [read](https://stochadex.github.io/pkg/s3store.html#Fetch) · [write](https://stochadex.github.io/pkg/s3store.html#NewOutputFunction) |
 
 ## Projects using it
 
