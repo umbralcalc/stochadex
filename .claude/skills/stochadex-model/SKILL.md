@@ -9,6 +9,37 @@ Build, run, and analyse a stochastic simulation by writing **one YAML file** —
 compilation, no toolchain. You describe a system; `stochadex --config file.yaml` resolves and
 runs it in-process. Everything you need to author a working config is here.
 
+## Prerequisite: the `stochadex` CLI
+
+Authoring needs the `stochadex` binary on PATH to run configs. It is a single prebuilt
+executable — no Go toolchain required to run a data-spec config (the kind this skill writes).
+
+```bash
+# Prebuilt binary (no Go needed) — pick your platform's asset:
+curl -L https://github.com/umbralcalc/stochadex/releases/latest/download/stochadex-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') -o stochadex
+chmod +x stochadex && ./stochadex --config model.yaml
+
+# Or, if a Go toolchain is present:
+go install github.com/umbralcalc/stochadex/cmd/stochadex@latest
+```
+
+If `stochadex` is missing, stop and tell the user to install it (above) rather than guessing —
+authoring is fine, but you cannot *run* a config without it.
+
+**Check what you have before writing a config that needs it:**
+
+```bash
+stochadex --version
+# stochadex v0.5.3 darwin/arm64
+# features: arrow postgres s3          <- portable build
+# features: arrow cblas duckdb postgres s3   <- accelerated build
+```
+
+**Two builds exist.** The default asset above is pure Go. An `stochadex-accel-<os>-<arch>` asset
+(same URL with `stochadex-accel-`) adds `cblas` (an optimised system BLAS — worth it for
+BLAS-heavy workloads, see the performance page) and `duckdb` output. Both accept identical
+configs; only the compiled-in features differ, and `--version` is how you tell them apart.
+
 ## The 60-second mental model
 
 A simulation is a set of **partitions**. Each partition advances a vector **state** every step,
@@ -116,7 +147,8 @@ deadlock, the run tells you exactly which partitions form the cycle.
 ```yaml
   simulation:
     output_condition:      {type: every_step}            # or nil, every_n_steps{n}, only_given_partitions{partitions:[...]}
-    output_function:       {type: stdout}                # or nil, json_log{path}
+    output_function:       {type: stdout}                # or nil, json_log{path},
+                                                         # arrow{path}, duckdb{path,table}
     termination_condition: {type: number_of_steps, max_steps: 100}   # or time_elapsed{max_time_elapsed}
     timestep_function:     {type: constant, stepsize: 1.0}           # or exponential_distribution{mean, seed}
     init_time_value:       0.0
@@ -171,9 +203,25 @@ default when you omit `kernel:`) needs none. `vector_covariance` takes the same 
 `vector_variance` (both need a `mean:` reference). Macro results are written to stdout
 automatically — an analysis run needs no `simulation:` block. A later macro may reference an earlier
 macro's output partition by name (they run in order).
-`data.source` can load a file instead of running a sub-simulation:
-`source: {csv: {path: x.csv, time_column: 0, state_columns: {series: [1,2]}}}` or
-`source: {json_log: {path: run.log}}`.
+### Reading and writing data (I/O)
+
+`data.source` loads a dataset instead of running a sub-simulation; `output_function` writes a
+run out. The same formats work in both directions, so a run can be written and read back:
+
+| Source (`data.source:`) | Sink (`output_function:`) |
+|---|---|
+| `{csv: {path: x.csv, time_column: 0, state_columns: {series: [1,2]}}}` | `{type: stdout}` / `{type: json_log, path: run.log}` |
+| `{json_log: {path: run.log}}` | `{type: arrow, path: run.arrow}` |
+| `{arrow: {path: run.arrow}}` | `{type: duckdb, path: db.duckdb, table: results}` *(accel build)* |
+| `{postgres: {user, password, dbname, table, partition_names, start_time, end_time}}` | `{type: postgres, table: results, user/password/dbname}` — or `{type: postgres, driver: pgx, dsn: "…", table: t}` for **any Postgres-wire database** |
+| `{s3: {bucket, key, format: arrow\|csv\|json_log}}` | `{type: s3, bucket, key, format: arrow\|json_log}` |
+
+**S3 is a transport, not a format** — give it the `format:` of the object and it reuses the
+normal loader/sink, so anything above works over S3. Credentials come from the standard AWS
+chain (env, shared config, IAM role) — never put them in the config. Optional `region:` and
+`endpoint:` (set `endpoint` for MinIO / R2 / any S3-compatible store).
+
+If you name a source this binary doesn't have, the error lists the ones it does.
 
 Notable macros (all take a `data:` block): `vector_mean` / `vector_variance` / `vector_covariance`,
 `grouped_aggregation`, `scalar_regression_stats`, `likelihood_comparison`, and

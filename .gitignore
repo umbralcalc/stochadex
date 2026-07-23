@@ -5,6 +5,11 @@ __pycache__/
 .ipynb_checkpoints
 bin/
 tmp/
+# Compiled CLI binaries: `go build` in a cmd/ dir drops the binary beside its source,
+# and the release workflow builds into cmd/stochadex-full/dist/.
+/cmd/*/dist/
+/cmd/stochadex/stochadex
+/cmd/stochadex-full/stochadex-full
 .vscode/
 nbs/data/*
 log/*

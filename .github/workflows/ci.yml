@@ -54,12 +54,29 @@ jobs:
       # uses replace => ../..) so PRs still catch breakage.
       - name: Build and test arrowstore module (opt-in Arrow egress)
         run: cd pkg/arrowstore && go build ./... && go test ./... -race -count=1
+      # The opt-in pkg/s3store/ module (Amazon S3 / S3-compatible object storage) is a
+      # SEPARATE module too, keeping the AWS SDK's dependency tree out of the engine's
+      # go.mod. Pure Go, so it builds and tests like any other module.
+      - name: Build and test s3store module (opt-in object-storage egress)
+        run: cd pkg/s3store && go build ./... && go test ./... -race -count=1
       # The opt-in pkg/duckdbstore/ module (DuckDB analytical egress) is a SEPARATE Go module,
       # CGO and not WASM-compatible, so it stays out of the engine's and arrowstore's go.mod.
       # Its Arrow ingest lives behind the driver's `duckdb_arrow` tag. Build and test it
       # explicitly (CGO on) against the local sibling modules (replace => ../.. and ../arrowstore).
       - name: Build and test duckdbstore module (opt-in DuckDB egress)
         run: cd pkg/duckdbstore && CGO_ENABLED=1 go build -tags duckdb_arrow ./... && CGO_ENABLED=1 go test -tags duckdb_arrow ./... -count=1
+      # The distributed CLI (cmd/stochadex-full) is a SEPARATE module bundling the opt-in
+      # egress modules, so `./...` above excludes it. Build both flavours it ships so a
+      # release cannot be the first time either is compiled: the portable one (pure Go,
+      # what most users download) and the accelerated one (cgo + system BLAS + DuckDB).
+      # Ubuntu runners have OpenBLAS available via apt for the cblas link.
+      - name: Build the distributed CLI (portable, pure Go)
+        run: cd cmd/stochadex-full && CGO_ENABLED=0 go build ./...
+      - name: Build the distributed CLI (accelerated, cgo + BLAS + DuckDB)
+        run: |
+          sudo apt-get update && sudo apt-get install -y libopenblas-dev
+          cd cmd/stochadex-full && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" \
+            go build -tags "cblas duckdb_arrow" ./...
       # Publish coverage to Codecov (external) for the coverage badge. Non-blocking:
       # a coverage-upload hiccup must never fail a merge. Needs the CODECOV_TOKEN
       # secret (from Codecov after enabling its app on the repo).

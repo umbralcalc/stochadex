@@ -1,0 +1,22 @@
+{
+  "name": "stochadex",
+  "description": "Author, run, and analyse a stochastic simulation as a single YAML config for the stochadex engine — no Go, no compilation, no toolchain. Bundles the stochadex-model skill with four validated, converging worked recipes.",
+  "version": "0.5.3",
+  "author": {
+    "name": "umbralcalc",
+    "email": "umbralcalc@gmail.com",
+    "url": "https://github.com/umbralcalc/stochadex"
+  },
+  "homepage": "https://umbralcalc.github.io/stochadex/",
+  "repository": "https://github.com/umbralcalc/stochadex",
+  "license": "MIT",
+  "keywords": [
+    "simulation",
+    "stochastic-processes",
+    "bayesian-inference",
+    "modeling",
+    "yaml",
+    "agent-skill"
+  ],
+  "skills": "./.claude/skills/"
+}

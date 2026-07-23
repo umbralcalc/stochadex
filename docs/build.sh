@@ -141,7 +141,7 @@ prepare_template() {
     # absent from go list). Merge and sort so the modules interleave alphabetically — arrowstore
     # after api, duckdbstore after discrete — instead of trailing at the end.
     local pkg_names=$( { go list ../... | grep '/pkg/' | sed 's#.*/##'; \
-                         printf 'arrowstore\nduckdbstore\n'; } | sort )
+                         printf 'arrowstore\nduckdbstore\ns3store\n'; } | sort )
     for pkg_name in $pkg_names; do
         case "$pkg_name" in
             api) local label="API" ;;                            # known acronym
@@ -222,6 +222,21 @@ generate_html_pages() {
             -t html \
             -o "$DOCS_DIR/pkg/quickstart.html" \
             "$DOCS_DIR/quickstart.md"
+    fi
+
+    # Generate the running-with-configs page (the no-toolchain YAML/CLI path)
+    if [ -f "$DOCS_DIR/configs.md" ]; then
+        log_info "Generating configs page..."
+        local title=$(grep -E '^title:' "$DOCS_DIR/configs.md" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "Running with configs")
+        pandoc --template "$WORK_TEMPLATE" \
+            --wrap=preserve \
+            --mathjax \
+            $HIGHLIGHT_FLAG \
+            --metadata="title:$title" \
+            -f markdown \
+            -t html \
+            -o "$DOCS_DIR/pkg/configs.html" \
+            "$DOCS_DIR/configs.md"
     fi
 
     # Generate how it works page
@@ -362,7 +377,7 @@ generate_nested_module_docs() {
     log_info "Generating nested opt-in module documentation..."
     mkdir -p "$DOCS_DIR/pkg"
     # "<module-dir>:<extra gomarkdoc flags>"
-    for spec in "arrowstore:" "duckdbstore:--tags duckdb_arrow"; do
+    for spec in "arrowstore:" "duckdbstore:--tags duckdb_arrow" "s3store:"; do
         local name="${spec%%:*}"
         local tags="${spec#*:}"
         log_info "Generating nested module: $name"

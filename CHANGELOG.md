@@ -22,6 +22,74 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+- **The released binary now carries the integrations: Arrow output everywhere, plus an
+  accelerated build with an optimised system BLAS and DuckDB output.** Imports drive
+  `go.mod`, so putting Arrow/DuckDB in `cmd/stochadex` would impose them on every repo that
+  imports the engine as a library. Instead a new module `cmd/stochadex-full` bundles the
+  opt-in egress modules and registers the extra sinks through the existing
+  `simulator.RegisterComponent` hook — the engine's own `go.mod` stays lean and WASM-clean.
+  One main package yields two builds: a **pure-Go** binary (`stochadex-<os>-<arch>`, the
+  default download) that cross-compiles to every platform and includes
+  `output_function: {type: arrow, path: …}`, and an **accelerated** binary
+  (`stochadex-accel-<os>-<arch>`, built on native runners) adding `-tags "cblas
+  duckdb_arrow"` for NumPy-class BLAS and `output_function: {type: duckdb, path: …, table: …}`.
+  The release workflow builds both tiers and smoke-tests every accelerated binary before
+  publishing it, since a binary that cannot resolve its BLAS at runtime is worse than none;
+  Linux links OpenBLAS statically where the archive is available so the asset stays
+  self-contained. Both flavours are compiled in CI so a release is never the first build.
+- **`pkg/s3store` — object storage as an opt-in module.** Reading and writing runs to Amazon
+  S3 (or any S3-compatible store: MinIO, Cloudflare R2, Ceph) is available both as a Go package
+  and from config (`data: {source: {s3: {bucket, key, format}}}` and
+  `output_function: {type: s3, bucket, key, format}`). It is a **transport, not a format**: the
+  object is moved and then handed to the existing reader/sink for its `format:`, so every
+  present and future format works over object storage without bespoke S3 code for each. It is a
+  separate module, like arrowstore, so the AWS SDK's dependency tree stays out of the engine's
+  `go.mod`; credentials come from the standard AWS chain and are never read from a config file.
+  `TestS3StoreRoundTrip` runs against an **in-process S3 server**, so the transfers are proven
+  to move real bytes over the S3 API — including that the sink defers its upload to `Finalize`
+  and cleans up its staging file — rather than only compiling. Deliberately not a container:
+  a service image is an external dependency that can be re-licensed or abandoned, and it
+  confines the test to CI. This runs anywhere `go test` does. Set `S3STORE_TEST_ENDPOINT` to
+  aim the same test at a real bucket or any S3-compatible server.
+- **An Arrow data source** (`data: {source: {arrow: {path: …}}}`), closing the round trip: a run
+  written with `{type: arrow}` can be read straight back as a macro's dataset.
+- **`api.RegisterDataSource`** — `data.source` was a closed struct, so a source whose dependency
+  the engine cannot carry had no way in. It now dispatches unknown keys to registered builders,
+  mirroring `simulator.RegisterComponent`, and an unknown source lists the ones the binary *does*
+  support — which is how a caller discovers what it can reach.
+- **`simulator.FinalizingOutputFunction`** — an optional interface an `OutputFunction` may
+  implement to flush, seal or release a resource once the run is over. `PartitionCoordinator.Run`
+  calls `Finalize` exactly once, after the final step. `OutputFunction` itself is unchanged
+  (still two methods) and every existing sink is unaffected; this is what lets a columnar sink
+  — which only becomes a readable batch after the last row — work at all.
+
+### Changed
+- **The engine now requires gonum v0.17** (was v0.16), matching the version the Arrow/DuckDB
+  modules already resolved to, so the shipped binary runs the same version the engine's tests
+  cover. The full suite, including every convergence test, passes unchanged.
+
+### Added
+- **Installable as a Claude Code plugin + prebuilt CLI binaries — the distribution layer that makes
+  "install a skill next to your agent" real.** The repo is now a plugin marketplace
+  (`.claude-plugin/marketplace.json` + `plugin.json`, with the plugin's `skills` pointing at the
+  existing `.claude/skills/` so there is no duplicated copy): `claude plugin marketplace add
+  umbralcalc/stochadex` then `claude plugin install stochadex@stochadex` bundles the
+  `stochadex-model` skill and its four validated recipes. A release workflow
+  (`.github/workflows/release.yml`) cross-compiles the pure-Go CLI for macOS/Linux/Windows
+  (amd64/arm64) on every version tag and attaches the binaries to the GitHub Release, so a user
+  with no Go toolchain can `curl` a prebuilt `stochadex` (or `go install …/cmd/stochadex@latest`).
+  A new **"Running with configs"** docs page covers the no-toolchain YAML/CLI path in full —
+  partition anatomy, the two ways to write an update, the coupling/deadlock rule, run modes, and
+  the analysis/inference tier including the levers that decide whether each learning macro
+  converges. The docs home gains the **Install** section it never had (Go library / CLI / plugin),
+  and the skill gained a CLI-install prerequisite. No top-level `README.md` is added: GitHub
+  already resolves the repo landing to `docs/README.md`, so a root README would only override the
+  richer page. `v0.5.3`'s binaries are attached retroactively so the install path works today. `TestPluginManifestsMatchRelease` guards the packaging: both manifests' versions
+  must track the newest released CHANGELOG heading, and `plugin.json`'s `skills` path must still
+  resolve to the bundled skill — a broken pointer would otherwise install a plugin that silently
+  ships no skill.
+
 ## [0.5.3] — 2026-07-20
 
 The agent-facing payoff of the data-drivable-config arc: the `stochadex-model` skill, backed by
