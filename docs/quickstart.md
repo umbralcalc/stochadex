@@ -121,8 +121,17 @@ docker run --rm -p 2112:2112 -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest
 ```
 
 This is the natural unit for chaining stochadex into a pipeline — a Kubernetes Job,
-an Argo step or a Cloud Run Job takes an image rather than a binary — and it pairs
-with the S3 and Postgres egress so a run can read and write remote state directly.
+an Argo step or a Cloud Run Job takes an image rather than a binary.
+
+The image carries the **fully accelerated** CLI, so every integration is present with
+nothing to install or opt into: Arrow, Postgres, S3, DuckDB and an optimised system
+BLAS. There is no portable/accelerated split here, because the split only exists to
+let a *binary* survive an unknown host — an image brings its own. Check what yours
+has with:
+
+```bash
+docker run --rm ghcr.io/umbralcalc/stochadex:latest --version
+```
 
 > **The image carries the config-as-data path only.** Anything stated purely as data
 > — `{type: ...}` iterations, `expressions:`, `macros:`, and `{type: ...}` simulation

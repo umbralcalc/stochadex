@@ -4,43 +4,72 @@
 # compose (Kubernetes Jobs, Argo steps, Cloud Run Jobs), and the natural way to
 # run the websocket service mode.
 #
-# The image carries the config-as-data path ONLY. It runs any fully-data config
-# and any macros: config — the whole {type: ...} registry, the expressions DSL,
-# run modes and the analysis tier — resolved and stepped in-process.
+# This builds the FULLY ACCELERATED CLI: cmd/stochadex-full with
+# -tags "cblas duckdb_arrow", so the image carries Arrow, Postgres, S3, DuckDB and
+# an optimised system BLAS. There is no portable/accelerated split here on purpose.
+# That split exists because a *binary* has to survive whatever host it lands on —
+# cgo cannot cross-compile, and neither OpenBLAS nor DuckDB can be assumed present.
+# An image has no such problem: it carries its own userland, so the reason for the
+# lesser tier evaporates and shipping it would only mean a container advertised for
+# pipeline chaining that lacks the egress pipelines chain through.
 #
-# It deliberately does NOT ship a Go toolchain. Configs that name Go expressions
-# are executed by generating a program and running `go run` on it
-# (pkg/api/run.go), and shipping a compiler in a runtime image to serve that path
-# would mean a ~900MB image, a compiler in the production attack surface, and
-# arbitrary code compilation at run time — to support the surface the engine is
-# deliberately moving away from. A container is for the declarative path; the Go
-# path stays a local development affordance, where a toolchain already exists.
-#
-# Also deliberately pure Go (CGO_ENABLED=0) rather than the accelerated
-# cmd/stochadex-full tier: the accelerated build needs BLAS and DuckDB linked
-# per-platform, and the egress that pipeline chaining actually leans on
-# (Postgres, Arrow, S3) is all in the portable build. An accelerated variant is
-# worth adding once this pipeline has proven itself, not before.
+# The image carries the config-as-data path ONLY. It runs any fully-data config and
+# any macros: config — the whole {type: ...} registry, the expressions DSL, run
+# modes and the analysis tier — resolved and stepped in-process. It deliberately
+# ships no Go toolchain: configs naming Go expressions are executed by generating a
+# program and calling `go run` (pkg/api/run.go), and shipping a compiler in a
+# runtime image would mean a far larger image and arbitrary compilation at run time,
+# to serve the surface the engine is deliberately moving away from. That path stays
+# a local development affordance, where a toolchain already exists.
 
-ARG GO_VERSION=1.24.4
+# cmd/stochadex-full declares `go 1.25.0` — it will not build on an older toolchain,
+# and it is a SEPARATE module whose replace directives point at ../../ and
+# ../../pkg/*, so the whole repo has to be in the build context.
+ARG GO_VERSION=1.25
+ARG DEBIAN_RELEASE=bookworm
 
 # ---- build -------------------------------------------------------------------
-FROM golang:${GO_VERSION} AS build
+FROM golang:${GO_VERSION}-${DEBIAN_RELEASE} AS build
+
+# libopenblas-dev provides the BLAS the `cblas` tag links gonum against.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libopenblas-dev \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /src
-
-# Module download is its own layer so it is not invalidated by source edits.
-COPY go.mod go.sum ./
-RUN go mod download
-
+# The local replace directives mean module resolution needs the sibling modules
+# present, so the whole context is copied before download rather than the usual
+# go.mod-only cache layer.
 COPY . .
 
 ARG VERSION=dev
-RUN CGO_ENABLED=0 go build -trimpath \
+RUN cd cmd/stochadex-full \
+ && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" go build -trimpath \
       -ldflags "-s -w -X main.version=${VERSION}" \
-      -o /out/stochadex ./cmd/stochadex
+      -tags "cblas duckdb_arrow" \
+      -o /out/stochadex .
+
+# Fail the build here rather than ship an image that silently lost an integration:
+# a dropped build tag or a missing library would otherwise only show up as a
+# config that mysteriously cannot write its output.
+RUN /out/stochadex --version \
+ && for feature in arrow postgres s3 cblas duckdb; do \
+      /out/stochadex --version | grep -q "$feature" \
+        || { echo "BUILD LOST FEATURE: $feature"; /out/stochadex --version; exit 1; }; \
+    done
 
 # ---- runtime -----------------------------------------------------------------
-FROM gcr.io/distroless/static-debian12:nonroot
+# Debian slim rather than distroless: cgo needs a libc, and OpenBLAS is linked
+# dynamically. Matching the builder's Debian release keeps the glibc and OpenBLAS
+# ABI identical to what the binary was linked against.
+FROM debian:${DEBIAN_RELEASE}-slim
+
+# ca-certificates is not optional — S3 egress and any HTTPS data source fail
+# without it, and it is the kind of omission that only surfaces in production.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      libopenblas0 libgomp1 libstdc++6 ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /out/stochadex /usr/local/bin/stochadex
 
@@ -50,5 +79,10 @@ EXPOSE 2112
 # Configs and any CSV/JSON egress are expected under /work, so a caller only has
 # to mount one directory.
 WORKDIR /work
-USER nonroot:nonroot
+
+# Non-root by default; a simulation never needs privilege.
+RUN useradd --uid 65532 --user-group --home-dir /work --no-create-home stochadex \
+ && chown stochadex:stochadex /work
+USER stochadex
+
 ENTRYPOINT ["stochadex"]

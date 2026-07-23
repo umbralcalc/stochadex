@@ -185,10 +185,21 @@ jobs:
           tags: stochadex:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # The image is the accelerated CLI, so assert the integrations are actually in
+      # it. --version self-reports the feature set, which makes this a cheap and
+      # exact check: a dropped build tag or an unlinked library would otherwise only
+      # surface as a config that mysteriously cannot write its output.
+      - name: The image carries every integration
+        run: |
+          docker run --rm stochadex:ci --version
+          for feature in arrow postgres s3 cblas duckdb; do
+            docker run --rm stochadex:ci --version | grep -q "$feature" \
+              || { echo "image is missing the $feature integration"; exit 1; }
+          done
       # A built image that cannot run a config is not a working image. This runs a
       # fully-data config through the in-process path — no toolchain, which is the
-      # whole claim the slim target makes.
-      - name: Run a data-only config in the slim image
+      # whole claim the image makes.
+      - name: Run a data-only config in the image
         run: |
           docker run --rm -v "$PWD:/work" stochadex:ci \
             --config cfg/example_data_only_config.yaml | tail -5

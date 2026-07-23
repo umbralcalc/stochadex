@@ -26,12 +26,20 @@ an exact version rather than assume stability across minors.
 - **A published OCI image (`ghcr.io/umbralcalc/stochadex`), multi-arch for `linux/amd64`
   and `linux/arm64`.** A binary is not the unit cloud-native pipelines compose — a
   Kubernetes Job, an Argo step or a Cloud Run Job takes an image — so every downstream
-  consumer previously had to wrap a released binary in an image of their own. It pairs with
-  the S3 and Postgres egress so a pipeline step can read and write remote state directly.
-  The image is built on **every PR** and only pushed on a version tag: a release-only build
-  path is exactly what shipped `v0.6.0` an asset short, so the Dockerfile proves itself
-  before it is ever published. The publish step then pulls its own image back and steps a
-  real config through it.
+  consumer previously had to wrap a released binary in an image of their own. **It carries the
+  fully accelerated CLI — Arrow, Postgres, S3, DuckDB and an optimised system BLAS — with no
+  portable/accelerated split.** That split exists because a *binary* has to survive whatever
+  host it lands on: cgo cannot cross-compile and neither OpenBLAS nor DuckDB can be assumed
+  present. An image carries its own userland, so the reason for the lesser tier evaporates,
+  and shipping it would have meant a container advertised for pipeline chaining that lacked
+  the egress pipelines chain through. Both the build and the published manifest assert the
+  full feature set via `--version`, because a dropped build tag would otherwise surface only
+  as a config that mysteriously cannot write its output. Built on **every PR** and pushed only
+  on a version tag: a release-only build path is exactly what shipped `v0.6.0` an asset short,
+  so the Dockerfile proves itself before it can ever be published. Each architecture is built
+  on a native runner and merged into one manifest — the same reason the accelerated binaries
+  are, since cgo cannot cross-compile — and the publish step pulls both architectures back and
+  steps a real config through them.
 - **`compose.yaml` for local development**, replacing `Dockerfile.postgres` — a whole build
   artifact whose entire content was a stock image plus three environment variables. Its
   credentials match those hard-coded in `test/postgres_writing_and_querying_test.go`, so
@@ -48,8 +56,10 @@ an exact version rather than assume stability across minors.
   image job asserts that message, so the contract cannot rot silently.
 - **`Dockerfile.stochadex` and `Dockerfile.postgres` are replaced by a single multi-stage
   `Dockerfile` plus `compose.yaml`.** The old image was single-stage on `golang:1.24`, so it
-  shipped the entire Go toolchain as its runtime; the new one builds `CGO_ENABLED=0` and runs
-  on distroless as a non-root user.
+  shipped the entire Go toolchain as its runtime; the new one builds in a separate stage and
+  runs as a non-root user on a slim base carrying only the libraries the accelerated binary
+  links against — including `ca-certificates`, without which S3 egress and any HTTPS data
+  source fail.
 
 ## [0.6.1] — 2026-07-23
 
