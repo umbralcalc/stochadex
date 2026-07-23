@@ -64,11 +64,17 @@ RUN /out/stochadex --version \
 # ABI identical to what the binary was linked against.
 FROM debian:${DEBIAN_RELEASE}-slim
 
-# ca-certificates is not optional — S3 egress and any HTTPS data source fail
-# without it, and it is the kind of omission that only surfaces in production.
+# Exactly what `ldd` reports the accelerated binary linking, named explicitly:
+#   libopenblas0  the BLAS the cblas tag links against
+#   libgfortran5  OpenBLAS's Fortran runtime — it arrives transitively today, but
+#                 the binary links it directly, so relying on that is fragile
+#   libstdc++6    DuckDB's C++ runtime
+# ca-certificates is not a link-time dependency and so does not appear in ldd, but
+# it is not optional either: S3 egress and any HTTPS data source fail without it,
+# which is the kind of omission that only surfaces in production.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      libopenblas0 libgomp1 libstdc++6 ca-certificates \
+      libopenblas0 libgfortran5 libstdc++6 ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /out/stochadex /usr/local/bin/stochadex
