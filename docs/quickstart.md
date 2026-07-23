@@ -120,25 +120,9 @@ docker run --rm -p 2112:2112 -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest
   --config cfg/example_data_only_config.yaml --socket cfg/socket.yaml
 ```
 
-This is the natural unit for chaining stochadex into a pipeline — a Kubernetes Job,
-an Argo step or a Cloud Run Job takes an image rather than a binary.
-
 The image carries the **fully accelerated** CLI, so every integration is present with
 nothing to install or opt into: Arrow, Postgres, S3, DuckDB and an optimised system
-BLAS. There is no portable/accelerated split here, because the split only exists to
-let a *binary* survive an unknown host — an image brings its own. Check what yours
-has with:
-
-```bash
-docker run --rm ghcr.io/umbralcalc/stochadex:latest --version
-```
-
-> **The image carries the config-as-data path only.** Anything stated purely as data
-> — `{type: ...}` iterations, `expressions:`, `macros:`, and `{type: ...}` simulation
-> components — resolves and runs in-process. A config that names Go expressions (like
-> `cfg/example_config.yaml`) is run by generating a program and calling `go run`, which
-> needs a Go toolchain; use a local build for those. The image tells you so explicitly
-> rather than failing obscurely.
+BLAS.
 
 To build the image yourself, or to bring up Postgres for the integration tests:
 
