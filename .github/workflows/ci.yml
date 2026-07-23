@@ -160,3 +160,51 @@ jobs:
           echo "Pages build request HTTP $code"
           # 201 = build queued. 403/404 usually means the token lacks Pages:write.
           [ "$code" = "201" ] || echo "::warning::Pages build not queued (HTTP $code) — check SITE_DEPLOY_TOKEN has Pages:write"
+
+  # Build both image targets on every PR and merge, WITHOUT pushing. The release
+  # workflow is the only thing that publishes, and it only runs on a tag — which
+  # means a broken Dockerfile would otherwise be discovered at release time, on the
+  # one run that cannot be re-tried cheaply. v0.6.0 shipped an asset short for
+  # exactly that reason (a release-only code path that had never been exercised),
+  # so the image build is proven here first. Same philosophy as the site job:
+  # build on PRs, publish only when it counts.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Single-platform here: this job answers "does it build and run?", and the
+      # release workflow handles the multi-arch matrix. Cross-building arm64 under
+      # QEMU would multiply CI time for no extra signal on a pure-Go binary.
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: stochadex:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # A built image that cannot run a config is not a working image. This runs a
+      # fully-data config through the in-process path — no toolchain, which is the
+      # whole claim the slim target makes.
+      - name: Run a data-only config in the slim image
+        run: |
+          docker run --rm -v "$PWD:/work" stochadex:ci \
+            --config cfg/example_data_only_config.yaml | tail -5
+      # The image carries no Go toolchain by design, so a config that names Go must
+      # fail with the actionable message rather than a raw "executable file not
+      # found" panic. Asserting the message keeps that contract honest: it is the
+      # only signal a user of the image gets about which half of the config surface
+      # they are on. cfg/example_config.yaml names Go
+      # ("&continuous.WienerProcessIteration{}"), so it takes the codegen branch.
+      - name: A Go-expression config fails with the actionable message
+        run: |
+          if docker run --rm -v "$PWD:/work" stochadex:ci \
+               --config cfg/example_config.yaml >out.txt 2>&1; then
+            echo "expected a Go-expression config to fail on the toolchain-free image"
+            cat out.txt; exit 1
+          fi
+          grep -q "requires a Go toolchain" out.txt || {
+            echo "failed, but not with the actionable message:"; cat out.txt; exit 1; }
+          echo "correctly refused:"; grep "requires a Go toolchain" out.txt

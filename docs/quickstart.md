@@ -103,11 +103,39 @@ Stream results over a websocket (for live dashboards):
 ./bin/stochadex --config ./cfg/example_config.yaml --socket ./cfg/socket.yaml
 ```
 
-Or run it containerised (may need `sudo`):
+Or run it containerised, with nothing installed but Docker. The image is published
+to GHCR on every release, so there is no build step:
 
 ```bash
-docker build -t stochadex -f Dockerfile.stochadex .
-docker run -p 2112:2112 stochadex --config ./cfg/example_config.yaml --socket ./cfg/socket.yaml
+docker run --rm -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest \
+  --config cfg/example_data_only_config.yaml
+```
+
+The working directory inside the image is `/work`, so mounting your project there
+lets configs and any CSV or JSON output use ordinary relative paths. To stream over
+the websocket instead, publish the port and pass a socket config:
+
+```bash
+docker run --rm -p 2112:2112 -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest \
+  --config cfg/example_data_only_config.yaml --socket cfg/socket.yaml
+```
+
+This is the natural unit for chaining stochadex into a pipeline — a Kubernetes Job,
+an Argo step or a Cloud Run Job takes an image rather than a binary — and it pairs
+with the S3 and Postgres egress so a run can read and write remote state directly.
+
+> **The image carries the config-as-data path only.** Anything stated purely as data
+> — `{type: ...}` iterations, `expressions:`, `macros:`, and `{type: ...}` simulation
+> components — resolves and runs in-process. A config that names Go expressions (like
+> `cfg/example_config.yaml`) is run by generating a program and calling `go run`, which
+> needs a Go toolchain; use a local build for those. The image tells you so explicitly
+> rather than failing obscurely.
+
+To build the image yourself, or to bring up Postgres for the integration tests:
+
+```bash
+docker build -t stochadex .            # same image the release publishes
+docker compose up postgres             # credentials the integration tests expect
 ```
 
 ## Example analysis notebooks

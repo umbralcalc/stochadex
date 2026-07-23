@@ -1,0 +1,66 @@
+# Local development and integration testing. This is the orchestration layer —
+# it does not replace the Dockerfile, which is what builds the published image.
+#
+# Note there is no Dockerfile for Postgres: a stock image plus environment is all
+# that was ever needed, and expressing that as a build artifact (as the old
+# Dockerfile.postgres did) was pure ceremony.
+#
+#   docker compose up postgres        # just the DB, for `go test ./test/...`
+#   docker compose run --rm stochadex --config cfg/example_config.yaml
+#   docker compose --profile socket up stochadex-socket
+#
+# The Postgres credentials match those hard-coded in
+# test/postgres_writing_and_querying_test.go, so bringing this up is what makes
+# TestPostgresWritingAndQuerying pass instead of failing with a refused
+# connection on :5432.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: stochadexdb
+      POSTGRES_USER: stochadexuser
+      POSTGRES_PASSWORD: stochadexpassword
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stochadexuser -d stochadexdb"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  # One-shot runs: `docker compose run --rm stochadex --config <path>`.
+  # The repo is mounted at /work (the image's WORKDIR) so configs and any CSV or
+  # JSON egress land back on the host.
+  # Deliberately no depends_on: most runs write nowhere near Postgres, and making
+  # every config run boot a database first is friction for the common case. Bring
+  # the DB up explicitly when a config or test actually needs it.
+  stochadex:
+    build:
+      context: .
+    volumes:
+      - .:/work
+
+  # The websocket service mode, which is the part of the CLI that is a service
+  # rather than a job. Opt-in so `up` does not start a long-running process by
+  # default.
+  stochadex-socket:
+    profiles: ["socket"]
+    build:
+      context: .
+    # A data-only config: the image carries no Go toolchain, so a config naming Go
+    # expressions (cfg/example_config.yaml does) would be refused here.
+    command:
+      - --config
+      - cfg/example_data_only_config.yaml
+      - --socket
+      - cfg/socket.yaml
+    ports:
+      - "2112:2112"
+    volumes:
+      - .:/work
+
+volumes:
+  postgres-data:

@@ -176,3 +176,55 @@ jobs:
           gh release view "$TAG" >/dev/null 2>&1 \
             || gh release create "$TAG" --title "$TAG" --notes-from-tag --verify-tag
           gh release upload "$TAG" dist/* --clobber
+
+  # Tier 3 — the OCI image. Multi-arch, pushed to GHCR on every version tag. This
+  # is the unit cloud-native pipelines compose: a Kubernetes Job, Argo step or
+  # Cloud Run Job takes an image, not a binary, so without this every downstream
+  # consumer has to build their own wrapper image around a released binary.
+  #
+  # GHCR needs no new secrets — GITHUB_TOKEN with packages: write is enough.
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3 # arm64 emulation for the cross build
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Derive the version from the tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      # :latest only moves for a final release. A prerelease tag (v1.2.3-rc.1)
+      # publishes its own tag but must not become what `docker pull stochadex`
+      # resolves to.
+      - name: Decide whether this tag moves :latest
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            echo "TAGS=ghcr.io/${{ github.repository }}:${VERSION}" >> "$GITHUB_ENV"
+          else
+            echo "TAGS=ghcr.io/${{ github.repository }}:${VERSION},ghcr.io/${{ github.repository }}:latest" >> "$GITHUB_ENV"
+          fi
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.TAGS }}
+          build-args: VERSION=${{ env.VERSION }}
+          provenance: true
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # A pushed image that cannot run a config is not a working release. Pull the
+      # published amd64 image back and step a real config through it.
+      - name: Smoke-test the published image
+        run: |
+          docker run --rm --platform linux/amd64 \
+            -v "$PWD:/work" "ghcr.io/${{ github.repository }}:${VERSION}" \
+            --config cfg/example_data_only_config.yaml | tail -5

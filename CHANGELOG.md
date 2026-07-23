@@ -22,6 +22,35 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+- **A published OCI image (`ghcr.io/umbralcalc/stochadex`), multi-arch for `linux/amd64`
+  and `linux/arm64`.** A binary is not the unit cloud-native pipelines compose — a
+  Kubernetes Job, an Argo step or a Cloud Run Job takes an image — so every downstream
+  consumer previously had to wrap a released binary in an image of their own. It pairs with
+  the S3 and Postgres egress so a pipeline step can read and write remote state directly.
+  The image is built on **every PR** and only pushed on a version tag: a release-only build
+  path is exactly what shipped `v0.6.0` an asset short, so the Dockerfile proves itself
+  before it is ever published. The publish step then pulls its own image back and steps a
+  real config through it.
+- **`compose.yaml` for local development**, replacing `Dockerfile.postgres` — a whole build
+  artifact whose entire content was a stock image plus three environment variables. Its
+  credentials match those hard-coded in `test/postgres_writing_and_querying_test.go`, so
+  `docker compose up postgres` is what turns `TestPostgresWritingAndQuerying` from a locally
+  guaranteed failure into a passing test.
+
+### Changed
+- **The container carries the config-as-data path only, and says so.** The image ships no Go
+  toolchain: serving the code-generation path would mean a ~900MB image and a compiler in the
+  runtime attack surface, to support the surface the engine is deliberately moving away from.
+  A config that names Go expressions now fails a preflight check with a message naming both
+  ways out (install Go, or restate the config as data) instead of an opaque
+  `exec: "go": executable file not found in $PATH` panic from the middle of a run. The CI
+  image job asserts that message, so the contract cannot rot silently.
+- **`Dockerfile.stochadex` and `Dockerfile.postgres` are replaced by a single multi-stage
+  `Dockerfile` plus `compose.yaml`.** The old image was single-stage on `golang:1.24`, so it
+  shipped the entire Go toolchain as its runtime; the new one builds `CGO_ENABLED=0` and runs
+  on distroless as a non-root user.
+
 ## [0.6.1] — 2026-07-23
 
 ### Fixed
