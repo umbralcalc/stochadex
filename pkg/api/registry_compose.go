@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/umbralcalc/stochadex/pkg/continuous"
+	"github.com/umbralcalc/stochadex/pkg/discrete"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
@@ -165,6 +166,45 @@ func (r *specReader) priorList(key string) []inference.Prior {
 	return priors
 }
 
+// iterationByEvent reads a list of {event: <number>, iteration: <spec>} pairs
+// into the map keyed by event value that ValuesChangingEventsIteration switches
+// on. A list rather than a YAML mapping keyed by the event number: yaml.v2
+// decodes `1` as an int and `1.0` as a float64, so a mapping would silently key
+// the same event two ways, and mapping keys bypass the strict unknown-field
+// checking every other spec field gets.
+func (r *specReader) iterationByEvent(key string) map[float64]simulator.Iteration {
+	value, ok := r.value(key, true)
+	if !ok {
+		return nil
+	}
+	raw, ok := value.([]interface{})
+	if !ok {
+		r.fail("field %q must be a list of {event, iteration} pairs, got %T", key, value)
+		return nil
+	}
+	byEvent := make(map[float64]simulator.Iteration, len(raw))
+	for i, element := range raw {
+		fields, err := toFieldMap(element)
+		if err != nil {
+			r.fail("field %q[%d]: %v", key, i, err)
+			return nil
+		}
+		pair := newSpecReader(fmt.Sprintf("%s[%d]", r.what+" "+key, i), fields)
+		event := pair.floatField("event")
+		iteration := pair.iteration("iteration")
+		if err := pair.done(); err != nil {
+			r.fail("%v", err)
+			return nil
+		}
+		if _, duplicate := byEvent[event]; duplicate {
+			r.fail("field %q: duplicate event value %v", key, event)
+			return nil
+		}
+		byEvent[event] = iteration
+	}
+	return byEvent
+}
+
 // namedFunc looks a framework-shipped function value up by name in a typed
 // registry, failing if the name is unknown.
 func namedFunc[T any](r *specReader, key string, registry map[string]T) T {
@@ -198,10 +238,10 @@ func (r *specReader) done() error {
 	return nil
 }
 
-// toComponentSpec coerces a nested YAML value into a ComponentSpec. yaml.v2
+// toFieldMap coerces a nested YAML mapping into string-keyed fields. yaml.v2
 // delivers a nested mapping as map[interface{}]interface{}, so both that and
 // map[string]interface{} are accepted.
-func toComponentSpec(value interface{}) (simulator.ComponentSpec, error) {
+func toFieldMap(value interface{}) (map[string]interface{}, error) {
 	fields := make(map[string]interface{})
 	switch typed := value.(type) {
 	case map[string]interface{}:
@@ -212,13 +252,21 @@ func toComponentSpec(value interface{}) (simulator.ComponentSpec, error) {
 		for k, v := range typed {
 			key, ok := k.(string)
 			if !ok {
-				return simulator.ComponentSpec{}, fmt.Errorf("spec key %v is not a string", k)
+				return nil, fmt.Errorf("spec key %v is not a string", k)
 			}
 			fields[key] = v
 		}
 	default:
-		return simulator.ComponentSpec{}, fmt.Errorf(
-			"expected a {type: ...} mapping, got %T", value)
+		return nil, fmt.Errorf("expected a mapping, got %T", value)
+	}
+	return fields, nil
+}
+
+// toComponentSpec coerces a nested YAML value into a ComponentSpec.
+func toComponentSpec(value interface{}) (simulator.ComponentSpec, error) {
+	fields, err := toFieldMap(value)
+	if err != nil {
+		return simulator.ComponentSpec{}, err
 	}
 	kind, ok := fields["type"].(string)
 	if !ok || kind == "" {
@@ -449,13 +497,39 @@ func registerComposableIterations() {
 		it := &inference.SMCProposalIteration{Priors: r.priorList("priors")}
 		return it, r.done()
 	}
+	// values_function takes either a whole named function ("function") or a
+	// transform + reduce pair composed into one. The composed form covers the
+	// building blocks; the whole-function form reaches the framework's shipped
+	// end-to-end functions, which no transform/reduce pair can express.
 	iterationBuilders["values_function"] = func(f map[string]interface{}) (simulator.Iteration, error) {
 		r := newSpecReader("values_function", f)
+		it := &general.ValuesFunctionIteration{}
+		if _, whole := f["function"]; whole {
+			it.Function = namedFunc(r, "function", valuesFunctions)
+			return it, r.done()
+		}
 		transform := namedFunc(r, "transform", valuesTransforms)
 		reduce := namedFunc(r, "reduce", valuesReduces)
-		it := &general.ValuesFunctionIteration{}
 		if r.err == nil {
 			it.Function = general.NewTransformReduceFunction(transform, reduce)
+		}
+		return it, r.done()
+	}
+	iterationBuilders["values_changing_events"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+		r := newSpecReader("values_changing_events", f)
+		it := &general.ValuesChangingEventsIteration{
+			EventIteration:   r.iteration("event_iteration"),
+			IterationByEvent: r.iterationByEvent("iteration_by_event"),
+		}
+		return it, r.done()
+	}
+	// hawkes_process_intensity reads the partition it is excited by from the
+	// "hawkes_partition_index" param, so the wiring is name-based via
+	// params_as_partitions rather than a positional index baked into the spec.
+	iterationBuilders["hawkes_process_intensity"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+		r := newSpecReader("hawkes_process_intensity", f)
+		it := &discrete.HawkesProcessIntensityIteration{
+			ExcitingKernel: r.kernel("kernel"),
 		}
 		return it, r.done()
 	}
@@ -549,6 +623,22 @@ var valuesTransforms = map[string]valuesTransform{
 
 var valuesReduces = map[string]valuesReduce{
 	"sum": general.SumReduce,
+}
+
+// valuesFunction is the whole Function field type of ValuesFunctionIteration,
+// named directly rather than composed from a transform and a reduce.
+type valuesFunction = func(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64
+
+// valuesFunctions are the framework's shipped end-to-end value functions. Both
+// emit an event value for values_changing_events to switch on.
+var valuesFunctions = map[string]valuesFunction{
+	"params_event":    general.ParamsEventFunction,
+	"partition_event": general.PartitionEventFunction,
 }
 
 func init() {

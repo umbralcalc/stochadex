@@ -12,27 +12,26 @@ import (
 // excludedIterations names every Iteration implementation in the candidate
 // packages that is deliberately NOT in the registry (data-only in Phase A,
 // composable in Phase B), each with the reason:
-//   - "composable-deferred": composable in principle, but its constructor takes a
-//     positional partition index that is fragile to express as raw data.
-//   - "live-object": holds a live object, channel, RNG source, or bulk [][]float64
-//     data with no data form at all.
+//   - "live-object": holds a live object bound at runtime by its caller — bulk
+//     [][]float64 data, a batch *StateHistory, or a whole *Settings/*Implementations
+//     pair — with no data form as a standalone partition. All three are still
+//     reachable from config indirectly, constructed by the data:, macros: and
+//     embedded: tiers respectively.
 //
 // Drift test 2 asserts every Iterate-implementing type in the candidate packages
 // is either registered (wantIterationType) or listed here. A NEW iteration then
 // fails CI until it is classified — the guard that stops the registry silently
 // lagging the framework.
+//
+// A field of live-object *type* is not on its own grounds for exclusion: an RNG
+// source that Configure assigns from the partition seed is inert as config, and
+// nested iterations are expressible as recursive specs. Both of those cases were
+// excluded here once and have since been registered.
 var excludedIterations = map[string]string{
-	// composable but deliberately deferred: the constructor takes a positional
-	// partition index, which is fragile to express as raw data — revisit if a
-	// name-resolving form lands.
-	"HawkesProcessIntensityIteration": "composable-deferred: kernel + positional partition index",
-
-	// live-object — no data form
-	"FromStorageIteration":              "live-object: [][]float64 bulk data",
-	"ValuesChangingEventsIteration":     "live-object: map[float64]Iteration + nested Iteration",
-	"ValuesWeightedResamplingIteration": "live-object: rand.Source",
-	"DataComparisonGradientIteration":   "live-object: *StateHistory batch + gradient func",
-	"EmbeddedSimulationRunIteration":    "live-object: *Settings/*Implementations",
+	// live-object — no data form as a standalone partition
+	"FromStorageIteration":            "live-object: [][]float64 bulk data (built by the data: tier)",
+	"DataComparisonGradientIteration": "live-object: *StateHistory batch + gradient func (built by macros:)",
+	"EmbeddedSimulationRunIteration":  "live-object: *Settings/*Implementations (built by the embedded: tier)",
 }
 
 // candidatePackages are the packages whose Iteration implementations are

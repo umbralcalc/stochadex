@@ -18,7 +18,7 @@ import (
 //   - Provide: "data_values_partitions" to choose which values to resample.
 //   - Use "past_discounting_factor" to downweight older history (exponential).
 type ValuesWeightedResamplingIteration struct {
-	Src     rand.Source
+	src     rand.Source
 	catDist distuv.Categorical
 }
 
@@ -34,11 +34,11 @@ func (v *ValuesWeightedResamplingIteration) Configure(
 			settings.Iterations[int(logWeightPartitions[0])].StateHistoryDepth,
 	)
 	nilWeights[0] = 1.0
-	v.Src = rand.NewPCG(
+	v.src = rand.NewPCG(
 		settings.Iterations[partitionIndex].Seed,
 		settings.Iterations[partitionIndex].Seed,
 	)
-	v.catDist = distuv.NewCategorical(nilWeights, v.Src)
+	v.catDist = distuv.NewCategorical(nilWeights, v.src)
 }
 
 func (v *ValuesWeightedResamplingIteration) Iterate(

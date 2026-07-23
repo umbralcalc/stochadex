@@ -90,6 +90,44 @@ an exact version rather than assume stability across minors.
   resolve to the bundled skill — a broken pointer would otherwise install a plugin that silently
   ships no skill.
 
+### Added
+- **Three more iterations reachable from pure config, leaving MCTS as the only capability that
+  is deliberately Go-only.** Auditing the registry's own exclusion list showed two of its four
+  non-MCTS entries were misclassified rather than genuinely unreachable:
+  `ValuesWeightedResamplingIteration` was excluded as holding a live `rand.Source`, but
+  `Configure` assigns that source from the partition seed, so the zero value was always a
+  complete construction (now `{type: values_weighted_resampling}`); and
+  `HawkesProcessIntensityIteration` was excluded for taking a positional partition index, but
+  `Configure` has always overwritten that argument from the `hawkes_partition_index` param, and
+  `ParamsAsPartitions` is resolved into `Settings` before `Configure` runs — so the wiring is
+  name-based (`{type: hawkes_process_intensity, kernel: {…}}` plus
+  `params_as_partitions: {hawkes_partition_index: [<name>]}`). Only
+  `ValuesChangingEventsIteration` needed new machinery: a reader for its
+  `map[float64]Iteration`, spelled as a **list** of `{event, iteration}` pairs rather than a
+  YAML mapping keyed by number, because yaml.v2 decodes `1` as an `int` and `1.0` as a
+  `float64` — a mapping would silently key the same event two ways — and because mapping keys
+  bypass the strict unknown-field checking every other spec field gets. `values_function` gained
+  a `function:` form naming a whole `ValuesFunctionIteration.Function`, which is what makes the
+  shipped `params_event` / `partition_event` emitters reachable at all. `excludedIterations` is
+  down from six entries to three, and all three survivors (`FromStorageIteration`,
+  `DataComparisonGradientIteration`, `EmbeddedSimulationRunIteration`) are live-object only as
+  *standalone partitions* — the `data:`, `macros:` and `embedded:` tiers already construct them.
+  A new `TestMultiPartitionRegistryBehaviourEquivalence` extends the data-spec-equals-Go
+  invariant to iterations that read *other* partitions' histories, which the existing
+  single-partition runner could not reach, and it fails if the subject's trajectory never varies
+  so the comparison cannot quietly become vacuous.
+
+### Removed
+- **`discrete.NewHawkesProcessIntensityIteration`** — it had no callers anywhere in the repo
+  (its own test built the struct literal), and its `hawkesPartitionIndex` argument was
+  discarded by `Configure` on the next line. `HawkesProcessIntensityIteration.excitingKernel`
+  is now the exported `ExcitingKernel`, matching every other composable iteration in the
+  framework (`.Kernel`, `.JumpDist`, `.Likelihood`, `.Iteration`); construct the struct
+  directly.
+- **`general.ValuesWeightedResamplingIteration.Src`** is now unexported. `Configure`
+  unconditionally overwrote it from the partition seed, so setting it never had an effect;
+  unexporting makes the "no live object here" classification structural rather than incidental.
+
 ## [0.5.3] — 2026-07-20
 
 The agent-facing payoff of the data-drivable-config arc: the `stochadex-model` skill, backed by
