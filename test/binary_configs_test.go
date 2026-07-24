@@ -8,10 +8,8 @@ import (
 
 // TestBinaryRunsExampleConfigs exercises the full CLI end-to-end — building the
 // binary and running configs through it — which the in-process pkg/api tests do
-// not do. It covers both paths the binary dispatches to:
-//   - codegen: a config with Go-expression iterations generates a temporary main
-//     and runs it via `go run`;
-//   - in-process: a fully-data config resolves and runs with no toolchain.
+// not do. Every config is data, so each resolves and runs in-process with no Go
+// toolchain.
 //
 // Configs are run from the repository root (Dir = ".."), because some carry
 // repo-relative output paths (e.g. ./nbs/data/test.log) — the working directory
@@ -33,10 +31,9 @@ func TestBinaryRunsExampleConfigs(t *testing.T) {
 		path string
 		kind string
 	}{
-		{"cfg/example_config.yaml", "codegen (Go iteration strings)"},
-		{"cfg/example_inference_config.yaml", "codegen (Go strings + embedded)"},
+		{"cfg/example_config.yaml", "in-process (data-spec iterations)"},
+		{"cfg/example_inference_config.yaml", "in-process (full inference as data + embedded)"},
 		{"cfg/example_data_only_config.yaml", "in-process (fully data)"},
-		{"cfg/example_inference_data_config.yaml", "in-process (full inference as data)"},
 	}
 	for _, config := range configs {
 		t.Run(filepath.Base(config.path), func(t *testing.T) {

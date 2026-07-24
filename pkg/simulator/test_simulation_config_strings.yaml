@@ -1,6 +1,5 @@
-output_condition: "&SomeOutputCondition{}"
-output_function: "&SomeOutputFunction{}"
-termination_condition: "&SomeTerminationCondition{}"
-timestep_function: "&SomeTimestepFunction{}"
+output_condition: {type: every_step}
+output_function: {type: nil}
+termination_condition: {type: number_of_steps, max_steps: 100}
+timestep_function: {type: constant, stepsize: 1.0}
 init_time_value: 0.0
-timesteps_history_depth: 1

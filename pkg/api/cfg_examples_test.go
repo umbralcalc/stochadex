@@ -5,10 +5,9 @@ import (
 	"testing"
 )
 
-// TestExampleConfigsRun guards the shipped in-process example configs against
-// bit-rot: each resolves and runs with no Go toolchain. (Replaces the old
-// test/configs_test.sh shell smoke; the Go-codegen path is covered by
-// TestRunWithParsedArgs, and the full inference model by TestFullInferenceConfigAsData.)
+// TestExampleConfigsRun guards the shipped example configs against bit-rot: each
+// resolves and runs with no Go toolchain. (Replaces the old test/configs_test.sh
+// shell smoke; the full inference model is covered by TestFullInferenceConfigAsData.)
 func TestExampleConfigsRun(t *testing.T) {
 	// Run from the repo root so a config's relative paths (e.g. a CSV source)
 	// resolve as they do for the CLI.
@@ -29,6 +28,7 @@ func TestExampleConfigsRun(t *testing.T) {
 	defer devnull.Close()
 
 	examples := []string{
+		"cfg/example_config.yaml",
 		"cfg/example_data_only_config.yaml",
 		"cfg/example_composition_config.yaml",
 		"cfg/example_ensemble_config.yaml",
@@ -41,10 +41,6 @@ func TestExampleConfigsRun(t *testing.T) {
 	}
 	for _, path := range examples {
 		t.Run(path, func(t *testing.T) {
-			strings := LoadApiRunConfigStringsFromYaml(path)
-			if !strings.IsFullyData() && len(strings.Macros) == 0 {
-				t.Fatalf("%s should be runnable in-process (fully data or macros)", path)
-			}
 			old := os.Stdout
 			os.Stdout = devnull
 			defer func() { os.Stdout = old }()

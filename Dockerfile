@@ -13,14 +13,10 @@
 # lesser tier evaporates and shipping it would only mean a container advertised for
 # pipeline chaining that lacks the egress pipelines chain through.
 #
-# The image carries the config-as-data path ONLY. It runs any fully-data config and
-# any macros: config — the whole {type: ...} registry, the expressions DSL, run
-# modes and the analysis tier — resolved and stepped in-process. It deliberately
-# ships no Go toolchain: configs naming Go expressions are executed by generating a
-# program and calling `go run` (pkg/api/run.go), and shipping a compiler in a
-# runtime image would mean a far larger image and arbitrary compilation at run time,
-# to serve the surface the engine is deliberately moving away from. That path stays
-# a local development affordance, where a toolchain already exists.
+# The whole config surface is data: any config — the {type: ...} registry, the
+# expressions DSL, run modes and the analysis tier — resolves and steps in-process,
+# so the image ships no Go toolchain and needs none. Genuinely bespoke Go iterations
+# live in a downstream repo that embeds the engine as a library, not in a config.
 
 # cmd/stochadex-full declares `go 1.25.0` — it will not build on an older toolchain,
 # and it is a SEPARATE module whose replace directives point at ../../ and

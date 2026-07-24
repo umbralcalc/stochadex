@@ -248,9 +248,6 @@ func TestDataSpecIterationRunsInProcess(t *testing.T) {
 	if err := os.WriteFile(path, []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if !LoadApiRunConfigStringsFromYaml(path).IsFullyData() {
-		t.Fatal("a data-spec iteration + data-spec simulation should be fully data")
-	}
 	loaded := LoadApiRunConfigFromYaml(path)
 	if loaded.Main.Partitions[0].Iteration == nil {
 		t.Fatal("the data-spec iteration should be resolved at load")
@@ -345,9 +342,6 @@ func TestNewlyRegisteredIterationsRunFromYaml(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	if err := os.WriteFile(path, []byte(config), 0o644); err != nil {
 		t.Fatal(err)
-	}
-	if !LoadApiRunConfigStringsFromYaml(path).IsFullyData() {
-		t.Fatal("this config names no Go anywhere — it should be fully data")
 	}
 	loaded := LoadApiRunConfigFromYaml(path)
 	want := map[string]string{
@@ -531,9 +525,6 @@ func TestComposableRunsInProcess(t *testing.T) {
 	if err := os.WriteFile(path, []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if !LoadApiRunConfigStringsFromYaml(path).IsFullyData() {
-		t.Fatal("a composable-data config should be fully data")
-	}
 	loaded := LoadApiRunConfigFromYaml(path)
 	for _, p := range loaded.Main.Partitions {
 		if p.Iteration == nil {
@@ -544,15 +535,12 @@ func TestComposableRunsInProcess(t *testing.T) {
 }
 
 // TestFullInferenceConfigAsData is the Phase B acceptance test: the complete
-// posterior-estimation inference model (cfg/example_inference_data_config.yaml),
+// posterior-estimation inference model (cfg/example_inference_config.yaml),
 // with embedded runs and from_history, is fully data, resolves at load, runs
 // in-process, and — the point of doing inference at all — actually recovers the
 // parameters that generated the data.
 func TestFullInferenceConfigAsData(t *testing.T) {
-	path := "../../cfg/example_inference_data_config.yaml"
-	if !LoadApiRunConfigStringsFromYaml(path).IsFullyData() {
-		t.Fatal("the data inference config should be detected as fully data")
-	}
+	path := "../../cfg/example_inference_config.yaml"
 	config := LoadApiRunConfigFromYaml(path)
 	// Run the fully-data config twice and capture params_posterior_mean each time.
 	//

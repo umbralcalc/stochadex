@@ -8,25 +8,24 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// An expression specification supplies a partition's iteration as data, so — unlike the
-// `iteration` field, which is a Go expression needing code generation — a config built only
-// from expressions runs with no Go toolchain at all. These tests cover that contract:
-// validation accepts the partition, the generator wires the iteration, and a config off disk
-// runs end to end.
+// An expression specification supplies a partition's iteration as data, so a config
+// built only from expressions runs with no Go toolchain at all. These tests cover that
+// contract: validation accepts the partition, the generator wires the iteration, and a
+// config off disk runs end to end.
 
 func TestValidateAcceptsExpressionBackedPartitions(t *testing.T) {
 	t.Run(
 		"a partition with no iteration is valid when an expression spec matches",
 		func(t *testing.T) {
-			config := &ApiRunConfigStrings{
-				Main: RunConfigStrings{
-					Partitions: []PartitionConfigStrings{
+			config := &ApiRunConfig{
+				Main: RunConfig{
+					Partitions: []simulator.PartitionConfig{
 						{Name: "declarative"}, // no iteration, but matched below
 					},
 					Expressions: []ExpressionConfig{{Partition: "declarative"}},
 				},
 			}
-			if didPanic(func() { validateApiRunConfigStrings(config) }) {
+			if didPanic(func() { validateApiRunConfig(config) }) {
 				t.Error("validation panicked despite a matching expression spec")
 			}
 		},
@@ -34,13 +33,13 @@ func TestValidateAcceptsExpressionBackedPartitions(t *testing.T) {
 	t.Run(
 		"a partition with neither an iteration, an embedded run nor an expression panics",
 		func(t *testing.T) {
-			config := &ApiRunConfigStrings{
-				Main: RunConfigStrings{
-					Partitions:  []PartitionConfigStrings{{Name: "orphan"}},
+			config := &ApiRunConfig{
+				Main: RunConfig{
+					Partitions:  []simulator.PartitionConfig{{Name: "orphan"}},
 					Expressions: []ExpressionConfig{{Partition: "somebody_else"}},
 				},
 			}
-			if !didPanic(func() { validateApiRunConfigStrings(config) }) {
+			if !didPanic(func() { validateApiRunConfig(config) }) {
 				t.Error("expected a panic for a partition no expression spec names")
 			}
 		},
@@ -286,30 +285,6 @@ func TestExpressionNamingAnUnknownPartitionIsRejected(t *testing.T) {
 				}
 			}()
 			config.GetConfigGenerator()
-		},
-	)
-}
-
-func TestExpressionsParseInTheStringsView(t *testing.T) {
-	t.Run(
-		"the same YAML parses in the code-generation view and validates",
-		func(t *testing.T) {
-			// Both views read the same file, so an expressions field must not break the
-			// templated view that drives code generation.
-			config := LoadApiRunConfigStringsFromYaml("test_program_expression_config.yaml")
-			if len(config.Main.Expressions) != 1 {
-				t.Fatalf("got %d expression specs, want 1", len(config.Main.Expressions))
-			}
-			if config.Main.Expressions[0].Partition != "walk" {
-				t.Errorf("spec partition: got %q, want walk",
-					config.Main.Expressions[0].Partition)
-			}
-			// The partition carries no iteration spec, and validation accepted it purely
-			// because the expression spec names it.
-			if !config.Main.Partitions[0].Iteration.IsZero() {
-				t.Errorf("expected no iteration spec, got %+v",
-					config.Main.Partitions[0].Iteration)
-			}
 		},
 	)
 }

@@ -14,5 +14,5 @@ main:
     - name: x
     outputs:
     - "x + drift * dt"
-  simulation:
-    output_condition: "&simulator.NilOutputCondition{}"
+  # No simulation block: the test that loads this fixture supplies the
+  # SimulationConfig programmatically after loading.

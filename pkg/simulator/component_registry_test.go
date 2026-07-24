@@ -7,16 +7,10 @@ import (
 )
 
 func TestComponentSpecUnmarshal(t *testing.T) {
-	t.Run("a scalar string becomes GoExpr", func(t *testing.T) {
+	t.Run("a scalar string is rejected (no Go-expression form)", func(t *testing.T) {
 		var spec ComponentSpec
-		if err := yaml.Unmarshal([]byte(`"&simulator.EveryStepOutputCondition{}"`), &spec); err != nil {
-			t.Fatal(err)
-		}
-		if spec.IsData() {
-			t.Error("a string spec should not be data")
-		}
-		if spec.GoExpr != "&simulator.EveryStepOutputCondition{}" {
-			t.Errorf("GoExpr = %q", spec.GoExpr)
+		if err := yaml.Unmarshal([]byte(`"&simulator.EveryStepOutputCondition{}"`), &spec); err == nil {
+			t.Error("a scalar string component spec should be rejected")
 		}
 	})
 
@@ -135,9 +129,6 @@ func TestResolveDataComponents(t *testing.T) {
 			TimestepFunction:     ComponentSpec{Type: "constant", Fields: map[string]interface{}{"stepsize": 1.0}},
 			InitTimeValue:        2.5,
 		}
-		if !strings.FullyData() {
-			t.Fatal("should report FullyData")
-		}
 		config, err := strings.ResolveDataComponents()
 		if err != nil {
 			t.Fatal(err)
@@ -151,23 +142,36 @@ func TestResolveDataComponents(t *testing.T) {
 		}
 	})
 
-	t.Run("a Go-expression component is left nil for codegen", func(t *testing.T) {
+	t.Run("an omitted component is left nil and execution_strategy resolves", func(t *testing.T) {
 		strings := SimulationConfigStrings{
-			OutputCondition:  ComponentSpec{GoExpr: "&simulator.EveryStepOutputCondition{}"},
-			TimestepFunction: ComponentSpec{Type: "constant", Fields: map[string]interface{}{"stepsize": 1.0}},
-		}
-		if strings.FullyData() {
-			t.Error("a Go-expression component means not fully data")
+			TimestepFunction:  ComponentSpec{Type: "constant", Fields: map[string]interface{}{"stepsize": 1.0}},
+			ExecutionStrategy: ComponentSpec{Type: "inline"},
 		}
 		config, err := strings.ResolveDataComponents()
 		if err != nil {
 			t.Fatal(err)
 		}
 		if config.OutputCondition != nil {
-			t.Error("the Go-expression component should be left nil")
+			t.Error("an omitted component should be left nil")
 		}
 		if config.TimestepFunction == nil {
 			t.Error("the data component should still be resolved")
+		}
+		if _, ok := config.ExecutionStrategy.(*InlineExecution); !ok {
+			t.Errorf("execution_strategy = %T, want *InlineExecution", config.ExecutionStrategy)
+		}
+	})
+
+	t.Run("an omitted execution_strategy resolves to nil (default policy)", func(t *testing.T) {
+		strings := SimulationConfigStrings{
+			TimestepFunction: ComponentSpec{Type: "constant", Fields: map[string]interface{}{"stepsize": 1.0}},
+		}
+		config, err := strings.ResolveDataComponents()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if config.ExecutionStrategy != nil {
+			t.Errorf("omitted execution_strategy should be nil, got %T", config.ExecutionStrategy)
 		}
 	})
 }
