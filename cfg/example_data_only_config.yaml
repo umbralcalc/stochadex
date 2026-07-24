@@ -3,10 +3,10 @@
 # iteration from the registry (e.g. `iteration: {type: wiener_process}`), and every
 # `simulation:` component is a {type: ...} data spec.
 #
-# Because nothing here is a Go expression, `stochadex --config` resolves it and
-# runs it IN-PROCESS — no code generation, no `go run`, no Go toolchain on the
-# machine. (A config that names any Go — an `iteration:` string, `extra_vars`, or
-# a Go-expression simulation component — falls back to the code-generation path.)
+# The whole config is data, so `stochadex --config` resolves it and runs it
+# IN-PROCESS — no code generation, no `go run`, no Go toolchain on the machine.
+# (This is the only config path: a component given as a Go-expression string is
+# rejected at load.)
 #
 # This is a stochastic logistic-growth SDE written as an expression. For a library
 # iteration instead, a partition would read e.g.

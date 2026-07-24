@@ -1,12 +1,10 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -152,14 +150,10 @@ func runBatch(generator *simulator.ConfigGenerator, socket *SocketConfig) {
 // index and seed.
 //
 // Members are rebuilt by re-loading the source file so each gets fresh, non-shared
-// iteration instances (required by RunSeededEnsemble). Re-loading recovers the
-// partitions but not the simulation block — its components are Go-expression
-// strings today (yaml:"-"), resolved only by the code-generation step — so the
-// already-resolved sim from the in-memory config is injected into each member. A
-// shallow copy per member keeps the (stateless) components shared but gives each
-// its own SimulationConfig struct. Once 2.5's registry gives the simulation
-// components a data spelling, the injection can be dropped and the re-load becomes
-// self-contained.
+// iteration instances (required by RunSeededEnsemble). Re-loading resolves the whole
+// config — partitions and the simulation block — from data, so each member is
+// self-contained; the resolved sim is passed in only to share the (stateless)
+// components rather than re-resolve them per member.
 func runEnsemble(
 	config *ApiRunConfig,
 	resolvedSim *simulator.SimulationConfig,
@@ -209,18 +203,16 @@ func ensembleRuns(
 }
 
 // assertDataOnly reports an error unless every main partition has an iteration
-// after re-loading from file — i.e. the config's partitions are fully specified by
-// expressions, with no Go iteration: string that only ExtraCode would fill. Such a
-// config cannot be rebuilt by a plain re-load, so ensemble mode rejects it with a
-// clear message rather than failing later inside GenerateConfigs.
+// after re-loading from file. A partition with no iteration relies on an embedded
+// run (rejected separately), so ensemble mode rejects it with a clear message
+// rather than failing later inside GenerateConfigs.
 func assertDataOnly(config *ApiRunConfig) error {
 	generator := LoadApiRunConfigFromYaml(config.sourcePath).GetConfigGenerator()
 	for _, name := range generator.PartitionNames() {
 		if generator.GetPartition(name).Iteration == nil {
 			return fmt.Errorf(
-				"api: ensemble run mode currently supports data-only configs; "+
-					"partition %q has no iteration after loading (it relies on a "+
-					"Go iteration: string, which ensemble cannot rebuild)",
+				"api: ensemble run mode requires every partition to resolve an "+
+					"iteration; partition %q has none after loading",
 				name,
 			)
 		}
@@ -256,71 +248,17 @@ func printEnsemble(runs []simulator.EnsembleRun) {
 	}
 }
 
-// GoToolchainMissingMessage is what a user sees when a config names Go
-// expressions on a machine (or in an image) with no Go toolchain. It names the
-// way out in both directions, because either can be the right fix: install Go,
-// or move the config onto the data surface that needs no toolchain at all.
-const GoToolchainMissingMessage = "this config names Go expressions, which " +
-	"requires a Go toolchain — the run is executed by generating a program and " +
-	"calling `go run`. Either install Go, or state the config purely as data " +
-	"({type: ...} iterations, expressions:, and {type: ...} simulation " +
-	"components), which resolves and runs in-process with no toolchain. The " +
-	"published container image carries the data path only."
-
-// checkGoToolchain reports whether the Go toolchain needed by the code-generation
-// path is available. lookPath is injected so the failure is testable without
-// manipulating PATH.
-func checkGoToolchain(lookPath func(string) (string, error)) error {
-	if _, err := lookPath("go"); err != nil {
-		return errors.New(GoToolchainMissingMessage)
-	}
-	return nil
-}
-
-// RunWithParsedArgs runs the configured simulation. A fully-data config (data-spec
-// partitions and simulation, no Go anywhere) is resolved and run in-process with no
-// toolchain; any config that names Go is run by generating a temporary main program
-// and executing it via go run, which is what enables dynamic iteration wiring.
+// RunWithParsedArgs runs the configured simulation. The whole config is data
+// (data-spec partitions and simulation, or expressions:, plus optional data:/macros:
+// tiers), so it is resolved and run in-process with no Go toolchain.
 func RunWithParsedArgs(args ParsedArgs) {
 	// Stamp the run's provenance to stderr before anything else, so the very first
 	// line of a job log ties whatever this run produces to the exact build (and,
-	// when the orchestrator supplies it, the exact image) that produced it. It is
-	// emitted once per invocation here — the codegen path below execs a freshly
-	// compiled program that drives the engine directly, not through this function,
-	// so there is no double stamp.
+	// when the orchestrator supplies it, the exact image) that produced it.
 	LogRunProvenance(os.Stderr)
 
-	// A fully-data config, or any macros: config (analysis runs are always
-	// in-process and use pkg/analysis, which the generated program does not import),
-	// runs directly.
-	if args.ConfigStrings.IsFullyData() || len(args.ConfigStrings.Macros) > 0 {
-		Run(
-			LoadApiRunConfigFromYaml(args.ConfigFile),
-			LoadSocketConfigFromYaml(args.SocketFile),
-		)
-		return
-	}
-
-	// This config names Go, so it can only run by code generation. Check for the
-	// toolchain before generating anything: without this the failure surfaces as an
-	// opaque `exec: "go": executable file not found in $PATH` panic from the middle
-	// of a run, which says nothing about which half of the config surface the user
-	// is on. Distributions that deliberately omit the toolchain land here — the
-	// container image most of all, since it carries the data path only.
-	if err := checkGoToolchain(exec.LookPath); err != nil {
-		fmt.Fprintln(os.Stderr, "\nerror: "+err.Error())
-		os.Exit(1)
-	}
-
-	// hydrate the template code and write it to a /tmp/*main.go
-	fileName := WriteMainProgram(args)
-	defer os.Remove(fileName)
-
-	// execute the code
-	runCmd := exec.Command("go", "run", fileName)
-	runCmd.Stdout = os.Stdout
-	runCmd.Stderr = os.Stderr
-	if err := runCmd.Run(); err != nil {
-		panic(err)
-	}
+	Run(
+		LoadApiRunConfigFromYaml(args.ConfigFile),
+		LoadSocketConfigFromYaml(args.SocketFile),
+	)
 }

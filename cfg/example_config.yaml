@@ -1,34 +1,26 @@
 main:
   partitions:
-  
+
   - name: first_wiener_process
-    iteration: firstWienerProcess
+    iteration: {type: wiener_process}
     params:
       variances: [1.0, 1.0, 1.0, 1.0, 1.0]
     init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
     state_history_depth: 1
     seed: 7167
-    extra_packages:
-    - github.com/umbralcalc/stochadex/pkg/continuous
-    extra_vars:
-    - firstWienerProcess: "&continuous.WienerProcessIteration{}"
 
   - name: second_wiener_process
-    iteration: secondWienerProcess
+    iteration: {type: wiener_process}
     params:
       variances: [1.0, 1.0, 1.0]
     init_state_values: [0.0, 0.0, 0.0]
     state_history_depth: 1
     seed: 2939
-    extra_packages:
-    - github.com/umbralcalc/stochadex/pkg/continuous
-    extra_vars:
-    - secondWienerProcess: "&continuous.WienerProcessIteration{}"
 
   simulation:
 
-    output_condition: "&simulator.EveryStepOutputCondition{}"
-    output_function: 'simulator.NewJsonLogOutputFunction("./nbs/data/test.log")'
-    termination_condition: "&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100}"
-    timestep_function: "&simulator.ConstantTimestepFunction{Stepsize: 1.0}"
+    output_condition: {type: every_step}
+    output_function: {type: json_log, path: "./nbs/data/test.log"}
+    termination_condition: {type: number_of_steps, max_steps: 100}
+    timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

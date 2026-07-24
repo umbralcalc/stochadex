@@ -5,28 +5,21 @@
 // data, so a whole run becomes a single artifact that can be versioned, diffed and
 // executed by a prebuilt binary with no Go toolchain present.
 //
-// # Two ways to name a component, and the decision they drive
+// # How a component is named
 //
-// Every position in a config that holds a framework component is a union of two spellings:
+// Every position in a config that holds a framework component is a data spec — a mapping
+// selecting a registered name, e.g. iteration: {type: wiener_process} or
+// timestep_function: {type: constant, stepsize: 1.0}, resolved at load time by this
+// package's registries. There is no Go-expression spelling: the whole document is data, so
+// LoadApiRunConfigFromYaml resolves it and RunWithParsedArgs runs it in-process with no Go
+// toolchain. A component given as a scalar Go string is rejected at load.
 //
-//   - a data spec — a mapping selecting a registered name, e.g.
-//     iteration: {type: wiener_process} or timestep_function: {type: constant, stepsize: 1.0},
-//     resolved at load time by this package's registries;
-//   - a Go expression string — e.g. "&continuous.WienerProcessIteration{}", with
-//     extra_packages and extra_vars declaring the imports and variables it needs.
-//
-// The two spellings are what RunWithParsedArgs branches on. ApiRunConfigStrings.IsFullyData
-// reports whether the config — main and every embedded run — names Go anywhere, so a single
-// Go-spelled component opts the whole document in. If it does not, the config is loaded,
-// resolved and run in-process. If it does, program.go hydrates a template into a temporary
-// main program and executes it with "go run" — the path that buys arbitrary Go wiring at the
-// cost of a toolchain. The macros: tier is always in-process, because it uses pkg/analysis,
-// which the generated program does not import.
-//
-// A partition's bespoke maths does not need either spelling: an expressions: entry
-// (ExpressionConfig, inlining general.ExpressionIteration) states the per-step update as
-// expressions, and is data like everything else. The registries are for the framework's own
-// catalogue, not for a model's arithmetic.
+// A partition's bespoke maths is data too: an expressions: entry (ExpressionConfig, inlining
+// general.ExpressionIteration) states the per-step update as expressions. The registries are
+// for the framework's own catalogue; the expressions DSL is for a model's arithmetic. Genuinely
+// novel algorithmic iterations that are neither in the catalogue nor expressible in the DSL
+// belong in a downstream repo that embeds the engine as a Go library (Settings +
+// Implementations), not in a config.
 //
 // # The config surface
 //

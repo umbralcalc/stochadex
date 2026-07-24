@@ -236,29 +236,6 @@ func TestEnsembleRuns(t *testing.T) {
 			t.Error("expected an error when sourcePath is empty")
 		}
 	})
-
-	t.Run("a Go-iteration (non-data-only) config is rejected", func(t *testing.T) {
-		goConfig := `main:
-  partitions:
-  - name: wiener
-    iteration: "&continuous.WienerProcessIteration{}"
-    params: {variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 1
-run:
-  mode: ensemble
-  seeds: [1, 2]
-`
-		config := writeConfig(t, goConfig)
-		_, err := ensembleRuns(config, testSim())
-		if err == nil {
-			t.Fatal("expected an error for a Go-iteration config")
-		}
-		if !strings.Contains(err.Error(), "data-only") {
-			t.Errorf("error should explain the data-only limitation, got: %v", err)
-		}
-	})
 }
 
 func TestFullyDataResolution(t *testing.T) {
@@ -297,13 +274,9 @@ func TestFullyDataResolution(t *testing.T) {
 		}
 	})
 
-	t.Run("the config is detected as fully data (no toolchain needed)", func(t *testing.T) {
-		if !LoadApiRunConfigStringsFromYaml(path).IsFullyData() {
-			t.Error("a data-spec-only config should be fully data")
-		}
-	})
-
-	t.Run("a Go-iteration config is not fully data", func(t *testing.T) {
+	t.Run("a Go-string iteration config is rejected at load", func(t *testing.T) {
+		// The Go-expression config path has been removed: a component given as a
+		// scalar Go string (rather than a {type: ...} data spec) must no longer load.
 		goPath := filepath.Join(t.TempDir(), "go.yaml")
 		goYAML := `main:
   partitions:
@@ -322,8 +295,8 @@ func TestFullyDataResolution(t *testing.T) {
 		if err := os.WriteFile(goPath, []byte(goYAML), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if LoadApiRunConfigStringsFromYaml(goPath).IsFullyData() {
-			t.Error("a Go-iteration config must not be fully data")
+		if !didPanic(func() { LoadApiRunConfigFromYaml(goPath) }) {
+			t.Error("a Go-string iteration config should be rejected at load")
 		}
 	})
 }

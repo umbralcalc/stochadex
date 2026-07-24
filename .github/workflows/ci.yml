@@ -196,26 +196,10 @@ jobs:
             docker run --rm stochadex:ci --version | grep -q "$feature" \
               || { echo "image is missing the $feature integration"; exit 1; }
           done
-      # A built image that cannot run a config is not a working image. This runs a
-      # fully-data config through the in-process path — no toolchain, which is the
-      # whole claim the image makes.
+      # A built image that cannot run a config is not a working image. Every config is
+      # data and runs through the in-process path — no toolchain, which is the whole
+      # claim the image makes.
       - name: Run a data-only config in the image
         run: |
           docker run --rm -v "$PWD:/work" stochadex:ci \
             --config cfg/example_data_only_config.yaml | tail -5
-      # The image carries no Go toolchain by design, so a config that names Go must
-      # fail with the actionable message rather than a raw "executable file not
-      # found" panic. Asserting the message keeps that contract honest: it is the
-      # only signal a user of the image gets about which half of the config surface
-      # they are on. cfg/example_config.yaml names Go
-      # ("&continuous.WienerProcessIteration{}"), so it takes the codegen branch.
-      - name: A Go-expression config fails with the actionable message
-        run: |
-          if docker run --rm -v "$PWD:/work" stochadex:ci \
-               --config cfg/example_config.yaml >out.txt 2>&1; then
-            echo "expected a Go-expression config to fail on the toolchain-free image"
-            cat out.txt; exit 1
-          fi
-          grep -q "requires a Go toolchain" out.txt || {
-            echo "failed, but not with the actionable message:"; cat out.txt; exit 1; }
-          echo "correctly refused:"; grep "requires a Go toolchain" out.txt

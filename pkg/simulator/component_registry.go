@@ -2,38 +2,23 @@ package simulator
 
 import "fmt"
 
-// ComponentSpec is the union value for a framework component in a config: either
-// a Go-expression string (e.g. "&simulator.EveryStepOutputCondition{}", resolved
-// by the code-generation step) or a data spec ({type: every_step, ...}, resolved
-// at load time by the registry below, needing no Go toolchain).
-//
-// This mirrors the iteration:/expressions: split already in the config: Go for
-// arbitrary user code at the cost of a compile, data for the framework's own
-// catalogue at no cost. A ComponentSpec carries whichever form the YAML used;
-// exactly one of GoExpr / Type is set on a populated spec.
+// ComponentSpec is the value for a framework component in a config: a data spec
+// ({type: every_step, ...}) resolved at load time by the registry below, needing
+// no Go toolchain. A partition's bespoke maths goes through expressions: instead;
+// the framework's own catalogue is named here by type.
 type ComponentSpec struct {
-	// GoExpr holds the Go-expression form (the whole scalar string). Non-empty
-	// iff the YAML value was a string.
-	GoExpr string
-	// Type is the data-spec discriminator (its "type" key). Non-empty iff the
-	// YAML value was a mapping.
+	// Type is the data-spec discriminator (its "type" key).
 	Type string
 	// Fields holds the remaining data-spec keys (everything but "type").
 	Fields map[string]interface{}
 }
 
-// UnmarshalYAML accepts either a scalar string (GoExpr form) or a mapping with a
-// string "type" key (data-spec form).
+// UnmarshalYAML accepts a mapping with a non-empty string "type" key.
 func (c *ComponentSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var asString string
-	if err := unmarshal(&asString); err == nil {
-		c.GoExpr = asString
-		return nil
-	}
 	var asMap map[string]interface{}
 	if err := unmarshal(&asMap); err != nil {
 		return fmt.Errorf(
-			"component spec must be a Go-expression string or a {type: ...} mapping: %w",
+			"component spec must be a {type: ...} mapping: %w",
 			err,
 		)
 	}
@@ -51,11 +36,10 @@ func (c *ComponentSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // IsZero reports whether the spec was never populated (the YAML omitted it).
 func (c ComponentSpec) IsZero() bool {
-	return c.GoExpr == "" && c.Type == "" && c.Fields == nil
+	return c.Type == "" && c.Fields == nil
 }
 
-// IsData reports whether the spec is the data form (resolvable without a Go
-// toolchain via the registry).
+// IsData reports whether the spec was populated (a {type: ...} data spec).
 func (c ComponentSpec) IsData() bool { return c.Type != "" }
 
 // fieldReader consumes a data spec's fields with strict key checking, so a
@@ -298,6 +282,34 @@ func ResolveTimestepFunction(spec ComponentSpec) (TimestepFunction, error) {
 			return value.(TimestepFunction), nil
 		}
 		return nil, unknownType("timestep_function", spec.Type)
+	}
+	return result, reader.done()
+}
+
+// ResolveExecutionStrategy builds an ExecutionStrategy from a data spec. The three
+// strategies are zero-field structs, so each is a nullary construction. An empty
+// (omitted) spec resolves to nil, which selects the default spawn-per-step policy.
+func ResolveExecutionStrategy(spec ComponentSpec) (ExecutionStrategy, error) {
+	if spec.IsZero() {
+		return nil, nil
+	}
+	reader := newFieldReader(spec.Type, spec.Fields)
+	var result ExecutionStrategy
+	switch spec.Type {
+	case "spawn_per_step":
+		result = &SpawnPerStepExecution{}
+	case "persistent_worker":
+		result = &PersistentWorkerExecution{}
+	case "inline":
+		result = &InlineExecution{}
+	default:
+		if value, ok, err := resolveExtra("execution_strategy", spec); ok {
+			if err != nil {
+				return nil, err
+			}
+			return value.(ExecutionStrategy), nil
+		}
+		return nil, unknownType("execution_strategy", spec.Type)
 	}
 	return result, reader.done()
 }

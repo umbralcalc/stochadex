@@ -113,7 +113,10 @@ func (m *smcModelSpec) builder(
 		if err != nil {
 			return nil, err
 		}
-		if !m.Simulation.FullyData() {
+		if !m.Simulation.OutputCondition.IsData() ||
+			!m.Simulation.OutputFunction.IsData() ||
+			!m.Simulation.TerminationCondition.IsData() ||
+			!m.Simulation.TimestepFunction.IsData() {
 			return nil, fmt.Errorf(
 				"smc_inference model.simulation must be fully data specs (or set observed_data)")
 		}

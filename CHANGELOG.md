@@ -22,6 +22,42 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+Removes the Go-expression config path entirely: the YAML API is now a single data
+surface. A component is named by `{type: ...}` from the framework registry, a partition's
+bespoke maths is written as `expressions:`, and everything resolves and runs in-process with
+no Go toolchain. Genuinely bespoke Go iterations — anything neither in the catalogue nor
+expressible in the DSL — belong in a downstream repo that embeds the engine as a library
+(`Settings` + `Implementations`), not in a config.
+
+This is a **breaking** change (a `v0.x` minor bump): configs that named Go — a scalar
+`iteration:`/simulation-component string like `"&continuous.WienerProcessIteration{}"`, or
+`extra_packages:` / `extra_vars:` — no longer load and are rejected at load time. All known
+downstream consumers are migrated to pure data in the same release.
+
+### Added
+- **`execution_strategy` data form.** The simulation block's `execution_strategy` now takes a
+  `{type: ...}` data spec (`spawn_per_step` / `persistent_worker` / `inline`), resolved by
+  `simulator.ResolveExecutionStrategy`. Omitting it selects the default spawn-per-step policy.
+  This was the last simulation-level field with no data spelling; closing it lets the whole
+  simulation block be data.
+
+### Removed
+- **The Go-expression config path and its code generation.** Deleted `extra_packages` /
+  `extra_vars`, the scalar Go-string spelling of `iteration:` and the four simulation
+  components, the `*ConfigStrings` "templated view" of every config type, the
+  `text/template` → `/tmp/*main.go` → `go run` machinery (`WriteMainProgram`,
+  `ApiCodeTemplate`, `formatExtra*`, `simComponentAssignments`), the toolchain pre-flight
+  (`checkGoToolchain`, `GoToolchainMissingMessage`), and `ComponentSpec.GoExpr`. The dead-key
+  validator collapses to a single strict parse against `ApiRunConfig` now that there is only
+  one view.
+
+### Changed
+- **`cfg/example_config.yaml` and `cfg/example_inference_config.yaml`** are now pure data. The
+  redundant `cfg/example_inference_data_config.yaml` (the data twin of the latter) was folded
+  back into `example_inference_config.yaml` and removed.
+- **`RunWithParsedArgs`** always runs in-process; `ArgParse`/`ParsedArgs` no longer load a
+  templated config view.
+
 ## [0.8.0] — 2026-07-24
 
 Provenance for the container surface. Every CLI run now stamps a one-line, machine-parseable

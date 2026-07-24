@@ -54,8 +54,8 @@ services:
     profiles: ["socket"]
     build:
       context: .
-    # A data-only config: the image carries no Go toolchain, so a config naming Go
-    # expressions (cfg/example_config.yaml does) would be refused here.
+    # Every config is data and runs in-process with no Go toolchain, which is all
+    # the image carries. This picks the logistic-growth example for the socket demo.
     command:
       - --config
       - cfg/example_data_only_config.yaml

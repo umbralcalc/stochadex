@@ -89,14 +89,16 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
 ## Config: two entry paths
 
 1. **Programmatic Go** — build `Settings` + `Implementations` (or a `ConfigGenerator`)
-   directly in Go. Used in unit tests and when embedding stochadex as a library.
-2. **YAML API path** — define the run in YAML (`ApiRunConfig`). Every position that holds a
-   framework component is a **union**: a Go-expression string (e.g.
-   `"&continuous.WienerProcessIteration{}"`, resolved by generating and running Go from a
-   template, with `extra_packages` / `extra_vars` declaring imports and variables) **or** a
-   `{type: ...}` data spec resolved at load with no toolchain (`iteration: {type:
-   wiener_process}`; `timestep_function: {type: constant, stepsize: 1.0}`). A config that names
-   no Go anywhere runs **in-process** — no codegen, no `go run`.
+   directly in Go. Used in unit tests and when embedding stochadex as a library. This is
+   where genuinely bespoke Go iterations live — anything neither in the framework catalogue
+   nor expressible in the `expressions:` DSL.
+2. **YAML API path** — define the run in YAML (`ApiRunConfig`). The whole document is **data**:
+   every position that holds a framework component is a `{type: ...}` data spec resolved at load
+   with no toolchain (`iteration: {type: wiener_process}`; `timestep_function: {type: constant,
+   stepsize: 1.0}`), and a partition's bespoke maths goes through `expressions:`. The config
+   resolves and runs **in-process** — no codegen, no `go run`, no Go toolchain. (There is no
+   Go-expression string spelling; a component given as a scalar Go string is rejected at load.
+   The old `extra_packages` / `extra_vars` codegen path was removed in v0.9.0.)
 
    The registries and tiers (all in `pkg/api`, with the four simulation-component families in
    `pkg/simulator`):

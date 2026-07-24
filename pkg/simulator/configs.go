@@ -81,12 +81,11 @@ type NamedUpstreamConfig struct {
 //   - ParamsFromUpstream forwards outputs from named upstream partitions.
 type PartitionConfig struct {
 	Name string `yaml:"name"`
-	// Iteration is the resolved iteration. It is set programmatically, by
-	// code generation, or by resolving IterationSpec's data form at load time.
+	// Iteration is the resolved iteration. It is set programmatically or by
+	// resolving IterationSpec's data form at load time.
 	Iteration Iteration `yaml:"-"`
-	// IterationSpec is the loaded `iteration:` value as a ComponentSpec union: a
-	// Go-expression string (resolved by codegen) or a {type: ...} data spec
-	// (resolved into Iteration at load time by the api iteration registry). It is
+	// IterationSpec is the loaded `iteration:` value as a {type: ...} data spec,
+	// resolved into Iteration at load time by the api iteration registry. It is
 	// empty when the partition's iteration comes from an expression or an embedded
 	// run instead.
 	IterationSpec      ComponentSpec                  `yaml:"iteration,omitempty"`
@@ -122,23 +121,22 @@ type SimulationConfig struct {
 }
 
 // SimulationConfigStrings is the YAML-loadable version of SimulationConfig. Each
-// of the four component fields is a ComponentSpec union: a Go-expression string
-// (resolved by code generation) or a {type: ...} data spec (resolved at load time
-// by the registry, needing no Go toolchain).
+// component field is a ComponentSpec data spec ({type: ...}) resolved at load time
+// by the registry, needing no Go toolchain. ExecutionStrategy is optional and
+// resolves to nil (the default spawn-per-step policy) when omitted.
 type SimulationConfigStrings struct {
 	OutputCondition      ComponentSpec `yaml:"output_condition"`
 	OutputFunction       ComponentSpec `yaml:"output_function"`
 	TerminationCondition ComponentSpec `yaml:"termination_condition"`
 	TimestepFunction     ComponentSpec `yaml:"timestep_function"`
 	InitTimeValue        float64       `yaml:"init_time_value"`
-	ExecutionStrategy    string        `yaml:"execution_strategy,omitempty"`
+	ExecutionStrategy    ComponentSpec `yaml:"execution_strategy,omitempty"`
 }
 
-// ResolveDataComponents returns a SimulationConfig with every component that was
-// given in data-spec form already constructed, and InitTimeValue copied across. A
-// component given in Go-expression form (or omitted) is left nil for the
-// code-generation step to fill. ExecutionStrategy has no data form yet and is left
-// to codegen. It errors if a data spec names an unknown type or a bad field.
+// ResolveDataComponents returns a SimulationConfig with every component data spec
+// constructed and InitTimeValue copied across. An omitted component is left nil.
+// ExecutionStrategy resolves to nil (the default spawn-per-step policy) when
+// omitted. It errors if a data spec names an unknown type or a bad field.
 func (s *SimulationConfigStrings) ResolveDataComponents() (*SimulationConfig, error) {
 	config := &SimulationConfig{InitTimeValue: s.InitTimeValue}
 	if s.OutputCondition.IsData() {
@@ -169,16 +167,12 @@ func (s *SimulationConfigStrings) ResolveDataComponents() (*SimulationConfig, er
 		}
 		config.TimestepFunction = resolved
 	}
+	resolvedStrategy, err := ResolveExecutionStrategy(s.ExecutionStrategy)
+	if err != nil {
+		return nil, err
+	}
+	config.ExecutionStrategy = resolvedStrategy
 	return config, nil
-}
-
-// FullyData reports whether all four components were given in data-spec form, so
-// the simulation needs no code generation at all.
-func (s *SimulationConfigStrings) FullyData() bool {
-	return s.OutputCondition.IsData() &&
-		s.OutputFunction.IsData() &&
-		s.TerminationCondition.IsData() &&
-		s.TimestepFunction.IsData()
 }
 
 // PartitionConfigOrdering maintains the ordering and lookup for partitions.

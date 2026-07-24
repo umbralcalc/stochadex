@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -35,50 +34,5 @@ func TestMacroConfigPreservesBooleanishNames(t *testing.T) {
 	spec := config.Macros[0].Spec.(*vectorMeanSpec)
 	if spec.Name != "no" || spec.Data.PartitionName != "yes" {
 		t.Errorf("boolean-like names corrupted: name=%q data=%q", spec.Name, spec.Data.PartitionName)
-	}
-}
-
-// TestIsFullyDataBoundary checks the in-process/codegen boundary: a config is
-// fully data only when it names no Go anywhere. Any Go iteration, extra_vars, or
-// Go-expression simulation component must flip it to the codegen path.
-func TestIsFullyDataBoundary(t *testing.T) {
-	base := `main:
-  partitions:
-  - name: p
-    %s
-    params: {rate: [0.05]}
-    init_state_values: [1.0]
-    state_history_depth: 1
-    seed: 1
-  %s
-  simulation:
-    output_condition: {type: every_step}
-    output_function: {type: stdout}
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: %s
-`
-	cases := []struct {
-		name        string
-		iteration   string
-		expressions string
-		timestep    string
-		wantData    bool
-	}{
-		{"all data", "iteration: {type: wiener_process}", "", "{type: constant, stepsize: 1.0}", true},
-		{"expression partition", "", "expressions:\n  - {partition: p, fields: [{name: x}], outputs: [\"x\"]}", "{type: constant, stepsize: 1.0}", true},
-		{"go iteration", `iteration: "&continuous.WienerProcessIteration{}"`, "", "{type: constant, stepsize: 1.0}", false},
-		{"go simulation component", "iteration: {type: wiener_process}", "", `"&simulator.ConstantTimestepFunction{Stepsize: 1.0}"`, false},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			yamlText := fmt.Sprintf(base, tc.iteration, tc.expressions, tc.timestep)
-			var strings ApiRunConfigStrings
-			if err := yaml.Unmarshal([]byte(yamlText), &strings); err != nil {
-				t.Fatal(err)
-			}
-			if got := strings.IsFullyData(); got != tc.wantData {
-				t.Errorf("IsFullyData() = %v, want %v", got, tc.wantData)
-			}
-		})
 	}
 }
