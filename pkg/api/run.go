@@ -282,6 +282,14 @@ func checkGoToolchain(lookPath func(string) (string, error)) error {
 // toolchain; any config that names Go is run by generating a temporary main program
 // and executing it via go run, which is what enables dynamic iteration wiring.
 func RunWithParsedArgs(args ParsedArgs) {
+	// Stamp the run's provenance to stderr before anything else, so the very first
+	// line of a job log ties whatever this run produces to the exact build (and,
+	// when the orchestrator supplies it, the exact image) that produced it. It is
+	// emitted once per invocation here — the codegen path below execs a freshly
+	// compiled program that drives the engine directly, not through this function,
+	// so there is no double stamp.
+	LogRunProvenance(os.Stderr)
+
 	// A fully-data config, or any macros: config (analysis runs are always
 	// in-process and use pkg/analysis, which the generated program does not import),
 	// runs directly.

@@ -220,7 +220,9 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          build-args: VERSION=${{ env.VERSION }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
+            REVISION=${{ github.sha }}
           outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
           provenance: true
           sbom: true
@@ -306,3 +308,29 @@ jobs:
           # And it must actually step a config, not merely start.
           docker run --rm --platform linux/amd64 -v "$PWD:/work" "${IMAGE}:${VERSION}" \
             --config cfg/example_data_only_config.yaml | tail -5
+
+          # Provenance binding: a run must stamp which build produced it, and echo the
+          # image digest a deployer injects. Resolve this manifest's digest and prove
+          # the run reports it — this is the containerised claim-to-test binding, so a
+          # silent regression in it must fail the release, not surface later as an
+          # unreproducible result.
+          digest=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" \
+            --format '{{.Manifest.Digest}}')
+          echo "manifest digest: ${digest}"
+          prov=$(docker run --rm --platform linux/amd64 \
+            -e STOCHADEX_IMAGE_DIGEST="${digest}" -v "$PWD:/work" "${IMAGE}:${VERSION}" \
+            --config cfg/example_data_only_config.yaml 2>&1 >/dev/null \
+            | grep '^stochadex-run ')
+          echo "provenance line: ${prov}"
+          case "${prov}" in
+            *"version=${VERSION}"*) ;;
+            *) echo "provenance line missing the expected version"; exit 1 ;;
+          esac
+          case "${prov}" in
+            *"image=${digest}"*) ;;
+            *) echo "provenance line did not echo the injected image digest"; exit 1 ;;
+          esac
+          case "${prov}" in
+            *"revision=${{ github.sha }}"*) ;;
+            *) echo "provenance line missing the build revision"; exit 1 ;;
+          esac

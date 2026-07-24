@@ -34,6 +34,10 @@ services:
   # One-shot runs: `docker compose run --rm stochadex --config <path>`.
   # The repo is mounted at /work (the image's WORKDIR) so configs and any CSV or
   # JSON egress land back on the host.
+  # On native Linux the container's non-root uid (65532) may not be able to write
+  # into a host-owned mount — see the BIND-MOUNT CONTRACT note in the Dockerfile. Add
+  # `user: "${UID}:${GID}"` here (with UID/GID exported) if a config writes output and
+  # you hit "permission denied".
   # Deliberately no depends_on: most runs write nowhere near Postgres, and making
   # every config run boot a database first is friction for the common case. Bring
   # the DB up explicitly when a config or test actually needs it.
