@@ -22,6 +22,8 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-07-24
+
 ### Added
 
 - **ONNX inference partition** (`pkg/onnx`, opt-in module). Run a frozen ONNX model —
