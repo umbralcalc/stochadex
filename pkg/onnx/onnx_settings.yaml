@@ -1,0 +1,10 @@
+iterations:
+- name: onnx_model
+  params:
+    input: [1.0, 0.0, 0.0]
+  init_state_values: [0.0, 0.0]
+  seed: 0
+  state_width: 2
+  state_history_depth: 1
+init_time_value: 0.0
+timesteps_history_depth: 1

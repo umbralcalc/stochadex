@@ -64,17 +64,49 @@ var iterationBuilders = map[string]iterationBuilder{
 	"from_history": buildFromHistory,
 }
 
+// extraIterationBuilders holds iteration builders contributed by a package
+// layered above this one, so a component with a heavy dependency can add a
+// {type: ...} spelling without the engine importing it. Imports drive go.mod;
+// keeping these out of iterationBuilders is what lets the core stay lean and
+// CGO_ENABLED=0-clean. The opt-in pkg/onnx module self-registers its
+// onnx_inference iteration this way (it pulls in a cgo ONNX Runtime), exactly as
+// data sources (RegisterDataSource) and output sinks (simulator.RegisterComponent)
+// are contributed from downstream. The coverage drift test only scans the core
+// candidate packages, so a downstream iteration needs no exclusion entry there.
+var extraIterationBuilders = map[string]func(simulator.ComponentSpec) (simulator.Iteration, error){}
+
+// RegisterIteration registers an iteration builder for a {type: ...} spelling
+// that lives downstream of this package. Call it from an init(); it panics on a
+// duplicate so two packages cannot silently claim one name. The builder receives
+// the whole ComponentSpec (Type plus Fields) and is responsible for strict field
+// validation, just like the core builders.
+func RegisterIteration(
+	typeName string,
+	build func(simulator.ComponentSpec) (simulator.Iteration, error),
+) {
+	if _, exists := iterationBuilders[typeName]; exists {
+		panic("api: iteration name already claimed by the core registry: " + typeName)
+	}
+	if _, exists := extraIterationBuilders[typeName]; exists {
+		panic("api: duplicate iteration registration " + typeName)
+	}
+	extraIterationBuilders[typeName] = build
+}
+
 // ResolveIteration builds a simulator.Iteration from a data-spec ComponentSpec.
 func ResolveIteration(spec simulator.ComponentSpec) (simulator.Iteration, error) {
-	build, ok := iterationBuilders[spec.Type]
-	if !ok {
-		return nil, fmt.Errorf(
-			"iteration: unknown data-spec type %q (is it registered, or is it a "+
-				"composable/live-object iteration with no data form yet?)",
-			spec.Type,
-		)
+	if build, ok := iterationBuilders[spec.Type]; ok {
+		return build(spec.Fields)
 	}
-	return build(spec.Fields)
+	if build, ok := extraIterationBuilders[spec.Type]; ok {
+		return build(spec)
+	}
+	return nil, fmt.Errorf(
+		"iteration: unknown data-spec type %q (is it registered, or is it a "+
+			"composable/live-object iteration with no data form yet? some spellings "+
+			"like onnx_inference are only in the distributed cmd/stochadex-full build)",
+		spec.Type,
+	)
 }
 
 // nullary adapts a no-field iteration constructor into a builder that rejects any

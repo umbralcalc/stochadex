@@ -141,7 +141,7 @@ prepare_template() {
     # absent from go list). Merge and sort so the modules interleave alphabetically — arrowstore
     # after api, duckdbstore after discrete — instead of trailing at the end.
     local pkg_names=$( { go list ../... | grep '/pkg/' | sed 's#.*/##'; \
-                         printf 'arrowstore\nduckdbstore\ns3store\n'; } | sort )
+                         printf 'arrowstore\nduckdbstore\nonnx\ns3store\n'; } | sort )
     for pkg_name in $pkg_names; do
         case "$pkg_name" in
             api) local label="API" ;;                            # known acronym
@@ -359,14 +359,15 @@ EOF
     log_success "Package documentation generated"
 }
 
-# Generate docs for the nested opt-in modules (pkg/arrowstore, pkg/duckdbstore). They live in
-# separate go.mod trees, so `go list ../...` above excludes them; gomarkdoc must run from inside
-# each module. duckdbstore's public API is behind the driver's duckdb_arrow build tag (cgo).
+# Generate docs for the nested opt-in modules (pkg/arrowstore, pkg/duckdbstore, pkg/onnx). They
+# live in separate go.mod trees, so `go list ../...` above excludes them; gomarkdoc must run from
+# inside each module. duckdbstore's public API is behind the driver's duckdb_arrow build tag, and
+# onnx's behind its own onnx tag (both cgo).
 generate_nested_module_docs() {
     log_info "Generating nested opt-in module documentation..."
     mkdir -p "$DOCS_DIR/pkg"
     # "<module-dir>:<extra gomarkdoc flags>"
-    for spec in "arrowstore:" "duckdbstore:--tags duckdb_arrow" "s3store:"; do
+    for spec in "arrowstore:" "duckdbstore:--tags duckdb_arrow" "onnx:--tags onnx" "s3store:"; do
         local name="${spec%%:*}"
         local tags="${spec#*:}"
         log_info "Generating nested module: $name"

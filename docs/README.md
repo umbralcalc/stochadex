@@ -27,7 +27,7 @@ Other declarative formats are narrower ([SBML](https://sbml.org/), [Modelica](ht
 - **Pure discrete-event simulation** (entities through queues and servers) → [godes](https://github.com/agoussia/godes) or [SimPy](https://gitlab.com/team-simpy/simpy/).
 - **A standards-based interchange format** (systems biology, physical plant) → [SBML](https://sbml.org/) with [COPASI](https://copasi.org/), or [Modelica](https://modelica.org/).
 - **Plain numerics or classical ML in Go** → [gonum](https://github.com/gonum/gonum), which the stochadex is built on.
-- **Training neural networks or deep RL** → train in Python, then import a frozen ONNX/TorchScript model to run inference behind an [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration).
+- **Training neural networks or deep RL** → train in Python, then import a frozen ONNX model to run inference behind a [`OnnxInferenceIteration`](https://stochadex.github.io/pkg/onnx.html#OnnxInferenceIteration).
 
 ## Install
 
@@ -67,6 +67,7 @@ go get github.com/umbralcalc/stochadex
 | <img src="./assets/arrow-integration-logo.svg" height="40"/><br/> | Build simulation output directly as Apache Arrow for columnar interchange (Polars / pandas / Parquet). Opt-in module. | [read](https://stochadex.github.io/pkg/arrowstore.html#ArrowStateTimeStorage.Record) · [write](https://stochadex.github.io/pkg/arrowstore.html#ArrowStateTimeStorageOutputFunction) |
 | <img src="./assets/duckdb-integration-logo.svg" height="40"/><br/> | Land the Arrow output in DuckDB for SQL analytics, zero-copy. Opt-in module. | [write](https://stochadex.github.io/pkg/duckdbstore.html#IngestToTable) |
 | <img src="./assets/s3-integration-logo.svg" height="40"/><br/> | Read and write runs to Amazon S3 or any S3-compatible store (MinIO, Cloudflare R2, Ceph). Opt-in module. | [read](https://stochadex.github.io/pkg/s3store.html#Fetch) · [write](https://stochadex.github.io/pkg/s3store.html#NewOutputFunction) |
+| <img src="./assets/onnx-integration-logo.svg" height="40"/><br/> | Run a frozen ONNX model trained upstream in Python (with sklearn, XGBoost or a small neural net). Opt-in module. | [run](https://stochadex.github.io/pkg/onnx.html#OnnxInferenceIteration) |
 
 ## Projects using it
 
