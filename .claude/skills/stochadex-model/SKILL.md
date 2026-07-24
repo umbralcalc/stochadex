@@ -19,8 +19,8 @@ executable — no Go toolchain required to run a data-spec config (the kind this
 curl -L https://github.com/umbralcalc/stochadex/releases/latest/download/stochadex-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') -o stochadex
 chmod +x stochadex && ./stochadex --config model.yaml
 
-# Or, if a Go toolchain is present:
-go install github.com/umbralcalc/stochadex/cmd/stochadex@latest
+# Or, with a Go toolchain, build from a checkout (the CLI is its own module):
+git clone https://github.com/umbralcalc/stochadex && cd stochadex/cmd/stochadex && go build -o stochadex .
 ```
 
 If `stochadex` is missing, stop and tell the user to install it (above) rather than guessing —

@@ -92,8 +92,8 @@ No Go needed. Describe a whole run in **one YAML file** and run it with a prebui
 curl -L "https://github.com/umbralcalc/stochadex/releases/latest/download/stochadex-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" -o stochadex
 chmod +x stochadex
 
-# Or with Go:
-go install github.com/umbralcalc/stochadex/cmd/stochadex@latest
+# Or with Go, build from a checkout (the CLI is its own module):
+git clone https://github.com/umbralcalc/stochadex && cd stochadex/cmd/stochadex && go build -o stochadex .
 
 # Or as a container:
 docker pull ghcr.io/umbralcalc/stochadex:latest

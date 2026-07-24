@@ -165,7 +165,7 @@ twin agree, and never widen a tolerance to hide a gap — step the oracle down i
 go build ./...                                   # compile all packages
 go test ./...                                    # run all unit tests
 go test ./pkg/continuous/...                     # test one package
-go build -o bin/ ./cmd/stochadex                 # build the CLI
+(cd cmd/stochadex && go build -o ../../bin/stochadex .)  # build the CLI (its own module)
 ./bin/stochadex --config cfg/example_config.yaml # run a simulation
 cd docs && bash build.sh                         # build HTML docs (needs pandoc + gomarkdoc)
 ```

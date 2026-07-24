@@ -21,8 +21,12 @@ func TestBinaryRunsExampleConfigs(t *testing.T) {
 	}
 	const repoRoot = ".."
 	binary := filepath.Join(t.TempDir(), "stochadex")
-	build := exec.Command("go", "build", "-o", binary, "./cmd/stochadex")
-	build.Dir = repoRoot
+	// The CLI is its own nested module (cmd/stochadex has its own go.mod so its
+	// opt-in deps stay out of the engine's), so build from inside that module
+	// rather than `./cmd/stochadex` from the engine root. binary is an absolute
+	// path (t.TempDir), so the build lands it correctly despite the changed dir.
+	build := exec.Command("go", "build", "-o", binary, ".")
+	build.Dir = filepath.Join(repoRoot, "cmd", "stochadex")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("building the CLI: %v\n%s", err, out)
 	}
