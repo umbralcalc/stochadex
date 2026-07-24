@@ -22,6 +22,18 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-07-24
+
+Provenance for the container surface. Every CLI run now stamps a one-line, machine-parseable
+record of the build that produced it to stderr, and the published image carries OCI labels and a
+git revision so a pulled image traces back to an exact commit — the containerised counterpart of
+the engine's claim-to-test binding. A binary cannot know the digest of the image that wraps it, so
+the run echoes one a deployer injects via `STOCHADEX_IMAGE_DIGEST`, and the release's manifest
+smoke-test asserts that echo end-to-end.
+
+A minor rather than a patch: the per-run provenance line and the image labels are new
+backward-compatible behaviour, which SemVer classes as a minor bump.
+
 ### Added
 - **Per-run provenance line.** Every CLI run now stamps a single machine-parseable
   `stochadex-run version=… os=… arch=… revision=… features=… image=…` line to **stderr**
