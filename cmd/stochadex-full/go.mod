@@ -3,12 +3,17 @@
 // deliberately excludes, so the engine stays lean and WASM-clean for everyone who
 // imports it as a library while the shipped binary still carries the integrations.
 //
-// One main package, two builds:
+// One main package, several builds:
 //   - pure Go (no tags, CGO off) — engine + Postgres + Arrow; cross-compiles everywhere.
 //   - CGO with `-tags "cblas duckdb_arrow"` — adds an optimised system BLAS and DuckDB.
+//   - CGO with `-tags onnx` — adds the onnx_inference partition, running a frozen ONNX
+//     model behind an Iteration via a cgo ONNX Runtime. The ONNX Runtime shared library
+//     is a system dependency, located at run time via the spec's shared_library_path,
+//     the ONNXRUNTIME_LIB_PATH env var, or a conventional install path (see onnx.go).
 //
 // duckdbstore is required unconditionally so the module graph resolves, but its code is
 // only compiled under the duckdb_arrow tag, which keeps the pure-Go build cgo-free.
+// onnxruntime_go is likewise only compiled under the onnx tag.
 module github.com/umbralcalc/stochadex/cmd/stochadex-full
 
 go 1.25.0
@@ -21,6 +26,8 @@ require (
 	github.com/umbralcalc/stochadex/pkg/duckdbstore v0.0.0
 	github.com/umbralcalc/stochadex/pkg/s3store v0.0.0
 )
+
+require github.com/yalue/onnxruntime_go v1.31.0 // indirect
 
 require (
 	github.com/akamensky/argparse v1.4.0 // indirect
@@ -63,6 +70,7 @@ require (
 	github.com/marcboeker/go-duckdb/mapping v0.0.21 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/scientificgo/special v0.0.2 // indirect
+	github.com/umbralcalc/stochadex/pkg/onnx v0.0.0
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
 	golang.org/x/net v0.52.0 // indirect
@@ -83,3 +91,5 @@ replace github.com/umbralcalc/stochadex/pkg/arrowstore => ../../pkg/arrowstore
 replace github.com/umbralcalc/stochadex/pkg/duckdbstore => ../../pkg/duckdbstore
 
 replace github.com/umbralcalc/stochadex/pkg/s3store => ../../pkg/s3store
+
+replace github.com/umbralcalc/stochadex/pkg/onnx => ../../pkg/onnx

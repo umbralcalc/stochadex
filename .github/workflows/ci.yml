@@ -65,6 +65,18 @@ jobs:
       # explicitly (CGO on) against the local sibling modules (replace => ../.. and ../arrowstore).
       - name: Build and test duckdbstore module (opt-in DuckDB egress)
         run: cd pkg/duckdbstore && CGO_ENABLED=1 go build -tags duckdb_arrow ./... && CGO_ENABLED=1 go test -tags duckdb_arrow ./... -count=1
+      # The opt-in pkg/onnx/ module (frozen ONNX inference behind an Iteration) is a SEPARATE
+      # module, CGO + a dlopened ONNX Runtime shared library, kept out of the engine's go.mod.
+      # Fetch the ONNX Runtime library and point ONNXRUNTIME_LIB_PATH at it so the differential
+      # inference test runs for real (it skips, rather than fails, when the library is absent).
+      - name: Build and test onnx module (opt-in ONNX inference)
+        run: |
+          ORT=onnxruntime-linux-x64-1.27.1
+          curl -sSL -o ort.tgz "https://github.com/microsoft/onnxruntime/releases/download/v1.27.1/${ORT}.tgz"
+          tar xzf ort.tgz
+          cd pkg/onnx && CGO_ENABLED=1 go build -tags onnx ./... && \
+            CGO_ENABLED=1 ONNXRUNTIME_LIB_PATH="${GITHUB_WORKSPACE}/${ORT}/lib/libonnxruntime.so" \
+            go test -tags onnx ./... -count=1
       # The distributed CLI (cmd/stochadex-full) is a SEPARATE module bundling the opt-in
       # egress modules, so `./...` above excludes it. Build both flavours it ships so a
       # release cannot be the first time either is compiled: the portable one (pure Go,
@@ -77,6 +89,11 @@ jobs:
           sudo apt-get update && sudo apt-get install -y libopenblas-dev
           cd cmd/stochadex-full && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" \
             go build -tags "cblas duckdb_arrow" ./...
+      # The onnx tag wires the opt-in ONNX inference partition into the CLI. It only
+      # dlopens the ONNX Runtime at run time, so this is a compile check — no library
+      # needed to build — proving a release cannot be the first time it is compiled in.
+      - name: Build the distributed CLI (with ONNX inference)
+        run: cd cmd/stochadex-full && CGO_ENABLED=1 go build -tags onnx ./...
       # Publish coverage to Codecov (external) for the coverage badge. Non-blocking:
       # a coverage-upload hiccup must never fail a merge. Needs the CODECOV_TOKEN
       # secret (from Codecov after enabling its app on the repo).
