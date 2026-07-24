@@ -22,6 +22,8 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-07-24
+
 Removes the Go-expression config path entirely: the YAML API is now a single data
 surface. A component is named by `{type: ...}` from the framework registry, a partition's
 bespoke maths is written as `expressions:`, and everything resolves and runs in-process with
