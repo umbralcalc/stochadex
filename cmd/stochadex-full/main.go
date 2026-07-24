@@ -35,6 +35,12 @@ import (
 // variable, not a placeholder: without one the -X flag silently does nothing.
 var version = "dev"
 
+// revision is the git commit, stamped with -ldflags "-X main.revision=<sha>" only by
+// builds that cannot embed VCS info themselves — the OCI image, whose context excludes
+// .git. It stays empty for the binary releases, which the toolchain stamps
+// automatically from the repository (see api.BuildRevision).
+var revision = ""
+
 func main() {
 	// Handled before ArgParse so it needs no config and cannot be refused by argument
 	// validation — `--version` must answer even on a machine with nothing set up.
@@ -44,6 +50,12 @@ func main() {
 			return
 		}
 	}
+	// Hand this build's version stamp and compiled-in feature list to the engine so
+	// the per-run provenance line (api.LogRunProvenance) reports the accelerated CLI
+	// as what actually ran, not the base engine's "dev"/no-features default.
+	api.BuildVersion = version
+	api.BuildFeatures = features
+	api.BuildRevision = revision
 	api.RunWithParsedArgs(api.ArgParse())
 }
 

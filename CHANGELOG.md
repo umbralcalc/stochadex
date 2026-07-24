@@ -22,6 +22,27 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+- **Per-run provenance line.** Every CLI run now stamps a single machine-parseable
+  `stochadex-run version=… os=… arch=… revision=… features=… image=…` line to **stderr**
+  before it starts, so a job log ties whatever the run produces to the exact build that
+  produced it — the containerised counterpart of the claim-to-test binding. It reports the
+  build version, git revision (embedded VCS info for the binaries; stamped in for the image,
+  whose context excludes `.git`) and compiled-in features, and echoes an image digest a
+  deployer injects via `STOCHADEX_IMAGE_DIGEST` (a binary cannot know the digest of the image
+  that wraps it). Sent to stderr so it never corrupts a `stdout` data output.
+- **OCI provenance labels on the published image** (`org.opencontainers.image.source`,
+  `.revision`, `.version`, `.title`, `.description`, `.licenses`), fed from `VERSION`/`REVISION`
+  build-args. `source` is what makes GHCR link the package back to this repository; `revision`
+  pins the exact commit. The release workflow now passes the commit SHA and its manifest
+  smoke-test asserts the run echoes the resolved image digest.
+
+### Documented
+- **Bind-mount write-permission contract.** The image runs as non-root uid `65532`, so a
+  host output directory mounted at `/work` must be writable by that uid or egress fails with
+  "permission denied" on native Linux (invisible on Docker Desktop). The `Dockerfile` and
+  `compose.yaml` now spell out the `--user "$(id -u):$(id -g)"` / pre-chown escape hatches.
+
 ## [0.7.0] — 2026-07-24
 
 Stochadex ships as a container. A published multi-arch OCI image on GHCR carries the fully

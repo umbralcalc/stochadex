@@ -28,6 +28,12 @@
 ARG GO_VERSION=1.25
 ARG DEBIAN_RELEASE=bookworm
 
+# VERSION is the human tag (e.g. 0.7.0); REVISION is the git commit it was built from.
+# Both are passed by the release workflow and become OCI labels + a compiled-in
+# version stamp, so a pulled image can be traced back to an exact source commit.
+ARG VERSION=dev
+ARG REVISION=unknown
+
 # ---- build -------------------------------------------------------------------
 FROM golang:${GO_VERSION}-${DEBIAN_RELEASE} AS build
 
@@ -42,10 +48,14 @@ WORKDIR /src
 # go.mod-only cache layer.
 COPY . .
 
+# .git is excluded from the build context (see .dockerignore), so the toolchain
+# cannot embed the revision itself — it is stamped in explicitly from the REVISION
+# build-arg instead, and the run provenance line reports it (api.BuildRevision).
 ARG VERSION=dev
+ARG REVISION=unknown
 RUN cd cmd/stochadex-full \
  && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" go build -trimpath \
-      -ldflags "-s -w -X main.version=${VERSION}" \
+      -ldflags "-s -w -X main.version=${VERSION} -X main.revision=${REVISION}" \
       -tags "cblas duckdb_arrow" \
       -o /out/stochadex .
 
@@ -79,6 +89,28 @@ RUN apt-get update \
 
 COPY --from=build /out/stochadex /usr/local/bin/stochadex
 
+# OCI provenance labels, fed from the build-args. org.opencontainers.image.source is
+# the load-bearing one: it is what makes GHCR link this package back to the repository
+# and what a registry UI reads to show where an image came from. revision + version
+# pin the exact source a pulled image was built from — the provenance the release
+# workflow's SBOM/attestation complement rather than replace.
+ARG VERSION=dev
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="stochadex" \
+      org.opencontainers.image.description="Accelerated stochadex CLI — data-path simulation engine for cloud-native pipelines" \
+      org.opencontainers.image.source="https://github.com/umbralcalc/stochadex" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}"
+
+# The same version/revision as env vars, so a running container can report its own
+# provenance without shelling out to inspect labels. STOCHADEX_IMAGE_DIGEST is left
+# UNSET on purpose: the digest is a hash of this image and so cannot be known while
+# building it. A deployer that resolved an image@sha256:… reference passes that digest
+# in via this variable, and the run provenance line (api.LogRunProvenance) echoes it.
+ENV STOCHADEX_VERSION="${VERSION}" \
+    STOCHADEX_REVISION="${REVISION}"
+
 # The websocket port used by cfg/socket.yaml when --socket is passed.
 EXPOSE 2112
 
@@ -86,7 +118,17 @@ EXPOSE 2112
 # to mount one directory.
 WORKDIR /work
 
-# Non-root by default; a simulation never needs privilege.
+# Non-root by default; a simulation never needs privilege. UID 65532 is the
+# conventional "nonroot" id (matches distroless), so it is predictable for wrappers
+# that pre-create or chown a mount.
+#
+# BIND-MOUNT CONTRACT: because the process runs as 65532, a host directory mounted at
+# /work for output must be writable by that uid, or CSV/JSON egress fails with
+# "permission denied". On Docker Desktop (macOS/Windows) the file-sharing layer maps
+# ownership and this is invisible; on native Linux it is not. Two escape hatches:
+#   - run as the host user:   docker run --user "$(id -u):$(id -g)" -v "$PWD:/work" …
+#   - or pre-chown the mount:  chown 65532:65532 <output-dir>
+# Read-only inputs never hit this — only directories the run writes into.
 RUN useradd --uid 65532 --user-group --home-dir /work --no-create-home stochadex \
  && chown stochadex:stochadex /work
 USER stochadex
