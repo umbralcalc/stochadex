@@ -22,6 +22,18 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-07-24
+
+Stochadex ships as a container. A published multi-arch OCI image on GHCR carries the fully
+accelerated CLI, which is the unit cloud-native pipelines actually compose: a Kubernetes Job,
+an Argo step or a Cloud Run Job takes an image, not a binary. The two ad-hoc Dockerfiles are
+gone, replaced by one multi-stage `Dockerfile` and a `compose.yaml`, and the running-with-configs
+guide is folded into the quickstart so the Go and YAML routes read as one document.
+
+A minor bump rather than a patch because it is breaking: the public `Dockerfile.stochadex` and
+`Dockerfile.postgres` are removed, and `https://stochadex.github.io/pkg/configs.html` no longer
+resolves.
+
 ### Added
 - **A published OCI image (`ghcr.io/umbralcalc/stochadex`), multi-arch for `linux/amd64`
   and `linux/arm64`.** A binary is not the unit cloud-native pipelines compose — a
@@ -761,7 +773,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/umbralcalc/stochadex/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/umbralcalc/stochadex/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/umbralcalc/stochadex/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/umbralcalc/stochadex/compare/v0.5.2...v0.5.3

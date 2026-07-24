@@ -1,7 +1,7 @@
 {
   "name": "stochadex",
   "description": "Author, run, and analyse a stochastic simulation as a single YAML config for the stochadex engine — no Go, no compilation, no toolchain. Bundles the stochadex-model skill with four validated, converging worked recipes.",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "author": {
     "name": "umbralcalc",
     "email": "umbralcalc@gmail.com",
