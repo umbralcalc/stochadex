@@ -56,7 +56,7 @@
 //
 // # From config
 //
-// The distributed CLI (cmd/stochadex-full) registers this package against the config
+// The distributed CLI (cmd/stochadex) registers this package against the config
 // surface, so a run needs no Go at all:
 //
 //	data:

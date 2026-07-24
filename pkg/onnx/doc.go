@@ -22,7 +22,7 @@
 // api.RegisterIteration — the same downstream-registration hook the Arrow, S3 and
 // DuckDB spellings use (RegisterDataSource / simulator.RegisterComponent). The
 // engine core never imports this package; a CLI or a downstream library reaches
-// it with a blank import, e.g. cmd/stochadex-full does so under its onnx tag.
+// it with a blank import, e.g. cmd/stochadex does so under its onnx tag.
 //
 // # Config surface
 //

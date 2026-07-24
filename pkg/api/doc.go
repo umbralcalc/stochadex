@@ -60,7 +60,7 @@
 // Imports drive go.mod, so components with heavy dependencies are not named here directly.
 // RegisterDataSource (and simulator.RegisterComponent for sinks) lets a package layered above
 // this one contribute a source or output spelling without the engine depending on it; the
-// Arrow, S3 and DuckDB spellings are registered this way by cmd/stochadex-full. An unknown
+// Arrow, S3 and DuckDB spellings are registered this way by cmd/stochadex. An unknown
 // key reports the spellings the running binary actually has.
 //
 // # Pre-flight

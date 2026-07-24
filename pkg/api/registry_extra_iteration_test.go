@@ -9,7 +9,7 @@ import (
 )
 
 // TestRegisterIteration covers the downstream-iteration hook: a package layered
-// above pkg/api (cmd/stochadex-full, which carries the cgo ONNX Runtime) can
+// above pkg/api (cmd/stochadex, which carries the cgo ONNX Runtime) can
 // contribute a {type: ...} iteration spelling without the engine importing it.
 func TestRegisterIteration(t *testing.T) {
 	var gotSpec simulator.ComponentSpec

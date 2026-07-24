@@ -104,7 +104,7 @@ func ResolveIteration(spec simulator.ComponentSpec) (simulator.Iteration, error)
 	return nil, fmt.Errorf(
 		"iteration: unknown data-spec type %q (is it registered, or is it a "+
 			"composable/live-object iteration with no data form yet? some spellings "+
-			"like onnx_inference are only in the distributed cmd/stochadex-full build)",
+			"like onnx_inference need the cmd/stochadex CLI built with -tags onnx)",
 		spec.Type,
 	)
 }

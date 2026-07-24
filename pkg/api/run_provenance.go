@@ -13,7 +13,7 @@ import (
 // BuildVersion and BuildFeatures describe the executable orchestrating a run. They
 // default to the base engine's view — "dev", no optional features — and are
 // overwritten by a CLI's main package before RunWithParsedArgs is called.
-// cmd/stochadex-full sets them from its own -ldflags version stamp and its
+// cmd/stochadex sets them from its own -ldflags version stamp and its
 // compiled-in feature list, so a provenance line reports exactly the binary that ran
 // rather than a generic default.
 var (

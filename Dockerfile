@@ -4,7 +4,7 @@
 # compose (Kubernetes Jobs, Argo steps, Cloud Run Jobs), and the natural way to
 # run the websocket service mode.
 #
-# This builds the FULLY ACCELERATED CLI: cmd/stochadex-full with
+# This builds the FULLY ACCELERATED CLI: cmd/stochadex with
 # -tags "cblas duckdb_arrow", so the image carries Arrow, Postgres, S3, DuckDB and
 # an optimised system BLAS. There is no portable/accelerated split here on purpose.
 # That split exists because a *binary* has to survive whatever host it lands on —
@@ -18,7 +18,7 @@
 # so the image ships no Go toolchain and needs none. Genuinely bespoke Go iterations
 # live in a downstream repo that embeds the engine as a library, not in a config.
 
-# cmd/stochadex-full declares `go 1.25.0` — it will not build on an older toolchain,
+# cmd/stochadex declares `go 1.25.0` — it will not build on an older toolchain,
 # and it is a SEPARATE module whose replace directives point at ../../ and
 # ../../pkg/*, so the whole repo has to be in the build context.
 ARG GO_VERSION=1.25
@@ -49,7 +49,7 @@ COPY . .
 # build-arg instead, and the run provenance line reports it (api.BuildRevision).
 ARG VERSION=dev
 ARG REVISION=unknown
-RUN cd cmd/stochadex-full \
+RUN cd cmd/stochadex \
  && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" go build -trimpath \
       -ldflags "-s -w -X main.version=${VERSION} -X main.revision=${REVISION}" \
       -tags "cblas duckdb_arrow" \
