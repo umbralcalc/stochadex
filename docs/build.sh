@@ -224,20 +224,9 @@ generate_html_pages() {
             "$DOCS_DIR/quickstart.md"
     fi
 
-    # Generate the running-with-configs page (the no-toolchain YAML/CLI path)
-    if [ -f "$DOCS_DIR/configs.md" ]; then
-        log_info "Generating configs page..."
-        local title=$(grep -E '^title:' "$DOCS_DIR/configs.md" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "Running with configs")
-        pandoc --template "$WORK_TEMPLATE" \
-            --wrap=preserve \
-            --mathjax \
-            $HIGHLIGHT_FLAG \
-            --metadata="title:$title" \
-            -f markdown \
-            -t html \
-            -o "$DOCS_DIR/pkg/configs.html" \
-            "$DOCS_DIR/configs.md"
-    fi
+    # The no-toolchain YAML/CLI path used to be its own configs.md page; it is now the
+    # second half of the quickstart, so the Go and YAML routes read as one document
+    # rather than two that each had to re-introduce the engine.
 
     # Generate how it works page
     if [ -f "$DOCS_DIR/how_it_works.md" ]; then

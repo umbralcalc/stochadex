@@ -31,13 +31,19 @@ Other declarative formats are narrower ([SBML](https://sbml.org/), [Modelica](ht
 
 ## Install
 
-Three ways in, depending on whether you're writing YAML, letting an agent write it for you, or writing Go.
+Four ways in, depending on whether you're writing YAML, running it as a pipeline step, letting an agent write it for you, or writing Go.
 
-**As a CLI** → describe a whole run in one YAML file and execute it with a prebuilt binary. A config that names no Go anywhere runs in-process, so no Go toolchain is needed. See [running with configs](https://stochadex.github.io/pkg/configs.html).
+**As a CLI** → describe a whole run in one YAML file and execute it with a prebuilt binary. A config that names no Go anywhere runs in-process, so no Go toolchain is needed. See [running from a config file](https://stochadex.github.io/pkg/quickstart.html#running-from-a-config-file).
 
 ```bash
 curl -L "https://github.com/umbralcalc/stochadex/releases/latest/download/stochadex-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" -o stochadex
 chmod +x stochadex
+```
+
+**As a container** → the same YAML surface, with every integration already built in (Arrow, Postgres, S3, DuckDB, accelerated BLAS) and nothing to install. See [running from a config file](https://stochadex.github.io/pkg/quickstart.html#running-from-a-config-file).
+
+```bash
+docker pull ghcr.io/umbralcalc/stochadex:latest
 ```
 
 **As a Claude Code plugin** → installs an authoring skill next to your agent, so you can describe a system in plain language and get a running, validated simulation. It drives the same CLI.
@@ -60,6 +66,7 @@ go get github.com/umbralcalc/stochadex
 | <img src="./assets/postgres-integration-logo.svg" height="40"/><br/> | Load state history into a simulation and write output back over `database/sql`. Point it at any Postgres-wire database. | [read](https://stochadex.github.io/pkg/analysis.html#NewStateTimeStorageFromPostgresDb) · [write](https://stochadex.github.io/pkg/analysis.html#NewPostgresDbOutputFunction) |
 | <img src="./assets/arrow-integration-logo.svg" height="40"/><br/> | Build simulation output directly as Apache Arrow for columnar interchange (Polars / pandas / Parquet). Opt-in module. | [read](https://stochadex.github.io/pkg/arrowstore.html#ArrowStateTimeStorage.Record) · [write](https://stochadex.github.io/pkg/arrowstore.html#ArrowStateTimeStorageOutputFunction) |
 | <img src="./assets/duckdb-integration-logo.svg" height="40"/><br/> | Land the Arrow output in DuckDB for SQL analytics, zero-copy. Opt-in module. | [write](https://stochadex.github.io/pkg/duckdbstore.html#IngestToTable) |
+| <img src="./assets/s3-integration-logo.svg" height="40"/><br/> | Read and write runs to Amazon S3 or any S3-compatible store (MinIO, Cloudflare R2, Ceph). Opt-in module. | [read](https://stochadex.github.io/pkg/s3store.html#Fetch) · [write](https://stochadex.github.io/pkg/s3store.html#NewOutputFunction) |
 
 ## Projects using it
 

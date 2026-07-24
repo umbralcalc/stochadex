@@ -1,0 +1,15 @@
+# Keep the build context small. The build only needs the Go module and its
+# source; everything below is either regenerated, huge, or irrelevant to a build.
+.git
+.github
+.claude
+.claude-plugin
+bin
+dist
+docs
+nbs
+models
+test/data
+*.md
+.vscode
+.DS_Store

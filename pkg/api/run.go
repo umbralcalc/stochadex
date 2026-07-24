@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -255,6 +256,27 @@ func printEnsemble(runs []simulator.EnsembleRun) {
 	}
 }
 
+// GoToolchainMissingMessage is what a user sees when a config names Go
+// expressions on a machine (or in an image) with no Go toolchain. It names the
+// way out in both directions, because either can be the right fix: install Go,
+// or move the config onto the data surface that needs no toolchain at all.
+const GoToolchainMissingMessage = "this config names Go expressions, which " +
+	"requires a Go toolchain — the run is executed by generating a program and " +
+	"calling `go run`. Either install Go, or state the config purely as data " +
+	"({type: ...} iterations, expressions:, and {type: ...} simulation " +
+	"components), which resolves and runs in-process with no toolchain. The " +
+	"published container image carries the data path only."
+
+// checkGoToolchain reports whether the Go toolchain needed by the code-generation
+// path is available. lookPath is injected so the failure is testable without
+// manipulating PATH.
+func checkGoToolchain(lookPath func(string) (string, error)) error {
+	if _, err := lookPath("go"); err != nil {
+		return errors.New(GoToolchainMissingMessage)
+	}
+	return nil
+}
+
 // RunWithParsedArgs runs the configured simulation. A fully-data config (data-spec
 // partitions and simulation, no Go anywhere) is resolved and run in-process with no
 // toolchain; any config that names Go is run by generating a temporary main program
@@ -269,6 +291,17 @@ func RunWithParsedArgs(args ParsedArgs) {
 			LoadSocketConfigFromYaml(args.SocketFile),
 		)
 		return
+	}
+
+	// This config names Go, so it can only run by code generation. Check for the
+	// toolchain before generating anything: without this the failure surfaces as an
+	// opaque `exec: "go": executable file not found in $PATH` panic from the middle
+	// of a run, which says nothing about which half of the config surface the user
+	// is on. Distributions that deliberately omit the toolchain land here — the
+	// container image most of all, since it carries the data path only.
+	if err := checkGoToolchain(exec.LookPath); err != nil {
+		fmt.Fprintln(os.Stderr, "\nerror: "+err.Error())
+		os.Exit(1)
 	}
 
 	// hydrate the template code and write it to a /tmp/*main.go
