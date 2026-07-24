@@ -22,6 +22,27 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **ONNX inference partition** (`pkg/onnx`, opt-in module). Run a frozen ONNX model —
+  trained upstream in Python (sklearn, XGBoost, a small neural net) and exported to
+  `.onnx` — as a partition behind the `Iteration` interface: it reads a feature vector
+  from params, runs the model through a cgo ONNX Runtime session, and returns the output
+  as state. Introduces a new downstream-extension hook, `api.RegisterIteration`, so a
+  module layered above the engine can contribute a `{type: ...}` iteration spelling without
+  the engine importing it (iterations were previously not downstream-extensible). Behind
+  the `onnx` build tag; the ONNX Runtime shared library is a system dependency.
+
+### Changed
+
+- **One CLI.** `cmd/stochadex-full` is renamed to `cmd/stochadex`, and the former lean
+  engine-module CLI is removed. The engine module is now library-only; the single CLI lives
+  in its own module so its heavy, opt-in dependencies (Arrow, S3, DuckDB, ONNX Runtime) stay
+  out of the engine's `go.mod`, and it is tiered by build flags — pure Go (engine + Postgres
+  + Arrow + S3, cross-compiles everywhere) or `-tags` (`cblas`, `duckdb_arrow`, `onnx`).
+  **Breaking** for anyone referencing the `github.com/umbralcalc/stochadex/cmd/stochadex-full`
+  module path or installing the former lean `cmd/stochadex` from the engine module.
+
 ## [0.9.0] — 2026-07-24
 
 Removes the Go-expression config path entirely: the YAML API is now a single data

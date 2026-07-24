@@ -77,23 +77,23 @@ jobs:
           cd pkg/onnx && CGO_ENABLED=1 go build -tags onnx ./... && \
             CGO_ENABLED=1 ONNXRUNTIME_LIB_PATH="${GITHUB_WORKSPACE}/${ORT}/lib/libonnxruntime.so" \
             go test -tags onnx ./... -count=1
-      # The distributed CLI (cmd/stochadex-full) is a SEPARATE module bundling the opt-in
+      # The CLI (cmd/stochadex) is a SEPARATE module bundling the opt-in
       # egress modules, so `./...` above excludes it. Build both flavours it ships so a
       # release cannot be the first time either is compiled: the portable one (pure Go,
       # what most users download) and the accelerated one (cgo + system BLAS + DuckDB).
       # Ubuntu runners have OpenBLAS available via apt for the cblas link.
-      - name: Build the distributed CLI (portable, pure Go)
-        run: cd cmd/stochadex-full && CGO_ENABLED=0 go build ./...
-      - name: Build the distributed CLI (accelerated, cgo + BLAS + DuckDB)
+      - name: Build the CLI (portable, pure Go)
+        run: cd cmd/stochadex && CGO_ENABLED=0 go build ./...
+      - name: Build the CLI (accelerated, cgo + BLAS + DuckDB)
         run: |
           sudo apt-get update && sudo apt-get install -y libopenblas-dev
-          cd cmd/stochadex-full && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" \
+          cd cmd/stochadex && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" \
             go build -tags "cblas duckdb_arrow" ./...
       # The onnx tag wires the opt-in ONNX inference partition into the CLI. It only
       # dlopens the ONNX Runtime at run time, so this is a compile check — no library
       # needed to build — proving a release cannot be the first time it is compiled in.
-      - name: Build the distributed CLI (with ONNX inference)
-        run: cd cmd/stochadex-full && CGO_ENABLED=1 go build -tags onnx ./...
+      - name: Build the CLI (with ONNX inference)
+        run: cd cmd/stochadex && CGO_ENABLED=1 go build -tags onnx ./...
       # Publish coverage to Codecov (external) for the coverage badge. Non-blocking:
       # a coverage-upload hiccup must never fail a merge. Needs the CODECOV_TOKEN
       # secret (from Codecov after enabling its app on the repo).

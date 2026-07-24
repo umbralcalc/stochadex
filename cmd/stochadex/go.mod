@@ -1,10 +1,12 @@
-// The distributed stochadex CLI. This is a SEPARATE module on purpose: it bundles the
-// opt-in egress modules (arrowstore, duckdbstore) that the engine's own go.mod
-// deliberately excludes, so the engine stays lean and WASM-clean for everyone who
-// imports it as a library while the shipped binary still carries the integrations.
+// The stochadex CLI. This is a SEPARATE module from the engine on purpose: it bundles the
+// opt-in egress modules (arrowstore, duckdbstore, s3store) and the onnx inference module
+// that the engine's own go.mod deliberately excludes, so the engine stays lean and
+// WASM-clean for everyone who imports it as a library while the shipped binary still
+// carries the integrations. The engine module is therefore library-only — this is the one
+// CLI, and it lives in its own module because imports drive go.mod.
 //
 // One main package, several builds:
-//   - pure Go (no tags, CGO off) — engine + Postgres + Arrow; cross-compiles everywhere.
+//   - pure Go (no tags, CGO off) — engine + Postgres + Arrow + S3; cross-compiles everywhere.
 //   - CGO with `-tags "cblas duckdb_arrow"` — adds an optimised system BLAS and DuckDB.
 //   - CGO with `-tags onnx` — adds the onnx_inference partition, running a frozen ONNX
 //     model behind an Iteration via a cgo ONNX Runtime. The ONNX Runtime shared library
@@ -14,7 +16,7 @@
 // duckdbstore is required unconditionally so the module graph resolves, but its code is
 // only compiled under the duckdb_arrow tag, which keeps the pure-Go build cgo-free.
 // onnxruntime_go is likewise only compiled under the onnx tag.
-module github.com/umbralcalc/stochadex/cmd/stochadex-full
+module github.com/umbralcalc/stochadex/cmd/stochadex
 
 go 1.25.0
 

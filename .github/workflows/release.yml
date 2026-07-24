@@ -3,7 +3,7 @@ name: Release binaries
 # Release. This is what makes the "no Go toolchain" promise real: a user (or an agent
 # installing the plugin) downloads a prebuilt binary instead of needing `go`.
 #
-# Two tiers, both from cmd/stochadex-full (one main package, two builds):
+# Two tiers, both from cmd/stochadex (one main package, two builds):
 #
 #   stochadex-<os>-<arch>        pure Go, CGO off, CROSS-compiled from one runner.
 #                                Engine + Postgres + Arrow. Runs everywhere, no deps.
@@ -39,7 +39,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Cross-compile the portable CLI
-        working-directory: cmd/stochadex-full
+        working-directory: cmd/stochadex
         run: |
           set -euo pipefail
           mkdir -p dist
@@ -53,7 +53,7 @@ jobs:
           done
           ls -la dist
       - name: Attach to the Release
-        working-directory: cmd/stochadex-full
+        working-directory: cmd/stochadex
         run: |
           set -euo pipefail
           # Create the Release from the tag annotation if it does not exist yet (a manual
@@ -103,7 +103,7 @@ jobs:
         # the static one so the shipped binary has no runtime dependency.
         run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
       - name: Build the accelerated CLI
-        working-directory: cmd/stochadex-full
+        working-directory: cmd/stochadex
         run: |
           set -euo pipefail
           mkdir -p dist
@@ -137,7 +137,7 @@ jobs:
       # platform before publishing it. A binary that cannot resolve its BLAS at runtime
       # is worse than no accelerated binary at all, so a failure here must not upload.
       - name: Smoke-test the binary
-        working-directory: cmd/stochadex-full
+        working-directory: cmd/stochadex
         run: |
           set -euo pipefail
           cat > /tmp/smoke.yaml <<'EOF'
@@ -165,12 +165,12 @@ jobs:
         if: matrix.goos == 'linux'
         run: |
           echo "BLAS linkage: ${BLAS_LINKAGE:-unknown}"
-          ldd "cmd/stochadex-full/dist/stochadex-accel-${{ matrix.goos }}-${{ matrix.goarch }}" \
+          ldd "cmd/stochadex/dist/stochadex-accel-${{ matrix.goos }}-${{ matrix.goarch }}" \
             | grep -i openblas && echo "::warning::binary dynamically links OpenBLAS" || \
             echo "no dynamic OpenBLAS dependency — binary is self-contained"
 
       - name: Attach to the Release
-        working-directory: cmd/stochadex-full
+        working-directory: cmd/stochadex
         run: |
           set -euo pipefail
           gh release view "$TAG" >/dev/null 2>&1 \

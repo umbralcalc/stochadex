@@ -6,10 +6,9 @@ __pycache__/
 bin/
 tmp/
 # Compiled CLI binaries: `go build` in a cmd/ dir drops the binary beside its source,
-# and the release workflow builds into cmd/stochadex-full/dist/.
+# and the release workflow builds into cmd/stochadex/dist/.
 /cmd/*/dist/
 /cmd/stochadex/stochadex
-/cmd/stochadex-full/stochadex-full
 .vscode/
 nbs/data/*
 log/*
