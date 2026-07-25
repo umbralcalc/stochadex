@@ -26,7 +26,7 @@
 //
 // # Config surface
 //
-// A partition uses it as:
+// A single-input model uses the shorthand:
 //
 //	iteration:
 //	  type: onnx_inference
@@ -35,13 +35,43 @@
 //	  input_name: ...               # ONNX graph input name (default: the sole input)
 //	  output_name: ...              # ONNX graph output name (default: the sole output)
 //	  shared_library_path: ...      # ONNX Runtime library (see below)
+//	  intra_op_threads: 1           # ONNX Runtime intra-op pool size (see Threading)
+//	  inter_op_threads: 1           # ONNX Runtime inter-op pool size
 //
-// The feature vector is wired in like any other partition input — a static
-// params: entry, or params_from_upstream from a producing partition. The model
-// output becomes the partition's state, so its state_width must equal the
-// flattened output length. This first cut binds a single float32 input tensor and
-// a single float32 output tensor (the common export dtype); dynamic dimensions
-// such as a symbolic batch size are pinned to 1 for single-step inference.
+// A multi-input model binds each model input to a params key with an inputs map
+// (mutually exclusive with input_param / input_name):
+//
+//	iteration:
+//	  type: onnx_inference
+//	  model_path: model.onnx
+//	  inputs:                       # {params key: ONNX input name}, every input bound
+//	    features: input
+//	    theta: parameters
+//
+// Each input vector is wired in like any other partition input — a static params:
+// entry, or params_from_upstream from a producing partition. The model output
+// becomes the partition's state, so its state_width must equal the flattened
+// output length. Inputs and the output are float32 tensors (the common export
+// dtype); dynamic dimensions such as a symbolic batch size are pinned to 1 for
+// single-step inference.
+//
+// # Tuning model parameters
+//
+// Because inputs are just params vectors, a model exported with some inputs
+// designated as *parameters* rather than features (a hand-built graph or a torch
+// export — skl2onnx will not do this) becomes tunable by the framework's
+// optimisation / SBI tools with no engine change: bind the parameter input to its
+// own params key and wire that key from a partition the sampler perturbs. The
+// model stays frozen; only the parameter vector arriving through params moves.
+//
+// # Threading
+//
+// intra_op_threads / inter_op_threads size the session's ONNX Runtime thread
+// pools; unset (<= 0) leaves the runtime default. For single-row inference across
+// many concurrent partitions, each session's default pool oversubscribes the CPU
+// and the intra-op parallelism buys nothing — setting both to 1 is usually the
+// better choice. The knob is exposed so the caller tunes it per partition rather
+// than the engine guessing a policy.
 //
 // # ONNX Runtime shared library
 //
