@@ -201,7 +201,17 @@ jobs:
           load: true
           tags: stochadex:ci
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # mode=min, NOT mode=max. mode=max caches every intermediate stage of the
+          # multi-stage build; on a job that runs on every PR push and every merge,
+          # that accumulated 3.9 GB of buildkit blobs across 71 cache entries and —
+          # together with the release workflow's share — pushed the repo past the
+          # 10 GB per-repo cache cap. Over the cap GitHub evicts least-recently-used
+          # entries, which is how a ~600 MB setup-go cache that actually pays for
+          # itself gets thrown away to make room for intermediate layers of an image
+          # built with push: false and immediately discarded. mode=min caches the
+          # final layers only — enough to warm-start this build, small enough to
+          # coexist with the caches that matter.
+          cache-to: type=gha,mode=min
       # The image is the accelerated CLI, so assert the integrations are actually in
       # it. --version self-reports the feature set, which makes this a cheap and
       # exact check: a dropped build tag or an unlinked library would otherwise only

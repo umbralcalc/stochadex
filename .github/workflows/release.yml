@@ -227,7 +227,16 @@ jobs:
           provenance: true
           sbom: true
           cache-from: type=gha,scope=${{ matrix.slug }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.slug }}
+          # mode=min for the same reason as ci.yml, but the arithmetic here is worse.
+          # A cache written from refs/tags/vX can only be restored by that same tag or
+          # by the default branch — sibling tags cannot read each other. So every
+          # release wrote ~1.1 GB that no *later* release can ever restore: v0.8.0,
+          # v0.9.0 and v0.10.0 were each sitting on their own copy, 3.07 GB of the
+          # repo's 10 GB cap, none of it reachable by the next release. The only real
+          # beneficiary is a re-run of the tag that wrote it — worth keeping (a failed
+          # manifest step on an expensive multi-arch QEMU build is exactly the case),
+          # but worth keeping cheaply. mode=min preserves the retry warm-start.
+          cache-to: type=gha,mode=min,scope=${{ matrix.slug }}
       - name: Export the digest
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
