@@ -10,11 +10,13 @@
 // isolation keeps DuckDB and cgo entirely out of both the engine's and arrowstore's go.mod.
 //
 // Two build requirements, both intentional:
+//
 //   - CGO must be enabled (the default), with a C toolchain available;
+//
 //   - the driver's Arrow interface lives behind ITS OWN duckdb_arrow build tag, so this
 //     package's implementation carries a //go:build duckdb_arrow constraint too. Build/test with:
 //
-//	CGO_ENABLED=1 go test -tags duckdb_arrow ./...
+//     CGO_ENABLED=1 go test -tags duckdb_arrow ./...
 //
 // Without the tag only this doc compiles — nothing pulls in DuckDB or cgo.
 //
