@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// scalarRegressionStatsSpec is the data form of analysis.AppliedScalarRegressionStats.
+// scalarRegressionStatsSpec is the data form of macros.AppliedScalarRegressionStats.
 type scalarRegressionStatsSpec struct {
 	macroTypeField    `yaml:",inline"`
 	Name              string      `yaml:"name"`
@@ -20,10 +21,10 @@ type scalarRegressionStatsSpec struct {
 	StateHistoryDepth int         `yaml:"state_history_depth,omitempty"`
 }
 
-var regressionModes = map[string]analysis.RegressionStatsMode{
-	"":           analysis.RegressionStatsCumulative,
-	"cumulative": analysis.RegressionStatsCumulative,
-	"window":     analysis.RegressionStatsWindow,
+var regressionModes = map[string]macros.RegressionStatsMode{
+	"":           macros.RegressionStatsCumulative,
+	"cumulative": macros.RegressionStatsCumulative,
+	"window":     macros.RegressionStatsWindow,
 }
 
 func (s *scalarRegressionStatsSpec) resolve(
@@ -33,8 +34,8 @@ func (s *scalarRegressionStatsSpec) resolve(
 	if !ok {
 		return nil, nil, fmt.Errorf("scalar_regression_stats: unknown mode %q", s.Mode)
 	}
-	partition := analysis.NewScalarRegressionStatsPartition(
-		analysis.AppliedScalarRegressionStats{
+	partition := macros.NewScalarRegressionStatsPartition(
+		macros.AppliedScalarRegressionStats{
 			Name:              s.Name,
 			Y:                 s.Y.resolve(),
 			X:                 s.X.resolve(),
@@ -76,7 +77,7 @@ func (s *groupedAggregationSpec) resolve(
 		analysis.AppliedGrouping{GroupBy: resolveDataRefs(s.GroupBy), Precision: s.Precision},
 		storage,
 	)
-	applied := analysis.AppliedAggregation{
+	applied := macros.AppliedAggregation{
 		Name:         s.Name,
 		Data:         s.Data.resolve(),
 		DefaultValue: s.DefaultValue,
@@ -88,7 +89,7 @@ func (s *groupedAggregationSpec) resolve(
 		}
 		applied.Kernel = kernel
 	}
-	partition := analysis.NewGroupedAggregationPartition(aggregation, applied, grouped)
+	partition := macros.NewGroupedAggregationPartition(aggregation, applied, grouped)
 	applyParams(partition, s.Params)
 	window := s.Window
 	if window == 0 {

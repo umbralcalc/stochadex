@@ -8,6 +8,7 @@ import (
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/inference"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -68,14 +69,14 @@ func directPosteriorStorage() *simulator.StateTimeStorage {
 		&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 500},
 		&simulator.ConstantTimestepFunction{Stepsize: 1.0}, 0.0,
 	)
-	partitions := analysis.NewPosteriorEstimationPartitions(
-		analysis.AppliedPosteriorEstimation{
-			LogNorm:    analysis.PosteriorLogNorm{Name: "test_post_log_norm", Default: 0.0},
-			Mean:       analysis.PosteriorMean{Name: "test_post_mean", Default: []float64{1.8, 5.0}},
-			Covariance: analysis.PosteriorCovariance{Name: "test_post_cov", Default: []float64{2.5, 0, 0, 9.0}},
-			Sampler: analysis.PosteriorSampler{
+	partitions := macros.NewPosteriorEstimationPartitions(
+		macros.AppliedPosteriorEstimation{
+			LogNorm:    macros.PosteriorLogNorm{Name: "test_post_log_norm", Default: 0.0},
+			Mean:       macros.PosteriorMean{Name: "test_post_mean", Default: []float64{1.8, 5.0}},
+			Covariance: macros.PosteriorCovariance{Name: "test_post_cov", Default: []float64{2.5, 0, 0, 9.0}},
+			Sampler: macros.PosteriorSampler{
 				Name: "test_post_sampler", Default: []float64{1.8, 5.0},
-				Distribution: analysis.ParameterisedModel{
+				Distribution: macros.ParameterisedModel{
 					Likelihood: &inference.NormalLikelihoodDistribution{AllowDefaultCovarianceFallback: true},
 					Params: simulator.NewParams(map[string][]float64{
 						"default_covariance": {2.5, 0, 0, 9.0}, "cov_burn_in_steps": {200},
@@ -85,9 +86,9 @@ func directPosteriorStorage() *simulator.StateTimeStorage {
 					},
 				},
 			},
-			Comparison: analysis.AppliedLikelihoodComparison{
+			Comparison: macros.AppliedLikelihoodComparison{
 				Name: "test_likelihood",
-				Model: analysis.ParameterisedModel{
+				Model: macros.ParameterisedModel{
 					Likelihood: &inference.NormalLikelihoodDistribution{},
 					Params: simulator.NewParams(map[string][]float64{
 						"covariance_matrix": {2.5, 0, 0, 9.0},
@@ -97,7 +98,7 @@ func directPosteriorStorage() *simulator.StateTimeStorage {
 					},
 				},
 				Data:                   analysis.DataRef{PartitionName: "test_data"},
-				Window:                 analysis.WindowedPartitions{Data: []analysis.DataRef{{PartitionName: "test_data"}}, Depth: 200},
+				Window:                 macros.WindowedPartitions{Data: []analysis.DataRef{{PartitionName: "test_data"}}, Depth: 200},
 				WindowDataHistoryDepth: map[string]int{"test_data": 200},
 			},
 			PastDiscount: 1.0, MemoryDepth: 200, Seed: 1234,
@@ -219,16 +220,16 @@ macros:
 		&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100},
 		&simulator.ConstantTimestepFunction{Stepsize: 1.0}, 0.0,
 	)
-	fit := analysis.NewLikelihoodMeanFunctionFitPartition(
-		analysis.AppliedLikelihoodMeanFunctionFit{
+	fit := macros.NewLikelihoodMeanFunctionFitPartition(
+		macros.AppliedLikelihoodMeanFunctionFit{
 			Name: "mean_fit",
-			Model: analysis.ParameterisedModelWithGradient{
+			Model: macros.ParameterisedModelWithGradient{
 				Likelihood: &inference.NormalLikelihoodDistribution{},
 				Params:     simulator.NewParams(map[string][]float64{"covariance_matrix": {1, 0, 0, 1}}),
 			},
-			Gradient:               analysis.LikelihoodMeanGradient{Function: inference.MeanGradientFunc, Width: 2},
+			Gradient:               macros.LikelihoodMeanGradient{Function: inference.MeanGradientFunc, Width: 2},
 			Data:                   analysis.DataRef{PartitionName: "test_data"},
-			Window:                 analysis.WindowedPartitions{Depth: 10},
+			Window:                 macros.WindowedPartitions{Depth: 10},
 			LearningRate:           0.005,
 			DescentIterations:      3,
 			WindowDataHistoryDepth: map[string]int{"test_data": 10},

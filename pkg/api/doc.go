@@ -31,7 +31,7 @@
 //	run:      execution mode — batch or ensemble, with seeds and concurrency (RunModeConfig).
 //	data:     a StateTimeStorage, produced either by a sub-simulation or by a pre-recorded
 //	          source (DataSource: csv, json_log, postgres, plus registered ones).
-//	macros:   each entry expands one pkg/analysis constructor into a set of partitions over
+//	macros:   each entry expands one pkg/macros constructor into a set of partitions over
 //	          that storage, or runs live with no data: block at all.
 //
 // # Where the registries live
@@ -44,9 +44,9 @@
 //	                     "expression" builder here makes the whole expressions DSL usable
 //	                     as an inline iteration spec, so maths can appear anywhere an
 //	                     iteration is expected — inside a macro's window, or an embedded run.
-//	macros*.go           the analysis tier: one file per family (aggregation, inference,
-//	                     smc, optimisation, stats, data). Macro inputs are typed spec
-//	                     structs decoded straight from YAML.
+//	macros*.go           the macro tier: decodes typed spec structs straight from YAML and
+//	                     calls the matching pkg/macros constructor. One file per family
+//	                     (aggregation, inference, smc, optimisation, stats, data).
 //
 // # Staying honest, and staying lean
 //

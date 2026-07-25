@@ -5,6 +5,7 @@ import (
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
 )
@@ -45,24 +46,24 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 			// Configure the evolution strategies optimisation partitions
 			// to find 2D parameters which maximise a reward (negative
 			// squared distance from target)
-			partitions := analysis.NewEvolutionStrategyOptimisationPartitions(
-				analysis.AppliedEvolutionStrategyOptimisation{
-					Sampler: analysis.EvolutionStrategySampler{
+			partitions := macros.NewEvolutionStrategyOptimisationPartitions(
+				macros.AppliedEvolutionStrategyOptimisation{
+					Sampler: macros.EvolutionStrategySampler{
 						Name:    "es_sampler",
 						Default: []float64{0.0, 0.0},
 					},
-					Sorting: analysis.EvolutionStrategySorting{
+					Sorting: macros.EvolutionStrategySorting{
 						Name:           "es_sorting",
 						CollectionSize: 10,
 						EmptyValue:     -9999.0,
 					},
-					Mean: analysis.EvolutionStrategyMean{
+					Mean: macros.EvolutionStrategyMean{
 						Name:         "es_mean",
 						Default:      []float64{0.0, 0.0},
 						Weights:      []float64{0.5, 0.3, 0.2},
 						LearningRate: 0.5,
 					},
-					Covariance: analysis.EvolutionStrategyCovariance{
+					Covariance: macros.EvolutionStrategyCovariance{
 						Name:    "es_covariance",
 						Default: []float64{4.0, 0.0, 0.0, 4.0},
 						// A slow covariance learning rate lets the mean reach the
@@ -70,8 +71,8 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 						// collapses the covariance and freezes the mean short of it.
 						LearningRate: 0.1,
 					},
-					Reward: analysis.EvolutionStrategyReward{
-						Partition: analysis.WindowedPartition{
+					Reward: macros.EvolutionStrategyReward{
+						Partition: macros.WindowedPartition{
 							Partition: &simulator.PartitionConfig{
 								Name:      "reward",
 								Iteration: &NegativeSquaredDistanceIteration{},
@@ -92,8 +93,8 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 						// leaves the ranking unchanged — zero keeps it simplest.
 						DiscountFactor: 0.0,
 					},
-					Window: analysis.WindowedPartitions{
-						Partitions: []analysis.WindowedPartition{{
+					Window: macros.WindowedPartitions{
+						Partitions: []macros.WindowedPartition{{
 							Partition: &simulator.PartitionConfig{
 								Name:      "sim_partition",
 								Iteration: &general.ConstantValuesIteration{},

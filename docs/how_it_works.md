@@ -295,7 +295,7 @@ storage, _ := analysis.NewStateTimeStorageFromCsv(
 )
 
 // .ConditionalProbability + .ComputeReweightedMean to give an exponentially-weighted mean.
-mean := analysis.NewVectorMeanPartition(analysis.AppliedAggregation{
+mean := macros.NewVectorMeanPartition(macros.AppliedAggregation{
 	Name:   "mean",
 	Data:   analysis.DataRef{PartitionName: "data"},
 	Kernel: &kernels.ExponentialIntegrationKernel{},
@@ -303,9 +303,9 @@ mean := analysis.NewVectorMeanPartition(analysis.AppliedAggregation{
 mean.Params.Set("exponential_weighting_timescale", []float64{100.0})
 
 // .ComputeReweightedCovariance using the same kernel, conditioned on the mean partition.
-cov := analysis.NewVectorVariancePartition(
+cov := macros.NewVectorVariancePartition(
 	analysis.DataRef{PartitionName: "mean"},
-	analysis.AppliedAggregation{
+	macros.AppliedAggregation{
 		Name:   "cov",
 		Data:   analysis.DataRef{PartitionName: "data"},
 		Kernel: &kernels.ExponentialIntegrationKernel{},
@@ -327,25 +327,25 @@ This algorithm uses a sequence of probabilities (typically estimated by the algo
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/simulation-inference-code.svg"/></center>
 
-The diagram's 'Embedded Simulation' block (`IterateSimulation` + `IterateFromHistory` + `DataComparison`) is exactly an [`EmbeddedSimulationRunIteration`](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration) configured to replay rolling statistics over a window of history; the outer block (`ComputePosteriorParams` + `SamplePosterior`) is the posterior log-norm / mean / covariance / sampler chain. [`NewPosteriorEstimationPartitions`](http://stochadex.github.io/pkg/analysis.html#NewPosteriorEstimationPartitions) wires all of this together from a single spec:
+The diagram's 'Embedded Simulation' block (`IterateSimulation` + `IterateFromHistory` + `DataComparison`) is exactly an [`EmbeddedSimulationRunIteration`](https://stochadex.github.io/pkg/general.html#EmbeddedSimulationRunIteration) configured to replay rolling statistics over a window of history; the outer block (`ComputePosteriorParams` + `SamplePosterior`) is the posterior log-norm / mean / covariance / sampler chain. [`NewPosteriorEstimationPartitions`](http://stochadex.github.io/pkg/macros.html#NewPosteriorEstimationPartitions) wires all of this together from a single spec:
 
 ```go
 // `model` is the parameterised likelihood; `simPartition` is the inner-sim
 // PartitionConfig whose params are perturbed by the sampler each outer step.
-partitions := analysis.NewPosteriorEstimationPartitions(
-	analysis.AppliedPosteriorEstimation{
-		LogNorm:    analysis.PosteriorLogNorm{Name: "log_norm", Default: 0.0},
-		Mean:       analysis.PosteriorMean{Name: "post_mean", Default: []float64{0, 0}},
-		Covariance: analysis.PosteriorCovariance{Name: "post_cov", Default: []float64{1, 0, 0, 1}},
-		Sampler: analysis.PosteriorSampler{
+partitions := macros.NewPosteriorEstimationPartitions(
+	macros.AppliedPosteriorEstimation{
+		LogNorm:    macros.PosteriorLogNorm{Name: "log_norm", Default: 0.0},
+		Mean:       macros.PosteriorMean{Name: "post_mean", Default: []float64{0, 0}},
+		Covariance: macros.PosteriorCovariance{Name: "post_cov", Default: []float64{1, 0, 0, 1}},
+		Sampler: macros.PosteriorSampler{
 			Name: "sampler", Default: []float64{0, 0}, Distribution: model,
 		},
-		Comparison: analysis.AppliedLikelihoodComparison{
+		Comparison: macros.AppliedLikelihoodComparison{
 			Name:  "loglike",
 			Model: model,
 			Data:  analysis.DataRef{PartitionName: "obs"},
-			Window: analysis.WindowedPartitions{
-				Partitions: []analysis.WindowedPartition{{
+			Window: macros.WindowedPartitions{
+				Partitions: []macros.WindowedPartition{{
 					Partition: simPartition,
 					// .IterateSimulation reads its mean param from the sampler which
 					// closes the loop between proposed params and likelihood evaluation.
@@ -372,30 +372,30 @@ This algorithm relies on sorting the sampled simulation trajectories according t
 
 <center><img src="https://pub-afdb1348ec964ca5b530aa758c0bdc56.r2.dev/assets/stochadex/discounted-return-optimiser-code.svg"/></center>
 
-Each diagram box becomes a named partition in the spec passed to [`NewEvolutionStrategyOptimisationPartitions`](http://stochadex.github.io/pkg/analysis.html#NewEvolutionStrategyOptimisationPartitions): the embedded simulation accumulates `UpdateDiscountedReturn`, `SortPolicyByReturn` keeps a top-k collection, and `UpdateBestPolicy` / `UpdateCovariance` move the sampling distribution toward the winners. The `rewardCfg` and `simCfg` below are user-supplied [`PartitionConfig`](http://stochadex.github.io/pkg/simulator.html#PartitionConfig)s for the reward and inner-simulation iterations:
+Each diagram box becomes a named partition in the spec passed to [`NewEvolutionStrategyOptimisationPartitions`](http://stochadex.github.io/pkg/macros.html#NewEvolutionStrategyOptimisationPartitions): the embedded simulation accumulates `UpdateDiscountedReturn`, `SortPolicyByReturn` keeps a top-k collection, and `UpdateBestPolicy` / `UpdateCovariance` move the sampling distribution toward the winners. The `rewardCfg` and `simCfg` below are user-supplied [`PartitionConfig`](http://stochadex.github.io/pkg/simulator.html#PartitionConfig)s for the reward and inner-simulation iterations:
 
 ```go
-partitions := analysis.NewEvolutionStrategyOptimisationPartitions(
-	analysis.AppliedEvolutionStrategyOptimisation{
+partitions := macros.NewEvolutionStrategyOptimisationPartitions(
+	macros.AppliedEvolutionStrategyOptimisation{
 		// .SamplePolicyParams: draws candidate policies from the running Gaussian.
-		Sampler: analysis.EvolutionStrategySampler{
+		Sampler: macros.EvolutionStrategySampler{
 			Name: "sampler", Default: []float64{0, 0},
 		},
 		// .SortPolicyByReturn: keeps the top-k by discounted return.
-		Sorting: analysis.EvolutionStrategySorting{
+		Sorting: macros.EvolutionStrategySorting{
 			Name: "sorted", CollectionSize: 10, EmptyValue: -1e9,
 		},
 		// .UpdateBestPolicy + .UpdateCovariance: weighted update of the running stats.
-		Mean: analysis.EvolutionStrategyMean{
+		Mean: macros.EvolutionStrategyMean{
 			Name: "best", Default: []float64{0, 0},
 			Weights: []float64{0.5, 0.3, 0.2}, LearningRate: 0.5,
 		},
-		Covariance: analysis.EvolutionStrategyCovariance{
+		Covariance: macros.EvolutionStrategyCovariance{
 			Name: "cov", Default: []float64{4, 0, 0, 4}, LearningRate: 0.3,
 		},
 		// .UpdateDiscountedReturn: sums per-step rewards across the embedded run.
-		Reward: analysis.EvolutionStrategyReward{
-			Partition: analysis.WindowedPartition{
+		Reward: macros.EvolutionStrategyReward{
+			Partition: macros.WindowedPartition{
 				Partition: rewardCfg,
 				OutsideUpstreams: map[string]simulator.NamedUpstreamConfig{
 					"sample_values": {Upstream: "sampler"},
@@ -404,8 +404,8 @@ partitions := analysis.NewEvolutionStrategyOptimisationPartitions(
 			DiscountFactor: 0.9,
 		},
 		// .IterateSimulation: the inner trajectory the rewards are computed against.
-		Window: analysis.WindowedPartitions{
-			Partitions: []analysis.WindowedPartition{{Partition: simCfg}},
+		Window: macros.WindowedPartitions{
+			Partitions: []macros.WindowedPartition{{Partition: simCfg}},
 			Depth:      5,
 		},
 		Seed: 12345,

@@ -50,7 +50,7 @@ import "github.com/umbralcalc/stochadex/pkg/simulator"
 //   - Avoid memory allocations in Evaluate method
 //
 // Related Types:
-//   - See analysis.AppliedAggregation for usage in data aggregation
+//   - See macros.AppliedAggregation for usage in data aggregation
 //   - See ExponentialIntegrationKernel for exponential decay weighting
 //   - See GaussianStateIntegrationKernel for state-distance weighting
 type IntegrationKernel interface {

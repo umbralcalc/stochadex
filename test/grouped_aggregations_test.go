@@ -7,6 +7,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/discrete"
 	"github.com/umbralcalc/stochadex/pkg/general"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -67,9 +68,9 @@ func TestGroupedAggregations(t *testing.T) {
 			)
 
 			// Get a partition configured for a grouped sum aggregation using the grouped storage
-			groupedSumPartition := analysis.NewGroupedAggregationPartition(
+			groupedSumPartition := macros.NewGroupedAggregationPartition(
 				general.SumAggregation,
-				analysis.AppliedAggregation{
+				macros.AppliedAggregation{
 					Name:         "grouped_sum",
 					Data:         analysis.DataRef{PartitionName: "gamma_compound_poisson"},
 					DefaultValue: 0,

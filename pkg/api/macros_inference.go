@@ -5,6 +5,7 @@ import (
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/inference"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -32,7 +33,7 @@ func resolveDataRefs(specs []dataRefSpec) []analysis.DataRef {
 	return refs
 }
 
-// parameterisedModelSpec is the data form of analysis.ParameterisedModel: a
+// parameterisedModelSpec is the data form of macros.ParameterisedModel: a
 // likelihood spec plus its parameter wiring.
 type parameterisedModelSpec struct {
 	Likelihood         simulator.ComponentSpec                  `yaml:"likelihood"`
@@ -41,12 +42,12 @@ type parameterisedModelSpec struct {
 	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig `yaml:"params_from_upstream,omitempty"`
 }
 
-func (s parameterisedModelSpec) resolve() (analysis.ParameterisedModel, error) {
+func (s parameterisedModelSpec) resolve() (macros.ParameterisedModel, error) {
 	likelihood, err := resolveLikelihood(s.Likelihood)
 	if err != nil {
-		return analysis.ParameterisedModel{}, err
+		return macros.ParameterisedModel{}, err
 	}
-	return analysis.ParameterisedModel{
+	return macros.ParameterisedModel{
 		Likelihood:         likelihood,
 		Params:             simulator.NewParams(s.Params),
 		ParamsAsPartitions: s.ParamsAsPartitions,
@@ -68,8 +69,8 @@ type windowedPartitionsSpec struct {
 	Depth      int                     `yaml:"depth"`
 }
 
-func (s windowedPartitionsSpec) resolve() (analysis.WindowedPartitions, error) {
-	windowed := analysis.WindowedPartitions{Depth: s.Depth, Data: resolveDataRefs(s.Data)}
+func (s windowedPartitionsSpec) resolve() (macros.WindowedPartitions, error) {
+	windowed := macros.WindowedPartitions{Depth: s.Depth, Data: resolveDataRefs(s.Data)}
 	for i := range s.Partitions {
 		partition := s.Partitions[i].Partition
 		partition.Init()
@@ -80,7 +81,7 @@ func (s windowedPartitionsSpec) resolve() (analysis.WindowedPartitions, error) {
 			}
 			partition.Iteration = iteration
 		}
-		windowed.Partitions = append(windowed.Partitions, analysis.WindowedPartition{
+		windowed.Partitions = append(windowed.Partitions, macros.WindowedPartition{
 			Partition:        &partition,
 			OutsideUpstreams: s.Partitions[i].OutsideUpstreams,
 		})
@@ -88,7 +89,7 @@ func (s windowedPartitionsSpec) resolve() (analysis.WindowedPartitions, error) {
 	return windowed, nil
 }
 
-// likelihoodComparisonSpec is the data form of analysis.AppliedLikelihoodComparison.
+// likelihoodComparisonSpec is the data form of macros.AppliedLikelihoodComparison.
 type likelihoodComparisonSpec struct {
 	macroTypeField         `yaml:",inline"`
 	Name                   string                 `yaml:"name"`
@@ -99,16 +100,16 @@ type likelihoodComparisonSpec struct {
 	WindowDataHistoryDepth map[string]int         `yaml:"window_data_history_depth,omitempty"`
 }
 
-func (s likelihoodComparisonSpec) resolveApplied() (analysis.AppliedLikelihoodComparison, error) {
+func (s likelihoodComparisonSpec) resolveApplied() (macros.AppliedLikelihoodComparison, error) {
 	model, err := s.Model.resolve()
 	if err != nil {
-		return analysis.AppliedLikelihoodComparison{}, err
+		return macros.AppliedLikelihoodComparison{}, err
 	}
 	window, err := s.Window.resolve()
 	if err != nil {
-		return analysis.AppliedLikelihoodComparison{}, err
+		return macros.AppliedLikelihoodComparison{}, err
 	}
-	return analysis.AppliedLikelihoodComparison{
+	return macros.AppliedLikelihoodComparison{
 		Name:                   s.Name,
 		Model:                  model,
 		Data:                   s.Data.resolve(),
@@ -125,11 +126,11 @@ func (s *likelihoodComparisonSpec) resolve(
 	if err != nil {
 		return nil, nil, err
 	}
-	partition := analysis.NewLikelihoodComparisonPartition(applied, storage)
+	partition := macros.NewLikelihoodComparisonPartition(applied, storage)
 	return []*simulator.PartitionConfig{partition}, applied.WindowDataHistoryDepth, nil
 }
 
-// posteriorEstimationSpec is the data form of analysis.AppliedPosteriorEstimation.
+// posteriorEstimationSpec is the data form of macros.AppliedPosteriorEstimation.
 type posteriorEstimationSpec struct {
 	macroTypeField `yaml:",inline"`
 	LogNorm        struct {
@@ -156,20 +157,20 @@ type posteriorEstimationSpec struct {
 	Seed         uint64                   `yaml:"seed"`
 }
 
-func (s posteriorEstimationSpec) resolveApplied() (analysis.AppliedPosteriorEstimation, error) {
+func (s posteriorEstimationSpec) resolveApplied() (macros.AppliedPosteriorEstimation, error) {
 	distribution, err := s.Sampler.Distribution.resolve()
 	if err != nil {
-		return analysis.AppliedPosteriorEstimation{}, err
+		return macros.AppliedPosteriorEstimation{}, err
 	}
 	comparison, err := s.Comparison.resolveApplied()
 	if err != nil {
-		return analysis.AppliedPosteriorEstimation{}, err
+		return macros.AppliedPosteriorEstimation{}, err
 	}
-	return analysis.AppliedPosteriorEstimation{
-		LogNorm:    analysis.PosteriorLogNorm{Name: s.LogNorm.Name, Default: s.LogNorm.Default},
-		Mean:       analysis.PosteriorMean{Name: s.Mean.Name, Default: s.Mean.Default},
-		Covariance: analysis.PosteriorCovariance{Name: s.Covariance.Name, Default: s.Covariance.Default, JustVariance: s.Covariance.JustVariance},
-		Sampler: analysis.PosteriorSampler{
+	return macros.AppliedPosteriorEstimation{
+		LogNorm:    macros.PosteriorLogNorm{Name: s.LogNorm.Name, Default: s.LogNorm.Default},
+		Mean:       macros.PosteriorMean{Name: s.Mean.Name, Default: s.Mean.Default},
+		Covariance: macros.PosteriorCovariance{Name: s.Covariance.Name, Default: s.Covariance.Default, JustVariance: s.Covariance.JustVariance},
+		Sampler: macros.PosteriorSampler{
 			Name:         s.Sampler.Name,
 			Default:      s.Sampler.Default,
 			Distribution: distribution,
@@ -188,7 +189,7 @@ func (s *posteriorEstimationSpec) resolve(
 	if err != nil {
 		return nil, nil, err
 	}
-	partitions := analysis.NewPosteriorEstimationPartitions(applied, storage)
+	partitions := macros.NewPosteriorEstimationPartitions(applied, storage)
 	return partitions, applied.Comparison.WindowDataHistoryDepth, nil
 }
 
@@ -200,7 +201,7 @@ var meanGradientFunctions = map[string]meanGradientFunc{
 }
 
 // parameterisedModelWithGradientSpec is the data form of
-// analysis.ParameterisedModelWithGradient (a gradient-capable likelihood).
+// macros.ParameterisedModelWithGradient (a gradient-capable likelihood).
 type parameterisedModelWithGradientSpec struct {
 	Likelihood         simulator.ComponentSpec                  `yaml:"likelihood"`
 	Params             map[string][]float64                     `yaml:"params,omitempty"`
@@ -208,17 +209,17 @@ type parameterisedModelWithGradientSpec struct {
 	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig `yaml:"params_from_upstream,omitempty"`
 }
 
-func (s parameterisedModelWithGradientSpec) resolve() (analysis.ParameterisedModelWithGradient, error) {
+func (s parameterisedModelWithGradientSpec) resolve() (macros.ParameterisedModelWithGradient, error) {
 	likelihood, err := resolveLikelihood(s.Likelihood)
 	if err != nil {
-		return analysis.ParameterisedModelWithGradient{}, err
+		return macros.ParameterisedModelWithGradient{}, err
 	}
 	withGradient, ok := likelihood.(inference.LikelihoodDistributionWithGradient)
 	if !ok {
-		return analysis.ParameterisedModelWithGradient{}, fmt.Errorf(
+		return macros.ParameterisedModelWithGradient{}, fmt.Errorf(
 			"likelihood %q does not support gradients", s.Likelihood.Type)
 	}
-	return analysis.ParameterisedModelWithGradient{
+	return macros.ParameterisedModelWithGradient{
 		Likelihood:         withGradient,
 		Params:             simulator.NewParams(s.Params),
 		ParamsAsPartitions: s.ParamsAsPartitions,
@@ -227,7 +228,7 @@ func (s parameterisedModelWithGradientSpec) resolve() (analysis.ParameterisedMod
 }
 
 // likelihoodMeanFunctionFitSpec is the data form of
-// analysis.AppliedLikelihoodMeanFunctionFit.
+// macros.AppliedLikelihoodMeanFunctionFit.
 type likelihoodMeanFunctionFitSpec struct {
 	macroTypeField `yaml:",inline"`
 	Name           string                             `yaml:"name"`
@@ -260,10 +261,10 @@ func (spec *likelihoodMeanFunctionFitSpec) resolve(
 	if !ok {
 		return nil, nil, fmt.Errorf("gradient: unknown function %q", spec.Gradient.Function)
 	}
-	applied := analysis.AppliedLikelihoodMeanFunctionFit{
+	applied := macros.AppliedLikelihoodMeanFunctionFit{
 		Name:                   spec.Name,
 		Model:                  model,
-		Gradient:               analysis.LikelihoodMeanGradient{Function: gradientFn, Width: spec.Gradient.Width},
+		Gradient:               macros.LikelihoodMeanGradient{Function: gradientFn, Width: spec.Gradient.Width},
 		Data:                   spec.Data.resolve(),
 		Window:                 window,
 		EmbeddedBurnInSteps:    spec.EmbeddedBurnInSteps,
@@ -272,6 +273,6 @@ func (spec *likelihoodMeanFunctionFitSpec) resolve(
 		DescentIterations:      spec.DescentIterations,
 		WarmStart:              spec.WarmStart,
 	}
-	partition := analysis.NewLikelihoodMeanFunctionFitPartition(applied, storage)
+	partition := macros.NewLikelihoodMeanFunctionFitPartition(applied, storage)
 	return []*simulator.PartitionConfig{partition}, applied.WindowDataHistoryDepth, nil
 }

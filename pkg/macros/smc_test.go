@@ -1,4 +1,4 @@
-package analysis
+package macros
 
 import (
 	"fmt"
@@ -97,8 +97,8 @@ func TestRunSMCInference(t *testing.T) {
 					return &SMCInnerSimConfig{
 						Partitions: partitions,
 						Simulation: &simulator.SimulationConfig{
-							OutputCondition:  &simulator.NilOutputCondition{},
-							OutputFunction:   &simulator.NilOutputFunction{},
+							OutputCondition: &simulator.NilOutputCondition{},
+							OutputFunction:  &simulator.NilOutputFunction{},
 							TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
 								MaxNumberOfSteps: T - 1,
 							},

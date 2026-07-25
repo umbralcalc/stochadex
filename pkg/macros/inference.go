@@ -1,4 +1,4 @@
-package analysis
+package macros
 
 import (
 	"fmt"
@@ -75,7 +75,7 @@ func NewPosteriorEstimationPartitions(
 ) []*simulator.PartitionConfig {
 	validateAppliedPosteriorWidths(applied)
 	if applied.MemoryDepth < 1 {
-		panic(fmt.Sprintf("analysis: MemoryDepth must be >= 1, got %d", applied.MemoryDepth))
+		panic(fmt.Sprintf("macros: MemoryDepth must be >= 1, got %d", applied.MemoryDepth))
 	}
 	// The posterior mean/covariance are loglike-weighted averages of the sampled
 	// parameters, so the comparison's loglike MUST depend on the sample. If it does
@@ -103,7 +103,7 @@ func NewPosteriorEstimationPartitions(
 	}
 	if !samplerRead {
 		panic(fmt.Sprintf(
-			"analysis: posterior comparison must read the sampler %q so the loglike "+
+			"macros: posterior comparison must read the sampler %q so the loglike "+
 				"depends on the proposal, else the posterior cannot converge — either "+
 				"the comparison model reads it via params_from_upstream (e.g. {mean: "+
 				"{upstream: %q}}), or a window partition consumes it as an "+

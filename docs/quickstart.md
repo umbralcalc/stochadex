@@ -269,7 +269,7 @@ Omit `run` for a single batch run.
 
 ## Analysis, inference and optimisation
 
-A `data` block produces a dataset (a sub-simulation, or a `csv` / `json_log` / `postgres` source). Each `macros` entry expands a framework analysis constructor into a *set* of partitions against it. All data, all in-process.
+A `data` block produces a dataset (a sub-simulation, or a `csv` / `json_log` / `postgres` source). Each `macros` entry expands a framework [`macros`](https://stochadex.github.io/pkg/macros.html) constructor into a *set* of partitions against it. All data, all in-process.
 
 ```yaml
 data:

@@ -26,7 +26,7 @@ var WinLines = [...][3]int{
 
 // TTTGame implements Environment[TTTState, TTTAction]. Tic-tac-toe is the
 // canonical fixture for testing this package and downstream consumers
-// (e.g. pkg/analysis): small enough to be obvious, large enough that
+// (e.g. pkg/macros): small enough to be obvious, large enough that
 // random play loses, and deterministic at endgame — from a "win in one"
 // position MCTS must pick the winning move; from a "block in one"
 // position it must block.
