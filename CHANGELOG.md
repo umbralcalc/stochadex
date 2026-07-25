@@ -45,23 +45,27 @@ an exact version rather than assume stability across minors.
 
 ### Fixed
 
-- **MCTS: terminal selections are backed up instead of dropped.** In the decomposed
-  partition pipeline, `MCTSTreeIteration` discarded any selection that walked into an
-  already-terminal node — `SelectLeaf` returns `ok=false` there, and the path was thrown
-  away with no visit and no score. `MCTSTree.RunOne` has always backed the terminal scores
-  up instead, so the one-shot `RunMCTSSearch` and the partitioned self-play stack disagreed.
+- **MCTS: the decomposed pipeline no longer drops non-expansion selections.**
+  `MCTSTreeIteration` treated every `ok=false` from `SelectLeaf` as "nothing happened" and
+  threw the path away with no visit and no score. `MCTSTree.RunOne` has always backed
+  something up in three of those four cases, so the one-shot `RunMCTSSearch` and the
+  partitioned self-play stack disagreed about the same position.
 
-  The effect was severe wherever a tree saturates: from a five-empty-cell tic-tac-toe
-  position, 200 simulations per ply produced **9** root visits, and raising the simulation
-  count bought nothing, so self-play returned near-arbitrary moves. It now accumulates the
-  full 200 and finds the win. This was not caught earlier because the existing assertions
-  used a position whose winning move happened to be first in legal order, which a
-  non-searching stack picks anyway.
+  The effect was severe wherever a tree saturates. From a five-empty-cell tic-tac-toe
+  position, 200 simulations per ply produced **9** root visits; with `MaxTreeDepth` reached,
+  visits plateaued at the number of root children. Raising the simulation count bought
+  nothing in either case, so self-play returned near-arbitrary moves. Both now accumulate
+  the full count and find the win. This escaped the existing tests because their assertions
+  used a position whose winning move was first in legal order — which a stack that is not
+  searching at all picks anyway.
 
-  One divergence from `RunOne` remains and is documented in the code: a depth-capped node
-  is rolled out and backed up by `RunOne`, but the pipeline cannot do that inline because
-  the rollout is a separate partition, so deep searches that hit `MaxTreeDepth` still drop
-  those iterations.
+  `SelectLeaf`'s four stop reasons are now explicit rather than collapsed into a bool, via
+  the new `MCTSLeafOutcome` and `MCTSTree.SelectLeafWithOutcome`. `SelectLeaf` keeps its
+  signature and is unchanged for callers that only care whether the tree grew. Each outcome
+  gets the backup `RunOne` gives it: terminal nodes are scored exactly by the environment
+  and backed up directly; depth-capped and stalled (no-legal-action) nodes are published as
+  leaves so the rollout partition scores them; and an `env.Apply` failure backs up nothing,
+  since a broken transition is an environment fault rather than evidence about the action.
 
 ## [0.11.0] — 2026-07-25
 

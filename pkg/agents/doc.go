@@ -11,7 +11,11 @@
 // Key Features:
 //   - Generic Environment[S, A] interface (Legal/Apply/Terminal/Actor/Players)
 //   - MCTS decomposed as three partitions: tree (selection + backup),
-//     rollout (one playout per step), and apply (state advancer)
+//     rollout (one playout per step), and apply (state advancer). The
+//     decomposition must reproduce MCTSTree.RunOne's backup for every way
+//     selection can stop, which is what MCTSLeafOutcome makes explicit —
+//     dropping a stop reason silently starves the tree of statistics rather
+//     than failing, so raising the simulation count buys nothing.
 //   - Pluggable rollout functions (UniformRandomRollout, FromProgress,
 //     WinnerToTerminal)
 //   - MAST as an optional rollout strategy: a learning rollout policy backed
