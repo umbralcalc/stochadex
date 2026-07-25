@@ -22,6 +22,8 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-07-25
+
 ### Changed
 
 - **BREAKING: `pkg/analysis` split into `pkg/analysis` + `pkg/macros`.** The package was
