@@ -5,6 +5,7 @@ import (
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/inference"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -30,21 +31,21 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 			}
 
 			// Configure a partition to dynamically fit the mean of the data values
-			fitPartition := analysis.NewLikelihoodMeanFunctionFitPartition(
-				analysis.AppliedLikelihoodMeanFunctionFit{
+			fitPartition := macros.NewLikelihoodMeanFunctionFitPartition(
+				macros.AppliedLikelihoodMeanFunctionFit{
 					Name: "mean_fit",
-					Model: analysis.ParameterisedModelWithGradient{
+					Model: macros.ParameterisedModelWithGradient{
 						Likelihood: &inference.NormalLikelihoodDistribution{},
 						Params: simulator.NewParams(map[string][]float64{
 							"variance": {1.0, 2.0, 3.0, 4.0},
 						}),
 					},
-					Gradient: analysis.LikelihoodMeanGradient{
+					Gradient: macros.LikelihoodMeanGradient{
 						Function: inference.MeanGradientFunc,
 						Width:    4,
 					},
 					Data:              analysis.DataRef{PartitionName: "first_wiener_process"},
-					Window:            analysis.WindowedPartitions{Depth: 10},
+					Window:            macros.WindowedPartitions{Depth: 10},
 					LearningRate:      0.05,
 					DescentIterations: 10,
 				},

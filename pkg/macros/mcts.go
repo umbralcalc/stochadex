@@ -1,4 +1,4 @@
-package analysis
+package macros
 
 import (
 	"github.com/umbralcalc/stochadex/pkg/agents"
@@ -92,19 +92,19 @@ type MCTSSelfPlaySpec[S any, A any] struct {
 // The search partition is exposed as "<Name>_search".
 func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*simulator.PartitionConfig {
 	if spec.Name == "" {
-		panic("analysis.NewMCTSSelfPlayPartitions: Name required")
+		panic("macros.NewMCTSSelfPlayPartitions: Name required")
 	}
 	if spec.Encoder == nil || spec.Decoder == nil {
-		panic("analysis.NewMCTSSelfPlayPartitions: Encoder and Decoder required")
+		panic("macros.NewMCTSSelfPlayPartitions: Encoder and Decoder required")
 	}
 	if spec.MaxLegalActions <= 0 {
-		panic("analysis.NewMCTSSelfPlayPartitions: MaxLegalActions must be > 0")
+		panic("macros.NewMCTSSelfPlayPartitions: MaxLegalActions must be > 0")
 	}
 	if spec.StateWidth <= 0 {
-		panic("analysis.NewMCTSSelfPlayPartitions: StateWidth must be > 0")
+		panic("macros.NewMCTSSelfPlayPartitions: StateWidth must be > 0")
 	}
 	if spec.Players <= 0 {
-		panic("analysis.NewMCTSSelfPlayPartitions: Players must be > 0")
+		panic("macros.NewMCTSSelfPlayPartitions: Players must be > 0")
 	}
 	if spec.SimsPerPly <= 0 {
 		spec.SimsPerPly = 50

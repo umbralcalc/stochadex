@@ -1,20 +1,22 @@
-package analysis
+package macros
 
 import (
 	"fmt"
 	"strings"
 	"testing"
 
+	"gonum.org/v1/gonum/floats"
+
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/floats"
 )
 
 func TestInference(t *testing.T) {
 	t.Run(
 		"test that the posterior estimation works",
 		func(t *testing.T) {
-			storage := NewStateTimeStorageFromPartitions(
+			storage := analysis.NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
 					{
 						Name: "test_data",
@@ -77,9 +79,9 @@ func TestInference(t *testing.T) {
 								"mean": {Upstream: "test_post_sampler"},
 							},
 						},
-						Data: DataRef{PartitionName: "test_data"},
+						Data: analysis.DataRef{PartitionName: "test_data"},
 						Window: WindowedPartitions{
-							Data:  []DataRef{{PartitionName: "test_data"}},
+							Data:  []analysis.DataRef{{PartitionName: "test_data"}},
 							Depth: 200,
 						},
 						WindowDataHistoryDepth: map[string]int{"test_data": 200},
@@ -93,9 +95,9 @@ func TestInference(t *testing.T) {
 			ValidateWindowDataHistoryDepth(
 				200,
 				map[string]int{"test_data": 200},
-				[]DataRef{{PartitionName: "test_data"}},
+				[]analysis.DataRef{{PartitionName: "test_data"}},
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				partitions,
 				map[string]int{"test_data": 200},
@@ -112,7 +114,7 @@ func TestInference(t *testing.T) {
 	t.Run(
 		"JustVariance posterior covariance uses diagonal defaults",
 		func(t *testing.T) {
-			storage := NewStateTimeStorageFromPartitions(
+			storage := analysis.NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
 					{
 						Name: "test_data",
@@ -175,9 +177,9 @@ func TestInference(t *testing.T) {
 								"mean": {Upstream: "jv_post_sampler"},
 							},
 						},
-						Data: DataRef{PartitionName: "test_data"},
+						Data: analysis.DataRef{PartitionName: "test_data"},
 						Window: WindowedPartitions{
-							Data:  []DataRef{{PartitionName: "test_data"}},
+							Data:  []analysis.DataRef{{PartitionName: "test_data"}},
 							Depth: 200,
 						},
 						WindowDataHistoryDepth: map[string]int{"test_data": 200},
@@ -188,7 +190,7 @@ func TestInference(t *testing.T) {
 				},
 				storage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				partitions,
 				map[string]int{"test_data": 200},
@@ -238,7 +240,7 @@ func TestInference(t *testing.T) {
 					Comparison: AppliedLikelihoodComparison{
 						Name:  "z",
 						Model: model,
-						Data:  DataRef{PartitionName: "x"},
+						Data:  analysis.DataRef{PartitionName: "x"},
 						Window: WindowedPartitions{
 							Depth: 1,
 						},

@@ -1,4 +1,4 @@
-package analysis
+package macros
 
 import (
 	"github.com/umbralcalc/stochadex/pkg/general"

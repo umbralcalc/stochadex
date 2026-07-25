@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/umbralcalc/stochadex/pkg/analysis"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -19,8 +19,8 @@ type aggregationFields struct {
 	Window       int                     `yaml:"window,omitempty"`
 }
 
-func (f aggregationFields) applied() (analysis.AppliedAggregation, error) {
-	applied := analysis.AppliedAggregation{
+func (f aggregationFields) applied() (macros.AppliedAggregation, error) {
+	applied := macros.AppliedAggregation{
 		Name:         f.Name,
 		Data:         f.Data.resolve(),
 		DefaultValue: f.DefaultValue,
@@ -59,7 +59,7 @@ func (s *vectorMeanSpec) resolve(
 	if err != nil {
 		return nil, nil, err
 	}
-	partition := analysis.NewVectorMeanPartition(applied, storage)
+	partition := macros.NewVectorMeanPartition(applied, storage)
 	applyParams(partition, s.Params)
 	return []*simulator.PartitionConfig{partition}, s.windows(), nil
 }
@@ -77,7 +77,7 @@ func (s *vectorVarianceSpec) resolve(
 	if err != nil {
 		return nil, nil, err
 	}
-	partition := analysis.NewVectorVariancePartition(s.Mean.resolve(), applied, storage)
+	partition := macros.NewVectorVariancePartition(s.Mean.resolve(), applied, storage)
 	applyParams(partition, s.Params)
 	windows := s.windows()
 	windows[s.Mean.PartitionName] = s.window()
@@ -97,7 +97,7 @@ func (s *vectorCovarianceSpec) resolve(
 	if err != nil {
 		return nil, nil, err
 	}
-	partition := analysis.NewVectorCovariancePartition(s.Mean.resolve(), applied, storage)
+	partition := macros.NewVectorCovariancePartition(s.Mean.resolve(), applied, storage)
 	applyParams(partition, s.Params)
 	windows := s.windows()
 	windows[s.Mean.PartitionName] = s.window()

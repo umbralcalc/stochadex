@@ -1,7 +1,7 @@
 # The macro / analysis tier: a three-tier data program with no Go.
 #
 #   data:   a sub-simulation, run once to produce a StateTimeStorage.
-#   macros: partition-set-producing analysis functions (the pkg/analysis
+#   macros: partition-set-producing functions (the pkg/macros
 #           constructors) expanded and run AGAINST that storage, in order, so a
 #           later macro may reference an earlier macro's output partition.
 #

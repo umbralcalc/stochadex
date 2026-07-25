@@ -22,6 +22,46 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: `pkg/analysis` split into `pkg/analysis` + `pkg/macros`.** The package was
+  doing two unrelated jobs behind one import. It now does one: `pkg/analysis` is the data
+  layer — getting time series into a `StateTimeStorage` (`NewStateTimeStorageFromCsv` /
+  `…FromJsonLogEntries` / `…FromPostgresDb` / `…FromPartitions`,
+  `AddPartitionsToStateTimeStorage`), addressing series inside one (`DataRef`, `IndexRange`,
+  `GroupedStateTimeStorage`, `AppliedGrouping`), and rendering them (`plot.go`,
+  `dataframe.go`, `PostgresDbOutputFunction`). Everything that turns an `Applied*` spec into
+  a set of `*simulator.PartitionConfig`s moved to the new **`pkg/macros`** — the tier the
+  YAML `macros:` key expands into.
+
+  Moved to `pkg/macros` (import path change only; no signatures changed):
+  `AppliedAggregation`, `NewGroupedAggregationPartition`, `NewVectorMeanPartition`,
+  `NewVectorVariancePartition`, `NewVectorCovariancePartition`; `WindowedPartition(s)`,
+  `ParameterisedModel`, `ParameterisedModelWithGradient`, `LikelihoodMeanGradient`,
+  `AppliedLikelihoodComparison`, `NewLikelihoodComparisonPartition`,
+  `AppliedLikelihoodMeanFunctionFit`, `NewLikelihoodMeanFunctionFitPartition`;
+  `PosteriorLogNorm`, `PosteriorMean`, `PosteriorCovariance`, `PosteriorSampler`,
+  `AppliedPosteriorEstimation`, `NewPosteriorEstimationPartitions`,
+  `ValidateWindowDataHistoryDepth`; `EvolutionStrategy{Sampler,Sorting,Mean,Covariance,Reward}`,
+  `AppliedEvolutionStrategyOptimisation`, `NewEvolutionStrategyOptimisationPartitions`;
+  `SMCInnerSimConfig`, `SMCParticleModel`, `AppliedSMCInference`,
+  `NewSMCInferencePartitions`, `RunSMCInference`; `RegressionStatsMode` (+
+  `RegressionStatsCumulative`, `RegressionStatsWindow`), `ScalarRegressionStatsIteration`,
+  `ScalarRegressionStateWidth`, `AppliedScalarRegressionStats`,
+  `NewScalarRegressionStatsPartition`; `MCTSSelfPlaySpec`, `NewMCTSSelfPlayPartitions`.
+
+  **Migration:** add `"github.com/umbralcalc/stochadex/pkg/macros"` and rewrite
+  `analysis.X` → `macros.X` for the names above. Code that only loads, references or plots
+  data is unaffected. YAML configs are unaffected — no config key, macro name or spec field
+  changed.
+
+  The dependency now runs strictly one way, `pkg/api → pkg/macros → pkg/analysis →
+  pkg/simulator`, which is what the split buys: the data layer no longer transitively pulls
+  in the whole inference/optimisation surface, and `pkg/macros/doc.go` has a single place to
+  state the spec → partitions contract. `NewMCTSSelfPlayPartitions` lives in `pkg/macros`
+  despite having no YAML spelling (its `agents.Environment` is arbitrary Go game rules) —
+  the package is named for the shape of what it produces, not for the YAML key alone.
+
 ### Added
 
 - **ONNX partition: multi-input binding and thread-pool control** (`pkg/onnx`). The

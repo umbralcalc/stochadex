@@ -1,11 +1,13 @@
-package analysis
+package macros
 
 import (
 	"testing"
 
+	"gonum.org/v1/gonum/floats"
+
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/floats"
 )
 
 func TestEvolutionStrategyOptimisation(t *testing.T) {
@@ -66,7 +68,7 @@ func TestEvolutionStrategyOptimisation(t *testing.T) {
 				},
 				nil,
 			)
-			storage := NewStateTimeStorageFromPartitions(
+			storage := analysis.NewStateTimeStorageFromPartitions(
 				partitions,
 				&simulator.NumberOfStepsTerminationCondition{
 					MaxNumberOfSteps: 20,

@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"github.com/umbralcalc/stochadex/pkg/analysis"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -74,17 +74,17 @@ func (s *evolutionStrategySpec) resolveLive(
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	applied := analysis.AppliedEvolutionStrategyOptimisation{
-		Sampler:    analysis.EvolutionStrategySampler{Name: s.Sampler.Name, Default: s.Sampler.Default},
-		Sorting:    analysis.EvolutionStrategySorting{Name: s.Sorting.Name, CollectionSize: s.Sorting.CollectionSize, EmptyValue: s.Sorting.EmptyValue},
-		Mean:       analysis.EvolutionStrategyMean{Name: s.Mean.Name, Default: s.Mean.Default, Weights: s.Mean.Weights, LearningRate: s.Mean.LearningRate},
-		Covariance: analysis.EvolutionStrategyCovariance{Name: s.Covariance.Name, Default: s.Covariance.Default, LearningRate: s.Covariance.LearningRate},
-		Reward:     analysis.EvolutionStrategyReward{Partition: rewardPartition, DiscountFactor: s.Reward.DiscountFactor},
+	applied := macros.AppliedEvolutionStrategyOptimisation{
+		Sampler:    macros.EvolutionStrategySampler{Name: s.Sampler.Name, Default: s.Sampler.Default},
+		Sorting:    macros.EvolutionStrategySorting{Name: s.Sorting.Name, CollectionSize: s.Sorting.CollectionSize, EmptyValue: s.Sorting.EmptyValue},
+		Mean:       macros.EvolutionStrategyMean{Name: s.Mean.Name, Default: s.Mean.Default, Weights: s.Mean.Weights, LearningRate: s.Mean.LearningRate},
+		Covariance: macros.EvolutionStrategyCovariance{Name: s.Covariance.Name, Default: s.Covariance.Default, LearningRate: s.Covariance.LearningRate},
+		Reward:     macros.EvolutionStrategyReward{Partition: rewardPartition, DiscountFactor: s.Reward.DiscountFactor},
 		Window:     window,
 		Seed:       s.Seed,
 	}
 	// Storage is nil: evolution strategy inspects no pre-recorded data.
-	partitions := analysis.NewEvolutionStrategyOptimisationPartitions(applied, nil)
+	partitions := macros.NewEvolutionStrategyOptimisationPartitions(applied, nil)
 	timestep := s.Timestep
 	if timestep == 0 {
 		timestep = 1.0
@@ -94,15 +94,15 @@ func (s *evolutionStrategySpec) resolveLive(
 
 // resolveWindowedPartition resolves a single windowed partition spec (its inner
 // partition's data-spec iteration and outside upstreams).
-func resolveWindowedPartition(spec windowedPartitionSpec) (analysis.WindowedPartition, error) {
+func resolveWindowedPartition(spec windowedPartitionSpec) (macros.WindowedPartition, error) {
 	partition := spec.Partition
 	partition.Init()
 	if partition.IterationSpec.IsData() {
 		iteration, err := ResolveIteration(partition.IterationSpec)
 		if err != nil {
-			return analysis.WindowedPartition{}, fmt.Errorf("reward partition %q: %w", partition.Name, err)
+			return macros.WindowedPartition{}, fmt.Errorf("reward partition %q: %w", partition.Name, err)
 		}
 		partition.Iteration = iteration
 	}
-	return analysis.WindowedPartition{Partition: &partition, OutsideUpstreams: spec.OutsideUpstreams}, nil
+	return macros.WindowedPartition{Partition: &partition, OutsideUpstreams: spec.OutsideUpstreams}, nil
 }

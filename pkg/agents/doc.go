@@ -24,7 +24,7 @@
 //
 // Usage Patterns:
 //   - Self-play: compose ApplyIteration + an embedded search sim
-//     (analysis.NewMCTSSelfPlayPartitions wires this up)
+//     (macros.NewMCTSSelfPlayPartitions wires this up)
 //   - Per-simulation telemetry: run MCTSTreeIteration + MCTSRolloutIteration
 //     directly without the apply layer, then read the tree's row
 //   - YAML / pkg/api use: ship non-generic façade types per environment family

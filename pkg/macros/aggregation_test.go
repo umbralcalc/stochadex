@@ -1,13 +1,15 @@
-package analysis
+package macros
 
 import (
 	"fmt"
 	"testing"
 
+	"gonum.org/v1/gonum/floats"
+
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/floats"
 )
 
 func TestAggregation(t *testing.T) {
@@ -26,9 +28,9 @@ func TestAggregation(t *testing.T) {
 				{2, 3, 4},
 			})
 			storage.SetTimes([]float64{1234, 1235, 1236})
-			groupedStorage := NewGroupedStateTimeStorage(
-				AppliedGrouping{
-					GroupBy: []DataRef{
+			groupedStorage := analysis.NewGroupedStateTimeStorage(
+				analysis.AppliedGrouping{
+					GroupBy: []analysis.DataRef{
 						{PartitionName: "test_group"},
 					},
 					Precision: 1,
@@ -39,14 +41,14 @@ func TestAggregation(t *testing.T) {
 				general.MaxAggregation,
 				AppliedAggregation{
 					Name: "test_grouped_agg",
-					Data: DataRef{
+					Data: analysis.DataRef{
 						PartitionName: "test",
 					},
 					DefaultValue: 0.0,
 				},
 				groupedStorage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{aggPartition},
 				map[string]int{
@@ -83,14 +85,14 @@ func TestAggregation(t *testing.T) {
 			meanPartition := NewVectorMeanPartition(
 				AppliedAggregation{
 					Name: "test_mean",
-					Data: DataRef{
+					Data: analysis.DataRef{
 						PartitionName: "test",
 					},
 					Kernel: &kernels.ConstantIntegrationKernel{},
 				},
 				storage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{meanPartition},
 				map[string]int{
@@ -128,14 +130,14 @@ func TestAggregation(t *testing.T) {
 			meanPartition := NewVectorMeanPartition(
 				AppliedAggregation{
 					Name: "test_mean",
-					Data: DataRef{
+					Data: analysis.DataRef{
 						PartitionName: "test",
 					},
 					Kernel: &kernels.ConstantIntegrationKernel{},
 				},
 				storage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{meanPartition},
 				map[string]int{
@@ -144,19 +146,19 @@ func TestAggregation(t *testing.T) {
 				},
 			)
 			variancePartition := NewVectorVariancePartition(
-				DataRef{
+				analysis.DataRef{
 					PartitionName: "test_mean",
 				},
 				AppliedAggregation{
 					Name: "test_variance",
-					Data: DataRef{
+					Data: analysis.DataRef{
 						PartitionName: "test",
 					},
 					Kernel: &kernels.ConstantIntegrationKernel{},
 				},
 				storage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{variancePartition},
 				map[string]int{
@@ -196,14 +198,14 @@ func TestAggregation(t *testing.T) {
 			meanPartition := NewVectorMeanPartition(
 				AppliedAggregation{
 					Name: "test_mean",
-					Data: DataRef{
+					Data: analysis.DataRef{
 						PartitionName: "test",
 					},
 					Kernel: &kernels.ConstantIntegrationKernel{},
 				},
 				storage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{meanPartition},
 				map[string]int{
@@ -212,19 +214,19 @@ func TestAggregation(t *testing.T) {
 				},
 			)
 			covariancePartition := NewVectorCovariancePartition(
-				DataRef{
+				analysis.DataRef{
 					PartitionName: "test_mean",
 				},
 				AppliedAggregation{
 					Name: "test_covariance",
-					Data: DataRef{
+					Data: analysis.DataRef{
 						PartitionName: "test",
 					},
 					Kernel: &kernels.ConstantIntegrationKernel{},
 				},
 				storage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{covariancePartition},
 				map[string]int{

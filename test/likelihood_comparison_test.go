@@ -6,6 +6,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -40,8 +41,8 @@ func TestLikelihoodComparison(t *testing.T) {
 			}
 
 			// Configure a partition for computing the exponentially-weighted rolling mean
-			meanPartition := analysis.NewVectorMeanPartition(
-				analysis.AppliedAggregation{
+			meanPartition := macros.NewVectorMeanPartition(
+				macros.AppliedAggregation{
 					Name:   "mean",
 					Data:   analysis.DataRef{PartitionName: "generated_data"},
 					Kernel: &kernels.ExponentialIntegrationKernel{},
@@ -60,9 +61,9 @@ func TestLikelihoodComparison(t *testing.T) {
 			)
 
 			// Configure a partition for computing the exponentially-weighted rolling variance
-			variancePartition := analysis.NewVectorVariancePartition(
+			variancePartition := macros.NewVectorVariancePartition(
 				analysis.DataRef{PartitionName: "mean"},
-				analysis.AppliedAggregation{
+				macros.AppliedAggregation{
 					Name:         "variance",
 					Data:         analysis.DataRef{PartitionName: "generated_data"},
 					Kernel:       &kernels.ExponentialIntegrationKernel{},
@@ -82,7 +83,7 @@ func TestLikelihoodComparison(t *testing.T) {
 			)
 
 			// Configure a model where the mean and variance are updated by the rolling estimators
-			model := analysis.ParameterisedModel{
+			model := macros.ParameterisedModel{
 				Likelihood: &inference.NormalLikelihoodDistribution{},
 				Params:     simulator.NewParams(make(map[string][]float64)),
 				ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
@@ -92,12 +93,12 @@ func TestLikelihoodComparison(t *testing.T) {
 			}
 
 			// Configure a partition for computing the rolling likelihood comparison against the data
-			comparisonPartition := analysis.NewLikelihoodComparisonPartition(
-				analysis.AppliedLikelihoodComparison{
+			comparisonPartition := macros.NewLikelihoodComparisonPartition(
+				macros.AppliedLikelihoodComparison{
 					Name:  "loglikelihood",
 					Model: model,
 					Data:  analysis.DataRef{PartitionName: "generated_data"},
-					Window: analysis.WindowedPartitions{
+					Window: macros.WindowedPartitions{
 						Data: []analysis.DataRef{
 							{PartitionName: "generated_data"},
 							{PartitionName: "mean"},

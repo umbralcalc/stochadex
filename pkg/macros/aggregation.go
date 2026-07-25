@@ -1,8 +1,9 @@
-package analysis
+package macros
 
 import (
 	"strconv"
 
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -31,14 +32,14 @@ import (
 //
 // Related Types:
 //   - See kernels.IntegrationKernel for available weighting schemes
-//   - See DataRef for source data configuration
+//   - See analysis.DataRef for source data configuration
 //   - See NewGroupedAggregationPartition for grouped aggregations
 //
 // Example:
 //
 //	aggregation := AppliedAggregation{
 //	    Name: "rolling_mean",
-//	    Data: DataRef{
+//	    Data: analysis.DataRef{
 //	        PartitionName: "prices",
 //	        ValueIndices: []int{0, 1}, // Use first two price columns
 //	    },
@@ -47,7 +48,7 @@ import (
 //	}
 type AppliedAggregation struct {
 	Name         string
-	Data         DataRef
+	Data         analysis.DataRef
 	Kernel       kernels.IntegrationKernel
 	DefaultValue float64
 }
@@ -101,7 +102,7 @@ func (a *AppliedAggregation) GetKernel() kernels.IntegrationKernel {
 //   - weightings: Maps group names to their time-based weights
 //     Output: []float64 aggregated results ordered by accepted value groups
 //   - applied: AppliedAggregation configuration specifying source data and kernel
-//   - storage: GroupedStateTimeStorage containing group definitions and binning rules
+//   - storage: analysis.GroupedStateTimeStorage containing group definitions and binning rules
 //
 // Returns:
 //   - *PartitionConfig: Configured partition ready for simulation
@@ -132,7 +133,7 @@ func (a *AppliedAggregation) GetKernel() kernels.IntegrationKernel {
 //	    },
 //	    AppliedAggregation{
 //	        Name: "volatility_aggregates",
-//	        Data: DataRef{PartitionName: "prices"},
+//	        Data: analysis.DataRef{PartitionName: "prices"},
 //	        Kernel: &kernels.ExponentialIntegrationKernel{},
 //	        DefaultValue: 0.0,
 //	    },
@@ -151,7 +152,7 @@ func NewGroupedAggregationPartition(
 		weightings map[string][]float64,
 	) []float64,
 	applied AppliedAggregation,
-	storage *GroupedStateTimeStorage,
+	storage *analysis.GroupedStateTimeStorage,
 ) *simulator.PartitionConfig {
 	stateValueIndices := make([]float64, 0)
 	for _, index := range applied.Data.GetValueIndices(storage.Storage) {
@@ -231,7 +232,7 @@ func NewGroupedAggregationPartition(
 //	meanPartition := NewVectorMeanPartition(
 //	    AppliedAggregation{
 //	        Name: "price_ema",
-//	        Data: DataRef{
+//	        Data: analysis.DataRef{
 //	            PartitionName: "prices",
 //	            ValueIndices: []int{0, 1, 2}, // Use first 3 price dimensions
 //	        },
@@ -287,9 +288,9 @@ func NewVectorMeanPartition(
 
 // NewVectorVariancePartition constructs a PartitionConfig that computes the
 // rolling windowed weighted variance per-index of the referenced data
-// values. Provide the corresponding rolling mean via the mean DataRef.
+// values. Provide the corresponding rolling mean via the mean analysis.DataRef.
 func NewVectorVariancePartition(
-	mean DataRef,
+	mean analysis.DataRef,
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
@@ -336,9 +337,9 @@ func NewVectorVariancePartition(
 
 // NewVectorCovariancePartition constructs a PartitionConfig that computes the
 // rolling windowed weighted covariance matrix of the referenced data values.
-// Provide the corresponding rolling mean via the mean DataRef.
+// Provide the corresponding rolling mean via the mean analysis.DataRef.
 func NewVectorCovariancePartition(
-	mean DataRef,
+	mean analysis.DataRef,
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {

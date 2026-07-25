@@ -14,7 +14,7 @@ type SMCResult struct {
 	ParamNames     []string
 	PosteriorMean  []float64
 	PosteriorStd   []float64
-	PosteriorCov   []float64   // d*d flattened row-major
+	PosteriorCov   []float64 // d*d flattened row-major
 	LogMarginalLik float64
 	Predictions    [][]float64 // [T][N] predicted values per particle
 	ParticleParams [][]float64 // [N][d] final round particle parameters
@@ -40,11 +40,11 @@ type SMCResult struct {
 type SMCProposalIteration struct {
 	Priors []Prior
 
-	rng                  *rand.Rand
-	numParticles         int
-	nParams              int
+	rng                   *rand.Rand
+	numParticles          int
+	nParams               int
 	posteriorPartitionIdx int
-	verbose              bool
+	verbose               bool
 }
 
 func (s *SMCProposalIteration) Configure(

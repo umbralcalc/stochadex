@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -15,7 +15,7 @@ import (
 // same partition set is instantiated once per particle, with the "{particle}"
 // placeholder in partition names and upstream references replaced by the particle
 // index. This is how a config expresses the N-way particle structure of an SMC
-// run (analysis.SMCParticleModel.Build) without a general loop construct — the
+// run (macros.SMCParticleModel.Build) without a general loop construct — the
 // loop lives here, in the macro's Go.
 
 type smcInferenceSpec struct {
@@ -80,7 +80,7 @@ func (s *smcInferenceSpec) resolveLive(
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	partitions := analysis.NewSMCInferencePartitions(analysis.AppliedSMCInference{
+	partitions := macros.NewSMCInferencePartitions(macros.AppliedSMCInference{
 		ProposalName:  s.ProposalName,
 		SimName:       s.SimName,
 		PosteriorName: s.PosteriorName,
@@ -88,7 +88,7 @@ func (s *smcInferenceSpec) resolveLive(
 		NumRounds:     s.NumRounds,
 		Priors:        priors,
 		ParamNames:    s.ParamNames,
-		Model:         analysis.SMCParticleModel{Build: build},
+		Model:         macros.SMCParticleModel{Build: build},
 		Seed:          s.Seed,
 		Verbose:       s.Verbose,
 	})
@@ -104,7 +104,7 @@ func (s *smcInferenceSpec) resolveLive(
 // model for N particles with nParams parameters each.
 func (m *smcModelSpec) builder(
 	storage *simulator.StateTimeStorage,
-) (func(N, nParams int) *analysis.SMCInnerSimConfig, error) {
+) (func(N, nParams int) *macros.SMCInnerSimConfig, error) {
 	// The inner simulation is either auto-built from the observed data's timeline,
 	// or given explicitly as data specs.
 	var explicitSim *simulator.SimulationConfig
@@ -123,7 +123,7 @@ func (m *smcModelSpec) builder(
 		explicitSim = resolved
 	}
 
-	return func(N, nParams int) *analysis.SMCInnerSimConfig {
+	return func(N, nParams int) *macros.SMCInnerSimConfig {
 		partitions := make([]*simulator.PartitionConfig, 0)
 
 		simulation := explicitSim
@@ -175,7 +175,7 @@ func (m *smcModelSpec) builder(
 		}
 
 		simCopy := *simulation
-		return &analysis.SMCInnerSimConfig{
+		return &macros.SMCInnerSimConfig{
 			Partitions:        partitions,
 			Simulation:        &simCopy,
 			LoglikePartitions: loglikePartitions,

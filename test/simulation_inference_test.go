@@ -6,6 +6,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -40,8 +41,8 @@ func TestSimulationInference(t *testing.T) {
 			}
 
 			// Configure a partition for computing the exponentially-weighted rolling mean
-			meanPartition := analysis.NewVectorMeanPartition(
-				analysis.AppliedAggregation{
+			meanPartition := macros.NewVectorMeanPartition(
+				macros.AppliedAggregation{
 					Name:   "mean",
 					Data:   analysis.DataRef{PartitionName: "generated_data"},
 					Kernel: &kernels.ConstantIntegrationKernel{},
@@ -60,9 +61,9 @@ func TestSimulationInference(t *testing.T) {
 			)
 
 			// Configure a partition for computing the exponentially-weighted rolling variance
-			variancePartition := analysis.NewVectorVariancePartition(
+			variancePartition := macros.NewVectorVariancePartition(
 				analysis.DataRef{PartitionName: "mean"},
-				analysis.AppliedAggregation{
+				macros.AppliedAggregation{
 					Name:         "variance",
 					Data:         analysis.DataRef{PartitionName: "generated_data"},
 					Kernel:       &kernels.ConstantIntegrationKernel{},
@@ -82,7 +83,7 @@ func TestSimulationInference(t *testing.T) {
 			)
 
 			// Configure a model where the mean and variance are updated by the rolling estimators
-			model := analysis.ParameterisedModel{
+			model := macros.ParameterisedModel{
 				Likelihood: &inference.NormalLikelihoodDistribution{},
 				Params:     simulator.NewParams(make(map[string][]float64)),
 				ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
@@ -107,24 +108,24 @@ func TestSimulationInference(t *testing.T) {
 
 			// Configure some partitions which collectively estimate and sample from the posterior
 			// distribution over the target parameters (the rolling mean vector in this example)
-			partitions := analysis.NewPosteriorEstimationPartitions(
-				analysis.AppliedPosteriorEstimation{
-					LogNorm: analysis.PosteriorLogNorm{
+			partitions := macros.NewPosteriorEstimationPartitions(
+				macros.AppliedPosteriorEstimation{
+					LogNorm: macros.PosteriorLogNorm{
 						Name:    "posterior_log_norm",
 						Default: 0.0,
 					},
-					Mean: analysis.PosteriorMean{
+					Mean: macros.PosteriorMean{
 						Name:    "posterior_mean",
 						Default: []float64{0.0, 0.0, 0.0, 0.0},
 					},
-					Covariance: analysis.PosteriorCovariance{
+					Covariance: macros.PosteriorCovariance{
 						Name:    "posterior_cov",
 						Default: []float64{5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 5.0},
 					},
-					Sampler: analysis.PosteriorSampler{
+					Sampler: macros.PosteriorSampler{
 						Name:    "posterior_sampler",
 						Default: []float64{0.0, 0.0, 0.0, 0.0},
-						Distribution: analysis.ParameterisedModel{
+						Distribution: macros.ParameterisedModel{
 							Likelihood: &inference.NormalLikelihoodDistribution{
 								AllowDefaultCovarianceFallback: true,
 							},
@@ -138,12 +139,12 @@ func TestSimulationInference(t *testing.T) {
 							},
 						},
 					},
-					Comparison: analysis.AppliedLikelihoodComparison{
+					Comparison: macros.AppliedLikelihoodComparison{
 						Name:  "loglikelihood",
 						Model: model,
 						Data:  analysis.DataRef{PartitionName: "regenerated_data"},
-						Window: analysis.WindowedPartitions{
-							Partitions: []analysis.WindowedPartition{{
+						Window: macros.WindowedPartitions{
+							Partitions: []macros.WindowedPartition{{
 								Partition: simulation,
 								OutsideUpstreams: map[string]simulator.NamedUpstreamConfig{
 									"mean": {Upstream: "posterior_sampler"},

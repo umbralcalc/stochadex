@@ -1,19 +1,21 @@
-package analysis
+package macros
 
 import (
 	"math"
 	"testing"
 
+	"gonum.org/v1/gonum/floats"
+
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/floats"
 )
 
 func TestLikelihood(t *testing.T) {
 	t.Run(
 		"test that the likelihood comparison works",
 		func(t *testing.T) {
-			storage := NewStateTimeStorageFromPartitions(
+			storage := analysis.NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
 					{
 						Name: "test_data",
@@ -43,15 +45,15 @@ func TestLikelihood(t *testing.T) {
 						Likelihood: &inference.NormalLikelihoodDistribution{},
 						Params:     params,
 					},
-					Data: DataRef{PartitionName: "test_data"},
+					Data: analysis.DataRef{PartitionName: "test_data"},
 					Window: WindowedPartitions{
-						Data:  []DataRef{{PartitionName: "test_data"}},
+						Data:  []analysis.DataRef{{PartitionName: "test_data"}},
 						Depth: 10,
 					},
 				},
 				storage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{likePartition},
 				map[string]int{"test_data": 10},
@@ -72,7 +74,7 @@ func TestWarmStartConvergence(t *testing.T) {
 		"test that warm-start accumulates optimizer state across outer steps",
 		func(t *testing.T) {
 			// Generate data from a Normal distribution.
-			storage := NewStateTimeStorageFromPartitions(
+			storage := analysis.NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
 					{
 						Name: "test_data",
@@ -108,7 +110,7 @@ func TestWarmStartConvergence(t *testing.T) {
 							Function: inference.MeanGradientFunc,
 							Width:    gradientWidth,
 						},
-						Data:              DataRef{PartitionName: "test_data"},
+						Data:              analysis.DataRef{PartitionName: "test_data"},
 						Window:            WindowedPartitions{Depth: 3},
 						LearningRate:      0.005,
 						DescentIterations: 3,
@@ -121,7 +123,7 @@ func TestWarmStartConvergence(t *testing.T) {
 			coldPartition := makePartition("cold_fit", false)
 			warmPartition := makePartition("warm_fit", true)
 
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{coldPartition, warmPartition},
 				map[string]int{"test_data": 3},
@@ -169,7 +171,7 @@ func TestWarmStartConvergesToGroundTruth(t *testing.T) {
 			trueMean := []float64{2.0, 4.0}
 			gradientWidth := 2
 			windowDepth := 5
-			storage := NewStateTimeStorageFromPartitions(
+			storage := analysis.NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
 					{
 						Name: "test_data",
@@ -202,7 +204,7 @@ func TestWarmStartConvergesToGroundTruth(t *testing.T) {
 						Function: inference.MeanGradientFunc,
 						Width:    gradientWidth,
 					},
-					Data:              DataRef{PartitionName: "test_data"},
+					Data:              analysis.DataRef{PartitionName: "test_data"},
 					Window:            WindowedPartitions{Depth: windowDepth},
 					LearningRate:      0.1,
 					DescentIterations: 5,
@@ -214,7 +216,7 @@ func TestWarmStartConvergesToGroundTruth(t *testing.T) {
 			// optimizer maximises (rather than minimises) the log-likelihood.
 			fitPartition.Params.Set("gradient_descent/ascent", []float64{1})
 
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{fitPartition},
 				map[string]int{"test_data": windowDepth},
@@ -260,7 +262,7 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 	t.Run(
 		"test that the likelihood mean function fit works",
 		func(t *testing.T) {
-			storage := NewStateTimeStorageFromPartitions(
+			storage := analysis.NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
 					{
 						Name: "test_data",
@@ -293,14 +295,14 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 						Function: inference.MeanGradientFunc,
 						Width:    2,
 					},
-					Data:              DataRef{PartitionName: "test_data"},
+					Data:              analysis.DataRef{PartitionName: "test_data"},
 					Window:            WindowedPartitions{Depth: 10},
 					LearningRate:      0.02,
 					DescentIterations: 100,
 				},
 				storage,
 			)
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{likePartition},
 				map[string]int{"test_data": 10},
@@ -320,7 +322,7 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 			trueMean := []float64{2.0, 4.0}
 			gradientWidth := 2
 			windowDepth := 5
-			storage := NewStateTimeStorageFromPartitions(
+			storage := analysis.NewStateTimeStorageFromPartitions(
 				[]*simulator.PartitionConfig{
 					{
 						Name: "test_data",
@@ -353,7 +355,7 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 						Function: inference.MeanGradientFunc,
 						Width:    gradientWidth,
 					},
-					Data:              DataRef{PartitionName: "test_data"},
+					Data:              analysis.DataRef{PartitionName: "test_data"},
 					Window:            WindowedPartitions{Depth: windowDepth},
 					LearningRate:      0.1,
 					DescentIterations: 50,
@@ -364,7 +366,7 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 			// Enable gradient ascent so each outer step maximises log-likelihood.
 			fitPartition.Params.Set("gradient_descent/ascent", []float64{1})
 
-			storage = AddPartitionsToStateTimeStorage(
+			storage = analysis.AddPartitionsToStateTimeStorage(
 				storage,
 				[]*simulator.PartitionConfig{fitPartition},
 				map[string]int{"test_data": windowDepth},

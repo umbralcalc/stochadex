@@ -1,12 +1,14 @@
-package analysis
+package macros
 
 import (
 	"math"
 	"testing"
 
+	"gonum.org/v1/gonum/floats"
+
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/floats"
 )
 
 func timeFromTimesteps(
@@ -79,7 +81,7 @@ func xySeriesToStorage(
 	xInit, yInit float64,
 	iterX, iterY simulator.Iteration,
 ) *simulator.StateTimeStorage {
-	return NewStateTimeStorageFromPartitions(
+	return analysis.NewStateTimeStorageFromPartitions(
 		[]*simulator.PartitionConfig{
 			{
 				Name:              "x",
@@ -178,12 +180,12 @@ func TestScalarRegressionStatsStorage(t *testing.T) {
 		)
 		reg := NewScalarRegressionStatsPartition(AppliedScalarRegressionStats{
 			Name:      "ols",
-			Y:         DataRef{PartitionName: "y"},
-			X:         DataRef{PartitionName: "x"},
+			Y:         analysis.DataRef{PartitionName: "y"},
+			X:         analysis.DataRef{PartitionName: "x"},
 			Intercept: false,
 			Mode:      RegressionStatsCumulative,
 		}, storage)
-		storage = AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
+		storage = analysis.AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
 		vs := storage.GetValues("ols")
 		last := vs[len(vs)-1]
 		if floats.HasNaN(last) {
@@ -204,12 +206,12 @@ func TestScalarRegressionStatsStorage(t *testing.T) {
 		)
 		reg := NewScalarRegressionStatsPartition(AppliedScalarRegressionStats{
 			Name:      "ols",
-			Y:         DataRef{PartitionName: "y"},
-			X:         DataRef{PartitionName: "x"},
+			Y:         analysis.DataRef{PartitionName: "y"},
+			X:         analysis.DataRef{PartitionName: "x"},
 			Intercept: false,
 			Mode:      RegressionStatsCumulative,
 		}, storage)
-		storage = AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
+		storage = analysis.AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
 		for _, row := range storage.GetValues("ols") {
 			if floats.HasNaN(row) {
 				t.Fatal("unexpected NaN when Sxx=0")
@@ -266,13 +268,13 @@ func TestScalarRegressionStatsStorage(t *testing.T) {
 		)
 		reg := NewScalarRegressionStatsPartition(AppliedScalarRegressionStats{
 			Name:         "ols",
-			Y:            DataRef{PartitionName: "y"},
-			X:            DataRef{PartitionName: "x"},
+			Y:            analysis.DataRef{PartitionName: "y"},
+			X:            analysis.DataRef{PartitionName: "x"},
 			Intercept:    false,
 			Mode:         RegressionStatsWindow,
 			WindowLength: W,
 		}, storage)
-		storage = AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
+		storage = analysis.AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
 		last := storage.GetValues("ols")[len(storage.GetValues("ols"))-1]
 		if !closeEnough(last[base+4], bWant, 1e-9) {
 			t.Errorf("window beta got %v want %v", last[base+4], bWant)
@@ -318,12 +320,12 @@ func TestScalarRegressionStatsStorage(t *testing.T) {
 		)
 		reg := NewScalarRegressionStatsPartition(AppliedScalarRegressionStats{
 			Name:      "ols",
-			Y:         DataRef{PartitionName: "y"},
-			X:         DataRef{PartitionName: "x"},
+			Y:         analysis.DataRef{PartitionName: "y"},
+			X:         analysis.DataRef{PartitionName: "x"},
 			Intercept: true,
 			Mode:      RegressionStatsCumulative,
 		}, storage)
-		storage = AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
+		storage = analysis.AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
 		last := storage.GetValues("ols")[len(storage.GetValues("ols"))-1]
 		if !closeEnough(last[6], aWant, 1e-9) {
 			t.Errorf("alpha got %v want %v", last[6], aWant)
@@ -374,13 +376,13 @@ func TestScalarRegressionStatsStorage(t *testing.T) {
 		)
 		reg := NewScalarRegressionStatsPartition(AppliedScalarRegressionStats{
 			Name:         "ols",
-			Y:            DataRef{PartitionName: "y"},
-			X:            DataRef{PartitionName: "x"},
+			Y:            analysis.DataRef{PartitionName: "y"},
+			X:            analysis.DataRef{PartitionName: "x"},
 			Intercept:    true,
 			Mode:         RegressionStatsWindow,
 			WindowLength: W,
 		}, storage)
-		storage = AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
+		storage = analysis.AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
 		last := storage.GetValues("ols")[len(storage.GetValues("ols"))-1]
 		if !closeEnough(last[base+6], aWant, 1e-9) {
 			t.Errorf("window alpha got %v want %v", last[base+6], aWant)

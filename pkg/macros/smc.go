@@ -1,8 +1,9 @@
-package analysis
+package macros
 
 import (
 	"math"
 
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -189,7 +190,7 @@ func RunSMCInference(
 ) *inference.SMCResult {
 	partitions := NewSMCInferencePartitions(applied)
 
-	storage := NewStateTimeStorageFromPartitions(
+	storage := analysis.NewStateTimeStorageFromPartitions(
 		partitions,
 		&simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: applied.NumRounds,

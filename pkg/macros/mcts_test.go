@@ -1,4 +1,4 @@
-package analysis_test
+package macros_test
 
 // End-to-end integration tests for the MCTS analysis helper. The helper
 // builds Architecture K: an outer apply partition + an outer search
@@ -12,13 +12,13 @@ import (
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/agents"
-	"github.com/umbralcalc/stochadex/pkg/analysis"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-func ttSpec(initState agents.TTTState, simsPerPly int, seed uint64) analysis.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction] {
-	return analysis.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction]{
+func ttSpec(initState agents.TTTState, simsPerPly int, seed uint64) macros.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction] {
+	return macros.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction]{
 		Name: "ttt",
 		Env:  &agents.TTTGame{},
 		Cfg: agents.MCTSConfig[agents.TTTState, agents.TTTAction]{
@@ -35,9 +35,9 @@ func ttSpec(initState agents.TTTState, simsPerPly int, seed uint64) analysis.MCT
 	}
 }
 
-func runOuter(t *testing.T, spec analysis.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction], outerSteps int) [][]float64 {
+func runOuter(t *testing.T, spec macros.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction], outerSteps int) [][]float64 {
 	t.Helper()
-	parts := analysis.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](spec)
+	parts := macros.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](spec)
 	gen := simulator.NewConfigGenerator()
 	store := simulator.NewStateTimeStorage()
 	gen.SetSimulation(&simulator.SimulationConfig{
@@ -104,7 +104,7 @@ func TestSelfPlayPartitionsFindWinFromForcedPosition(t *testing.T) {
 }
 
 func TestSelfPlayPartitionsRunWithHarnesses(t *testing.T) {
-	parts := analysis.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](
+	parts := macros.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](
 		ttSpec(agents.TTTState{}, 20, 11),
 	)
 	gen := simulator.NewConfigGenerator()
@@ -130,8 +130,8 @@ func TestNewMCTSSelfPlayPartitionsPanicsOnMissingCodec(t *testing.T) {
 			t.Fatal("expected panic on missing encoder/decoder")
 		}
 	}()
-	_ = analysis.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](
-		analysis.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction]{
+	_ = macros.NewMCTSSelfPlayPartitions[agents.TTTState, agents.TTTAction](
+		macros.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction]{
 			Name:            "ttt",
 			Env:             &agents.TTTGame{},
 			MaxLegalActions: 9,

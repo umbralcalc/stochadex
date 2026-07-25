@@ -25,8 +25,11 @@ pkg/
   kernels/     — Integration kernels for time-weighted aggregation (exponential, periodic, Gaussian…)
   inference/   — Parameter estimation: likelihood distributions, posterior mean/covariance iterations
   agents/      — Decision-making agents over a generic Environment[S, A] (ships MCTS/UCT + MAST)
-  analysis/    — Post-simulation tooling: CSV/DataFrame & PostgreSQL I/O, plotting, grouped
-                 aggregation, rolling-window likelihoods, posterior-estimation & self-play wiring
+  analysis/    — Data layer: CSV/DataFrame/JSON-log & PostgreSQL I/O, DataRef addressing
+                 into a StateTimeStorage, grouping, plotting
+  macros/      — Applied* spec → multi-partition topology: grouped aggregation, rolling-window
+                 likelihoods, posterior estimation, SMC, evolution strategies, self-play wiring.
+                 Depends on analysis/, never the reverse; this is what `macros:` expands into
   keyboard/    — Real-time keyboard input for interactive simulations
 cmd/stochadex/ — CLI binary
 cfg/           — Example YAML configs
@@ -40,7 +43,8 @@ docs/          — Documentation source and build script
 **Where the depth lives.** This file stays high-level on purpose. Packages with non-obvious
 internal architecture carry a `doc.go` package comment that is the authoritative source —
 **read it before working in that package**. In particular `pkg/agents/doc.go` (agent /
-MCTS / MAST decomposition and cycle-breaking), `pkg/analysis/doc.go`, and
+MCTS / MAST decomposition and cycle-breaking), `pkg/macros/doc.go` (the spec → partitions
+tier and its layering over `pkg/analysis`), `pkg/analysis/doc.go`, and
 `pkg/inference/doc.go`. Load-bearing invariants are documented next to the code they
 constrain (e.g. the `backupVisits` docstring in `pkg/agents/mcts_tree.go`) — trust and
 preserve those comments rather than re-deriving the reasoning.
@@ -109,9 +113,10 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      registered name constructs the type it claims, and a `go/ast` scan requires every `Iterate`
      type to be registered or excluded-with-reason.
    - **`run:`** — `{mode: batch | ensemble, seeds, concurrency}` (`RunModeConfig`).
-   - **`data:` + `macros:`** (`pkg/api/macros*.go`) — the analysis tier. `data:` (a sub-simulation
-     or a `csv`/`json_log`/`postgres` source) produces a `StateTimeStorage`; each macro expands one
-     of the `pkg/analysis` constructors against it (`posterior_estimation`, `likelihood_comparison`,
+   - **`data:` + `macros:`** (`pkg/api/macros*.go` decoding into `pkg/macros`) — the analysis
+     tier. `data:` (a sub-simulation or a `csv`/`json_log`/`postgres` source) produces a
+     `StateTimeStorage` via `pkg/analysis`; each macro expands one
+     of the `pkg/macros` constructors against it (`posterior_estimation`, `likelihood_comparison`,
      the aggregations, `scalar_regression_stats`) or runs live (`evolution_strategy_optimisation`,
      `smc_inference`). Macro inputs are typed spec structs decoded straight from YAML.
 

@@ -9,6 +9,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -92,8 +93,8 @@ func TestRollingVectorAggregations(t *testing.T) {
 			)
 
 			// Configure a partition for computing the exponentially-weighted rolling mean
-			meanPartition := analysis.NewVectorMeanPartition(
-				analysis.AppliedAggregation{
+			meanPartition := macros.NewVectorMeanPartition(
+				macros.AppliedAggregation{
 					Name:   "diffs_mean",
 					Data:   analysis.DataRef{PartitionName: "diff_poisson_data"},
 					Kernel: &kernels.ExponentialIntegrationKernel{},
@@ -112,9 +113,9 @@ func TestRollingVectorAggregations(t *testing.T) {
 			)
 
 			// Configure a partition for computing the exponentially-weighted rolling variance
-			variancePartition := analysis.NewVectorVariancePartition(
+			variancePartition := macros.NewVectorVariancePartition(
 				analysis.DataRef{PartitionName: "diffs_mean"},
-				analysis.AppliedAggregation{
+				macros.AppliedAggregation{
 					Name:   "diffs_variance",
 					Data:   analysis.DataRef{PartitionName: "diff_poisson_data"},
 					Kernel: &kernels.ExponentialIntegrationKernel{},

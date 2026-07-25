@@ -1,15 +1,17 @@
-// Package analysis builds rolling likelihood windows, posterior partitions,
-// and storage-backed replays. Windowed likelihoods embed a short simulation
+package macros
+
+// This file builds rolling likelihood windows, posterior partitions, and
+// storage-backed replays. Windowed likelihoods embed a short simulation
 // whose length is Window.Depth; outer burn_in_steps on that embedding default
 // to Window.Depth so inner timesteps align with available history (see
-// EmbeddedBurnInSteps to decouple). Use ValidateWindowDataHistoryDepth with
-// AddPartitionsToStateTimeStorage window sizes to fail fast if history is
-// too shallow for FromHistoryIteration.
-package analysis
+// EmbeddedBurnInSteps to decouple). Use ValidateWindowDataHistoryDepth
+// with analysis.AddPartitionsToStateTimeStorage window sizes to fail fast if
+// history is too shallow for FromHistoryIteration.
 
 import (
 	"fmt"
 
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
@@ -35,7 +37,7 @@ type WindowedPartition struct {
 //   - Depth is the number of steps in the window.
 type WindowedPartitions struct {
 	Partitions []WindowedPartition
-	Data       []DataRef
+	Data       []analysis.DataRef
 	Depth      int
 }
 
@@ -64,7 +66,7 @@ func (p *ParameterisedModel) Init() {
 type AppliedLikelihoodComparison struct {
 	Name   string
 	Model  ParameterisedModel
-	Data   DataRef
+	Data   analysis.DataRef
 	Window WindowedPartitions
 	// EmbeddedBurnInSteps, if non-nil, sets outer burn-in steps before the
 	// embedded window runs (see general.EmbeddedSimulationRunIteration). If
@@ -84,7 +86,7 @@ func NewLikelihoodComparisonPartition(
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
 	if applied.Window.Depth < 1 {
-		panic(fmt.Sprintf("analysis: Window.Depth must be >= 1, got %d", applied.Window.Depth))
+		panic(fmt.Sprintf("macros: Window.Depth must be >= 1, got %d", applied.Window.Depth))
 	}
 	assertWindowDataSourcesDeepEnough(
 		applied.Window.Depth,
@@ -194,7 +196,7 @@ func NewLikelihoodComparisonPartition(
 		burnIn = *applied.EmbeddedBurnInSteps
 	}
 	if burnIn < 0 {
-		panic(fmt.Sprintf("analysis: EmbeddedBurnInSteps must be >= 0, got %d", burnIn))
+		panic(fmt.Sprintf("macros: EmbeddedBurnInSteps must be >= 0, got %d", burnIn))
 	}
 	simParams := simulator.NewParams(map[string][]float64{
 		"burn_in_steps": {float64(burnIn)},
@@ -250,7 +252,7 @@ type AppliedLikelihoodMeanFunctionFit struct {
 	Name     string
 	Model    ParameterisedModelWithGradient
 	Gradient LikelihoodMeanGradient
-	Data     DataRef
+	Data     analysis.DataRef
 	Window   WindowedPartitions
 	// EmbeddedBurnInSteps mirrors AppliedLikelihoodComparison.EmbeddedBurnInSteps.
 	EmbeddedBurnInSteps *int
@@ -273,7 +275,7 @@ func NewLikelihoodMeanFunctionFitPartition(
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
 	if applied.Window.Depth < 1 {
-		panic(fmt.Sprintf("analysis: Window.Depth must be >= 1, got %d", applied.Window.Depth))
+		panic(fmt.Sprintf("macros: Window.Depth must be >= 1, got %d", applied.Window.Depth))
 	}
 	assertWindowDataSourcesDeepEnough(
 		applied.Window.Depth,
@@ -375,7 +377,7 @@ func NewLikelihoodMeanFunctionFitPartition(
 		burnInFit = *applied.EmbeddedBurnInSteps
 	}
 	if burnInFit < 0 {
-		panic(fmt.Sprintf("analysis: EmbeddedBurnInSteps must be >= 0, got %d", burnInFit))
+		panic(fmt.Sprintf("macros: EmbeddedBurnInSteps must be >= 0, got %d", burnInFit))
 	}
 	simParams := simulator.NewParams(map[string][]float64{
 		"burn_in_steps": {float64(burnInFit)},

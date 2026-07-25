@@ -17,7 +17,7 @@ import (
 // score (e.g. 0); those rows remain in history until they roll off, so
 // discounting applies to them as well—prefer aligning embedded burn-in with
 // window depth or overriding EmbeddedBurnInSteps when building comparison
-// partitions (see analysis.AppliedLikelihoodComparison).
+// partitions (see macros.AppliedLikelihoodComparison).
 type PosteriorLogNormalisationIteration struct {
 }
 

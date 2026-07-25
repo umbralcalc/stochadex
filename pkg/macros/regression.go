@@ -1,9 +1,10 @@
-package analysis
+package macros
 
 import (
 	"fmt"
 	"math"
 
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -304,8 +305,8 @@ func (s *ScalarRegressionStatsIteration) iterateWindowIntercept(
 // ScalarRegressionParamX); each side must be a single scalar state element per step.
 type AppliedScalarRegressionStats struct {
 	Name              string
-	Y                 DataRef
-	X                 DataRef
+	Y                 analysis.DataRef
+	X                 analysis.DataRef
 	Intercept         bool
 	Mode              RegressionStatsMode
 	WindowLength      int
@@ -313,16 +314,16 @@ type AppliedScalarRegressionStats struct {
 	StateHistoryDepth int
 }
 
-func oneScalarValueIndex(ref DataRef, storage *simulator.StateTimeStorage) int {
+func oneScalarValueIndex(ref analysis.DataRef, storage *simulator.StateTimeStorage) int {
 	indices := ref.GetValueIndices(storage)
 	if len(indices) != 1 {
-		panic("scalar regression: Y and X DataRef must reference exactly one value index each")
+		panic("scalar regression: Y and X analysis.DataRef must reference exactly one value index each")
 	}
 	return indices[0]
 }
 
 // NewScalarRegressionStatsPartition builds a PartitionConfig for
-// ScalarRegressionStatsIteration. storage is used to resolve DataRef indices;
+// ScalarRegressionStatsIteration. storage is used to resolve analysis.DataRef indices;
 // it must already contain the series partitions referenced by Y and X.
 func NewScalarRegressionStatsPartition(
 	applied AppliedScalarRegressionStats,
