@@ -1,0 +1,25 @@
+# MCTS self-play run entirely as config.
+#
+# The `env:` spec names an environment from the environment registry, not from
+# the data-spec registries the rest of the config uses. Decision rules (Legal /
+# Apply / Terminal) are arbitrary Go, owned by whichever project owns the
+# decision layer, so they have no data spelling: a downstream module registers
+# one with api.RegisterEnvironment and its fields are parsed by that module, not
+# by the engine. `tictactoe` is the reference fixture the engine itself ships.
+#
+# Output is the "<name>_apply" partition: the encoded game state after each ply.
+macros:
+- type: mcts_self_play
+  name: ttt
+  # Plies to play out.
+  steps: 10
+  # MCTS iterations run between each ply. The remaining UCT knobs
+  # (simulations, exploration, max_tree_depth, rollout_max_steps) are optional
+  # and fall back to the environment's own defaults when unset.
+  sims_per_ply: 120
+  seed: 2024
+  env:
+    type: tictactoe
+    # Optional starting position: 0 empty, 1 X, 2 O. Defaults to an empty board.
+    init_grid: [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    current_player: 0

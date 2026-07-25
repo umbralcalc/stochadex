@@ -27,7 +27,10 @@
 //     (macros.NewMCTSSelfPlayPartitions wires this up)
 //   - Per-simulation telemetry: run MCTSTreeIteration + MCTSRolloutIteration
 //     directly without the apply layer, then read the tree's row
-//   - YAML / pkg/api use: ship non-generic façade types per environment family
-//     that bake in the type parameters, since generic types in YAML iteration
-//     strings are awkward
+//   - YAML / pkg/api use: register an environment with api.RegisterEnvironment
+//     and name it from the mcts_self_play macro's env: spec. The registered
+//     builder keeps the type parameters on the Go side — it fills the typed half
+//     of a macros.MCTSSelfPlaySpec and applies the config-stated half
+//     (macros.MCTSSearchSettings) over the top — so no generic type ever has to
+//     be spelled in YAML.
 package agents

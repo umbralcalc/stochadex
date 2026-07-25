@@ -496,3 +496,62 @@ func TestMCTSTreeIterationTerminalRootEmitsHasLeafFalse(t *testing.T) {
 		}
 	}
 }
+
+// TestMCTSTreeIterationBacksUpTerminalSelections pins the decomposed pipeline's
+// terminal handling against MCTSTree.RunOne's.
+//
+// When SelectLeaf walks into an already-terminal node it returns ok=false. The
+// partition used to discard that path entirely — no visit, no score — so once a
+// tree saturated (endgames, shallow games) it stopped accumulating statistics
+// and raising the simulation count bought nothing. RunOne has always backed the
+// terminal scores up instead, which is why the one-shot RunMCTSSearch found
+// wins the partitioned self-play stack missed.
+//
+// The position has three empty cells, so the tree saturates within a handful of
+// steps and almost every later selection lands on a terminal node. Root visits
+// must therefore keep tracking the step count.
+func TestMCTSTreeIterationBacksUpTerminalSelections(t *testing.T) {
+	const steps = 60
+	tree := newMCTSTreeIteration()
+	gen := simulator.NewConfigGenerator()
+	store := simulator.NewStateTimeStorage()
+
+	// X at 0, 2, 4; O at 1, 3, 5; cells 6, 7, 8 empty and X to move.
+	nearEnd := agents.TTTFromGrid([9]int8{1, 2, 1, 2, 1, 2, 0, 0, 0}, 0)
+	rowInit := make([]float64, agents.MCTSTreeRowWidth(agents.TTTWidth, 9))
+	copy(rowInit[agents.MCTSTreeRowLeafStateOffset:], agents.TTTEncode(nearEnd))
+
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.EveryStepOutputCondition{},
+		OutputFunction:       &simulator.StateTimeStorageOutputFunction{Store: store},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "tree",
+		Iteration:         tree,
+		InitStateValues:   rowInit,
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	simulator.NewPartitionCoordinator(settings, impl).Run()
+
+	rows := store.GetValues("tree")
+	final := rows[len(rows)-1]
+	visitsOffset := agents.MCTSTreeRowVisitsOffset(agents.TTTWidth)
+	total := 0.0
+	for _, visits := range final[visitsOffset : visitsOffset+9] {
+		total += visits
+	}
+	// One backup per step, minus the first step's selection which is still
+	// pending when the run ends. Before the fix this plateaued in single digits.
+	if total < steps-5 {
+		t.Fatalf(
+			"root visits stopped accumulating: got %v after %d steps, want ~%d "+
+				"(terminal selections are being dropped instead of backed up)",
+			total, steps, steps-1,
+		)
+	}
+}

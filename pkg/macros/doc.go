@@ -6,10 +6,13 @@
 //
 // This is the tier the YAML `macros:` key expands into. Every constructor here
 // is reachable from a config through pkg/api, which decodes the spec structs
-// from YAML and calls into this package; the one exception is
-// NewMCTSSelfPlayPartitions, whose agents.Environment is arbitrary Go game
-// rules and so has no data spelling. The package is named for the shape of
-// what it produces — spec in, partitions out — not for the YAML key alone.
+// from YAML and calls into this package. NewMCTSSelfPlayPartitions is reachable
+// too, but by a different route: its agents.Environment is arbitrary Go
+// decision rules with no data spelling, so a config names an environment that a
+// downstream module registered with api.RegisterEnvironment, and only the
+// env-independent half of the spec (MCTSSearchSettings) comes from the config.
+// The package is named for the shape of what it produces — spec in, partitions
+// out — not for the YAML key alone.
 //
 // # Layering
 //

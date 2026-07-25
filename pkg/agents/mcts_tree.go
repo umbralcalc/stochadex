@@ -704,10 +704,27 @@ func (m *MCTSTreeIteration[S, A]) Iterate(
 	if ok {
 		m.pendingPath = path
 		hasLeaf = true
+	} else if scores, done := m.Env.Terminal(leafState); done {
+		// Selection reached an already-terminal node. The environment gives
+		// exact scores here, so back them up now rather than routing through
+		// the rollout partition — this is the decomposed equivalent of the
+		// terminal branch in MCTSTree.RunOne, and SelectLeaf returns the path
+		// for exactly this purpose.
+		//
+		// Load-bearing: without this, every selection that lands on a terminal
+		// node is a silently dropped iteration — no visit, no score. Trees
+		// that saturate (endgames, shallow games) then stop accumulating
+		// statistics entirely, so raising SimsPerPly buys nothing and the
+		// search returns near-arbitrary moves.
+		m.tree.backupScores(path, scores)
+		leafState = m.root
 	} else {
-		// MCTSTree is exhausted (terminal at root, or Apply error during
-		// expansion). Leave pendingPath nil; the rollout partition will
-		// see has_leaf=0 and skip.
+		// Depth-capped, no legal moves, or an Apply error during expansion.
+		// Leave pendingPath nil; the rollout partition sees has_leaf=0 and
+		// skips. NOTE: RunOne rolls out from a depth-capped node and backs up
+		// the result, which this pipeline cannot do inline — the rollout is a
+		// separate partition. Deep searches that hit MaxTreeDepth therefore
+		// still drop those iterations here.
 		leafState = m.root
 	}
 

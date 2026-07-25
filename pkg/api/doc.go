@@ -46,7 +46,15 @@
 //	                     iteration is expected — inside a macro's window, or an embedded run.
 //	macros*.go           the macro tier: decodes typed spec structs straight from YAML and
 //	                     calls the matching pkg/macros constructor. One file per family
-//	                     (aggregation, inference, smc, optimisation, stats, data).
+//	                     (aggregation, inference, smc, optimisation, stats, data, mcts).
+//	registry_environment.go
+//	                     agents.Environment implementations for the mcts_self_play macro.
+//	                     Unlike the registries above this one is empty by default and filled
+//	                     by downstream modules calling RegisterEnvironment: decision rules
+//	                     are not part of the framework catalogue and have no data spelling,
+//	                     so the engine passes an env: spec through to its registered builder
+//	                     without interpreting it. The tictactoe fixture is the exception the
+//	                     engine ships, so the path stays covered end-to-end in CI.
 //
 // # Staying honest, and staying lean
 //

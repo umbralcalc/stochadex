@@ -118,15 +118,29 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      `StateTimeStorage` via `pkg/analysis`; each macro expands one
      of the `pkg/macros` constructors against it (`posterior_estimation`, `likelihood_comparison`,
      the aggregations, `scalar_regression_stats`) or runs live (`evolution_strategy_optimisation`,
-     `smc_inference`). Macro inputs are typed spec structs decoded straight from YAML.
+     `smc_inference`, `mcts_self_play`). Macro inputs are typed spec structs decoded straight
+     from YAML.
+   - **Environments** — `pkg/api/registry_environment.go`, the one registry the engine leaves
+     empty for downstreams to fill (`RegisterEnvironment`), backing the `mcts_self_play`
+     macro's `env:`. See the Invariant A note below for why this one is a hook, not a spec.
 
 **Invariant A restated for this surface (repo boundary).** Inference-*as-forward-simulation* — a
 posterior being stepped as a partition — is in scope here; `posterior_estimation` and the other
 inference macros belong in this engine. Inference *against real data* is the `data:` resource
 (the observed dataset), which a downstream repo supplies. The engine owns the forward and
 inferential model; it does not own the dataset, the calibration loop, or the decision layer.
-`mcts_self_play` stays Go on purpose — its `agents.Environment` is arbitrary game rules (the
-decision layer), not representable as data.
+`mcts_self_play` is the boundary case, and it is split rather than excluded. Its search
+settings are data (a `macros:` entry like any other), but its `agents.Environment` is
+arbitrary decision rules — the decision layer — and stays Go. A config therefore *names* an
+environment that a downstream module contributed via `api.RegisterEnvironment`, and the
+engine passes the `env:` spec to that builder without interpreting it (see
+`pkg/api/registry_environment.go`). The engine ships exactly one environment, the
+`tictactoe` fixture, to keep the path covered end-to-end in CI.
+
+The line this holds: naming a downstream component is data; **spelling decision rules as
+data is not**, and would mean growing a rules language inside the config. If a config ever
+needs to state `Legal`/`Apply`/`Terminal` themselves, that is a separate design question —
+not an extension of this hook.
 
 ## Testing conventions
 

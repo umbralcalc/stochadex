@@ -22,6 +22,47 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`mcts_self_play` is reachable from config, via a downstream environment registry.**
+  MCTS was the last macro with no YAML spelling, because an `agents.Environment` is
+  arbitrary decision rules rather than part of the framework catalogue. It is now split
+  rather than excluded: the search settings are data (`macros: - type: mcts_self_play`,
+  with `name`, `steps`, `sims_per_ply` and the UCT knobs), while the environment is named
+  from a new registry that downstream modules fill with `api.RegisterEnvironment`.
+
+  The registered builder receives the `env:` spec verbatim and returns finished partitions,
+  so the engine never parses a downstream's rules format and never has to erase the
+  `Environment[S, A]` type parameters. `macros.MCTSSearchSettings` plus
+  `macros.ApplyMCTSSearchSettings` carry the config-stated half across that boundary, with
+  override-if-set semantics so an environment can ship per-ruleset defaults that a config
+  selectively overrides. The engine registers exactly one environment — the `tictactoe`
+  fixture — which keeps the whole path covered end-to-end in CI and gives
+  `cfg/example_mcts_config.yaml` something to run.
+
+  Note that a registration hook only fires if the binary links the registering module, so a
+  downstream ships its own CLI (as `cmd/stochadex` already does for the ONNX partition).
+
+### Fixed
+
+- **MCTS: terminal selections are backed up instead of dropped.** In the decomposed
+  partition pipeline, `MCTSTreeIteration` discarded any selection that walked into an
+  already-terminal node — `SelectLeaf` returns `ok=false` there, and the path was thrown
+  away with no visit and no score. `MCTSTree.RunOne` has always backed the terminal scores
+  up instead, so the one-shot `RunMCTSSearch` and the partitioned self-play stack disagreed.
+
+  The effect was severe wherever a tree saturates: from a five-empty-cell tic-tac-toe
+  position, 200 simulations per ply produced **9** root visits, and raising the simulation
+  count bought nothing, so self-play returned near-arbitrary moves. It now accumulates the
+  full 200 and finds the win. This was not caught earlier because the existing assertions
+  used a position whose winning move happened to be first in legal order, which a
+  non-searching stack picks anyway.
+
+  One divergence from `RunOne` remains and is documented in the code: a depth-capped node
+  is rolled out and backed up by `RunOne`, but the pipeline cannot do that inline because
+  the rollout is a separate partition, so deep searches that hit `MaxTreeDepth` still drop
+  those iterations.
+
 ## [0.11.0] — 2026-07-25
 
 ### Changed
