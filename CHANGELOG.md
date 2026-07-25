@@ -22,6 +22,20 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **ONNX partition: multi-input binding and thread-pool control** (`pkg/onnx`). The
+  `onnx_inference` iteration now binds several model inputs via an `inputs:`
+  `{params key: ONNX input name}` map, in addition to the single-input
+  `input_param`/`input_name` shorthand (the two are mutually exclusive; the shorthand
+  is unchanged). This unlocks tuning a model's *parameters* with the framework's
+  optimisation / SBI tools: export a model with parameter inputs, bind each to its own
+  params key, and wire that key from a partition the sampler perturbs — the model stays
+  frozen while the parameter vector arriving through params moves, no engine change. Also
+  adds `intra_op_threads` / `inter_op_threads` to size the ONNX Runtime thread pools per
+  partition (unset leaves the runtime default; both `1` avoids oversubscription for
+  single-row inference across many concurrent partitions). Backward-compatible.
+
 ## [0.10.0] — 2026-07-24
 
 ### Added
