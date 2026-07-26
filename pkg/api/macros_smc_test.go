@@ -62,3 +62,65 @@ func TestLiveMacroRejectsAgainstStorage(t *testing.T) {
 		}
 	}
 }
+
+// TestSMCParticlesGetDistinctNoise pins per-particle seeding. The model here is
+// stochastic and reads no proposal parameters, so any variation between particles
+// can only come from their random streams.
+//
+// Before this was fixed, per-particle partitions inherited the template's seed
+// verbatim and every particle ran the same noise realisation — invisible with a
+// deterministic model, and silently fatal for simulation-based inference, where
+// the particle cloud is supposed to carry the model's Monte Carlo variation.
+func TestSMCParticlesGetDistinctNoise(t *testing.T) {
+	const cfg = `data:
+  steps: 12
+  timestep: 1.0
+  partitions:
+  - name: obs
+    iteration: {type: data_generation, likelihood: {type: normal}}
+    params: {mean: [2.0], covariance_matrix: [0.5]}
+    init_state_values: [2.0]
+    state_history_depth: 1
+    seed: 7
+macros:
+- type: smc_inference
+  proposal_name: smc_proposals
+  sim_name: smc_sim
+  posterior_name: smc_posterior
+  num_particles: 4
+  num_rounds: 1
+  seed: 42
+  priors: [{type: uniform, lo: -5.0, hi: 10.0}]
+  param_names: [mean]
+  model:
+    observed_data: {name: observed_data, ref: {partition_name: obs}}
+    per_particle_partitions:
+    - name: "walk_{particle}"
+      iteration: {type: wiener_process}
+      params: {variances: [1.0]}
+      init_state_values: [0.0]
+      state_history_depth: 2
+      seed: 99
+    - name: "loglike_{particle}"
+      iteration: {type: data_comparison, likelihood: {type: normal}}
+      params: {mean: [0.0], variance: [0.5], latest_data_values: [2.0], cumulative: [1], burn_in_steps: [0]}
+      params_from_upstream:
+        mean: {upstream: "walk_{particle}"}
+        latest_data_values: {upstream: observed_data}
+      init_state_values: [0.0]
+      state_history_depth: 2
+    loglike_partition: "loglike_{particle}"
+`
+	rows := runMacroConfig(t, cfg)["smc_sim"]
+	final := rows[len(rows)-1]
+	// Inner layout: observed_data(1), then per particle walk(1), loglike(1).
+	endpoints := []float64{final[1], final[3], final[5], final[7]}
+	for i, value := range endpoints {
+		for j := i + 1; j < len(endpoints); j++ {
+			if value == endpoints[j] {
+				t.Fatalf("particles %d and %d share a noise realisation (both %v); "+
+					"per-particle seeds are not being varied: %v", i, j, value, endpoints)
+			}
+		}
+	}
+}

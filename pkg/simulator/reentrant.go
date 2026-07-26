@@ -112,31 +112,81 @@ func (r *ReentrantSimulation) SetParam(partition int, key string, values []float
 	r.settings.Iterations[partition].Params.Set(key, values)
 }
 
-// Advance runs the sub-simulation for the given number of steps from the given
-// rows and returns the resulting rows, one per partition in partition order.
+// Settings exposes the underlying settings, for callers that need to reach
+// starting conditions this type does not model — params keyed by name, or an
+// iteration's own configuration. Mutating it changes what the next run does.
+func (r *ReentrantSimulation) Settings() *Settings { return r.settings }
+
+// Implementations exposes the underlying implementations, for callers that must
+// reach the iteration objects themselves (injecting outer context, for example).
+func (r *ReentrantSimulation) Implementations() *Implementations {
+	return r.implementations
+}
+
+// ReentrantRun describes one evaluation of a sub-simulation: where it starts,
+// how its randomness is fixed, and how long it goes on for.
+type ReentrantRun struct {
+	// Rows sets each partition's initial row, in partition order. A nil entry,
+	// or a short slice, leaves that partition's configured values alone.
+	Rows [][]float64
+	// Histories seeds whole state-history windows for the named partition
+	// indices, for models that read further back than one step. It takes
+	// precedence over Rows for those partitions.
+	Histories map[int]*StateHistory
+	// InitTimeValue overrides the sub-simulation's start time when non-nil.
+	InitTimeValue *float64
+	// Seed, when non-nil, reseeds every iteration before the run so the result
+	// depends only on this run's inputs. Nil leaves the iterations' random
+	// streams where the last run left them — the streaming behaviour that
+	// general.EmbeddedSimulationRunIteration has by default.
+	Seed *uint64
+	// Steps is how many steps to run. Zero defers to the sub-simulation's own
+	// termination condition instead.
+	Steps int
+	// AfterConfigure runs once the iterations have been (re)configured and
+	// before the run starts. Reseeding calls Configure, which the framework
+	// requires to re-initialise all mutable state — so anything injected into an
+	// iteration from outside (see general.StateMemoryIteration) has to be
+	// re-applied here, or a reseeded run would lose it.
+	AfterConfigure func()
+}
+
+// Run evaluates the sub-simulation and returns the resulting rows, one per
+// partition in partition order.
 //
-// Pure with respect to (rows, params, seed, steps): the iterations are reseeded
-// from seed before the run, so repeating a call repeats its result.
-//
-// steps is authoritative — the sub-simulation's own termination condition is not
-// consulted, because a re-entrant run's length is the caller's decision rather
-// than the configuration's. Rows are copied in and out, so the caller's slices
-// are never retained or mutated.
-func (r *ReentrantSimulation) Advance(rows [][]float64, seed uint64, steps int) [][]float64 {
+// With Seed set the run is pure with respect to its inputs: repeating a call
+// repeats its result, whatever ran in between. Rows are copied in and out, so
+// the caller's slices are never retained or mutated.
+func (r *ReentrantSimulation) Run(run ReentrantRun) [][]float64 {
 	for index := range r.settings.Iterations {
-		if index < len(rows) && rows[index] != nil {
+		if index < len(run.Rows) && run.Rows[index] != nil {
 			r.settings.Iterations[index].InitStateValues = append(
-				[]float64(nil), rows[index]...)
+				[]float64(nil), run.Rows[index]...)
 		}
 	}
-	ReseedIterations(r.settings, r.implementations, seed)
+	if run.InitTimeValue != nil {
+		r.settings.InitTimeValue = *run.InitTimeValue
+	}
+	if run.Seed != nil {
+		ReseedIterations(r.settings, r.implementations, *run.Seed)
+	}
+	if run.AfterConfigure != nil {
+		run.AfterConfigure()
+	}
 
 	coordinator := NewPartitionCoordinator(r.settings, r.implementations)
-	stepper := coordinator.NewStepper()
-	for i := 0; i < steps; i++ {
-		stepper.Step()
+	for index, history := range run.Histories {
+		coordinator.Shared.StateHistories[index] = history
 	}
-	stepper.Close()
+	if run.Steps > 0 {
+		stepper := coordinator.NewStepper()
+		for i := 0; i < run.Steps; i++ {
+			stepper.Step()
+		}
+		stepper.Close()
+	} else {
+		coordinator.Run()
+	}
 
 	out := make([][]float64, len(r.widths))
 	for index := range r.widths {
@@ -144,4 +194,11 @@ func (r *ReentrantSimulation) Advance(rows [][]float64, seed uint64, steps int) 
 			[]float64(nil), coordinator.Shared.StateHistories[index].Values.RawRowView(0)...)
 	}
 	return out
+}
+
+// Advance is the pure, fixed-length form of Run: evaluate the sub-simulation for
+// steps steps from rows, under seed. It is the shape a planner wants, where a
+// transition has to be a function of (state, action).
+func (r *ReentrantSimulation) Advance(rows [][]float64, seed uint64, steps int) [][]float64 {
+	return r.Run(ReentrantRun{Rows: rows, Seed: &seed, Steps: steps})
 }

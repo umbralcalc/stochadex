@@ -73,6 +73,7 @@ type EmbeddedSimulationRunIteration struct {
 	timestepFunction      *FromHistoryTimestepFunction
 	burnInSteps           int
 	reseedBase            *uint64
+	simulation            *simulator.ReentrantSimulation
 }
 
 // SetReseedBase makes every run reseed its inner iterations from base mixed with
@@ -252,22 +253,9 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		e.settings.InitTimeValue = t[0]
 	}
 
-	// restart the inner noise stream when this is a re-entrant run, so the run
-	// depends only on its inputs and the outer step it happens at
-	if e.reseedBase != nil {
-		simulator.ReseedIterations(
-			e.settings,
-			e.implementations,
-			simulator.DeriveSeed(*e.reseedBase, timestepsHistory.CurrentStepNumber),
-		)
-	}
-
-	// instantiate the embedded simulation
-	coordinator := simulator.NewPartitionCoordinator(
-		e.settings,
-		e.implementations,
-	)
-	// update any configured state histories to run the simulation from
+	// roll each configured window forward by one and drop in the outer
+	// partition's latest row, so the inner simulation starts from that history
+	histories := make(map[int]*simulator.StateHistory, len(e.initStatesFromHistory))
 	for inIndex, out := range e.initStatesFromHistory {
 		for i := out.History.StateHistoryDepth - 1; i > 0; i-- {
 			out.History.Values.SetRow(i, out.History.Values.RawRowView(i-1))
@@ -278,19 +266,32 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 					out.History.StateHistoryDepth,
 			),
 		)
-		coordinator.Shared.StateHistories[inIndex] = out.History
+		histories[inIndex] = out.History
 	}
-	// run the embedded simulation to termination
-	coordinator.Run()
+
+	// Reseeding, when enabled, restarts the inner noise stream so the run
+	// depends only on its inputs and the outer step it happens at. It goes
+	// through Configure, so any injected state memory is re-applied afterwards
+	// — an iteration whose Configure resets fields would otherwise lose it.
+	run := simulator.ReentrantRun{
+		Histories: histories,
+		// Steps 0: an embedded run's length is its own termination condition's
+		// to decide, not the caller's.
+		Steps: 0,
+	}
+	if e.reseedBase != nil {
+		seed := simulator.DeriveSeed(*e.reseedBase, timestepsHistory.CurrentStepNumber)
+		run.Seed = &seed
+		run.AfterConfigure = func() {
+			e.updateStateMemoryAndTime(stateHistories, timestepsHistory)
+		}
+	}
 
 	// prepare the returned state slice as the concatenated
 	// final states of all partitions
 	concatFinalStates := make([]float64, 0)
-	for _, stateHistory := range coordinator.Shared.StateHistories {
-		concatFinalStates = append(
-			concatFinalStates,
-			stateHistory.Values.RawRowView(0)...,
-		)
+	for _, row := range e.simulation.Run(run) {
+		concatFinalStates = append(concatFinalStates, row...)
 	}
 	return concatFinalStates
 }
@@ -304,5 +305,10 @@ func NewEmbeddedSimulationRunIteration(
 	return &EmbeddedSimulationRunIteration{
 		settings:        settings,
 		implementations: implementations,
+		// The re-entrant tier does the running; this iteration's own job is
+		// plumbing outer context into the inner simulation's starting
+		// conditions. They share one settings pointer, so the assignments this
+		// iteration makes are what the next run sees.
+		simulation: simulator.NewReentrantSimulation(settings, implementations),
 	}
 }

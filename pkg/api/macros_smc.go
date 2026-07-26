@@ -211,6 +211,14 @@ func instantiateParticle(
 		partition.Iteration = iteration
 	}
 	partition.Name = substituteParticle(partition.Name, particle)
+	if particle >= 0 {
+		// Give each particle its own random stream. Copying the template's seed
+		// verbatim would run every particle on one noise realisation, so a
+		// stochastic model — the whole point of simulation-based inference —
+		// would produce a particle cloud that varies only with the proposed
+		// parameters and not with the model, understating posterior spread.
+		partition.Seed = simulator.DeriveSeed(partition.Seed, particle)
+	}
 
 	params := make(map[string][]float64, len(partition.Params.Map))
 	for key, values := range partition.Params.Map {
