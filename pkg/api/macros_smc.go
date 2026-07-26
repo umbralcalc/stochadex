@@ -9,16 +9,10 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// smc_inference is a live macro. Its model is stated ONCE, as an ordinary set of
-// partitions, and instantiated per particle by macros.SMCParticleEvaluationIteration.
-//
-// It used to be a template instead: the same partition set written with a
-// "{particle}" placeholder, expanded here into N copies inside one simulation.
-// That made the particle count a property of the configuration, and left
-// per-particle random seeding to whoever wrote the template — which is exactly
-// what silently was not happening, putting every particle on one noise
-// realisation. Seeds are now derived per particle by the evaluation iteration,
-// so a config cannot get them wrong.
+// smc_inference is a live macro. Its model is stated once, as an ordinary set of
+// partitions, and instantiated per particle by
+// macros.SMCParticleEvaluationIteration, which also derives each particle's
+// seeds.
 
 type smcInferenceSpec struct {
 	macroTypeField `yaml:",inline"`

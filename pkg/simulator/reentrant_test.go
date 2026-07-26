@@ -139,3 +139,133 @@ func TestReentrantSimulationPartitionLookup(t *testing.T) {
 		t.Errorf("StateWidths = %v", widths)
 	}
 }
+
+// deepCounterIteration increments a counter, so its history window holds a
+// predictable descending sequence.
+type deepCounterIteration struct{}
+
+func (d *deepCounterIteration) Configure(int, *simulator.Settings) {}
+
+func (d *deepCounterIteration) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	return []float64{stateHistories[partitionIndex].Values.RawRowView(0)[0] + 1}
+}
+
+func newDeepSimulation(t *testing.T, depth int) *simulator.ReentrantSimulation {
+	t.Helper()
+	gen := simulator.NewConfigGenerator()
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.NilOutputCondition{},
+		OutputFunction:       &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 4},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "counter",
+		Iteration:         &deepCounterIteration{},
+		InitStateValues:   []float64{0},
+		StateHistoryDepth: depth,
+		Seed:              1,
+	})
+	settings, impl := gen.GenerateConfigs()
+	impl.ExecutionStrategy = &simulator.InlineExecution{}
+	return simulator.NewReentrantSimulation(settings, impl)
+}
+
+// TestReentrantSimulationWindowRoundTrip checks the pairing that lets a caller
+// carry a model's whole history through its own state encoding: RunWindows out,
+// NewStateHistoryFromWindow back in. Without it an iteration reading N steps back
+// restarts from the initial value on every run.
+func TestReentrantSimulationWindowRoundTrip(t *testing.T) {
+	const depth = 4
+	simulation := newDeepSimulation(t, depth)
+
+	// One step from a window holding [3 2 1 0] must shift to [4 3 2 1].
+	seed := uint64(11)
+	windows := simulation.RunWindows(simulator.ReentrantRun{
+		Histories: map[int]*simulator.StateHistory{
+			0: simulator.NewStateHistoryFromWindow([]float64{3, 2, 1, 0}, 1, depth),
+		},
+		Seed:  &seed,
+		Steps: 1,
+	})
+	if len(windows) != 1 || len(windows[0]) != depth {
+		t.Fatalf("expected one %d-long window, got %v", depth, windows)
+	}
+	for row, want := range []float64{4, 3, 2, 1} {
+		if windows[0][row] != want {
+			t.Fatalf("window %v: row %d is %v, want %v (the window is not shifting)",
+				windows[0], row, windows[0][row], want)
+		}
+	}
+
+	// Feeding the result straight back must keep advancing, which is what makes
+	// the round trip usable as a state encoding.
+	next := simulation.RunWindows(simulator.ReentrantRun{
+		Histories: map[int]*simulator.StateHistory{
+			0: simulator.NewStateHistoryFromWindow(windows[0], 1, depth),
+		},
+		Seed:  &seed,
+		Steps: 1,
+	})
+	if next[0][0] != 5 {
+		t.Fatalf("second run gave %v, want the sequence to continue at 5", next[0])
+	}
+}
+
+// TestNewStateHistoryFromWindowTolersShortInput checks a truncated window is
+// filled as far as it goes rather than panicking, so a caller cannot crash the
+// engine with a malformed encoding.
+func TestNewStateHistoryFromWindowToleratesShortInput(t *testing.T) {
+	history := simulator.NewStateHistoryFromWindow([]float64{7, 8}, 1, 4)
+	if history.StateHistoryDepth != 4 || history.StateWidth != 1 {
+		t.Fatalf("shape not preserved: depth %d width %d",
+			history.StateHistoryDepth, history.StateWidth)
+	}
+	if history.Values.At(0, 0) != 7 || history.Values.At(1, 0) != 8 {
+		t.Errorf("supplied rows not copied: %v %v",
+			history.Values.At(0, 0), history.Values.At(1, 0))
+	}
+	if history.Values.At(3, 0) != 0 {
+		t.Errorf("missing rows should stay zero, got %v", history.Values.At(3, 0))
+	}
+}
+
+// TestReentrantSimulationRunIntoReusesBuffer pins the allocation-free path: the
+// concatenation goes into the caller's slice, and its contents match Run's.
+func TestReentrantSimulationRunIntoReusesBuffer(t *testing.T) {
+	simulation := newTestReentrantSimulation(t)
+	buffer := make([]float64, 0, 8)
+	out := simulation.Advance([][]float64{{2}}, 5, 1)
+
+	got := simulation.RunInto(
+		simulator.ReentrantRun{Rows: [][]float64{{2}}, Seed: ptrUint64(5), Steps: 1}, buffer)
+	if len(got) != 1 || got[0] != out[0][0] {
+		t.Fatalf("RunInto gave %v, want the same as Run's %v", got, out)
+	}
+	if cap(got) != cap(buffer) {
+		t.Errorf("RunInto allocated a new slice (cap %d, gave it %d)", cap(got), cap(buffer))
+	}
+}
+
+// TestReentrantSimulationRunsToTerminationWithoutSteps covers Steps=0, where the
+// sub-simulation's own termination condition decides the length.
+func TestReentrantSimulationRunsToTerminationWithoutSteps(t *testing.T) {
+	simulation := newDeepSimulation(t, 1)
+	seed := uint64(3)
+	rows := simulation.Run(simulator.ReentrantRun{
+		Rows: [][]float64{{0}}, Seed: &seed, Steps: 0,
+	})
+	// The configured condition is four steps, so the counter must reach four.
+	if rows[0][0] != 4 {
+		t.Errorf("counter reached %v, want 4 from the configured termination condition",
+			rows[0][0])
+	}
+}
+
+func ptrUint64(v uint64) *uint64 { return &v }

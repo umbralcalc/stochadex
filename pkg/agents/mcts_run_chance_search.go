@@ -5,14 +5,9 @@ import (
 	"math/rand/v2"
 )
 
-// RunChanceMCTSSearch is RunMCTSSearch for stochastic environments: it searches
-// an MCTSChanceTree, so each action's value is an average over sampled outcomes
-// rather than the value of the single successor that happened to be drawn first.
-//
-// Use it when the environment genuinely has a transition distribution and the
-// number it reports is going to be believed. The deterministic search is faster
-// and perfectly correct for game rules, but against a stochastic model it plans
-// as though it knew which way the dice would fall.
+// RunChanceMCTSSearch is RunMCTSSearch over an MCTSChanceTree, so each action's
+// value averages over sampled outcomes. Prefer it whenever the environment has a
+// real transition distribution and the value it reports will be believed.
 func RunChanceMCTSSearch[S any, A any](
 	env StochasticEnvironment[S, A],
 	root S,

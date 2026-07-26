@@ -8,28 +8,18 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// mcts_planning is the config surface for planning over a simulation, and the
-// counterpart to mcts_self_play.
+// mcts_planning searches over the forward model itself: the dynamics are already
+// partitions, so an action is a params injection, a transition is one step of the
+// model, and the reward is a partition of it. Nothing has to be named from
+// outside, unlike mcts_self_play, whose environment is Go decision rules reached
+// through the environment registry.
 //
-// mcts_self_play searches over decision rules a downstream module wrote in Go,
-// which is why it needs the environment registry. This macro searches over the
-// forward model itself: the dynamics are already stated as partitions, so an
-// action is a params injection, a transition is one step of that model, and the
-// reward is a partition of it. Nothing about the environment has to be named
-// from outside, so a planning run is expressible as data end to end.
+// It is a sibling of evolution_strategy_optimisation, not a replacement: that
+// optimises a policy parameterisation once and globally, this optimises an action
+// sequence from the current state and replans every step.
 //
-// It is a sibling of evolution_strategy_optimisation rather than a replacement.
-// The evolution strategy optimises a *policy parameterisation* once, globally;
-// this optimises an *action sequence* from wherever the system currently is, and
-// replans every step, which is the shape a receding-horizon controller has.
-//
-// # The approximation this exposes
-//
-// The search plans against a pinned noise realisation — see
-// agents.SimulationEnvironment on why a transition has to be reproducible — so
-// the return it predicts is optimistic relative to what the same plan earns
-// under other draws. Vary scenario_seed and aggregate (the run: ensemble mode is
-// the easy way) rather than reading a single run's return as a forecast.
+// A planned return is one scenario's outcome, not a forecast. Vary scenario_seed
+// and aggregate — run: ensemble is the easy way.
 type mctsPlanningSpec struct {
 	macroTypeField `yaml:",inline"`
 	// Name prefixes the generated partitions. "<name>_apply" carries the model

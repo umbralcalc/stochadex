@@ -263,13 +263,10 @@ func (l *lookbackIteration) Iterate(
 }
 
 // TestSimulationEnvironmentCarriesDeepHistory checks that a partition reading
-// further back than one step plans correctly.
-//
-// Each transition restarts the sub-simulation, so unless the whole window is
-// carried in the encoded state and handed back, an iteration looking N steps into
-// the past sees the initial value forever. Trying to plan over trywizard's fitted
-// rugby model is what surfaced this: its card partition needs an 11-deep window,
-// and a depth-1-only encoding rejected the model outright.
+// further back than one step plans correctly. Each transition restarts the
+// sub-simulation, so unless the whole window is carried in the encoded state and
+// handed back, an iteration looking N steps into the past sees the initial value
+// forever. Real models need this: a rolling ten-minute count is a deep window.
 func TestSimulationEnvironmentCarriesDeepHistory(t *testing.T) {
 	const depth = 3
 	gen := simulator.NewConfigGenerator()
@@ -604,5 +601,145 @@ func TestChanceNodesReduceOptimism(t *testing.T) {
 	if math.Abs(chanceOptimism) >= math.Abs(pinnedOptimism) {
 		t.Errorf("chance nodes did not improve calibration: optimism %.1f vs %.1f",
 			chanceOptimism, pinnedOptimism)
+	}
+}
+
+// TestSimulationEnvironmentGuards covers the misconfigurations and bad calls
+// that would otherwise produce a plausible-looking but meaningless plan.
+func TestSimulationEnvironmentGuards(t *testing.T) {
+	env := newBatteryEnvironment(t, 1)
+	state := env.InitialState()
+
+	t.Run("an out-of-range action is an error", func(t *testing.T) {
+		if _, err := env.Apply(state, 99); err == nil {
+			t.Error("expected an error for an action outside the set")
+		}
+		if _, err := env.Apply(state, -1); err == nil {
+			t.Error("expected an error for a negative action")
+		}
+	})
+
+	t.Run("a mis-sized state is an error", func(t *testing.T) {
+		if _, err := env.Apply([]float64{1, 2}, 0); err == nil {
+			t.Error("expected an error for a state of the wrong width")
+		}
+	})
+
+	t.Run("a terminal state offers no actions", func(t *testing.T) {
+		terminal := append([]float64(nil), state...)
+		terminal[0] = testHorizon
+		if legal := env.Legal(terminal); len(legal) != 0 {
+			t.Errorf("expected no legal actions at the horizon, got %v", legal)
+		}
+	})
+
+	t.Run("single decision maker", func(t *testing.T) {
+		if got := env.Players(state); got != 1 {
+			t.Errorf("Players = %d, want 1", got)
+		}
+		if got := env.Actor(state); got != 0 {
+			t.Errorf("Actor = %d, want 0", got)
+		}
+	})
+
+	for _, testCase := range []struct {
+		name   string
+		mutate func(*agents.SimulationEnvironmentSpec)
+	}{
+		{"no actions", func(s *agents.SimulationEnvironmentSpec) { s.Actions = nil }},
+		{"no horizon", func(s *agents.SimulationEnvironmentSpec) { s.Horizon = 0 }},
+		{"no reward", func(s *agents.SimulationEnvironmentSpec) { s.Reward = nil }},
+		{"empty return range", func(s *agents.SimulationEnvironmentSpec) {
+			s.MinReturn, s.MaxReturn = 1, 1
+		}},
+		{"unknown action partition", func(s *agents.SimulationEnvironmentSpec) {
+			s.ActionPartition = "absent"
+		}},
+	} {
+		t.Run(testCase.name+" is rejected", func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Errorf("expected a panic for %s", testCase.name)
+				}
+			}()
+			gen := simulator.NewConfigGenerator()
+			gen.SetSimulation(&simulator.SimulationConfig{
+				OutputCondition:      &simulator.NilOutputCondition{},
+				OutputFunction:       &simulator.NilOutputFunction{},
+				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
+				TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+				InitTimeValue:        0,
+			})
+			gen.SetPartition(&simulator.PartitionConfig{
+				Name:              "battery",
+				Iteration:         &batteryIteration{capacity: 1},
+				Params:            simulator.NewParams(map[string][]float64{"dispatch": {0}}),
+				InitStateValues:   []float64{0, 0},
+				StateHistoryDepth: 1,
+				Seed:              0,
+			})
+			settings, impl := gen.GenerateConfigs()
+			spec := agents.SimulationEnvironmentSpec{
+				Actions:         [][]float64{{0}},
+				ActionPartition: "battery",
+				ActionParam:     "dispatch",
+				Horizon:         2,
+				Reward:          func(map[string][]float64) float64 { return 0 },
+				MinReturn:       -1,
+				MaxReturn:       1,
+			}
+			testCase.mutate(&spec)
+			agents.NewSimulationEnvironment(settings, impl, spec)
+		})
+	}
+}
+
+// TestSimulationEnvironmentLegalFilter checks a spec-supplied Legal narrows the
+// action set, which is how a model states that an action is unavailable in some
+// states — a battery that cannot discharge when empty, say.
+func TestSimulationEnvironmentLegalFilter(t *testing.T) {
+	gen := simulator.NewConfigGenerator()
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.NilOutputCondition{},
+		OutputFunction:       &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "battery",
+		Iteration:         &batteryIteration{capacity: 1},
+		Params:            simulator.NewParams(map[string][]float64{"dispatch": {0}}),
+		InitStateValues:   []float64{0, 0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	env := agents.NewSimulationEnvironment(settings, impl, agents.SimulationEnvironmentSpec{
+		Actions:         [][]float64{{1}, {0}, {-1}},
+		ActionPartition: "battery",
+		ActionParam:     "dispatch",
+		Horizon:         4,
+		Reward:          func(map[string][]float64) float64 { return 0 },
+		MinReturn:       -1,
+		MaxReturn:       1,
+		// Discharging is unavailable while the battery is empty.
+		Legal: func(rows map[string][]float64) []int {
+			if rows["battery"][0] <= 0 {
+				return []int{0, 1}
+			}
+			return []int{0, 1, 2}
+		},
+	})
+
+	if legal := env.Legal(env.InitialState()); len(legal) != 2 {
+		t.Errorf("empty battery should offer 2 actions, got %v", legal)
+	}
+	charged, err := env.Apply(env.InitialState(), 0)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if legal := env.Legal(charged); len(legal) != 3 {
+		t.Errorf("charged battery should offer 3 actions, got %v", legal)
 	}
 }

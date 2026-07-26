@@ -80,17 +80,6 @@ func (r *ReentrantSimulation) SetParam(partition int, key string, values []float
 	r.settings.Iterations[partition].Params.Set(key, values)
 }
 
-// Settings exposes the underlying settings, for callers that need to reach
-// starting conditions this type does not model — params keyed by name, or an
-// iteration's own configuration. Mutating it changes what the next run does.
-func (r *ReentrantSimulation) Settings() *Settings { return r.settings }
-
-// Implementations exposes the underlying implementations, for callers that must
-// reach the iteration objects themselves (injecting outer context, for example).
-func (r *ReentrantSimulation) Implementations() *Implementations {
-	return r.implementations
-}
-
 // ReentrantRun describes one evaluation of a sub-simulation: where it starts,
 // how its randomness is fixed, and how long it goes on for.
 type ReentrantRun struct {

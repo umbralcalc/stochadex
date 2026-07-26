@@ -148,3 +148,69 @@ func TestChanceTreeRejectsDeterministicEnvironment(t *testing.T) {
 	cfg := &MCTSConfig[TTTState, TTTAction]{}
 	tree.SelectLeafWithOutcome(&TTTGame{}, cfg, rand.New(rand.NewPCG(1, 2)))
 }
+
+// TestChanceTreeAccessors covers the small surface MCTSTreeIteration drives it
+// through, including Reset — which the self-play pipeline calls whenever the
+// game advances and the old tree no longer applies.
+func TestChanceTreeAccessors(t *testing.T) {
+	env := coinEnv{horizon: 4}
+	tree := NewMCTSChanceTree[[]float64, int]([]float64{0, 0})
+	cfg := &MCTSConfig[[]float64, int]{
+		MaxTreeDepth:    6,
+		RolloutMaxSteps: 6,
+		Rollout:         UniformRandomRollout[[]float64, int](),
+	}
+	if tree.NodeCount() != 1 || tree.Root()[0] != 0 {
+		t.Fatalf("fresh tree should be a lone root, got %d nodes rooted at %v",
+			tree.NodeCount(), tree.Root())
+	}
+	runChanceIterations(tree, env, cfg, 200)
+	if tree.NodeCount() <= 1 {
+		t.Fatal("the tree did not grow")
+	}
+
+	visits, wins := tree.RootStatsByLegalIdx(5)
+	if len(visits) != 5 || len(wins) != 5 {
+		t.Fatalf("stats should be padded to the requested width, got %d/%d",
+			len(visits), len(wins))
+	}
+	total := 0.0
+	for _, v := range visits {
+		total += v
+	}
+	if total == 0 {
+		t.Error("root actions recorded no visits")
+	}
+	if visits[2] != 0 || wins[2] != 0 {
+		t.Errorf("padding slots should stay zero, got %v/%v", visits[2], wins[2])
+	}
+
+	// SelectLeaf is the boolean-shaped wrapper: true only on a real expansion.
+	_, _, _, ok := tree.SelectLeaf(env, cfg, rand.New(rand.NewPCG(5, 6)))
+	_ = ok
+
+	tree.Reset([]float64{2, 0})
+	if tree.NodeCount() != 1 || tree.Root()[0] != 2 {
+		t.Fatalf("Reset should leave a lone root at the new state, got %d nodes at %v",
+			tree.NodeCount(), tree.Root())
+	}
+	if visits, _ := tree.RootStatsByLegalIdx(2); visits[0] != 0 || visits[1] != 0 {
+		t.Errorf("Reset should clear root statistics, got %v", visits)
+	}
+}
+
+// TestRunChanceMCTSSearchGuards covers the two ways a search can be asked for
+// something it cannot answer.
+func TestRunChanceMCTSSearchGuards(t *testing.T) {
+	cfg := MCTSConfig[[]float64, int]{Rollout: UniformRandomRollout[[]float64, int]()}
+
+	if _, _, err := RunChanceMCTSSearch[[]float64, int](
+		nil, []float64{0, 0}, cfg, 1, 10); err == nil {
+		t.Error("expected an error for a nil environment")
+	}
+	// A terminal root offers no legal actions, so there is nothing to choose.
+	if _, _, err := RunChanceMCTSSearch[[]float64, int](
+		coinEnv{horizon: 4}, []float64{4, 0}, cfg, 1, 10); err == nil {
+		t.Error("expected an error when the root has no legal actions")
+	}
+}

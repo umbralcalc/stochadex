@@ -69,12 +69,9 @@ func TestLiveMacroRejectsAgainstStorage(t *testing.T) {
 
 // TestSMCParticlesGetDistinctNoise pins per-particle seeding. The model here is
 // stochastic and reads no proposal parameters, so any variation between particles
-// can only come from their random streams.
-//
-// Before this was fixed, per-particle partitions inherited the template's seed
-// verbatim and every particle ran the same noise realisation — invisible with a
-// deterministic model, and silently fatal for simulation-based inference, where
-// the particle cloud is supposed to carry the model's Monte Carlo variation.
+// can only come from their random streams. Particles sharing one realisation is
+// invisible with a deterministic model and fatal for simulation-based inference,
+// where the cloud is supposed to carry the model's Monte Carlo variation.
 func TestSMCParticlesGetDistinctNoise(t *testing.T) {
 	const cfg = `data:
   steps: 12

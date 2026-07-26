@@ -10,21 +10,11 @@ import (
 // SMCParticleEvaluationIteration scores every particle by running one model per
 // particle and reading its log-likelihood.
 //
-// # Why this is not one simulation with N copies of the model
-//
-// SMC used to express its particle structure by replicating the model N times
-// inside a single inner simulation, with names templated by particle index. That
-// works, but it makes the particle count a property of the *configuration*: the
-// partition set grows with N, every particle's wiring is generated, and the
-// per-particle random seeds have to be varied by whoever writes the template —
-// which is exactly what was silently not happening, leaving every particle on
-// one noise realisation.
-//
-// Evaluating a model repeatedly is what simulator.ReentrantSimulation is for, so
-// the model is now stated once and evaluated N times. The particle count becomes
-// a property of the run instead of the config, per-particle seeds are derived
-// here rather than being the config author's problem, and the particles
-// synchronise once per round rather than at every inner step.
+// The model is stated once and instantiated per particle, so the particle count
+// is a property of the run rather than of the configuration. Seeds are derived
+// here, per particle and per round, so no config can leave two particles sharing
+// a random stream. Particles are evaluated concurrently and synchronise once per
+// round.
 //
 // # Row layout
 //

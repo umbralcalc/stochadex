@@ -5,41 +5,22 @@ import (
 	"math/rand/v2"
 )
 
-// MCTSChanceTree is the UCT tree for genuinely stochastic environments: it
-// separates a decision from its outcome, so a value is an average over sampled
-// successors rather than a commitment to the first one drawn.
+// MCTSChanceTree is the UCT tree for stochastic environments, where an action's
+// value is an average over sampled successors rather than the value of one.
 //
-// # Why this exists alongside MCTSTree
+// Levels alternate. A decision node holds a state and one chance child per legal
+// action. A chance node holds no state — it stands for "this action was taken,
+// and nature has not resolved yet" — and its children are sampled successors.
+// Action selection at a decision node is UCB1 over the chance children, whose
+// statistics are therefore averages over outcomes.
 //
-// MCTSTree materialises one successor per action edge and reuses it. For a
-// deterministic environment that is exactly right and costs nothing. For a
-// stochastic one it silently pins the noise: the search solves a single
-// realisation and can exploit the particular draw it is going to receive, so the
-// value it reports is optimistic relative to the expectation.
+// A chance node cannot enumerate its outcomes, so their number grows with visits
+// as ceil(k * visits^alpha), alpha in (0,1). Unbounded, every visit would draw a
+// fresh successor and no outcome would collect enough visits for its average to
+// mean anything.
 //
-// The two are kept separate rather than merged behind a flag because the game
-// path is deterministic, shipped, and would pay complexity for a case it never
-// hits — and because the algorithms genuinely differ, rather than one being a
-// parameterisation of the other.
-//
-// # Shape
-//
-// Levels alternate. A DECISION node holds a state and one chance child per legal
-// action. A CHANCE node holds no state; it stands for "action a was taken from
-// the parent's state, and nature has not resolved yet", and its children are
-// sampled successors. Action selection at a decision node is UCB1 over the chance
-// children's aggregate statistics — which are, by construction, averages over
-// outcomes. That is the whole point.
-//
-// # Progressive widening
-//
-// A chance node cannot enumerate its outcomes: for a continuous-noise model there
-// are infinitely many. Instead the number of sampled outcomes is allowed to grow
-// with the number of visits, as ceil(k * visits^alpha) with alpha in (0,1). Early
-// on a chance node commits to few outcomes so statistics accumulate; as it is
-// visited more, new draws are added and the average converges on the expectation.
-// Without the widening bound, every visit would sample a fresh successor and no
-// node would ever collect enough visits to be worth anything.
+// Use MCTSTree for deterministic environments: one successor per edge is exact
+// there, and outcome nodes whose samples never differ are pure cost.
 type MCTSChanceTree[S any, A any] struct {
 	nodes []chanceTreeNode[S]
 }

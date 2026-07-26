@@ -49,20 +49,15 @@ type NamedIndexedState struct {
 //     warm-starting inner optimisers across outer steps.
 //   - Optional "burn_in_steps" skips initial outer steps before running inner sim.
 //
-// # Streaming vs re-entrant runs
+// This is a stream by default: Configure seeds the inner iterations once and each
+// outer step advances them from wherever the last run left their RNGs, so two
+// runs with identical inputs give different answers. That is what advancing a
+// nested simulation alongside an outer one wants.
 //
-// By default this is a STREAM: Configure seeds the inner iterations once, and
-// each outer step advances them from wherever the last run left their RNGs. Two
-// runs with identical inputs therefore give different answers, which is the
-// right behaviour for advancing a nested simulation alongside an outer one.
-//
-// SetReseedBase switches it to a re-entrant run instead: the inner iterations are
-// reseeded from that base mixed with the outer step number before every run, so
-// a run becomes a pure function of its inputs and repeats if driven again at the
-// same step. Use it when the nested simulation is being *evaluated* rather than
-// *advanced* — a model re-run over a window, a proposal scored more than once —
-// and reproducibility matters more than a continuing noise stream. See
-// simulator.ReentrantSimulation for the same capability as a standalone value.
+// SetReseedBase makes a run a pure function of its inputs instead, for when the
+// nested simulation is being evaluated rather than advanced — a model re-run over
+// a window, a proposal scored more than once. simulator.ReentrantSimulation is
+// the same capability as a standalone value.
 type EmbeddedSimulationRunIteration struct {
 	settings              *simulator.Settings
 	implementations       *simulator.Implementations
@@ -78,11 +73,10 @@ type EmbeddedSimulationRunIteration struct {
 }
 
 // SetReseedBase makes every run reseed its inner iterations from base mixed with
-// the outer step number, turning the embedded run from a stream into a pure
-// function of its inputs (see the type docs).
+// the outer step number, so a run becomes a pure function of its inputs.
 //
-// Off by default: enabling it changes the numbers an existing configuration
-// produces, because the inner noise stream is restarted rather than continued.
+// Off by default: enabling it changes the numbers a configuration produces,
+// because the inner noise stream is restarted rather than continued.
 func (e *EmbeddedSimulationRunIteration) SetReseedBase(base uint64) {
 	e.reseedBase = &base
 }
