@@ -25,6 +25,16 @@ type MCTSConfig[S any, A any] struct {
 	RolloutMaxSteps int
 	Rollout         MCTSRolloutFn[S, A]
 	Progress        func(s S, player int) (float64, bool)
+
+	// ChanceWideningFactor and ChanceWideningExponent tune progressive widening
+	// in MCTSChanceTree: a chance node holds up to
+	// ceil(factor * visits^exponent) sampled outcomes. Ignored by MCTSTree,
+	// which has no chance nodes. Zero selects the package defaults.
+	//
+	// A larger factor or exponent averages over more outcomes per node but
+	// spreads the same visits more thinly, so each average is noisier.
+	ChanceWideningFactor   float64
+	ChanceWideningExponent float64
 }
 
 // ApplyDefaults fills in zero-valued hyperparameters with the package

@@ -1,0 +1,78 @@
+# Planning over a simulation, entirely as config.
+#
+# Where mcts_self_play searches over decision rules a downstream module wrote in
+# Go, this searches over the forward model itself: the dynamics are partitions,
+# an action is a params injection, and the reward is just another partition. So
+# nothing has to be named from outside and the whole decision problem is data.
+#
+# The problem is battery arbitrage. The price cycles 10, 10, 90, 90 and the
+# battery holds one unit, so the best play is to buy while it is cheap and sell
+# while it is dear — worth 2 * (90 - 10) = 160 over these 8 steps. No myopic rule
+# gets there, because buying looks like a pure loss at the moment it must happen.
+#
+# On stochastic models the search uses chance nodes by default: each action's
+# value is averaged over sampled successors rather than committed to the first
+# draw. That matters because the alternative — planning against one pinned
+# realisation — lets the search exploit the noise it is going to receive, and its
+# over-promise GROWS with sims_per_decision. Set `pinned_noise: true` to opt out;
+# it is faster and costs nothing when the model is deterministic, as here.
+macros:
+- type: mcts_planning
+  name: plan
+  # Decisions to take, and how far each search looks ahead.
+  steps: 8
+  horizon: 8
+  sims_per_decision: 400
+  seed: 99
+  # UCB1 needs a bounded value scale, so returns are normalised against this.
+  # Widen it rather than letting returns clamp: a saturated score carries no
+  # gradient for the search.
+  return_range: [-400, 400]
+  # The discrete action set. Each entry is written to action_param on
+  # action_partition, so an action is whatever the model already reads as a
+  # parameter — here charge / hold / discharge.
+  actions: [[1], [0], [-1]]
+  action_partition: battery
+  action_param: dispatch
+  # The partition whose state[0] is the reward earned by the step just taken.
+  reward_partition: revenue
+  model:
+    partitions:
+    # Price cycles 10, 10, 90, 90. The phase is carried in the row because a
+    # planning run restarts the model every transition — it has to be Markov in
+    # its own state, with no reliance on the step counter.
+    - name: price
+      iteration:
+        type: expression
+        fields: [{name: price}, {name: phase}]
+        bindings:
+        - {name: nextphase, expr: "phase + 1 - 4 * floor((phase + 1) / 4)"}
+        outputs: ["where(nextphase < 2, 10, 90)", "nextphase"]
+      init_state_values: [90.0, 3.0]
+      state_history_depth: 1
+      seed: 0
+    # State of charge, clamped to [0, 1], reporting the flow that happened.
+    - name: battery
+      iteration:
+        type: expression
+        fields: [{name: soc}, {name: flow}]
+        bindings:
+        - {name: nextsoc, expr: "clamp(soc + dispatch, 0, 1)"}
+        outputs: ["nextsoc", "nextsoc - soc"]
+      params: {dispatch: [0.0]}
+      init_state_values: [0.0, 0.0]
+      state_history_depth: 1
+      seed: 0
+    # Reward: discharging (flow < 0) sells at the prevailing price.
+    - name: revenue
+      iteration:
+        type: expression
+        fields: [{name: r}]
+        outputs: ["0 - flow * price"]
+      params: {flow: [0.0], price: [0.0]}
+      params_from_upstream:
+        flow: {upstream: battery, indices: [1]}
+        price: {upstream: price, indices: [0]}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0

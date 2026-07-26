@@ -74,6 +74,11 @@ type MCTSSelfPlaySpec[S any, A any] struct {
 	Players int
 	// Seed is the base RNG seed for both inner partitions.
 	Seed uint64
+	// ChanceNodes searches an agents.MCTSChanceTree, averaging each action's
+	// value over sampled successors instead of committing to the first one drawn.
+	// Requires Env to implement agents.StochasticEnvironment. See the field on
+	// agents.MCTSTreeIteration for when it is worth the extra sampling.
+	ChanceNodes bool
 }
 
 // MCTSSearchSettings is the env-independent half of MCTSSelfPlaySpec: the
@@ -202,6 +207,7 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 			MaxLegalActions: spec.MaxLegalActions,
 			StateWidth:      spec.StateWidth,
 			Players:         spec.Players,
+			ChanceNodes:     spec.ChanceNodes,
 		},
 		// MCTSTree reads rollout's previous-step scores via state-history
 		// mode (params_as_partitions). This breaks the within-step

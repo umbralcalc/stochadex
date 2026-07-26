@@ -22,6 +22,145 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: SMC states its model once instead of replicating it per particle.** The particle
+  structure used to be a *template* — a partition set written with a `{particle}` placeholder,
+  expanded into N copies inside a single simulation. That made the particle count a property of
+  the configuration, and left per-particle random seeding to whoever wrote the template.
+
+  Evaluating one model many times is what `simulator.ReentrantSimulation` is for, so the model
+  is now written once and run once per particle by
+  `macros.SMCParticleEvaluationIteration`. Particles are evaluated concurrently and synchronise
+  once per round rather than at every inner step; the shipped convergence test runs ~30% faster.
+
+  Migration — Go: `SMCParticleModel.Build` takes `(nParams int)` rather than `(N, nParams int)`
+  and returns one particle's model; `SMCInnerSimConfig.LoglikePartitions []string` becomes
+  `LoglikePartition string`; `ParamForwarding` indices are into the particle's own d-length
+  vector rather than the flat N*d one. YAML: `model.per_particle_partitions` and
+  `model.shared_partitions` become a single `model.partitions`, and `{particle}` placeholders
+  are dropped from partition names, upstream references and `loglike_partition`. The
+  `<sim_name>` partition's row is now one log-likelihood per particle rather than the
+  concatenated inner state.
+
+### Fixed
+
+- **SMC gave every particle the same noise realisation.** Per-particle partitions inherited
+  their template's seed verbatim, so with a stochastic model all N particles produced identical
+  trajectories and identical log-likelihoods. Invisible with a deterministic model — which is
+  why the existing tests missed it — and damaging for simulation-based inference, where the
+  particle cloud is meant to carry the model's Monte Carlo variation: posterior spread was
+  understated because only the proposed parameters varied. Seeds are now derived per particle,
+  and under the redesign above they are derived by the evaluation iteration rather than by the
+  configuration, so a config cannot get this wrong.
+
+### Added
+
+- **`simulator.ReentrantSimulation`: running a simulation as a pure function of its inputs.**
+  `PartitionCoordinator` advances a simulation, `RunSeededEnsemble` runs several, and
+  `RunWithHarnesses` runs one under assertions. This is the fourth way to drive one —
+  evaluate it from an arbitrary starting state, under a chosen seed, and get the resulting
+  rows back, with the guarantee that the same inputs always produce the same output.
+
+  This was not previously possible. An iteration's mutable state, RNG included, lives in the
+  iteration object and is established by `Configure`, so anything that builds a coordinator
+  and steps it inherits whatever RNG state the iterations are already in.
+  `general.EmbeddedSimulationRunIteration` is a **stream** in exactly this sense: four calls
+  with identical inputs give four different answers. That is right for advancing a nested
+  simulation once per outer step, and wrong for anything that needs to evaluate the same
+  model twice — planning, particle propagation, or re-running a windowed model
+  reproducibly. Each of those had hand-rolled its own workaround.
+
+  What makes it work is a rule the framework already had: every iteration must
+  re-initialise all of its mutable state in `Configure`, which `RunWithHarnesses` enforces
+  by running a simulation twice and comparing. Reseeding via `ReseedIterations` therefore
+  restores the iterations to a state depending only on the seed. The invariant was already
+  there; nothing exploited it.
+
+- **`EmbeddedSimulationRunIteration.SetReseedBase`** opts an embedded run into that
+  behaviour, reseeding its inner iterations from the given base mixed with the outer step
+  number so a run becomes a function of its inputs. **Off by default** — enabling it changes
+  the numbers an existing configuration produces, since the inner noise stream is restarted
+  rather than continued. The macros (windowed likelihood, evolution strategy, SMC) are
+  untouched and keep streaming.
+
+- **`agents.MCTSChanceTree`: chance nodes, so a stochastic plan's value is an average.**
+  `MCTSTree` materialises one successor per action edge and reuses it — exactly right for
+  deterministic game rules, and silently wrong for a stochastic model, where it pins the noise
+  and lets the search exploit the draw it is going to receive.
+
+  The new tree interposes a chance node between an action and its outcomes, and grows the number
+  of sampled successors by progressive widening (`ceil(k * visits^alpha)`, alpha 0.5 by default)
+  so each outcome still collects enough visits for its average to mean something. Environments
+  opt in by implementing the new `StochasticEnvironment` (an `ApplySample` that draws under a
+  given seed); `agents.SimulationEnvironment` does, and deterministic game environments
+  deliberately do not. `RunChanceMCTSSearch` is the one-shot entry point, and
+  `MCTSTreeIteration.ChanceNodes` selects it inside the partition pipeline.
+
+  Measured on the battery problem, averaging over six planning scenarios and replaying each plan
+  across eight others — the over-promise from planning in one's own scenario:
+
+  | simulations | pinned noise | chance nodes |
+  |---|---|---|
+  | 100 | 44.8 | −6.4 |
+  | 200 | 79.3 | −5.6 |
+  | 400 | 91.5 | 21.4 |
+  | 1600 | 91.5 | −8.1 |
+
+  Note the direction of the pinned column: **its bias grows with the search budget**, because
+  more search means more exploitation of the single realisation it can see. Spending more
+  simulations makes a pinned plan's number less trustworthy, not more. Chance-node plans earn
+  slightly less on this problem at equal budget (the sampling has to be paid for somewhere) and
+  predict what they earn.
+
+- **`mcts_planning`: planning over your own model, entirely as config.** The macro surface over
+  `agents.SimulationEnvironment`. The dynamics are already partitions, so an action is a params
+  injection (`actions:`, `action_partition`, `action_param`), a transition is one step of the
+  model, and the reward is another partition named by `reward_partition` — normally an
+  `{type: expression}` one, which keeps rewards in the expressions DSL rather than introducing a
+  second language. Nothing is named from outside, so the whole decision problem is data.
+
+  This is the counterpart to `mcts_self_play`, and the two sit on opposite sides of the repo
+  boundary deliberately: `mcts_self_play` searches decision *rules* (arbitrary Go, named through
+  the environment registry), while `mcts_planning` searches a *model* — search-as-forward-
+  simulation, in scope by the same argument that puts `posterior_estimation` in scope. It is also
+  a sibling of `evolution_strategy_optimisation` rather than a replacement: the evolution strategy
+  optimises a policy *parameterisation* globally, this optimises an action *sequence* from the
+  current state and replans each step.
+
+  `cfg/example_planning_config.yaml` is battery arbitrage over a cyclic price, where buying looks
+  like a pure loss at the moment it has to happen: the search recovers the hand-computable optimum
+  of 160 against 0 for doing nothing.
+
+- **`agents.SimulationEnvironment`: MCTS planning over a sub-simulation.** Where the
+  `pkg/api` environment registry lets a config *name* decision rules written in Go, this
+  needs no rules at all — the dynamics are already stated as partitions, so an action is a
+  params injection, a transition is one step of the sub-simulation, and the reward is read
+  off the resulting rows. It is built on `ReentrantSimulation`, which is what makes `Apply`
+  pure enough for a search that materialises a successor once per edge and reuses it.
+
+  It fits the existing `Environment` contract unchanged: the encoded state carries the step
+  index and accumulated discounted reward alongside every partition's row, so a
+  finite-horizon per-step-reward problem terminates at the horizon and normalises its return
+  into the `[0,1]` score UCB1 needs.
+
+  Seeding each transition from `(ScenarioSeed, state, action)` is common random numbers, which
+  is what makes `Apply` pure. On its own that is an approximation rather than a free win, since
+  a planner solving a pinned scenario can exploit the noise draw it is going to receive; the
+  environment therefore also implements `StochasticEnvironment`, so a chance-node search can
+  average over the distribution instead. See the `MCTSChanceTree` entry above for the measured
+  difference.
+
+  Validated on battery arbitrage over a cyclic price, where selling requires having bought
+  earlier at a price that looked bad at the time. The environment is deterministic, so the
+  optimum is found exactly by brute force over all action sequences, and MCTS recovers it
+  (160 against 0 for doing nothing). A transition costs ~1 µs.
+
+  Known limits, enforced or documented rather than silent: partitions must have
+  `state_history_depth` 1 (it panics otherwise), the sub-simulation must be Markov in its own
+  rows because the coordinator restarts each transition, and one environment per goroutine.
+  There is no `macros:`/YAML surface yet.
+
 ### Added
 
 - **`mcts_self_play` is reachable from config, via a downstream environment registry.**

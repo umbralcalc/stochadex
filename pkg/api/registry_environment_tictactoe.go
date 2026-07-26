@@ -8,16 +8,9 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// The one environment the engine registers itself. Tic-tac-toe is already this
-// repo's canonical Environment fixture (see agents.TTTGame): small enough to be
-// obvious, sharp enough that a broken search fails a "win in one" assertion.
-// Registering it here is what makes the mcts_self_play macro runnable from the
-// stock CLI with no downstream module — which is what keeps the whole hook
-// covered by an end-to-end config in engine CI, and gives cfg/ a worked example.
-//
-// It is a fixture, not a domain model: it is deliberately the only environment
-// the engine ships, and real decision rules belong downstream (see the registry
-// note in registry_environment.go).
+// Tic-tac-toe is the only environment the engine registers, and a fixture rather
+// than a domain model: it keeps the hook covered end to end in CI and gives cfg/
+// a worked example. Real decision rules belong downstream.
 func init() {
 	RegisterEnvironment("tictactoe", buildTicTacToeEnvironment)
 }

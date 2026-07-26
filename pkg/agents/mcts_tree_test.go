@@ -499,18 +499,14 @@ func TestMCTSTreeIterationTerminalRootEmitsHasLeafFalse(t *testing.T) {
 }
 
 // TestMCTSTreeIterationBacksUpTerminalSelections pins the decomposed pipeline's
-// terminal handling against MCTSTree.RunOne's.
-//
-// When SelectLeaf walks into an already-terminal node it returns ok=false. The
-// partition used to discard that path entirely — no visit, no score — so once a
-// tree saturated (endgames, shallow games) it stopped accumulating statistics
-// and raising the simulation count bought nothing. RunOne has always backed the
-// terminal scores up instead, which is why the one-shot RunMCTSSearch found
-// wins the partitioned self-play stack missed.
+// terminal handling against MCTSTree.RunOne's: a selection reaching an
+// already-terminal node must back up that node's exact scores, not be discarded.
 //
 // The position has three empty cells, so the tree saturates within a handful of
 // steps and almost every later selection lands on a terminal node. Root visits
-// must therefore keep tracking the step count.
+// must therefore keep tracking the step count; dropping them would leave a
+// saturated tree accumulating nothing, so raising the simulation count would buy
+// nothing either.
 func TestMCTSTreeIterationBacksUpTerminalSelections(t *testing.T) {
 	const steps = 60
 	tree := newMCTSTreeIteration()
@@ -557,15 +553,13 @@ func TestMCTSTreeIterationBacksUpTerminalSelections(t *testing.T) {
 	}
 }
 
-// TestMCTSTreeIterationBacksUpDepthCappedSelections is the depth-cap counterpart
-// to the terminal test above: MCTSTree.RunOne rolls out from a depth-capped node
-// and backs the result up, so the decomposed pipeline must publish that node as a
-// leaf rather than drop the iteration.
+// TestMCTSTreeIterationBacksUpDepthCappedSelections is the depth-cap counterpart:
+// RunOne rolls out from a depth-capped node and backs the result up, so the
+// decomposed pipeline must publish that node as a leaf rather than drop it.
 //
 // MaxTreeDepth is 1, so once every root child has been expanded, every further
 // selection descends one level and stops at the cap. Root visits must keep
-// tracking the step count; before the fix they plateaued at roughly the number of
-// root children, which is why raising SimsPerPly bought nothing on deep searches.
+// tracking the step count rather than plateauing at the number of root children.
 func TestMCTSTreeIterationBacksUpDepthCappedSelections(t *testing.T) {
 	const steps = 60
 	tree := &agents.MCTSTreeIteration[agents.TTTState, agents.TTTAction]{

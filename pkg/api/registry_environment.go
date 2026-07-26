@@ -9,37 +9,21 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// The environment registry: the downstream extension point that lets the
-// mcts_self_play macro name an agents.Environment from config.
+// The environment registry lets the mcts_self_play macro name an
+// agents.Environment from config.
 //
-// # Why this is a hook and not a data spelling
+// It is a hook rather than a {type: ...} data spec because an environment is
+// arbitrary decision rules (Legal / Apply / Terminal), which the repo boundary
+// places downstream. Spelling those as data would mean a rules language inside
+// the config. The registered builder receives the whole ComponentSpec verbatim
+// and returns finished partitions, so the fields under `env:` are parsed by the
+// downstream and never by this package.
 //
-// Every other component family in this engine resolves from a {type: ...} data
-// spec because the thing being named is part of the framework's own catalogue —
-// a Wiener process, an exponential kernel, a normal likelihood. An
-// agents.Environment is not: it is arbitrary decision-process rules (Legal /
-// Apply / Terminal), which the repo boundary places downstream, in the project
-// that owns the decision layer. Spelling those rules as data would mean growing
-// a rules language inside the config, which is a different (and much larger)
-// project than this registry — and one that would only serve games.
-//
-// So the engine ships no environments beyond the tic-tac-toe fixture below, and
-// instead lets a downstream module contribute one. The registered builder is
-// handed the environment's whole ComponentSpec verbatim and returns finished
-// partitions: the fields under `env:` are parsed by the *downstream*, never by
-// this package. A card-game project's `{type: cardgame_rules, rules: uno.yaml}`
-// is opaque here — the engine passes it through and never learns what a zone or
-// a phase is.
-//
-// # Why the builder returns partitions rather than an environment
-//
-// macros.NewMCTSSelfPlayPartitions is generic in the environment's state and
-// action types, so this package cannot call it: a registry map has to hold a
-// concrete type, and erasing S and A to fit one would force an encode/decode
-// round-trip through every Apply in the search hot loop. Having the builder
-// call the generic constructor itself keeps the typed Environment[S, A] intact
-// for its Go callers and keeps this side free of type parameters entirely.
-// macros.MCTSSearchSettings carries the config-stated half across that boundary.
+// The builder returns partitions rather than an environment because
+// macros.NewMCTSSelfPlayPartitions is generic in S and A: a registry map holds a
+// concrete type, and erasing the parameters would force an encode/decode round
+// trip through every Apply in the search hot loop. macros.MCTSSearchSettings
+// carries the config-stated half across the boundary.
 
 // EnvironmentBuilder constructs the partitions of an MCTS self-play stack from
 // a downstream environment's data spec plus the search settings the config

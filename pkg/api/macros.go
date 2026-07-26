@@ -54,6 +54,7 @@ var macroSpecFactories = map[string]func() macroSpec{
 	"evolution_strategy_optimisation": func() macroSpec { return &evolutionStrategySpec{} },
 	"smc_inference":                   func() macroSpec { return &smcInferenceSpec{} },
 	"mcts_self_play":                  func() macroSpec { return &mctsSelfPlaySpec{} },
+	"mcts_planning":                   func() macroSpec { return &mctsPlanningSpec{} },
 }
 
 // DataConfig is the data: tier: it produces the StateTimeStorage that macros

@@ -16,7 +16,9 @@ channels.
 ```
 pkg/
   simulator/   — Core engine: the Iteration interface, PartitionCoordinator, state/time
-                 histories, output & termination conditions, ConfigGenerator, run harnesses
+                 histories, output & termination conditions, ConfigGenerator, run harnesses,
+                 and ReentrantSimulation (running a sub-simulation as a *pure function* of
+                 a starting state and seed — see reentrant.go)
   api/         — YAML config loading, CLI arg parsing, code generation from templates
   continuous/  — Continuous-time processes (Wiener, GBM, Ornstein–Uhlenbeck, drift–diffusion…)
   discrete/    — Discrete / jump processes (Poisson, Bernoulli, Hawkes, categorical transitions…)
@@ -65,7 +67,11 @@ type Iteration interface {
 - `Iterate` runs each step, returning the partition's next state as `[]float64`.
 - **`Iterate` must not mutate `params`** — the test harness checks this.
 - **Keep iterations stateless between runs**: all mutable state must be re-initialisable in
-  `Configure`, because the harness runs a simulation twice and compares outputs.
+  `Configure`, because the harness runs a simulation twice and compares outputs. This rule
+  is load-bearing beyond the harness: it is what lets `simulator.ReentrantSimulation`
+  re-evaluate a model reproducibly by reseeding, which planning (MCTS) and any repeated
+  model evaluation depend on. An iteration that stashes state outside `Configure`'s reach
+  breaks both.
 
 ## How partitions fit together
 
@@ -118,8 +124,8 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      `StateTimeStorage` via `pkg/analysis`; each macro expands one
      of the `pkg/macros` constructors against it (`posterior_estimation`, `likelihood_comparison`,
      the aggregations, `scalar_regression_stats`) or runs live (`evolution_strategy_optimisation`,
-     `smc_inference`, `mcts_self_play`). Macro inputs are typed spec structs decoded straight
-     from YAML.
+     `smc_inference`, `mcts_self_play`, `mcts_planning`). Macro inputs are typed spec structs
+     decoded straight from YAML.
    - **Environments** — `pkg/api/registry_environment.go`, the one registry the engine leaves
      empty for downstreams to fill (`RegisterEnvironment`), backing the `mcts_self_play`
      macro's `env:`. See the Invariant A note below for why this one is a hook, not a spec.
@@ -141,6 +147,19 @@ The line this holds: naming a downstream component is data; **spelling decision 
 data is not**, and would mean growing a rules language inside the config. If a config ever
 needs to state `Legal`/`Apply`/`Terminal` themselves, that is a separate design question —
 not an extension of this hook.
+
+**Planning is the other side of that line, and it is in scope.** `mcts_planning` searches over
+the *forward model* rather than over authored rules: the dynamics are already partitions, so an
+action is a params injection, a transition is one step of the model, and the reward is another
+partition. Nothing has to be authored as rules, so no rules language appears — the decision
+problem is expressed in vocabulary the engine already owns. This is the same argument that puts
+`posterior_estimation` in scope: **search-as-forward-simulation**, a planner stepped as a
+partition, exactly as a posterior is. `agents.SimulationEnvironment` is the adapter, over
+`simulator.ReentrantSimulation`.
+
+So the two MCTS macros sit on opposite sides on purpose: `mcts_self_play` searches decision
+*rules* (downstream, named through the registry), `mcts_planning` searches a *model* (in scope,
+stated as data).
 
 ## Testing conventions
 
