@@ -22,6 +22,8 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-07-26
+
 ### Changed
 
 - **BREAKING: SMC states its model once instead of replicating it per particle.** The particle
@@ -1107,7 +1109,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/umbralcalc/stochadex/compare/v0.11.0...v0.12.0
 [0.7.0]: https://github.com/umbralcalc/stochadex/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/umbralcalc/stochadex/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/umbralcalc/stochadex/compare/v0.5.3...v0.6.0
