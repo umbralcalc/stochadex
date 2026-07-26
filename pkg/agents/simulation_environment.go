@@ -22,7 +22,8 @@ import (
 //
 //	s[0]                 step index within the episode
 //	s[1]                 accumulated (discounted) reward so far
-//	s[2 .. 2+totalWidth] every partition's current row, concatenated in
+//	s[2 .. 2+totalWidth] every partition's state-history window, flattened
+//	                     row-major with the latest row first, concatenated in
 //	                     partition order
 //
 // Carrying the accumulated reward in the state is what lets a finite-horizon,
@@ -56,9 +57,10 @@ import (
 //
 // # Requirements and limits
 //
-//   - Every partition must have StateHistoryDepth 1. Deeper windows are part of
-//     the state and would have to be encoded too; NewSimulationEnvironment
-//     rejects them rather than silently planning from a truncated state.
+//   - A partition's whole state-history window is carried in the encoded state,
+//     so models whose iterations read further back than one step work — a
+//     10-minute rolling count, say. Deep windows cost encoded width: the state
+//     grows as sum(depth * width) over partitions.
 //   - The iterations must honour the framework rule that all mutable state is
 //     re-initialisable in Configure (which RunWithHarnesses already enforces).
 //     That rule is exactly what makes a pure Apply possible.
@@ -70,6 +72,9 @@ type SimulationEnvironment struct {
 	spec            SimulationEnvironmentSpec
 	partitionNames  []string
 	partitionWidths []int
+	partitionDepths []int
+	// windowWidths[i] = depth*width, the encoded size of partition i's window.
+	windowWidths    []int
 	initRows        [][]float64
 	totalWidth      int
 	actionPartition int
@@ -130,25 +135,30 @@ func NewSimulationEnvironment(
 		panic("agents.NewSimulationEnvironment: MaxReturn must exceed MinReturn")
 	}
 	actionPartition := -1
-	names := make([]string, len(settings.Iterations))
-	widths := make([]int, len(settings.Iterations))
-	initRows := make([][]float64, len(settings.Iterations))
+	count := len(settings.Iterations)
+	names := make([]string, count)
+	widths := make([]int, count)
+	depths := make([]int, count)
+	windowWidths := make([]int, count)
+	initRows := make([][]float64, count)
 	total := 0
 	for index, iteration := range settings.Iterations {
-		if iteration.StateHistoryDepth != 1 {
-			panic(fmt.Sprintf(
-				"agents.NewSimulationEnvironment: partition %q has state_history_depth "+
-					"%d; only depth 1 is supported, because a deeper window is part of "+
-					"the state and this encoding does not carry it",
-				iteration.Name, iteration.StateHistoryDepth,
-			))
+		depth := iteration.StateHistoryDepth
+		if depth < 1 {
+			depth = 1
 		}
 		names[index] = iteration.Name
 		widths[index] = iteration.StateWidth
-		// Copied, because ReentrantSimulation.Advance overwrites the settings'
-		// initial values on every transition.
-		initRows[index] = append([]float64(nil), iteration.InitStateValues...)
-		total += iteration.StateWidth
+		depths[index] = depth
+		windowWidths[index] = depth * iteration.StateWidth
+		// The initial window repeats the configured row: before the run starts
+		// there is no history, and this is what a coordinator would begin from.
+		window := make([]float64, 0, windowWidths[index])
+		for row := 0; row < depth; row++ {
+			window = append(window, iteration.InitStateValues...)
+		}
+		initRows[index] = window
+		total += windowWidths[index]
 		if iteration.Name == spec.ActionPartition {
 			actionPartition = index
 		}
@@ -167,6 +177,8 @@ func NewSimulationEnvironment(
 		spec:            spec,
 		partitionNames:  names,
 		partitionWidths: widths,
+		partitionDepths: depths,
+		windowWidths:    windowWidths,
 		initRows:        initRows,
 		totalWidth:      total,
 		actionPartition: actionPartition,
@@ -182,9 +194,9 @@ func (e *SimulationEnvironment) StateWidth() int { return 2 + e.totalWidth }
 func (e *SimulationEnvironment) InitialState() []float64 {
 	state := make([]float64, e.StateWidth())
 	offset := 2
-	for index, row := range e.initRows {
-		copy(state[offset:], row)
-		offset += e.partitionWidths[index]
+	for index, window := range e.initRows {
+		copy(state[offset:], window)
+		offset += e.windowWidths[index]
 	}
 	return state
 }
@@ -194,8 +206,9 @@ func (e *SimulationEnvironment) rowsByName(s []float64) map[string][]float64 {
 	rows := make(map[string][]float64, len(e.partitionWidths))
 	offset := 2
 	for index, width := range e.partitionWidths {
+		// The latest row, which is what a reward is written against.
 		rows[e.partitionNames[index]] = s[offset : offset+width]
-		offset += width
+		offset += e.windowWidths[index]
 	}
 	return rows
 }
@@ -240,11 +253,14 @@ func (e *SimulationEnvironment) apply(
 			"agents: encoded state width %d, want %d", len(s), e.StateWidth())
 	}
 
-	rows := make([][]float64, len(e.partitionWidths))
+	// Hand back each partition's whole window, so an iteration that reads several
+	// steps into the past resumes from the history it actually had.
+	histories := make(map[int]*simulator.StateHistory, len(e.partitionWidths))
 	offset := 2
 	for index, width := range e.partitionWidths {
-		rows[index] = s[offset : offset+width]
-		offset += width
+		histories[index] = simulator.NewStateHistoryFromWindow(
+			s[offset:offset+e.windowWidths[index]], width, e.partitionDepths[index])
+		offset += e.windowWidths[index]
 	}
 	e.simulation.SetParam(e.actionPartition, e.spec.ActionParam, e.spec.Actions[a])
 	// Seeding from (scenario, state, action, sample) is what makes the transition
@@ -254,14 +270,18 @@ func (e *SimulationEnvironment) apply(
 	if sampleSeed != 0 {
 		seed = simulator.DeriveSeed(seed^sampleSeed, int(sampleSeed&0xffff))
 	}
-	advanced := e.simulation.Advance(rows, seed, 1)
+	advanced := e.simulation.RunWindows(simulator.ReentrantRun{
+		Histories: histories,
+		Seed:      &seed,
+		Steps:     1,
+	})
 
 	next := make([]float64, e.StateWidth())
 	next[0] = s[0] + 1
 	writeOffset := 2
 	for index := range e.partitionWidths {
 		copy(next[writeOffset:], advanced[index])
-		writeOffset += e.partitionWidths[index]
+		writeOffset += e.windowWidths[index]
 	}
 	// Discount by the step the reward was earned on, so a path's accumulated
 	// value does not depend on the order the tree happened to visit it in.

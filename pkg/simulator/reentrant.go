@@ -1,5 +1,7 @@
 package simulator
 
+import "gonum.org/v1/gonum/mat"
+
 // DeriveSeed mixes a base seed with a stream index, so the partitions of one
 // re-entrant run get distinct but jointly-determined seeds. Splitting this way
 // means two runs sharing a base seed reproduce each other exactly, while two
@@ -169,6 +171,47 @@ func (r *ReentrantSimulation) Run(run ReentrantRun) [][]float64 {
 			[]float64(nil), coordinator.Shared.StateHistories[index].Values.RawRowView(0)...)
 	}
 	return out
+}
+
+// RunWindows is Run for callers that need each partition's whole state-history
+// window back rather than just its latest row — models whose iterations read
+// further back than one step, where the window IS part of the state.
+//
+// Each returned slice is one partition's window flattened row-major with the
+// latest row first, so it round-trips through NewStateHistoryFromWindow.
+func (r *ReentrantSimulation) RunWindows(run ReentrantRun) [][]float64 {
+	coordinator := r.evaluate(run)
+	out := make([][]float64, len(r.widths))
+	for index := range r.widths {
+		history := coordinator.Shared.StateHistories[index]
+		window := make([]float64, 0, history.StateHistoryDepth*history.StateWidth)
+		for row := 0; row < history.StateHistoryDepth; row++ {
+			window = append(window, history.Values.RawRowView(row)...)
+		}
+		out[index] = window
+	}
+	return out
+}
+
+// NewStateHistoryFromWindow builds a StateHistory from a flattened window,
+// row-major with the latest row first — the shape ReentrantSimulation.RunWindows
+// returns, so a caller can carry a model's whole window through its own state
+// encoding and hand it back to start the next run.
+func NewStateHistoryFromWindow(window []float64, width, depth int) *StateHistory {
+	values := mat.NewDense(depth, width, nil)
+	for row := 0; row < depth; row++ {
+		offset := row * width
+		if offset+width > len(window) {
+			break
+		}
+		values.SetRow(row, window[offset:offset+width])
+	}
+	return &StateHistory{
+		Values:            values,
+		NextValues:        make([]float64, width),
+		StateWidth:        width,
+		StateHistoryDepth: depth,
+	}
 }
 
 // RunInto is Run for callers that want every partition's final row concatenated

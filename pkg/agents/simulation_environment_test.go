@@ -229,12 +229,49 @@ func fixedPolicyReturn(t *testing.T, env *agents.SimulationEnvironment, action i
 	}
 }
 
-func TestSimulationEnvironmentRejectsDeepHistory(t *testing.T) {
-	defer func() {
-		if recover() == nil {
-			t.Fatal("expected a panic for state_history_depth > 1")
-		}
-	}()
+// countingIteration increments a counter each step, so the contents of its
+// history window are predictable: [n, n-1, n-2, ...].
+type countingIteration struct{}
+
+func (c *countingIteration) Configure(int, *simulator.Settings) {}
+
+func (c *countingIteration) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	return []float64{stateHistories[partitionIndex].Values.RawRowView(0)[0] + 1}
+}
+
+// lookbackIteration reports the OLDEST row of the counter's window, which is only
+// correct if the whole window survived the transition. This is the shape a real
+// model uses for a rolling count — trywizard's match state counts yellow cards
+// active in the last ten minutes exactly this way.
+type lookbackIteration struct{ depth int }
+
+func (l *lookbackIteration) Configure(int, *simulator.Settings) {}
+
+func (l *lookbackIteration) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	counter := stateHistories[0]
+	return []float64{counter.Values.RawRowView(counter.StateHistoryDepth - 1)[0]}
+}
+
+// TestSimulationEnvironmentCarriesDeepHistory checks that a partition reading
+// further back than one step plans correctly.
+//
+// Each transition restarts the sub-simulation, so unless the whole window is
+// carried in the encoded state and handed back, an iteration looking N steps into
+// the past sees the initial value forever. Trying to plan over trywizard's fitted
+// rugby model is what surfaced this: its card partition needs an 11-deep window,
+// and a depth-1-only encoding rejected the model outright.
+func TestSimulationEnvironmentCarriesDeepHistory(t *testing.T) {
+	const depth = 3
 	gen := simulator.NewConfigGenerator()
 	gen.SetSimulation(&simulator.SimulationConfig{
 		OutputCondition:      &simulator.NilOutputCondition{},
@@ -244,23 +281,68 @@ func TestSimulationEnvironmentRejectsDeepHistory(t *testing.T) {
 		InitTimeValue:        0,
 	})
 	gen.SetPartition(&simulator.PartitionConfig{
-		Name:              "battery",
-		Iteration:         &batteryIteration{capacity: 1},
-		Params:            simulator.NewParams(map[string][]float64{"dispatch": {0}}),
-		InitStateValues:   []float64{0, 0},
-		StateHistoryDepth: 3,
+		Name:              "counter",
+		Iteration:         &countingIteration{},
+		Params:            simulator.NewParams(map[string][]float64{"unused": {0}}),
+		InitStateValues:   []float64{0},
+		StateHistoryDepth: depth,
+		Seed:              0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "lookback",
+		Iteration:         &lookbackIteration{depth: depth},
+		InitStateValues:   []float64{0},
+		StateHistoryDepth: 1,
 		Seed:              0,
 	})
 	settings, impl := gen.GenerateConfigs()
-	agents.NewSimulationEnvironment(settings, impl, agents.SimulationEnvironmentSpec{
+	impl.ExecutionStrategy = &simulator.InlineExecution{}
+
+	env := agents.NewSimulationEnvironment(settings, impl, agents.SimulationEnvironmentSpec{
 		Actions:         [][]float64{{0}},
-		ActionPartition: "battery",
-		ActionParam:     "dispatch",
-		Horizon:         2,
+		ActionPartition: "counter",
+		ActionParam:     "unused",
+		Horizon:         6,
 		Reward:          func(map[string][]float64) float64 { return 0 },
 		MinReturn:       -1,
 		MaxReturn:       1,
 	})
+
+	// Encoded layout: [step, return, counter window (depth), lookback (1)].
+	if got, want := env.StateWidth(), 2+depth+1; got != want {
+		t.Fatalf("state width %d, want %d (the window has to be in the state)", got, want)
+	}
+
+	state := env.InitialState()
+	for step := 1; step <= 5; step++ {
+		next, err := env.Apply(state, 0)
+		if err != nil {
+			t.Fatalf("Apply: %v", err)
+		}
+		state = next
+
+		window := state[2 : 2+depth]
+		for row := 0; row < depth; row++ {
+			want := float64(step - row)
+			if want < 0 {
+				want = 0
+			}
+			if window[row] != want {
+				t.Fatalf("step %d: window %v, want row %d to be %v — the history is "+
+					"not being carried across transitions", step, window, row, want)
+			}
+		}
+		// An iteration reading the oldest row must see the real history, not the
+		// initial value. It reads the window as it stands at the START of the
+		// step — before the counter advances — so at step N the oldest row it
+		// sees is N-depth, floored at the initial 0.
+		wantOldest := math.Max(0, float64(step-depth))
+		if got := state[2+depth]; got != wantOldest {
+			t.Fatalf("step %d: an iteration looking %d steps back read %v, want %v — "+
+				"it is seeing the initial value instead of the carried history",
+				step, depth, got, wantOldest)
+		}
+	}
 }
 
 // noisyPriceIteration is cyclicPriceIteration with Gaussian noise on the price.
