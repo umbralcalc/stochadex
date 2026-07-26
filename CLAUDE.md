@@ -16,7 +16,9 @@ channels.
 ```
 pkg/
   simulator/   — Core engine: the Iteration interface, PartitionCoordinator, state/time
-                 histories, output & termination conditions, ConfigGenerator, run harnesses
+                 histories, output & termination conditions, ConfigGenerator, run harnesses,
+                 and ReentrantSimulation (running a sub-simulation as a *pure function* of
+                 a starting state and seed — see reentrant.go)
   api/         — YAML config loading, CLI arg parsing, code generation from templates
   continuous/  — Continuous-time processes (Wiener, GBM, Ornstein–Uhlenbeck, drift–diffusion…)
   discrete/    — Discrete / jump processes (Poisson, Bernoulli, Hawkes, categorical transitions…)
@@ -65,7 +67,11 @@ type Iteration interface {
 - `Iterate` runs each step, returning the partition's next state as `[]float64`.
 - **`Iterate` must not mutate `params`** — the test harness checks this.
 - **Keep iterations stateless between runs**: all mutable state must be re-initialisable in
-  `Configure`, because the harness runs a simulation twice and compares outputs.
+  `Configure`, because the harness runs a simulation twice and compares outputs. This rule
+  is load-bearing beyond the harness: it is what lets `simulator.ReentrantSimulation`
+  re-evaluate a model reproducibly by reseeding, which planning (MCTS) and any repeated
+  model evaluation depend on. An iteration that stashes state outside `Configure`'s reach
+  breaks both.
 
 ## How partitions fit together
 

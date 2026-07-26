@@ -24,6 +24,66 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`simulator.ReentrantSimulation`: running a simulation as a pure function of its inputs.**
+  `PartitionCoordinator` advances a simulation, `RunSeededEnsemble` runs several, and
+  `RunWithHarnesses` runs one under assertions. This is the fourth way to drive one —
+  evaluate it from an arbitrary starting state, under a chosen seed, and get the resulting
+  rows back, with the guarantee that the same inputs always produce the same output.
+
+  This was not previously possible. An iteration's mutable state, RNG included, lives in the
+  iteration object and is established by `Configure`, so anything that builds a coordinator
+  and steps it inherits whatever RNG state the iterations are already in.
+  `general.EmbeddedSimulationRunIteration` is a **stream** in exactly this sense: four calls
+  with identical inputs give four different answers. That is right for advancing a nested
+  simulation once per outer step, and wrong for anything that needs to evaluate the same
+  model twice — planning, particle propagation, or re-running a windowed model
+  reproducibly. Each of those had hand-rolled its own workaround.
+
+  What makes it work is a rule the framework already had: every iteration must
+  re-initialise all of its mutable state in `Configure`, which `RunWithHarnesses` enforces
+  by running a simulation twice and comparing. Reseeding via `ReseedIterations` therefore
+  restores the iterations to a state depending only on the seed. The invariant was already
+  there; nothing exploited it.
+
+- **`EmbeddedSimulationRunIteration.SetReseedBase`** opts an embedded run into that
+  behaviour, reseeding its inner iterations from the given base mixed with the outer step
+  number so a run becomes a function of its inputs. **Off by default** — enabling it changes
+  the numbers an existing configuration produces, since the inner noise stream is restarted
+  rather than continued. The macros (windowed likelihood, evolution strategy, SMC) are
+  untouched and keep streaming.
+
+- **`agents.SimulationEnvironment`: MCTS planning over a sub-simulation.** Where the
+  `pkg/api` environment registry lets a config *name* decision rules written in Go, this
+  needs no rules at all — the dynamics are already stated as partitions, so an action is a
+  params injection, a transition is one step of the sub-simulation, and the reward is read
+  off the resulting rows. It is built on `ReentrantSimulation`, which is what makes `Apply`
+  pure enough for a search that materialises a successor once per edge and reuses it.
+
+  It fits the existing `Environment` contract unchanged: the encoded state carries the step
+  index and accumulated discounted reward alongside every partition's row, so a
+  finite-horizon per-step-reward problem terminates at the horizon and normalises its return
+  into the `[0,1]` score UCB1 needs.
+
+  Seeding each transition from `(ScenarioSeed, state, action)` is common random numbers, and
+  it is an approximation rather than a free win: a planner solving a pinned scenario can
+  exploit the noise draw it is going to receive. `TestSimulationEnvironmentOptimismGap`
+  measures that instead of caveating it — planning under one scenario and replaying the same
+  actions under twelve others shows a **21% optimism gap** on the test problem. Averaging
+  over scenario seeds is the mitigation; a chance-node treatment would be the fix, and is not
+  built.
+
+  Validated on battery arbitrage over a cyclic price, where selling requires having bought
+  earlier at a price that looked bad at the time. The environment is deterministic, so the
+  optimum is found exactly by brute force over all action sequences, and MCTS recovers it
+  (160 against 0 for doing nothing). A transition costs ~1 µs.
+
+  Known limits, enforced or documented rather than silent: partitions must have
+  `state_history_depth` 1 (it panics otherwise), the sub-simulation must be Markov in its own
+  rows because the coordinator restarts each transition, and one environment per goroutine.
+  There is no `macros:`/YAML surface yet.
+
+### Added
+
 - **`mcts_self_play` is reachable from config, via a downstream environment registry.**
   MCTS was the last macro with no YAML spelling, because an `agents.Environment` is
   arbitrary decision rules rather than part of the framework catalogue. It is now split

@@ -48,6 +48,21 @@ type NamedIndexedState struct {
 //     a slice of the outer partition's previous state at each step. Enables
 //     warm-starting inner optimisers across outer steps.
 //   - Optional "burn_in_steps" skips initial outer steps before running inner sim.
+//
+// # Streaming vs re-entrant runs
+//
+// By default this is a STREAM: Configure seeds the inner iterations once, and
+// each outer step advances them from wherever the last run left their RNGs. Two
+// runs with identical inputs therefore give different answers, which is the
+// right behaviour for advancing a nested simulation alongside an outer one.
+//
+// SetReseedBase switches it to a re-entrant run instead: the inner iterations are
+// reseeded from that base mixed with the outer step number before every run, so
+// a run becomes a pure function of its inputs and repeats if driven again at the
+// same step. Use it when the nested simulation is being *evaluated* rather than
+// *advanced* — a model re-run over a window, a proposal scored more than once —
+// and reproducibility matters more than a continuing noise stream. See
+// simulator.ReentrantSimulation for the same capability as a standalone value.
 type EmbeddedSimulationRunIteration struct {
 	settings              *simulator.Settings
 	implementations       *simulator.Implementations
@@ -57,6 +72,17 @@ type EmbeddedSimulationRunIteration struct {
 	warmStartConfigs      map[int][2]int
 	timestepFunction      *FromHistoryTimestepFunction
 	burnInSteps           int
+	reseedBase            *uint64
+}
+
+// SetReseedBase makes every run reseed its inner iterations from base mixed with
+// the outer step number, turning the embedded run from a stream into a pure
+// function of its inputs (see the type docs).
+//
+// Off by default: enabling it changes the numbers an existing configuration
+// produces, because the inner noise stream is restarted rather than continued.
+func (e *EmbeddedSimulationRunIteration) SetReseedBase(base uint64) {
+	e.reseedBase = &base
 }
 
 func (e *EmbeddedSimulationRunIteration) Configure(
@@ -224,6 +250,16 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 	}
 	if t, ok := params.GetOk("init_time_value"); ok {
 		e.settings.InitTimeValue = t[0]
+	}
+
+	// restart the inner noise stream when this is a re-entrant run, so the run
+	// depends only on its inputs and the outer step it happens at
+	if e.reseedBase != nil {
+		simulator.ReseedIterations(
+			e.settings,
+			e.implementations,
+			simulator.DeriveSeed(*e.reseedBase, timestepsHistory.CurrentStepNumber),
+		)
 	}
 
 	// instantiate the embedded simulation

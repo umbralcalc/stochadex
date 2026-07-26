@@ -34,10 +34,11 @@ import (
 // # Determinism, and the approximation it encodes
 //
 // Apply must be pure — MCTS materialises a child state once per edge and reuses
-// it on every later visit — but a stochastic sub-simulation is not. This type
-// resolves that by deriving each transition's seed from (ScenarioSeed, state,
-// action) and re-Configuring the iterations before every step. Two calls with
-// the same arguments therefore return the same successor.
+// it on every later visit — but a stochastic sub-simulation is not. That is not
+// a problem this type solves for itself: it delegates to
+// simulator.ReentrantSimulation, the engine's re-entrant evaluation tier, and
+// supplies a seed derived from (ScenarioSeed, state, action). Two calls with the
+// same arguments therefore return the same successor.
 //
 // That is common random numbers: the noise is pinned as a function of where you
 // are and what you do, turning the stochastic model into a deterministic
@@ -60,10 +61,11 @@ import (
 //     shared and re-Configured per transition. Build one SimulationEnvironment
 //     per goroutine.
 type SimulationEnvironment struct {
-	settings        *simulator.Settings
-	implementations *simulator.Implementations
+	simulation      *simulator.ReentrantSimulation
 	spec            SimulationEnvironmentSpec
+	partitionNames  []string
 	partitionWidths []int
+	initRows        [][]float64
 	totalWidth      int
 	actionPartition int
 }
@@ -123,7 +125,9 @@ func NewSimulationEnvironment(
 		panic("agents.NewSimulationEnvironment: MaxReturn must exceed MinReturn")
 	}
 	actionPartition := -1
+	names := make([]string, len(settings.Iterations))
 	widths := make([]int, len(settings.Iterations))
+	initRows := make([][]float64, len(settings.Iterations))
 	total := 0
 	for index, iteration := range settings.Iterations {
 		if iteration.StateHistoryDepth != 1 {
@@ -134,7 +138,11 @@ func NewSimulationEnvironment(
 				iteration.Name, iteration.StateHistoryDepth,
 			))
 		}
+		names[index] = iteration.Name
 		widths[index] = iteration.StateWidth
+		// Copied, because ReentrantSimulation.Advance overwrites the settings'
+		// initial values on every transition.
+		initRows[index] = append([]float64(nil), iteration.InitStateValues...)
 		total += iteration.StateWidth
 		if iteration.Name == spec.ActionPartition {
 			actionPartition = index
@@ -150,10 +158,11 @@ func NewSimulationEnvironment(
 		spec.Discount = 1.0
 	}
 	return &SimulationEnvironment{
-		settings:        settings,
-		implementations: implementations,
+		simulation:      simulator.NewReentrantSimulation(settings, implementations),
 		spec:            spec,
+		partitionNames:  names,
 		partitionWidths: widths,
+		initRows:        initRows,
 		totalWidth:      total,
 		actionPartition: actionPartition,
 	}
@@ -168,8 +177,8 @@ func (e *SimulationEnvironment) StateWidth() int { return 2 + e.totalWidth }
 func (e *SimulationEnvironment) InitialState() []float64 {
 	state := make([]float64, e.StateWidth())
 	offset := 2
-	for index := range e.settings.Iterations {
-		copy(state[offset:], e.settings.Iterations[index].InitStateValues)
+	for index, row := range e.initRows {
+		copy(state[offset:], row)
 		offset += e.partitionWidths[index]
 	}
 	return state
@@ -180,7 +189,7 @@ func (e *SimulationEnvironment) rowsByName(s []float64) map[string][]float64 {
 	rows := make(map[string][]float64, len(e.partitionWidths))
 	offset := 2
 	for index, width := range e.partitionWidths {
-		rows[e.settings.Iterations[index].Name] = s[offset : offset+width]
+		rows[e.partitionNames[index]] = s[offset : offset+width]
 		offset += width
 	}
 	return rows
@@ -215,33 +224,22 @@ func (e *SimulationEnvironment) Apply(s []float64, a int) ([]float64, error) {
 			"agents: encoded state width %d, want %d", len(s), e.StateWidth())
 	}
 
-	// Seed every partition from (scenario, state, action) and re-Configure, so
-	// the iterations' RNGs are restored to a state that depends only on those.
-	base := mixSeed(e.spec.ScenarioSeed, s, a)
+	rows := make([][]float64, len(e.partitionWidths))
 	offset := 2
-	for index := range e.settings.Iterations {
-		e.settings.Iterations[index].Seed = base ^ (uint64(index+1) * 0x9e3779b97f4a7c15)
-		e.settings.Iterations[index].InitStateValues = append(
-			[]float64(nil), s[offset:offset+e.partitionWidths[index]]...)
-		offset += e.partitionWidths[index]
+	for index, width := range e.partitionWidths {
+		rows[index] = s[offset : offset+width]
+		offset += width
 	}
-	e.settings.Iterations[e.actionPartition].Params.Set(
-		e.spec.ActionParam, e.spec.Actions[a])
-	for index, iteration := range e.implementations.Iterations {
-		iteration.Configure(index, e.settings)
-	}
-
-	coordinator := simulator.NewPartitionCoordinator(e.settings, e.implementations)
-	stepper := coordinator.NewStepper()
-	stepper.Step()
-	stepper.Close()
+	e.simulation.SetParam(e.actionPartition, e.spec.ActionParam, e.spec.Actions[a])
+	// Seeding from (scenario, state, action) is what makes the transition pure;
+	// ReentrantSimulation reseeds the iterations from it before stepping.
+	advanced := e.simulation.Advance(rows, mixSeed(e.spec.ScenarioSeed, s, a), 1)
 
 	next := make([]float64, e.StateWidth())
-	step := s[0] + 1
-	next[0] = step
+	next[0] = s[0] + 1
 	writeOffset := 2
 	for index := range e.partitionWidths {
-		copy(next[writeOffset:], coordinator.Shared.StateHistories[index].Values.RawRowView(0))
+		copy(next[writeOffset:], advanced[index])
 		writeOffset += e.partitionWidths[index]
 	}
 	// Discount by the step the reward was earned on, so a path's accumulated
