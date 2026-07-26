@@ -22,6 +22,38 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: SMC states its model once instead of replicating it per particle.** The particle
+  structure used to be a *template* — a partition set written with a `{particle}` placeholder,
+  expanded into N copies inside a single simulation. That made the particle count a property of
+  the configuration, and left per-particle random seeding to whoever wrote the template.
+
+  Evaluating one model many times is what `simulator.ReentrantSimulation` is for, so the model
+  is now written once and run once per particle by
+  `macros.SMCParticleEvaluationIteration`. Particles are evaluated concurrently and synchronise
+  once per round rather than at every inner step; the shipped convergence test runs ~30% faster.
+
+  Migration — Go: `SMCParticleModel.Build` takes `(nParams int)` rather than `(N, nParams int)`
+  and returns one particle's model; `SMCInnerSimConfig.LoglikePartitions []string` becomes
+  `LoglikePartition string`; `ParamForwarding` indices are into the particle's own d-length
+  vector rather than the flat N*d one. YAML: `model.per_particle_partitions` and
+  `model.shared_partitions` become a single `model.partitions`, and `{particle}` placeholders
+  are dropped from partition names, upstream references and `loglike_partition`. The
+  `<sim_name>` partition's row is now one log-likelihood per particle rather than the
+  concatenated inner state.
+
+### Fixed
+
+- **SMC gave every particle the same noise realisation.** Per-particle partitions inherited
+  their template's seed verbatim, so with a stochastic model all N particles produced identical
+  trajectories and identical log-likelihoods. Invisible with a deterministic model — which is
+  why the existing tests missed it — and damaging for simulation-based inference, where the
+  particle cloud is meant to carry the model's Monte Carlo variation: posterior spread was
+  understated because only the proposed parameters varied. Seeds are now derived per particle,
+  and under the redesign above they are derived by the evaluation iteration rather than by the
+  configuration, so a config cannot get this wrong.
+
 ### Added
 
 - **`simulator.ReentrantSimulation`: running a simulation as a pure function of its inputs.**

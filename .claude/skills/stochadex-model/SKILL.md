@@ -261,8 +261,9 @@ macro *names* only, so change the numbers and the objective/model, but keep the 
   now panics if you forget, naming the fix.) **Levers:** proposal covariance wide enough to explore
   prior→truth (diag ≈9); `past_discount` near 1 (0.999) so evidence accumulates instead of being
   forgotten; enough `steps` to concentrate.
-- **`recipes/smc_inference.yaml`** — particle-filter inference; the inner per-particle model is a
-  template (`{particle}` is instantiated per particle) and it recovers the observed stream's mean.
+- **`recipes/smc_inference.yaml`** — particle-filter inference; write the model once under
+  `model.partitions` and it is run once per particle (each with its own random streams), routing
+  each particle's parameters in via `param_forwarding`. Recovers the observed stream's mean.
   **Levers:** `num_particles` (more = tighter posterior), `num_rounds`, and the `priors` ranges.
 - **`recipes/scalar_regression_stats.yaml`** — closed-form OLS of scalar `y` on scalar `x`;
   recovers slope 2.5 and intercept 1.0 of a noisy line. No convergence levers (it's closed-form —

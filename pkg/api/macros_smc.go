@@ -2,8 +2,6 @@ package api
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
@@ -11,12 +9,16 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// smc_inference is a live macro whose inner model is a per-particle template: the
-// same partition set is instantiated once per particle, with the "{particle}"
-// placeholder in partition names and upstream references replaced by the particle
-// index. This is how a config expresses the N-way particle structure of an SMC
-// run (macros.SMCParticleModel.Build) without a general loop construct — the
-// loop lives here, in the macro's Go.
+// smc_inference is a live macro. Its model is stated ONCE, as an ordinary set of
+// partitions, and instantiated per particle by macros.SMCParticleEvaluationIteration.
+//
+// It used to be a template instead: the same partition set written with a
+// "{particle}" placeholder, expanded here into N copies inside one simulation.
+// That made the particle count a property of the configuration, and left
+// per-particle random seeding to whoever wrote the template — which is exactly
+// what silently was not happening, putting every particle on one noise
+// realisation. Seeds are now derived per particle by the evaluation iteration,
+// so a config cannot get them wrong.
 
 type smcInferenceSpec struct {
 	macroTypeField `yaml:",inline"`
@@ -40,12 +42,17 @@ type smcInferenceSpec struct {
 // timestep function walks the storage times). Otherwise a Simulation spec is
 // required.
 type smcModelSpec struct {
-	Simulation            simulator.SimulationConfigStrings `yaml:"simulation,omitempty"`
-	ObservedData          *smcObservedData                  `yaml:"observed_data,omitempty"`
-	SharedPartitions      []simulator.PartitionConfig       `yaml:"shared_partitions,omitempty"`
-	PerParticlePartitions []simulator.PartitionConfig       `yaml:"per_particle_partitions"`
-	LoglikePartition      string                            `yaml:"loglike_partition"`
-	ParamForwarding       map[string][]int                  `yaml:"param_forwarding,omitempty"`
+	Simulation   simulator.SimulationConfigStrings `yaml:"simulation,omitempty"`
+	ObservedData *smcObservedData                  `yaml:"observed_data,omitempty"`
+	// Partitions is one particle's model, written once with no templating. Every
+	// particle gets its own instance.
+	Partitions []simulator.PartitionConfig `yaml:"partitions"`
+	// LoglikePartition names the partition whose state[0] is the particle's
+	// cumulative log-likelihood.
+	LoglikePartition string `yaml:"loglike_partition"`
+	// ParamForwarding maps "partition_name/param_name" to indices into the
+	// particle's own parameter vector (length = len(priors)).
+	ParamForwarding map[string][]int `yaml:"param_forwarding,omitempty"`
 }
 
 type smcObservedData struct {
@@ -100,11 +107,11 @@ func (s *smcInferenceSpec) resolveLive(
 	return partitions, s.NumRounds, timestep, nil
 }
 
-// builder returns the SMCParticleModel.Build closure that instantiates the inner
-// model for N particles with nParams parameters each.
+// builder returns the SMCParticleModel.Build closure that instantiates one
+// particle's model, with nParams parameters.
 func (m *smcModelSpec) builder(
 	storage *simulator.StateTimeStorage,
-) (func(N, nParams int) *macros.SMCInnerSimConfig, error) {
+) (func(nParams int) *macros.SMCInnerSimConfig, error) {
 	// The inner simulation is either auto-built from the observed data's timeline,
 	// or given explicitly as data specs.
 	var explicitSim *simulator.SimulationConfig
@@ -123,7 +130,7 @@ func (m *smcModelSpec) builder(
 		explicitSim = resolved
 	}
 
-	return func(N, nParams int) *macros.SMCInnerSimConfig {
+	return func(nParams int) *macros.SMCInnerSimConfig {
 		partitions := make([]*simulator.PartitionConfig, 0)
 
 		simulation := explicitSim
@@ -146,60 +153,33 @@ func (m *smcModelSpec) builder(
 				InitTimeValue:        times[0],
 			}
 		}
-		for i := range m.SharedPartitions {
-			shared, err := instantiateParticle(m.SharedPartitions[i], -1)
+		for i := range m.Partitions {
+			partition, err := instantiateModelPartition(m.Partitions[i])
 			if err != nil {
-				panic(fmt.Sprintf("smc_inference shared partition: %v", err))
+				panic(fmt.Sprintf("smc_inference model partition: %v", err))
 			}
-			partitions = append(partitions, shared)
-		}
-
-		loglikePartitions := make([]string, N)
-		paramForwarding := make(map[string][]int)
-		for p := 0; p < N; p++ {
-			for i := range m.PerParticlePartitions {
-				partition, err := instantiateParticle(m.PerParticlePartitions[i], p)
-				if err != nil {
-					panic(fmt.Sprintf("smc_inference per-particle partition: %v", err))
-				}
-				partitions = append(partitions, partition)
-			}
-			loglikePartitions[p] = substituteParticle(m.LoglikePartition, p)
-			for key, offsets := range m.ParamForwarding {
-				indices := make([]int, len(offsets))
-				for j, offset := range offsets {
-					indices[j] = p*nParams + offset
-				}
-				paramForwarding[substituteParticle(key, p)] = indices
-			}
+			partitions = append(partitions, partition)
 		}
 
 		simCopy := *simulation
 		return &macros.SMCInnerSimConfig{
-			Partitions:        partitions,
-			Simulation:        &simCopy,
-			LoglikePartitions: loglikePartitions,
-			ParamForwarding:   paramForwarding,
+			Partitions:       partitions,
+			Simulation:       &simCopy,
+			LoglikePartition: m.LoglikePartition,
+			ParamForwarding:  m.ParamForwarding,
 		}
 	}, nil
 }
 
-// substituteParticle replaces the {particle} placeholder with the particle index
-// (a bare placeholder, for the shared pass with index -1, is left as-is).
-func substituteParticle(s string, particle int) string {
-	if particle < 0 {
-		return s
-	}
-	return strings.ReplaceAll(s, "{particle}", strconv.Itoa(particle))
-}
-
-// instantiateParticle builds one partition from a template for the given particle,
-// with a fresh iteration instance, a deep-copied params map (so per-particle
-// upstream injection cannot cross-contaminate), and {particle} substituted through
-// the name and every upstream / partition reference.
-func instantiateParticle(
+// instantiateModelPartition builds one particle's copy of a model partition, with
+// a fresh iteration instance and deep-copied params and wiring maps — so that
+// nothing is shared between particles, which would couple their evaluations.
+//
+// Seeds are deliberately not touched here: the evaluation iteration reseeds every
+// particle's whole model per round (see simulator.ReentrantSimulation), so a
+// config cannot leave two particles sharing a random stream.
+func instantiateModelPartition(
 	template simulator.PartitionConfig,
-	particle int,
 ) (*simulator.PartitionConfig, error) {
 	partition := template
 	partition.Init()
@@ -209,15 +189,6 @@ func instantiateParticle(
 			return nil, err
 		}
 		partition.Iteration = iteration
-	}
-	partition.Name = substituteParticle(partition.Name, particle)
-	if particle >= 0 {
-		// Give each particle its own random stream. Copying the template's seed
-		// verbatim would run every particle on one noise realisation, so a
-		// stochastic model — the whole point of simulation-based inference —
-		// would produce a particle cloud that varies only with the proposed
-		// parameters and not with the model, understating posterior spread.
-		partition.Seed = simulator.DeriveSeed(partition.Seed, particle)
 	}
 
 	params := make(map[string][]float64, len(partition.Params.Map))
@@ -230,18 +201,15 @@ func instantiateParticle(
 
 	fromUpstream := make(map[string]simulator.NamedUpstreamConfig, len(partition.ParamsFromUpstream))
 	for key, upstream := range partition.ParamsFromUpstream {
-		upstream.Upstream = substituteParticle(upstream.Upstream, particle)
-		fromUpstream[substituteParticle(key, particle)] = upstream
+		fromUpstream[key] = upstream
 	}
 	partition.ParamsFromUpstream = fromUpstream
 
 	asPartitions := make(map[string][]string, len(partition.ParamsAsPartitions))
 	for key, refs := range partition.ParamsAsPartitions {
-		substituted := make([]string, len(refs))
-		for i, ref := range refs {
-			substituted[i] = substituteParticle(ref, particle)
-		}
-		asPartitions[substituteParticle(key, particle)] = substituted
+		copied := make([]string, len(refs))
+		copy(copied, refs)
+		asPartitions[key] = copied
 	}
 	partition.ParamsAsPartitions = asPartitions
 

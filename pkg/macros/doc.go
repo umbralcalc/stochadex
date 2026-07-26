@@ -35,7 +35,9 @@
 //     windowed likelihood, i.e. inference run as forward simulation.
 //   - optimisation.go  — evolution-strategy optimisation over a windowed reward.
 //   - smc.go           — sequential Monte Carlo inference, including the live
-//     RunSMCInference driver.
+//     RunSMCInference driver. smc_particles.go holds the evaluator that runs one
+//     model per particle over simulator.ReentrantSimulation, which is why the
+//     model is stated once rather than replicated per particle.
 //   - regression.go    — ScalarRegressionStatsIteration, the one true Iteration
 //     in this package, streaming OLS sufficient statistics alongside a run.
 //   - mcts.go          — MCTS self-play topology over a pkg/agents Environment.

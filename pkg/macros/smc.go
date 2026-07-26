@@ -4,36 +4,35 @@ import (
 	"math"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
-	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// SMCInnerSimConfig describes the inner simulation that evaluates
-// N particles through data.
+// SMCInnerSimConfig describes the model ONE particle runs.
+//
+// The model is stated once and instantiated per particle (see
+// SMCParticleEvaluationIteration), rather than replicated into a single
+// simulation with names templated by particle index.
 type SMCInnerSimConfig struct {
-	// Partitions for the inner simulation (data, model, loglike, etc.).
+	// Partitions for one particle's model (data, model, loglike, etc.).
 	// They are registered in the order given.
 	Partitions []*simulator.PartitionConfig
-	// Simulation config for the inner simulation.
+	// Simulation config for one particle's run.
 	Simulation *simulator.SimulationConfig
-	// LoglikePartitions lists, for each particle p (length N), the name
-	// of the inner partition whose state[0] is the cumulative
-	// log-likelihood for that particle.
-	LoglikePartitions []string
-	// ParamForwarding maps "innerPartitionName/paramName" to indices
-	// into the N*d flat proposal state. These are forwarded from the
-	// proposal partition to inner partitions via the embedded sim.
-	// Partition and param names must be alphanumeric+underscore only.
+	// LoglikePartition names the partition whose state[0] is that particle's
+	// cumulative log-likelihood.
+	LoglikePartition string
+	// ParamForwarding maps "partitionName/paramName" to indices into the
+	// particle's own d-length parameter vector.
 	ParamForwarding map[string][]int
 }
 
-// SMCParticleModel describes a user-defined model for particle
-// evaluation inside the SMC inner simulation.
+// SMCParticleModel describes a user-defined model for particle evaluation.
 type SMCParticleModel struct {
-	// Build creates the inner simulation configuration for N particles
-	// with nParams parameters each.
-	Build func(N int, nParams int) *SMCInnerSimConfig
+	// Build creates one particle's model, with nParams parameters. It is called
+	// once per particle, so it must return a fresh, independent configuration
+	// each time — sharing iteration objects between particles would couple them.
+	Build func(nParams int) *SMCInnerSimConfig
 }
 
 // AppliedSMCInference configures batch SMC (Sequential Monte Carlo)
@@ -67,48 +66,16 @@ func NewSMCInferencePartitions(
 	}
 	priorTypes, priorParams := inference.EncodePriors(applied.Priors)
 
-	// Build inner simulation
-	innerConfig := applied.Model.Build(N, d)
+	// One model per particle, evaluated in parallel each round. The particle
+	// count is a property of this run rather than of the model's configuration.
+	evaluation := NewSMCParticleEvaluationIteration(
+		func() *SMCInnerSimConfig { return applied.Model.Build(d) }, N, d,
+	)
 
-	// Use ConfigGenerator to produce inner Settings/Implementations
-	generator := simulator.NewConfigGenerator()
-	generator.SetSimulation(innerConfig.Simulation)
-	for _, partition := range innerConfig.Partitions {
-		generator.SetPartition(partition)
-	}
-	innerSettings, innerImpl := generator.GenerateConfigs()
-
-	// Compute embedded state width as sum of inner partition init state widths
-	embeddedWidth := 0
-	for _, partition := range innerConfig.Partitions {
-		embeddedWidth += len(partition.InitStateValues)
-	}
-
-	// Compute loglike extraction indices from inner partition layout.
-	// The concatenated output is ordered by partition registration order.
-	partitionOffsets := make(map[string]int)
-	offset := 0
-	for _, partition := range innerConfig.Partitions {
-		partitionOffsets[partition.Name] = offset
-		offset += len(partition.InitStateValues)
-	}
-	loglikeIndices := make([]int, N)
-	for p, name := range innerConfig.LoglikePartitions {
-		loglikeIndices[p] = partitionOffsets[name] // state[0] of that partition
-	}
-
-	// Convert ParamForwarding to NamedUpstreamConfig pointing at proposal
-	embeddedParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
-	for key, indices := range innerConfig.ParamForwarding {
-		embeddedParamsFromUpstream[key] = simulator.NamedUpstreamConfig{
-			Upstream: applied.ProposalName,
-			Indices:  indices,
-		}
-	}
-
-	// Init states
+	// Init states. The evaluation partition's row is one log-likelihood per
+	// particle, so the posterior reads it whole.
 	proposalInit := make([]float64, N*d)
-	embeddedInit := make([]float64, embeddedWidth)
+	evaluationInit := make([]float64, N)
 	posteriorInit := make([]float64, posteriorWidth)
 	for j := range d {
 		posteriorInit[d+j*d+j] = 1.0 // identity covariance
@@ -136,21 +103,20 @@ func NewSMCInferencePartitions(
 		Seed:              applied.Seed,
 	})
 
-	// [1] Embedded simulation
-	embeddedParams := simulator.NewParams(map[string][]float64{
-		"init_time_value": {innerSettings.InitTimeValue},
-		"burn_in_steps":   {0},
-	})
+	// [1] Particle evaluation
 	partitions = append(partitions, &simulator.PartitionConfig{
-		Name: applied.SimName,
-		Iteration: general.NewEmbeddedSimulationRunIteration(
-			innerSettings, innerImpl,
-		),
-		Params:             embeddedParams,
-		ParamsFromUpstream: embeddedParamsFromUpstream,
-		InitStateValues:    embeddedInit,
-		StateHistoryDepth:  2,
-		Seed:               applied.Seed + 100,
+		Name:      applied.SimName,
+		Iteration: evaluation,
+		Params: simulator.NewParams(map[string][]float64{
+			"particle_params": make([]float64, N*d),
+		}),
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"particle_params": {Upstream: applied.ProposalName},
+		},
+		InitStateValues:   evaluationInit,
+		StateHistoryDepth: 2,
+		// The base every particle's per-round seed is derived from.
+		Seed: applied.Seed + 100,
 	})
 
 	// [2] Posterior
@@ -167,10 +133,9 @@ func NewSMCInferencePartitions(
 			"particle_params":   make([]float64, N*d),
 		}),
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"particle_loglikes": {
-				Upstream: applied.SimName,
-				Indices:  loglikeIndices,
-			},
+			// The evaluation partition's row is exactly one log-likelihood per
+			// particle, so it is read whole.
+			"particle_loglikes": {Upstream: applied.SimName},
 			"particle_params": {
 				Upstream: applied.ProposalName,
 			},
@@ -217,20 +182,12 @@ func RunSMCInference(
 		copy(particleParams[p], finalProposal[p*d:(p+1)*d])
 	}
 
-	// Final round log-likelihoods — compute loglike indices from inner sim
-	innerConfig := applied.Model.Build(N, d)
-	partitionOffsets := make(map[string]int)
-	offset := 0
-	for _, partition := range innerConfig.Partitions {
-		partitionOffsets[partition.Name] = offset
-		offset += len(partition.InitStateValues)
-	}
-
+	// Final round log-likelihoods. The evaluation partition's row is one per
+	// particle, so no layout arithmetic over the inner model is needed.
 	finalSim := simVals[len(simVals)-1]
 	logLiks := make([]float64, N)
-	for p, name := range innerConfig.LoglikePartitions {
-		idx := partitionOffsets[name]
-		ll := finalSim[idx]
+	for p := range N {
+		ll := finalSim[p]
 		if math.IsNaN(ll) {
 			ll = math.Inf(-1)
 		}

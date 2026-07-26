@@ -1,7 +1,6 @@
 package macros
 
 import (
-	"fmt"
 	"math"
 	"math/rand/v2"
 	"testing"
@@ -34,68 +33,51 @@ func TestRunSMCInference(t *testing.T) {
 			// Build SMC particle model: each particle proposes a mean value,
 			// and we compare against data using a normal likelihood with
 			// known variance.
+			// One particle's model, instantiated once per particle by the macro.
 			model := SMCParticleModel{
-				Build: func(N int, nParams int) *SMCInnerSimConfig {
-					partitions := make([]*simulator.PartitionConfig, 0)
-					loglikePartitions := make([]string, N)
-					paramForwarding := make(map[string][]int)
-
-					// Observed data partition
-					partitions = append(partitions, &simulator.PartitionConfig{
-						Name:      "observed_data",
-						Iteration: &general.FromStorageIteration{Data: data},
-						Params: simulator.NewParams(
-							make(map[string][]float64)),
-						InitStateValues:   data[0],
-						StateHistoryDepth: 2,
-						Seed:              0,
-					})
-
-					for p := range N {
-						predName := fmt.Sprintf("pred_%d", p)
-						llName := fmt.Sprintf("loglike_%d", p)
-
-						// Prediction partition: outputs the particle's mean param
-						partitions = append(partitions, &simulator.PartitionConfig{
-							Name:      predName,
-							Iteration: &general.ParamValuesIteration{},
-							Params: simulator.NewParams(map[string][]float64{
-								"param_values": {0.0},
-							}),
-							InitStateValues:   []float64{0.0},
-							StateHistoryDepth: 2,
-							Seed:              0,
-						})
-
-						// Log-likelihood partition
-						partitions = append(partitions, &simulator.PartitionConfig{
-							Name: llName,
-							Iteration: &inference.DataComparisonIteration{
-								Likelihood: &inference.NormalLikelihoodDistribution{},
-							},
-							Params: simulator.NewParams(map[string][]float64{
-								"mean":               {0.0},
-								"variance":           {trueVar},
-								"latest_data_values": data[0],
-								"cumulative":         {1},
-								"burn_in_steps":      {0},
-							}),
-							ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-								"mean":               {Upstream: predName},
-								"latest_data_values": {Upstream: "observed_data"},
-							},
-							InitStateValues:   []float64{0.0},
-							StateHistoryDepth: 2,
-							Seed:              0,
-						})
-
-						loglikePartitions[p] = llName
-						// Forward particle's mean param to pred partition
-						paramForwarding[predName+"/param_values"] = []int{p * nParams}
-					}
-
+				Build: func(nParams int) *SMCInnerSimConfig {
 					return &SMCInnerSimConfig{
-						Partitions: partitions,
+						Partitions: []*simulator.PartitionConfig{
+							{
+								Name:              "observed_data",
+								Iteration:         &general.FromStorageIteration{Data: data},
+								Params:            simulator.NewParams(make(map[string][]float64)),
+								InitStateValues:   data[0],
+								StateHistoryDepth: 2,
+								Seed:              0,
+							},
+							{
+								// Outputs this particle's proposed mean.
+								Name:      "pred",
+								Iteration: &general.ParamValuesIteration{},
+								Params: simulator.NewParams(map[string][]float64{
+									"param_values": {0.0},
+								}),
+								InitStateValues:   []float64{0.0},
+								StateHistoryDepth: 2,
+								Seed:              0,
+							},
+							{
+								Name: "loglike",
+								Iteration: &inference.DataComparisonIteration{
+									Likelihood: &inference.NormalLikelihoodDistribution{},
+								},
+								Params: simulator.NewParams(map[string][]float64{
+									"mean":               {0.0},
+									"variance":           {trueVar},
+									"latest_data_values": data[0],
+									"cumulative":         {1},
+									"burn_in_steps":      {0},
+								}),
+								ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+									"mean":               {Upstream: "pred"},
+									"latest_data_values": {Upstream: "observed_data"},
+								},
+								InitStateValues:   []float64{0.0},
+								StateHistoryDepth: 2,
+								Seed:              0,
+							},
+						},
 						Simulation: &simulator.SimulationConfig{
 							OutputCondition: &simulator.NilOutputCondition{},
 							OutputFunction:  &simulator.NilOutputFunction{},
@@ -107,8 +89,9 @@ func TestRunSMCInference(t *testing.T) {
 							},
 							InitTimeValue: times[0],
 						},
-						LoglikePartitions: loglikePartitions,
-						ParamForwarding:   paramForwarding,
+						LoglikePartition: "loglike",
+						// Index into this particle's own parameter vector.
+						ParamForwarding: map[string][]int{"pred/param_values": {0}},
 					}
 				},
 			}

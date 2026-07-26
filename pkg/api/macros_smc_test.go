@@ -6,50 +6,54 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// TestParticleTemplateInstantiation guards SMC correctness at the mechanism level:
-// each particle must get its OWN partition with {particle} substituted through the
-// name and every upstream reference, and its OWN params map — otherwise particles
-// silently share state and the inference is quietly wrong.
-func TestParticleTemplateInstantiation(t *testing.T) {
+// TestModelPartitionInstantiation guards SMC correctness at the mechanism level:
+// every particle gets its own instance of each model partition, with its own
+// params and wiring maps. Sharing any of them would couple particles, since
+// upstream injection writes into params at runtime.
+func TestModelPartitionInstantiation(t *testing.T) {
 	template := simulator.PartitionConfig{
-		Name:            "pred_{particle}",
+		Name:            "pred",
 		Params:          simulator.NewParams(map[string][]float64{"param_values": {0.0}}),
 		InitStateValues: []float64{0.0},
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"mean": {Upstream: "pred_{particle}"},
+			"mean": {Upstream: "pred"},
 		},
 		ParamsAsPartitions: map[string][]string{
-			"peer": {"loglike_{particle}"},
+			"peer": {"loglike"},
 		},
 	}
 
-	p0, err := instantiateParticle(template, 0)
+	p0, err := instantiateModelPartition(template)
 	if err != nil {
 		t.Fatal(err)
 	}
-	p1, err := instantiateParticle(template, 1)
+	p1, err := instantiateModelPartition(template)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if p0.Name != "pred_0" || p1.Name != "pred_1" {
-		t.Errorf("names not substituted: %q, %q", p0.Name, p1.Name)
+	// Names are no longer templated: each particle runs its own simulation, so
+	// two particles' partitions can share a name without colliding.
+	if p0.Name != "pred" || p1.Name != "pred" {
+		t.Errorf("names should be verbatim: %q, %q", p0.Name, p1.Name)
 	}
-	if p0.ParamsFromUpstream["mean"].Upstream != "pred_0" {
-		t.Errorf("upstream not substituted: %q", p0.ParamsFromUpstream["mean"].Upstream)
+	if p0.ParamsFromUpstream["mean"].Upstream != "pred" {
+		t.Errorf("upstream should be verbatim: %q", p0.ParamsFromUpstream["mean"].Upstream)
 	}
-	if p1.ParamsAsPartitions["peer"][0] != "loglike_1" {
-		t.Errorf("params_as_partitions not substituted: %v", p1.ParamsAsPartitions["peer"])
+	if p1.ParamsAsPartitions["peer"][0] != "loglike" {
+		t.Errorf("params_as_partitions should be verbatim: %v", p1.ParamsAsPartitions["peer"])
 	}
 
-	// Deep-copy invariant: mutating one particle's params must not touch the other's
-	// or the template's — upstream injection writes into params at runtime.
 	p0.Params.Map["param_values"][0] = 99.0
 	if p1.Params.Map["param_values"][0] != 0.0 {
 		t.Error("params not deep-copied: particle 1 saw particle 0's mutation")
 	}
 	if template.Params.Map["param_values"][0] != 0.0 {
 		t.Error("params not deep-copied: the template was mutated")
+	}
+	p0.ParamsAsPartitions["peer"][0] = "elsewhere"
+	if p1.ParamsAsPartitions["peer"][0] != "loglike" {
+		t.Error("params_as_partitions not deep-copied between particles")
 	}
 }
 
@@ -94,32 +98,34 @@ macros:
   param_names: [mean]
   model:
     observed_data: {name: observed_data, ref: {partition_name: obs}}
-    per_particle_partitions:
-    - name: "walk_{particle}"
+    partitions:
+    - name: "walk"
       iteration: {type: wiener_process}
       params: {variances: [1.0]}
       init_state_values: [0.0]
       state_history_depth: 2
       seed: 99
-    - name: "loglike_{particle}"
+    - name: "loglike"
       iteration: {type: data_comparison, likelihood: {type: normal}}
       params: {mean: [0.0], variance: [0.5], latest_data_values: [2.0], cumulative: [1], burn_in_steps: [0]}
       params_from_upstream:
-        mean: {upstream: "walk_{particle}"}
+        mean: {upstream: "walk"}
         latest_data_values: {upstream: observed_data}
       init_state_values: [0.0]
       state_history_depth: 2
-    loglike_partition: "loglike_{particle}"
+    loglike_partition: "loglike"
 `
 	rows := runMacroConfig(t, cfg)["smc_sim"]
-	final := rows[len(rows)-1]
-	// Inner layout: observed_data(1), then per particle walk(1), loglike(1).
-	endpoints := []float64{final[1], final[3], final[5], final[7]}
-	for i, value := range endpoints {
-		for j := i + 1; j < len(endpoints); j++ {
-			if value == endpoints[j] {
+	// The evaluation partition's row is one log-likelihood per particle.
+	loglikes := rows[len(rows)-1]
+	if len(loglikes) != 4 {
+		t.Fatalf("expected one log-likelihood per particle, got %v", loglikes)
+	}
+	for i, value := range loglikes {
+		for j := i + 1; j < len(loglikes); j++ {
+			if value == loglikes[j] {
 				t.Fatalf("particles %d and %d share a noise realisation (both %v); "+
-					"per-particle seeds are not being varied: %v", i, j, value, endpoints)
+					"per-particle seeds are not being varied: %v", i, j, value, loglikes)
 			}
 		}
 	}

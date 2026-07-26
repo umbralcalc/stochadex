@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestSMCInferenceMacro checks the smc_inference macro's per-particle template
+// TestSMCInferenceMacro checks the smc_inference macro's per-particle model
 // recovers the true mean (2.0) of an observed data stream — a full particle-filter
 // inference expressed entirely as config.
 func TestSMCInferenceMacro(t *testing.T) {
@@ -31,23 +31,23 @@ macros:
   param_names: [mean]
   model:
     observed_data: {name: observed_data, ref: {partition_name: obs}}
-    per_particle_partitions:
-    - name: "pred_{particle}"
+    partitions:
+    - name: "pred"
       iteration: {type: param_values}
       params: {param_values: [0.0]}
       init_state_values: [0.0]
       state_history_depth: 2
-    - name: "loglike_{particle}"
+    - name: "loglike"
       iteration: {type: data_comparison, likelihood: {type: normal}}
       params: {mean: [0.0], variance: [0.5], latest_data_values: [2.0], cumulative: [1], burn_in_steps: [0]}
       params_from_upstream:
-        mean: {upstream: "pred_{particle}"}
+        mean: {upstream: "pred"}
         latest_data_values: {upstream: observed_data}
       init_state_values: [0.0]
       state_history_depth: 2
-    loglike_partition: "loglike_{particle}"
+    loglike_partition: "loglike"
     param_forwarding:
-      "pred_{particle}/param_values": [0]
+      "pred/param_values": [0]
 `
 	out := runMacroConfig(t, cfg)
 	post := out["smc_posterior"]
