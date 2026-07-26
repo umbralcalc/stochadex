@@ -74,6 +74,7 @@ type EmbeddedSimulationRunIteration struct {
 	burnInSteps           int
 	reseedBase            *uint64
 	simulation            *simulator.ReentrantSimulation
+	concatBuffer          []float64
 }
 
 // SetReseedBase makes every run reseed its inner iterations from base mixed with
@@ -287,13 +288,11 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		}
 	}
 
-	// prepare the returned state slice as the concatenated
-	// final states of all partitions
-	concatFinalStates := make([]float64, 0)
-	for _, row := range e.simulation.Run(run) {
-		concatFinalStates = append(concatFinalStates, row...)
-	}
-	return concatFinalStates
+	// the returned state is the concatenated final states of all partitions,
+	// built into a buffer this iteration keeps so a run costs no per-partition
+	// allocation
+	e.concatBuffer = e.simulation.RunInto(run, e.concatBuffer)
+	return e.concatBuffer
 }
 
 // NewEmbeddedSimulationRunIteration constructs an embedded run iteration

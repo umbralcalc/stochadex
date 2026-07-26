@@ -1,6 +1,7 @@
 package general
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/continuous"
@@ -190,4 +191,58 @@ func TestEmbeddedSimulationRunReseeding(t *testing.T) {
 			t.Errorf("reseed base is not reaching the inner iterations: %v", otherResults[0])
 		}
 	})
+}
+
+// BenchmarkEmbeddedSimulationRun guards the allocation behaviour of an embedded
+// run. The concatenated output goes into a buffer the iteration keeps, so the
+// per-run cost should not grow a slice per inner partition — the regression that
+// routing through simulator.ReentrantSimulation would otherwise have introduced.
+func BenchmarkEmbeddedSimulationRun(b *testing.B) {
+	inner := simulator.NewConfigGenerator()
+	inner.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.NilOutputCondition{},
+		OutputFunction:       &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	const innerPartitions = 8
+	for i := 0; i < innerPartitions; i++ {
+		inner.SetPartition(&simulator.PartitionConfig{
+			Name:              fmt.Sprintf("walk_%d", i),
+			Iteration:         &continuous.WienerProcessIteration{},
+			Params:            simulator.NewParams(map[string][]float64{"variances": {1, 1, 1, 1}}),
+			InitStateValues:   []float64{0, 0, 0, 0},
+			StateHistoryDepth: 1,
+			Seed:              uint64(i + 1),
+		})
+	}
+	embedded := NewEmbeddedSimulationRunIteration(inner.GenerateConfigs())
+
+	outer := simulator.NewConfigGenerator()
+	outer.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.NilOutputCondition{},
+		OutputFunction:       &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	outer.SetPartition(&simulator.PartitionConfig{
+		Name:              "embedded",
+		Iteration:         embedded,
+		Params:            simulator.NewParams(map[string][]float64{"burn_in_steps": {0}}),
+		InitStateValues:   make([]float64, innerPartitions*4),
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	outerSettings, outerImpl := outer.GenerateConfigs()
+	coordinator := simulator.NewPartitionCoordinator(outerSettings, outerImpl)
+	params := &outerSettings.Iterations[0].Params
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		embedded.Iterate(params, 0, coordinator.Shared.StateHistories,
+			coordinator.Shared.TimestepsHistory)
+	}
 }

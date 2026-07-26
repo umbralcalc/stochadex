@@ -151,13 +151,10 @@ type ReentrantRun struct {
 	AfterConfigure func()
 }
 
-// Run evaluates the sub-simulation and returns the resulting rows, one per
-// partition in partition order.
-//
-// With Seed set the run is pure with respect to its inputs: repeating a call
-// repeats its result, whatever ran in between. Rows are copied in and out, so
-// the caller's slices are never retained or mutated.
-func (r *ReentrantSimulation) Run(run ReentrantRun) [][]float64 {
+// evaluate applies the run's starting conditions and drives the sub-simulation,
+// returning the coordinator so callers can read the final rows in whatever shape
+// they need.
+func (r *ReentrantSimulation) evaluate(run ReentrantRun) *PartitionCoordinator {
 	for index := range r.settings.Iterations {
 		if index < len(run.Rows) && run.Rows[index] != nil {
 			r.settings.Iterations[index].InitStateValues = append(
@@ -187,13 +184,40 @@ func (r *ReentrantSimulation) Run(run ReentrantRun) [][]float64 {
 	} else {
 		coordinator.Run()
 	}
+	return coordinator
+}
 
+// Run evaluates the sub-simulation and returns the resulting rows, one per
+// partition in partition order.
+//
+// With Seed set the run is pure with respect to its inputs: repeating a call
+// repeats its result, whatever ran in between. Rows are copied in and out, so
+// the caller's slices are never retained or mutated. Callers that only want the
+// rows concatenated should prefer RunInto, which reuses a buffer instead of
+// allocating one slice per partition.
+func (r *ReentrantSimulation) Run(run ReentrantRun) [][]float64 {
+	coordinator := r.evaluate(run)
 	out := make([][]float64, len(r.widths))
 	for index := range r.widths {
 		out[index] = append(
 			[]float64(nil), coordinator.Shared.StateHistories[index].Values.RawRowView(0)...)
 	}
 	return out
+}
+
+// RunInto is Run for callers that want every partition's final row concatenated
+// into one slice they own. dst is truncated and reused, so a caller holding one
+// buffer across runs pays no per-partition allocation — the shape an iteration
+// wants, since its own return value is a single row.
+//
+// The returned slice aliases dst. Treat it as valid only until the next call.
+func (r *ReentrantSimulation) RunInto(run ReentrantRun, dst []float64) []float64 {
+	coordinator := r.evaluate(run)
+	dst = dst[:0]
+	for index := range r.widths {
+		dst = append(dst, coordinator.Shared.StateHistories[index].Values.RawRowView(0)...)
+	}
+	return dst
 }
 
 // Advance is the pure, fixed-length form of Run: evaluate the sub-simulation for
