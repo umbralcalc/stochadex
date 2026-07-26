@@ -7,6 +7,7 @@ package agents_test
 // tictactoe.go as a deterministic, easy-to-reason-about driver.
 
 import (
+	"errors"
 	"math/rand/v2"
 	"testing"
 
@@ -495,4 +496,187 @@ func TestMCTSTreeIterationTerminalRootEmitsHasLeafFalse(t *testing.T) {
 			t.Fatalf("step %d: expected has_leaf=0 at terminal root, got %v", i, r[hasLeafSlot])
 		}
 	}
+}
+
+// TestMCTSTreeIterationBacksUpTerminalSelections pins the decomposed pipeline's
+// terminal handling against MCTSTree.RunOne's.
+//
+// When SelectLeaf walks into an already-terminal node it returns ok=false. The
+// partition used to discard that path entirely — no visit, no score — so once a
+// tree saturated (endgames, shallow games) it stopped accumulating statistics
+// and raising the simulation count bought nothing. RunOne has always backed the
+// terminal scores up instead, which is why the one-shot RunMCTSSearch found
+// wins the partitioned self-play stack missed.
+//
+// The position has three empty cells, so the tree saturates within a handful of
+// steps and almost every later selection lands on a terminal node. Root visits
+// must therefore keep tracking the step count.
+func TestMCTSTreeIterationBacksUpTerminalSelections(t *testing.T) {
+	const steps = 60
+	tree := newMCTSTreeIteration()
+	gen := simulator.NewConfigGenerator()
+	store := simulator.NewStateTimeStorage()
+
+	// X at 0, 2, 4; O at 1, 3, 5; cells 6, 7, 8 empty and X to move.
+	nearEnd := agents.TTTFromGrid([9]int8{1, 2, 1, 2, 1, 2, 0, 0, 0}, 0)
+	rowInit := make([]float64, agents.MCTSTreeRowWidth(agents.TTTWidth, 9))
+	copy(rowInit[agents.MCTSTreeRowLeafStateOffset:], agents.TTTEncode(nearEnd))
+
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.EveryStepOutputCondition{},
+		OutputFunction:       &simulator.StateTimeStorageOutputFunction{Store: store},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "tree",
+		Iteration:         tree,
+		InitStateValues:   rowInit,
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	simulator.NewPartitionCoordinator(settings, impl).Run()
+
+	rows := store.GetValues("tree")
+	final := rows[len(rows)-1]
+	visitsOffset := agents.MCTSTreeRowVisitsOffset(agents.TTTWidth)
+	total := 0.0
+	for _, visits := range final[visitsOffset : visitsOffset+9] {
+		total += visits
+	}
+	// One backup per step, minus the first step's selection which is still
+	// pending when the run ends. Before the fix this plateaued in single digits.
+	if total < steps-5 {
+		t.Fatalf(
+			"root visits stopped accumulating: got %v after %d steps, want ~%d "+
+				"(terminal selections are being dropped instead of backed up)",
+			total, steps, steps-1,
+		)
+	}
+}
+
+// TestMCTSTreeIterationBacksUpDepthCappedSelections is the depth-cap counterpart
+// to the terminal test above: MCTSTree.RunOne rolls out from a depth-capped node
+// and backs the result up, so the decomposed pipeline must publish that node as a
+// leaf rather than drop the iteration.
+//
+// MaxTreeDepth is 1, so once every root child has been expanded, every further
+// selection descends one level and stops at the cap. Root visits must keep
+// tracking the step count; before the fix they plateaued at roughly the number of
+// root children, which is why raising SimsPerPly bought nothing on deep searches.
+func TestMCTSTreeIterationBacksUpDepthCappedSelections(t *testing.T) {
+	const steps = 60
+	tree := &agents.MCTSTreeIteration[agents.TTTState, agents.TTTAction]{
+		Env:             &agents.TTTGame{},
+		Cfg:             agents.MCTSConfig[agents.TTTState, agents.TTTAction]{MaxTreeDepth: 1},
+		Decoder:         agents.TTTDecode,
+		Encoder:         agents.TTTEncode,
+		MaxLegalActions: 9,
+		StateWidth:      agents.TTTWidth,
+		Players:         2,
+	}
+	gen := simulator.NewConfigGenerator()
+	store := simulator.NewStateTimeStorage()
+
+	rowInit := make([]float64, agents.MCTSTreeRowWidth(agents.TTTWidth, 9))
+	copy(rowInit[agents.MCTSTreeRowLeafStateOffset:], agents.TTTEncode(agents.TTTState{}))
+
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.EveryStepOutputCondition{},
+		OutputFunction:       &simulator.StateTimeStorageOutputFunction{Store: store},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "tree",
+		Iteration:         tree,
+		InitStateValues:   rowInit,
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	simulator.NewPartitionCoordinator(settings, impl).Run()
+
+	rows := store.GetValues("tree")
+	final := rows[len(rows)-1]
+	visitsOffset := agents.MCTSTreeRowVisitsOffset(agents.TTTWidth)
+	total := 0.0
+	for _, visits := range final[visitsOffset : visitsOffset+9] {
+		total += visits
+	}
+	if total < steps-5 {
+		t.Fatalf(
+			"root visits stopped accumulating past the depth cap: got %v after %d "+
+				"steps, want ~%d (capped selections are being dropped instead of "+
+				"published as leaves)",
+			total, steps, steps-1,
+		)
+	}
+}
+
+// TestMCTSTreeIterationDropsApplyFailures pins the one outcome that must NOT be
+// backed up. A broken transition is an environment fault, not evidence about the
+// action, so crediting a visit would bias selection away from it — and RunOne
+// backs up nothing in this case either.
+func TestMCTSTreeIterationDropsApplyFailures(t *testing.T) {
+	tree := &agents.MCTSTreeIteration[agents.TTTState, agents.TTTAction]{
+		Env:             brokenApplyEnv{&agents.TTTGame{}},
+		Cfg:             agents.MCTSConfig[agents.TTTState, agents.TTTAction]{},
+		Decoder:         agents.TTTDecode,
+		Encoder:         agents.TTTEncode,
+		MaxLegalActions: 9,
+		StateWidth:      agents.TTTWidth,
+		Players:         2,
+	}
+	gen := simulator.NewConfigGenerator()
+	store := simulator.NewStateTimeStorage()
+
+	rowInit := make([]float64, agents.MCTSTreeRowWidth(agents.TTTWidth, 9))
+	copy(rowInit[agents.MCTSTreeRowLeafStateOffset:], agents.TTTEncode(agents.TTTState{}))
+
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.EveryStepOutputCondition{},
+		OutputFunction:       &simulator.StateTimeStorageOutputFunction{Store: store},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 20},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "tree",
+		Iteration:         tree,
+		InitStateValues:   rowInit,
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	simulator.NewPartitionCoordinator(settings, impl).Run()
+
+	rows := store.GetValues("tree")
+	final := rows[len(rows)-1]
+	visitsOffset := agents.MCTSTreeRowVisitsOffset(agents.TTTWidth)
+	for i, visits := range final[visitsOffset : visitsOffset+9] {
+		if visits != 0 {
+			t.Fatalf("a failing Apply must not be credited a visit; slot %d has %v", i, visits)
+		}
+	}
+	hasLeafSlot := agents.MCTSTreeRowHasLeafOffset(agents.TTTWidth)
+	for i, row := range rows {
+		if i == 0 {
+			continue // initial row, before any Iterate
+		}
+		if row[hasLeafSlot] != 0 {
+			t.Fatalf("step %d: a failing Apply produced no leaf, want has_leaf=0", i)
+		}
+	}
+}
+
+// brokenApplyEnv is tic-tac-toe with a transition that always errors, so every
+// expansion attempt fails.
+type brokenApplyEnv struct{ *agents.TTTGame }
+
+func (brokenApplyEnv) Apply(agents.TTTState, agents.TTTAction) (agents.TTTState, error) {
+	return agents.TTTState{}, errors.New("broken transition")
 }

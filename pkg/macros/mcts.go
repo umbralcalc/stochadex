@@ -76,6 +76,69 @@ type MCTSSelfPlaySpec[S any, A any] struct {
 	Seed uint64
 }
 
+// MCTSSearchSettings is the env-independent half of MCTSSelfPlaySpec: the
+// partition naming, seed, and UCT hyperparameters, all of which are plain
+// scalars a config can state as data. The other half of the spec — the typed
+// Environment, the codecs, the initial state, and the row-shape constants
+// derived from them — has no data spelling and can only come from Go.
+//
+// That split is what the pkg/api environment registry is built on. A config
+// states the search settings; a downstream-registered builder supplies the
+// environment half and calls ApplyMCTSSearchSettings to combine the two. The
+// engine therefore never has to know what the environment *is*.
+type MCTSSearchSettings struct {
+	// Name prefix for the generated partitions (see MCTSSelfPlaySpec.Name).
+	Name string
+	// SimsPerPly is the inner-sim step count between outer plies.
+	SimsPerPly int
+	// Simulations, Exploration, MaxTreeDepth and RolloutMaxSteps are the UCT
+	// hyperparameters. Zero means "leave whatever the builder set", which in
+	// turn leaves the agents package defaults when the builder set nothing.
+	Simulations     int
+	Exploration     float64
+	MaxTreeDepth    int
+	RolloutMaxSteps int
+	// Seed is the base RNG seed for the inner partitions.
+	Seed uint64
+}
+
+// ApplyMCTSSearchSettings copies the config-stated settings onto spec, leaving
+// the typed environment fields (Env, Cfg.Rollout, Cfg.Progress, InitState,
+// Decoder, Encoder, MaxLegalActions, StateWidth, Players) untouched.
+//
+// Every numeric field is override-if-set: a zero in the settings leaves the
+// builder's own value in place. This makes a registered environment free to
+// carry sensible per-ruleset defaults that a config may selectively override,
+// rather than having every config restate every knob. Name is the exception —
+// it always wins when non-empty, because it determines the partition names the
+// surrounding config reads output from.
+func ApplyMCTSSearchSettings[S any, A any](
+	spec *MCTSSelfPlaySpec[S, A],
+	settings MCTSSearchSettings,
+) {
+	if settings.Name != "" {
+		spec.Name = settings.Name
+	}
+	if settings.SimsPerPly > 0 {
+		spec.SimsPerPly = settings.SimsPerPly
+	}
+	if settings.Seed != 0 {
+		spec.Seed = settings.Seed
+	}
+	if settings.Simulations > 0 {
+		spec.Cfg.Simulations = settings.Simulations
+	}
+	if settings.Exploration > 0 {
+		spec.Cfg.Exploration = settings.Exploration
+	}
+	if settings.MaxTreeDepth > 0 {
+		spec.Cfg.MaxTreeDepth = settings.MaxTreeDepth
+	}
+	if settings.RolloutMaxSteps > 0 {
+		spec.Cfg.RolloutMaxSteps = settings.RolloutMaxSteps
+	}
+}
+
 // NewMCTSSelfPlayPartitions returns the outer partitions for an MCTS
 // self-play simulation built around the spec. The returned slice contains
 // two entries: the apply partition (outer state, one ply per outer step)

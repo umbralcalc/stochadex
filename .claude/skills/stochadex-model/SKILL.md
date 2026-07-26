@@ -229,6 +229,15 @@ Notable macros (all take a `data:` block): `vector_mean` / `vector_variance` / `
 `comparison:` with a windowed embedded model). `evolution_strategy_optimisation` and `smc_inference`
 run live (no `data:` needed; give them `steps:`).
 
+`mcts_self_play` also runs live, but is the one macro you cannot write from config alone: its
+`env:` names an `agents.Environment` — decision rules like a game's legal moves and win
+condition — which only Go can supply. A downstream module registers one with
+`api.RegisterEnvironment` and the binary must link that module. The engine ships a single
+`tictactoe` fixture, so `{type: mcts_self_play, name: ttt, steps: 10, sims_per_ply: 120, env:
+{type: tictactoe}}` runs out of the box and nothing else will unless you built the binary. If the
+user wants tree search over a *simulation* rather than over game rules, that is not this macro —
+reach for `evolution_strategy_optimisation` over a policy parameterisation instead.
+
 ## Worked recipes (start here for the inference/optimisation macros)
 
 The three learning macros have levers that decide whether they *converge* or merely *run* — so
@@ -323,7 +332,10 @@ params) `partition_event` (reads `event_partition_index` / `event_state_value_in
 **Aggregations:** `count` `sum` `mean` `max` `min`.
 **Macros:** `vector_mean` `vector_variance` `vector_covariance` `grouped_aggregation`
 `scalar_regression_stats` `likelihood_comparison` `posterior_estimation`
-`likelihood_mean_function_fit` `evolution_strategy_optimisation` `smc_inference`.
+`likelihood_mean_function_fit` `evolution_strategy_optimisation` `smc_inference`
+`mcts_self_play` (needs a registered `env:`).
+**Environments** (`mcts_self_play`'s `env:`): `tictactoe` only, unless the binary links a module
+that called `api.RegisterEnvironment`.
 **Simulation components:** output_condition `nil|every_step|every_n_steps|only_given_partitions`;
 output_function `nil|stdout|json_log`; termination `number_of_steps|time_elapsed`;
 timestep `constant|exponential_distribution|from_history`.

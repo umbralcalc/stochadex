@@ -36,9 +36,12 @@ type macroSpec interface {
 }
 
 // macroSpecFactories maps a macro type to a factory for its empty typed spec.
-// Aggregation and inference/stats macros are here; MCTS and SMC stay in Go (their
-// models are user closures), and evolution-strategy optimisation is a live run,
-// not an against-storage analysis.
+// Aggregation and inference/stats macros are against-storage analyses;
+// evolution-strategy optimisation, SMC inference and MCTS self-play are live
+// runs (see liveMacroSpec). mcts_self_play is the odd one out in how its central
+// component resolves: its environment is arbitrary decision rules with no data
+// spelling, so it comes from the environment registry rather than a data
+// registry — see registry_environment.go.
 var macroSpecFactories = map[string]func() macroSpec{
 	"vector_mean":                     func() macroSpec { return &vectorMeanSpec{} },
 	"vector_variance":                 func() macroSpec { return &vectorVarianceSpec{} },
@@ -50,6 +53,7 @@ var macroSpecFactories = map[string]func() macroSpec{
 	"likelihood_mean_function_fit":    func() macroSpec { return &likelihoodMeanFunctionFitSpec{} },
 	"evolution_strategy_optimisation": func() macroSpec { return &evolutionStrategySpec{} },
 	"smc_inference":                   func() macroSpec { return &smcInferenceSpec{} },
+	"mcts_self_play":                  func() macroSpec { return &mctsSelfPlaySpec{} },
 }
 
 // DataConfig is the data: tier: it produces the StateTimeStorage that macros

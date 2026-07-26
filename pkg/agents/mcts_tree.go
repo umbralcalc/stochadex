@@ -64,14 +64,44 @@ func (t *MCTSTree[S, A]) NodeCount() int {
 	return len(t.nodes)
 }
 
+// MCTSLeafOutcome says why selection stopped where it did. The distinction is
+// load-bearing for callers driving the decomposed pipeline: the four non-expansion
+// outcomes each need a different backup, and MCTSTree.RunOne applies exactly one
+// of those per iteration. Collapsing them into a single "not ok" and dropping the
+// iteration silently starves the tree of statistics — see MCTSTreeIteration.Iterate.
+type MCTSLeafOutcome int
+
+const (
+	// MCTSLeafExpanded: a new child node was created. Roll out from it and back
+	// the resulting scores up along the returned path.
+	MCTSLeafExpanded MCTSLeafOutcome = iota
+	// MCTSLeafTerminal: selection reached a finished position. The environment
+	// scores it exactly, so back those scores up directly — no rollout needed.
+	MCTSLeafTerminal
+	// MCTSLeafDepthCapped: MaxTreeDepth was reached. RunOne rolls out from the
+	// capped node (a Progress proxy is the usual way to score the truncation)
+	// and backs the result up; a decomposed caller should do the same.
+	MCTSLeafDepthCapped
+	// MCTSLeafNoLegalActions: a non-terminal node offering no legal actions —
+	// a stalled position. Handled exactly like a depth cap.
+	MCTSLeafNoLegalActions
+	// MCTSLeafApplyFailed: env.Apply errored during expansion, so no node was
+	// created. Nothing is backed up: this is an environment fault, not a search
+	// result, and crediting a visit for it would bias selection away from an
+	// action whose only sin is a broken transition.
+	MCTSLeafApplyFailed
+)
+
 // SelectLeaf walks the tree from the root using UCB1 (with first-visit
 // preference for unvisited children) until it reaches an unexpanded edge,
 // then expands it by creating a new child node. Returns the path of node
 // indices from the root's child down to the new leaf, the leaf's state,
 // the leaf's node index, and ok=true. Returns ok=false if the root is
 // terminal, has no legal moves, MaxTreeDepth is reached, or env.Apply
-// fails during expansion (the caller should treat this as "no leaf
-// selected this step").
+// fails during expansion.
+//
+// ok=false collapses four outcomes that want different backups, so prefer
+// SelectLeafWithOutcome unless you genuinely only care whether the tree grew.
 //
 // SelectLeaf does NOT roll out and does NOT back up — it is the
 // (selection + expansion) half of one MCTS iteration. Pair it with
@@ -81,6 +111,14 @@ func (t *MCTSTree[S, A]) NodeCount() int {
 // Calls cfg.applyDefaults() so a fresh MCTSConfig works out of the box. The
 // mutation is idempotent (only zero values are filled).
 func (t *MCTSTree[S, A]) SelectLeaf(env Environment[S, A], cfg *MCTSConfig[S, A], rng *rand.Rand) (path []int, leafState S, leafIdx int, ok bool) {
+	path, leafState, leafIdx, outcome := t.SelectLeafWithOutcome(env, cfg, rng)
+	return path, leafState, leafIdx, outcome == MCTSLeafExpanded
+}
+
+// SelectLeafWithOutcome is SelectLeaf with the stop reason reported explicitly,
+// so a caller splitting selection / rollout / backup across partitions can apply
+// the same backup RunOne would for each case.
+func (t *MCTSTree[S, A]) SelectLeafWithOutcome(env Environment[S, A], cfg *MCTSConfig[S, A], rng *rand.Rand) (path []int, leafState S, leafIdx int, outcome MCTSLeafOutcome) {
 	cfg.applyDefaults()
 	_ = rng // not currently consumed (selection is deterministic given UCB ties); kept for future tie-break randomisation
 	path = make([]int, 0, 32)
@@ -89,14 +127,10 @@ func (t *MCTSTree[S, A]) SelectLeaf(env Environment[S, A], cfg *MCTSConfig[S, A]
 	for {
 		nd := &t.nodes[cur]
 		if _, done := env.Terminal(nd.state); done {
-			// Already-terminal node: caller can backupScores via this path.
-			return path, nd.state, cur, false
+			return path, nd.state, cur, MCTSLeafTerminal
 		}
 		if depth >= cfg.MaxTreeDepth {
-			// Depth-capped: caller may want to score via progress proxy
-			// downstream; we surface this leaf's state but signal not-ok
-			// so the caller knows there's no real expansion.
-			return path, nd.state, cur, false
+			return path, nd.state, cur, MCTSLeafDepthCapped
 		}
 		if !nd.expanded {
 			leg := env.Legal(nd.state)
@@ -108,7 +142,7 @@ func (t *MCTSTree[S, A]) SelectLeaf(env Environment[S, A], cfg *MCTSConfig[S, A]
 		}
 		leg := env.Legal(nd.state)
 		if len(leg) == 0 {
-			return path, nd.state, cur, false
+			return path, nd.state, cur, MCTSLeafNoLegalActions
 		}
 		unvisited := -1
 		for i, ci := range nd.children {
@@ -131,7 +165,7 @@ func (t *MCTSTree[S, A]) SelectLeaf(env Environment[S, A], cfg *MCTSConfig[S, A]
 		if ci < 0 {
 			ns, err := env.Apply(nd.state, leg[pickIdx])
 			if err != nil {
-				return path, nd.state, cur, false
+				return path, nd.state, cur, MCTSLeafApplyFailed
 			}
 			child := len(t.nodes)
 			t.nodes = append(t.nodes, node[S]{
@@ -142,7 +176,7 @@ func (t *MCTSTree[S, A]) SelectLeaf(env Environment[S, A], cfg *MCTSConfig[S, A]
 			})
 			t.nodes[cur].children[pickIdx] = child
 			path = append(path, child)
-			return path, ns, child, true
+			return path, ns, child, MCTSLeafExpanded
 		}
 		path = append(path, ci)
 		cur = ci
@@ -699,15 +733,33 @@ func (m *MCTSTreeIteration[S, A]) Iterate(
 	// arrive at this partition next step (via state-history reading).
 	step := uint64(timestepsHistory.CurrentStepNumber)
 	rng := rand.New(rand.NewPCG(m.seed^step, uint64(partitionIndex+911)))
-	path, leafState, _, ok := m.tree.SelectLeaf(m.Env, &cfg, rng)
+	path, leafState, _, outcome := m.tree.SelectLeafWithOutcome(m.Env, &cfg, rng)
 	hasLeaf := false
-	if ok {
+	switch outcome {
+	case MCTSLeafExpanded, MCTSLeafDepthCapped, MCTSLeafNoLegalActions:
+		// All three want the same thing: a rollout from leafState, scored and
+		// backed up along path — which is exactly what MCTSTree.RunOne does for
+		// each of them. Here the rollout is a separate partition, so publish
+		// the leaf (has_leaf=1) and hold the path until its scores arrive next
+		// step, in phase A.
+		//
+		// Load-bearing: dropping the two non-expansion cases instead makes
+		// every depth-capped or stalled selection a silent no-op — no visit, no
+		// score — so a tree that saturates stops accumulating statistics and
+		// raising SimsPerPly buys nothing.
 		m.pendingPath = path
 		hasLeaf = true
-	} else {
-		// MCTSTree is exhausted (terminal at root, or Apply error during
-		// expansion). Leave pendingPath nil; the rollout partition will
-		// see has_leaf=0 and skip.
+	case MCTSLeafTerminal:
+		// The environment scores a finished position exactly, so back it up now
+		// rather than paying a rollout round-trip for an already-known result.
+		if scores, done := m.Env.Terminal(leafState); done {
+			m.tree.backupScores(path, scores)
+		}
+		leafState = m.root
+	case MCTSLeafApplyFailed:
+		// An environment fault, not a search result. RunOne backs up nothing
+		// here and neither do we: crediting a visit would bias selection away
+		// from an action whose only problem is a broken transition.
 		leafState = m.root
 	}
 
