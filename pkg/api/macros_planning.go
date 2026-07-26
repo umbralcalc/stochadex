@@ -56,8 +56,20 @@ type mctsPlanningSpec struct {
 	// clamped outside it — widen the range rather than leaving it clamped, since
 	// a saturated score gives the search no gradient.
 	ReturnRange []float64 `yaml:"return_range"`
-	// ScenarioSeed pins which noise realisation is planned against.
+	// ScenarioSeed pins which noise realisation Apply returns, and so which
+	// scenario a pinned-noise search plans against.
 	ScenarioSeed uint64 `yaml:"scenario_seed,omitempty"`
+	// PinnedNoise turns chance nodes OFF, reverting to a search that commits to
+	// the first successor drawn for each action.
+	//
+	// Chance nodes are the default because a plan's value is usually going to be
+	// believed, and without them the search plans as though it knew which way the
+	// dice would fall: on the shipped example its over-promise runs to tens of
+	// percent, and *grows* with the simulation budget, since more search means
+	// more exploitation of the one realisation it can see. Pinning is faster and
+	// costs nothing when the model is deterministic — which is the case worth
+	// setting this for.
+	PinnedNoise bool `yaml:"pinned_noise,omitempty"`
 	// Model is the forward model being planned over.
 	Model planningModelSpec `yaml:"model"`
 	// Search hyperparameters; unset values fall back to the agents defaults.
@@ -160,6 +172,7 @@ func (s *mctsPlanningSpec) resolveLive(
 		MaxLegalActions: len(s.Actions),
 		StateWidth:      environment.StateWidth(),
 		Players:         1,
+		ChanceNodes:     !s.PinnedNoise,
 		// Looking further than the horizon cannot pay: the episode ends there.
 		SimsPerPly: s.SimsPerDecision,
 	}

@@ -10,12 +10,12 @@
 # while it is dear — worth 2 * (90 - 10) = 160 over these 8 steps. No myopic rule
 # gets there, because buying looks like a pure loss at the moment it must happen.
 #
-# CAVEAT worth understanding before trusting a number like that. The search plans
-# against a pinned noise realisation (see agents.SimulationEnvironment), so with a
-# stochastic model the return it predicts is optimistic relative to what the same
-# plan earns under other draws. Vary scenario_seed and aggregate — `run: {mode:
-# ensemble}` is the easy way — rather than reading one run's return as a forecast.
-# This example's model is deterministic, so here the figure is exact.
+# On stochastic models the search uses chance nodes by default: each action's
+# value is averaged over sampled successors rather than committed to the first
+# draw. That matters because the alternative — planning against one pinned
+# realisation — lets the search exploit the noise it is going to receive, and its
+# over-promise GROWS with sims_per_decision. Set `pinned_noise: true` to opt out;
+# it is faster and costs nothing when the model is deterministic, as here.
 macros:
 - type: mcts_planning
   name: plan

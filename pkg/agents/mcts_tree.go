@@ -575,8 +575,18 @@ type MCTSTreeIteration[S any, A any] struct {
 	MaxLegalActions int
 	StateWidth      int
 	Players         int
+	// ChanceNodes searches an MCTSChanceTree instead, averaging each action's
+	// value over sampled successors rather than committing to the first one
+	// drawn. Requires Env to implement StochasticEnvironment.
+	//
+	// Leave it off for deterministic environments: they gain nothing and would
+	// pay for outcome nodes whose samples never differ. Turn it on whenever the
+	// value the search reports is going to be believed — against a stochastic
+	// model the deterministic search plans as though it knew which way the dice
+	// would fall, and its over-promise grows with the simulation budget.
+	ChanceNodes bool
 
-	tree        *MCTSTree[S, A]
+	tree        mctsSearchTree[S, A]
 	pendingPath []int // path selected last step, awaiting scores this step
 	seed        uint64
 	root        S
@@ -677,7 +687,15 @@ func (m *MCTSTreeIteration[S, A]) Configure(partitionIndex int, settings *simula
 	}
 	m.root = root
 	m.rootEncoded = encoded
-	m.tree = NewMCTSTree[S, A](root)
+	if m.ChanceNodes {
+		if _, ok := m.Env.(StochasticEnvironment[S, A]); !ok {
+			panic("agents.MCTSTreeIteration: ChanceNodes needs an Env implementing " +
+				"StochasticEnvironment (there is no way to resample a transition)")
+		}
+		m.tree = NewMCTSChanceTree[S, A](root)
+	} else {
+		m.tree = NewMCTSTree[S, A](root)
+	}
 	m.pendingPath = nil
 	m.seed = is.Seed
 }
@@ -718,11 +736,11 @@ func (m *MCTSTreeIteration[S, A]) Iterate(
 	// step N) and applies the backup here.
 	if m.pendingPath != nil {
 		if scores, ok := readUpstreamScores(params, stateHistories, m.Players); ok {
-			m.tree.backupScores(m.pendingPath, scores)
+			m.tree.BackupScores(m.pendingPath, scores)
 		} else {
 			// No-signal-tolerant: count visits even when scores are absent.
 			// See MCTSTree.backupVisits docstring for why.
-			m.tree.backupVisits(m.pendingPath, nil)
+			m.tree.BackupVisits(m.pendingPath, nil)
 		}
 		m.pendingPath = nil
 	}
@@ -753,7 +771,7 @@ func (m *MCTSTreeIteration[S, A]) Iterate(
 		// The environment scores a finished position exactly, so back it up now
 		// rather than paying a rollout round-trip for an already-known result.
 		if scores, done := m.Env.Terminal(leafState); done {
-			m.tree.backupScores(path, scores)
+			m.tree.BackupScores(path, scores)
 		}
 		leafState = m.root
 	case MCTSLeafApplyFailed:
@@ -830,7 +848,43 @@ func readUpstreamScores(
 	return out, true
 }
 
-// MCTSTree exposes the underlying search tree (typically for telemetry).
+// MCTSTree exposes the underlying deterministic search tree (typically for
+// telemetry). It returns nil when ChanceNodes is set, since the partition is then
+// driving an MCTSChanceTree instead — use SearchTree for the common surface.
 func (m *MCTSTreeIteration[S, A]) MCTSTree() *MCTSTree[S, A] {
+	tree, _ := m.tree.(*MCTSTree[S, A])
+	return tree
+}
+
+// SearchTree exposes whichever tree this partition is driving, for the telemetry
+// both kinds share (root statistics, node count).
+func (m *MCTSTreeIteration[S, A]) SearchTree() interface {
+	Root() S
+	NodeCount() int
+	RootStatsByLegalIdx(maxLegalActions int) (visits, wins []float64)
+	RootBestLegalIdx() (int, bool)
+} {
 	return m.tree
 }
+
+// mctsSearchTree is the surface MCTSTreeIteration drives, so the same partition
+// can host either the deterministic tree or the chance-node one. Both apply the
+// same backup rules to a selected path; they differ in what the path traverses
+// and in whether a successor is committed to or resampled.
+type mctsSearchTree[S any, A any] interface {
+	Reset(root S)
+	Root() S
+	NodeCount() int
+	SelectLeafWithOutcome(
+		env Environment[S, A], cfg *MCTSConfig[S, A], rng *rand.Rand,
+	) (path []int, leafState S, leafIdx int, outcome MCTSLeafOutcome)
+	BackupScores(path []int, scores []float64)
+	BackupVisits(path []int, scores []float64)
+	RootStatsByLegalIdx(maxLegalActions int) (visits, wins []float64)
+	RootBestLegalIdx() (int, bool)
+}
+
+var (
+	_ mctsSearchTree[int, int] = (*MCTSTree[int, int])(nil)
+	_ mctsSearchTree[int, int] = (*MCTSChanceTree[int, int])(nil)
+)

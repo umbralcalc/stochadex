@@ -241,9 +241,11 @@ Two decision-making macros also run live, and the distinction between them matte
   rather than letting returns clamp). Every model partition must have `state_history_depth: 1`,
   and the model must be Markov in its own rows: the planner restarts it each transition, so
   nothing may rely on the step counter — carry a phase/counter in the state instead.
-  **Caveat to pass on:** the search plans against a pinned noise realisation, so with a stochastic
-  model its predicted return is optimistic. Vary `scenario_seed` and aggregate rather than quoting
-  one run's return as a forecast.
+  On stochastic models it uses **chance nodes** by default, averaging each action's value over
+  sampled successors. `pinned_noise: true` opts out (faster, and free when the model is
+  deterministic) — but only do that knowingly: a pinned search exploits the noise draw it is
+  going to receive, and its over-promise *grows* with `sims_per_decision`. Either way, quote a
+  planned return as one scenario's outcome, not a forecast; vary `scenario_seed` and aggregate.
 - **`mcts_self_play`** — search over *decision rules written in Go*, and the one macro you cannot
   write from config alone: its `env:` names an `agents.Environment` (a game's legal moves and win
   condition), registered by a downstream module via `api.RegisterEnvironment`, and the binary must

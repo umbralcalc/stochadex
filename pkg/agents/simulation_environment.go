@@ -42,12 +42,17 @@ import (
 //
 // That is common random numbers: the noise is pinned as a function of where you
 // are and what you do, turning the stochastic model into a deterministic
-// surrogate that the existing tree searches exactly. It is a real modelling
-// choice, not a free win — a planner solving a pinned scenario can exploit the
-// particular noise draw it is going to receive, which biases values optimistic
-// relative to the true stochastic optimum. Average over ScenarioSeed values to
-// measure that gap rather than assume it away; TestSimulationEnvironmentOptimismGap
-// quantifies it on a known-answer problem.
+// surrogate that MCTSTree searches exactly. It is a real modelling choice, not a
+// free win — a planner solving a pinned scenario can exploit the particular noise
+// draw it is going to receive, which biases its values optimistic. On the battery
+// test problem that over-promise reaches tens of percent and *grows* with the
+// simulation budget, since more search means more exploitation of the one
+// realisation it can see.
+//
+// This type therefore also implements StochasticEnvironment, via ApplySample. A
+// search that uses it (MCTSChanceTree) builds chance nodes and averages over
+// sampled successors, which removes most of the bias:
+// TestChanceNodesReduceOptimism measures both on the same problem.
 //
 // # Requirements and limits
 //
@@ -216,6 +221,17 @@ func (e *SimulationEnvironment) Legal(s []float64) []int {
 // encoded state and the action, so the same arguments always give the same
 // successor — see the type docs for what that pins and what it costs.
 func (e *SimulationEnvironment) Apply(s []float64, a int) ([]float64, error) {
+	return e.apply(s, a, 0)
+}
+
+// apply is the shared transition. sampleSeed selects which draw from the
+// transition distribution is taken: zero is Apply's pinned scenario draw, and any
+// other value is one of the alternatives a chance-node search averages over.
+func (e *SimulationEnvironment) apply(
+	s []float64,
+	a int,
+	sampleSeed uint64,
+) ([]float64, error) {
 	if a < 0 || a >= len(e.spec.Actions) {
 		return nil, fmt.Errorf("agents: action %d out of range", a)
 	}
@@ -231,9 +247,14 @@ func (e *SimulationEnvironment) Apply(s []float64, a int) ([]float64, error) {
 		offset += width
 	}
 	e.simulation.SetParam(e.actionPartition, e.spec.ActionParam, e.spec.Actions[a])
-	// Seeding from (scenario, state, action) is what makes the transition pure;
-	// ReentrantSimulation reseeds the iterations from it before stepping.
-	advanced := e.simulation.Advance(rows, mixSeed(e.spec.ScenarioSeed, s, a), 1)
+	// Seeding from (scenario, state, action, sample) is what makes the transition
+	// reproducible; ReentrantSimulation reseeds the iterations from it before
+	// stepping.
+	seed := mixSeed(e.spec.ScenarioSeed, s, a)
+	if sampleSeed != 0 {
+		seed = simulator.DeriveSeed(seed^sampleSeed, int(sampleSeed&0xffff))
+	}
+	advanced := e.simulation.Advance(rows, seed, 1)
 
 	next := make([]float64, e.StateWidth())
 	next[0] = s[0] + 1
@@ -246,6 +267,17 @@ func (e *SimulationEnvironment) Apply(s []float64, a int) ([]float64, error) {
 	// value does not depend on the order the tree happened to visit it in.
 	next[1] = s[1] + math.Pow(e.spec.Discount, s[0])*e.spec.Reward(e.rowsByName(next))
 	return next, nil
+}
+
+// ApplySample implements StochasticEnvironment: one transition under an explicit
+// sample seed, so a search can draw more than one successor of the same
+// (state, action) and average over them instead of committing to the first.
+//
+// Apply is ApplySample with the sample seed fixed at zero. That is the whole
+// difference between planning against a pinned scenario and planning against the
+// distribution.
+func (e *SimulationEnvironment) ApplySample(s []float64, a int, seed uint64) ([]float64, error) {
+	return e.apply(s, a, seed)
 }
 
 // Terminal implements Environment: the episode ends at the horizon, scored by

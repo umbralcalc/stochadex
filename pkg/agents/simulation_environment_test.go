@@ -434,3 +434,93 @@ func BenchmarkSimulationEnvironmentApply(b *testing.B) {
 		}
 	}
 }
+
+// planActionsWithChanceNodes is planActions using the chance-node search, so each
+// action's value is an average over sampled successors.
+func planActionsWithChanceNodes(
+	t *testing.T,
+	env *agents.SimulationEnvironment,
+	sims int,
+) ([]int, float64) {
+	t.Helper()
+	cfg := agents.MCTSConfig[[]float64, int]{
+		Simulations:     sims,
+		MaxTreeDepth:    testHorizon + 1,
+		RolloutMaxSteps: testHorizon + 1,
+		Rollout:         agents.UniformRandomRollout[[]float64, int](),
+	}
+	state := env.InitialState()
+	actions := make([]int, 0, testHorizon)
+	for step := 0; ; step++ {
+		if _, done := env.Terminal(state); done {
+			return actions, env.Return(state)
+		}
+		best, _, err := agents.RunChanceMCTSSearch(env, state, cfg, uint64(step)+99, sims)
+		if err != nil {
+			t.Fatalf("RunChanceMCTSSearch: %v", err)
+		}
+		actions = append(actions, best)
+		state, err = env.Apply(state, best)
+		if err != nil {
+			t.Fatalf("Apply: %v", err)
+		}
+	}
+}
+
+// meanOptimism measures how much a planner over-promises, averaged over the
+// scenario it plans in.
+//
+// For each planning scenario it records what the plan earned THERE, then replays
+// the same actions in other scenarios and takes the mean. The difference is the
+// planner's advantage from having known its own noise. Averaging over planning
+// scenarios is what makes the number meaningful: a single planning scenario is
+// one draw, so its own-scenario return is mostly noise for any planner that is
+// not exploiting it — which is precisely the planner being tested.
+func meanOptimism(
+	t *testing.T,
+	plan func(*testing.T, *agents.SimulationEnvironment, int) ([]int, float64),
+	sims int,
+) (ownScenario, crossScenario, optimism float64) {
+	t.Helper()
+	const planningScenarios = 6
+	const replayScenarios = 8
+	for planSeed := uint64(1); planSeed <= planningScenarios; planSeed++ {
+		actions, own := plan(t, newNoisyBatteryEnvironment(t, planSeed), sims)
+		ownScenario += own
+		total := 0.0
+		for offset := uint64(0); offset < replayScenarios; offset++ {
+			replaySeed := 100 + planSeed*replayScenarios + offset
+			total += replayActions(t, newNoisyBatteryEnvironment(t, replaySeed), actions)
+		}
+		crossScenario += total / replayScenarios
+	}
+	ownScenario /= planningScenarios
+	crossScenario /= planningScenarios
+	return ownScenario, crossScenario, ownScenario - crossScenario
+}
+
+// TestChanceNodesReduceOptimism is the reason MCTSChanceTree exists. Planning
+// against a pinned noise realisation lets the search exploit the draw it is going
+// to receive, so what it achieves in its own scenario overstates what the same
+// plan earns anywhere else. Averaging over sampled outcomes at chance nodes
+// should shrink that advantage towards zero.
+//
+// The assertion is about CALIBRATION, not return: a planner that earns the same
+// but does not over-promise is the improvement being bought here.
+func TestChanceNodesReduceOptimism(t *testing.T) {
+	const sims = 400
+
+	pinnedOwn, pinnedCross, pinnedOptimism := meanOptimism(t, planActions, sims)
+	chanceOwn, chanceCross, chanceOptimism := meanOptimism(
+		t, planActionsWithChanceNodes, sims)
+
+	t.Logf("pinned noise:  own scenario %6.1f, other scenarios %6.1f, optimism %6.1f",
+		pinnedOwn, pinnedCross, pinnedOptimism)
+	t.Logf("chance nodes:  own scenario %6.1f, other scenarios %6.1f, optimism %6.1f",
+		chanceOwn, chanceCross, chanceOptimism)
+
+	if math.Abs(chanceOptimism) >= math.Abs(pinnedOptimism) {
+		t.Errorf("chance nodes did not improve calibration: optimism %.1f vs %.1f",
+			chanceOptimism, pinnedOptimism)
+	}
+}

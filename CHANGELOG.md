@@ -84,6 +84,35 @@ an exact version rather than assume stability across minors.
   rather than continued. The macros (windowed likelihood, evolution strategy, SMC) are
   untouched and keep streaming.
 
+- **`agents.MCTSChanceTree`: chance nodes, so a stochastic plan's value is an average.**
+  `MCTSTree` materialises one successor per action edge and reuses it — exactly right for
+  deterministic game rules, and silently wrong for a stochastic model, where it pins the noise
+  and lets the search exploit the draw it is going to receive.
+
+  The new tree interposes a chance node between an action and its outcomes, and grows the number
+  of sampled successors by progressive widening (`ceil(k * visits^alpha)`, alpha 0.5 by default)
+  so each outcome still collects enough visits for its average to mean something. Environments
+  opt in by implementing the new `StochasticEnvironment` (an `ApplySample` that draws under a
+  given seed); `agents.SimulationEnvironment` does, and deterministic game environments
+  deliberately do not. `RunChanceMCTSSearch` is the one-shot entry point, and
+  `MCTSTreeIteration.ChanceNodes` selects it inside the partition pipeline.
+
+  Measured on the battery problem, averaging over six planning scenarios and replaying each plan
+  across eight others — the over-promise from planning in one's own scenario:
+
+  | simulations | pinned noise | chance nodes |
+  |---|---|---|
+  | 100 | 44.8 | −6.4 |
+  | 200 | 79.3 | −5.6 |
+  | 400 | 91.5 | 21.4 |
+  | 1600 | 91.5 | −8.1 |
+
+  Note the direction of the pinned column: **its bias grows with the search budget**, because
+  more search means more exploitation of the single realisation it can see. Spending more
+  simulations makes a pinned plan's number less trustworthy, not more. Chance-node plans earn
+  slightly less on this problem at equal budget (the sampling has to be paid for somewhere) and
+  predict what they earn.
+
 - **`mcts_planning`: planning over your own model, entirely as config.** The macro surface over
   `agents.SimulationEnvironment`. The dynamics are already partitions, so an action is a params
   injection (`actions:`, `action_partition`, `action_param`), a transition is one step of the
@@ -115,13 +144,12 @@ an exact version rather than assume stability across minors.
   finite-horizon per-step-reward problem terminates at the horizon and normalises its return
   into the `[0,1]` score UCB1 needs.
 
-  Seeding each transition from `(ScenarioSeed, state, action)` is common random numbers, and
-  it is an approximation rather than a free win: a planner solving a pinned scenario can
-  exploit the noise draw it is going to receive. `TestSimulationEnvironmentOptimismGap`
-  measures that instead of caveating it — planning under one scenario and replaying the same
-  actions under twelve others shows a **21% optimism gap** on the test problem. Averaging
-  over scenario seeds is the mitigation; a chance-node treatment would be the fix, and is not
-  built.
+  Seeding each transition from `(ScenarioSeed, state, action)` is common random numbers, which
+  is what makes `Apply` pure. On its own that is an approximation rather than a free win, since
+  a planner solving a pinned scenario can exploit the noise draw it is going to receive; the
+  environment therefore also implements `StochasticEnvironment`, so a chance-node search can
+  average over the distribution instead. See the `MCTSChanceTree` entry above for the measured
+  difference.
 
   Validated on battery arbitrage over a cyclic price, where selling requires having bought
   earlier at a price that looked bad at the time. The environment is deterministic, so the

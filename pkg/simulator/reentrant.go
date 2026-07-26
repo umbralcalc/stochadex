@@ -1,39 +1,5 @@
 package simulator
 
-// The re-entrant evaluation tier: running a simulation as a pure function of its
-// inputs, rather than as a stream that carries state forward.
-//
-// PartitionCoordinator advances a simulation. RunSeededEnsemble runs several.
-// RunWithHarnesses runs one under assertions. This file adds the fourth way to
-// drive a simulation: evaluate it from an arbitrary starting state, under a
-// chosen seed, and get the result back — with the guarantee that the same inputs
-// always produce the same output.
-//
-// # Why this is not already possible
-//
-// An iteration's mutable state, its RNG included, lives in the iteration object
-// and is established by Configure. Anything that builds a coordinator and steps
-// it therefore inherits whatever RNG state the iterations happen to be in, so
-// re-running a model "from the same place" silently continues the previous
-// stream instead of repeating it. general.EmbeddedSimulationRunIteration works
-// exactly this way: four calls with identical inputs give four different
-// answers, which is correct for advancing a nested simulation once per outer
-// step and wrong for anything that needs to evaluate the same model twice.
-//
-// # Why it works now
-//
-// The framework already requires that every iteration re-initialise all of its
-// mutable state in Configure — the rule RunWithHarnesses enforces by running a
-// simulation twice and comparing. That invariant is precisely what makes a pure
-// re-evaluation possible: re-Configuring from a derived seed restores the
-// iterations to a state that depends only on that seed. ReseedIterations is that
-// operation, and ReentrantSimulation wraps it up with the run itself.
-//
-// Callers that need this: planning over a model (an MCTS transition must be pure,
-// because the search materialises a successor once per edge and reuses it),
-// particle propagation, and any re-evaluation of a windowed model that should be
-// reproducible rather than dependent on how many times it has been called.
-
 // DeriveSeed mixes a base seed with a stream index, so the partitions of one
 // re-entrant run get distinct but jointly-determined seeds. Splitting this way
 // means two runs sharing a base seed reproduce each other exactly, while two

@@ -18,6 +18,12 @@
 //     than failing, so raising the simulation count buys nothing.
 //   - Pluggable rollout functions (UniformRandomRollout, FromProgress,
 //     WinnerToTerminal)
+//   - Two search trees for two kinds of environment: MCTSTree commits to one
+//     successor per action edge, which is exactly right for deterministic game
+//     rules; MCTSChanceTree interposes chance nodes and averages over sampled
+//     successors, for environments implementing StochasticEnvironment. Using the
+//     deterministic tree on a stochastic model plans as though the dice were
+//     known, and the resulting over-promise grows with the search budget
 //   - MAST as an optional rollout strategy: a learning rollout policy backed
 //     by a separate aggregation partition holding running per-action-key
 //     (count, sum) state
