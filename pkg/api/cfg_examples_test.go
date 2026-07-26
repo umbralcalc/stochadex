@@ -37,6 +37,7 @@ func TestExampleConfigsRun(t *testing.T) {
 		"cfg/example_smc_config.yaml",
 		"cfg/example_evolution_strategy_config.yaml",
 		"cfg/example_mcts_config.yaml",
+		"cfg/example_planning_config.yaml",
 		"cfg/example_regression_config.yaml",
 		"cfg/example_data_source_config.yaml",
 	}

@@ -229,14 +229,30 @@ Notable macros (all take a `data:` block): `vector_mean` / `vector_variance` / `
 `comparison:` with a windowed embedded model). `evolution_strategy_optimisation` and `smc_inference`
 run live (no `data:` needed; give them `steps:`).
 
-`mcts_self_play` also runs live, but is the one macro you cannot write from config alone: its
-`env:` names an `agents.Environment` — decision rules like a game's legal moves and win
-condition — which only Go can supply. A downstream module registers one with
-`api.RegisterEnvironment` and the binary must link that module. The engine ships a single
-`tictactoe` fixture, so `{type: mcts_self_play, name: ttt, steps: 10, sims_per_ply: 120, env:
-{type: tictactoe}}` runs out of the box and nothing else will unless you built the binary. If the
-user wants tree search over a *simulation* rather than over game rules, that is not this macro —
-reach for `evolution_strategy_optimisation` over a policy parameterisation instead.
+Two decision-making macros also run live, and the distinction between them matters:
+
+- **`mcts_planning`** — tree search over *your model*. The dynamics are already partitions, so an
+  action is a params injection (`actions:` + `action_partition` + `action_param`), a transition is
+  one step of the model, and the reward is just another partition named by `reward_partition`
+  (write it as an `{type: expression}` partition). Nothing has to come from Go. Use this whenever
+  the user wants "what should I do, given this simulation" — dispatch, dosing, intervention
+  timing. See `cfg/example_planning_config.yaml`. It needs `horizon:` (lookahead), `steps:`
+  (decisions to take) and `return_range: [min, max]` (UCB1 needs a bounded value scale — widen it
+  rather than letting returns clamp). Every model partition must have `state_history_depth: 1`,
+  and the model must be Markov in its own rows: the planner restarts it each transition, so
+  nothing may rely on the step counter — carry a phase/counter in the state instead.
+  **Caveat to pass on:** the search plans against a pinned noise realisation, so with a stochastic
+  model its predicted return is optimistic. Vary `scenario_seed` and aggregate rather than quoting
+  one run's return as a forecast.
+- **`mcts_self_play`** — search over *decision rules written in Go*, and the one macro you cannot
+  write from config alone: its `env:` names an `agents.Environment` (a game's legal moves and win
+  condition), registered by a downstream module via `api.RegisterEnvironment`, and the binary must
+  link that module. The engine ships a single `tictactoe` fixture, so `{type: mcts_self_play,
+  name: ttt, steps: 10, sims_per_ply: 120, env: {type: tictactoe}}` runs out of the box and
+  nothing else will unless you built the binary.
+
+For optimising a *policy parameterisation* globally rather than an action sequence from the
+current state, `evolution_strategy_optimisation` is the right tool instead of either.
 
 ## Worked recipes (start here for the inference/optimisation macros)
 
@@ -334,7 +350,7 @@ params) `partition_event` (reads `event_partition_index` / `event_state_value_in
 **Macros:** `vector_mean` `vector_variance` `vector_covariance` `grouped_aggregation`
 `scalar_regression_stats` `likelihood_comparison` `posterior_estimation`
 `likelihood_mean_function_fit` `evolution_strategy_optimisation` `smc_inference`
-`mcts_self_play` (needs a registered `env:`).
+`mcts_self_play` (needs a registered `env:`) `mcts_planning` (tree search over your own model).
 **Environments** (`mcts_self_play`'s `env:`): `tictactoe` only, unless the binary links a module
 that called `api.RegisterEnvironment`.
 **Simulation components:** output_condition `nil|every_step|every_n_steps|only_given_partitions`;

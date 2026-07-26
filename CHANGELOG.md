@@ -84,6 +84,25 @@ an exact version rather than assume stability across minors.
   rather than continued. The macros (windowed likelihood, evolution strategy, SMC) are
   untouched and keep streaming.
 
+- **`mcts_planning`: planning over your own model, entirely as config.** The macro surface over
+  `agents.SimulationEnvironment`. The dynamics are already partitions, so an action is a params
+  injection (`actions:`, `action_partition`, `action_param`), a transition is one step of the
+  model, and the reward is another partition named by `reward_partition` — normally an
+  `{type: expression}` one, which keeps rewards in the expressions DSL rather than introducing a
+  second language. Nothing is named from outside, so the whole decision problem is data.
+
+  This is the counterpart to `mcts_self_play`, and the two sit on opposite sides of the repo
+  boundary deliberately: `mcts_self_play` searches decision *rules* (arbitrary Go, named through
+  the environment registry), while `mcts_planning` searches a *model* — search-as-forward-
+  simulation, in scope by the same argument that puts `posterior_estimation` in scope. It is also
+  a sibling of `evolution_strategy_optimisation` rather than a replacement: the evolution strategy
+  optimises a policy *parameterisation* globally, this optimises an action *sequence* from the
+  current state and replans each step.
+
+  `cfg/example_planning_config.yaml` is battery arbitrage over a cyclic price, where buying looks
+  like a pure loss at the moment it has to happen: the search recovers the hand-computable optimum
+  of 160 against 0 for doing nothing.
+
 - **`agents.SimulationEnvironment`: MCTS planning over a sub-simulation.** Where the
   `pkg/api` environment registry lets a config *name* decision rules written in Go, this
   needs no rules at all — the dynamics are already stated as partitions, so an action is a
