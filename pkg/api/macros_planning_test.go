@@ -241,3 +241,77 @@ macros:
 			"right if demand really is its mean", ordered)
 	}
 }
+
+// TestMCTSPlanningWithBeliefUpdating is value of information as config: the
+// planner opens by probing, which pays nothing, because doing so tells it which
+// commitment is right.
+//
+// theta decides which commitment pays and is equally likely to be either, so
+// committing blind is worth zero. Only a planner that updates its belief from
+// the probe's result has a reason to spend a step on it.
+func TestMCTSPlanningWithBeliefUpdating(t *testing.T) {
+	const cfg = `macros:
+- type: mcts_planning
+  name: plan
+  steps: 2
+  horizon: 2
+  sims_per_decision: 800
+  seed: 21
+  return_range: [-30, 30]
+  actions: [[0], [1], [2]]
+  action_partition: choice
+  action_param: param_values
+  reward_partition: payoff
+  parameters:
+    samples: [[0.0], [1.0]]
+    targets: [{partition: signal, param: theta, indices: [0]}, {partition: payoff, param: theta, indices: [0]}]
+    belief: {observation_partition: signal, variance: 0.01}
+  model:
+    partitions:
+    - name: choice
+      iteration: {type: param_values}
+      params: {param_values: [0.0]}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+    # Probing (choice 0) shows theta; anything else shows 0 whatever theta is,
+    # so it teaches nothing.
+    - name: signal
+      iteration:
+        type: expression
+        fields: [{name: s}]
+        outputs: ["where(choice < 0.5, theta, 0)"]
+      params: {choice: [0.0], theta: [0.0]}
+      params_from_upstream:
+        choice: {upstream: choice}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+    # Commit A (choice 1) pays when theta is 0, commit B (choice 2) when it is 1.
+    - name: payoff
+      iteration:
+        type: expression
+        fields: [{name: p}]
+        outputs: ["where(choice < 0.5, 0, where(choice < 1.5, 10 - 20 * theta, 0 - 10 + 20 * theta))"]
+      params: {choice: [0.0], theta: [0.0]}
+      params_from_upstream:
+        choice: {upstream: choice}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+`
+	out := runMacroConfig(t, cfg)
+	rows := out["plan_apply"]
+	if len(rows) < 3 {
+		t.Fatalf("expected the plan to be recorded, got %d rows", len(rows))
+	}
+	// The first real decision lands on the second recorded ply (the first is the
+	// sentinel step where the search has not yet produced one). The choice
+	// partition is the first model partition, so it sits at offset 2.
+	opening := rows[2][2]
+	t.Logf("belief-updating planner opened with choice %v (0 = probe)", opening)
+
+	if opening != 0 {
+		t.Errorf("a planner that can learn should probe first, it chose %v", opening)
+	}
+}

@@ -31,12 +31,27 @@ an exact version rather than assume stability across minors.
 
   A draw is fixed for the length of a trajectory but varies across a chance node's outcomes, so
   the search averages over parameter uncertainty rather than resampling it per step (which would
-  model noise, not uncertainty). Belief updating within an episode is deliberately not attempted.
+  model noise, not uncertainty).
 
   Demonstrated on a newsvendor, where the two provably disagree: with demand 10 in five draws of
   six and 100 in the sixth, planning at the posterior mean of 25 orders 25 — the best response to
   demand=25, but a loss of 25 against the real spread — while planning over the posterior orders
   10, for a certain 40.
+
+- **In-tree belief updating**, via `parameters.belief`. The planner carries a distribution over the
+  parameter samples as part of its state and reweights it by how well each sample predicted what
+  was observed, so it can value an action for what it *reveals* and not only for what it pays.
+
+  Demonstrated on a probe-then-commit decision where an unknown parameter says which of two
+  commitments pays. Committing blind is worth zero and probing pays nothing, so a planner on a
+  fixed draw opens by committing; one that updates its belief opens by probing, then commits
+  correctly. Probing moves the belief to certainty while committing leaves it untouched, which is
+  what makes an uninformative action look uninformative.
+
+  It costs a model step per sample on every transition — measured at 2.6x for 2 samples, 8.0x for
+  8 and 30.9x for 32 — so it suits a small sample set. Larger posteriors should plan on a fixed
+  draw. Belief updating is open-loop within the search: the planner reasons about what it would
+  learn, but there is no separate observation model beyond the named partition.
 
 ### Added
 

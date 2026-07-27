@@ -980,3 +980,171 @@ func TestPosteriorPredictivePlanningBeatsPointEstimate(t *testing.T) {
 			"-25 for ordering 25), got %v", orderQuantities[underPosterior][0])
 	}
 }
+
+// probeIteration is a probe-then-commit decision. An unknown parameter theta
+// says which of two commitments pays; probing reveals it but earns nothing.
+//
+// Row: [signal, payoff]. The signal is what a decision-maker observes, and it
+// only carries information when the probe action was taken — otherwise both
+// hypotheses predict the same thing, so an observation of it teaches nothing.
+//
+// Params: "choice" (the action) and "theta" (the uncertain parameter).
+type probeIteration struct{}
+
+func (p *probeIteration) Configure(int, *simulator.Settings) {}
+
+func (p *probeIteration) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	choice := params.GetIndex("choice", 0)
+	theta := params.GetIndex("theta", 0)
+	switch {
+	case choice == 0: // probe: reveals theta, pays nothing
+		return []float64{theta, 0}
+	case choice == 1: // commit A: right when theta is 0
+		return []float64{0, 10 - 20*theta}
+	default: // commit B: right when theta is 1
+		return []float64{0, -10 + 20*theta}
+	}
+}
+
+// newProbeEnvironment builds the decision over a two-point posterior on theta.
+// belief nil plans on a fixed draw, which cannot value information.
+func newProbeEnvironment(t *testing.T, belief *agents.BeliefSpec) *agents.SimulationEnvironment {
+	return newProbeEnvironmentWithSamples(t, belief, [][]float64{{0}, {1}})
+}
+
+func newProbeEnvironmentWithSamples(
+	t *testing.T,
+	belief *agents.BeliefSpec,
+	samples [][]float64,
+) *agents.SimulationEnvironment {
+	gen := simulator.NewConfigGenerator()
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.NilOutputCondition{},
+		OutputFunction:       &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "choice",
+		Iteration:         &general.ParamValuesIteration{},
+		Params:            simulator.NewParams(map[string][]float64{"param_values": {0}}),
+		InitStateValues:   []float64{0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:      "world",
+		Iteration: &probeIteration{},
+		Params: simulator.NewParams(map[string][]float64{
+			"choice": {0}, "theta": {0},
+		}),
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"choice": {Upstream: "choice"},
+		},
+		InitStateValues:   []float64{0, 0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	impl.ExecutionStrategy = &simulator.InlineExecution{}
+
+	return agents.NewSimulationEnvironment(settings, impl, agents.SimulationEnvironmentSpec{
+		Actions:          [][]float64{{0}, {1}, {2}}, // probe / commit A / commit B
+		ActionPartition:  "choice",
+		ActionParam:      "param_values",
+		Horizon:          2,
+		Reward:           func(rows map[string][]float64) float64 { return rows["world"][1] },
+		MinReturn:        -30,
+		MaxReturn:        30,
+		ScenarioSeed:     5,
+		ParameterSamples: samples,
+		ParameterTargets: []agents.SimulationParamTarget{
+			{Partition: "world", Param: "theta", Indices: []int{0}},
+		},
+		Belief: belief,
+	})
+}
+
+// TestBeliefUpdatingValuesInformation is what belief updating buys that
+// posterior-predictive planning alone does not: taking an action for what it
+// reveals rather than what it pays.
+//
+// Committing blind is worth zero — theta decides which commitment is right and
+// it is equally likely to be either. Probing pays nothing and burns a step, so a
+// planner that cannot learn from the probe's result sees no reason to do it. One
+// that updates its belief probes, then commits correctly, for +10.
+func TestBeliefUpdatingValuesInformation(t *testing.T) {
+	cfg := agents.MCTSConfig[[]float64, int]{
+		Simulations:     800,
+		MaxTreeDepth:    3,
+		RolloutMaxSteps: 3,
+		Rollout:         agents.UniformRandomRollout[[]float64, int](),
+	}
+
+	blind := newProbeEnvironment(t, nil)
+	blindFirst, _, err := agents.RunChanceMCTSSearch(
+		blind, blind.InitialState(), cfg, 21, cfg.Simulations)
+	if err != nil {
+		t.Fatalf("RunChanceMCTSSearch: %v", err)
+	}
+
+	learner := newProbeEnvironment(t, &agents.BeliefSpec{
+		ObservationPartition: "world", Variance: 0.01,
+	})
+	learnerFirst, _, err := agents.RunChanceMCTSSearch(
+		learner, learner.InitialState(), cfg, 21, cfg.Simulations)
+	if err != nil {
+		t.Fatalf("RunChanceMCTSSearch: %v", err)
+	}
+
+	names := []string{"probe", "commit A", "commit B"}
+	t.Logf("fixed draw opens with %s | belief updating opens with %s",
+		names[blindFirst], names[learnerFirst])
+
+	if learnerFirst != 0 {
+		t.Errorf("a planner that can learn should probe first, it opened with %s",
+			names[learnerFirst])
+	}
+}
+
+// TestBeliefUpdatingSharpensOnAnInformativeAction checks the mechanism directly:
+// probing must move the belief onto the true parameter, and committing (which
+// reveals nothing) must leave it alone.
+func TestBeliefUpdatingSharpensOnAnInformativeAction(t *testing.T) {
+	env := newProbeEnvironment(t, &agents.BeliefSpec{
+		ObservationPartition: "world", Variance: 0.01,
+	})
+	start := env.InitialState()
+
+	probed, err := env.Apply(start, 0)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	committed, err := env.Apply(start, 1)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	// The belief weights are the last two slots of the encoded state.
+	width := env.StateWidth()
+	probedBelief := probed[width-2:]
+	committedBelief := committed[width-2:]
+	t.Logf("after probing: %v | after committing: %v", probedBelief, committedBelief)
+
+	sharpest := math.Max(probedBelief[0], probedBelief[1])
+	if sharpest < 0.9 {
+		t.Errorf("probing should nearly resolve theta, belief is %v", probedBelief)
+	}
+	for i, weight := range committedBelief {
+		if math.Abs(weight-0.5) > 1e-6 {
+			t.Errorf("committing reveals nothing, so weight %d should stay 0.5, got %v",
+				i, weight)
+		}
+	}
+}

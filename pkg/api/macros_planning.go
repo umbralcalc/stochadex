@@ -88,6 +88,18 @@ type planningParametersSpec struct {
 	Samples     [][]float64           `yaml:"samples,omitempty"`
 	SamplesFrom *dataRefSpec          `yaml:"samples_from,omitempty"`
 	Targets     []planningParamTarget `yaml:"targets"`
+	// Belief turns on in-tree belief updating, so the planner can value an action
+	// for what it reveals and not only for what it pays. It costs a model step
+	// per sample on every transition, so keep the sample set small — a run with
+	// hundreds of draws should plan on a fixed draw instead.
+	Belief *planningBeliefSpec `yaml:"belief,omitempty"`
+}
+
+// planningBeliefSpec names what the decision-maker observes and how sharply that
+// observation discriminates between parameter samples.
+type planningBeliefSpec struct {
+	ObservationPartition string  `yaml:"observation_partition"`
+	Variance             float64 `yaml:"variance"`
 }
 
 // planningParamTarget routes part of each sample into the model.
@@ -221,6 +233,7 @@ func (s *mctsPlanningSpec) resolveLive(
 
 	var samples [][]float64
 	var targets []agents.SimulationParamTarget
+	var belief *agents.BeliefSpec
 	if s.Parameters != nil {
 		resolved, err := s.Parameters.resolve(storage)
 		if err != nil {
@@ -237,6 +250,22 @@ func (s *mctsPlanningSpec) resolveLive(
 				Param:     target.Param,
 				Indices:   target.Indices,
 			})
+		}
+		if s.Parameters.Belief != nil {
+			if err := requireModelPartition(settings,
+				s.Parameters.Belief.ObservationPartition,
+				"parameters.belief.observation_partition"); err != nil {
+				return nil, 0, 0, err
+			}
+			if s.Parameters.Belief.Variance <= 0 {
+				return nil, 0, 0, fmt.Errorf(
+					"mcts_planning parameters.belief needs variance: > 0 (the observation " +
+						"noise the belief update scores against)")
+			}
+			belief = &agents.BeliefSpec{
+				ObservationPartition: s.Parameters.Belief.ObservationPartition,
+				Variance:             s.Parameters.Belief.Variance,
+			}
 		}
 	}
 
@@ -256,6 +285,7 @@ func (s *mctsPlanningSpec) resolveLive(
 			Progress:         progress,
 			ParameterSamples: samples,
 			ParameterTargets: targets,
+			Belief:           belief,
 		})
 
 	// The encoded state is already []float64, so the self-play topology's codec
