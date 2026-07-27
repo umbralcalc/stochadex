@@ -66,6 +66,10 @@ type mctsPlanningSpec struct {
 	// costs nothing when the model is deterministic — which is the case worth
 	// setting this for.
 	PinnedNoise bool `yaml:"pinned_noise,omitempty"`
+	// Parameters turns the run into posterior-predictive planning: the search
+	// averages over draws of the model's uncertain parameters instead of
+	// committing to a point estimate.
+	Parameters *planningParametersSpec `yaml:"parameters,omitempty"`
 	// Model is the forward model being planned over.
 	Model planningModelSpec `yaml:"model"`
 	// Search hyperparameters; unset values fall back to the agents defaults.
@@ -75,6 +79,74 @@ type mctsPlanningSpec struct {
 	RolloutMaxSteps int     `yaml:"rollout_max_steps,omitempty"`
 	Seed            uint64  `yaml:"seed,omitempty"`
 	Timestep        float64 `yaml:"timestep,omitempty"`
+}
+
+// planningParametersSpec supplies the posterior the search plans over. Samples
+// come either inline or from a partition recorded in the data: tier — one row
+// per draw — which is how a calibration's own output feeds the planner.
+type planningParametersSpec struct {
+	Samples     [][]float64           `yaml:"samples,omitempty"`
+	SamplesFrom *dataRefSpec          `yaml:"samples_from,omitempty"`
+	Targets     []planningParamTarget `yaml:"targets"`
+}
+
+// planningParamTarget routes part of each sample into the model.
+type planningParamTarget struct {
+	Partition string `yaml:"partition"`
+	Param     string `yaml:"param"`
+	Indices   []int  `yaml:"indices"`
+}
+
+// resolve produces the sample set, reading it out of storage when the config
+// points at a recorded partition rather than listing draws inline.
+func (p *planningParametersSpec) resolve(
+	storage *simulator.StateTimeStorage,
+) ([][]float64, error) {
+	if len(p.Targets) == 0 {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters needs targets: saying where each sample's values go")
+	}
+	if len(p.Samples) > 0 && p.SamplesFrom != nil {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters: set samples: or samples_from:, not both")
+	}
+	if len(p.Samples) > 0 {
+		return p.Samples, nil
+	}
+	if p.SamplesFrom == nil {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters needs samples: or samples_from: to draw from")
+	}
+	if storage == nil {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters.samples_from needs a data: block to read %q from",
+			p.SamplesFrom.PartitionName)
+	}
+	rows := storage.GetValues(p.SamplesFrom.PartitionName)
+	if len(rows) == 0 {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters.samples_from: no recorded data for partition %q",
+			p.SamplesFrom.PartitionName)
+	}
+	indices := p.SamplesFrom.ValueIndices
+	samples := make([][]float64, len(rows))
+	for i, row := range rows {
+		if len(indices) == 0 {
+			samples[i] = append([]float64(nil), row...)
+			continue
+		}
+		draw := make([]float64, len(indices))
+		for j, index := range indices {
+			if index < 0 || index >= len(row) {
+				return nil, fmt.Errorf(
+					"mcts_planning parameters.samples_from: value index %d outside the "+
+						"%d-wide rows of %q", index, len(row), p.SamplesFrom.PartitionName)
+			}
+			draw[j] = row[index]
+		}
+		samples[i] = draw
+	}
+	return samples, nil
 }
 
 // planningModelSpec is the forward model: ordinary partitions, plus the timestep
@@ -96,7 +168,7 @@ func (s *mctsPlanningSpec) resolve(
 }
 
 func (s *mctsPlanningSpec) resolveLive(
-	*simulator.StateTimeStorage,
+	storage *simulator.StateTimeStorage,
 ) ([]*simulator.PartitionConfig, int, float64, error) {
 	if s.Name == "" {
 		return nil, 0, 0, fmt.Errorf("mcts_planning needs a name: (it prefixes the partition names)")
@@ -147,6 +219,27 @@ func (s *mctsPlanningSpec) resolveLive(
 		}
 	}
 
+	var samples [][]float64
+	var targets []agents.SimulationParamTarget
+	if s.Parameters != nil {
+		resolved, err := s.Parameters.resolve(storage)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		samples = resolved
+		for _, target := range s.Parameters.Targets {
+			if err := requireModelPartition(
+				settings, target.Partition, "parameters.targets"); err != nil {
+				return nil, 0, 0, err
+			}
+			targets = append(targets, agents.SimulationParamTarget{
+				Partition: target.Partition,
+				Param:     target.Param,
+				Indices:   target.Indices,
+			})
+		}
+	}
+
 	environment := agents.NewSimulationEnvironment(
 		settings, implementations, agents.SimulationEnvironmentSpec{
 			Actions:         s.Actions,
@@ -156,11 +249,13 @@ func (s *mctsPlanningSpec) resolveLive(
 			Reward: func(rows map[string][]float64) float64 {
 				return rows[rewardPartition][0]
 			},
-			Discount:     s.Discount,
-			MinReturn:    s.ReturnRange[0],
-			MaxReturn:    s.ReturnRange[1],
-			ScenarioSeed: s.ScenarioSeed,
-			Progress:     progress,
+			Discount:         s.Discount,
+			MinReturn:        s.ReturnRange[0],
+			MaxReturn:        s.ReturnRange[1],
+			ScenarioSeed:     s.ScenarioSeed,
+			Progress:         progress,
+			ParameterSamples: samples,
+			ParameterTargets: targets,
 		})
 
 	// The encoded state is already []float64, so the self-play topology's codec

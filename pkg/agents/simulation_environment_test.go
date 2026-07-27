@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/agents"
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -842,5 +843,140 @@ func TestProgressProxyScoresTruncatedRollouts(t *testing.T) {
 
 	if withProgress <= plain {
 		t.Errorf("progress scoring did not help: %.0f vs %.0f", withProgress, plain)
+	}
+}
+
+// newsvendorIteration is the classic order-quantity payoff: you order q before
+// demand is known, sell what you can, and eat the cost of the rest.
+//
+//	profit = price * min(q, demand) - cost * q
+//
+// Row: [profit]; params: "quantity" (the action) and "demand" (the uncertain
+// parameter a posterior sample supplies).
+type newsvendorIteration struct{ price, cost float64 }
+
+func (n *newsvendorIteration) Configure(int, *simulator.Settings) {}
+
+func (n *newsvendorIteration) Iterate(
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	quantity := params.GetIndex("quantity", 0)
+	demand := params.GetIndex("demand", 0)
+	return []float64{n.price*math.Min(quantity, demand) - n.cost*quantity}
+}
+
+// orderQuantities are the actions; demandPosterior is a deliberately skewed
+// posterior — usually 10, occasionally 100.
+var (
+	orderQuantities = [][]float64{{10}, {25}, {100}}
+	demandPosterior = [][]float64{{10}, {10}, {10}, {10}, {10}, {100}}
+)
+
+// newNewsvendorEnvironment builds the decision. samples nil plans at the
+// posterior MEAN (25) instead of over the posterior.
+func newNewsvendorEnvironment(
+	t *testing.T,
+	samples [][]float64,
+	meanDemand float64,
+) *agents.SimulationEnvironment {
+	t.Helper()
+	gen := simulator.NewConfigGenerator()
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.NilOutputCondition{},
+		OutputFunction:       &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:      "order",
+		Iteration: &general.ParamValuesIteration{},
+		Params: simulator.NewParams(map[string][]float64{
+			"param_values": {0},
+		}),
+		InitStateValues:   []float64{0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:      "profit",
+		Iteration: &newsvendorIteration{price: 10, cost: 6},
+		Params: simulator.NewParams(map[string][]float64{
+			"quantity": {0}, "demand": {meanDemand},
+		}),
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"quantity": {Upstream: "order"},
+		},
+		InitStateValues:   []float64{0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	impl.ExecutionStrategy = &simulator.InlineExecution{}
+
+	spec := agents.SimulationEnvironmentSpec{
+		Actions:         orderQuantities,
+		ActionPartition: "order",
+		ActionParam:     "param_values",
+		Horizon:         1,
+		Reward:          func(rows map[string][]float64) float64 { return rows["profit"][0] },
+		MinReturn:       -700,
+		MaxReturn:       300,
+		ScenarioSeed:    3,
+	}
+	if samples != nil {
+		spec.ParameterSamples = samples
+		spec.ParameterTargets = []agents.SimulationParamTarget{
+			{Partition: "profit", Param: "demand", Indices: []int{0}},
+		}
+	}
+	return agents.NewSimulationEnvironment(settings, impl, spec)
+}
+
+// TestPosteriorPredictivePlanningBeatsPointEstimate is the payoff of planning
+// against a posterior rather than a fitted point.
+//
+// The newsvendor is the textbook case where the two provably disagree. Ordering
+// 25 is optimal if demand really is its posterior mean of 25 (profit 100), but
+// demand is 10 five times in six, so 25 loses money on average (−25) while
+// ordering 10 earns a certain 40. A planner told only the mean cannot see this;
+// one that averages over the posterior can.
+func TestPosteriorPredictivePlanningBeatsPointEstimate(t *testing.T) {
+	cfg := agents.MCTSConfig[[]float64, int]{
+		Simulations:     600,
+		MaxTreeDepth:    2,
+		RolloutMaxSteps: 2,
+		Rollout:         agents.UniformRandomRollout[[]float64, int](),
+	}
+
+	// Planning at the posterior mean.
+	pointEnv := newNewsvendorEnvironment(t, nil, 25)
+	atMean, _, err := agents.RunMCTSSearch(
+		pointEnv, pointEnv.InitialState(), cfg, 11, cfg.Simulations)
+	if err != nil {
+		t.Fatalf("RunMCTSSearch: %v", err)
+	}
+
+	// Planning over the posterior.
+	posteriorEnv := newNewsvendorEnvironment(t, demandPosterior, 25)
+	underPosterior, _, err := agents.RunChanceMCTSSearch(
+		posteriorEnv, posteriorEnv.InitialState(), cfg, 11, cfg.Simulations)
+	if err != nil {
+		t.Fatalf("RunChanceMCTSSearch: %v", err)
+	}
+
+	t.Logf("at the posterior mean: order %v | over the posterior: order %v",
+		orderQuantities[atMean][0], orderQuantities[underPosterior][0])
+
+	if orderQuantities[atMean][0] != 25 {
+		t.Errorf("planning at the mean should order 25 (its best response to demand=25), got %v",
+			orderQuantities[atMean][0])
+	}
+	if orderQuantities[underPosterior][0] != 10 {
+		t.Errorf("planning over the posterior should order 10 (expected profit 40, against "+
+			"-25 for ordering 25), got %v", orderQuantities[underPosterior][0])
 	}
 }

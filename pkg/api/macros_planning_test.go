@@ -165,3 +165,79 @@ func TestMCTSPlanningProgressPartition(t *testing.T) {
 		}
 	})
 }
+
+// TestMCTSPlanningOverAPosterior is posterior-predictive planning as config: the
+// data: tier records a spread of parameter draws, and the planner averages over
+// them instead of committing to a point estimate.
+//
+// The model is the newsvendor, where the two provably disagree. Demand is 10 in
+// five draws of six and 100 in the sixth, so its mean is 25. Ordering 25 is the
+// best response to demand=25 (profit 100) but loses money against the actual
+// spread (−25), while ordering 10 earns a certain 40.
+func TestMCTSPlanningOverAPosterior(t *testing.T) {
+	const cfg = `data:
+  steps: 5
+  timestep: 1.0
+  partitions:
+  - name: demand_draws
+    iteration:
+      type: expression
+      fields: [{name: d}]
+      bindings:
+      - {name: phase, expr: "step - 6 * floor(step / 6)"}
+      outputs: ["where(phase < 5, 10, 100)"]
+    init_state_values: [10.0]
+    state_history_depth: 1
+    seed: 0
+macros:
+- type: mcts_planning
+  name: plan
+  steps: 2
+  horizon: 1
+  sims_per_decision: 600
+  seed: 11
+  return_range: [-700, 300]
+  actions: [[10], [25], [100]]
+  action_partition: order
+  action_param: param_values
+  reward_partition: profit
+  parameters:
+    samples_from: {partition_name: demand_draws}
+    targets: [{partition: profit, param: demand, indices: [0]}]
+  model:
+    partitions:
+    - name: order
+      iteration: {type: param_values}
+      params: {param_values: [0.0]}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+    - name: profit
+      iteration:
+        type: expression
+        fields: [{name: p}]
+        outputs: ["10 * min(quantity, demand) - 6 * quantity"]
+      params: {quantity: [0.0], demand: [25.0]}
+      params_from_upstream:
+        quantity: {upstream: order}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+`
+	out := runMacroConfig(t, cfg)
+	rows := out["plan_apply"]
+	if len(rows) < 2 {
+		t.Fatalf("expected the plan to be recorded, got %d rows", len(rows))
+	}
+	// The order actually placed shows up in the order partition's slot of the
+	// encoded state: [step, return, order(1), profit(1), sample index]. The
+	// first outer step is the sentinel one where the search has not yet produced
+	// a decision, so the applied action appears from the second.
+	ordered := rows[len(rows)-1][2]
+	t.Logf("planning over the recorded posterior ordered %v", ordered)
+
+	if ordered != 10 {
+		t.Errorf("posterior-predictive planning ordered %v, want 10 — ordering 25 is only "+
+			"right if demand really is its mean", ordered)
+	}
+}

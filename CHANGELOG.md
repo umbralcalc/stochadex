@@ -24,6 +24,22 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Posterior-predictive planning.** `mcts_planning` can plan over a posterior instead of a point
+  estimate: `parameters.samples` lists draws inline, or `parameters.samples_from` reads them from a
+  partition recorded in the `data:` tier — one row per draw — so a calibration's own output feeds
+  the planner. `parameters.targets` routes each draw into the model, the same shape SMC uses.
+
+  A draw is fixed for the length of a trajectory but varies across a chance node's outcomes, so
+  the search averages over parameter uncertainty rather than resampling it per step (which would
+  model noise, not uncertainty). Belief updating within an episode is deliberately not attempted.
+
+  Demonstrated on a newsvendor, where the two provably disagree: with demand 10 in five draws of
+  six and 100 in the sixth, planning at the posterior mean of 25 orders 25 — the best response to
+  demand=25, but a loss of 25 against the real spread — while planning over the posterior orders
+  10, for a certain 40.
+
+### Added
+
 - **`mcts_planning` scores truncated rollouts via a progress proxy.** A rollout capped below the
   horizon used to contribute nothing, leaving the search exploring on visit counts alone — the
   case that bites whenever `horizon` exceeds `rollout_max_steps`. It is now scored by

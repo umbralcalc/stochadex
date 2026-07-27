@@ -242,7 +242,10 @@ Two decision-making macros also run live, and the distinction between them matte
   `progress_partition:`** — a partition whose state[0] scores the position in [0,1] (a win
   probability, a normalised margin). Rollouts that run out of steps are scored by it instead of
   discarded; without one the search falls back to reward banked so far, and on a long horizon
-  that is much weaker. Every model partition must have `state_history_depth: 1`,
+  that is much weaker. **To plan under parameter uncertainty rather than a point estimate**, add
+  `parameters:` with `samples_from: {partition_name: <recorded draws>}` (or inline `samples:`) plus
+  `targets:` routing each draw into the model — the search then averages over the posterior, which
+  changes the recommendation whenever the payoff is nonlinear in the uncertain parameter. Every model partition must have `state_history_depth: 1`,
   and the model must be Markov in its own rows: the planner restarts it each transition, so
   nothing may rely on the step counter — carry a phase/counter in the state instead.
   On stochastic models it uses **chance nodes** by default, averaging each action's value over

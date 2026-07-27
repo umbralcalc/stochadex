@@ -78,6 +78,18 @@ type SimulationEnvironment struct {
 	initRows        [][]float64
 	totalWidth      int
 	actionPartition int
+	// paramTargets resolves ParameterTargets to partition indices once.
+	paramTargets []resolvedParamTarget
+	// paramSlot is the encoded index of the drawn-sample slot, or -1 when the
+	// run plans at fixed parameters and carries no such slot.
+	paramSlot int
+}
+
+// resolvedParamTarget is a ParameterTargets entry with its partition resolved.
+type resolvedParamTarget struct {
+	partition int
+	param     string
+	indices   []int
 }
 
 // SimulationEnvironmentSpec configures a SimulationEnvironment.
@@ -114,6 +126,32 @@ type SimulationEnvironmentSpec struct {
 	// that hit their step limit before the horizon. Nil falls back to the reward
 	// banked so far — see Progress.
 	Progress func(rows map[string][]float64) (float64, bool)
+	// ParameterSamples turns the run into posterior-predictive planning: each
+	// entry is one draw of the model's uncertain parameters, and the search
+	// averages over them instead of committing to a point estimate.
+	//
+	// A sample set rather than a fitted distribution, because that is what the
+	// inference tier already produces — SMC particle parameters, or draws from a
+	// posterior_estimation partition — and it carries the posterior's actual
+	// shape rather than a Gaussian summary of it.
+	//
+	// Each sample is routed into the model by ParameterTargets. Leave nil to
+	// plan at whatever parameters the model was configured with.
+	ParameterSamples [][]float64
+	// ParameterTargets says where each sample's values go. Together the targets'
+	// Indices must cover the sample vector.
+	ParameterTargets []SimulationParamTarget
+}
+
+// SimulationParamTarget routes part of a parameter sample into the model, the
+// same shape SMC uses to route a particle's parameters into its own model.
+type SimulationParamTarget struct {
+	// Partition names the model partition receiving the values, and Param the
+	// params key written on it.
+	Partition string
+	Param     string
+	// Indices selects which of the sample's entries to send, in order.
+	Indices []int
 }
 
 // NewSimulationEnvironment validates the spec against the sub-simulation and
@@ -176,6 +214,41 @@ func NewSimulationEnvironment(
 	if spec.Discount == 0 {
 		spec.Discount = 1.0
 	}
+	paramSlot := -1
+	var targets []resolvedParamTarget
+	if len(spec.ParameterSamples) > 0 {
+		if len(spec.ParameterTargets) == 0 {
+			panic("agents.NewSimulationEnvironment: ParameterSamples needs ParameterTargets " +
+				"saying where each sample's values go")
+		}
+		for _, target := range spec.ParameterTargets {
+			index := -1
+			for i, name := range names {
+				if name == target.Partition {
+					index = i
+				}
+			}
+			if index < 0 {
+				panic(fmt.Sprintf(
+					"agents.NewSimulationEnvironment: parameter target names partition %q, "+
+						"which is not in the model", target.Partition))
+			}
+			for _, i := range target.Indices {
+				if i < 0 || i >= len(spec.ParameterSamples[0]) {
+					panic(fmt.Sprintf(
+						"agents.NewSimulationEnvironment: parameter target %q/%q reads sample "+
+							"index %d, outside the %d-wide samples",
+						target.Partition, target.Param, i, len(spec.ParameterSamples[0])))
+				}
+			}
+			targets = append(targets, resolvedParamTarget{
+				partition: index, param: target.Param, indices: target.Indices,
+			})
+		}
+		// One extra slot carries which sample this trajectory drew.
+		paramSlot = 2 + total
+		total++
+	}
 	return &SimulationEnvironment{
 		simulation:      simulator.NewReentrantSimulation(settings, implementations),
 		spec:            spec,
@@ -186,6 +259,8 @@ func NewSimulationEnvironment(
 		initRows:        initRows,
 		totalWidth:      total,
 		actionPartition: actionPartition,
+		paramTargets:    targets,
+		paramSlot:       paramSlot,
 	}
 }
 
@@ -201,6 +276,12 @@ func (e *SimulationEnvironment) InitialState() []float64 {
 	for index, window := range e.initRows {
 		copy(state[offset:], window)
 		offset += e.windowWidths[index]
+	}
+	if e.paramSlot >= 0 {
+		// Undrawn: the first transition out of this state picks a posterior
+		// sample, so a chance node at the root spreads its outcomes across the
+		// posterior rather than committing to one draw.
+		state[e.paramSlot] = -1
 	}
 	return state
 }
@@ -266,6 +347,25 @@ func (e *SimulationEnvironment) apply(
 			s[offset:offset+e.windowWidths[index]], width, e.partitionDepths[index])
 		offset += e.windowWidths[index]
 	}
+	sample := -1.0
+	if e.paramSlot >= 0 {
+		sample = s[e.paramSlot]
+		if sample < 0 {
+			// Draw once per trajectory, from this transition's seed, so the
+			// parameters stay fixed from here on while sibling outcomes at the
+			// same chance node get different draws.
+			draw := mixSeed(e.spec.ScenarioSeed^0x5eed, s, a) ^ sampleSeed
+			sample = float64(draw % uint64(len(e.spec.ParameterSamples)))
+		}
+		values := e.spec.ParameterSamples[int(sample)]
+		for _, target := range e.paramTargets {
+			injected := make([]float64, len(target.indices))
+			for i, index := range target.indices {
+				injected[i] = values[index]
+			}
+			e.simulation.SetParam(target.partition, target.param, injected)
+		}
+	}
 	e.simulation.SetParam(e.actionPartition, e.spec.ActionParam, e.spec.Actions[a])
 	// Seeding from (scenario, state, action, sample) is what makes the transition
 	// reproducible; ReentrantSimulation reseeds the iterations from it before
@@ -282,6 +382,9 @@ func (e *SimulationEnvironment) apply(
 
 	next := make([]float64, e.StateWidth())
 	next[0] = s[0] + 1
+	if e.paramSlot >= 0 {
+		next[e.paramSlot] = sample
+	}
 	writeOffset := 2
 	for index := range e.partitionWidths {
 		copy(next[writeOffset:], advanced[index])
