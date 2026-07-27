@@ -158,6 +158,14 @@ func resolveIterations(partitions []simulator.PartitionConfig) error {
 	return nil
 }
 
+// RunMacros expands and runs a config's macros: tier and returns the resulting
+// storage. It is the programmatic form of Run for macro configs: Run prints and
+// exits, which suits a CLI and makes it unusable from a caller that wants the
+// output or the error — a downstream driving a registered environment, say.
+func RunMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
+	return runMacros(config)
+}
+
 // runMacros expands and runs each macro in turn, returning the resulting storage.
 // A live macro (evolution_strategy_optimisation) runs its partitions as a fresh
 // simulation; an against-storage macro runs against the data: storage, which is
