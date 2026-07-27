@@ -238,7 +238,11 @@ Two decision-making macros also run live, and the distinction between them matte
   the user wants "what should I do, given this simulation" — dispatch, dosing, intervention
   timing. See `cfg/example_planning_config.yaml`. It needs `horizon:` (lookahead), `steps:`
   (decisions to take) and `return_range: [min, max]` (UCB1 needs a bounded value scale — widen it
-  rather than letting returns clamp). Every model partition must have `state_history_depth: 1`,
+  rather than letting returns clamp). **When `horizon` exceeds `rollout_max_steps`, set
+  `progress_partition:`** — a partition whose state[0] scores the position in [0,1] (a win
+  probability, a normalised margin). Rollouts that run out of steps are scored by it instead of
+  discarded; without one the search falls back to reward banked so far, and on a long horizon
+  that is much weaker. Every model partition must have `state_history_depth: 1`,
   and the model must be Markov in its own rows: the planner restarts it each transition, so
   nothing may rely on the step counter — carry a phase/counter in the state instead.
   On stochastic models it uses **chance nodes** by default, averaging each action's value over

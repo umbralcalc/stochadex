@@ -110,6 +110,10 @@ type SimulationEnvironmentSpec struct {
 	// Legal optionally restricts the action set given the decoded rows. Nil
 	// means every action is always legal.
 	Legal func(rows map[string][]float64) []int
+	// Progress optionally scores an unfinished position in [0,1], for rollouts
+	// that hit their step limit before the horizon. Nil falls back to the reward
+	// banked so far — see Progress.
+	Progress func(rows map[string][]float64) (float64, bool)
 }
 
 // NewSimulationEnvironment validates the spec against the sub-simulation and
@@ -316,6 +320,26 @@ func (e *SimulationEnvironment) Actor([]float64) int { return 0 }
 
 // Players implements Environment.
 func (e *SimulationEnvironment) Players([]float64) int { return 1 }
+
+// Progress scores an unfinished state on the same [0,1] scale Terminal uses, so
+// a rollout that runs out of steps still contributes a value instead of no
+// signal. Compose it with FromProgress.
+//
+// The proxy is the reward banked so far. That is deliberately conservative: it
+// credits nothing for a position that is merely promising, so it under-rates a
+// leaf whose payoff comes later. It beats the alternative of discarding the
+// rollout, which leaves the search exploring on visit counts alone — the failure
+// mode that bites when the horizon is longer than RolloutMaxSteps.
+//
+// Supply SimulationEnvironmentSpec.Progress to score positions instead of banked
+// reward, which is what a domain proxy (a win probability, a margin) is for.
+func (e *SimulationEnvironment) Progress(s []float64, player int) (float64, bool) {
+	if e.spec.Progress != nil {
+		return e.spec.Progress(e.rowsByName(s))
+	}
+	span := e.spec.MaxReturn - e.spec.MinReturn
+	return math.Min(1, math.Max(0, (s[1]-e.spec.MinReturn)/span)), true
+}
 
 // Return reads the accumulated (discounted) reward out of an encoded state,
 // which is the quantity a caller actually wants to report — the [0,1] score is

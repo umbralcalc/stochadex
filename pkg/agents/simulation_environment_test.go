@@ -743,3 +743,104 @@ func TestSimulationEnvironmentLegalFilter(t *testing.T) {
 		t.Errorf("charged battery should offer 3 actions, got %v", legal)
 	}
 }
+
+// newLongBatteryEnvironment is the battery problem over a longer horizon, so a
+// rollout capped well below it truncates on almost every simulation.
+func newLongBatteryEnvironment(t *testing.T, horizon int) *agents.SimulationEnvironment {
+	t.Helper()
+	gen := simulator.NewConfigGenerator()
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.NilOutputCondition{},
+		OutputFunction:       &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "price",
+		Iteration:         &cyclicPriceIteration{},
+		InitStateValues:   []float64{priceCycle[3], 3},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "battery",
+		Iteration:         &batteryIteration{capacity: 1},
+		Params:            simulator.NewParams(map[string][]float64{"dispatch": {0}}),
+		InitStateValues:   []float64{0, 0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	impl.ExecutionStrategy = &simulator.InlineExecution{}
+	return agents.NewSimulationEnvironment(settings, impl, agents.SimulationEnvironmentSpec{
+		Actions:         [][]float64{{1}, {0}, {-1}},
+		ActionPartition: "battery",
+		ActionParam:     "dispatch",
+		Horizon:         horizon,
+		Reward: func(rows map[string][]float64) float64 {
+			return -rows["battery"][1] * rows["price"][0]
+		},
+		MinReturn:    -100 * float64(horizon),
+		MaxReturn:    100 * float64(horizon),
+		ScenarioSeed: 1,
+	})
+}
+
+// planWithRollout plans MPC-style under a supplied rollout and returns the
+// achieved return.
+func planWithRollout(
+	t *testing.T,
+	env *agents.SimulationEnvironment,
+	rollout agents.MCTSRolloutFn[[]float64, int],
+	rolloutMaxSteps, sims int,
+) float64 {
+	t.Helper()
+	cfg := agents.MCTSConfig[[]float64, int]{
+		Simulations:     sims,
+		MaxTreeDepth:    6,
+		RolloutMaxSteps: rolloutMaxSteps,
+		Rollout:         rollout,
+	}
+	state := env.InitialState()
+	for step := 0; ; step++ {
+		if _, done := env.Terminal(state); done {
+			return env.Return(state)
+		}
+		best, _, err := agents.RunChanceMCTSSearch(env, state, cfg, uint64(step)+5, sims)
+		if err != nil {
+			t.Fatalf("RunChanceMCTSSearch: %v", err)
+		}
+		state, err = env.Apply(state, best)
+		if err != nil {
+			t.Fatalf("Apply: %v", err)
+		}
+	}
+}
+
+// TestProgressProxyScoresTruncatedRollouts is the reason SimulationEnvironment
+// has a Progress proxy. When the horizon is much longer than a rollout is
+// allowed to run, a plain rollout truncates without a score on nearly every
+// simulation, leaving the search to explore on visit counts alone. Scoring the
+// truncated state instead should plan better.
+func TestProgressProxyScoresTruncatedRollouts(t *testing.T) {
+	const horizon = 24
+	const rolloutMaxSteps = 3 // far below the horizon: nearly every rollout truncates
+	const sims = 300
+
+	plain := planWithRollout(t, newLongBatteryEnvironment(t, horizon),
+		agents.UniformRandomRollout[[]float64, int](), rolloutMaxSteps, sims)
+
+	scored := newLongBatteryEnvironment(t, horizon)
+	withProgress := planWithRollout(t, scored,
+		agents.FromProgress(
+			agents.UniformRandomRollout[[]float64, int](), scored.Progress),
+		rolloutMaxSteps, sims)
+
+	t.Logf("horizon %d, rollout capped at %d: plain %.0f, progress-scored %.0f",
+		horizon, rolloutMaxSteps, plain, withProgress)
+
+	if withProgress <= plain {
+		t.Errorf("progress scoring did not help: %.0f vs %.0f", withProgress, plain)
+	}
+}

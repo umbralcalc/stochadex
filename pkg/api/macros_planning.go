@@ -39,6 +39,12 @@ type mctsPlanningSpec struct {
 	// partition is the usual way, which keeps the reward in the expressions DSL
 	// rather than inventing a second one.
 	RewardPartition string `yaml:"reward_partition"`
+	// ProgressPartition optionally names a model partition whose state[0] scores
+	// the current position in [0,1] — a win probability, a normalised margin.
+	// It is what a rollout is scored by when it hits its step limit before the
+	// horizon, which is the common case once the horizon exceeds
+	// rollout_max_steps. Unset falls back to the reward banked so far.
+	ProgressPartition string `yaml:"progress_partition,omitempty"`
 	// Discount is the per-step discount factor (default 1, undiscounted).
 	Discount float64 `yaml:"discount,omitempty"`
 	// ReturnRange bounds the achievable return as [min, max]. UCB1 needs a
@@ -129,6 +135,17 @@ func (s *mctsPlanningSpec) resolveLive(
 	if err := requireModelPartition(settings, s.ActionPartition, "action_partition"); err != nil {
 		return nil, 0, 0, err
 	}
+	var progress func(rows map[string][]float64) (float64, bool)
+	if s.ProgressPartition != "" {
+		if err := requireModelPartition(
+			settings, s.ProgressPartition, "progress_partition"); err != nil {
+			return nil, 0, 0, err
+		}
+		progressPartition := s.ProgressPartition
+		progress = func(rows map[string][]float64) (float64, bool) {
+			return rows[progressPartition][0], true
+		}
+	}
 
 	environment := agents.NewSimulationEnvironment(
 		settings, implementations, agents.SimulationEnvironmentSpec{
@@ -143,6 +160,7 @@ func (s *mctsPlanningSpec) resolveLive(
 			MinReturn:    s.ReturnRange[0],
 			MaxReturn:    s.ReturnRange[1],
 			ScenarioSeed: s.ScenarioSeed,
+			Progress:     progress,
 		})
 
 	// The encoded state is already []float64, so the self-play topology's codec
@@ -150,7 +168,14 @@ func (s *mctsPlanningSpec) resolveLive(
 	selfPlay := macros.MCTSSelfPlaySpec[[]float64, int]{
 		Env: environment,
 		Cfg: agents.MCTSConfig[[]float64, int]{
-			Rollout: agents.UniformRandomRollout[[]float64, int](),
+			// A rollout that runs out of steps before the horizon is scored by
+			// the progress proxy rather than discarded, which is what keeps the
+			// search informed when the horizon exceeds rollout_max_steps.
+			Rollout: agents.FromProgress(
+				agents.UniformRandomRollout[[]float64, int](),
+				environment.Progress,
+			),
+			Progress: environment.Progress,
 		},
 		InitState: environment.InitialState(),
 		Decoder: func(row []float64) ([]float64, error) {

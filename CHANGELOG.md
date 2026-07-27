@@ -22,6 +22,16 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`mcts_planning` scores truncated rollouts via a progress proxy.** A rollout capped below the
+  horizon used to contribute nothing, leaving the search exploring on visit counts alone — the
+  case that bites whenever `horizon` exceeds `rollout_max_steps`. It is now scored by
+  `agents.SimulationEnvironment.Progress`, which defaults to the reward banked so far and can be
+  overridden with `progress_partition:` naming a partition whose state[0] is a [0,1] position
+  score. On the battery problem at horizon 24 with rollouts capped at 3, the planned return goes
+  from 160 to 480.
+
 ## [0.12.0] — 2026-07-26
 
 ### Changed

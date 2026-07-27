@@ -138,3 +138,30 @@ func TestMCTSPlanningMacroValidation(t *testing.T) {
 		})
 	}
 }
+
+// TestMCTSPlanningProgressPartition covers the progress proxy's config surface:
+// a named partition is used to score rollouts that truncate, and a typo is an
+// error rather than a silently unscored search.
+func TestMCTSPlanningProgressPartition(t *testing.T) {
+	t.Run("a named progress partition resolves", func(t *testing.T) {
+		cfg := strings.Replace(planningConfig,
+			"  reward_partition: revenue",
+			"  reward_partition: revenue\n  progress_partition: revenue", 1)
+		if cfg == planningConfig {
+			t.Fatal("test setup: reward_partition not found")
+		}
+		if err := macroConfigError(t, cfg); err != nil {
+			t.Fatalf("progress_partition should resolve: %v", err)
+		}
+	})
+
+	t.Run("an unknown progress partition is an error", func(t *testing.T) {
+		cfg := strings.Replace(planningConfig,
+			"  reward_partition: revenue",
+			"  reward_partition: revenue\n  progress_partition: absent", 1)
+		err := macroConfigError(t, cfg)
+		if err == nil || !strings.Contains(err.Error(), `no model partition named "absent"`) {
+			t.Errorf("expected a named error for an unknown progress partition, got: %v", err)
+		}
+	})
+}
