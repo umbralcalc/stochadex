@@ -22,7 +22,19 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-07-27
+
 ### Added
+
+- **`mcts_planning` scores truncated rollouts via a progress proxy.** A rollout capped below the
+  horizon used to contribute nothing, leaving the search exploring on visit counts alone — the
+  case that bites whenever `horizon` exceeds `rollout_max_steps`. It is now scored by
+  `agents.SimulationEnvironment.Progress`, which defaults to the reward banked so far and can be
+  overridden with `progress_partition:` naming a partition whose state[0] is a [0,1] position
+  score. On the battery problem at horizon 24 with rollouts capped at 3, the planned return goes
+  from 160 to 480. Validated on a fitted rugby model at its real 80-minute horizon, previously out
+  of reach: the planner's separation between a beneficial and a harmful substitution grows with
+  the search budget (15 points of substitution share at 60 simulations, 22 at 240, 33 at 960).
 
 - **Posterior-predictive planning.** `mcts_planning` can plan over a posterior instead of a point
   estimate: `parameters.samples` lists draws inline, or `parameters.samples_from` reads them from a
@@ -71,15 +83,13 @@ an exact version rather than assume stability across minors.
   that HAVE happened is the inference tier's job, and a planner picks that up through
   `parameters.weights` on the next replan.
 
-### Added
+- **`api.RunMacros`** runs a config's `macros:` tier and returns the storage or an error. `Run`
+  prints and exits, which suits a CLI and makes it unusable from a caller that wants the result —
+  a downstream driving a registered environment, say.
 
-- **`mcts_planning` scores truncated rollouts via a progress proxy.** A rollout capped below the
-  horizon used to contribute nothing, leaving the search exploring on visit counts alone — the
-  case that bites whenever `horizon` exceeds `rollout_max_steps`. It is now scored by
-  `agents.SimulationEnvironment.Progress`, which defaults to the reward banked so far and can be
-  overridden with `progress_partition:` naming a partition whose state[0] is a [0,1] position
-  score. On the battery problem at horizon 24 with rollouts capped at 3, the planned return goes
-  from 160 to 480.
+- **card-game-studio drives the environment registry.** The hook shipped in 0.12.0 had no
+  downstream using it; a rulesvm ruleset is now reachable as `env: {type: cardgame_rulesvm, rules:
+  rules/uno.yaml, players: 2}`, with the engine never parsing that rules format.
 
 ## [0.12.0] — 2026-07-26
 
@@ -1168,7 +1178,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/umbralcalc/stochadex/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/umbralcalc/stochadex/compare/v0.11.0...v0.12.0
 [0.7.0]: https://github.com/umbralcalc/stochadex/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/umbralcalc/stochadex/compare/v0.6.0...v0.6.1
