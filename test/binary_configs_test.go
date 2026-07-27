@@ -38,6 +38,8 @@ func TestBinaryRunsExampleConfigs(t *testing.T) {
 		{"cfg/example_config.yaml", "in-process (data-spec iterations)"},
 		{"cfg/example_inference_config.yaml", "in-process (full inference as data + embedded)"},
 		{"cfg/example_data_only_config.yaml", "in-process (fully data)"},
+		{"cfg/example_planning_config.yaml", "in-process (planning over a model)"},
+		{"cfg/example_mcts_config.yaml", "in-process (self-play over a registered environment)"},
 	}
 	for _, config := range configs {
 		t.Run(filepath.Base(config.path), func(t *testing.T) {
