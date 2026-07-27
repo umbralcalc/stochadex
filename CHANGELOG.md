@@ -38,6 +38,13 @@ an exact version rather than assume stability across minors.
   demand=25, but a loss of 25 against the real spread — while planning over the posterior orders
   10, for a certain 40.
 
+- **Planning composes with `posterior_estimation`.** Its sampler partition already draws from the
+  running posterior, so `parameters.samples_from` reads those rows directly as the sample set —
+  no further sampling step. `burn_in:` drops the rows recorded while the estimate was still
+  moving, which otherwise enter the plan as uncertainty the inference has already ruled out.
+  A config can therefore infer a parameter from data and then plan under it, uncertainty included,
+  in one file with no Go.
+
 - **In-tree belief updating**, via `parameters.belief`. The planner carries a distribution over the
   parameter samples as part of its state and reweights it by how well each sample predicted what
   was observed, so it can value an action for what it *reveals* and not only for what it pays.

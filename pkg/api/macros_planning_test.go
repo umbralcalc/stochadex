@@ -315,3 +315,108 @@ func TestMCTSPlanningWithBeliefUpdating(t *testing.T) {
 		t.Errorf("a planner that can learn should probe first, it chose %v", opening)
 	}
 }
+
+// TestMCTSPlanningFromAnInferredPosterior is the chain the planning tier exists
+// for: infer a parameter from data, then plan under what was inferred —
+// uncertainty included — in one config with no Go.
+//
+// posterior_estimation already samples the running posterior each step, so its
+// sampler partition's recorded rows ARE the posterior sample set. The planner
+// reads them directly, past a burn-in that drops the rows produced while the
+// estimate was still moving.
+//
+// The data has a mean of 3, recovered from an off-truth prior of 0. The decision
+// is a newsvendor whose right order depends on that mean, so the plan is only
+// right if the inference actually reached the truth.
+func TestMCTSPlanningFromAnInferredPosterior(t *testing.T) {
+	const cfg = `data:
+  steps: 2500
+  timestep: 1.0
+  partitions:
+  - name: observations
+    iteration: {type: data_generation, likelihood: {type: normal}}
+    params: {mean: [3.0], covariance_matrix: [0.25]}
+    init_state_values: [3.0]
+    state_history_depth: 2500
+    seed: 17
+macros:
+- type: posterior_estimation
+  log_norm: {name: post_log_norm, default: 0.0}
+  mean: {name: post_mean, default: [0.0]}
+  covariance: {name: post_cov, default: [4.0]}
+  sampler:
+    name: post_sampler
+    default: [0.0]
+    distribution:
+      likelihood: {type: normal, allow_default_covariance_fallback: true}
+      params: {default_covariance: [4.0], cov_burn_in_steps: [100]}
+      params_from_upstream:
+        mean: {upstream: post_mean}
+        covariance_matrix: {upstream: post_cov}
+  comparison:
+    name: post_likelihood
+    model:
+      likelihood: {type: normal}
+      params: {covariance_matrix: [0.25]}
+      params_from_upstream:
+        mean: {upstream: post_sampler}
+    data: {partition_name: observations}
+    window:
+      data: [{partition_name: observations}]
+      depth: 100
+    window_data_history_depth: {observations: 100}
+  past_discount: 0.999
+  memory_depth: 100
+  seed: 1234
+- type: mcts_planning
+  name: plan
+  steps: 2
+  horizon: 1
+  sims_per_decision: 400
+  seed: 3
+  return_range: [-200, 200]
+  actions: [[1], [3], [9]]
+  action_partition: order
+  action_param: param_values
+  reward_partition: profit
+  parameters:
+    # The sampler's own draws, after the estimate has settled.
+    samples_from: {partition_name: post_sampler, burn_in: 2000}
+    targets: [{partition: profit, param: demand, indices: [0]}]
+  model:
+    partitions:
+    - name: order
+      iteration: {type: param_values}
+      params: {param_values: [0.0]}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+    - name: profit
+      iteration:
+        type: expression
+        fields: [{name: p}]
+        outputs: ["10 * min(quantity, demand) - 6 * quantity"]
+      params: {quantity: [0.0], demand: [0.0]}
+      params_from_upstream:
+        quantity: {upstream: order}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+`
+	// A live macro runs in its own context and replaces the storage, so the
+	// posterior partitions are no longer readable by the time the plan is out.
+	out := runMacroConfig(t, cfg)
+	rows := out["plan_apply"]
+	if len(rows) < 3 {
+		t.Fatalf("expected the plan to be recorded, got %d rows", len(rows))
+	}
+	ordered := rows[len(rows)-1][2]
+	t.Logf("planning under the inferred posterior ordered %v (demand truly averages 3)",
+		ordered)
+
+	// Ordering 3 suits demand near 3: 1 leaves profit unclaimed and 9 buys stock
+	// that cannot be sold.
+	if ordered != 3 {
+		t.Errorf("ordered %v, want 3 — the plan should follow the inferred demand", ordered)
+	}
+}

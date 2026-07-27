@@ -244,7 +244,9 @@ Two decision-making macros also run live, and the distinction between them matte
   discarded; without one the search falls back to reward banked so far, and on a long horizon
   that is much weaker. **To plan under parameter uncertainty rather than a point estimate**, add
   `parameters:` with `samples_from: {partition_name: <recorded draws>}` (or inline `samples:`) plus
-  `targets:` routing each draw into the model — the search then averages over the posterior, which
+  `targets:` routing each draw into the model. `posterior_estimation`'s sampler partition already
+  emits posterior draws, so `samples_from: {partition_name: <sampler>, burn_in: <converged from>}`
+  chains inference straight into planning — the search then averages over the posterior, which
   changes the recommendation whenever the payoff is nonlinear in the uncertain parameter. Adding
   `belief: {observation_partition: <what is seen>, variance: <noise>}` under `parameters:` lets the
   planner *learn* within an episode, so it will pay for an informative action; it costs a model

@@ -85,14 +85,34 @@ type mctsPlanningSpec struct {
 // come either inline or from a partition recorded in the data: tier — one row
 // per draw — which is how a calibration's own output feeds the planner.
 type planningParametersSpec struct {
-	Samples     [][]float64           `yaml:"samples,omitempty"`
-	SamplesFrom *dataRefSpec          `yaml:"samples_from,omitempty"`
+	Samples [][]float64 `yaml:"samples,omitempty"`
+	// SamplesFrom reads one draw per recorded row. posterior_estimation's sampler
+	// partition already draws from the running posterior each step, so its
+	// recorded rows are the posterior sample set — no further sampling step is
+	// needed, and an SMC proposal partition works the same way.
+	//
+	// Set BurnIn past the rows produced while the estimate was still moving.
+	// Those carry the convergence transient, not the posterior, and a planner
+	// reading them plans against a spread the inference has already ruled out.
+	//
+	// Pointing this at a posterior MEAN partition is a mistake that runs: those
+	// rows are a trajectory of point estimates, not draws.
+	SamplesFrom *planningSamplesRef   `yaml:"samples_from,omitempty"`
 	Targets     []planningParamTarget `yaml:"targets"`
 	// Belief turns on in-tree belief updating, so the planner can value an action
 	// for what it reveals and not only for what it pays. It costs a model step
 	// per sample on every transition, so keep the sample set small — a run with
 	// hundreds of draws should plan on a fixed draw instead.
 	Belief *planningBeliefSpec `yaml:"belief,omitempty"`
+}
+
+// planningSamplesRef reads draws from recorded rows, discarding a burn-in.
+type planningSamplesRef struct {
+	PartitionName string `yaml:"partition_name"`
+	ValueIndices  []int  `yaml:"value_indices,omitempty"`
+	// BurnIn drops this many leading rows, which is how the transient of a
+	// still-converging inference is kept out of the sample set.
+	BurnIn int `yaml:"burn_in,omitempty"`
 }
 
 // planningBeliefSpec names what the decision-maker observes and how sharply that
@@ -118,16 +138,13 @@ func (p *planningParametersSpec) resolve(
 		return nil, fmt.Errorf(
 			"mcts_planning parameters needs targets: saying where each sample's values go")
 	}
-	if len(p.Samples) > 0 && p.SamplesFrom != nil {
+	if (len(p.Samples) > 0) == (p.SamplesFrom != nil) {
 		return nil, fmt.Errorf(
-			"mcts_planning parameters: set samples: or samples_from:, not both")
+			"mcts_planning parameters needs exactly one of samples: or samples_from: " +
+				"to draw from")
 	}
 	if len(p.Samples) > 0 {
 		return p.Samples, nil
-	}
-	if p.SamplesFrom == nil {
-		return nil, fmt.Errorf(
-			"mcts_planning parameters needs samples: or samples_from: to draw from")
 	}
 	if storage == nil {
 		return nil, fmt.Errorf(
@@ -140,6 +157,12 @@ func (p *planningParametersSpec) resolve(
 			"mcts_planning parameters.samples_from: no recorded data for partition %q",
 			p.SamplesFrom.PartitionName)
 	}
+	if p.SamplesFrom.BurnIn >= len(rows) {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters.samples_from: burn_in %d discards all %d recorded "+
+				"rows of %q", p.SamplesFrom.BurnIn, len(rows), p.SamplesFrom.PartitionName)
+	}
+	rows = rows[p.SamplesFrom.BurnIn:]
 	indices := p.SamplesFrom.ValueIndices
 	samples := make([][]float64, len(rows))
 	for i, row := range rows {
