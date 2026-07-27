@@ -78,6 +78,25 @@ type SimulationEnvironment struct {
 	initRows        [][]float64
 	totalWidth      int
 	actionPartition int
+	// paramTargets resolves ParameterTargets to partition indices once.
+	paramTargets []resolvedParamTarget
+	// paramSlot is the encoded index of the drawn-sample slot, or -1 when the
+	// run plans at fixed parameters and carries no such slot.
+	paramSlot int
+	// beliefSlot is the encoded index of the first belief weight, or -1 when the
+	// run does no belief updating. There is one weight per parameter sample.
+	beliefSlot int
+	// observationPartition is the partition index whose row[0] is observed.
+	observationPartition int
+	// priorWeights is ParameterWeights normalised, or nil for equal credence.
+	priorWeights []float64
+}
+
+// resolvedParamTarget is a ParameterTargets entry with its partition resolved.
+type resolvedParamTarget struct {
+	partition int
+	param     string
+	indices   []int
 }
 
 // SimulationEnvironmentSpec configures a SimulationEnvironment.
@@ -110,6 +129,70 @@ type SimulationEnvironmentSpec struct {
 	// Legal optionally restricts the action set given the decoded rows. Nil
 	// means every action is always legal.
 	Legal func(rows map[string][]float64) []int
+	// Progress optionally scores an unfinished position in [0,1], for rollouts
+	// that hit their step limit before the horizon. Nil falls back to the reward
+	// banked so far — see Progress.
+	Progress func(rows map[string][]float64) (float64, bool)
+	// ParameterSamples turns the run into posterior-predictive planning: each
+	// entry is one draw of the model's uncertain parameters, and the search
+	// averages over them instead of committing to a point estimate.
+	//
+	// A sample set rather than a fitted distribution, because that is what the
+	// inference tier already produces — SMC particle parameters, or draws from a
+	// posterior_estimation partition — and it carries the posterior's actual
+	// shape rather than a Gaussian summary of it.
+	//
+	// Each sample is routed into the model by ParameterTargets. Leave nil to
+	// plan at whatever parameters the model was configured with.
+	ParameterSamples [][]float64
+	// ParameterTargets says where each sample's values go. Together the targets'
+	// Indices must cover the sample vector.
+	ParameterTargets []SimulationParamTarget
+	// ParameterWeights is how much credence each sample carries, which is what an
+	// inference tier hands a planner: SMC produces particles AND their weights,
+	// and the weights are the posterior. Need not sum to 1; it is normalised.
+	//
+	// Nil means equal credence, which is right when the samples were themselves
+	// drawn from the posterior (posterior_estimation's sampler does this, so its
+	// draws already carry the posterior's shape) and wrong when they were drawn
+	// from something else and reweighted.
+	ParameterWeights []float64
+	// Belief turns on in-tree belief updating: the planner carries a distribution
+	// over ParameterSamples and reweights it from what each step reveals, so it
+	// can value an action for what it teaches rather than only for what it pays.
+	//
+	// This is the expensive option. Every transition evaluates the model once per
+	// sample to score the observation, so a step costs (len(ParameterSamples)+1)
+	// model steps. Keep the sample set small.
+	//
+	// Nil plans on a fixed draw instead: still posterior-predictive across
+	// trajectories, but blind to information — see the type docs.
+	Belief *BeliefSpec
+}
+
+// BeliefSpec configures in-tree belief updating.
+type BeliefSpec struct {
+	// ObservationPartition names the partition whose state[0] the decision-maker
+	// observes each step. Its value under the trajectory's true parameters is
+	// scored against what each sample predicts, and the belief is reweighted by
+	// the result. An observation the samples all predict alike carries no
+	// information and leaves the belief untouched, which is the correct
+	// behaviour and what makes an uninformative action look uninformative.
+	ObservationPartition string
+	// Variance is the observation-noise variance of the Gaussian likelihood used
+	// for that scoring. Larger values make the belief move more slowly.
+	Variance float64
+}
+
+// SimulationParamTarget routes part of a parameter sample into the model, the
+// same shape SMC uses to route a particle's parameters into its own model.
+type SimulationParamTarget struct {
+	// Partition names the model partition receiving the values, and Param the
+	// params key written on it.
+	Partition string
+	Param     string
+	// Indices selects which of the sample's entries to send, in order.
+	Indices []int
 }
 
 // NewSimulationEnvironment validates the spec against the sub-simulation and
@@ -172,16 +255,105 @@ func NewSimulationEnvironment(
 	if spec.Discount == 0 {
 		spec.Discount = 1.0
 	}
+	paramSlot := -1
+	var targets []resolvedParamTarget
+	var priorWeights []float64
+	if len(spec.ParameterWeights) > 0 {
+		if len(spec.ParameterWeights) != len(spec.ParameterSamples) {
+			panic(fmt.Sprintf(
+				"agents.NewSimulationEnvironment: %d parameter weights for %d samples — "+
+					"there must be one weight per sample",
+				len(spec.ParameterWeights), len(spec.ParameterSamples)))
+		}
+		total := 0.0
+		for _, weight := range spec.ParameterWeights {
+			if weight < 0 {
+				panic("agents.NewSimulationEnvironment: parameter weights must be non-negative")
+			}
+			total += weight
+		}
+		if total <= 0 {
+			panic("agents.NewSimulationEnvironment: parameter weights sum to zero, so no " +
+				"sample carries any credence")
+		}
+		priorWeights = make([]float64, len(spec.ParameterWeights))
+		for i, weight := range spec.ParameterWeights {
+			priorWeights[i] = weight / total
+		}
+	}
+	if len(spec.ParameterSamples) > 0 {
+		if len(spec.ParameterTargets) == 0 {
+			panic("agents.NewSimulationEnvironment: ParameterSamples needs ParameterTargets " +
+				"saying where each sample's values go")
+		}
+		for _, target := range spec.ParameterTargets {
+			index := -1
+			for i, name := range names {
+				if name == target.Partition {
+					index = i
+				}
+			}
+			if index < 0 {
+				panic(fmt.Sprintf(
+					"agents.NewSimulationEnvironment: parameter target names partition %q, "+
+						"which is not in the model", target.Partition))
+			}
+			for _, i := range target.Indices {
+				if i < 0 || i >= len(spec.ParameterSamples[0]) {
+					panic(fmt.Sprintf(
+						"agents.NewSimulationEnvironment: parameter target %q/%q reads sample "+
+							"index %d, outside the %d-wide samples",
+						target.Partition, target.Param, i, len(spec.ParameterSamples[0])))
+				}
+			}
+			targets = append(targets, resolvedParamTarget{
+				partition: index, param: target.Param, indices: target.Indices,
+			})
+		}
+		// One extra slot carries which sample this trajectory drew.
+		paramSlot = 2 + total
+		total++
+	}
+	beliefSlot := -1
+	observationPartition := -1
+	if spec.Belief != nil {
+		if len(spec.ParameterSamples) == 0 {
+			panic("agents.NewSimulationEnvironment: Belief needs ParameterSamples to be a " +
+				"belief over")
+		}
+		if spec.Belief.Variance <= 0 {
+			panic("agents.NewSimulationEnvironment: Belief.Variance must be > 0")
+		}
+		for i, name := range names {
+			if name == spec.Belief.ObservationPartition {
+				observationPartition = i
+			}
+		}
+		if observationPartition < 0 {
+			panic(fmt.Sprintf(
+				"agents.NewSimulationEnvironment: Belief observes partition %q, which is "+
+					"not in the model", spec.Belief.ObservationPartition))
+		}
+		// One weight per sample: the belief is part of the state, which is what
+		// lets the search prefer a position it understands better.
+		beliefSlot = 2 + total
+		total += len(spec.ParameterSamples)
+	}
 	return &SimulationEnvironment{
-		simulation:      simulator.NewReentrantSimulation(settings, implementations),
-		spec:            spec,
-		partitionNames:  names,
-		partitionWidths: widths,
-		partitionDepths: depths,
-		windowWidths:    windowWidths,
-		initRows:        initRows,
-		totalWidth:      total,
-		actionPartition: actionPartition,
+		simulation:           simulator.NewReentrantSimulation(settings, implementations),
+		spec:                 spec,
+		partitionNames:       names,
+		partitionWidths:      widths,
+		partitionDepths:      depths,
+		windowWidths:         windowWidths,
+		initRows:             initRows,
+		totalWidth:           total,
+		actionPartition:      actionPartition,
+		paramTargets:         targets,
+		paramSlot:            paramSlot,
+		beliefSlot:           beliefSlot,
+		observationPartition: observationPartition,
+		priorWeights:         priorWeights,
 	}
 }
 
@@ -197,6 +369,23 @@ func (e *SimulationEnvironment) InitialState() []float64 {
 	for index, window := range e.initRows {
 		copy(state[offset:], window)
 		offset += e.windowWidths[index]
+	}
+	if e.paramSlot >= 0 {
+		// Undrawn: the first transition out of this state picks a posterior
+		// sample, so a chance node at the root spreads its outcomes across the
+		// posterior rather than committing to one draw.
+		state[e.paramSlot] = -1
+	}
+	if e.beliefSlot >= 0 {
+		// The episode starts believing whatever the inference tier concluded.
+		uniform := 1 / float64(len(e.spec.ParameterSamples))
+		for i := range e.spec.ParameterSamples {
+			if e.priorWeights != nil {
+				state[e.beliefSlot+i] = e.priorWeights[i]
+			} else {
+				state[e.beliefSlot+i] = uniform
+			}
+		}
 	}
 	return state
 }
@@ -255,12 +444,27 @@ func (e *SimulationEnvironment) apply(
 
 	// Hand back each partition's whole window, so an iteration that reads several
 	// steps into the past resumes from the history it actually had.
-	histories := make(map[int]*simulator.StateHistory, len(e.partitionWidths))
-	offset := 2
-	for index, width := range e.partitionWidths {
-		histories[index] = simulator.NewStateHistoryFromWindow(
-			s[offset:offset+e.windowWidths[index]], width, e.partitionDepths[index])
-		offset += e.windowWidths[index]
+	histories := e.historiesFrom(s)
+	sample := -1.0
+	if e.paramSlot >= 0 {
+		sample = s[e.paramSlot]
+		if sample < 0 {
+			// Draw once per trajectory, from this transition's seed, so the
+			// parameters stay fixed from here on while sibling outcomes at the
+			// same chance node get different draws. With a belief, the draw is
+			// weighted by it, so the trajectories a node explores reflect what is
+			// currently thought plausible.
+			draw := mixSeed(e.spec.ScenarioSeed^0x5eed, s, a) ^ sampleSeed
+			sample = float64(e.drawSample(s, draw))
+		}
+		values := e.spec.ParameterSamples[int(sample)]
+		for _, target := range e.paramTargets {
+			injected := make([]float64, len(target.indices))
+			for i, index := range target.indices {
+				injected[i] = values[index]
+			}
+			e.simulation.SetParam(target.partition, target.param, injected)
+		}
 	}
 	e.simulation.SetParam(e.actionPartition, e.spec.ActionParam, e.spec.Actions[a])
 	// Seeding from (scenario, state, action, sample) is what makes the transition
@@ -278,15 +482,140 @@ func (e *SimulationEnvironment) apply(
 
 	next := make([]float64, e.StateWidth())
 	next[0] = s[0] + 1
+	if e.paramSlot >= 0 {
+		next[e.paramSlot] = sample
+	}
 	writeOffset := 2
 	for index := range e.partitionWidths {
 		copy(next[writeOffset:], advanced[index])
 		writeOffset += e.windowWidths[index]
 	}
+	if e.beliefSlot >= 0 {
+		e.updateBelief(s, next, a, seed)
+	}
 	// Discount by the step the reward was earned on, so a path's accumulated
 	// value does not depend on the order the tree happened to visit it in.
 	next[1] = s[1] + math.Pow(e.spec.Discount, s[0])*e.spec.Reward(e.rowsByName(next))
 	return next, nil
+}
+
+// drawSample picks a parameter sample, weighted by the belief carried in s when
+// there is one and uniformly otherwise.
+func (e *SimulationEnvironment) drawSample(s []float64, draw uint64) int {
+	count := len(e.spec.ParameterSamples)
+	if e.beliefSlot < 0 && e.priorWeights == nil {
+		return int(draw % uint64(count))
+	}
+	// Sample the categorical belief by its cumulative distribution, using the
+	// draw as a uniform in [0,1). Without a belief in the state the prior stands
+	// in, so weighted samples are still drawn in proportion to their credence.
+	target := float64(draw%(1<<24)) / float64(1<<24)
+	cumulative := 0.0
+	for i := 0; i < count; i++ {
+		if e.beliefSlot >= 0 {
+			cumulative += s[e.beliefSlot+i]
+		} else {
+			cumulative += e.priorWeights[i]
+		}
+		if target < cumulative {
+			return i
+		}
+	}
+	return count - 1
+}
+
+// updateBelief reweights the belief by how well each parameter sample predicted
+// what was actually observed this step.
+//
+// Each sample is re-run from the same starting histories under the same noise
+// seed, so the only thing that differs between them is the parameters — which is
+// what makes the comparison a likelihood over parameters rather than over noise.
+// That is also why this costs a model step per sample.
+func (e *SimulationEnvironment) updateBelief(
+	previous, next []float64,
+	action int,
+	seed uint64,
+) {
+	observed := e.observationOf(next)
+	count := len(e.spec.ParameterSamples)
+	weights := make([]float64, count)
+	total := 0.0
+	variance := e.spec.Belief.Variance
+
+	for i := 0; i < count; i++ {
+		prior := previous[e.beliefSlot+i]
+		if prior <= 0 {
+			continue
+		}
+		predicted := e.predictObservation(i, previous, action, seed)
+		residual := observed - predicted
+		weight := prior * math.Exp(-residual*residual/(2*variance))
+		weights[i] = weight
+		total += weight
+	}
+
+	if total <= 0 {
+		// Every sample found the observation impossible, so it carries no usable
+		// information; keeping the prior beats collapsing onto an arbitrary one.
+		copy(next[e.beliefSlot:e.beliefSlot+count], previous[e.beliefSlot:e.beliefSlot+count])
+		return
+	}
+	for i := 0; i < count; i++ {
+		next[e.beliefSlot+i] = weights[i] / total
+	}
+}
+
+// predictObservation runs one step under sample i from the given starting
+// histories and reports what it would have observed.
+func (e *SimulationEnvironment) predictObservation(
+	sample int,
+	previous []float64,
+	action int,
+	seed uint64,
+) float64 {
+	values := e.spec.ParameterSamples[sample]
+	for _, target := range e.paramTargets {
+		injected := make([]float64, len(target.indices))
+		for j, index := range target.indices {
+			injected[j] = values[index]
+		}
+		e.simulation.SetParam(target.partition, target.param, injected)
+	}
+	e.simulation.SetParam(e.actionPartition, e.spec.ActionParam, e.spec.Actions[action])
+	// Rebuilt from the encoded state rather than reused: a StateHistory handed to
+	// a coordinator is written through, so the advancing run has already moved
+	// the ones it was given.
+	rows := e.simulation.Run(simulator.ReentrantRun{
+		Histories: e.historiesFrom(previous), Seed: &seed, Steps: 1,
+	})
+	return rows[e.observationPartition][0]
+}
+
+// historiesFrom rebuilds each partition's state-history window from an encoded
+// state. Fresh objects every time, because a coordinator writes through the
+// histories it is given.
+func (e *SimulationEnvironment) historiesFrom(s []float64) map[int]*simulator.StateHistory {
+	histories := make(map[int]*simulator.StateHistory, len(e.partitionWidths))
+	offset := 2
+	for index, width := range e.partitionWidths {
+		histories[index] = simulator.NewStateHistoryFromWindow(
+			s[offset:offset+e.windowWidths[index]], width, e.partitionDepths[index])
+		offset += e.windowWidths[index]
+	}
+	return histories
+}
+
+// observationOf reads the observed partition's latest value out of an encoded
+// state.
+func (e *SimulationEnvironment) observationOf(s []float64) float64 {
+	offset := 2
+	for index := range e.partitionWidths {
+		if index == e.observationPartition {
+			return s[offset]
+		}
+		offset += e.windowWidths[index]
+	}
+	return 0
 }
 
 // ApplySample implements StochasticEnvironment: one transition under an explicit
@@ -316,6 +645,26 @@ func (e *SimulationEnvironment) Actor([]float64) int { return 0 }
 
 // Players implements Environment.
 func (e *SimulationEnvironment) Players([]float64) int { return 1 }
+
+// Progress scores an unfinished state on the same [0,1] scale Terminal uses, so
+// a rollout that runs out of steps still contributes a value instead of no
+// signal. Compose it with FromProgress.
+//
+// The proxy is the reward banked so far. That is deliberately conservative: it
+// credits nothing for a position that is merely promising, so it under-rates a
+// leaf whose payoff comes later. It beats the alternative of discarding the
+// rollout, which leaves the search exploring on visit counts alone — the failure
+// mode that bites when the horizon is longer than RolloutMaxSteps.
+//
+// Supply SimulationEnvironmentSpec.Progress to score positions instead of banked
+// reward, which is what a domain proxy (a win probability, a margin) is for.
+func (e *SimulationEnvironment) Progress(s []float64, player int) (float64, bool) {
+	if e.spec.Progress != nil {
+		return e.spec.Progress(e.rowsByName(s))
+	}
+	span := e.spec.MaxReturn - e.spec.MinReturn
+	return math.Min(1, math.Max(0, (s[1]-e.spec.MinReturn)/span)), true
+}
 
 // Return reads the accumulated (discounted) reward out of an encoded state,
 // which is the quantity a caller actually wants to report — the [0,1] score is

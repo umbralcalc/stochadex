@@ -22,6 +22,65 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **Posterior-predictive planning.** `mcts_planning` can plan over a posterior instead of a point
+  estimate: `parameters.samples` lists draws inline, or `parameters.samples_from` reads them from a
+  partition recorded in the `data:` tier — one row per draw — so a calibration's own output feeds
+  the planner. `parameters.targets` routes each draw into the model, the same shape SMC uses.
+
+  A draw is fixed for the length of a trajectory but varies across a chance node's outcomes, so
+  the search averages over parameter uncertainty rather than resampling it per step (which would
+  model noise, not uncertainty).
+
+  Demonstrated on a newsvendor, where the two provably disagree: with demand 10 in five draws of
+  six and 100 in the sixth, planning at the posterior mean of 25 orders 25 — the best response to
+  demand=25, but a loss of 25 against the real spread — while planning over the posterior orders
+  10, for a certain 40.
+
+- **Planning composes with `posterior_estimation`.** Its sampler partition already draws from the
+  running posterior, so `parameters.samples_from` reads those rows directly as the sample set —
+  no further sampling step. `burn_in:` drops the rows recorded while the estimate was still
+  moving, which otherwise enter the plan as uncertainty the inference has already ruled out.
+  A config can therefore infer a parameter from data and then plan under it, uncertainty included,
+  in one file with no Go.
+
+- **Sample weights**, via `parameters.weights` or `parameters.weights_from`. Samples that are not
+  themselves posterior draws carry their posterior in their weights — SMC particles being the
+  case — and a planner ignoring those plans against the proposal instead. The weights set the
+  planner's starting belief and steer which samples a trajectory draws, so an inference tier can
+  hand over what it concluded rather than having it flattened. Omit them when the samples were
+  drawn from the posterior directly, as posterior_estimation's sampler does.
+
+- **In-tree belief updating**, via `parameters.belief`. The planner carries a distribution over the
+  parameter samples as part of its state and reweights it by how well each sample predicted what
+  was observed, so it can value an action for what it *reveals* and not only for what it pays.
+
+  Demonstrated on a probe-then-commit decision where an unknown parameter says which of two
+  commitments pays. Committing blind is worth zero and probing pays nothing, so a planner on a
+  fixed draw opens by committing; one that updates its belief opens by probing, then commits
+  correctly. Probing moves the belief to certainty while committing leaves it untouched, which is
+  what makes an uninformative action look uninformative.
+
+  It costs a model step per sample on every transition — measured at 2.6x for 2 samples, 8.0x for
+  8 and 30.9x for 32 — so it suits a small sample set. Larger posteriors should plan on a fixed
+  draw.
+
+  This is for valuing information — preferring an action for what it will reveal — which needs
+  reasoning about observations that have not happened. Tracking the posterior against observations
+  that HAVE happened is the inference tier's job, and a planner picks that up through
+  `parameters.weights` on the next replan.
+
+### Added
+
+- **`mcts_planning` scores truncated rollouts via a progress proxy.** A rollout capped below the
+  horizon used to contribute nothing, leaving the search exploring on visit counts alone — the
+  case that bites whenever `horizon` exceeds `rollout_max_steps`. It is now scored by
+  `agents.SimulationEnvironment.Progress`, which defaults to the reward banked so far and can be
+  overridden with `progress_partition:` naming a partition whose state[0] is a [0,1] position
+  score. On the battery problem at horizon 24 with rollouts capped at 3, the planned return goes
+  from 160 to 480.
+
 ## [0.12.0] — 2026-07-26
 
 ### Changed

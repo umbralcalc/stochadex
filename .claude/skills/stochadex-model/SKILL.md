@@ -238,7 +238,21 @@ Two decision-making macros also run live, and the distinction between them matte
   the user wants "what should I do, given this simulation" — dispatch, dosing, intervention
   timing. See `cfg/example_planning_config.yaml`. It needs `horizon:` (lookahead), `steps:`
   (decisions to take) and `return_range: [min, max]` (UCB1 needs a bounded value scale — widen it
-  rather than letting returns clamp). Every model partition must have `state_history_depth: 1`,
+  rather than letting returns clamp). **When `horizon` exceeds `rollout_max_steps`, set
+  `progress_partition:`** — a partition whose state[0] scores the position in [0,1] (a win
+  probability, a normalised margin). Rollouts that run out of steps are scored by it instead of
+  discarded; without one the search falls back to reward banked so far, and on a long horizon
+  that is much weaker. **To plan under parameter uncertainty rather than a point estimate**, add
+  `parameters:` with `samples_from: {partition_name: <recorded draws>}` (or inline `samples:`) plus
+  `targets:` routing each draw into the model. `posterior_estimation`'s sampler partition already
+  emits posterior draws, so `samples_from: {partition_name: <sampler>, burn_in: <converged from>}`
+  chains inference straight into planning — the search then averages over the posterior, which
+  changes the recommendation whenever the payoff is nonlinear in the uncertain parameter. Adding
+  `belief: {observation_partition: <what is seen>, variance: <noise>}` under `parameters:` lets the
+  planner *learn* within an episode, so it will pay for an informative action; it costs a model
+  step per sample per transition, so keep the sample set to a handful. Use `weights:` /
+  `weights_from:` when the samples are not themselves posterior draws (SMC particles carry their
+  posterior in their weights) — that sets the starting belief and steers which samples get drawn. Every model partition must have `state_history_depth: 1`,
   and the model must be Markov in its own rows: the planner restarts it each transition, so
   nothing may rely on the step counter — carry a phase/counter in the state instead.
   On stochastic models it uses **chance nodes** by default, averaging each action's value over
