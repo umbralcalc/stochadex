@@ -99,11 +99,74 @@ type planningParametersSpec struct {
 	// rows are a trajectory of point estimates, not draws.
 	SamplesFrom *planningSamplesRef   `yaml:"samples_from,omitempty"`
 	Targets     []planningParamTarget `yaml:"targets"`
+	// Weights is how much credence each sample carries, one per sample. This is
+	// what an inference tier hands a planner when its samples are NOT already
+	// distributed as the posterior — SMC particles, say, whose weights are the
+	// posterior. Omit when the samples were drawn from the posterior itself.
+	Weights []float64 `yaml:"weights,omitempty"`
+	// WeightsFrom reads those weights from a recorded partition's final row,
+	// so a calibration's own output can be handed straight over.
+	WeightsFrom *dataRefSpec `yaml:"weights_from,omitempty"`
 	// Belief turns on in-tree belief updating, so the planner can value an action
 	// for what it reveals and not only for what it pays. It costs a model step
 	// per sample on every transition, so keep the sample set small — a run with
 	// hundreds of draws should plan on a fixed draw instead.
 	Belief *planningBeliefSpec `yaml:"belief,omitempty"`
+}
+
+// resolveWeights produces the initial credence over the samples, or nil for
+// equal credence.
+func (p *planningParametersSpec) resolveWeights(
+	storage *simulator.StateTimeStorage,
+	sampleCount int,
+) ([]float64, error) {
+	if len(p.Weights) > 0 && p.WeightsFrom != nil {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters: set weights: or weights_from:, not both")
+	}
+	if len(p.Weights) > 0 {
+		if len(p.Weights) != sampleCount {
+			return nil, fmt.Errorf(
+				"mcts_planning parameters: %d weights for %d samples — there must be one "+
+					"weight per sample", len(p.Weights), sampleCount)
+		}
+		return p.Weights, nil
+	}
+	if p.WeightsFrom == nil {
+		return nil, nil
+	}
+	if storage == nil {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters.weights_from needs a data: block, or an earlier "+
+				"macro, producing %q", p.WeightsFrom.PartitionName)
+	}
+	rows := storage.GetValues(p.WeightsFrom.PartitionName)
+	if len(rows) == 0 {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters.weights_from: no recorded data for partition %q",
+			p.WeightsFrom.PartitionName)
+	}
+	// The final row: the weights an inference run finished holding.
+	row := rows[len(rows)-1]
+	weights := row
+	if indices := p.WeightsFrom.ValueIndices; len(indices) > 0 {
+		weights = make([]float64, len(indices))
+		for i, index := range indices {
+			if index < 0 || index >= len(row) {
+				return nil, fmt.Errorf(
+					"mcts_planning parameters.weights_from: value index %d outside the "+
+						"%d-wide rows of %q", index, len(row), p.WeightsFrom.PartitionName)
+			}
+			weights[i] = row[index]
+		}
+	}
+	if len(weights) != sampleCount {
+		return nil, fmt.Errorf(
+			"mcts_planning parameters.weights_from: %q supplies %d weights for %d samples "+
+				"— there must be one weight per sample",
+			p.WeightsFrom.PartitionName, len(weights), sampleCount)
+	}
+	return append([]float64(nil), weights...), nil
 }
 
 // planningSamplesRef reads draws from recorded rows, discarding a burn-in.
@@ -255,6 +318,7 @@ func (s *mctsPlanningSpec) resolveLive(
 	}
 
 	var samples [][]float64
+	var weights []float64
 	var targets []agents.SimulationParamTarget
 	var belief *agents.BeliefSpec
 	if s.Parameters != nil {
@@ -263,6 +327,10 @@ func (s *mctsPlanningSpec) resolveLive(
 			return nil, 0, 0, err
 		}
 		samples = resolved
+		weights, err = s.Parameters.resolveWeights(storage, len(samples))
+		if err != nil {
+			return nil, 0, 0, err
+		}
 		for _, target := range s.Parameters.Targets {
 			if err := requireModelPartition(
 				settings, target.Partition, "parameters.targets"); err != nil {
@@ -307,6 +375,7 @@ func (s *mctsPlanningSpec) resolveLive(
 			ScenarioSeed:     s.ScenarioSeed,
 			Progress:         progress,
 			ParameterSamples: samples,
+			ParameterWeights: weights,
 			ParameterTargets: targets,
 			Belief:           belief,
 		})

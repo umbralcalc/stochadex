@@ -420,3 +420,72 @@ macros:
 		t.Errorf("ordered %v, want 3 — the plan should follow the inferred demand", ordered)
 	}
 }
+
+// TestMCTSPlanningHonoursSampleWeights checks the planner starts from the
+// credence an inference tier attached to each sample. Samples that are not
+// themselves posterior draws — SMC particles, say — carry their posterior in
+// their weights, and ignoring those plans against the proposal instead.
+func TestMCTSPlanningHonoursSampleWeights(t *testing.T) {
+	config := func(weights string) string {
+		return `macros:
+- type: mcts_planning
+  name: plan
+  steps: 2
+  horizon: 1
+  sims_per_decision: 400
+  seed: 3
+  return_range: [-700, 500]
+  actions: [[10], [100]]
+  action_partition: order
+  action_param: param_values
+  reward_partition: profit
+  parameters:
+    samples: [[10.0], [100.0]]
+    weights: ` + weights + `
+    targets: [{partition: profit, param: demand, indices: [0]}]
+  model:
+    partitions:
+    - name: order
+      iteration: {type: param_values}
+      params: {param_values: [0.0]}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+    - name: profit
+      iteration:
+        type: expression
+        fields: [{name: p}]
+        outputs: ["10 * min(quantity, demand) - 6 * quantity"]
+      params: {quantity: [0.0], demand: [10.0]}
+      params_from_upstream:
+        quantity: {upstream: order}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+`
+	}
+	for _, testCase := range []struct {
+		name    string
+		weights string
+		want    float64
+	}{
+		{name: "credence on low demand", weights: "[0.95, 0.05]", want: 10},
+		{name: "credence on high demand", weights: "[0.05, 0.95]", want: 100},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			rows := runMacroConfig(t, config(testCase.weights))["plan_apply"]
+			ordered := rows[len(rows)-1][2]
+			if ordered != testCase.want {
+				t.Errorf("ordered %v, want %v — the plan is not following the weights",
+					ordered, testCase.want)
+			}
+		})
+	}
+
+	t.Run("a weight per sample is required", func(t *testing.T) {
+		err := macroConfigError(t, config("[1.0]"))
+		if err == nil {
+			t.Fatal("expected an error for a weight count that does not match the samples")
+		}
+	})
+}

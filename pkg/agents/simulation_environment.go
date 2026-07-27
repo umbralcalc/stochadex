@@ -88,6 +88,8 @@ type SimulationEnvironment struct {
 	beliefSlot int
 	// observationPartition is the partition index whose row[0] is observed.
 	observationPartition int
+	// priorWeights is ParameterWeights normalised, or nil for equal credence.
+	priorWeights []float64
 }
 
 // resolvedParamTarget is a ParameterTargets entry with its partition resolved.
@@ -146,6 +148,15 @@ type SimulationEnvironmentSpec struct {
 	// ParameterTargets says where each sample's values go. Together the targets'
 	// Indices must cover the sample vector.
 	ParameterTargets []SimulationParamTarget
+	// ParameterWeights is how much credence each sample carries, which is what an
+	// inference tier hands a planner: SMC produces particles AND their weights,
+	// and the weights are the posterior. Need not sum to 1; it is normalised.
+	//
+	// Nil means equal credence, which is right when the samples were themselves
+	// drawn from the posterior (posterior_estimation's sampler does this, so its
+	// draws already carry the posterior's shape) and wrong when they were drawn
+	// from something else and reweighted.
+	ParameterWeights []float64
 	// Belief turns on in-tree belief updating: the planner carries a distribution
 	// over ParameterSamples and reweights it from what each step reveals, so it
 	// can value an action for what it teaches rather than only for what it pays.
@@ -246,6 +257,30 @@ func NewSimulationEnvironment(
 	}
 	paramSlot := -1
 	var targets []resolvedParamTarget
+	var priorWeights []float64
+	if len(spec.ParameterWeights) > 0 {
+		if len(spec.ParameterWeights) != len(spec.ParameterSamples) {
+			panic(fmt.Sprintf(
+				"agents.NewSimulationEnvironment: %d parameter weights for %d samples — "+
+					"there must be one weight per sample",
+				len(spec.ParameterWeights), len(spec.ParameterSamples)))
+		}
+		total := 0.0
+		for _, weight := range spec.ParameterWeights {
+			if weight < 0 {
+				panic("agents.NewSimulationEnvironment: parameter weights must be non-negative")
+			}
+			total += weight
+		}
+		if total <= 0 {
+			panic("agents.NewSimulationEnvironment: parameter weights sum to zero, so no " +
+				"sample carries any credence")
+		}
+		priorWeights = make([]float64, len(spec.ParameterWeights))
+		for i, weight := range spec.ParameterWeights {
+			priorWeights[i] = weight / total
+		}
+	}
 	if len(spec.ParameterSamples) > 0 {
 		if len(spec.ParameterTargets) == 0 {
 			panic("agents.NewSimulationEnvironment: ParameterSamples needs ParameterTargets " +
@@ -318,6 +353,7 @@ func NewSimulationEnvironment(
 		paramSlot:            paramSlot,
 		beliefSlot:           beliefSlot,
 		observationPartition: observationPartition,
+		priorWeights:         priorWeights,
 	}
 }
 
@@ -341,10 +377,14 @@ func (e *SimulationEnvironment) InitialState() []float64 {
 		state[e.paramSlot] = -1
 	}
 	if e.beliefSlot >= 0 {
-		// The episode starts believing the posterior as given.
+		// The episode starts believing whatever the inference tier concluded.
 		uniform := 1 / float64(len(e.spec.ParameterSamples))
 		for i := range e.spec.ParameterSamples {
-			state[e.beliefSlot+i] = uniform
+			if e.priorWeights != nil {
+				state[e.beliefSlot+i] = e.priorWeights[i]
+			} else {
+				state[e.beliefSlot+i] = uniform
+			}
 		}
 	}
 	return state
@@ -463,15 +503,20 @@ func (e *SimulationEnvironment) apply(
 // there is one and uniformly otherwise.
 func (e *SimulationEnvironment) drawSample(s []float64, draw uint64) int {
 	count := len(e.spec.ParameterSamples)
-	if e.beliefSlot < 0 {
+	if e.beliefSlot < 0 && e.priorWeights == nil {
 		return int(draw % uint64(count))
 	}
 	// Sample the categorical belief by its cumulative distribution, using the
-	// draw as a uniform in [0,1).
+	// draw as a uniform in [0,1). Without a belief in the state the prior stands
+	// in, so weighted samples are still drawn in proportion to their credence.
 	target := float64(draw%(1<<24)) / float64(1<<24)
 	cumulative := 0.0
 	for i := 0; i < count; i++ {
-		cumulative += s[e.beliefSlot+i]
+		if e.beliefSlot >= 0 {
+			cumulative += s[e.beliefSlot+i]
+		} else {
+			cumulative += e.priorWeights[i]
+		}
 		if target < cumulative {
 			return i
 		}

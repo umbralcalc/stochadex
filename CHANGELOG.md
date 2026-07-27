@@ -45,6 +45,13 @@ an exact version rather than assume stability across minors.
   A config can therefore infer a parameter from data and then plan under it, uncertainty included,
   in one file with no Go.
 
+- **Sample weights**, via `parameters.weights` or `parameters.weights_from`. Samples that are not
+  themselves posterior draws carry their posterior in their weights — SMC particles being the
+  case — and a planner ignoring those plans against the proposal instead. The weights set the
+  planner's starting belief and steer which samples a trajectory draws, so an inference tier can
+  hand over what it concluded rather than having it flattened. Omit them when the samples were
+  drawn from the posterior directly, as posterior_estimation's sampler does.
+
 - **In-tree belief updating**, via `parameters.belief`. The planner carries a distribution over the
   parameter samples as part of its state and reweights it by how well each sample predicted what
   was observed, so it can value an action for what it *reveals* and not only for what it pays.
@@ -57,8 +64,12 @@ an exact version rather than assume stability across minors.
 
   It costs a model step per sample on every transition — measured at 2.6x for 2 samples, 8.0x for
   8 and 30.9x for 32 — so it suits a small sample set. Larger posteriors should plan on a fixed
-  draw. Belief updating is open-loop within the search: the planner reasons about what it would
-  learn, but there is no separate observation model beyond the named partition.
+  draw.
+
+  This is for valuing information — preferring an action for what it will reveal — which needs
+  reasoning about observations that have not happened. Tracking the posterior against observations
+  that HAVE happened is the inference tier's job, and a planner picks that up through
+  `parameters.weights` on the next replan.
 
 ### Added
 

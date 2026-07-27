@@ -250,7 +250,9 @@ Two decision-making macros also run live, and the distinction between them matte
   changes the recommendation whenever the payoff is nonlinear in the uncertain parameter. Adding
   `belief: {observation_partition: <what is seen>, variance: <noise>}` under `parameters:` lets the
   planner *learn* within an episode, so it will pay for an informative action; it costs a model
-  step per sample per transition, so keep the sample set to a handful. Every model partition must have `state_history_depth: 1`,
+  step per sample per transition, so keep the sample set to a handful. Use `weights:` /
+  `weights_from:` when the samples are not themselves posterior draws (SMC particles carry their
+  posterior in their weights) — that sets the starting belief and steers which samples get drawn. Every model partition must have `state_history_depth: 1`,
   and the model must be Markov in its own rows: the planner restarts it each transition, so
   nothing may rely on the step counter — carry a phase/counter in the state instead.
   On stochastic models it uses **chance nodes** by default, averaging each action's value over

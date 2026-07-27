@@ -1022,6 +1022,15 @@ func newProbeEnvironmentWithSamples(
 	belief *agents.BeliefSpec,
 	samples [][]float64,
 ) *agents.SimulationEnvironment {
+	return newProbeEnvironmentWeighted(t, belief, samples, nil)
+}
+
+func newProbeEnvironmentWeighted(
+	t *testing.T,
+	belief *agents.BeliefSpec,
+	samples [][]float64,
+	weights []float64,
+) *agents.SimulationEnvironment {
 	gen := simulator.NewConfigGenerator()
 	gen.SetSimulation(&simulator.SimulationConfig{
 		OutputCondition:      &simulator.NilOutputCondition{},
@@ -1064,6 +1073,7 @@ func newProbeEnvironmentWithSamples(
 		MaxReturn:        30,
 		ScenarioSeed:     5,
 		ParameterSamples: samples,
+		ParameterWeights: weights,
 		ParameterTargets: []agents.SimulationParamTarget{
 			{Partition: "world", Param: "theta", Indices: []int{0}},
 		},
@@ -1146,5 +1156,126 @@ func TestBeliefUpdatingSharpensOnAnInformativeAction(t *testing.T) {
 			t.Errorf("committing reveals nothing, so weight %d should stay 0.5, got %v",
 				i, weight)
 		}
+	}
+}
+
+// TestParameterWeightsSteerTheDraw checks the planner honours the credence an
+// inference tier attached to each sample, not just the samples themselves.
+//
+// Without weights a planner treats every sample as equally likely, which is only
+// right when the samples were drawn from the posterior. SMC hands over particles
+// AND weights, and the weights are the posterior — ignoring them plans against
+// the proposal instead.
+//
+// Demand is 10 or 100; the weights say which is credible. Ordering 100 is right
+// only if the large demand is, so the plan should follow the weights.
+func TestParameterWeightsSteerTheDraw(t *testing.T) {
+	cfg := agents.MCTSConfig[[]float64, int]{
+		Simulations:     600,
+		MaxTreeDepth:    2,
+		RolloutMaxSteps: 2,
+		Rollout:         agents.UniformRandomRollout[[]float64, int](),
+	}
+	samples := [][]float64{{10}, {100}}
+
+	for _, testCase := range []struct {
+		name    string
+		weights []float64
+		want    float64
+	}{
+		{name: "credence on low demand", weights: []float64{0.95, 0.05}, want: 10},
+		{name: "credence on high demand", weights: []float64{0.05, 0.95}, want: 100},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			env := newWeightedNewsvendorEnvironment(t, samples, testCase.weights)
+			best, _, err := agents.RunChanceMCTSSearch(
+				env, env.InitialState(), cfg, 13, cfg.Simulations)
+			if err != nil {
+				t.Fatalf("RunChanceMCTSSearch: %v", err)
+			}
+			if got := orderQuantities[best][0]; got != testCase.want {
+				t.Errorf("ordered %v, want %v — the plan is not following the weights",
+					got, testCase.want)
+			}
+		})
+	}
+}
+
+// newWeightedNewsvendorEnvironment is the newsvendor over a weighted sample set.
+func newWeightedNewsvendorEnvironment(
+	t *testing.T,
+	samples [][]float64,
+	weights []float64,
+) *agents.SimulationEnvironment {
+	t.Helper()
+	gen := simulator.NewConfigGenerator()
+	gen.SetSimulation(&simulator.SimulationConfig{
+		OutputCondition:      &simulator.NilOutputCondition{},
+		OutputFunction:       &simulator.NilOutputFunction{},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
+		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		InitTimeValue:        0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:              "order",
+		Iteration:         &general.ParamValuesIteration{},
+		Params:            simulator.NewParams(map[string][]float64{"param_values": {0}}),
+		InitStateValues:   []float64{0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	gen.SetPartition(&simulator.PartitionConfig{
+		Name:      "profit",
+		Iteration: &newsvendorIteration{price: 10, cost: 6},
+		Params: simulator.NewParams(map[string][]float64{
+			"quantity": {0}, "demand": {10},
+		}),
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"quantity": {Upstream: "order"},
+		},
+		InitStateValues:   []float64{0},
+		StateHistoryDepth: 1,
+		Seed:              0,
+	})
+	settings, impl := gen.GenerateConfigs()
+	impl.ExecutionStrategy = &simulator.InlineExecution{}
+
+	return agents.NewSimulationEnvironment(settings, impl, agents.SimulationEnvironmentSpec{
+		Actions:          orderQuantities,
+		ActionPartition:  "order",
+		ActionParam:      "param_values",
+		Horizon:          1,
+		Reward:           func(rows map[string][]float64) float64 { return rows["profit"][0] },
+		MinReturn:        -700,
+		MaxReturn:        500,
+		ScenarioSeed:     3,
+		ParameterSamples: samples,
+		ParameterWeights: weights,
+		ParameterTargets: []agents.SimulationParamTarget{
+			{Partition: "profit", Param: "demand", Indices: []int{0}},
+		},
+	})
+}
+
+// TestBeliefStartsFromThePrior checks the belief begins where the inference tier
+// left off rather than flat, so a planner does not discard what was already
+// concluded the moment an episode starts.
+func TestBeliefStartsFromThePrior(t *testing.T) {
+	env := newProbeEnvironmentWithSamples(t,
+		&agents.BeliefSpec{ObservationPartition: "world", Variance: 0.01},
+		[][]float64{{0}, {1}})
+	flat := env.InitialState()
+	width := env.StateWidth()
+	if flat[width-2] != 0.5 || flat[width-1] != 0.5 {
+		t.Fatalf("with no weights the belief should start flat, got %v", flat[width-2:])
+	}
+
+	weighted := newProbeEnvironmentWeighted(t,
+		&agents.BeliefSpec{ObservationPartition: "world", Variance: 0.01},
+		[][]float64{{0}, {1}}, []float64{3, 1})
+	start := weighted.InitialState()
+	if math.Abs(start[width-2]-0.75) > 1e-9 || math.Abs(start[width-1]-0.25) > 1e-9 {
+		t.Errorf("the belief should start at the normalised prior [0.75 0.25], got %v",
+			start[width-2:])
 	}
 }
