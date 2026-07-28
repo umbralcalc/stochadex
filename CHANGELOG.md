@@ -22,6 +22,37 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.13.1] — 2026-07-28
+
+### Fixed
+
+- **An oversized `window_data_history_depth` silently voided the likelihood; it now warns.** The
+  depth must *equal* `Window.Depth`, not merely be `>=` it: `general.FromHistoryIteration` walks
+  the replay buffer from row `StateHistoryDepth-2` down to `StateHistoryDepth-Depth-1`, so an
+  equal depth consumes the buffer exactly and anything larger anchors the window in rows that are
+  still zero-filled — the buffer starts zeroed and gains one real row per outer step. Set to the
+  run length, the window replays zeros for essentially the whole run.
+
+  The effect is not a weakened signal but an inverted one. On the test scenario the correct depth
+  scores the data-generating mean at −44.8 against −62.9 for a mean of zero; the oversized depth
+  scores zero at −36.0 against −53.4 for the truth. The likelihood is measuring the buffer's
+  zeros, which is why a posterior driven by it *converges onto* its prior and sits there — the
+  downstream failure that produced this was a frozen posterior no amount of tuning could move,
+  with a loglike pinned near a constant and nothing said about why.
+
+  Validation only rejected the too-shallow side, which cannot silently void anything. The
+  dangerous side now warns, from both the check the `macros:` tier runs and the public
+  `ValidateWindowDataHistoryDepth`. It warns rather than panics: every in-repo config already
+  uses equality, so making it fatal breaks nothing and stays open as a follow-up.
+
+- **A comparison model declaring no params panicked on a nil map.** `ParameterisedModel.Init`
+  allocated the two parameter-wiring maps but not `Params`, so the natural shape for a likelihood
+  taking its mean from upstream — no params of its own — died with a bare `assignment to entry in
+  nil map` when the constructor set `cumulative`/`burn_in_steps` into it, naming nothing that
+  pointed back at the config. Reachable from any such config on the YAML path, where an omitted
+  `params:` resolves to a nil map. Both `ParameterisedModel` and `ParameterisedModelWithGradient`
+  now allocate it; the `params: {}` workaround is no longer needed.
+
 ## [0.13.0] — 2026-07-27
 
 ### Added
@@ -1178,7 +1209,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/umbralcalc/stochadex/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/umbralcalc/stochadex/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/umbralcalc/stochadex/compare/v0.11.0...v0.12.0
 [0.7.0]: https://github.com/umbralcalc/stochadex/compare/v0.6.1...v0.7.0
