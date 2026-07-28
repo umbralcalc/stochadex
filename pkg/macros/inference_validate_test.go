@@ -1,6 +1,8 @@
 package macros
 
 import (
+	"bytes"
+	"log"
 	"strings"
 	"testing"
 
@@ -39,6 +41,31 @@ func wantPanic(t *testing.T, want string, fn func()) {
 	fn()
 }
 
+// wantLog runs fn with the standard logger captured and asserts what it wrote
+// contains want; an empty want asserts it wrote nothing.
+func wantLog(t *testing.T, want string, fn func()) {
+	t.Helper()
+	var buf bytes.Buffer
+	flags, writer := log.Flags(), log.Writer()
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	defer func() {
+		log.SetOutput(writer)
+		log.SetFlags(flags)
+	}()
+	fn()
+	got := buf.String()
+	if want == "" {
+		if got != "" {
+			t.Errorf("expected no log output, got %q", got)
+		}
+		return
+	}
+	if !strings.Contains(got, want) {
+		t.Errorf("log = %q, want it to contain %q", got, want)
+	}
+}
+
 // wantNoPanic runs fn and fails if it panics.
 func wantNoPanic(t *testing.T, fn func()) {
 	t.Helper()
@@ -75,10 +102,21 @@ func TestAssertWindowDataSourcesDeepEnough(t *testing.T) {
 			assertWindowDataSourcesDeepEnough(5, refs, map[string]int{"obs": 3})
 		})
 	})
-	t.Run("depth equal to the window is accepted", func(t *testing.T) {
+	t.Run("depth equal to the window is accepted silently", func(t *testing.T) {
 		// Boundary: depth == window is exactly enough, not one short.
-		wantNoPanic(t, func() {
-			assertWindowDataSourcesDeepEnough(5, refs, map[string]int{"obs": 5})
+		wantLog(t, "", func() {
+			wantNoPanic(t, func() {
+				assertWindowDataSourcesDeepEnough(5, refs, map[string]int{"obs": 5})
+			})
+		})
+	})
+	t.Run("a partition deeper than the window is warned about", func(t *testing.T) {
+		// Too deep cannot underflow, so it runs — and silently replays zeros.
+		// The warning is the only signal the user gets, so it must fire.
+		wantLog(t, "StateHistoryDepth 50 > Window.Depth 5", func() {
+			wantNoPanic(t, func() {
+				assertWindowDataSourcesDeepEnough(5, refs, map[string]int{"obs": 50})
+			})
 		})
 	})
 }
@@ -108,9 +146,18 @@ func TestValidateWindowDataHistoryDepth(t *testing.T) {
 			ValidateWindowDataHistoryDepth(4, map[string]int{"obs": 2}, refs)
 		})
 	})
-	t.Run("depth equal to the window is accepted", func(t *testing.T) {
-		wantNoPanic(t, func() {
-			ValidateWindowDataHistoryDepth(4, map[string]int{"obs": 4}, refs)
+	t.Run("depth equal to the window is accepted silently", func(t *testing.T) {
+		wantLog(t, "", func() {
+			wantNoPanic(t, func() {
+				ValidateWindowDataHistoryDepth(4, map[string]int{"obs": 4}, refs)
+			})
+		})
+	})
+	t.Run("a partition deeper than the window is warned about", func(t *testing.T) {
+		wantLog(t, "carry no information", func() {
+			wantNoPanic(t, func() {
+				ValidateWindowDataHistoryDepth(4, map[string]int{"obs": 2000}, refs)
+			})
 		})
 	})
 }

@@ -2,9 +2,33 @@ package macros
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 )
+
+// warnIfWindowDataHistoryTooDeep flags a window data partition whose replay
+// StateHistoryDepth exceeds Window.Depth. Too deep is as broken as too shallow,
+// but silently: general.FromHistoryIteration walks the replay buffer from row
+// StateHistoryDepth-2 down to StateHistoryDepth-Depth-1, so a depth of exactly
+// Window.Depth consumes the buffer, while anything larger anchors the window in
+// rows that are still zero-filled (the buffer starts as zeros and gains one real
+// row per outer step). The likelihood is then computed against zeros for most or
+// all of the run — it comes out near-constant and carries no information about
+// the parameters, so anything downstream of it (a posterior, an ES reward)
+// silently freezes at its prior rather than failing.
+func warnIfWindowDataHistoryTooDeep(depth int, partitionName string, d int) {
+	if d <= depth {
+		return
+	}
+	log.Printf(
+		"macros: WARNING window data partition %q has StateHistoryDepth %d > Window.Depth %d; "+
+			"the window will replay zero-filled rows for the first %d steps and lag the data "+
+			"by %d steps thereafter, so the likelihood will be near-constant and carry no "+
+			"information — set the history depth equal to Window.Depth (%d)",
+		partitionName, d, depth, d-2, d-depth, depth,
+	)
+}
 
 func assertWindowDataSourcesDeepEnough(
 	depth int,
@@ -28,6 +52,7 @@ func assertWindowDataSourcesDeepEnough(
 				ref.PartitionName, d, depth,
 			))
 		}
+		warnIfWindowDataHistoryTooDeep(depth, ref.PartitionName, d)
 	}
 }
 
@@ -60,9 +85,11 @@ func validateAppliedPosteriorWidths(applied AppliedPosteriorEstimation) {
 }
 
 // ValidateWindowDataHistoryDepth checks that each window data source partition
-// will have at least depth rows of history when wired through
+// will have exactly depth rows of history when wired through
 // analysis.AddPartitionsToStateTimeStorage (missing names default to depth 1).
 // Call with the same windowSizeByPartition map passed to analysis.AddPartitionsToStateTimeStorage.
+// Too few rows panics; too many logs a warning (see warnIfWindowDataHistoryTooDeep
+// — an oversized depth voids the likelihood instead of underflowing).
 func ValidateWindowDataHistoryDepth(
 	windowDepth int,
 	windowSizeByPartition map[string]int,
@@ -82,5 +109,6 @@ func ValidateWindowDataHistoryDepth(
 				ref.PartitionName, w, windowDepth, windowDepth,
 			))
 		}
+		warnIfWindowDataHistoryTooDeep(windowDepth, ref.PartitionName, w)
 	}
 }

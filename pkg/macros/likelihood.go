@@ -6,7 +6,8 @@ package macros
 // to Window.Depth so inner timesteps align with available history (see
 // EmbeddedBurnInSteps to decouple). Use ValidateWindowDataHistoryDepth
 // with analysis.AddPartitionsToStateTimeStorage window sizes to fail fast if
-// history is too shallow for FromHistoryIteration.
+// history is too shallow for FromHistoryIteration — and note that too deep is
+// just as wrong (it replays zeros), which is why it warns.
 
 import (
 	"fmt"
@@ -50,8 +51,13 @@ type ParameterisedModel struct {
 	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
 }
 
-// Init ensures internal parameter wiring maps are initialised.
+// Init ensures the params and internal parameter wiring maps are initialised.
 func (p *ParameterisedModel) Init() {
+	// A model declared with no params at all (e.g. one taking its mean from
+	// upstream) leaves Params.Map nil, and the constructors below Set into it.
+	if p.Params.Map == nil {
+		p.Params = simulator.NewParams(make(map[string][]float64))
+	}
 	if p.ParamsAsPartitions == nil {
 		p.ParamsAsPartitions = make(map[string][]string)
 	}
@@ -74,7 +80,9 @@ type AppliedLikelihoodComparison struct {
 	EmbeddedBurnInSteps *int
 	// WindowDataHistoryDepth, if non-nil, must map every Window.Data
 	// PartitionName to that partition’s StateHistoryDepth in the outer
-	// simulation; each value must be >= Window.Depth.
+	// simulation; each value should equal Window.Depth. Smaller panics;
+	// larger warns and silently voids the likelihood (see
+	// warnIfWindowDataHistoryTooDeep).
 	WindowDataHistoryDepth map[string]int
 }
 
@@ -224,8 +232,11 @@ type ParameterisedModelWithGradient struct {
 	ParamsFromUpstream map[string]simulator.NamedUpstreamConfig
 }
 
-// Init ensures internal parameter wiring maps are initialised.
+// Init ensures the params and internal parameter wiring maps are initialised.
 func (p *ParameterisedModelWithGradient) Init() {
+	if p.Params.Map == nil {
+		p.Params = simulator.NewParams(make(map[string][]float64))
+	}
 	if p.ParamsAsPartitions == nil {
 		p.ParamsAsPartitions = make(map[string][]string)
 	}

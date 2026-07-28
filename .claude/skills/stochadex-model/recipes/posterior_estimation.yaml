@@ -17,6 +17,11 @@
 #     forgotten each step (0.5 forgets too fast to ever converge).
 #   - enough `steps` for the weighted mean to concentrate (the high-variance 2nd
 #     coordinate — data covariance 9 — leaves a little honest sampling residual).
+#   - `window_data_history_depth` must EQUAL `comparison.window.depth`. Too small
+#     panics; too large (e.g. the run length) does not — the window then replays
+#     the zero-filled tail of the replay buffer, so the loglike scores zeros
+#     instead of the data and the posterior freezes at its prior. The engine only
+#     warns, so read the log if nothing is converging.
 data:
   steps: 2000
   timestep: 1.0
