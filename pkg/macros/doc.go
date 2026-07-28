@@ -50,5 +50,9 @@
 // against the history depths the storage will actually carry —
 // ValidateWindowDataHistoryDepth is the public form of that check, and callers
 // wiring windows through analysis.AddPartitionsToStateTimeStorage should call it
-// with the same map to fail fast instead of underflowing at step time.
+// with the same map to fail fast instead of underflowing at step time. The
+// history depth of a window data partition should *equal* the window depth: a
+// larger one cannot underflow, so it warns rather than panics, but it is the
+// worse failure — the window replays the buffer's zero-filled tail and the
+// likelihood comes out constant and uninformative.
 package macros

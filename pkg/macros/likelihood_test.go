@@ -69,6 +69,125 @@ func TestLikelihood(t *testing.T) {
 	)
 }
 
+// likelihoodTestStorage generates a fixed Normal dataset to compare against.
+func likelihoodTestStorage(t *testing.T, steps int) *simulator.StateTimeStorage {
+	t.Helper()
+	return analysis.NewStateTimeStorageFromPartitions(
+		[]*simulator.PartitionConfig{
+			{
+				Name: "test_data",
+				Iteration: &inference.DataGenerationIteration{
+					Likelihood: &inference.NormalLikelihoodDistribution{},
+				},
+				Params: simulator.NewParams(map[string][]float64{
+					"mean":              {1.8, 5.0},
+					"covariance_matrix": {2.5, 0.0, 0.0, 9.0},
+				}),
+				InitStateValues:   []float64{1.3, 8.3},
+				StateHistoryDepth: 1,
+				Seed:              123,
+			},
+		},
+		&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
+		&simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		0.0,
+	)
+}
+
+func TestWindowDataHistoryDepth(t *testing.T) {
+	// general.FromHistoryIteration walks the replay buffer from row
+	// StateHistoryDepth-2 down to StateHistoryDepth-Depth-1, so the history depth
+	// has to *equal* the window depth. Larger cannot underflow — it quietly
+	// anchors the window in rows that are still zero-filled, and the likelihood
+	// stops depending on the data at all. This pins that failure so the warning
+	// in warnIfWindowDataHistoryTooDeep keeps describing something real.
+	const steps, windowDepth = 100, 10
+	trueMean := []float64{1.8, 5.0}
+
+	// meanLoglike scores a candidate model mean against the data over the whole
+	// run. A window that is working prefers the data-generating mean; the whole
+	// point of the likelihood is that this comparison discriminates.
+	meanLoglike := func(t *testing.T, historyDepth int, mean []float64) float64 {
+		t.Helper()
+		storage := likelihoodTestStorage(t, steps)
+		likePartition := NewLikelihoodComparisonPartition(
+			AppliedLikelihoodComparison{
+				Name: "test_likelihood",
+				Model: ParameterisedModel{
+					Likelihood: &inference.NormalLikelihoodDistribution{},
+					Params: simulator.NewParams(map[string][]float64{
+						"mean":              mean,
+						"covariance_matrix": {2.5, 0.0, 0.0, 9.0},
+					}),
+				},
+				Data: analysis.DataRef{PartitionName: "test_data"},
+				Window: WindowedPartitions{
+					Data:  []analysis.DataRef{{PartitionName: "test_data"}},
+					Depth: windowDepth,
+				},
+				WindowDataHistoryDepth: map[string]int{"test_data": historyDepth},
+			},
+			storage,
+		)
+		storage = analysis.AddPartitionsToStateTimeStorage(
+			storage,
+			[]*simulator.PartitionConfig{likePartition},
+			map[string]int{"test_data": historyDepth},
+		)
+		// The embedded run emits the whole inner state vector; the comparison
+		// partition is appended last, so the loglike is the final element.
+		values := storage.GetValues("test_likelihood")
+		sum := 0.0
+		for _, row := range values[windowDepth+1:] { // skip the burn-in rows
+			sum += row[len(row)-1]
+		}
+		return sum / float64(len(values)-windowDepth-1)
+	}
+
+	t.Run("a history depth equal to the window discriminates", func(t *testing.T) {
+		atTruth := meanLoglike(t, windowDepth, trueMean)
+		atZero := meanLoglike(t, windowDepth, []float64{0.0, 0.0})
+		if atTruth <= atZero {
+			t.Errorf("loglike at the true mean = %v, at zero = %v — want the true mean "+
+				"to score higher", atTruth, atZero)
+		}
+	})
+	t.Run("an oversized history depth scores zeros, not the data", func(t *testing.T) {
+		// The reported failure. Set to the run length, the window replays the
+		// zero-filled tail of the replay buffer, so the likelihood prefers a mean
+		// of zero over the data-generating one: the discrimination is not merely
+		// weakened, it is inverted. Inference driven by this converges on the
+		// zeros — which is why a posterior freezes near its prior with no warning.
+		atTruth := meanLoglike(t, steps, trueMean)
+		atZero := meanLoglike(t, steps, []float64{0.0, 0.0})
+		if atZero <= atTruth {
+			t.Errorf("loglike at the true mean = %v, at zero = %v — this test pins the "+
+				"failure warnIfWindowDataHistoryTooDeep warns about; if the window now "+
+				"reads real data at this depth, fix the warning too", atTruth, atZero)
+		}
+	})
+	t.Run("a model with no params does not panic", func(t *testing.T) {
+		// ParameterisedModel.Init must allocate Params: the constructor Sets
+		// "cumulative"/"burn_in_steps" into it, and a model taking its mean from
+		// upstream declares no params of its own.
+		storage := likelihoodTestStorage(t, steps)
+		wantNoPanic(t, func() {
+			NewLikelihoodComparisonPartition(
+				AppliedLikelihoodComparison{
+					Name:  "test_likelihood",
+					Model: ParameterisedModel{Likelihood: &inference.NormalLikelihoodDistribution{}},
+					Data:  analysis.DataRef{PartitionName: "test_data"},
+					Window: WindowedPartitions{
+						Data:  []analysis.DataRef{{PartitionName: "test_data"}},
+						Depth: windowDepth,
+					},
+				},
+				storage,
+			)
+		})
+	})
+}
+
 func TestWarmStartConvergence(t *testing.T) {
 	t.Run(
 		"test that warm-start accumulates optimizer state across outer steps",

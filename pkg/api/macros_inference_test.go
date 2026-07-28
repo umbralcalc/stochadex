@@ -170,6 +170,49 @@ func TestPosteriorEstimationMacroConverges(t *testing.T) {
 	}
 }
 
+// TestComparisonModelWithoutParams pins the config a likelihood whose mean comes
+// entirely from upstream naturally produces: a comparison model with no params of
+// its own. The macro constructor Sets "cumulative"/"burn_in_steps" into that map,
+// so before ParameterisedModel.Init allocated it this panicked on assignment to a
+// nil map — an internal failure with nothing pointing at the config that caused
+// it. `params: {}` was the workaround; it should not be needed.
+func TestComparisonModelWithoutParams(t *testing.T) {
+	const noParamsYAML = `data:
+  steps: 60
+  timestep: 1.0
+  partitions:
+  - name: test_data
+    iteration: {type: data_generation, likelihood: {type: poisson}}
+    params: {mean: [3.0]}
+    init_state_values: [3.0]
+    state_history_depth: 20
+    seed: 123
+macros:
+- type: likelihood_comparison
+  name: test_likelihood
+  model:
+    likelihood: {type: poisson}    # takes its mean from upstream, so declares no params
+    params_from_upstream:
+      mean: {upstream: test_data}
+  data: {partition_name: test_data}
+  window:
+    data: [{partition_name: test_data}]
+    depth: 20
+  window_data_history_depth: {test_data: 20}
+`
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(noParamsYAML), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	storage, err := runMacros(LoadApiRunConfigFromYaml(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if values := storage.GetValues("test_likelihood"); len(values) == 0 {
+		t.Fatal("no test_likelihood output recorded")
+	}
+}
+
 // TestLikelihoodMeanFunctionFitMacroEquivalence proves the fit macro is a
 // faithful wrapper of NewLikelihoodMeanFunctionFitPartition (same output as the
 // hand-written Applied), independent of whether the chosen hyperparameters
