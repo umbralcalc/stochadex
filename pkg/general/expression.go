@@ -52,7 +52,7 @@ type ExpressionBinding struct {
 //   - any binding declared earlier.
 //
 // Functions: where, clamp, min, max, abs, floor, exp, log, sqrt, pow, sin, cos, erf, erfc,
-// fill, width, slice, concat, sum, dot, lag, each, iid and shared, plus the draws normal,
+// fill, width, slice, concat, sum, dot, lag, each, scan, iid and shared, plus the draws normal,
 // uniform, exponential, poisson, gamma, beta and binomial. Draws take expressions as their
 // parameters, so compound sampling composes naturally: a negative-binomial branching step is
 // just poisson(gamma(shape, rate)).
@@ -69,13 +69,18 @@ type ExpressionBinding struct {
 //   - slice(v, start, width) takes a block out of a vector, and concat(a, b, ...) joins
 //     values, for state and params that pack several quantities end to end. width(v) is how
 //     many elements v has, for a spec that adapts to a param's length rather than fixing it.
+//     A width of zero is allowed and gives an empty value, because that is what the running
+//     end of a prefix operation is: each(n, i, sum(slice(q, 0, i))) has to ask for nothing at
+//     lane 0, and sum of nothing is 0.
 //   - lag(name, n) reads a partition's committed state n rows back, where a bare field name
 //     or an Upstreams alias only ever gives row 0. The partition must keep that many rows
 //     (its state_history_depth), and lag(x, 0) is x.
 //   - each(n, i, expr) builds a width-n value whose element i is expr evaluated with the lane
 //     index i bound. See below.
+//   - scan(n, i, acc, init, expr) is each with an accumulator threaded through the lanes, for
+//     the things a lane needs to see what earlier lanes did. See below.
 //
-// each is the one construct that is not elementwise, and it is what makes an index shift,
+// each is the first construct that is not elementwise, and it is what makes an index shift,
 // a per-lane guard and a per-lane draw order sayable:
 //
 //   - Element i may read element i-1 of something, so a cohort can age: each(60, age,
@@ -92,12 +97,37 @@ type ExpressionBinding struct {
 // recursion, and an expression still always terminates. Draws inside it are explicit in the
 // sense below, exactly as they are inside iid.
 //
+// What each cannot say is anything where a lane must see what earlier lanes did: its lanes are
+// independent, and each must produce a scalar, so nothing is carried between them. That is what
+// scan(n, i, acc, init, expr) adds. It runs n lanes in order with acc bound to the previous
+// lane's value — init for lane 0 — and the value of the whole call is the last lane's, so it is
+// a fold rather than a map. Unlike an each lane, a scan lane may be any width, and that width is
+// the point: the blocking case is allocation, where what has to be carried is which slots are
+// now taken rather than a running total. Assigning k arrivals to the first k free slots is
+//
+//	scan(k, a, taken, occupied, each(6, j, where(j == first_free, 1, taken[j])))
+//
+// where first_free stands in for the sub-expression finding it (there are no local names inside
+// a lane, so it is written out where it is used), and each arrival sees the slots the previous
+// ones just took. Running quantities are the
+// same shape, either threaded as a scalar (a running maximum is scan(n, i, m, v[0], max(m,
+// v[i]))) or grown into the value being built, which is prefix sums in O(n) rather than the
+// O(n^2) of an each of sums:
+//
+//	slice(scan(6, i, acc, 0, concat(acc, acc[i] + q[i])), 0, 6)
+//
+// scan stays bounded exactly as each does: the lane count is fixed before the loop, acc is
+// threaded rather than assigned to, and there is no recursion, so an expression still always
+// terminates. A zero lane count is allowed and gives init, which is the right answer for a fold
+// over nothing and lets the count come from data.
+//
 // Conditionals are expressions, not statements: where(cond, a, b). When cond is a scalar the
 // untaken branch is not evaluated, so a guard such as where(n > 0, binomial(n, p), 0) is safe
 // and draws no randomness on the guarded path. When cond is a vector both branches must be
 // evaluated to select elementwise, as in NumPy, which means a vector-guarded draw consumes
-// randomness in every lane. Prefer scalar guards where that matters — and see each below,
-// which makes a per-element guard scalar and so gets laziness back.
+// randomness in every lane, and each branch must then be either the condition's width or a
+// scalar. Prefer scalar guards where that matters — and see each below, which makes a
+// per-element guard scalar and so gets laziness back.
 //
 // # How wide a draw is
 //
@@ -302,6 +332,22 @@ func (c *exprCtx) explicit() *exprCtx {
 	return &exprCtx{env: c.env, sampler: c.sampler, lag: c.lag, drawsAreExplicit: true}
 }
 
+// bind reserves a name for a comprehension to write its lane index or accumulator into, and
+// returns the undo. The environment is shared with the enclosing scope rather than nested, so
+// a binding that outlived its loop would leak into the next expression — and, because the same
+// iteration is reused every step, into the next step. Call it before the loop and defer the
+// result, so the name is restored (or removed, if it was never there) on the panicking path too.
+func (c *exprCtx) bind(name string) func() {
+	shadowed, wasBound := c.env[name]
+	return func() {
+		if wasBound {
+			c.env[name] = shadowed
+		} else {
+			delete(c.env, name)
+		}
+	}
+}
+
 func exprBool(b bool) float64 {
 	if b {
 		return 1
@@ -481,7 +527,25 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 			}
 			return arg(2)
 		}
+		// A vector condition selects elementwise, so each branch has to line up with it: the
+		// same width, or a scalar that broadcasts. where is the one place a mismatch was not
+		// caught, because it selects directly rather than going through broadcastLen, and it
+		// failed two ways depending on which side was short — a branch wider than the condition
+		// silently used its first len(cond) elements and dropped the rest, and a narrower one
+		// ran off the end as a bare Go index panic naming neither the function nor the widths.
+		// Both are answers to a question nobody asked; there is no reading of a width-5 branch
+		// under a width-3 condition that is what the author meant.
 		a, b := arg(1), arg(2)
+		for _, branch := range []struct {
+			which string
+			value exprValue
+		}{{"then", a}, {"else", b}} {
+			if len(branch.value) != len(cond) && len(branch.value) != 1 {
+				panic(fmt.Sprintf(
+					"expression: where's %s branch has width %d, which is neither the "+
+						"condition's %d nor 1", branch.which, len(branch.value), len(cond)))
+			}
+		}
 		out := make(exprValue, len(cond))
 		for i := range cond {
 			if cond[i] != 0 {
@@ -544,7 +608,8 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 				"index to, as in each(40, i, ...)")
 		}
 		inner := c.explicit()
-		shadowed, wasBound := inner.env[index.Name]
+		// The env is shared with the enclosing scope, so the binding must not outlive the loop.
+		defer inner.bind(index.Name)()
 		out := make(exprValue, count)
 		for i := 0; i < count; i++ {
 			inner.env[index.Name] = exprValue{float64(i)}
@@ -556,13 +621,60 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 			}
 			out[i] = v[0]
 		}
-		// The env is shared with the enclosing scope, so the binding must not outlive the loop.
-		if wasBound {
-			inner.env[index.Name] = shadowed
-		} else {
-			delete(inner.env, index.Name)
-		}
 		return out
+	case "scan":
+		// each with an accumulator threaded through the lanes: lane i evaluates the expression
+		// with the lane index bound and acc bound to the previous lane's value (init at lane 0),
+		// and the value of the call is the last lane's. So it is a fold, not a map.
+		//
+		// This is the one thing each cannot do. Its lanes are independent and each must produce
+		// a scalar, so nothing a lane computes reaches the next one. A scan lane may be any
+		// width, and that is what closes the case that asked for this: allocating k simultaneous
+		// arrivals to the first k free slots, where what has to be carried between lanes is
+		// which slots are now taken rather than a running total. Running maxima and true prefix
+		// operations are the same shape, and become O(n) rather than the O(n^2) of an each of
+		// sums over ever-longer slices.
+		//
+		// It stays as bounded as each: the count is fixed before the loop, acc is threaded
+		// rather than assigned to, and there is still no recursion, so an expression still
+		// always terminates.
+		need(5)
+		countValue := arg(0)
+		if len(countValue) != 1 {
+			panic("expression: scan's count must be a scalar")
+		}
+		count := toIndex(countValue[0], "scan's count")
+		if count < 0 {
+			// Zero is allowed, unlike each's: a fold over no lanes is init, which is the right
+			// answer rather than an edge case, and it lets the count come from data.
+			panic("expression: scan's count must not be negative")
+		}
+		index, ok := n.Args[1].(*ast.Ident)
+		if !ok {
+			panic("expression: scan's second argument must be a name to bind the lane index " +
+				"to, as in scan(40, i, acc, 0, ...)")
+		}
+		accumulator, ok := n.Args[2].(*ast.Ident)
+		if !ok {
+			panic("expression: scan's third argument must be a name to bind the accumulator " +
+				"to, as in scan(40, i, acc, 0, ...)")
+		}
+		if accumulator.Name == index.Name {
+			panic("expression: scan's lane index and accumulator cannot share the name " +
+				index.Name)
+		}
+		// The initial value is evaluated once, in the enclosing scope, before either name is
+		// bound — so an init that mentions them means the outer ones, as it reads.
+		value := arg(3)
+		inner := c.explicit()
+		defer inner.bind(index.Name)()
+		defer inner.bind(accumulator.Name)()
+		for i := 0; i < count; i++ {
+			inner.env[index.Name] = exprValue{float64(i)}
+			inner.env[accumulator.Name] = value
+			value = inner.eval(n.Args[4])
+		}
+		return value
 	case "lag":
 		// A read of a partition's committed state further back than the current row, which is
 		// all a bare name or an upstreams alias ever gives.
@@ -643,6 +755,13 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 	case "slice":
 		// A block of a vector, for state and params that pack several quantities end to end:
 		// the nine coefficients of a channel inside one flat thirty-six-wide param, say.
+		//
+		// A zero width gives an empty value rather than an error. That is not permissiveness:
+		// the natural prefix sum, each(n, i, sum(slice(q, 0, i))), asks for nothing at lane 0,
+		// and nothing is the correct block to ask for there. Rejecting it forced a guarded
+		// spelling that needed both a where and a max(i, 1) — the where for the answer, the max
+		// because the untaken branch is still bounds-checked — for the one case the construct
+		// exists to serve. sum of an empty value is 0, so the reduction lands where it should.
 		need(3)
 		v, fromValue, widthValue := arg(0), arg(1), arg(2)
 		if len(fromValue) != 1 || len(widthValue) != 1 {
@@ -650,8 +769,8 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		}
 		from := toIndex(fromValue[0], "slice's start")
 		width := toIndex(widthValue[0], "slice's width")
-		if width < 1 {
-			panic("expression: slice's width must be at least 1")
+		if width < 0 {
+			panic("expression: slice's width must not be negative")
 		}
 		if from < 0 || from+width > len(v) {
 			panic(fmt.Sprintf(

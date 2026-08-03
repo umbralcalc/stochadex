@@ -369,8 +369,10 @@ Two shapes, with very different costs:
   each means either an operator that enlarges what the DSL *is*, or a core `Iteration`. Record
   them and let a second instance argue for the design rather than reaching for it on the first.
 
-The catalogue has surfaced five capability gaps, and **all five are closed** — the table is the
-worked precedent for what the triage produces, not an open-issues list:
+Seven capability gaps have been surfaced, and **all seven are closed** — the table is the
+worked precedent for what the triage produces, not an open-issues list. The last two came
+from a downstream application rather than from `models/`, which is the same evidence by the
+same test: a twin that could not be written, and a named output it blocked.
 
 | Gap | Found by | What closed it |
 |---|---|---|
@@ -379,14 +381,22 @@ worked precedent for what the triage produces, not an open-issues list:
 | Lag-*N* history read — only the current row is exposed | `trywizard` (ageing yellow cards out ten rows back) | `lag(name, n)` |
 | Slicing — no way to address a block within a flat vector | `trywizard` (9 coefficients at a stride-9 offset) | `slice` + `concat` |
 | Draw ordering and lane-wise laziness — an expression takes all its Gammas before any Poisson, and a vector-guarded `where` draws in every lane | `measles-risk-forecaster` (per-area interleaved draws, inactive areas skipped) | `each` |
+| No fold across `each` lanes — lanes are independent and scalar, so a lane cannot see what earlier lanes did | a downstream order-book model (assigning *k* simultaneous arrivals to the first *k* free slots, which blocked its queue-position output) | `scan(n, i, acc, init, expr)` |
+| `slice` rejected a zero width, so the natural prefix sum died on lane 0 | the same model (walking a book across price levels) | a zero width now gives an empty value |
 
-Two things that table is worth reading twice for. **The four structural gaps rhymed**: every
-one was about *structured access* or *per-lane control of draws*, which is exactly the axis a
+Three things that table is worth reading twice for. **The structural gaps rhymed**: every one
+was about *structured access* or *per-lane control of draws*, which is exactly the axis a
 strictly elementwise evaluator gives up — so they were one design question, not four chores,
 and `each` closed two of them at once. And **the draw-ordering row was predicted by the DSL's
 own doc comment** ("a vector-guarded draw consumes randomness in every lane") long before a
 model hit it. A limitation you have documented is still a limitation: a model hitting it is
 evidence that it is time to fix it, not a duplicate of the note.
+
+The third is that **`each` itself turned out to have the shape it was promoted to fix**. It
+answered the index-shift gap by giving lanes an index, and then had exactly the elementwise
+evaluator's problem one level down: its lanes cannot see each other, so the next structural
+gap arrived in the same form. `scan` is the same design question a second time, which is the
+argument for taking the second instance seriously rather than treating a closed axis as done.
 
 Writing a twin also finds bugs in the engine that no model would: `business-survival`'s
 exposed a NaN index silently reading element 0 on arm64 while panicking on amd64, because Go
