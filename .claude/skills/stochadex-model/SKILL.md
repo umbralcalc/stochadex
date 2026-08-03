@@ -90,7 +90,19 @@ and an **upstream alias** (see wiring below).
 
 **Functions:** `sqrt pow exp log abs min max clamp(x,lo,hi) where(cond,a,b) floor sin cos erf erfc`,
 `slice(v,i,n)`, `concat(a,b)`, `width(v)`, `lag(name,n)` (a value n steps back), plus `+ - * /`
-and comparisons `< > <= >= ==`. Everything is elementwise over vectors with length-1 broadcasting.
+and comparisons `< > <= >= ==`. Everything is elementwise over vectors with length-1 broadcasting,
+including `where` — under a vector condition each branch must be the condition's width or a scalar,
+and a scalar condition is lazy, so only the taken branch is evaluated (and only it draws).
+
+**Not elementwise:** `each(n, i, expr)` builds a width-n value whose element `i` is `expr` with
+the lane index bound — an index shift such as `each(5, i, where(i == 0, births, pop[i-1] * s))`,
+and a per-lane `where` that is lazy, so a switched-off lane draws nothing. `scan(n, i, acc, init,
+expr)` is the same loop with an accumulator threaded through it: lane `i` sees the previous lane's
+value (`init` at lane 0) and the call is the *last* lane's value, so it is a fold, not a map. Use
+it when a lane must see what earlier lanes did — allocation, running maxima, prefix sums:
+`slice(scan(6, i, acc, 0, concat(acc, acc[i] + q[i])), 0, 6)` is an exclusive prefix sum, and
+`each(6, i, sum(slice(q, 0, i)))` is the same thing more simply (a zero-width `slice` is empty,
+and `sum` of it is 0) at O(n²).
 
 **Random draws:** `normal(mean,sd)`, `poisson(rate)`, `uniform(lo,hi)`, `gamma(shape,scale)`,
 `binomial(n,p)`. **Rule (the #1 mistake):** if a draw's parameters are all scalars its width is

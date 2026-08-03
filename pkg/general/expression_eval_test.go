@@ -195,6 +195,24 @@ func TestExpressionBroadcasting(t *testing.T) {
 			Outputs: []string{"v + pair"},
 		}, []float64{1, 2, 3}, map[string][]float64{"pair": {1, 2}})
 	})
+
+	t.Run("where selects with the same rule as an operator", func(t *testing.T) {
+		// where selects directly rather than going through broadcastLen, so it was the one
+		// place the rule above did not hold: a branch wider than the condition was silently
+		// truncated to its first len(cond) elements, and a narrower one ran off the end with a
+		// bare Go index panic. Both are now rejected — see the malformed-expression table — and
+		// this is the half that must still work, a scalar branch broadcasting under a vector
+		// condition, which is how nearly every guard is written.
+		got := evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 3}},
+			Outputs: []string{"where(v > 1, v * 10, 0)"},
+		}, []float64{1, 2, 3}, map[string][]float64{})
+		for i, want := range []float64{0, 20, 30} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [0 20 30]", got)
+			}
+		}
+	})
 }
 
 func TestExpressionBindings(t *testing.T) {
@@ -344,15 +362,31 @@ func TestExpressionRejectsMalformedExpressions(t *testing.T) {
 		{"wrong arity", "sqrt(1, 2)", "takes 1 arguments"},
 		{"concat needs two", "concat(1)", "at least 2"},
 		{"index must be scalar", "pair[pair]", "index must be a scalar"},
+		// A vector condition selects elementwise, so a branch that is neither its width nor a
+		// scalar is a mismatch in either direction — the wide one used to be silently truncated.
+		{"where then branch too wide", "sum(where(pair > 0, concat(pair, 3), 0))",
+			"then branch has width 3, which is neither the condition's 2"},
+		{"where then branch too narrow", "sum(where(concat(pair, 3) > 0, pair, 0))",
+			"then branch has width 2, which is neither the condition's 3"},
+		{"where else branch mismatched", "sum(where(pair > 0, 0, concat(pair, 3)))",
+			"else branch has width 3, which is neither the condition's 2"},
+		{"where branch empty", "sum(where(pair > 0, slice(pair, 0, 0), 0))",
+			"then branch has width 0"},
 		{"index out of range", "pair[9]", "out of range"},
 		{"iid count must be scalar", "sum(iid(pair, 1))", "count must be a scalar"},
 		{"iid count below one", "sum(iid(0, 1))", "at least 1"},
 		{"iid lane must be scalar", "sum(iid(2, fill(3, 1)))", "scalar-valued expression"},
 		{"each count must be scalar", "sum(each(pair, i, 1))", "count must be a scalar"},
+		{"scan count must be scalar", "scan(pair, i, acc, 0, acc)", "count must be a scalar"},
+		{"scan count negative", "scan(0 - 1, i, acc, 0, acc)", "must not be negative"},
+		{"scan index is not a name", "scan(2, 7, acc, 0, acc)", "bind the lane index"},
+		{"scan accumulator is not a name", "scan(2, i, 7, 0, 1)", "bind the accumulator"},
+		{"scan names collide", "scan(2, i, i, 0, i)", "cannot share the name i"},
+		{"scan wrong arity", "scan(2, i, acc, 0)", "takes 5 arguments"},
 		{"fill width must be scalar", "sum(fill(pair, 1))", "width must be a scalar"},
 		{"fill width below one", "sum(fill(0, 1))", "at least 1"},
 		{"slice bounds must be scalar", "sum(slice(pair, pair, 1))", "must be scalars"},
-		{"slice width below one", "sum(slice(pair, 0, 0))", "at least 1"},
+		{"slice width negative", "sum(slice(pair, 0, 0 - 1))", "must not be negative"},
 		{"lag needs a name", "lag(1 + 1, 0)", "must be an upstream alias"},
 		{"lag row must be scalar", "lag(self, pair)", "row must be a scalar"},
 	} {

@@ -86,8 +86,9 @@ func TestExpressionIteration(t *testing.T) {
 }
 
 // cohortExpr ages a four-bucket cohort with an absorbing top and a guarded draw at the
-// intake; readerExpr reads it through slice, a lag past the current row, and width. Together
-// they put every construct that is not elementwise through the run harnesses.
+// intake; readerExpr reads it through slice, a lag past the current row, width, and the same
+// prefix sum written both ways. Together they put every construct that is not elementwise
+// through the run harnesses.
 func cohortExpr() *ExpressionIteration {
 	return &ExpressionIteration{
 		Fields: []ExpressionField{{Name: "bucket", Width: 4}},
@@ -101,15 +102,26 @@ func cohortExpr() *ExpressionIteration {
 
 func readerExpr() *ExpressionIteration {
 	return &ExpressionIteration{
-		Fields:    []ExpressionField{{Name: "total"}, {Name: "aged"}},
+		Fields: []ExpressionField{
+			{Name: "total"}, {Name: "aged"},
+			{Name: "swept", Width: 4}, {Name: "filled", Width: 4},
+		},
 		Upstreams: map[string]string{"coh": "cohort"},
-		// Three of the six coefficients, with the top bucket deliberately unweighted.
 		Bindings: []ExpressionBinding{
+			// Three of the six coefficients, with the top bucket deliberately unweighted.
 			{Name: "weights", Expr: "concat(slice(coefficients, 0, 3), 0)"},
+			// The same exclusive prefix sum written both ways: as an each over ever-longer
+			// slices, which asks for a zero-width slice at lane 0, and as a scan growing its
+			// accumulator, which is the O(n) spelling. They must agree every step.
+			{Name: "cumulative", Expr: "each(4, i, sum(slice(coh, 0, i)))"},
+			{Name: "running",
+				Expr: "slice(scan(4, i, acc, 0, concat(acc, acc[i] + coh[i])), 0, 4)"},
 		},
 		Outputs: []string{
 			"dot(weights, coh)",
 			"sum(lag(coh, 2)) + width(coefficients)",
+			"clamp(sweep - cumulative, 0, coh)",
+			"clamp(sweep - running, 0, coh)",
 		},
 	}
 }
@@ -117,10 +129,10 @@ func readerExpr() *ExpressionIteration {
 func TestExpressionConstructsRunWithHarnesses(t *testing.T) {
 	// The harnesses are what catch what a unit test cannot: NaNs, a wrong state width, a
 	// mutated params map, and statefulness residue, the last by running the whole simulation
-	// twice and comparing. That last one is the reason this exists — each binds its lane index
-	// into an environment it shares with the enclosing scope, so a restore that leaked would
-	// show up here and nowhere else.
-	t.Run("each, lag, slice, concat and width survive the harnesses", func(t *testing.T) {
+	// twice and comparing. That last one is the reason this exists — each and scan bind their
+	// lane index and accumulator into an environment they share with the enclosing scope, so a
+	// restore that leaked would show up here and nowhere else.
+	t.Run("each, scan, lag, slice, concat and width survive the harnesses", func(t *testing.T) {
 		settings := simulator.LoadSettingsFromYaml("./expression_constructs_settings.yaml")
 		iterations := []simulator.Iteration{cohortExpr(), readerExpr()}
 		for i, iteration := range iterations {
@@ -391,6 +403,44 @@ func TestExpressionStructuredAccess(t *testing.T) {
 		}
 	})
 
+	t.Run("a zero-width slice is empty, which is what a prefix sum needs", func(t *testing.T) {
+		// The natural prefix sum asks for nothing at lane 0, and nothing is the right block to
+		// ask for there. It used to panic, so the spelling that worked needed a where for the
+		// answer and a max(i, 1) as well, because the untaken branch is still bounds-checked.
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 6}},
+			Outputs: []string{"each(6, i, sum(slice(q, 0, i)))"},
+		}
+		got := evalOnce(t, e, make([]float64, 6), map[string][]float64{
+			"q": {3, 2, 1, 4, 5, 6},
+		})
+		for i, want := range []float64{0, 3, 5, 6, 10, 15} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [0 3 5 6 10 15]", got)
+			}
+		}
+	})
+
+	t.Run("a book sweep walks price levels", func(t *testing.T) {
+		// The downstream case the zero-width slice was blocking: a marketable order consuming
+		// across levels is a prefix sum and a clamp.
+		e := &ExpressionIteration{
+			Fields: []ExpressionField{{Name: "taken", Width: 6}},
+			Bindings: []ExpressionBinding{
+				{Name: "cumulative", Expr: "each(6, i, sum(slice(q, 0, i)))"},
+			},
+			Outputs: []string{"clamp(sweep - cumulative, 0, q)"},
+		}
+		got := evalOnce(t, e, make([]float64, 6), map[string][]float64{
+			"q": {3, 2, 1, 4, 5, 6}, "sweep": {7},
+		})
+		for i, want := range []float64{3, 2, 1, 1, 0, 0} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [3 2 1 1 0 0]", got)
+			}
+		}
+	})
+
 	t.Run("slice and concat reject an out-of-range block", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r == nil {
@@ -512,6 +562,169 @@ func TestExpressionEach(t *testing.T) {
 	})
 }
 
+func TestExpressionScan(t *testing.T) {
+	// each's lanes are independent and each must produce a scalar, so nothing a lane computes
+	// reaches the next one. scan threads an accumulator of any width through them, and the
+	// width is the point: the case that asked for this carries which slots are taken, not a
+	// running total.
+
+	t.Run("a lane sees what earlier lanes took", func(t *testing.T) {
+		// The blocking case: k simultaneous arrivals claim the first k free slots, so each
+		// arrival must see the slots the ones before it just took. It is not a prefix sum —
+		// what accumulates is the occupancy vector — and it has no each spelling at all.
+		//
+		// The first free slot is the length of the leading run of occupied ones, which is how
+		// many prefixes of the accumulator are entirely full.
+		firstFree := "sum(each(6, p, where(sum(slice(acc, 0, p + 1)) == p + 1, 1, 0)))"
+		e := &ExpressionIteration{
+			Fields: []ExpressionField{{Name: "occupancy", Width: 6}},
+			Outputs: []string{
+				"scan(3, a, acc, occupied, each(6, j, where(j == " + firstFree +
+					", 1, acc[j])))",
+			},
+		}
+		got := evalOnce(t, e, make([]float64, 6), map[string][]float64{
+			"occupied": {0, 1, 0, 0, 1, 0},
+		})
+		// Slots 0, 2 and 3 are the first three free ones, and all three are now taken.
+		for i, want := range []float64{1, 1, 1, 1, 1, 0} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [1 1 1 1 1 0]", got)
+			}
+		}
+	})
+
+	t.Run("order identity survives the allocation", func(t *testing.T) {
+		// The output this was actually wanted for: not just which slots filled, but which
+		// arrival got which — queue position per order. Two accumulators are one accumulator
+		// packed end to end, six slots followed by three arrival records seeded at -1.
+		firstFree := "sum(each(6, p, where(sum(slice(acc, 0, p + 1)) == p + 1, 1, 0)))"
+		e := &ExpressionIteration{
+			Fields: []ExpressionField{{Name: "occupancy", Width: 6}, {Name: "slot", Width: 3}},
+			Bindings: []ExpressionBinding{
+				{Name: "allocated", Expr: "scan(3, a, acc, concat(occupied, fill(3, -1)), " +
+					"concat(each(6, j, where(j == " + firstFree + ", 1, acc[j])), " +
+					"each(3, k, where(k == a, " + firstFree + ", acc[6 + k]))))"},
+			},
+			Outputs: []string{"slice(allocated, 0, 6)", "slice(allocated, 6, 3)"},
+		}
+		got := evalOnce(t, e, make([]float64, 9), map[string][]float64{
+			"occupied": {0, 1, 0, 0, 1, 0},
+		})
+		for i, want := range []float64{1, 1, 1, 1, 1, 0, 0, 2, 3} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [1 1 1 1 1 0 | 0 2 3]", got)
+			}
+		}
+	})
+
+	t.Run("a growing accumulator gives prefix sums in one pass", func(t *testing.T) {
+		// The same answer as each(6, i, sum(slice(q, 0, i))), but each lane extends the value
+		// rather than re-summing from the start. The accumulator is seeded with the exclusive
+		// prefix's leading zero, so the last lane's extra entry is sliced off.
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 6}},
+			Outputs: []string{"slice(scan(6, i, acc, 0, concat(acc, acc[i] + q[i])), 0, 6)"},
+		}
+		got := evalOnce(t, e, make([]float64, 6), map[string][]float64{
+			"q": {3, 2, 1, 4, 5, 6},
+		})
+		for i, want := range []float64{0, 3, 5, 6, 10, 15} {
+			if got[i] != want {
+				t.Fatalf("got %v, want [0 3 5 6 10 15]", got)
+			}
+		}
+	})
+
+	t.Run("a running maximum, threaded and as a sequence", func(t *testing.T) {
+		final := evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "m"}},
+			Outputs: []string{"scan(5, i, m, v[0], max(m, v[i]))"},
+		}, []float64{0}, map[string][]float64{"v": {2, 7, 3, 9, 4}})
+		if final[0] != 9 {
+			t.Fatalf("got %v, want 9", final[0])
+		}
+		sequence := evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "m", Width: 5}},
+			Outputs: []string{"slice(scan(5, i, acc, v[0], concat(acc, max(acc[i], v[i]))), 1, 5)"},
+		}, make([]float64, 5), map[string][]float64{"v": {2, 7, 3, 9, 4}})
+		for i, want := range []float64{2, 7, 7, 9, 9} {
+			if sequence[i] != want {
+				t.Fatalf("got %v, want [2 7 7 9 9]", sequence)
+			}
+		}
+	})
+
+	t.Run("no lanes gives the initial value", func(t *testing.T) {
+		// A fold over nothing is its seed, which is the right answer rather than an edge case,
+		// and it is what lets the lane count come from data.
+		got := evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v"}},
+			Outputs: []string{"scan(0, i, acc, 42, acc + 1)"},
+		}, []float64{0}, map[string][]float64{})
+		if got[0] != 42 {
+			t.Fatalf("got %v, want 42", got[0])
+		}
+	})
+
+	t.Run("scan binds both names without leaking either", func(t *testing.T) {
+		// Both bindings go into the environment shared with the enclosing scope, so both must
+		// be put back. The seed is evaluated before either is bound, so it means the outer ones.
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v"}},
+			Outputs: []string{"scan(3, i, acc, 0, acc + i) + i * 10 + acc * 100"},
+		}
+		got := evalOnce(t, e, []float64{0}, map[string][]float64{"i": {1}, "acc": {2}})
+		// The fold is 0, then 1, then 3; the params are intact afterwards.
+		if got[0] != 3+10+200 {
+			t.Fatalf("got %v, want 213", got[0])
+		}
+	})
+
+	t.Run("draws inside a lane are per lane, in lane order", func(t *testing.T) {
+		// scan is explicit about draw width for the same reason each is: a lane is one
+		// evaluation, so a scalar-parameter draw in it means one sample per lane.
+		got := evalOnce(t, &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v"}},
+			Outputs: []string{"scan(3, i, acc, 0, acc + normal(0, 1))"},
+		}, []float64{0}, map[string][]float64{})
+		sampler := rng.New(1)
+		want := 0.0
+		for i := 0; i < 3; i++ {
+			want += sampler.Normal(0, 1)
+		}
+		if got[0] != want {
+			t.Fatalf("got %v, want %v — draws are not one per lane in order", got[0], want)
+		}
+	})
+}
+
+func TestExpressionPrefixSpellingsAgree(t *testing.T) {
+	// The two ways of saying a prefix sum are the two gaps this pair of constructs closed, and
+	// a model may be written either way, so they have to be the same function. Random data,
+	// because a hand-picked vector is where an off-by-one hides.
+	sampler := rng.New(11)
+	q := make([]float64, 8)
+	for i := range q {
+		q[i] = sampler.Uniform(-5, 5)
+	}
+	viaEach := evalOnce(t, &ExpressionIteration{
+		Fields:  []ExpressionField{{Name: "v", Width: 8}},
+		Outputs: []string{"each(8, i, sum(slice(q, 0, i)))"},
+	}, make([]float64, 8), map[string][]float64{"q": q})
+	viaScan := evalOnce(t, &ExpressionIteration{
+		Fields:  []ExpressionField{{Name: "v", Width: 8}},
+		Outputs: []string{"slice(scan(8, i, acc, 0, concat(acc, acc[i] + q[i])), 0, 8)"},
+	}, make([]float64, 8), map[string][]float64{"q": q})
+	// Floating-point addition is not associative, but both spellings add in the same order, so
+	// they agree exactly rather than to a tolerance.
+	for i := range viaEach {
+		if viaEach[i] != viaScan[i] {
+			t.Fatalf("element %d: each gives %v, scan gives %v", i, viaEach[i], viaScan[i])
+		}
+	}
+}
+
 func TestExpressionNonFiniteIndex(t *testing.T) {
 	// Found while writing business-survival's twin, whose first width probe was NaN-poisoned.
 	// int(NaN) neither panics nor is portable: on arm64 it is 0, so a NaN index passes a
@@ -525,6 +738,7 @@ func TestExpressionNonFiniteIndex(t *testing.T) {
 		{"iid count", "sum(iid(bad, 1))"},
 		{"each count", "sum(each(bad, i, 1))"},
 		{"each lane index", "sum(each(2, i, v[i * bad]))"},
+		{"scan count", "scan(bad, i, acc, 0, acc)"},
 		{"fill width", "sum(fill(bad, 1))"},
 		{"slice start", "sum(slice(v, bad, 1))"},
 		{"slice width", "sum(slice(v, 0, bad))"},

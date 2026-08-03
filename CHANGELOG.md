@@ -22,6 +22,51 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`scan(n, i, acc, init, expr)`: a bounded fold across lanes.** `each` was the evaluator's only
+  non-elementwise construct, and its lanes are independent and must each produce a scalar, so
+  nothing a lane computes reaches the next one. `scan` runs `n` lanes in order with `acc` bound to
+  the previous lane's value — `init` at lane 0 — and the value of the call is the last lane's.
+
+  Unlike an `each` lane, a `scan` lane may be any width, and that is what closes the case that
+  asked for it: assigning *k* simultaneous arrivals to the first *k* free slots, where each
+  arrival must see the slots the previous ones just took. What accumulates there is *which slots
+  are taken*, not a running total, so it has no prefix-sum reformulation and no `each` spelling at
+  all — a downstream order-book model could state prices, a moving touch and book-walking as data
+  but not order identity, and so could not answer its queue-position output. Running maxima and
+  true prefix operations are the same shape and become O(n): `slice(scan(6, i, acc, 0, concat(acc,
+  acc[i] + q[i])), 0, 6)`.
+
+  It stays as bounded as `each`. The lane count is fixed before the loop, `acc` is threaded rather
+  than assigned to, and there is no recursion, so an expression still always terminates — the
+  property `each` was designed around is preserved rather than traded away. A zero lane count is
+  allowed and gives `init`, which is what a fold over nothing is, and lets the count come from
+  data.
+
+### Fixed
+
+- **`slice(v, from, 0)` gives an empty value instead of panicking.** A zero width was rejected
+  with "slice's width must be at least 1", which killed the natural prefix sum `each(n, i,
+  sum(slice(q, 0, i)))` on lane 0 — where nothing is the correct block to ask for, and `sum` of
+  nothing is 0. The spelling that worked needed both a `where` guard for the answer and a
+  `max(i, 1)` inside it, because the untaken branch is still parsed and bounds-checked. Prefix
+  sums are the main reason to reach for `each`, so the one case the construct exists to serve was
+  the one that needed a workaround. A negative width is still rejected.
+
+- **`where` now checks its branch widths against a vector condition.** Every other combining
+  operation goes through `broadcastLen`, which rejects a width that is neither equal nor 1;
+  `where` selected elementwise directly and so was the one place the rule did not hold. It failed
+  two ways depending on which side was short. A branch **wider** than the condition was silently
+  truncated to its first `len(cond)` elements, with the rest dropped and no diagnostic at all —
+  the dangerous one, since it produces a plausible number. A **narrower** branch ran off the end
+  as a bare Go index panic naming neither the function nor the widths.
+
+  Both are now rejected with a message naming the branch and both widths. A scalar branch under a
+  vector condition still broadcasts, which is how nearly every guard is written and is unaffected.
+  This is a behaviour change: a config that was relying on the silent truncation will now fail
+  rather than return a quietly wrong answer. Nothing in the model catalogue was.
+
 ## [0.13.1] — 2026-07-28
 
 ### Fixed
