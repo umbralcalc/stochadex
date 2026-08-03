@@ -22,6 +22,20 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-08-03
+
+A release about the expressions DSL, and about one axis of it in particular. Two capability
+gaps were recorded downstream against v0.13.1 and re-verified against the code before being
+brought upstream; closing them turned up a third problem in `where` that no model had hit yet.
+The minor bump is for that third one — `scan` and the zero-width `slice` are both additive, but
+the `where` check can fail a config that used to run.
+
+Worth noting what the shape of the main entry says. `each` was itself promoted to close the
+index-shift gap, by giving lanes an index — and then had the strictly-elementwise evaluator's
+problem one level down, because its lanes cannot see each other. `scan` is the same design
+question a second time, which is the argument for taking a second instance seriously rather
+than treating a closed axis as done.
+
 ### Added
 
 - **`scan(n, i, acc, init, expr)`: a bounded fold across lanes.** `each` was the evaluator's only
@@ -1254,7 +1268,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/umbralcalc/stochadex/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/umbralcalc/stochadex/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/umbralcalc/stochadex/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/umbralcalc/stochadex/compare/v0.11.0...v0.12.0
