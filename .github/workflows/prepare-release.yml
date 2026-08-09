@@ -1,0 +1,135 @@
+name: Prepare release PR
+# The mechanical half of the release ritual, on demand. You pick the version; this opens
+# a "Release vX.Y.Z: stamp changelog" PR with the three bookkeeping edits already done:
+#
+#   - CHANGELOG.md: a new `## [X.Y.Z] — <today>` section inserted above the previous
+#     release, with a prose placeholder and empty `### Added`;
+#   - .claude-plugin/plugin.json and .claude-plugin/marketplace.json: version bumped to
+#     X.Y.Z (a single targeted substitution each, so the diff is one line per file).
+#
+# What it deliberately does NOT do is write the release prose — that is the reviewed,
+# human part, and the reason the changelog is hand-written rather than generated. You edit
+# the placeholder, then merge. On merge, tag-release.yml creates the annotated vX.Y.Z tag
+# at the merge commit and release.yml builds it. So the full flow becomes:
+#
+#   run this workflow  ->  write the prose in the PR  ->  merge  ->  (tag + build are automatic)
+#
+# CI does not run the instant this PR opens (a PR opened by GITHUB_TOKEN does not trigger
+# pull_request workflows — the same recursion guard tag-release.yml works around). That is
+# fine here: your prose commit is a human push, which triggers CI on the PR before merge.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version as X.Y.Z (no leading v)"
+        required: true
+
+permissions:
+  contents: write # push the release branch
+  pull-requests: write # open the PR
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Stamp the changelog and manifests, and open the PR
+        run: |
+          set -euo pipefail
+
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version must be X.Y.Z with no leading v; got '$VERSION'"
+            exit 1
+          fi
+          if grep -qE "^## \[${VERSION//./\\.}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md already has a [$VERSION] heading"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
+            echo "::error::tag v$VERSION already exists"
+            exit 1
+          fi
+
+          prev=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "none")
+          date=$(date -u +%Y-%m-%d)
+          echo "stamping v$VERSION ($date); previous released: $prev"
+
+          # Insert the new versioned section directly above the previous newest release,
+          # keeping the (empty) [Unreleased] heading above it. The prose is a placeholder.
+          awk -v V="$VERSION" -v D="$date" '
+            /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ && !done {
+              print "## [" V "] \xe2\x80\x94 " D
+              print ""
+              print "<!-- Release prose goes here: what this release is about and why this"
+              print "     bump. patch = fixes only; minor = new features or, in v0.x, a"
+              print "     breaking change. Delete this comment before merging. -->"
+              print ""
+              print "### Added"
+              print ""
+              print "- "
+              print ""
+              done = 1
+            }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
+
+          # Reference-link definitions at the foot of the file: the `## [X.Y.Z]` heading only
+          # renders as a link if a matching `[X.Y.Z]: <compare-url>` line exists, and
+          # [Unreleased] must compare from the new version. Missing these is exactly the bug
+          # v0.15.0 shipped with (TestChangelogReleaseLinksResolve guards it).
+          repo="https://github.com/umbralcalc/stochadex"
+          if [ "$prev" = "none" ]; then
+            newlink="[${VERSION}]: ${repo}/releases/tag/v${VERSION}"
+          else
+            newlink="[${VERSION}]: ${repo}/compare/v${prev}...v${VERSION}"
+          fi
+          # Point [Unreleased] at the new version, and insert the new link directly below it.
+          awk -v V="$VERSION" -v NEW="$newlink" -v REPO="$repo" '
+            /^\[Unreleased\]:/ {
+              print "[Unreleased]: " REPO "/compare/v" V "...HEAD"
+              print NEW
+              next
+            }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
+
+          # One targeted substitution per manifest (each has exactly one "version" key), so
+          # the diff is a single line and the file's formatting is untouched.
+          sed -i -E "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"${VERSION}\"/" \
+            .claude-plugin/plugin.json .claude-plugin/marketplace.json
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="release-v${VERSION}"
+          git checkout -b "$branch"
+          git add CHANGELOG.md .claude-plugin/plugin.json .claude-plugin/marketplace.json
+          git commit -m "Release v${VERSION}: stamp changelog"
+          git push -u origin "$branch"
+
+          cat > /tmp/pr-body.md <<EOF
+          Prepared by the **Prepare release PR** workflow — the mechanical bumps are done:
+
+          - CHANGELOG.md: \`## [${VERSION}] — ${date}\` inserted (previous released: ${prev});
+          - plugin.json and marketplace.json: version → ${VERSION}.
+
+          **Now write the release prose** in CHANGELOG.md — replace the placeholder comment
+          and fill \`### Added\` / \`### Fixed\` — then merge.
+
+          On merge, \`tag-release.yml\` creates the annotated \`v${VERSION}\` tag at the merge
+          commit and \`release.yml\` builds and publishes it. CI runs on the PR as soon as you
+          push your prose commit.
+          EOF
+
+          gh pr create --base main --head "$branch" \
+            --title "Release v${VERSION}: stamp changelog" \
+            --body-file /tmp/pr-body.md
