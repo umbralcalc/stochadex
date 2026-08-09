@@ -145,6 +145,34 @@ func runBatch(generator *simulator.ConfigGenerator, socket *SocketConfig) {
 	coordinator.Run()
 }
 
+// RunEnsembleToStorage runs the config's ensemble (run: {mode: ensemble}) and returns
+// each member's recorded storage, index-aligned to run.seeds. It is the programmatic
+// form of Run for ensemble configs — Run prints every member to stdout and exits, which
+// suits a CLI but is unusable from a caller that wants the storages (to compute a
+// statistic across the ensemble) or the error. Like RunMacros for the macros: tier, it
+// lets the seeds and member count live in the config's run: block rather than being
+// passed in Go.
+//
+// It runs the same deadlock pre-flight as Run and returns the error rather than exiting.
+// The remaining constraints are inherited from the ensemble mechanism, which rebuilds
+// each member by re-loading the source file for fresh, non-shared iteration instances:
+//   - the config must have been loaded from a file (LoadApiRunConfigFromYaml); an
+//     in-memory config has no path to re-load and is rejected;
+//   - embedded runs are unsupported (their simulation blocks cannot be rebuilt by a
+//     plain re-load);
+//   - every main partition must resolve a data iteration (no embedded-run partitions).
+//
+// An empty run.seeds is rejected.
+func RunEnsembleToStorage(
+	config *ApiRunConfig,
+) ([]simulator.EnsembleRun, error) {
+	generator := config.GetConfigGenerator()
+	if err := CheckForDeadlock(generator); err != nil {
+		return nil, err
+	}
+	return ensembleRuns(config, generator.GetSimulation())
+}
+
 // runEnsemble runs one member per configured seed via simulator.RunSeededEnsemble
 // and writes each member's recorded trajectory to stdout, prefixed with its member
 // index and seed.

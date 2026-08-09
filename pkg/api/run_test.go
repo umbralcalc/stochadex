@@ -238,6 +238,97 @@ func TestEnsembleRuns(t *testing.T) {
 	})
 }
 
+// fullyDataEnsembleYAML is a file-backed, fully-data ensemble config: unlike
+// dataOnlyEnsembleYAML it carries its own simulation: block, so the exported
+// RunEnsembleToStorage resolves the whole run from the file with no Go stand-in.
+const fullyDataEnsembleYAML = `main:
+  partitions:
+  - name: growth
+    params: {rate: [0.05], noise: [0.2]}
+    init_state_values: [10.0]
+    state_history_depth: 1
+    seed: 1
+  expressions:
+  - partition: growth
+    fields: [{name: x}]
+    outputs: ["x + rate * x * dt + noise * x * shared(normal(0,1)) * sqrt(dt)"]
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: nil}
+    termination_condition: {type: number_of_steps, max_steps: 10}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+run:
+  mode: ensemble
+  seeds: [11, 22, 33]
+`
+
+func TestRunEnsembleToStorage(t *testing.T) {
+	t.Run("returns one member per seed, index-aligned, trajectories vary", func(t *testing.T) {
+		config := writeConfig(t, fullyDataEnsembleYAML)
+		runs, err := RunEnsembleToStorage(config)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(runs) != 3 {
+			t.Fatalf("want 3 members, got %d", len(runs))
+		}
+		finals := make(map[float64]bool)
+		for i, run := range runs {
+			if run.Seed != config.Run.Seeds[i] {
+				t.Errorf("member %d: seed %d != configured %d", i, run.Seed, config.Run.Seeds[i])
+			}
+			values := run.Storage.GetValues("growth")
+			if len(values) == 0 {
+				t.Fatalf("member %d recorded no growth values", i)
+			}
+			finals[values[len(values)-1][0]] = true
+		}
+		if len(finals) != 3 {
+			t.Errorf("expected 3 distinct final values across seeds, got %d", len(finals))
+		}
+	})
+
+	t.Run("agrees with the unexported ensembleRuns it wraps", func(t *testing.T) {
+		config := writeConfig(t, fullyDataEnsembleYAML)
+		exported, err := RunEnsembleToStorage(config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Resolve the simulation the same way the exported path does, so the two
+		// share identical inputs — the wrapper must add nothing but the resolution.
+		internal, err := ensembleRuns(config, config.GetConfigGenerator().GetSimulation())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(exported) != len(internal) {
+			t.Fatalf("member counts differ: %d vs %d", len(exported), len(internal))
+		}
+		for i := range exported {
+			a := exported[i].Storage.GetValues("growth")
+			b := internal[i].Storage.GetValues("growth")
+			if a[len(a)-1][0] != b[len(b)-1][0] {
+				t.Errorf("member %d: exported %v != internal %v", i, a[len(a)-1], b[len(b)-1])
+			}
+		}
+	})
+
+	t.Run("an in-memory config is rejected with an error, not a panic", func(t *testing.T) {
+		config := &ApiRunConfig{Run: RunModeConfig{Mode: "ensemble", Seeds: []uint64{1}}}
+		if _, err := RunEnsembleToStorage(config); err == nil {
+			t.Error("expected an error when the config has no source path")
+		}
+	})
+
+	t.Run("empty seeds is rejected", func(t *testing.T) {
+		config := writeConfig(t, fullyDataEnsembleYAML)
+		config.Run.Seeds = nil
+		if _, err := RunEnsembleToStorage(config); err == nil {
+			t.Error("expected an error for empty run.seeds")
+		}
+	})
+}
+
 func TestFullyDataResolution(t *testing.T) {
 	const fullyData = `main:
   partitions:
