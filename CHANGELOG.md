@@ -22,6 +22,35 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.15.0] — 2026-08-09
+
+A single additive entry: an exported programmatic entry point for the ensemble run tier.
+No existing behaviour changes and nothing that ran before can fail — this is a strictly
+backward-compatible addition. It is a minor rather than a patch because a patch here is
+reserved for fixes (see the `### Fixed`-only shape of 0.13.1); a new public symbol is a
+feature.
+
+The entry closes an asymmetry the engine already half-answered. `RunMacros` is the
+programmatic form of `Run` for the macros: tier, and its own docstring says why it exists:
+`Run` prints and exits, which suits a CLI but is unusable from a caller that wants the
+output or the error. The ensemble tier had the same `seeds:`-in-the-schema-but-only-
+printable-in-Go gap and no equivalent, so a downstream that scores a statistic across a
+config's declared ensemble had to pass seeds in Go via `simulator.RunSeededEnsemble`
+instead of reading them from the `run:` block. Reported from a downstream project.
+
+### Added
+
+- **`api.RunEnsembleToStorage(config) ([]simulator.EnsembleRun, error)`: the storage-
+  returning form of the `run: {mode: ensemble}` tier.** `Run` prints every member to
+  stdout and returns nothing; the working core `ensembleRuns` was unexported and reads the
+  unexported `sourcePath`, so no exported path returned a config's declared ensemble *and*
+  its storages. This mirrors `RunMacros` for the macros: tier, letting the seeds and member
+  count live in the config rather than being passed in Go. It runs the same deadlock
+  pre-flight as `Run` and returns the error instead of `log.Fatal`. It is a thin wrapper
+  over `ensembleRuns`, so the ensemble mechanism's constraints carry over and are documented
+  on the exported symbol: the config must be file-loaded (members are rebuilt by re-loading
+  it), embedded runs are unsupported, and every main partition must resolve a data iteration.
+
 ## [0.14.0] — 2026-08-03
 
 A release about the expressions DSL, and about one axis of it in particular. Two capability
