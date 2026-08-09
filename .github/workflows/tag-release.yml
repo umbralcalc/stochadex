@@ -1,0 +1,89 @@
+name: Tag release on stamp merge
+# Closes the one manual, error-prone step in the release ritual: pushing the tag.
+#
+# The ritual is otherwise all reviewed-in-a-PR: a "Release vX.Y.Z: stamp changelog" PR
+# adds the `## [X.Y.Z] — DATE` heading and bumps the two plugin manifests. Historically a
+# human then pushed `vX.Y.Z` by hand — which is where things went wrong: a squash-merge
+# rewrites the stamp commit's hash, so tagging the branch commit (or tagging early) leaves
+# the tag on an orphaned commit that is not on main. This workflow makes the tag a product
+# of the merge instead of a human action, so it always lands on the canonical merge commit.
+#
+# It fires only when CHANGELOG.md changes on main (i.e. a stamp merge), reads the newest
+# released heading, and — if no matching tag exists yet — creates an ANNOTATED tag whose
+# message is that version's changelog section. Two things follow from "annotated":
+#   1. release.yml's `gh release create --notes-from-tag` finally has real notes to use;
+#      a lightweight tag (what `git tag vX.Y.Z` makes) would have produced empty notes.
+#   2. It is idempotent and self-documenting.
+#
+# Why a PAT and not GITHUB_TOKEN: a tag pushed with the default GITHUB_TOKEN does NOT
+# trigger other workflows (GitHub's recursion guard), so release.yml would never fire.
+# Pushing with a PAT (RELEASE_TAG_TOKEN, a fine-grained token with contents:write on this
+# repo, mirroring the SITE_DEPLOY_TOKEN pattern the docs deploy already uses) makes the
+# tag push a real event that release.yml sees. This keeps release.yml itself untouched.
+on:
+  push:
+    branches: [main]
+    paths: [CHANGELOG.md]
+
+permissions:
+  contents: write # so the GITHUB_TOKEN fallback can still create+push the tag
+  # (the PAT carries its own write; this only matters when RELEASE_TAG_TOKEN is unset)
+
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          # Persist the PAT so `git push` of the tag is authenticated as a user, which is
+          # what lets the tag push trigger release.yml. Falls back to GITHUB_TOKEN if the
+          # secret is unset — the tag is still created correctly, but release.yml will not
+          # auto-fire and the tag must be re-pushed by hand (the step below says so).
+          token: ${{ secrets.RELEASE_TAG_TOKEN || github.token }}
+      - name: Create the annotated tag for the newest released CHANGELOG entry
+        env:
+          HAVE_PAT: ${{ secrets.RELEASE_TAG_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+
+          # The newest RELEASED heading, e.g. "## [0.15.0] — 2026-08-09". "## [Unreleased]"
+          # has no version and is skipped, so this is always a real release version.
+          version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+          if [ -z "$version" ]; then
+            echo "No released version heading found in CHANGELOG.md — nothing to tag."
+            exit 0
+          fi
+          tag="v${version}"
+
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "${tag} already exists — nothing to do (idempotent re-run or a "
+            echo "non-release change to CHANGELOG.md)."
+            exit 0
+          fi
+
+          # The section body between this version's heading and the next "## [" heading,
+          # with leading blank lines trimmed, becomes the tag annotation / release notes.
+          notes=$(awk -v v="[${version}]" '
+            /^## \[/ { if (found) exit; if (index($0, v)) { found=1; next } }
+            found { print }
+          ' CHANGELOG.md | sed '/./,$!d')
+
+          if [ "${HAVE_PAT}" != "true" ]; then
+            echo "::warning::RELEASE_TAG_TOKEN is not set — creating ${tag} with the "
+            echo "::warning::default token, which will NOT trigger release.yml. After this "
+            echo "::warning::run, delete and re-push ${tag} with a PAT to build the release."
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Two -m flags: subject line, then the changelog section as the body.
+          git tag -a "${tag}" -m "${tag}" -m "${notes}"
+          git push origin "refs/tags/${tag}"
+          echo "Pushed annotated tag ${tag} at $(git rev-parse HEAD)."
