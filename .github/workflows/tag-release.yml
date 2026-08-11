@@ -10,10 +10,16 @@ name: Tag release on stamp merge
 #
 # It fires only when CHANGELOG.md changes on main (i.e. a stamp merge), reads the newest
 # released heading, and — if no matching tag exists yet — creates an ANNOTATED tag whose
-# message is that version's changelog section. Two things follow from "annotated":
-#   1. release.yml's `gh release create --notes-from-tag` finally has real notes to use;
-#      a lightweight tag (what `git tag vX.Y.Z` makes) would have produced empty notes.
-#   2. It is idempotent and self-documenting.
+# message is that version's changelog section, so the tag is idempotent and self-
+# documenting.
+#
+# The published GitHub Release notes do NOT come from this annotation. release.yml
+# re-extracts the same CHANGELOG section from the same commit (via
+# .github/scripts/changelog-section.sh) and passes it as `--notes-file`. This is
+# deliberate: on a tag push actions/checkout materialises a *lightweight* local tag, and
+# `gh release create --notes-from-tag` then reads the *commit* message (the squash-merge
+# body) instead of the annotation — which is exactly how release notes came out wrong.
+# Both paths reading one script keeps the annotation and the notes identical anyway.
 #
 # Why a PAT and not GITHUB_TOKEN: a tag pushed with the default GITHUB_TOKEN does NOT
 # trigger other workflows (GitHub's recursion guard), so release.yml would never fire.
@@ -69,11 +75,10 @@ jobs:
           fi
 
           # The section body between this version's heading and the next "## [" heading,
-          # with leading blank lines trimmed, becomes the tag annotation / release notes.
-          notes=$(awk -v v="[${version}]" '
-            /^## \[/ { if (found) exit; if (index($0, v)) { found=1; next } }
-            found { print }
-          ' CHANGELOG.md | sed '/./,$!d')
+          # with leading blank lines trimmed, becomes the tag annotation. release.yml
+          # extracts the SAME section from the SAME commit for the published release notes,
+          # so the two are identical by construction — see .github/scripts/changelog-section.sh.
+          notes=$(bash .github/scripts/changelog-section.sh "${version}" CHANGELOG.md)
 
           if [ "${HAVE_PAT}" != "true" ]; then
             echo "::warning::RELEASE_TAG_TOKEN is not set — creating ${tag} with the "
