@@ -1,0 +1,32 @@
+iterations:
+- name: observations
+  params:
+    mean: [0.0]
+    covariance_matrix: [1.0]
+  init_state_values: [0.0]
+  seed: 21
+  state_width: 1
+  state_history_depth: 1
+- name: forecast
+  params:
+    variances: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  seed: 22
+  state_width: 8
+  state_history_depth: 1
+- name: enkf
+  params:
+    ensemble_size: [8]
+    state_dimension: [1]
+    observation_noise_variance: [1.0]
+  params_from_upstream:
+    forecast_ensemble:
+      upstream: 1
+    latest_data_values:
+      upstream: 0
+  init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  seed: 23
+  state_width: 8
+  state_history_depth: 1
+init_time_value: 0.0
+timesteps_history_depth: 10

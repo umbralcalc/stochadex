@@ -2,8 +2,64 @@ package api
 
 import (
 	"math"
+	"os"
+	"strings"
 	"testing"
 )
+
+// TestStateSpaceCountCalibration pins the shipped state-space count recipe
+// (cfg/example_state_space_count_config.yaml): a latent-intensity → dispersion-aware
+// count likelihood → SMC posterior model, expressed entirely as config with no new
+// engine code. It recovers BOTH the mean (8) and the DISPERSION (2) of an
+// over-dispersed negative-binomial stream — and, run with a Poisson observation
+// likelihood instead, the mean still recovers but the dispersion drifts to its prior
+// mean, because Poisson forces Var = mean so the dispersion never enters the
+// log-likelihood. That contrast is the point: the composition is only useful with a
+// dispersion-aware family, and the engine already ships one. This reproduces, domain-
+// free, the identifiability result the cryptobook project recorded (and is why the
+// STOCHADEX_GAPS "state-space likelihood" note is a composition, not a missing feature).
+func TestStateSpaceCountCalibration(t *testing.T) {
+	raw, err := os.ReadFile("../../cfg/example_state_space_count_config.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	negBinom := string(raw)
+
+	t.Run("negative_binomial recovers mean and dispersion", func(t *testing.T) {
+		post := runMacroConfig(t, negBinom)["smc_posterior"]
+		if len(post) == 0 {
+			t.Fatal("no smc_posterior output")
+		}
+		last := post[len(post)-1]
+		if math.Abs(last[0]-8.0) > 2.0 {
+			t.Errorf("mean = %v, want ~8", last[0])
+		}
+		if math.Abs(last[1]-2.0) > 1.5 {
+			t.Errorf("dispersion = %v, want ~2 (the parameter Poisson cannot see)", last[1])
+		}
+	})
+
+	t.Run("poisson recovers the mean but not the dispersion", func(t *testing.T) {
+		poisson := strings.Replace(
+			negBinom,
+			`iteration: {type: data_comparison, likelihood: {type: negative_binomial}}`,
+			`iteration: {type: data_comparison, likelihood: {type: poisson}}`,
+			1,
+		)
+		if poisson == negBinom {
+			t.Fatal("failed to swap the observation likelihood — recipe wording changed")
+		}
+		post := runMacroConfig(t, poisson)["smc_posterior"]
+		last := post[len(post)-1]
+		if math.Abs(last[0]-8.0) > 2.0 {
+			t.Errorf("mean = %v, want ~8 (the mean is still identifiable under Poisson)", last[0])
+		}
+		if math.Abs(last[1]-2.0) < 1.0 {
+			t.Errorf("dispersion = %v recovered under Poisson, but it must NOT — "+
+				"Poisson forces Var=mean so the dispersion is unidentified", last[1])
+		}
+	})
+}
 
 // TestSMCInferenceMacro checks the smc_inference macro's per-particle model
 // recovers the true mean (2.0) of an observed data stream — a full particle-filter

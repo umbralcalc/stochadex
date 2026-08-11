@@ -1,0 +1,79 @@
+# Ensemble Kalman Filter state estimation as config — an online data-assimilation
+# loop with NO Go. A hidden AR(1) state is observed with noise; an ensemble of forecast
+# members is propagated through the forward model and the observation is assimilated
+# each step by the ensemble_kalman_filter iteration, whose analysis ensemble tracks the
+# hidden state with far less error than the raw observations carry.
+#
+# The wiring is the canonical filter loop, and it is a worked example of the engine's
+# cycle-breaking rule: `forecast` reads the analysis ensemble from the PREVIOUS step
+# (an upstreams / lag-1 state read of `enkf`) and propagates it; `enkf` reads that
+# forecast WITHIN the step (params_from_upstream) and assimilates. The one-step lag on
+# the forecast side is what makes the mutual dependence acyclic.
+#
+# The filter's correctness (analysis error below observation noise, and ensemble spread
+# matching the exact Kalman steady-state variance) is pinned in Go by
+# TestEnsembleKalmanFilterTracksLatentState; this config is the config-surface twin.
+main:
+  partitions:
+
+  # Hidden truth: AR(1) with persistence 0.9 and process-noise std sqrt(0.1).
+  - name: truth
+    iteration:
+      type: expression
+      fields: [{name: x}]
+      outputs: ["0.9*x + shared(normal(0, 0.3162278))"]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 101
+
+  # Noisy observation of the truth: observation-noise std sqrt(0.5). Reads the current
+  # step's truth (params_from_upstream, within-step) so the observation is of truth_t,
+  # not truth_{t-1}.
+  - name: observations
+    iteration:
+      type: expression
+      fields: [{name: y}]
+      outputs: ["truth_now + shared(normal(0, 0.7071068))"]
+    params: {truth_now: [0.0]}
+    params_from_upstream:
+      truth_now: {upstream: truth}
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 102
+
+  # Forecast ensemble: 10 members, each the previous analysis member propagated one
+  # step through the same forward model (0.9 * member + process noise). Reads the
+  # analysis ensemble from `enkf` at lag 1, which breaks the forecast<->enkf cycle.
+  - name: forecast
+    iteration:
+      type: expression
+      upstreams: {ens: enkf}
+      fields: [{name: ensemble, width: 10}]
+      outputs: ["0.9*ens + iid(10, normal(0, 0.3162278))"]
+    init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    state_history_depth: 1
+    seed: 103
+
+  # Ensemble Kalman Filter analysis: assimilate the observation into the forecast
+  # ensemble. State is the analysis ensemble, flattened member-major (10 members * 1
+  # state dim). observation_indices defaults to the whole state, so each member's single
+  # component is the observed quantity.
+  - name: enkf
+    iteration: {type: ensemble_kalman_filter}
+    params:
+      ensemble_size: [10]
+      state_dimension: [1]
+      observation_noise_variance: [0.5]
+    params_from_upstream:
+      forecast_ensemble: {upstream: forecast}
+      latest_data_values: {upstream: observations}
+    init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    state_history_depth: 1
+    seed: 104
+
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: stdout}
+    termination_condition: {type: number_of_steps, max_steps: 300}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0

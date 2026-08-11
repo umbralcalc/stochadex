@@ -1,0 +1,78 @@
+# State-space count calibration as config — a latent stochastic intensity observed
+# through a DISPERSION-AWARE count likelihood, calibrated by SMC, with NO new engine
+# code and NO Go. This is the composition stochadex's own `models/CONVENTIONS.md`
+# generative/inferential split points at: the building blocks (a count likelihood, a
+# latent-intensity process, the SMC posterior tier) all ship, and this file is the
+# proof they compose into a state-space model purely as data.
+#
+# The identifying parameter of a count model is its DISPERSION, not its rate — and a
+# Poisson likelihood cannot see it (Poisson forces Var = mean, so the dispersion never
+# enters the log-likelihood). This recipe recovers BOTH the mean and the dispersion of
+# an over-dispersed stream, which is only possible because the observation family is
+# negative_binomial. Swap `loglike`'s likelihood to {type: poisson} and the mean still
+# recovers but the dispersion drifts to its prior mean — that contrast is pinned as a
+# test (TestStateSpaceCountCalibration in pkg/api/macros_live_test.go).
+#
+# The generator emits negative-binomial counts with mean 8 and variance 40, so the
+# dispersion r = mean^2 / (variance - mean) = 64 / 32 = 2.0 is known by construction.
+# The `variance = mean + mean^2/dispersion` re-parameterisation below is what lets the
+# sampler propose the dispersion directly and have it enter the likelihood.
+#
+# Extending to a *time-varying* latent intensity is a one-partition change: replace the
+# `moments` mean output with a driven latent process (e.g. an ornstein_uhlenbeck or
+# gamma partition whose params are forwarded from the particle), leaving the
+# variance/observation wiring untouched.
+data:
+  steps: 400
+  timestep: 1.0
+  partitions:
+  - name: counts
+    iteration: {type: data_generation, likelihood: {type: negative_binomial}}
+    params: {mean: [8.0], variance: [40.0]}   # dispersion r = 8^2 / (40 - 8) = 2.0
+    init_state_values: [8.0]
+    state_history_depth: 1
+    seed: 7
+macros:
+- type: smc_inference
+  proposal_name: smc_proposals
+  sim_name: smc_sim
+  posterior_name: smc_posterior
+  num_particles: 200
+  num_rounds: 5
+  seed: 42
+  priors:
+  - {type: uniform, lo: 1.0, hi: 20.0}   # mean
+  - {type: uniform, lo: 0.3, hi: 8.0}    # dispersion (the parameter Poisson cannot recover)
+  param_names: [mean, dispersion]
+  model:
+    observed_data: {name: observed_data, ref: {partition_name: counts}}
+    partitions:
+    # Map the two sampled parameters (mean, dispersion) to the moments the count
+    # likelihood consumes. The dispersion enters ONLY through the variance, which is why
+    # a variance-blind likelihood cannot identify it.
+    - name: "moments"
+      iteration:
+        type: expression
+        fields:
+        - {name: mean}
+        - {name: variance}
+        outputs:
+        - "mu"
+        - "mu + mu*mu/phi"
+      params: {mu: [8.0], phi: [2.0]}   # placeholders; overwritten per particle by param_forwarding
+      init_state_values: [8.0, 40.0]
+      state_history_depth: 2
+    # Negative-binomial log-likelihood of the observed counts given the proposed moments.
+    - name: "loglike"
+      iteration: {type: data_comparison, likelihood: {type: negative_binomial}}
+      params: {mean: [8.0], variance: [40.0], latest_data_values: [8.0], cumulative: [1], burn_in_steps: [0]}
+      params_from_upstream:
+        mean: {upstream: moments, indices: [0]}
+        variance: {upstream: moments, indices: [1]}
+        latest_data_values: {upstream: observed_data}
+      init_state_values: [0.0]
+      state_history_depth: 2
+    loglike_partition: "loglike"
+    param_forwarding:
+      "moments/mu": [0]
+      "moments/phi": [1]
