@@ -39,6 +39,7 @@ var wantIterationType = map[string]string{
 	"values_weighted_resampling":          "*general.ValuesWeightedResamplingIteration",
 	"posterior_covariance":                "*inference.PosteriorCovarianceIteration",
 	"posterior_log_normalisation":         "*inference.PosteriorLogNormalisationIteration",
+	"ensemble_kalman_filter":              "*inference.EnsembleKalmanFilterIteration",
 	"smc_posterior":                       "*inference.SMCPosteriorIteration",
 	"from_history":                        "*general.FromHistoryIteration",
 

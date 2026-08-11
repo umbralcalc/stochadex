@@ -363,7 +363,11 @@ previous state, when no event matches),
 `values_weighted_resampling` (params: `log_weight_partitions`, `data_values_partitions`,
 optional `log_weight_indices`, `past_discounting_factor` — wire the partition lists by name with
 `params_as_partitions`),
-`posterior_mean` (`transform: mean|variance`), `posterior_covariance`, `posterior_log_normalisation`.
+`posterior_mean` (`transform: mean|variance`), `posterior_covariance`, `posterior_log_normalisation`,
+`ensemble_kalman_filter` (stochastic EnKF data assimilation; params: `ensemble_size`, `state_dimension`,
+`observation_noise_variance`, optional `observation_indices` and `inflation`; wire `forecast_ensemble`
+and `latest_data_values` with `params_from_upstream`; state is the analysis ensemble flattened
+member-major — see `cfg/example_enkf_config.yaml`).
 
 **Kernels:** `exponential` `periodic` `gaussian_state` `t_distribution_state` `binned`
 `instantaneous` `constant` `product` (fields `kernel_a`,`kernel_b`).

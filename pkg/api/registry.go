@@ -55,6 +55,7 @@ var iterationBuilders = map[string]iterationBuilder{
 	// pkg/inference
 	"posterior_covariance":        nullary(func() simulator.Iteration { return &inference.PosteriorCovarianceIteration{} }),
 	"posterior_log_normalisation": nullary(func() simulator.Iteration { return &inference.PosteriorLogNormalisationIteration{} }),
+	"ensemble_kalman_filter":      nullary(func() simulator.Iteration { return &inference.EnsembleKalmanFilterIteration{} }),
 	"smc_posterior":               buildSMCPosterior,
 
 	// from_history copies another partition's history into an embedded window. Its
