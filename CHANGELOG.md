@@ -24,13 +24,47 @@ an exact version rather than assume stability across minors.
 
 ## [0.16.0] — 2026-08-11
 
-<!-- Release prose goes here: what this release is about and why this
-     bump. patch = fixes only; minor = new features or, in v0.x, a
-     breaking change. Delete this comment before merging. -->
+Two additive inference capabilities, both authorable as pure config and covered by
+expected-behaviour tests. Nothing that ran before can fail — no existing behaviour
+changes — so this is a strictly backward-compatible addition. It is a minor rather than a
+patch because it adds a new public iteration and new worked configs; a patch here is
+reserved for fixes (see the `### Fixed`-only shape of 0.13.1).
+
+The headline is an **Ensemble Kalman Filter** as a first-class iteration: a stochastic
+(perturbed-observations) EnKF that assimilates observations into a forecast ensemble via
+the ensemble-estimated Kalman gain. It supports partial observation — an unobserved
+dimension is updated through the ensemble cross-covariance — and optional multiplicative
+inflation, and its update maths is factored into a pure `inference.EnsembleKalmanAnalysis`
+so it is unit-testable in isolation. Correctness is pinned three independent ways: the
+exact update versus the analytic Kalman gain (including the partial-observation case), a
+full forecast→assimilate loop whose analysis error falls below the observation noise and
+whose ensemble spread matches the exact Kalman steady-state variance, and the standard
+`RunWithHarnesses` mechanics.
+
+The second addition settles a question rather than adding a mechanism: it shows that a
+latent-intensity → dispersion-aware count likelihood → SMC posterior — a **state-space
+count calibration** — is already expressible as pure config through the existing
+`smc_inference` + `negative_binomial` machinery, with no new macro. Its test pins both
+directions, so the capability is proven rather than asserted: `negative_binomial` recovers
+the count dispersion, and `poisson` cannot (Var = mean makes the dispersion invisible to
+the likelihood).
 
 ### Added
 
-- 
+- `inference.EnsembleKalmanFilterIteration`, registered as `{type: ensemble_kalman_filter}`:
+  a stochastic Ensemble Kalman Filter for online data assimilation, with an index-selector
+  observation operator (partial observation supported), optional `inflation`, and a pure
+  `EnsembleKalmanAnalysis` update function. Wire `forecast_ensemble` and `latest_data_values`
+  through `params_from_upstream`; the state is the analysis ensemble flattened member-major.
+- `cfg/example_enkf_config.yaml` — the EnKF filter loop as pure config, and a worked example
+  of the cycle-breaking rule (the `forecast` ↔ `enkf` mutual dependence broken by a lag-1 read).
+- `cfg/example_state_space_count_config.yaml` — a latent-intensity → negative-binomial → SMC
+  posterior state-space count calibration, demonstrating the composition needs no new macro.
+
+### Changed
+
+- Release tooling: a manual **Prepare release PR** workflow (`workflow_dispatch`) that stamps
+  the changelog and manifest versions, and auto-tagging of the release on the stamp-PR merge.
 
 ## [0.15.0] — 2026-08-09
 
