@@ -56,11 +56,18 @@ jobs:
         working-directory: cmd/stochadex
         run: |
           set -euo pipefail
-          # Create the Release from the tag annotation if it does not exist yet (a manual
-          # `gh release create` with richer notes wins if it ran first); --clobber makes
-          # re-runs idempotent.
+          # Create the Release if it does not exist yet (a manual `gh release create` with
+          # richer notes wins if it ran first); --clobber makes re-runs idempotent. Notes
+          # come from the CHANGELOG section, NOT `--notes-from-tag`: on a tag push
+          # actions/checkout materialises a *lightweight* local tag, and gh reads its body
+          # as the *commit* message — see .github/scripts/changelog-section.sh. Every
+          # racing matrix job extracts the same section from the same commit, so whichever
+          # wins the create publishes identical, correct notes.
+          notes="$RUNNER_TEMP/release-notes.md"
+          bash "$GITHUB_WORKSPACE/.github/scripts/changelog-section.sh" \
+            "$TAG" "$GITHUB_WORKSPACE/CHANGELOG.md" > "$notes"
           gh release view "$TAG" >/dev/null 2>&1 \
-            || gh release create "$TAG" --title "$TAG" --notes-from-tag --verify-tag
+            || gh release create "$TAG" --title "$TAG" --notes-file "$notes" --verify-tag
           gh release upload "$TAG" dist/* --clobber
 
   # Tier 2 — the accelerated asset. cgo, so one native runner per target.
@@ -173,8 +180,13 @@ jobs:
         working-directory: cmd/stochadex
         run: |
           set -euo pipefail
+          # Notes come from the CHANGELOG section, not the tag annotation — see the
+          # portable job's Attach step and .github/scripts/changelog-section.sh for why.
+          notes="$RUNNER_TEMP/release-notes.md"
+          bash "$GITHUB_WORKSPACE/.github/scripts/changelog-section.sh" \
+            "$TAG" "$GITHUB_WORKSPACE/CHANGELOG.md" > "$notes"
           gh release view "$TAG" >/dev/null 2>&1 \
-            || gh release create "$TAG" --title "$TAG" --notes-from-tag --verify-tag
+            || gh release create "$TAG" --title "$TAG" --notes-file "$notes" --verify-tag
           gh release upload "$TAG" dist/* --clobber
 
   # Tier 3 — the OCI image. This is the unit cloud-native pipelines compose: a
