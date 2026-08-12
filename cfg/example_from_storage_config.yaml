@@ -1,0 +1,48 @@
+# Replaying a precomputed external series into a live main: partition — the
+# config-level path that solar-fleet/STOCHADEX_GAPS.md recorded as missing.
+#
+# `clear_sky_driver` is a `from_storage` iteration: its `data:` is a precomputed
+# series carried inline as config data (here a deterministic irradiance bump you
+# might have computed in numpy from solar geometry). Row 0 seeds the init state
+# and step n emits row n. The `from_storage` timestep function replays the series'
+# own time axis the same way. No Go, no streaming source — the series *is* data.
+#
+# `site_power` is an ordinary expression partition that consumes the replayed
+# driver via `params_from_upstream`, showing the intended use: a deterministic
+# driver feeding a model.
+main:
+  partitions:
+
+  - name: clear_sky_driver
+    iteration:
+      type: from_storage
+      data: [[0.0], [5.0], [30.0], [120.0], [340.0], [610.0], [790.0], [880.0],
+             [860.0], [720.0], [500.0], [250.0], [90.0], [20.0], [2.0], [0.0],
+             [0.0], [0.0], [0.0], [0.0]]
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  - name: site_power
+    # Panel output is efficiency times the driver, floored at zero.
+    iteration:
+      type: expression
+      fields: [{name: p}]
+      outputs: ["max(0.2 * irradiance, 0)"]
+    params: {irradiance: [0.0]}
+    params_from_upstream:
+      irradiance: {upstream: clear_sky_driver, indices: [0]}
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: stdout}
+    termination_condition: {type: number_of_steps, max_steps: 10}
+    # Drive the clock from the series' own timestamps, also replayed from storage.
+    timestep_function:
+      type: from_storage
+      data: [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0,
+             13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0]
+    init_time_value: 0.0

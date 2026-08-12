@@ -12,11 +12,12 @@ import (
 // excludedIterations names every Iteration implementation in the candidate
 // packages that is deliberately NOT in the registry (data-only in Phase A,
 // composable in Phase B), each with the reason:
-//   - "live-object": holds a live object bound at runtime by its caller — bulk
-//     [][]float64 data, a batch *StateHistory, or a whole *Settings/*Implementations
-//     pair — with no data form as a standalone partition. All three are still
-//     reachable from config indirectly, constructed by the data:, macros: and
-//     embedded: tiers respectively.
+//   - "live-object": holds a live object bound at runtime by its caller — a batch
+//     *StateHistory or a whole *Settings/*Implementations pair — with no data form
+//     as a standalone partition. Both are still reachable from config indirectly,
+//     constructed by the macros: and embedded: tiers respectively. (Bulk
+//     [][]float64 data is no longer here: from_storage now carries its rows inline
+//     as config data, so it is registered rather than excluded.)
 //
 // Drift test 2 asserts every Iterate-implementing type in the candidate packages
 // is either registered (wantIterationType) or listed here. A NEW iteration then
@@ -29,7 +30,6 @@ import (
 // excluded here once and have since been registered.
 var excludedIterations = map[string]string{
 	// live-object — no data form as a standalone partition
-	"FromStorageIteration":            "live-object: [][]float64 bulk data (built by the data: tier)",
 	"DataComparisonGradientIteration": "live-object: *StateHistory batch + gradient func (built by macros:)",
 	"EmbeddedSimulationRunIteration":  "live-object: *Settings/*Implementations (built by the embedded: tier)",
 }
