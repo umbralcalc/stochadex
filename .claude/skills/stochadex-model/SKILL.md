@@ -88,7 +88,7 @@ main:
 its **params keys**, `dt` (timestep), `t` (time), `step` (step number), any earlier **binding**,
 and an **upstream alias** (see wiring below).
 
-**Functions:** `sqrt pow exp log abs min max clamp(x,lo,hi) where(cond,a,b) floor sin cos erf erfc`,
+**Functions:** `sqrt pow exp log abs min max clamp(x,lo,hi) where(cond,a,b) floor sin cos tan asin acos atan atan2(y,x) erf erfc`,
 `slice(v,i,n)`, `concat(a,b)`, `width(v)`, `lag(name,n)` (a value n steps back), plus `+ - * /`
 and comparisons `< > <= >= ==`. Everything is elementwise over vectors with length-1 broadcasting,
 including `where` — under a vector condition each branch must be the condition's width or a scalar,
@@ -368,6 +368,11 @@ optional `log_weight_indices`, `past_discounting_factor` — wire the partition 
 `observation_noise_variance`, optional `observation_indices` and `inflation`; wire `forecast_ensemble`
 and `latest_data_values` with `params_from_upstream`; state is the analysis ensemble flattened
 member-major — see `cfg/example_enkf_config.yaml`).
+`from_storage` (replays a precomputed series into a partition by step number: field `data:` is a
+list of rows `[[...], [...], ...]` carried inline as config data, optional `init_steps_taken`; row 0
+seeds the init state and step *n* emits row *n*. Use it for a deterministic driver — a clear-sky
+irradiance curve, a forcing series — computed outside the engine and dropped into the config. There
+is a matching `from_storage` timestep function whose `data:` is a flat list of times).
 
 **Kernels:** `exponential` `periodic` `gaussian_state` `t_distribution_state` `binned`
 `instantaneous` `constant` `product` (fields `kernel_a`,`kernel_b`).
@@ -389,4 +394,5 @@ params) `partition_event` (reads `event_partition_index` / `event_state_value_in
 that called `api.RegisterEnvironment`.
 **Simulation components:** output_condition `nil|every_step|every_n_steps|only_given_partitions`;
 output_function `nil|stdout|json_log`; termination `number_of_steps|time_elapsed`;
-timestep `constant|exponential_distribution|from_history`.
+timestep `constant|exponential_distribution|from_history|from_storage` (`from_storage` replays an
+inline list of times: field `data:`, optional `init_steps_taken`).

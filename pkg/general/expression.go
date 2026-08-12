@@ -728,6 +728,25 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 	case "cos":
 		need(1)
 		return mapExpr(arg(0), math.Cos)
+	case "tan":
+		need(1)
+		return mapExpr(arg(0), math.Tan)
+	case "asin":
+		need(1)
+		return mapExpr(arg(0), math.Asin)
+	case "acos":
+		need(1)
+		return mapExpr(arg(0), math.Acos)
+	case "atan":
+		need(1)
+		return mapExpr(arg(0), math.Atan)
+	case "atan2":
+		// Two-argument arctangent, atan2(y, x), for a full-circle angle from a pair of
+		// components — a solar azimuth from its projections, say. Kept as its own primitive
+		// rather than atan(y/x) so the quadrant is resolved and x == 0 is well defined,
+		// matching math.Atan2 exactly.
+		need(2)
+		return zipExpr(arg(0), arg(1), name, math.Atan2)
 	case "erf":
 		need(1)
 		return mapExpr(arg(0), math.Erf)

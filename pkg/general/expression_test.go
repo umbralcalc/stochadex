@@ -355,6 +355,23 @@ func TestExpressionSemantics(t *testing.T) {
 		}
 	})
 
+	t.Run("inverse trig matches the Go math package elementwise", func(t *testing.T) {
+		// Inverse trig closes the solar-geometry gap recorded in
+		// solar-fleet/STOCHADEX_GAPS.md: azimuth needs atan2, altitude needs asin/acos.
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "v", Width: 3}},
+			Outputs: []string{"asin(v) + acos(v) + atan(v) + tan(v) + atan2(v, 2)"},
+		}
+		in := []float64{-0.5, 0.0, 0.5}
+		got := evalOnce(t, e, in, map[string][]float64{})
+		for i, x := range in {
+			want := math.Asin(x) + math.Acos(x) + math.Atan(x) + math.Tan(x) + math.Atan2(x, 2)
+			if got[i] != want {
+				t.Errorf("element %d: got %v, want %v", i, got[i], want)
+			}
+		}
+	})
+
 	t.Run("a scalar output broadcasts across its field", func(t *testing.T) {
 		e := &ExpressionIteration{
 			Fields:  []ExpressionField{{Name: "v", Width: 3}},

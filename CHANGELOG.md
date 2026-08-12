@@ -22,6 +22,34 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+Two small additive reach extensions to the pure-config surface, both prompted by gaps a
+downstream application (`solar-fleet`) recorded against the engine. Neither changes any
+existing behaviour, so both are strictly backward-compatible; grouped here rather than
+tagged pending the next release.
+
+The first closes a config-level replay gap: a precomputed external series (a deterministic
+driver — a clear-sky irradiance curve, a forcing series — computed outside the engine)
+could be stepped into a `main:` simulation partition only from Go, because the existing
+`from_storage` iteration held bulk `[][]float64` data with no data-spec form. It now takes
+one: `{type: from_storage, data: [[...], ...]}` carries the series inline as config data,
+with a matching `from_storage` timestep function for the time axis. The series *is* data,
+so no streaming source or toolchain is needed.
+
+The second is a set of inverse-trigonometry primitives in the expression DSL (`asin`,
+`acos`, `atan`, `atan2`, `tan`), the elementwise complement to the existing `sin`/`cos`.
+They make in-DSL geometry (solar azimuth/altitude, angle-from-components) sayable; each is
+a pure elementwise `math.*` wrapper that agrees with compiled Go to rounding.
+
+### Added
+
+- `{type: from_storage}` iteration (and `{type: from_storage}` timestep function): replay a
+  precomputed series into a `main:` partition by step number, its rows/times carried inline
+  as config data with an optional `init_steps_taken` offset. Registered in the data-only
+  iteration registry; the Go form's runtime behaviour is unchanged.
+- `cfg/example_from_storage_config.yaml` — a precomputed driver replayed into a partition
+  and consumed downstream via `params_from_upstream`.
+- Expression DSL functions `asin`, `acos`, `atan`, `atan2(y, x)`, and `tan`.
+
 ## [0.17.0] — 2026-08-12
 
 One new domain-models catalogue entry, `limit-order-book`, and nothing else changes — no
