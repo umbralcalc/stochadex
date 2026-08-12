@@ -22,6 +22,8 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-08-12
+
 Two small additive reach extensions to the pure-config surface, both prompted by gaps a
 downstream application (`solar-fleet`) recorded against the engine. Neither changes any
 existing behaviour, so both are strictly backward-compatible; grouped here rather than
@@ -1411,7 +1413,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/umbralcalc/stochadex/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/umbralcalc/stochadex/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/umbralcalc/stochadex/compare/v0.14.0...v0.15.0
