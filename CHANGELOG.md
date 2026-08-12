@@ -22,6 +22,16 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-08-12
+
+<!-- Release prose goes here: what this release is about and why this
+     bump. patch = fixes only; minor = new features or, in v0.x, a
+     breaking change. Delete this comment before merging. -->
+
+### Added
+
+- 
+
 ## [0.16.0] — 2026-08-11
 
 Two additive inference capabilities, both authorable as pure config and covered by
@@ -1341,7 +1351,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/umbralcalc/stochadex/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/umbralcalc/stochadex/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/umbralcalc/stochadex/compare/v0.13.1...v0.14.0
