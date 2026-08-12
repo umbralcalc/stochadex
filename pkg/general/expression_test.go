@@ -360,14 +360,35 @@ func TestExpressionSemantics(t *testing.T) {
 		// solar-fleet/STOCHADEX_GAPS.md: azimuth needs atan2, altitude needs asin/acos.
 		e := &ExpressionIteration{
 			Fields:  []ExpressionField{{Name: "v", Width: 3}},
-			Outputs: []string{"asin(v) + acos(v) + atan(v) + tan(v) + atan2(v, 2)"},
+			Outputs: []string{"asin(v) + acos(v) + atan(v) + tan(v)"},
 		}
 		in := []float64{-0.5, 0.0, 0.5}
 		got := evalOnce(t, e, in, map[string][]float64{})
 		for i, x := range in {
-			want := math.Asin(x) + math.Acos(x) + math.Atan(x) + math.Tan(x) + math.Atan2(x, 2)
+			want := math.Asin(x) + math.Acos(x) + math.Atan(x) + math.Tan(x)
 			if got[i] != want {
 				t.Errorf("element %d: got %v, want %v", i, got[i], want)
+			}
+		}
+	})
+
+	t.Run("atan2 resolves the quadrant from both components", func(t *testing.T) {
+		// A negative x is the case that separates a real atan2 from a naive
+		// atan(y/x): the two agree only when x > 0. Solar azimuth needs the full
+		// circle, so this is the property that matters.
+		e := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "a", Width: 2}},
+			Outputs: []string{"atan2(y, x)"},
+		}
+		// Two (y, x) pairs: (1, -1) in quadrant II and (-1, -1) in quadrant III —
+		// both with x < 0, where atan(y/x) would land wrong.
+		got := evalOnce(t, e, []float64{0, 0}, map[string][]float64{
+			"y": {1, -1}, "x": {-1, -1},
+		})
+		want := []float64{math.Atan2(1, -1), math.Atan2(-1, -1)}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Errorf("pair %d: got %v, want %v (atan2 must use both signs)", i, got[i], want[i])
 			}
 		}
 	})
