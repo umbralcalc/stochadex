@@ -87,6 +87,20 @@
       "behaviour_bound": true
     },
     {
+      "dir": "limit-order-book",
+      "core_packages": [
+        "pkg/rng",
+        "pkg/simulator"
+      ],
+      "bespoke_iterations": [
+        "ActivityIteration",
+        "BookIteration",
+        "FlowsIteration",
+        "ObservablesIteration"
+      ],
+      "behaviour_bound": true
+    },
+    {
       "dir": "measles-risk-forecaster",
       "core_packages": [
         "pkg/simulator"
@@ -123,6 +137,9 @@
       "homark",
       "trywizard"
     ],
+    "pkg/rng": [
+      "limit-order-book"
+    ],
     "pkg/simulator": [
       "anglersim",
       "antimicrobial-resistance",
@@ -131,6 +148,7 @@
       "energy-balancer",
       "floodrisk",
       "homark",
+      "limit-order-book",
       "measles-risk-forecaster",
       "trywizard"
     ]

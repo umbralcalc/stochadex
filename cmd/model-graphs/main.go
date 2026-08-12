@@ -39,6 +39,7 @@ import (
 	energybalancer "github.com/umbralcalc/stochadex/models/energy-balancer"
 	floodrisk "github.com/umbralcalc/stochadex/models/floodrisk"
 	homark "github.com/umbralcalc/stochadex/models/homark"
+	lob "github.com/umbralcalc/stochadex/models/limit-order-book"
 	measles "github.com/umbralcalc/stochadex/models/measles-risk-forecaster"
 	rugby "github.com/umbralcalc/stochadex/models/trywizard"
 )
@@ -99,6 +100,12 @@ func models() []model {
 			gen:     homark.BuildStub(homark.DefaultApprovalRate, 48, 42),
 			obs:     homark.ObservedBehaviour(),
 			binding: cardgen.Binding{TestName: "TestHomarkExpectedBehaviour", TestFile: "behaviour_test.go"},
+		},
+		{
+			dir:     "limit-order-book",
+			gen:     lob.BuildStub(lob.DefaultDampingGamma, 400, 42),
+			obs:     lob.ObservedBehaviour(),
+			binding: cardgen.Binding{TestName: "TestLimitOrderBookExpectedBehaviour", TestFile: "behaviour_test.go"},
 		},
 		{
 			dir:     "measles-risk-forecaster",
