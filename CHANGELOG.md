@@ -22,6 +22,48 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.17.0] — 2026-08-12
+
+One new domain-models catalogue entry, `limit-order-book`, and nothing else changes — no
+existing behaviour is touched, so this is a strictly backward-compatible addition. It is a
+minor rather than a patch because it adds a new public package (`models/limit-order-book`,
+exporting `BuildStub`, the four iterations, and `ObservedBehaviour`); a patch here is
+reserved for fixes.
+
+The entry is the limit-order-book microsimulation lifted from the downstream
+[cryptobook](https://github.com/umbralcalc/cryptobook) project's best model — its
+"counts route", calibrated against Binance BTC/USD spot flow — in the four-partition
+modular form the downstream verified reproduces the monolith: a shared latent-activity
+`activity` driver (a persistent AR(1) process pulled towards a Gamma innovation) feeds
+`flows` (depth-damped limit arrivals, quote churn, cancellations, and one marketable order
+split into buy and sell legs), which a deterministic `book` matches into a resting ladder,
+which `observables` reads out as counts, depth, spread, and the arrival–depth coupling. The
+one swept driver is the activity-dependent arrival-damping exponent — the model's stability
+brake and the parameter the downstream calibrates — and the headline claim is that
+strengthening it drives the depth/arrival correlation more negative.
+
+It is the catalogue's first **born-declarative** entry, and it inverts the usual
+stub↔twin relationship. cryptobook has no bespoke Go anywhere — its entire forward model
+is stochadex configuration — so the `declarative.yaml` twin is the form the downstream
+actually runs, and the four Go iterations are a faithful re-expression of it rather than
+the other way round. That makes the promotion triage decidable up front and affirmative:
+the DSL already expresses this model, so the bespoke Go is a convenience, not a capability
+gap. Because the stochastic partitions draw from the same `rng.New(seed)` stream in the
+same order the expression evaluator does, the equivalence test is exact (~1e-12) on both
+the per-step and whole-suite oracles. The stub is purely structural (its decision layer
+lives entirely downstream, like `floodrisk`) with six sign-correct response claims spanning
+the damping brake, arrival intensity, marketable rate and size, spread formation, and quote
+churn.
+
+### Added
+
+- `models/limit-order-book`: a limit-order-book microsimulation domain-models entry —
+  four modular partitions (`activity` → `flows` → `book` → `observables`) generating
+  depth-damped order flow and a matched book, with the full catalogue artifact set
+  (methodology card, data-free `BuildStub` stub, bespoke iterations, expected-behaviour
+  suite, and an exactly-equivalent `declarative.yaml` twin). The catalogue's first
+  born-declarative entry.
+
 ## [0.16.0] — 2026-08-11
 
 Two additive inference capabilities, both authorable as pure config and covered by
@@ -1341,7 +1383,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/umbralcalc/stochadex/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/umbralcalc/stochadex/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/umbralcalc/stochadex/compare/v0.13.1...v0.14.0
