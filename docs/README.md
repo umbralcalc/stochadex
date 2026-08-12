@@ -68,23 +68,3 @@ go get github.com/umbralcalc/stochadex
 | <img src="./assets/duckdb-integration-logo.svg" height="40"/><br/> | Land the Arrow output in DuckDB for SQL analytics, zero-copy. Opt-in module. | [write](https://stochadex.github.io/pkg/duckdbstore.html#IngestToTable) |
 | <img src="./assets/s3-integration-logo.svg" height="40"/><br/> | Read and write runs to Amazon S3 or any S3-compatible store (MinIO, Cloudflare R2, Ceph). Opt-in module. | [read](https://stochadex.github.io/pkg/s3store.html#Fetch) · [write](https://stochadex.github.io/pkg/s3store.html#NewOutputFunction) |
 | <img src="./assets/onnx-integration-logo.svg" height="40"/><br/> | Run a frozen ONNX model trained upstream in Python (with sklearn, XGBoost or a small neural net). Opt-in module. | [run](https://stochadex.github.io/pkg/onnx.html#OnnxInferenceIteration) |
-
-## Projects using it
-
-- [Event-based rugby match simulations to evaluate manager decision-making](https://github.com/umbralcalc/trywizard)
-- [Fish ecosystem simulations using environment data to evaluate sustanability policies](https://github.com/umbralcalc/anglersim)
-- [Antimicrobial resistance (AMR) stewardship simulations to evaluate hospital guidelines](https://github.com/umbralcalc/antimicrobial-resistance)
-- [Stochastic simulations of catchment-scale flood dynamics under climate change](https://github.com/umbralcalc/floodrisk)
-- [Energy storage dispatch simulation with demand response optimisation](https://github.com/umbralcalc/energy-balancer)
-- [Planning approval policies for affordability with housing market simulations](https://github.com/umbralcalc/homark)
-- [Small business survival and support policy simulation](https://github.com/umbralcalc/business-survival)
-- [18xx gameplay design tool and Monte Carlo Tree Search (MCTS) agents](https://github.com/umbralcalc/18xxdesigner)
-- [Turning simulations into in-browser interactive dashboards](https://github.com/umbralcalc/dexetera)
-- [Inferring structural causal models from open source datasets](https://github.com/umbralcalc/openaction2outcome)
-- [Seasonal bathing water pollution exceedance forecasts](https://github.com/umbralcalc/bathing-water-forecaster)
-
-## Other cool engines
-
-- [SimPy](https://gitlab.com/team-simpy/simpy/)
-- [StoSpa](https://github.com/BartoszBartmanski/StoSpa)
-- [FLAME GPU](https://github.com/FLAMEGPU/FLAMEGPU2/)
