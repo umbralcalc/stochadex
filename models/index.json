@@ -112,6 +112,19 @@
       "behaviour_bound": true
     },
     {
+      "dir": "solar-fleet",
+      "core_packages": [
+        "pkg/general",
+        "pkg/rng",
+        "pkg/simulator"
+      ],
+      "bespoke_iterations": [
+        "FleetAggregateIteration",
+        "FleetSkyIteration"
+      ],
+      "behaviour_bound": true
+    },
+    {
       "dir": "trywizard",
       "core_packages": [
         "pkg/discrete",
@@ -135,10 +148,12 @@
     ],
     "pkg/general": [
       "homark",
+      "solar-fleet",
       "trywizard"
     ],
     "pkg/rng": [
-      "limit-order-book"
+      "limit-order-book",
+      "solar-fleet"
     ],
     "pkg/simulator": [
       "anglersim",
@@ -150,6 +165,7 @@
       "homark",
       "limit-order-book",
       "measles-risk-forecaster",
+      "solar-fleet",
       "trywizard"
     ]
   },

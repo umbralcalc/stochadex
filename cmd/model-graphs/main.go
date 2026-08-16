@@ -41,6 +41,7 @@ import (
 	homark "github.com/umbralcalc/stochadex/models/homark"
 	lob "github.com/umbralcalc/stochadex/models/limit-order-book"
 	measles "github.com/umbralcalc/stochadex/models/measles-risk-forecaster"
+	solarfleet "github.com/umbralcalc/stochadex/models/solar-fleet"
 	rugby "github.com/umbralcalc/stochadex/models/trywizard"
 )
 
@@ -112,6 +113,12 @@ func models() []model {
 			gen:     measles.BuildStub(measles.DefaultMMR2Coverage, measles.DefaultMaxGenerations, 42),
 			obs:     measles.ObservedBehaviour(),
 			binding: cardgen.Binding{TestName: "TestMeaslesExpectedBehaviour", TestFile: "behaviour_test.go"},
+		},
+		{
+			dir:     "solar-fleet",
+			gen:     solarfleet.BuildStub(solarfleet.DefaultCloudVolatility, 48, 42),
+			obs:     solarfleet.ObservedBehaviour(),
+			binding: cardgen.Binding{TestName: "TestSolarFleetExpectedBehaviour", TestFile: "behaviour_test.go"},
 		},
 		{
 			dir:     "trywizard",

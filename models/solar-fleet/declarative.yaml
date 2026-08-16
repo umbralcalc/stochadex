@@ -1,0 +1,143 @@
+# The solar-fleet generative core (full-covariance form), written entirely as data:
+# no Go, no compilation. This is the same model BuildStub assembles in stub.go — same
+# partition names, param keys, state layout and wiring — so the two can be compared
+# directly (see expression_equivalence_test.go).
+#
+# TWO READ MECHANISMS, used deliberately (see the card's partition wiring):
+#   params_from_upstream : a CURRENT-step read of another partition (within-step edge).
+#   a named state field  : the partition's OWN committed row (row 0 = last step) — the
+#                          lag-1 self read the Go does via stateHistories[partitionIndex].
+#
+# The clear-sky driver is a `from_storage` partition: the per-site plane-of-array
+# irradiance, precomputed from deterministic solar geometry (geometry.go) and replayed
+# by step number. The block below is ClearSkyDriverRows(DefaultFleet, 48) — one summer
+# day at 30-min steps — so this file runs standalone as a one-day example; a caller
+# sweeping the fleet or running longer injects a fresh driver exactly as BuildStub does.
+#
+# lflat is the flattened lower-triangular Cholesky factor of the fleet covariance at the
+# default cloud volatility; a caller sweeping volatility overwrites it, as BuildStub
+# rebuilds it. Drawing the whole innovation vector once and correlating it with lflat is
+# what makes the distance-dependent coupling config-expressible.
+main:
+  partitions:
+
+  # clearsky: the deterministic per-site clear-sky POA driver, replayed by step number.
+  - name: clearsky
+    iteration:
+      type: from_storage
+      data:
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [63.75708504, 54.82398216, 38.61605259, 42.28650142]
+      - [149.332389, 138.9246086, 119.6234744, 121.0377344]
+      - [244.5097097, 233.3269961, 212.3087939, 210.4871831]
+      - [344.0194835, 332.6052614, 310.9374551, 305.7254252]
+      - [443.600861, 432.3994413, 410.9561514, 402.650256]
+      - [539.6793226, 529.0644025, 508.5835811, 497.7382776]
+      - [629.205366, 619.494402, 600.6065003, 587.9256781]
+      - [709.5746069, 701.03593, 684.2779763, 670.5486295]
+      - [778.5904449, 771.4465482, 757.2685448, 743.3165844]
+      - [834.4492103, 828.8780225, 817.6452968, 804.3035999]
+      - [875.7368175, 871.871974, 863.8655002, 851.9490688]
+      - [901.4306629, 899.3613586, 894.7772121, 885.062683]
+      - [910.9030918, 910.6738586, 909.62249, 902.8304364]
+      - [903.9242981, 905.5349037, 908.0406233, 904.8197013]
+      - [880.6635222, 884.0690857, 890.0699576, 890.9822195]
+      - [841.6881609, 846.7995036, 856.1476917, 861.6544475]
+      - [787.9610736, 794.6452462, 807.1077128, 817.5551962]
+      - [720.8370914, 728.9179359, 744.1772271, 759.7809937]
+      - [642.0606905, 651.3191754, 668.9738042, 689.8001656]
+      - [553.7682174, 563.9421036, 583.5056911, 609.4473677]
+      - [458.500438, 469.2825168, 490.1802642, 520.9214018]
+      - [359.235458, 370.2690338, 391.8290127, 426.7908901]
+      - [259.4602786, 270.3294407, 291.7640887, 330.0153704]
+      - [163.315993, 173.5258955, 193.8947486, 233.994732]
+      - [75.88778514, 84.8250538, 102.9602341, 142.6699753]
+      - [3.791926237, 10.64399193, 24.9985304, 60.71766932]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+      - [0, 0, 0, 0]
+    init_state_values: [0, 0, 0, 0]
+    state_history_depth: 1
+    seed: 0
+
+  # sites: the wide full-covariance clear-sky-index field, state [logK_0..3, gen_0..3].
+  - name: sites
+    params:
+      theta: [0.3]
+      mu: [-0.2, -0.2, -0.2, -0.2]
+      kwp: [4, 4, 4, 4]
+      eta: [0.85, 0.85, 0.85, 0.85]
+      i_stc: [1000]
+      k_max: [1.2]
+      lflat: [0.8000000006, 0, 0, 0, 0.4460007176, 0.66414107, 0, 0, 0.1454475577, 0.2159567311, 0.7564441151, 0, 0.00312975665, 0.002486677066, 0.004254718022, 0.7999786994]
+    params_from_upstream:
+      poa: {upstream: clearsky}       # within-step per-site clear-sky POA
+    init_state_values: [-0.2, -0.2, -0.2, -0.2, 0, 0, 0, 0]
+    state_history_depth: 1
+    seed: 1
+
+  # fleet: aggregate generation (a first-class state).
+  - name: fleet
+    params: {}
+    params_from_upstream:
+      s: {upstream: sites}            # within-step read of the sites row [logK..., gen...]
+    init_state_values: [0]
+    state_history_depth: 1
+    seed: 2
+
+  expressions:
+
+  - partition: sites
+    # The two named fields are this partition's own previous committed row: logk is the
+    # lag-1 log clear-sky index the OU updates; gen_prev (last step's generation) is not
+    # read, but declaring it fixes the 8-wide state layout.
+    fields:
+    - {name: logk, width: 4}
+    - {name: gen_prev, width: 4}
+    bindings:
+    # Draw the whole innovation vector once, before any use — this is the single load-
+    # bearing draw and must precede everything, matching the Go iteration's stream.
+    - {name: xi, expr: "iid(4, normal(0, 1))"}
+    # innov = L . xi, with L flattened row-major: row i is lflat[i*4 : i*4+4].
+    - {name: innov, expr: "each(4, i, dot(slice(lflat, i * 4, 4), xi))"}
+    # Isotropic OU on log K, then convert to per-site generation against the clear-sky POA.
+    - {name: logk_next, expr: "logk + theta * (mu - logk) * dt + sqrt(dt) * innov"}
+    - {name: kidx, expr: "clamp(exp(logk_next), 0, k_max)"}
+    - {name: gen, expr: "clamp(kwp * poa / i_stc * kidx * eta, 0, 1e12)"}
+    outputs:
+    - "logk_next"
+    - "gen"
+
+  - partition: fleet
+    fields:
+    - {name: total}
+    # Sum the generation half (indices 4..7) of the sites row read within-step.
+    outputs:
+    - "sum(slice(s, 4, 4))"
+
+  # Standalone run length: the 48 steps the baked clear-sky driver covers (one day).
+  # A caller (see declarativeBuildStub) overrides this and injects a longer driver.
+  simulation:
+    output_condition: {type: every_step}
+    termination_condition: {type: number_of_steps, max_steps: 48}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
