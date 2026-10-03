@@ -22,6 +22,48 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-10-03
+
+One new domain-models catalogue entry, `solar-fleet`, and nothing else changes — no existing
+behaviour is touched, so this is a strictly backward-compatible addition. It is a minor rather
+than a patch because it adds a new public package (`models/solar-fleet`, exporting `BuildStub`,
+the bespoke iterations, the ported geometry and fleet helpers, and `ObservedBehaviour`); a patch
+here is reserved for fixes.
+
+The entry is the aggregate solar-PV fleet forward model lifted from the downstream
+[solar-fleet](https://github.com/umbralcalc/solar-fleet) project: a deterministic solar-geometry
+backbone (NOAA solar position, the Meinel clear-sky beam form, and a plane-of-array
+transposition, ported to Go and verified against the downstream numpy to six decimals) drives a
+distance-coupled stochastic clear-sky-index field, summed to a fleet total. Its headline is
+**dispersion-smoothing** — spreading sites apart lowers aggregate output variability at fixed
+capacity — which is non-vacuous here precisely because the coupling derives from geography (the
+full-covariance form, a single Cholesky-correlated innovation vector per step) rather than a
+scalar per-site loading that a shared factor would give.
+
+It is the catalogue's **second born-declarative** entry, after `limit-order-book`: the downstream
+forward model is itself pure stochadex configuration, so `declarative.yaml` is the form the
+downstream actually runs and the bespoke Go iterations are a faithful re-expression of it, held
+exact (~1e-12) by the equivalence test on both its step-for-step and whole-suite layers. That
+makes the promotion triage decidable up front and affirmative: a distance-coupled multivariate
+fleet runs as pure data, so the engine is not missing a capability here (a category-1 answer).
+
+Two engine mechanisms make that twin possible, and both were driven into core by this same
+downstream: `from_storage` (the config-level replay of a precomputed series into a live partition,
+new in 0.18.0), which the clear-sky driver uses; and correlated multivariate innovations in the
+expression DSL — drawing the whole innovation vector once and correlating it with a constant
+Cholesky factor (`iid` + `each` + `dot` + `slice`), needing no per-lane draw control. The stub is
+purely structural (its capacity-siting decision layer lives downstream, like `floodrisk`) with six
+sign-correct response claims spanning cloud volatility, geographic dispersion, mean-reversion
+speed, tilt, orientation and latitude.
+
+### Added
+
+- `models/solar-fleet`: an aggregate solar-PV fleet domain-models entry — three partitions
+  (`clearsky` → `sites` → `fleet`) generating a distance-coupled clear-sky-index field and its
+  fleet aggregate, with the full catalogue artifact set (methodology card, data-free `BuildStub`
+  stub, bespoke iterations, ported deterministic geometry, expected-behaviour suite, and an
+  exactly-equivalent `declarative.yaml` twin). The catalogue's second born-declarative entry.
+
 ## [0.18.0] — 2026-08-12
 
 Two small additive reach extensions to the pure-config surface, both prompted by gaps a
@@ -1413,7 +1455,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.18.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/umbralcalc/stochadex/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/umbralcalc/stochadex/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/umbralcalc/stochadex/compare/v0.15.0...v0.16.0
