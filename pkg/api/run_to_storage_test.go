@@ -192,19 +192,22 @@ func TestRunToStorage(t *testing.T) {
 		}
 	})
 
+	// Loading a config creates its json_log file, so even error cases need a
+	// scratch path rather than one relative to the package directory.
+	scratchLog := filepath.Join(t.TempDir(), "error-case.log")
 	errorCases := []struct {
 		name, yaml, wantInError string
 	}{
 		{"unknown run mode",
-			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", "x.log"),
+			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog),
 				"main:", "run: {mode: sweep}\nmain:", 1),
 			"unknown run mode"},
 		{"data: without macros:",
-			fmt.Sprintf(batchConfigYAML, "{type: every_step}", "x.log") +
+			fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog) +
 				"data:\n  steps: 5\n  partitions: []\n",
 			"data:"},
 		{"ensemble with no seeds",
-			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", "x.log"),
+			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog),
 				"main:", "run: {mode: ensemble}\nmain:", 1),
 			"run.seeds"},
 		{"macros alongside an ensemble run:",
