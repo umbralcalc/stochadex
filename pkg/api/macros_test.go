@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 	"gopkg.in/yaml.v2"
 )
 
@@ -251,4 +253,56 @@ func TestValidateMainContext(t *testing.T) {
 			t.Errorf("expected 2 members with recorded output, got %d", len(runs))
 		}
 	})
+}
+
+// TestVectorCovarianceDefaultValue checks the user-facing path of the
+// vector_covariance macro's default_value: during burn-in the macro emits its
+// initial state, which must be default_value on the diagonal and zero elsewhere
+// (row-major), and once burn-in ends it must estimate the stream's covariance.
+func TestVectorCovarianceDefaultValue(t *testing.T) {
+	config := writeConfig(t, `data:
+  steps: 400
+  timestep: 1.0
+  partitions:
+  - name: data_stream
+    iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
+    params:
+      mean: [1.8, 5.0]
+      covariance_matrix: [2.5, 0.0, 0.0, 9.0]
+    init_state_values: [1.3, 8.3]
+    state_history_depth: 200
+    seed: 291
+macros:
+- type: vector_mean
+  name: rolling_mean
+  data: {partition_name: data_stream}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [100.0]}
+  window: 150
+- type: vector_covariance
+  name: rolling_cov
+  mean: {partition_name: rolling_mean}
+  data: {partition_name: data_stream}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [100.0]}
+  window: 150
+  default_value: 3.0
+`)
+	storage, err := RunMacros(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := storage.GetValues("rolling_cov")
+	want := []float64{3.0, 0.0, 0.0, 3.0}
+	for _, step := range []int{0, 1, 149} {
+		if !floats.Equal(rows[step], want) {
+			t.Errorf("burn-in row %d = %v, want %v", step, rows[step], want)
+		}
+	}
+	final := rows[len(rows)-1]
+	t.Logf("final rolling covariance %v (true diag [2.5, 9.0])", final)
+	if !scalar.EqualWithinRel(final[0], 2.5, 0.3) || !scalar.EqualWithinRel(final[3], 9.0, 0.3) {
+		t.Errorf("post burn-in covariance diagonal %v not near [2.5, 9.0]",
+			[]float64{final[0], final[3]})
+	}
 }
