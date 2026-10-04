@@ -13,7 +13,7 @@ It's a simulation engine written in [Go](https://go.dev/) which can be used to s
 
 The framework abstracts away the machinery that sampling algorithms have in common behind a single configurable interface; so a whole simulation, the analysis and inference layered on top of it can be stated as pure configuration.
 
-This simulation engine is designed based on the simulation software fundamentals described in [this collection of blog posts](https://umbralcalc.github.io/posts/simulating_real_world_systems_as_a_programmer_introduction.html).
+This simulation engine is designed based on the simulation software fundamentals described in [this collection of blog posts](https://umbralcalc.github.io/posts/how_can_i_simulate_the_real_world_introduction.html).
 
 ## When to use it
 
