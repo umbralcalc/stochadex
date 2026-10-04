@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -65,23 +67,108 @@ func readStream(t *testing.T, wsURL string) []*simulator.PartitionState {
 	}
 }
 
-func TestWebsocketServing(t *testing.T) {
+// keyByTimeAndPartition indexes streamed states by (time, partition). Partitions
+// within a step are output concurrently, so position in the stream carries no
+// meaning; the (time, partition) pair is the row's identity.
+func keyByTimeAndPartition(stream []*simulator.PartitionState) map[string][]float64 {
+	byKey := make(map[string][]float64, len(stream))
+	for _, state := range stream {
+		byKey[fmt.Sprintf("%v/%s", state.CumulativeTimesteps, state.PartitionName)] =
+			state.State
+	}
+	return byKey
+}
+
+// referenceRun runs the config once offline into storage and keys every
+// recorded row the same way, as the ground truth a served stream must match.
+func referenceRun(t *testing.T, path string) map[string][]float64 {
+	t.Helper()
+	generator := LoadApiRunConfigFromYaml(path).GetConfigGenerator()
+	storage := simulator.NewStateTimeStorage()
+	simulation := generator.GetSimulation()
+	simulation.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: storage}
+	generator.SetSimulation(simulation)
+	simulator.NewPartitionCoordinator(generator.GenerateConfigs()).Run()
+	byKey := make(map[string][]float64)
+	times := storage.GetTimes()
+	for _, name := range storage.GetNames() {
+		for step, row := range storage.GetValues(name) {
+			byKey[fmt.Sprintf("%v/%s", times[step], name)] = row
+		}
+	}
+	return byKey
+}
+
+// assertMatchesReference fails unless the stream holds exactly the reference
+// rows, value for value.
+func assertMatchesReference(
+	t *testing.T,
+	label string,
+	stream []*simulator.PartitionState,
+	reference map[string][]float64,
+) {
+	t.Helper()
+	got := keyByTimeAndPartition(stream)
+	if len(stream) != len(reference) || len(got) != len(reference) {
+		t.Fatalf("%s: got %d messages (%d distinct rows), want %d",
+			label, len(stream), len(got), len(reference))
+	}
+	for key, want := range reference {
+		if values, ok := got[key]; !ok || !floats.Equal(values, want) {
+			t.Fatalf("%s: row %s = %v, want %v", label, key, values, want)
+		}
+	}
+}
+
+func writeServeConfig(t *testing.T, yaml string) string {
+	t.Helper()
 	path := filepath.Join(t.TempDir(), "serve.yaml")
-	if err := os.WriteFile(path, []byte(serveConfigYAML), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(yaml), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	config := LoadApiRunConfigFromYaml(path)
+	return path
+}
 
-	t.Run("concurrent clients each get an isolated, identical run", func(t *testing.T) {
+func wsURLOf(server *httptest.Server) string {
+	return "ws" + strings.TrimPrefix(server.URL, "http")
+}
+
+func TestWebsocketServing(t *testing.T) {
+	path := writeServeConfig(t, serveConfigYAML)
+	config := LoadApiRunConfigFromYaml(path)
+	reference := referenceRun(t, path)
+
+	t.Run("a single client receives exactly the offline run", func(t *testing.T) {
 		build, err := perConnectionBuild(config)
 		if err != nil {
 			t.Fatal(err)
 		}
-		// a 1ms step delay keeps both runs in flight at once, so shared
-		// iteration state between connections would interleave their draws
+		server := httptest.NewServer(NewWebsocketHandler(build, 0, nil))
+		defer server.Close()
+		// the initial state plus 40 steps, for 2 partitions
+		if len(reference) != 82 {
+			t.Fatalf("reference run has %d rows, want 82", len(reference))
+		}
+		assertMatchesReference(t, "client", readStream(t, wsURLOf(server)), reference)
+	})
+
+	t.Run("concurrent clients each receive exactly the offline run", func(t *testing.T) {
+		// Each connection must be built afresh: count the builds, and check every
+		// client's stream against the offline run rather than only against each
+		// other, so identical-but-wrong streams cannot pass.
+		inner, err := perConnectionBuild(config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var builds atomic.Int32
+		build := func() *simulator.ConfigGenerator {
+			builds.Add(1)
+			return inner()
+		}
+		// a 1ms step delay keeps the runs in flight at once, so any iteration
+		// state shared between connections would interleave their draws
 		server := httptest.NewServer(NewWebsocketHandler(build, 1, nil))
 		defer server.Close()
-		wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
 
 		const clients = 3
 		streams := make([][]*simulator.PartitionState, clients)
@@ -90,44 +177,112 @@ func TestWebsocketServing(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				streams[i] = readStream(t, wsURL)
+				streams[i] = readStream(t, wsURLOf(server))
 			}()
 		}
 		wg.Wait()
 
-		// the initial state plus 40 steps, for 2 partitions
-		if len(streams[0]) != 82 {
-			t.Fatalf("expected 82 messages, got %d", len(streams[0]))
+		if got := builds.Load(); got != clients {
+			t.Errorf("expected one build per connection (%d), got %d", clients, got)
 		}
-		// partitions within a step are output concurrently, so compare each
-		// client's stream keyed by (time, partition) rather than by position
-		keyed := func(stream []*simulator.PartitionState) map[string][]float64 {
-			byKey := make(map[string][]float64, len(stream))
-			for _, state := range stream {
-				byKey[fmt.Sprintf("%v/%s", state.CumulativeTimesteps,
-					state.PartitionName)] = state.State
-			}
-			return byKey
+		for i, stream := range streams {
+			assertMatchesReference(t, fmt.Sprintf("client %d", i), stream, reference)
 		}
-		reference := keyed(streams[0])
-		for i := 1; i < clients; i++ {
-			other := keyed(streams[i])
-			if len(other) != len(reference) {
-				t.Fatalf("client %d got %d distinct rows, client 0 got %d",
-					i, len(other), len(reference))
+	})
+
+	t.Run("the run stops when the client disconnects", func(t *testing.T) {
+		// A run that would take ~1000s to finish: the handler must return soon
+		// after the client goes away rather than stepping to termination.
+		long := strings.Replace(serveConfigYAML, "max_steps: 40", "max_steps: 1000000", 1)
+		build, err := perConnectionBuild(LoadApiRunConfigFromYaml(writeServeConfig(t, long)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		handlerDone := make(chan struct{})
+		handler := NewWebsocketHandler(build, 1, nil)
+		server := httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				defer close(handlerDone)
+				handler.ServeHTTP(w, r)
+			},
+		))
+		defer server.Close()
+
+		connection, _, err := websocket.DefaultDialer.Dial(wsURLOf(server), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for range 5 {
+			if _, _, err := connection.ReadMessage(); err != nil {
+				t.Fatalf("reading before disconnect: %v", err)
 			}
-			for key, want := range reference {
-				if got, ok := other[key]; !ok || !floats.Equal(got, want) {
-					t.Fatalf("client %d diverged from client 0 at %s: %v vs %v",
-						i, key, got, want)
-				}
-			}
+		}
+		connection.Close()
+
+		select {
+		case <-handlerDone:
+		case <-time.After(5 * time.Second):
+			t.Fatal("handler kept stepping after the client disconnected")
 		}
 	})
 
 	t.Run("an in-memory config cannot be served", func(t *testing.T) {
 		if _, err := perConnectionBuild(&ApiRunConfig{}); err == nil {
 			t.Error("expected an error serving a config with no source file")
+		}
+	})
+}
+
+func TestWebsocketOriginEnforcement(t *testing.T) {
+	path := writeServeConfig(t, serveConfigYAML)
+	build, err := perConnectionBuild(LoadApiRunConfigFromYaml(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dialWithOrigin := func(server *httptest.Server, origin string) (*http.Response, error) {
+		header := http.Header{}
+		header.Set("Origin", origin)
+		connection, response, err := websocket.DefaultDialer.Dial(wsURLOf(server), header)
+		if err == nil {
+			connection.Close()
+		}
+		return response, err
+	}
+
+	t.Run("a foreign browser origin is refused at upgrade", func(t *testing.T) {
+		server := httptest.NewServer(NewWebsocketHandler(build, 0, nil))
+		defer server.Close()
+		response, err := dialWithOrigin(server, "https://evil.example.org")
+		if err == nil {
+			t.Fatal("expected the upgrade to be refused")
+		}
+		if response == nil || response.StatusCode != http.StatusForbidden {
+			t.Errorf("expected 403 Forbidden, got %v", response)
+		}
+	})
+
+	t.Run("a listed origin is admitted at upgrade", func(t *testing.T) {
+		server := httptest.NewServer(NewWebsocketHandler(
+			build, 0, []string{"https://dash.example.org"}))
+		defer server.Close()
+		if _, err := dialWithOrigin(server, "https://dash.example.org"); err != nil {
+			t.Errorf("expected the listed origin to connect: %v", err)
+		}
+	})
+
+	t.Run("allowed_origins loads from the socket config", func(t *testing.T) {
+		socketPath := filepath.Join(t.TempDir(), "socket.yaml")
+		if err := os.WriteFile(socketPath, []byte(
+			"address: \":2112\"\nhandle: \"/handle\"\nmillisecond_delay: 0\n"+
+				"allowed_origins: [\"https://dash.example.org\", \"*\"]\n",
+		), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		socket := LoadSocketConfigFromYaml(socketPath)
+		want := []string{"https://dash.example.org", "*"}
+		if len(socket.AllowedOrigins) != len(want) ||
+			socket.AllowedOrigins[0] != want[0] || socket.AllowedOrigins[1] != want[1] {
+			t.Errorf("allowed_origins = %v, want %v", socket.AllowedOrigins, want)
 		}
 	})
 }
