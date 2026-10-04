@@ -159,9 +159,10 @@ func resolveIterations(partitions []simulator.PartitionConfig) error {
 }
 
 // RunMacros expands and runs a config's macros: tier and returns the resulting
-// storage. It is the programmatic form of Run for macro configs: Run prints and
-// exits, which suits a CLI and makes it unusable from a caller that wants the
-// output or the error — a downstream driving a registered environment, say.
+// storage.
+//
+// Deprecated: use RunToStorage, which runs a macros: config the same way and
+// returns its storage in RunResult.Storage.
 func RunMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 	return runMacros(config)
 }

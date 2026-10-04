@@ -22,7 +22,28 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`api.RunToStorage(config) (*api.RunResult, error)`: one programmatic entry point
+  for every run shape.** A macros tier, a batch run, or a `run: {mode: ensemble}` all
+  go through it. It returns `RunResult.Storage` (batch, macros) or `RunResult.Members`
+  (ensemble, aligned with `run.seeds`), and returns every failure as an error instead
+  of exiting.
+  - It records exactly what the config's `output_condition` selects, into storage, in
+    place of the config's `output_function`, which is not invoked. A partition the
+    condition never selects is present with no rows.
+  - The caller's config is not modified, so it can be run again afterwards.
+  - It replaces the pattern of swapping in a `StateTimeStorageOutputFunction` by hand.
+    Doing that in place rewrites the caller's config, because the generator holds a
+    pointer to its simulation block.
+
 ### Changed
+
+- **`api.RunMacros` and `api.RunEnsembleToStorage` are deprecated** in favour of
+  `api.RunToStorage`. Both keep working unchanged.
+- **The CLI prints macro and ensemble results in partition-name order.** Partitions
+  were previously printed in Go map order, which varied from run to run. `Run`'s
+  output for these configs is now exactly `RunToStorage`'s result, printed.
 
 - **`api.StepAndServeWebsocket` takes a per-connection builder and an origin allow-list**
   (`build func() *simulator.ConfigGenerator, …, allowedOrigins []string`). The new
