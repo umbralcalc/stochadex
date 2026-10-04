@@ -41,7 +41,10 @@ inputs (fixed or live)  →  ONE runtime (one coordinator, one clock)  →  outp
   nothing else. Domain concepts such as "posterior", "SMC" or "planner" exist only as
   macro *names*. The core never knows about them. `stochadex expand` prints the expanded
   config, and the expanded config must run identically (rule 9).
-- **Outputs** are per-step sinks (`output_function`), available to every runtime.
+- **Outputs are views**: each is a (name, condition, function) built on the engine's
+  existing `OutputFunction` / `OutputCondition` abstraction, available to every
+  runtime and composable as a tee. A programmatic caller's result (`RunResult`) is
+  just the in-memory views it attached, not a second output mechanism (§2.5).
 - **`run:`** decides how many runtimes exist and how they are paced: batch, an ensemble
   over seeds, or one runtime per websocket connection.
 - **Chaining runtimes happens outside the engine** (DBOS, Make, scripts, downstream Go),
@@ -218,7 +221,7 @@ API), and were mutation-checked (each test fails with its fix reverted).
 | **Fixed input** | A read-only `StateTimeStorage` that exists before the runtime is built: a file, a database, or a labelled pre-pass simulation | `inputs: {name: {source: ...}}` or `{simulation: ...}` |
 | **Live input** | A per-step stream from outside, injected into partition params **between** steps; optionally recorded | `inputs: {name: {stream: ...}}` |
 | **Runtime** | One coordinator, one clock, built from partitions, expressions, embedded runs and macro expansions | `main:` (+ `macros:`) |
-| **Output** | A per-step sink | `output_function` / `output_condition` |
+| **Output view** | A (name, condition, function): a sink plus the filter selecting what it receives; several views form a tee; nested views carry scope | `outputs:` (or the `simulation.output_*` shorthand); caller-attached in-memory views for `RunResult` (§2.5) |
 | **Run mode** | How many runtimes exist and how they are paced | `run: {mode: batch \| ensemble \| serve}` |
 
 ### 2.2 Rules
@@ -276,7 +279,13 @@ API), and were mutation-checked (each test fails with its fix reverted).
     which macro produced it (a `from_macro: rolling_var` annotation, surfaced as a
     comment by `stochadex expand`). Load, validation and runtime errors report it, so a
     user is pointed at the macro they wrote, not a generated partition they didn't.
-12. **Named Go components remain data.** A config may *name* a Go component that a
+12. **Outputs are views, and there is one output mechanism.** Every output (config
+    sinks, websocket streams, a caller's in-memory result, an ensemble member's log, a
+    nested run's records) is an `OutputFunction` gated by an `OutputCondition`. No
+    path may bypass it with a parallel capture mechanism. Views open their resources in
+    `Configure` and commit in `Finalize`, never at load. A nested view's records carry
+    their scope: path, outer step and time (§2.5).
+13. **Named Go components remain data.** A config may *name* a Go component that a
     downstream repo registered (an `mcts_self_play` environment, an `onnx_inference`
     iteration). That is still core language. A macro may expand into such names, but it
     may not carry decision rules or bespoke maths that the core cannot express.
@@ -302,7 +311,10 @@ main:
   simulation:
     timestep_function: {type: from_input, input: obs}   # or constant, or macro-supplied
     termination_condition: {type: input_exhausted}      # or number_of_steps, ...
-    output_function: {type: websocket, url: "ws://..."} # any sink
+outputs:                                  # views: each sink gated by its own condition
+  - {name: log,  condition: {type: every_step}, function: {type: json_log, path: run.log}}
+  - {name: dash, condition: {type: only_given_partitions, partitions: [flow]},
+     function: {type: websocket, url: "ws://..."}}
 macros:                                   # each expands into THIS runtime
   - type: vector_mean
     name: rolling_mean
@@ -511,7 +523,7 @@ deterministic) and observed row 0 (the initial state comes from `init_state_valu
    iterations in the catalogue, like `posterior_mean` or `smc_proposal`, not macro
    concepts. `mcts_self_play` uses the same three, so rule 10 is met. A production spec
    should split `environment:` (data-defined `{type: simulation, ...}`, or a registered
-   name under rule 12) from the search settings (simulations, exploration, depths, seed).
+   name under rule 13) from the search settings (simulations, exploration, depths, seed).
    The spike reused the whole planning field set for both.
 7. **The macro's shared Go environment instance is not needed.** The macro hands one
    environment object to all three partitions. In the twin each partition builds its
@@ -619,10 +631,10 @@ None of these depend on each other, so each can be its own PR.
 |---|---|---|---|
 | 0.1 | **DONE (#92)**: reject ignored keys in macro mode | When `macros:` is present, error on `main.expressions`, `main.simulation` (all fields for now; 0.4 re-admits `output_function` / `output_condition`), `embedded:`, and `run:` other than `{mode: batch}`. Without `macros:`, error on `data:`. | New `pkg/api` tests per key; all `cfg/` and recipes still load |
 | 0.2 | ~~Enforce "a live macro runs alone"~~ | **Dropped**: it would break the supported calibrate → plan chain (§1.3). Optionally reword the unreachable `resolve` stub messages, which claim the opposite. | — |
-| 0.3 | One programmatic entry point | `api.RunToStorage(config) (*Result, error)`, where `Result` holds the storage or the ensemble members. `Run` = `RunToStorage` + print. `RunMacros` and `RunEnsembleToStorage` become thin wrappers marked deprecated. | Existing tests pass unchanged; cryptobook's `cfgrun` can drop its own output-function swap |
+| 0.3 | **IN REVIEW (#95)**: one programmatic entry point | `api.RunToStorage(config) (*RunResult, error)` with `RunResult.Storage` (batch, macros) or `.Members` (ensemble). It records what the config's `output_condition` selects into an in-memory view, *in place of* the config's sinks, on a copy of the config. `Run` prints its result for macro and ensemble configs (in name order). `RunMacros` / `RunEnsembleToStorage` are deprecated wrappers. In §2.5 terms, this is the convenience form "one in-memory view, config views suppressed". 0.4 generalises it to caller-attached views with suppress or tee, and grows `RunResult` additively. | Storage matches the config's own json_log sink read back; config unmodified; mutation-checked (see #95) |
 | 0.4 | Output views (§2.5) | `outputs:` list of (name, condition, function), with the single `simulation.output_*` pair as shorthand for one view; a tee with per-view conditions; macro results flow through views (interim: replay the final storage through them until Phase 2 removes the replay); the programmatic entry point takes options to attach in-memory views and to suppress or tee config views; ensemble members get per-member sink instances (templated paths). The default stays stdout, byte-identical to today. **Depends on the json_log open-at-load fix.** | Each view receives exactly its condition's rows (checked against an independent single-sink run); a suppressed view writes nothing and creates no file; a tee writes all views; per-member ensemble logs match the members' storages; mutation-checked |
 | 0.5 | **DONE (#91)**: fix the serve race | Fresh generator per connection (reload from `sourcePath`); a private `http.ServeMux`; stop on disconnect; configurable origins (default: same-origin + loopback). | Streams match an offline reference run under `-race`; one build per connection; disconnect, origin and YAML-loading tests |
-| 0.6 | Push websocket sink | `output_function: {type: websocket, url: ...}` acting as a client, registered via `RegisterComponent` | Test against an in-process `httptest` server |
+| 0.6 | Push websocket sink | A websocket *client* view function (`{type: websocket, url: ...}`), usable in `outputs:` like any sink and registered via `RegisterComponent`; it opens its connection in `Configure`, not at load (rule 12) | Test against an in-process `httptest` server; the stream matches an in-memory view of the same run |
 | 0.7 | **DONE (#93)**: covariance init indexing | `i*num+j` | Widths 1–4 against an independent matrix, plus the YAML `default_value` path |
 
 **Versioning:** 0.1 turned silent no-ops into errors. That is called out under
@@ -634,7 +646,7 @@ None of these depend on each other, so each can be its own PR.
 |---|---|---|---|
 | 1.1 | `inputs:` block | A map from name to one of `{source: ...}` (all registered sources) or `{simulation: {partitions, expressions, steps, timestep, init_time}}`. `data:` desugars to a single unnamed input. Partition names across inputs must be unique, or loading fails. | `data:` configs produce byte-identical output; dead-key check covers `inputs:` |
 | 1.2 | `from_input` iteration | `{type: from_input, input: x, partition: p}` replays an input partition as a main partition. It builds on #86's inline `from_storage`, sourcing the rows from a named input instead of inline data. Plus `timestep_function: {type: from_input, input: x}` and `termination_condition: {type: input_exhausted}`. This promotes `FromStorageIteration` from "live-object, no data form" to a data spec, because the data now has a name. | Re-express one downstream pattern (e.g. a floodrisk forward run) as YAML, matching the Go version exactly; coverage test entry moves from excluded to registered |
-| 1.3 | `run: {mode: serve}` | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works |
+| 1.3 | `run: {mode: serve}` | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. Each connection attaches a websocket *view* to its own fresh run (§2.5), alongside any config views. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works; a served stream matches an in-memory view of the same run |
 | 1.4 | Injection port in the engine | Move dexetera's `ApplyActionState` idea into the engine as `simulator.InjectParams(coordinator, partition, key, values)` (or a `Stepper` hook). It runs only between steps. | Unit test: an injection before step k is visible at step k and not before |
 | 1.5 | Stream inputs | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
 | 1.6 | Guard rails | Reject `stream:` inputs under `ensemble`. Pick a backpressure policy (bounded buffer, drop-oldest default, configurable). | Load-time error tests |
@@ -698,9 +710,9 @@ retried, cached or monitored separately into its own config.
 | # | Item | Detail | Depends on | Acceptance |
 |---|---|---|---|---|
 | O.1 | **Per-invocation overrides** | A CLI `--set path=value` (repeatable), plus `${VAR}` placeholders resolved from the environment at load time. Paths address the config tree (`inputs.obs.source.s3.key`, `main.partitions[name=w].seed`, `run.seeds`). List entries are selected **by name only**; there are no positional indices (§6 Q6). Overrides are applied before the dead-key check and validation, so a bad path is a load error. Replaces cryptobook's YAML text substitution. | Phase 1 (`inputs:` gives stable, named paths); the `main:` / `run:` paths can land earlier | An overridden run matches the same run with the value edited into the file; an unknown path or type mismatch is rejected with the path named; an unset `${VAR}` is an error, not an empty string |
-| O.2 | **I/O manifest and dry run** | `stochadex inspect --io -c cfg.yaml` emits JSON describing the run: inputs (kind, location, partitions), outputs (sink, location), run mode, seeds, the clock source, and the resolved overrides. `--check` loads, validates and runs the deadlock pre-flight, then exits without running. | Phase 1 for `inputs:`; it can report today's `data:` / `output_function` earlier | The manifest is golden-tested for every `cfg/example_*.yaml`; `--check` exits 0 on every shipped config and non-zero, naming the problem, on each known-bad case; a test checks that the manifest's input/output paths line up with what a real run reads and writes |
+| O.2 | **I/O manifest and dry run** | `stochadex inspect --io -c cfg.yaml` emits JSON describing the run: inputs (kind, location, partitions), output views (name, condition, sink, location, scope for nested views), run mode, seeds, the clock source, and the resolved overrides. `--check` loads, validates and runs the deadlock pre-flight, then exits without running. | Phase 1 for `inputs:`; it can report today's `data:` / `output_function` earlier | The manifest is golden-tested for every `cfg/example_*.yaml`; `--check` exits 0 on every shipped config and non-zero, naming the problem, on each known-bad case; a test checks that the manifest's input/output paths line up with what a real run reads and writes |
 | O.3 | **Structured exit codes** | Distinct codes for: a config or validation error (never retry); input unavailable or a transient I/O failure (retry); a runtime numerical failure (don't retry); success. Replace the `panic` / `log.Fatal` paths in loading and `Run` with typed errors mapped at the CLI edge. Library callers get the typed errors through `RunToStorage` (0.3). | 0.3 | A table test drives one representative failure of each class through the CLI binary and asserts its exit code; no `panic` is reachable from a bad config |
-| O.4 | **All-or-nothing outputs** | File and object sinks write to a temporary name and commit on clean termination: rename for local files, a final put or multipart complete for S3. A failed or killed run leaves no output at the final path. Sinks without an atomic commit (Postgres, websocket) document their behaviour. | 0.4 (sinks for every runtime) | Kill a run mid-way, then check no final-path output exists; let it complete and check the output matches a reference; each sink states its guarantee in its docs |
+| O.4 | **All-or-nothing outputs** | Every file and object *view* (§2.5, rule 12) opens in `Configure`, writes to a temporary name, and commits in `Finalize` on clean termination: rename for local files, a final put or multipart complete for S3. A failed or killed run leaves no output at the final path. Sinks without an atomic commit (Postgres, websocket) document their behaviour. | 0.4 (sinks for every runtime) | Kill a run mid-way, then check no final-path output exists; let it complete and check the output matches a reference; each sink states its guarantee in its docs |
 | O.5 | **Provenance hashes / caching key** | Extend `LogRunProvenance` and write a sidecar `*.provenance.json` alongside the outputs. It holds the config hash (after overrides), each input's content hash or object version (or a recorded-stream path), the seeds, and the existing build/image fields. Optional `--skip-if-unchanged`: exit with a "cached" status when an existing sidecar matches. Also usable directly as a DBOS idempotency key. | O.1, Phase 1 | The same config, inputs and seeds give the same hash, and changing any one changes it (property test); `--skip-if-unchanged` skips only on an exact match |
 | O.6 | **Splitting an ensemble across machines** | Ensemble seeds can be overridden per invocation (`--set run.seeds=…` via O.1, or `--seed-range 1000:1999`). Each shard writes its own outputs and provenance. Gathering shards is left to the orchestrator or downstream. | O.1 | Two shards' outputs together equal the single-machine ensemble with the same seeds, member for member |
 
