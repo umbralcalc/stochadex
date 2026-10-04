@@ -135,4 +135,120 @@ func TestRunMacrosGuards(t *testing.T) {
 			t.Errorf("expected a deadlock error from the cyclic data: block, got: %v", err)
 		}
 	})
+
+	// Every key below is one the macros: context never reads, so each must be
+	// rejected rather than silently ignored — and the error must name the key, so
+	// the author knows what to move. Each case goes through the public path a real
+	// config takes: a YAML file, LoadApiRunConfigFromYaml, then RunMacros.
+	ignored := []struct {
+		name, extra, key string
+	}{
+		{"main expressions",
+			"main:\n  expressions:\n  - {partition: p, outputs: [\"1\"]}\n",
+			"main.expressions"},
+		{"main simulation",
+			"main:\n  simulation:\n    output_function: {type: stdout}\n",
+			"main.simulation"},
+		{"main simulation init time only",
+			"main:\n  simulation:\n    init_time_value: 5.0\n",
+			"main.simulation"},
+		{"embedded runs",
+			"embedded:\n- name: e\n  partitions: []\n",
+			"embedded:"},
+		{"ensemble mode",
+			"run: {mode: ensemble, seeds: [1, 2]}\n",
+			"run:"},
+		{"ensemble mode without seeds",
+			"run: {mode: ensemble}\n",
+			"run:"},
+		{"seeds alone",
+			"run: {seeds: [1]}\n",
+			"run:"},
+		{"concurrency alone",
+			"run: {concurrency: 4}\n",
+			"run:"},
+	}
+	for _, c := range ignored {
+		t.Run(c.name+" alongside macros is rejected, naming the key", func(t *testing.T) {
+			config := writeConfig(t, macroConfigYAML+c.extra)
+			_, err := RunMacros(config)
+			if err == nil {
+				t.Fatalf("expected an error for %s alongside macros:", c.name)
+			}
+			if !strings.Contains(err.Error(), c.key) {
+				t.Errorf("error should name %q so the author knows what to move: %v",
+					c.key, err)
+			}
+		})
+	}
+
+	// Positive controls: the guard must not over-reject. The same config with no
+	// extra keys, or with the explicit default run mode, still runs end to end
+	// and produces both macros' output.
+	accepted := map[string]string{
+		"no extra keys":      "",
+		"explicit run batch": "run: {mode: batch}\n",
+	}
+	for name, extra := range accepted {
+		t.Run(name+" alongside macros still runs", func(t *testing.T) {
+			config := writeConfig(t, macroConfigYAML+extra)
+			storage, err := RunMacros(config)
+			if err != nil {
+				t.Fatalf("expected the config to run: %v", err)
+			}
+			for _, partition := range []string{"rolling_mean", "rolling_var"} {
+				if len(storage.GetValues(partition)) == 0 {
+					t.Errorf("expected %s in the output", partition)
+				}
+			}
+		})
+	}
+}
+
+// ensembleMainConfigYAML is a minimal main: config runnable in ensemble mode.
+const ensembleMainConfigYAML = `main:
+  partitions:
+  - name: w
+    iteration: {type: wiener_process}
+    params: {variances: [1.0]}
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 1
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: nil}
+    termination_condition: {type: number_of_steps, max_steps: 5}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+run: {mode: ensemble, seeds: [1, 2]}
+`
+
+// TestValidateMainContext covers the main-path guard: data: is only read by the
+// macros: tier, so on a config without macros it must be rejected — through the
+// public RunEnsembleToStorage path, with a positive control that the same config
+// minus data: still runs.
+func TestValidateMainContext(t *testing.T) {
+	dataBlock := "data:\n  steps: 5\n  partitions: []\n"
+
+	t.Run("data without macros is rejected, naming data:", func(t *testing.T) {
+		config := writeConfig(t, ensembleMainConfigYAML+dataBlock)
+		_, err := RunEnsembleToStorage(config)
+		if err == nil {
+			t.Fatal("expected RunEnsembleToStorage to reject data: without macros:")
+		}
+		if !strings.Contains(err.Error(), "data:") {
+			t.Errorf("error should name data: so the author knows what to move: %v", err)
+		}
+	})
+
+	t.Run("the same config without data still runs", func(t *testing.T) {
+		config := writeConfig(t, ensembleMainConfigYAML)
+		runs, err := RunEnsembleToStorage(config)
+		if err != nil {
+			t.Fatalf("expected the config to run: %v", err)
+		}
+		if len(runs) != 2 || len(runs[0].Storage.GetValues("w")) == 0 {
+			t.Errorf("expected 2 members with recorded output, got %d", len(runs))
+		}
+	})
 }
