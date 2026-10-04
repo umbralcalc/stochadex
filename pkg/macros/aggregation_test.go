@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/mat"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
@@ -256,44 +257,57 @@ func TestAggregation(t *testing.T) {
 	t.Run(
 		"test that the covariance default fills the diagonal of the init state",
 		func(t *testing.T) {
-			storage := simulator.NewStateTimeStorage()
-			storage.SetValues("test", [][]float64{
-				{1, 4, 7},
-				{2, 5, 8},
-				{3, 6, 9},
-			})
-			storage.SetValues("test_mean", [][]float64{
-				{0, 0, 0},
-				{0, 0, 0},
-				{0, 0, 0},
-			})
-			storage.SetTimes([]float64{1234, 1235, 1236})
-			covariancePartition := NewVectorCovariancePartition(
-				analysis.DataRef{PartitionName: "test_mean"},
-				AppliedAggregation{
-					Name:         "test_covariance",
-					Data:         analysis.DataRef{PartitionName: "test"},
-					Kernel:       &kernels.ConstantIntegrationKernel{},
-					DefaultValue: 2.0,
-				},
-				storage,
-			)
-			want := []float64{2.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 2.0}
-			if !floats.Equal(covariancePartition.InitStateValues, want) {
-				t.Error("covariance init state failed. values were: " +
-					fmt.Sprint(covariancePartition.InitStateValues))
-			}
-			// burn-in steps return the init state, so the default must survive
-			// into the output too
-			storage = analysis.AddPartitionsToStateTimeStorage(
-				storage,
-				[]*simulator.PartitionConfig{covariancePartition},
-				map[string]int{"test": 2, "test_mean": 2, "test_covariance": 1},
-			)
-			covarianceValues := storage.GetValues("test_covariance")
-			if !floats.Equal(covarianceValues[1], want) {
-				t.Error("covariance burn-in default failed. values were: " +
-					fmt.Sprint(covarianceValues[1]))
+			// The expected matrix is built independently of the partition's own
+			// indexing (gonum's diagonal → dense, row-major), across widths, so
+			// an index scheme that is only right for some n cannot pass.
+			for _, num := range []int{1, 2, 3, 4} {
+				t.Run(fmt.Sprintf("width %d", num), func(t *testing.T) {
+					const defaultValue = 2.5
+					rows := make([][]float64, 3)
+					means := make([][]float64, 3)
+					for i := range rows {
+						rows[i] = make([]float64, num)
+						means[i] = make([]float64, num)
+						for j := range num {
+							rows[i][j] = float64(i*num + j)
+						}
+					}
+					storage := simulator.NewStateTimeStorage()
+					storage.SetValues("test", rows)
+					storage.SetValues("test_mean", means)
+					storage.SetTimes([]float64{1234, 1235, 1236})
+					covariancePartition := NewVectorCovariancePartition(
+						analysis.DataRef{PartitionName: "test_mean"},
+						AppliedAggregation{
+							Name:         "test_covariance",
+							Data:         analysis.DataRef{PartitionName: "test"},
+							Kernel:       &kernels.ConstantIntegrationKernel{},
+							DefaultValue: defaultValue,
+						},
+						storage,
+					)
+					diagonal := make([]float64, num)
+					floats.AddConst(defaultValue, diagonal)
+					want := mat.DenseCopyOf(mat.NewDiagDense(num, diagonal)).RawMatrix().Data
+					if !floats.Equal(covariancePartition.InitStateValues, want) {
+						t.Fatalf("init state = %v, want %v",
+							covariancePartition.InitStateValues, want)
+					}
+					// burn-in steps return the init state, so the default must
+					// survive into the output too
+					storage = analysis.AddPartitionsToStateTimeStorage(
+						storage,
+						[]*simulator.PartitionConfig{covariancePartition},
+						map[string]int{"test": 2, "test_mean": 2, "test_covariance": 1},
+					)
+					covarianceValues := storage.GetValues("test_covariance")
+					for step := range 2 {
+						if !floats.Equal(covarianceValues[step], want) {
+							t.Errorf("burn-in output at step %d = %v, want %v",
+								step, covarianceValues[step], want)
+						}
+					}
+				})
 			}
 		},
 	)
