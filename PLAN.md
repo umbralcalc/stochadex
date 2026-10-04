@@ -333,6 +333,63 @@ Whether to flatten `main:` to the top level is a separate cosmetic decision for 
 
 ---
 
+### 2.5 Outputs are views; `RunResult` is just an in-memory view
+
+`simulator.OutputFunction` (`Configure` / `Output` / optional `Finalize`), gated by an
+`OutputCondition` (`IsOutputStep(partition, state, timesteps)`), is already the engine's
+general output abstraction. Stdout, json_log, Postgres, Arrow, DuckDB, S3, websocket and
+in-memory storage are all implementations, and the condition makes each one a filtered
+view. **The refactor should not introduce a second output concept beside it.** Today
+`RunResult` (#95) is one: `RunToStorage` *replaces* the configured sink with an
+in-memory one. The unifying formulation:
+
+- **An output view = (name, condition, function).** A config declares zero or more
+  views:
+  ```yaml
+  outputs:
+    - {name: log,  condition: {type: every_step}, function: {type: json_log, path: run.log}}
+    - {name: dash, condition: {type: only_given_partitions, partitions: [plan_apply]},
+       function: {type: websocket, url: "ws://..."}}
+  ```
+  Today's single `simulation.output_condition` / `output_function` pair is shorthand
+  for one unnamed view. Several views mean a tee, with each sink gated by its own
+  condition. This is item 0.4 generalised.
+- **The caller can attach views too.** The programmatic entry point takes options that
+  add in-memory views (storage) and say whether the config's own views also run. That
+  choice decides whether running for a result also writes the config's sinks, so it is
+  an explicit option: suppressing them is the side-effect-free default for library use
+  and checks; teeing is what an orchestrated step wants. **`RunResult` is then the set
+  of in-memory views the caller asked for.** Its `Storage` field is the default view,
+  and named views can be added later as a map. `RunToStorage` (#95) stays as the
+  convenience form "one in-memory view mirroring the config's condition, config sinks
+  suppressed". Adding named views to `RunResult` later is purely additive, so #95's
+  shape does not need to change.
+- **Ensembles: views are per member.** Today ensemble members drop the configured sink
+  entirely (`runSeededMember` swaps in storage), so an ensemble config cannot write a
+  json_log per member. Under views, each member gets fresh sink instances, with paths
+  templated by member and seed (`path: "run-{member}.log"`), or a member-tagging
+  wrapper for shared sinks. `RunResult.Members[i]` holds each member's in-memory views.
+- **Nested views need scope.** A nested run's own sink *is* called, once per outer
+  step. A probe confirmed a json_log inside the posterior's likelihood window wrote
+  1608 correct lines (4 inner runs × 201 rows × 2 partitions). But each line carries
+  only the inner partition name and inner time: nothing says which outer step it
+  belongs to, and the inner `test_data` has the same name as the outer one. Rule:
+  **a nested view's records are scoped**, with a path prefix
+  (`test_likelihood/test_data`) plus the outer step and time alongside the inner time.
+  This needs a small scoped-record extension to the sink interface or a wrapper.
+  Streaming sinks take it naturally. A single `StateTimeStorage` has one time axis, so
+  an in-memory *nested* view needs either one storage per outer step, or a flat
+  storage with an outer-step column. That choice is open (§6 Q7).
+- **Sinks that open files when the config is *loaded* break all of this.** json_log
+  calls `os.Create` at load (found in #95), so a suppressed view still truncates its
+  file, every ensemble member's reload truncates the same file, and a `--check` would
+  clobber outputs. Views must open their resources in `Configure` and commit them in
+  `Finalize`, which is also Track O's all-or-nothing outputs (O.4). Fixing json_log is
+  the next PR.
+- **Websocket serving is a view.** `run: {mode: serve}` attaches a websocket view per
+  connection. Live stream *inputs* (Phase 1) are the mirror image: sources bound at
+  the step boundary.
+
 ## 3. Capability preservation
 
 | Capability today | Where it lands | Phase |
@@ -563,7 +620,7 @@ None of these depend on each other, so each can be its own PR.
 | 0.1 | **DONE (#92)**: reject ignored keys in macro mode | When `macros:` is present, error on `main.expressions`, `main.simulation` (all fields for now; 0.4 re-admits `output_function` / `output_condition`), `embedded:`, and `run:` other than `{mode: batch}`. Without `macros:`, error on `data:`. | New `pkg/api` tests per key; all `cfg/` and recipes still load |
 | 0.2 | ~~Enforce "a live macro runs alone"~~ | **Dropped**: it would break the supported calibrate → plan chain (§1.3). Optionally reword the unreachable `resolve` stub messages, which claim the opposite. | — |
 | 0.3 | One programmatic entry point | `api.RunToStorage(config) (*Result, error)`, where `Result` holds the storage or the ensemble members. `Run` = `RunToStorage` + print. `RunMacros` and `RunEnsembleToStorage` become thin wrappers marked deprecated. | Existing tests pass unchanged; cryptobook's `cfgrun` can drop its own output-function swap |
-| 0.4 | Macro results through sinks | Interim: in macro mode, honour `main.simulation.output_function` / `output_condition` by replaying the final storage through them. The default stays stdout, byte-identical to today's `printStorage`. | Test: macro config writing json_log, read back equal |
+| 0.4 | Output views (§2.5) | `outputs:` list of (name, condition, function), with the single `simulation.output_*` pair as shorthand for one view; a tee with per-view conditions; macro results flow through views (interim: replay the final storage through them until Phase 2 removes the replay); the programmatic entry point takes options to attach in-memory views and to suppress or tee config views; ensemble members get per-member sink instances (templated paths). The default stays stdout, byte-identical to today. **Depends on the json_log open-at-load fix.** | Each view receives exactly its condition's rows (checked against an independent single-sink run); a suppressed view writes nothing and creates no file; a tee writes all views; per-member ensemble logs match the members' storages; mutation-checked |
 | 0.5 | **DONE (#91)**: fix the serve race | Fresh generator per connection (reload from `sourcePath`); a private `http.ServeMux`; stop on disconnect; configurable origins (default: same-origin + loopback). | Streams match an offline reference run under `-race`; one build per connection; disconnect, origin and YAML-loading tests |
 | 0.6 | Push websocket sink | `output_function: {type: websocket, url: ...}` acting as a client, registered via `RegisterComponent` | Test against an in-process `httptest` server |
 | 0.7 | **DONE (#93)**: covariance init indexing | `i*num+j` | Widths 1–4 against an independent matrix, plus the YAML `default_value` path |
@@ -707,6 +764,11 @@ pick them up at the next tag. Follow the release-flow ritual.
    unknown or ambiguous name is a load error. There are no positional indices, because
    they break silently when a list is reordered. Still open: whether `${VAR}` placeholders
    may appear anywhere, or only in string values.
+
+7. **In-memory nested views (§2.5).** A `StateTimeStorage` has one time axis, so
+   should an in-memory view of a nested run be one storage per outer step, or a flat
+   storage with an outer-step column? Streaming sinks just carry the scope fields.
+   Decide before Phase 1's scoped-record work.
 
 ## 7. Risks
 
