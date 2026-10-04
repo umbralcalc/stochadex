@@ -1,6 +1,14 @@
 # Plan: config as inputs → one runtime → outputs
 
 Status: **accepted** (2026-10-04).
+- **Where this lives:** the long-lived working branch `claude/config-runtime-plan`. It is
+  deliberately **never merged to `main`**; implementation PRs branch from `main` and
+  link here. Update this file on this branch as items land.
+- **Progress:** 0.3 (`RunToStorage`) is in review as umbralcalc/stochadex#95.
+  - Found while writing it: the json_log sink creates its file when the config is
+    *loaded*, not when it runs, so loading truncates outputs. This blocks `--check`
+    (O.2) and 0.4, so it is the next small PR.
+  - Also found: the CLI printed partitions in map order, fixed in #95.
 - The standalone fixes (§1.6) are **merged**: umbralcalc/stochadex#91, #92, #93. They also
   complete Phase 0 items 0.1, 0.5 and 0.7.
 - Phase 2 entry gate (§4.2) passed for the full macro set. Phases 0 (remaining items), 1, 2 and Track O are not started.
