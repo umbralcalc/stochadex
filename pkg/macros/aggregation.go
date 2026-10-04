@@ -348,11 +348,9 @@ func NewVectorCovariancePartition(
 	initStateValues := make([]float64, num*num)
 	for i := range num {
 		for j := range num {
-			switch i {
-			case j:
-				initStateValues[i+j] = applied.DefaultValue
-			default:
-				initStateValues[i+j] = 0.0
+			// row-major n×n: the default sits on the diagonal
+			if i == j {
+				initStateValues[i*num+j] = applied.DefaultValue
 			}
 		}
 	}

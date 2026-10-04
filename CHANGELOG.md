@@ -48,6 +48,10 @@ an exact version rather than assume stability across minors.
   scrambled or missing streams. Each connection now gets a fresh model, rebuilt by
   re-loading the config file the way ensemble members are. The server also stops
   stepping once a client disconnects.
+- **`vector_covariance` initial state.** `NewVectorCovariancePartition` filled its n×n
+  initial state at index `i+j` instead of row-major `i*n+j`. That put `DefaultValue` off
+  the diagonal, and burn-in steps (which return the initial state) emitted the wrong
+  matrix whenever `DefaultValue` was non-zero.
 
 ## [0.19.0] — 2026-10-03
 
