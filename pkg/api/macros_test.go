@@ -135,4 +135,56 @@ func TestRunMacrosGuards(t *testing.T) {
 			t.Errorf("expected a deadlock error from the cyclic data: block, got: %v", err)
 		}
 	})
+
+	// Every key below is one the macros: context never reads, so each must be
+	// rejected rather than silently ignored.
+	ignored := map[string]string{
+		"main expressions": "main:\n  expressions:\n  - {partition: p, outputs: [\"1\"]}\n",
+		"main simulation":  "main:\n  simulation:\n    output_function: {type: stdout}\n",
+		"embedded runs":    "embedded:\n- name: e\n  partitions: []\n",
+		"ensemble mode":    "run: {mode: ensemble, seeds: [1, 2]}\n",
+		"seeds alone":      "run: {seeds: [1]}\n",
+	}
+	for name, extra := range ignored {
+		t.Run(name+" alongside macros is rejected", func(t *testing.T) {
+			var config ApiRunConfig
+			if err := yaml.Unmarshal([]byte(macroConfigYAML+extra), &config); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := runMacros(&config); err == nil {
+				t.Errorf("expected an error for %s alongside macros:", name)
+			}
+		})
+	}
+
+	t.Run("run mode batch alongside macros is accepted", func(t *testing.T) {
+		var config ApiRunConfig
+		if err := yaml.Unmarshal(
+			[]byte(macroConfigYAML+"run: {mode: batch}\n"), &config,
+		); err != nil {
+			t.Fatal(err)
+		}
+		if err := validateMacroContext(&config); err != nil {
+			t.Errorf("run: {mode: batch} is the default and should be accepted: %v", err)
+		}
+	})
+}
+
+// TestValidateMainContext covers the main-path guard: data: is only read by the
+// macros: tier, so on a config without macros it must be rejected.
+func TestValidateMainContext(t *testing.T) {
+	t.Run("data without macros is rejected", func(t *testing.T) {
+		config := &ApiRunConfig{Data: &DataConfig{Steps: 5}}
+		if err := validateMainContext(config); err == nil {
+			t.Error("expected an error for data: without macros:")
+		}
+		if _, err := RunEnsembleToStorage(config); err == nil {
+			t.Error("expected RunEnsembleToStorage to reject data: without macros:")
+		}
+	})
+	t.Run("a plain main config is accepted", func(t *testing.T) {
+		if err := validateMainContext(&ApiRunConfig{}); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
 }

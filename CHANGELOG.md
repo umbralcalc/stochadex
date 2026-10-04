@@ -32,6 +32,13 @@ an exact version rather than assume stability across minors.
   non-browser clients, same-origin pages, loopback origins on any port, and origins
   listed in the socket file's new `allowed_origins` (`"*"` restores the old open
   behaviour).
+- **Config keys that a run never reads are now load errors instead of silent no-ops.**
+  With `macros:` present, `main.expressions`, `main.simulation`, `embedded:`, and any
+  `run:` other than the default `{mode: batch}` are rejected. These keys were previously
+  ignored, because the macros tier runs in its own context. `main.partitions` was already
+  rejected. Without `macros:`, a `data:` block is rejected, because only the macros tier
+  reads it. Each error says where the key should go. No config in this repo or the
+  surveyed downstream repos uses any of these shapes.
 
 ### Fixed
 

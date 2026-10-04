@@ -166,16 +166,56 @@ func RunMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 	return runMacros(config)
 }
 
+// validateMacroContext rejects config that the macros: run context would
+// otherwise silently ignore. Macros run in their own context — build the data:
+// storage, expand the macros against it, emit the result — so nothing under
+// main:, embedded: or run: is read; a key set there looks load-bearing and does
+// nothing, which is the failure validateNoDeadKeys exists to prevent.
+func validateMacroContext(config *ApiRunConfig) error {
+	if len(config.Main.Partitions) > 0 {
+		return fmt.Errorf("api: a config sets both main.partitions and macros:; " +
+			"macros run in their own context and ignore main — put data-generating " +
+			"partitions under data:, not main")
+	}
+	if len(config.Main.Expressions) > 0 {
+		return fmt.Errorf("api: a config sets both main.expressions and macros:; " +
+			"macros run in their own context and ignore main — put data-generating " +
+			"expressions under data:, not main")
+	}
+	if !simulationStringsZero(&config.Main.SimulationStrings) {
+		return fmt.Errorf("api: a config sets both main.simulation and macros:; " +
+			"macros run in their own context and ignore main.simulation — set the " +
+			"data: sub-simulation's steps/timestep/init_time, or a live macro's " +
+			"steps/timestep, instead")
+	}
+	if len(config.Embedded) > 0 {
+		return fmt.Errorf("api: a config sets both embedded: and macros:; " +
+			"macros run in their own context and ignore embedded runs")
+	}
+	if (config.Run.Mode != "" && config.Run.Mode != "batch") ||
+		len(config.Run.Seeds) > 0 || config.Run.Concurrency != 0 {
+		return fmt.Errorf("api: a config sets run: alongside macros:; macros " +
+			"always run once and do not yet support run modes (ensemble, seeds, " +
+			"concurrency)")
+	}
+	return nil
+}
+
+// simulationStringsZero reports whether no simulation: field was set.
+func simulationStringsZero(s *simulator.SimulationConfigStrings) bool {
+	return s.OutputCondition.IsZero() && s.OutputFunction.IsZero() &&
+		s.TerminationCondition.IsZero() && s.TimestepFunction.IsZero() &&
+		s.ExecutionStrategy.IsZero() && s.InitTimeValue == 0
+}
+
 // runMacros expands and runs each macro in turn, returning the resulting storage.
 // A live macro (evolution_strategy_optimisation) runs its partitions as a fresh
 // simulation; an against-storage macro runs against the data: storage, which is
 // built lazily on first use — so a live-only config needs no data: block. Running
 // in turn lets a later against-storage macro reference an earlier one's output.
 func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
-	if len(config.Main.Partitions) > 0 {
-		return nil, fmt.Errorf("api: a config sets both main.partitions and macros:; " +
-			"macros run in their own context and ignore main — put data-generating " +
-			"partitions under data:, not main")
+	if err := validateMacroContext(config); err != nil {
+		return nil, err
 	}
 	var storage *simulator.StateTimeStorage
 	ensureStorage := func() error {

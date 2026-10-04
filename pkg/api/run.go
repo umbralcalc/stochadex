@@ -175,6 +175,9 @@ func Run(config *ApiRunConfig, socket *SocketConfig) {
 		printStorage(storage)
 		return
 	}
+	if err := validateMainContext(config); err != nil {
+		log.Fatal(err)
+	}
 	generator := config.GetConfigGenerator()
 	if err := CheckForDeadlock(generator); err != nil {
 		log.Fatal(err)
@@ -208,6 +211,17 @@ func perConnectionBuild(
 	return func() *simulator.ConfigGenerator {
 		return LoadApiRunConfigFromYaml(config.sourcePath).GetConfigGenerator()
 	}, nil
+}
+
+// validateMainContext rejects a data: block on a config with no macros:. Only the
+// macros: tier reads data: — the main simulation never does — so on its own it
+// looks load-bearing and does nothing.
+func validateMainContext(config *ApiRunConfig) error {
+	if config.Data != nil {
+		return fmt.Errorf("api: a config sets data: but no macros:; data: is only " +
+			"read by the macros: tier and the main simulation ignores it")
+	}
+	return nil
 }
 
 // runBatch serves a websocket when the socket is active, otherwise runs the
@@ -258,6 +272,9 @@ func runBatch(
 func RunEnsembleToStorage(
 	config *ApiRunConfig,
 ) ([]simulator.EnsembleRun, error) {
+	if err := validateMainContext(config); err != nil {
+		return nil, err
+	}
 	generator := config.GetConfigGenerator()
 	if err := CheckForDeadlock(generator); err != nil {
 		return nil, err
