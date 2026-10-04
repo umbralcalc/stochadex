@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -20,47 +21,113 @@ import (
 // Usage hints:
 //   - The HTTP server mounts the websocket at handle and listens on address.
 //   - stepDelay controls the delay between steps in milliseconds.
+//   - build is called once per connection and must return a generator with
+//     fresh iteration instances, so concurrent clients never share state.
+//   - allowedOrigins extends the default origin policy (see websocketOriginCheck).
 func StepAndServeWebsocket(
-	generator *simulator.ConfigGenerator,
+	build func() *simulator.ConfigGenerator,
 	stepDelay time.Duration,
 	handle string,
 	address string,
+	allowedOrigins []string,
 ) {
-	var upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool { return true },
+	mux := http.NewServeMux()
+	mux.Handle(handle, NewWebsocketHandler(build, stepDelay, allowedOrigins))
+	log.Fatal(http.ListenAndServe(address, mux))
+}
+
+// NewWebsocketHandler returns the http.Handler behind StepAndServeWebsocket:
+// each connection gets its own simulation, built fresh by build, stepped under
+// the configured execution strategy and streamed until it terminates or the
+// client disconnects.
+//
+// Building per connection is load-bearing. A ConfigGenerator hands out the same
+// iteration instances on every GenerateConfigs call, so reusing one generator
+// would have concurrent clients stepping one shared, mutable model.
+func NewWebsocketHandler(
+	build func() *simulator.ConfigGenerator,
+	stepDelay time.Duration,
+	allowedOrigins []string,
+) http.Handler {
+	upgrader := websocket.Upgrader{
+		CheckOrigin: websocketOriginCheck(allowedOrigins),
 	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		connection, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Println("Error upgrading to WebSocket:", err)
+			return
+		}
+		defer connection.Close()
 
-	http.HandleFunc(
-		handle,
-		func(w http.ResponseWriter, r *http.Request) {
-			connection, err := upgrader.Upgrade(w, r, nil)
-			if err != nil {
-				log.Println("Error upgrading to WebSocket:", err)
+		// gorilla only processes control frames (including close) while
+		// reading, so drain reads to learn when the client has gone away
+		closed := make(chan struct{})
+		go func() {
+			defer close(closed)
+			for {
+				if _, _, err := connection.ReadMessage(); err != nil {
+					return
+				}
+			}
+		}()
+
+		var mutex sync.Mutex
+		generator := build()
+		simulationConfig := generator.GetSimulation()
+		simulationConfig.OutputFunction =
+			simulator.NewWebsocketOutputFunction(connection, &mutex)
+		generator.SetSimulation(simulationConfig)
+		coordinator := simulator.NewPartitionCoordinator(
+			generator.GenerateConfigs(),
+		)
+
+		// step under the configured execution strategy, sleeping between
+		// steps so the websocket streams state at a watchable rate
+		stepper := coordinator.NewStepper()
+		defer stepper.Close()
+		for !coordinator.ReadyToTerminate() {
+			select {
+			case <-closed:
 				return
+			default:
 			}
-			defer connection.Close()
+			stepper.Step()
+			time.Sleep(stepDelay * time.Millisecond)
+		}
+	})
+}
 
-			var mutex sync.Mutex
-			simulationConfig := generator.GetSimulation()
-			simulationConfig.OutputFunction =
-				simulator.NewWebsocketOutputFunction(connection, &mutex)
-			generator.SetSimulation(simulationConfig)
-			coordinator := simulator.NewPartitionCoordinator(
-				generator.GenerateConfigs(),
-			)
-
-			// step under the configured execution strategy, sleeping between
-			// steps so the websocket streams state at a watchable rate
-			stepper := coordinator.NewStepper()
-			defer stepper.Close()
-			// terminate the for loop if the condition has been met
-			for !coordinator.ReadyToTerminate() {
-				stepper.Step()
-				time.Sleep(stepDelay * time.Millisecond)
+// websocketOriginCheck admits a websocket upgrade when the request carries no
+// Origin header (a non-browser client), when the origin is the server's own
+// host, when it is a loopback host on any port (the usual local dashboard
+// setup), or when it is listed in allowed ("*" admits every origin). Any other
+// browser origin is refused, so a page on an arbitrary site cannot drive a
+// local simulation server.
+func websocketOriginCheck(allowed []string) func(r *http.Request) bool {
+	return func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		for _, entry := range allowed {
+			if entry == "*" || strings.EqualFold(entry, origin) {
+				return true
 			}
-		},
-	)
-	log.Fatal(http.ListenAndServe(address, nil))
+		}
+		parsed, err := url.Parse(origin)
+		if err != nil {
+			return false
+		}
+		if strings.EqualFold(parsed.Host, r.Host) {
+			return true
+		}
+		switch parsed.Hostname() {
+		case "localhost", "127.0.0.1", "::1":
+			return true
+		}
+		return false
+	}
 }
 
 // CheckForDeadlock reports whether the generator's within-step wiring
@@ -114,7 +181,7 @@ func Run(config *ApiRunConfig, socket *SocketConfig) {
 	}
 	switch config.Run.Mode {
 	case "", "batch":
-		runBatch(generator, socket)
+		runBatch(config, generator, socket)
 	case "ensemble":
 		if err := runEnsemble(config, generator.GetSimulation()); err != nil {
 			log.Fatal(err)
@@ -127,15 +194,40 @@ func Run(config *ApiRunConfig, socket *SocketConfig) {
 	}
 }
 
+// perConnectionBuild returns a builder that re-loads the config's source file, so
+// every websocket connection gets fresh, non-shared iteration instances (the same
+// mechanism ensemble mode uses for its members). A config built in memory has no
+// file to re-load and is rejected.
+func perConnectionBuild(
+	config *ApiRunConfig,
+) (func() *simulator.ConfigGenerator, error) {
+	if config.sourcePath == "" {
+		return nil, fmt.Errorf("api: serving a websocket requires a config " +
+			"loaded from a file (each connection is rebuilt by re-loading it)")
+	}
+	return func() *simulator.ConfigGenerator {
+		return LoadApiRunConfigFromYaml(config.sourcePath).GetConfigGenerator()
+	}, nil
+}
+
 // runBatch serves a websocket when the socket is active, otherwise runs the
 // simulation once to completion.
-func runBatch(generator *simulator.ConfigGenerator, socket *SocketConfig) {
+func runBatch(
+	config *ApiRunConfig,
+	generator *simulator.ConfigGenerator,
+	socket *SocketConfig,
+) {
 	if socket.Active() {
+		build, err := perConnectionBuild(config)
+		if err != nil {
+			log.Fatal(err)
+		}
 		StepAndServeWebsocket(
-			generator,
+			build,
 			time.Duration(socket.MillisecondDelay),
 			socket.Handle,
 			socket.Address,
+			socket.AllowedOrigins,
 		)
 		return
 	}

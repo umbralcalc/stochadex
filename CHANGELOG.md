@@ -22,6 +22,26 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Changed
+
+- **`api.StepAndServeWebsocket` takes a per-connection builder and an origin allow-list**
+  (`build func() *simulator.ConfigGenerator, …, allowedOrigins []string`). The new
+  `api.NewWebsocketHandler` is the same server as an `http.Handler`. The server now
+  registers on its own `http.ServeMux` instead of the global default mux.
+- **The websocket server's origin policy is no longer open to every origin.** It admits
+  non-browser clients, same-origin pages, loopback origins on any port, and origins
+  listed in the socket file's new `allowed_origins` (`"*"` restores the old open
+  behaviour).
+
+### Fixed
+
+- **Concurrent websocket clients shared one simulation.** Every connection reused one
+  generator, so `GenerateConfigs` handed out the same iteration instances each time.
+  Concurrent clients stepped one shared, mutable model, which caused data races and
+  scrambled or missing streams. Each connection now gets a fresh model, rebuilt by
+  re-loading the config file the way ensemble members are. The server also stops
+  stepping once a client disconnects.
+
 ## [0.19.0] — 2026-10-03
 
 One new domain-models catalogue entry, `solar-fleet`, and nothing else changes — no existing
