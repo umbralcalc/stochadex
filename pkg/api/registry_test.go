@@ -42,6 +42,7 @@ var wantIterationType = map[string]string{
 	"ensemble_kalman_filter":              "*inference.EnsembleKalmanFilterIteration",
 	"smc_posterior":                       "*inference.SMCPosteriorIteration",
 	"from_history":                        "*general.FromHistoryIteration",
+	"from_storage":                        "*general.FromStorageIteration",
 
 	// composable (Phase B)
 	"compound_poisson_process":          "*continuous.CompoundPoissonProcessIteration",
@@ -87,6 +88,7 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 	"values_collection":         {"pop_index": "next_non_empty", "push": "param_values"},
 	"values_sorting_collection": {"push_and_sort": "param_values"},
 	"expression":                {"fields": []interface{}{map[string]interface{}{"name": "x"}}, "outputs": []interface{}{"x"}},
+	"from_storage":              {"data": []interface{}{[]interface{}{0.0}, []interface{}{1.0}}},
 	"data_generation":           {"likelihood": map[string]interface{}{"type": "normal"}},
 	"data_comparison":           {"likelihood": map[string]interface{}{"type": "normal"}},
 	"posterior_mean":            {"transform": "mean"},
@@ -154,6 +156,72 @@ func TestResolveIterationErrors(t *testing.T) {
 			Type: "smc_posterior", Fields: map[string]interface{}{"nope": 1},
 		}); err == nil {
 			t.Error("expected an error for an unknown smc_posterior field")
+		}
+	})
+
+	t.Run("from_storage carries an inline series as config data", func(t *testing.T) {
+		it, err := ResolveIteration(simulator.ComponentSpec{
+			Type: "from_storage",
+			Fields: map[string]interface{}{
+				"data":             []interface{}{[]interface{}{1.0, 2.0}, []interface{}{3, 4.0}},
+				"init_steps_taken": 2,
+			},
+		})
+		if err != nil {
+			t.Fatalf("a valid from_storage should be accepted: %v", err)
+		}
+		from := it.(*general.FromStorageIteration)
+		if from.InitStepsTaken != 2 {
+			t.Errorf("init_steps_taken not applied: %d", from.InitStepsTaken)
+		}
+		// Rows survive intact and an int element (3) coerces to float64 alongside floats.
+		want := [][]float64{{1.0, 2.0}, {3.0, 4.0}}
+		if !reflect.DeepEqual(from.Data, want) {
+			t.Errorf("data not applied: got %v, want %v", from.Data, want)
+		}
+
+		// data is required.
+		if _, err := ResolveIteration(simulator.ComponentSpec{Type: "from_storage"}); err == nil {
+			t.Error("expected an error when data is missing")
+		}
+		// A non-numeric cell is named, not silently dropped.
+		if _, err := ResolveIteration(simulator.ComponentSpec{
+			Type: "from_storage",
+			Fields: map[string]interface{}{
+				"data": []interface{}{[]interface{}{"nope"}},
+			},
+		}); err == nil {
+			t.Error("expected an error for a non-numeric data cell")
+		}
+		// An unknown field is rejected, like every other spec.
+		if _, err := ResolveIteration(simulator.ComponentSpec{
+			Type: "from_storage",
+			Fields: map[string]interface{}{
+				"data": []interface{}{[]interface{}{1.0}}, "nope": 1,
+			},
+		}); err == nil {
+			t.Error("expected an error for an unknown from_storage field")
+		}
+	})
+
+	t.Run("from_storage timestep function carries an inline series too", func(t *testing.T) {
+		fn, err := simulator.ResolveTimestepFunction(simulator.ComponentSpec{
+			Type: "from_storage",
+			Fields: map[string]interface{}{
+				"data": []interface{}{0.0, 1.0, 2.0}, "init_steps_taken": 1,
+			},
+		})
+		if err != nil {
+			t.Fatalf("a valid from_storage timestep function should be accepted: %v", err)
+		}
+		from := fn.(*general.FromStorageTimestepFunction)
+		if from.InitStepsTaken != 1 || !reflect.DeepEqual(from.Data, []float64{0.0, 1.0, 2.0}) {
+			t.Errorf("fields not applied: %+v", from)
+		}
+		if _, err := simulator.ResolveTimestepFunction(
+			simulator.ComponentSpec{Type: "from_storage"},
+		); err == nil {
+			t.Error("expected an error when data is missing")
 		}
 	})
 

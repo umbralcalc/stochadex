@@ -42,6 +42,7 @@ func TestExampleConfigsRun(t *testing.T) {
 		"cfg/example_planning_config.yaml",
 		"cfg/example_regression_config.yaml",
 		"cfg/example_data_source_config.yaml",
+		"cfg/example_from_storage_config.yaml",
 	}
 	for _, path := range examples {
 		t.Run(path, func(t *testing.T) {

@@ -87,6 +87,20 @@
       "behaviour_bound": true
     },
     {
+      "dir": "limit-order-book",
+      "core_packages": [
+        "pkg/rng",
+        "pkg/simulator"
+      ],
+      "bespoke_iterations": [
+        "ActivityIteration",
+        "BookIteration",
+        "FlowsIteration",
+        "ObservablesIteration"
+      ],
+      "behaviour_bound": true
+    },
+    {
       "dir": "measles-risk-forecaster",
       "core_packages": [
         "pkg/simulator"
@@ -94,6 +108,19 @@
       "bespoke_iterations": [
         "JointOutbreakIteration",
         "NationalImportationIteration"
+      ],
+      "behaviour_bound": true
+    },
+    {
+      "dir": "solar-fleet",
+      "core_packages": [
+        "pkg/general",
+        "pkg/rng",
+        "pkg/simulator"
+      ],
+      "bespoke_iterations": [
+        "FleetAggregateIteration",
+        "FleetSkyIteration"
       ],
       "behaviour_bound": true
     },
@@ -121,7 +148,12 @@
     ],
     "pkg/general": [
       "homark",
+      "solar-fleet",
       "trywizard"
+    ],
+    "pkg/rng": [
+      "limit-order-book",
+      "solar-fleet"
     ],
     "pkg/simulator": [
       "anglersim",
@@ -131,7 +163,9 @@
       "energy-balancer",
       "floodrisk",
       "homark",
+      "limit-order-book",
       "measles-risk-forecaster",
+      "solar-fleet",
       "trywizard"
     ]
   },

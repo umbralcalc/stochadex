@@ -20,9 +20,12 @@ type iterationBuilder func(fields map[string]interface{}) (simulator.Iteration, 
 // numeric parameters come from the partition's params:, so the spec itself
 // usually carries no fields). Composable iterations (those with an interface- or
 // func-typed field — kernels, likelihoods, nested iterations, aggregations) are
-// deliberately absent; they are Phase B (recursive specs). Live-object iterations
-// (from_storage, from_history, embedded_simulation_run, …) have no data form at
-// all. Both groups are enumerated with reasons in the coverage drift test.
+// deliberately absent; they are Phase B (recursive specs). Some iterations that
+// hold bulk data still take a data form when the config can carry that data
+// inline: from_storage replays an inline series. The remaining live-object
+// iterations (from_history, embedded_simulation_run, …) bind their data at
+// runtime from another tier and have no standalone data form. All are enumerated
+// with reasons in the coverage drift test.
 var iterationBuilders = map[string]iterationBuilder{
 	// pkg/continuous
 	"wiener_process":                    nullary(func() simulator.Iteration { return &continuous.WienerProcessIteration{} }),
@@ -57,6 +60,13 @@ var iterationBuilders = map[string]iterationBuilder{
 	"posterior_log_normalisation": nullary(func() simulator.Iteration { return &inference.PosteriorLogNormalisationIteration{} }),
 	"ensemble_kalman_filter":      nullary(func() simulator.Iteration { return &inference.EnsembleKalmanFilterIteration{} }),
 	"smc_posterior":               buildSMCPosterior,
+
+	// from_storage replays an inline series (its rows carried in the config as data)
+	// into a main: partition by step number. This is the config-level replay path
+	// that solar-fleet/STOCHADEX_GAPS.md recorded as missing: a precomputed external
+	// series stepped into a simulation partition with no Go. Unlike from_history its
+	// Data is config, not runtime-injected.
+	"from_storage": buildFromStorage,
 
 	// from_history copies another partition's history into an embedded window. Its
 	// Data field is not config: the embedded-run machinery injects it at runtime
@@ -166,6 +176,77 @@ func buildFromHistory(fields map[string]interface{}) (simulator.Iteration, error
 		iteration.InitStepsTaken = steps
 	}
 	return iteration, nil
+}
+
+// buildFromStorage builds a FromStorageIteration that replays an inline series by
+// step number. The series is carried directly in the config as data (a list of
+// rows under "data"), with an optional "init_steps_taken" offset — the same two
+// inputs the Go form takes, now reachable without Go.
+func buildFromStorage(fields map[string]interface{}) (simulator.Iteration, error) {
+	iteration := &general.FromStorageIteration{}
+	for key, value := range fields {
+		switch key {
+		case "data":
+			data, err := floatMatrix("from_storage", key, value)
+			if err != nil {
+				return nil, err
+			}
+			iteration.Data = data
+		case "init_steps_taken":
+			steps, ok := value.(int)
+			if !ok {
+				return nil, fmt.Errorf(
+					"from_storage: init_steps_taken must be an integer, got %T", value)
+			}
+			iteration.InitStepsTaken = steps
+		default:
+			return nil, fmt.Errorf("from_storage: unknown field %q", key)
+		}
+	}
+	if iteration.Data == nil {
+		return nil, fmt.Errorf(
+			"from_storage: missing required field \"data\" (the rows to replay)")
+	}
+	return iteration, nil
+}
+
+// floatRow converts a YAML list of numbers (int or float64 as decoded) into a
+// []float64, naming the offending element on a type mismatch.
+func floatRow(specType, key string, value interface{}) ([]float64, error) {
+	raw, ok := value.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("%s: %s must be a list, got %T", specType, key, value)
+	}
+	out := make([]float64, len(raw))
+	for i, element := range raw {
+		switch number := element.(type) {
+		case float64:
+			out[i] = number
+		case int:
+			out[i] = float64(number)
+		default:
+			return nil, fmt.Errorf(
+				"%s: %s[%d] must be a number, got %T", specType, key, i, element)
+		}
+	}
+	return out, nil
+}
+
+// floatMatrix converts a YAML list of lists of numbers into a [][]float64.
+func floatMatrix(specType, key string, value interface{}) ([][]float64, error) {
+	raw, ok := value.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("%s: %s must be a list of rows, got %T", specType, key, value)
+	}
+	out := make([][]float64, len(raw))
+	for i, element := range raw {
+		row, err := floatRow(specType, fmt.Sprintf("%s[%d]", key, i), element)
+		if err != nil {
+			return nil, err
+		}
+		out[i] = row
+	}
+	return out, nil
 }
 
 func sortedFieldKeys(fields map[string]interface{}) []string {

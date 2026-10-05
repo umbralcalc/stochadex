@@ -661,4 +661,41 @@ func registerDownstreamComponents() {
 			return &general.FromHistoryTimestepFunction{}, nil
 		},
 	)
+	// from_storage: replays an inline series of times by step number, the
+	// time-axis counterpart of the from_storage iteration. Its series is carried in
+	// the config as data (a list under "data"), with an optional "init_steps_taken"
+	// offset, so a replayed series can drive its own clock with no Go.
+	simulator.RegisterComponent(
+		"timestep_function", "from_storage",
+		func(spec simulator.ComponentSpec) (interface{}, error) {
+			function := &general.FromStorageTimestepFunction{}
+			for key, value := range spec.Fields {
+				switch key {
+				case "data":
+					times, err := floatRow("from_storage", key, value)
+					if err != nil {
+						return nil, err
+					}
+					function.Data = times
+				case "init_steps_taken":
+					steps, ok := value.(int)
+					if !ok {
+						return nil, fmt.Errorf(
+							"timestep_function from_storage: init_steps_taken must be "+
+								"an integer, got %T", value)
+					}
+					function.InitStepsTaken = steps
+				default:
+					return nil, fmt.Errorf(
+						"timestep_function from_storage: unknown field %q", key)
+				}
+			}
+			if function.Data == nil {
+				return nil, fmt.Errorf(
+					"timestep_function from_storage: missing required field " +
+						"\"data\" (the times to replay)")
+			}
+			return function, nil
+		},
+	)
 }

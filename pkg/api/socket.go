@@ -13,6 +13,10 @@ type SocketConfig struct {
 	Address          string `yaml:"address"`
 	Handle           string `yaml:"handle"`
 	MillisecondDelay uint64 `yaml:"millisecond_delay"`
+	// AllowedOrigins lists extra browser origins (e.g. "https://dash.example.com")
+	// that may connect, beyond the server's own host and loopback hosts; "*"
+	// admits every origin.
+	AllowedOrigins []string `yaml:"allowed_origins,omitempty"`
 }
 
 // Active reports whether the websocket server should be started.

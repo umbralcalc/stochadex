@@ -1,0 +1,186 @@
+# The limit-order-book microsimulation, written as data: no Go, no compilation.
+#
+# Unlike the rest of the catalogue, THIS is the primary form. The downstream repo
+# (cryptobook) runs its entire forward model as stochadex configuration — there is no
+# bespoke Go anywhere in it — so declarative.yaml is (essentially) cfg/lob_counts_split.yaml
+# itself, and stub.go is the Go re-expression. expression_equivalence_test.go checks that the
+# two are the same model: per-step agreement on single Iterate calls, and the whole behaviour
+# suite re-run against this file. Because the Go partitions draw from the same rng.New(seed)
+# stream in the same order the evaluator does, agreement is EXACT (~1e-12, FMA-scale).
+#
+# The run knobs stub.go takes as arguments (damping exponent, horizon, seed) are injected by
+# the caller; everything below is the model. The parameter values are cryptobook's "counts
+# route" — the model it found best.
+#
+# TWO READ MECHANISMS, used deliberately (see the card's partition wiring):
+#   params_from_upstream : a CURRENT-step read of another partition (a within-step edge).
+#   upstreams: {alias: p} : a LAG read of partition p's committed state (row 0 = last step).
+#
+# `flows` reads `activity` current (params_from_upstream) but the `book` one step back
+# (upstreams alias book_prev) — the lag is the model, not a convenience: the monolith this was
+# split from damped arrivals by the previous step's depth, so flows→book is the only
+# within-step edge and the graph is not a cycle. `observables` reaches `book` BOTH ways at once
+# — book_now (current, for the post-update spread) and book_prev (lag, for the pre-update depth
+# the arrivals were drawn against).
+main:
+  partitions:
+
+  # The driver: a self-contained latent AR(1) activity process that touches nothing else.
+  - name: activity
+    params:
+      persistence: [0.8]
+      activity_shape: [0.152367]
+      activity_rate: [0.038092]
+    init_state_values: [4.0]
+    state_history_depth: 1
+    seed: 20260810
+
+  # The flows: everything drawn from a distribution — arrivals, churn, cancellations and the
+  # marketable order. Reads the driver at the CURRENT step and the book at the PREVIOUS one.
+  - name: flows
+    params_from_upstream:
+      activity: {upstream: activity}
+    params:
+      limit_rate: [3.381]
+      arrival_decay: [0.35]
+      cancel_rate: [0.0]
+      arrival_scale: [19.0]
+      churn_rate: [1.900]
+      act_ref: [4.0]
+      damping_gamma: [0.45]
+      market_rate: [1.2]
+      market_size: [4.0]
+      half: [0.5]
+      shock_step: [-1.0]
+      shock_size: [0.0]
+    init_state_values:
+      [0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0]
+    state_history_depth: 1
+    seed: 20260811
+
+  # The book: deterministic given the flows. Apply them and walk the marketable order across
+  # levels. Reads the flows at the CURRENT step and its own previous state as row 0.
+  - name: book
+    params_from_upstream:
+      flow: {upstream: flows}
+    params:
+      placeholder: [0.0]
+    init_state_values:
+      [8, 6, 4, 3, 2, 1, 1, 1,
+       8, 6, 4, 3, 2, 1, 1, 1,
+       0]
+    state_history_depth: 1
+    seed: 20260812
+
+  # The observables: reads flows (current), the book at its current step (post-update spread)
+  # and the book at its previous step (pre-update depth) — one partition reached both ways.
+  - name: observables
+    params_from_upstream:
+      flow: {upstream: flows}
+      book_now: {upstream: book}
+    params:
+      empty_spread: [99.0]
+    init_state_values: [0, 0, 0, 52, 2, 0]
+    state_history_depth: 1
+    seed: 20260813
+
+  expressions:
+
+  - partition: activity
+    fields:
+    - {name: act_prev}
+    bindings:
+    - {name: act, expr: "shared(persistence * act_prev + (1 - persistence) * gamma(activity_shape, activity_rate))"}
+    outputs:
+    - "act"
+
+  - partition: flows
+    # The book at its PREVIOUS step, which is what the monolith's resting depth already was.
+    upstreams: {book_prev: book}
+    fields:
+    - {name: prev_arr_bid, width: 8}
+    - {name: prev_arr_ask, width: 8}
+    - {name: prev_can_bid, width: 8}
+    - {name: prev_can_ask, width: 8}
+    - {name: prev_buy}
+    - {name: prev_sell}
+    - {name: prev_clip}
+    bindings:
+    - {name: bid, expr: "slice(book_prev, 0, 8)"}
+    - {name: ask, expr: "slice(book_prev, 8, 8)"}
+    - {name: arr_bid, expr: "each(8, i, poisson(limit_rate * exp(-arrival_decay * i) * activity * dt / (1 + slice(bid, i, 1) * pow(activity / act_ref, damping_gamma) / arrival_scale)))"}
+    - {name: arr_ask, expr: "each(8, i, poisson(limit_rate * exp(-arrival_decay * i) * activity * dt / (1 + slice(ask, i, 1) * pow(activity / act_ref, damping_gamma) / arrival_scale)))"}
+    - {name: churn_bid, expr: "each(8, i, poisson(churn_rate * exp(-arrival_decay * i) * activity * dt))"}
+    - {name: churn_ask, expr: "each(8, i, poisson(churn_rate * exp(-arrival_decay * i) * activity * dt))"}
+    - {name: can_bid, expr: "min(bid, churn_bid + poisson(cancel_rate * bid * dt))"}
+    - {name: can_ask, expr: "min(ask, churn_ask + poisson(cancel_rate * ask * dt))"}
+    - {name: mkt, expr: "shared(poisson(market_rate * dt))"}
+    - {name: mkt_buy, expr: "shared(binomial(mkt, half))"}
+    - {name: buy_size, expr: "mkt_buy * market_size + where(step == shock_step, shock_size, 0)"}
+    - {name: sell_size, expr: "(mkt - mkt_buy) * market_size"}
+    outputs:
+    - "arr_bid"
+    - "arr_ask"
+    - "can_bid"
+    - "can_ask"
+    - "buy_size"
+    - "sell_size"
+    - "sum(where(churn_bid > bid, 1, 0)) + sum(where(churn_ask > ask, 1, 0))"
+
+  - partition: book
+    fields:
+    - {name: bid, width: 8}
+    - {name: ask, width: 8}
+    - {name: swept}
+    bindings:
+    - {name: arr_bid, expr: "slice(flow, 0, 8)"}
+    - {name: arr_ask, expr: "slice(flow, 8, 8)"}
+    - {name: can_bid, expr: "slice(flow, 16, 8)"}
+    - {name: can_ask, expr: "slice(flow, 24, 8)"}
+    - {name: buy_size, expr: "slice(flow, 32, 1)"}
+    - {name: sell_size, expr: "slice(flow, 33, 1)"}
+    - {name: rest_bid, expr: "bid - can_bid + arr_bid"}
+    - {name: rest_ask, expr: "ask - can_ask + arr_ask"}
+    - {name: cum_bid, expr: "each(8, i, where(i == 0, 0, sum(slice(rest_bid, 0, max(i, 1)))))"}
+    - {name: cum_ask, expr: "each(8, i, where(i == 0, 0, sum(slice(rest_ask, 0, max(i, 1)))))"}
+    - {name: hit_bid, expr: "clamp(sell_size - cum_bid, 0, rest_bid)"}
+    - {name: hit_ask, expr: "clamp(buy_size - cum_ask, 0, rest_ask)"}
+    - {name: next_bid, expr: "rest_bid - hit_bid"}
+    - {name: next_ask, expr: "rest_ask - hit_ask"}
+    outputs:
+    - "next_bid"
+    - "next_ask"
+    - "sum(hit_bid) + sum(hit_ask)"
+
+  - partition: observables
+    # book at the PREVIOUS step, for the depth the flows were drawn against.
+    upstreams: {book_prev: book}
+    fields:
+    - {name: n_limit}
+    - {name: n_cancel}
+    - {name: n_market}
+    - {name: depth_start}
+    - {name: spread_ticks}
+    - {name: clip_binds}
+    bindings:
+    - {name: post_bid, expr: "slice(book_now, 0, 8)"}
+    - {name: post_ask, expr: "slice(book_now, 8, 8)"}
+    - {name: occ_bid, expr: "where(post_bid > 0, 1, 0)"}
+    - {name: occ_ask, expr: "where(post_ask > 0, 1, 0)"}
+    - {name: front_bid, expr: "each(8, i, where(i == 0, 1, where(sum(slice(occ_bid, 0, max(i, 1))) == 0, 1, 0)))"}
+    - {name: front_ask, expr: "each(8, i, where(i == 0, 1, where(sum(slice(occ_ask, 0, max(i, 1))) == 0, 1, 0)))"}
+    - {name: idx, expr: "each(8, i, i)"}
+    - {name: best_bid, expr: "dot(idx, occ_bid * front_bid)"}
+    - {name: best_ask, expr: "dot(idx, occ_ask * front_ask)"}
+    - {name: two_sided, expr: "where(sum(occ_bid) * sum(occ_ask) > 0, 1, 0)"}
+    outputs:
+    - "sum(slice(flow, 0, 16))"
+    - "sum(slice(flow, 16, 16))"
+    - "slice(book_now, 16, 1)"
+    - "sum(slice(book_prev, 0, 16))"
+    - "where(two_sided > 0, best_bid + best_ask + 2, empty_spread)"
+    - "slice(flow, 34, 1)"

@@ -22,6 +22,172 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`api.RunToStorage(config) (*api.RunResult, error)`: one programmatic entry point
+  for every run shape.** A macros tier, a batch run, or a `run: {mode: ensemble}` all
+  go through it. It returns `RunResult.Storage` (batch, macros) or `RunResult.Members`
+  (ensemble, aligned with `run.seeds`), and returns every failure as an error instead
+  of exiting.
+  - It records exactly what the config's `output_condition` selects, into storage, in
+    place of the config's `output_function`, which is not invoked. A partition the
+    condition never selects is present with no rows.
+  - The caller's config is not modified, so it can be run again afterwards.
+  - It replaces the pattern of swapping in a `StateTimeStorageOutputFunction` by hand.
+    Doing that in place rewrites the caller's config, because the generator holds a
+    pointer to its simulation block.
+
+### Changed
+
+- **`api.RunMacros` and `api.RunEnsembleToStorage` are deprecated** in favour of
+  `api.RunToStorage`. Both keep working unchanged.
+- **The CLI prints macro and ensemble results in partition-name order.** Partitions
+  were previously printed in Go map order, which varied from run to run. `Run`'s
+  output for these configs is now exactly `RunToStorage`'s result, printed.
+
+- **`api.StepAndServeWebsocket` takes a per-connection builder and an origin allow-list**
+  (`build func() *simulator.ConfigGenerator, …, allowedOrigins []string`). The new
+  `api.NewWebsocketHandler` is the same server as an `http.Handler`. The server now
+  registers on its own `http.ServeMux` instead of the global default mux.
+- **The websocket server's origin policy is no longer open to every origin.** It admits
+  non-browser clients, same-origin pages, loopback origins on any port, and origins
+  listed in the socket file's new `allowed_origins` (`"*"` restores the old open
+  behaviour).
+- **Config keys that a run never reads are now load errors instead of silent no-ops.**
+  With `macros:` present, `main.expressions`, `main.simulation`, `embedded:`, and any
+  `run:` other than the default `{mode: batch}` are rejected. These keys were previously
+  ignored, because the macros tier runs in its own context. `main.partitions` was already
+  rejected. Without `macros:`, a `data:` block is rejected, because only the macros tier
+  reads it. Each error says where the key should go. No config in this repo or the
+  surveyed downstream repos uses any of these shapes.
+
+### Fixed
+
+- **Concurrent websocket clients shared one simulation.** Every connection reused one
+  generator, so `GenerateConfigs` handed out the same iteration instances each time.
+  Concurrent clients stepped one shared, mutable model, which caused data races and
+  scrambled or missing streams. Each connection now gets a fresh model, rebuilt by
+  re-loading the config file the way ensemble members are. The server also stops
+  stepping once a client disconnects.
+- **`vector_covariance` initial state.** `NewVectorCovariancePartition` filled its n×n
+  initial state at index `i+j` instead of row-major `i*n+j`. That put `DefaultValue` off
+  the diagonal, and burn-in steps (which return the initial state) emitted the wrong
+  matrix whenever `DefaultValue` was non-zero.
+
+## [0.19.0] — 2026-10-03
+
+One new domain-models catalogue entry, `solar-fleet`, and nothing else changes — no existing
+behaviour is touched, so this is a strictly backward-compatible addition. It is a minor rather
+than a patch because it adds a new public package (`models/solar-fleet`, exporting `BuildStub`,
+the bespoke iterations, the ported geometry and fleet helpers, and `ObservedBehaviour`); a patch
+here is reserved for fixes.
+
+The entry is the aggregate solar-PV fleet forward model lifted from the downstream
+[solar-fleet](https://github.com/umbralcalc/solar-fleet) project: a deterministic solar-geometry
+backbone (NOAA solar position, the Meinel clear-sky beam form, and a plane-of-array
+transposition, ported to Go and verified against the downstream numpy to six decimals) drives a
+distance-coupled stochastic clear-sky-index field, summed to a fleet total. Its headline is
+**dispersion-smoothing** — spreading sites apart lowers aggregate output variability at fixed
+capacity — which is non-vacuous here precisely because the coupling derives from geography (the
+full-covariance form, a single Cholesky-correlated innovation vector per step) rather than a
+scalar per-site loading that a shared factor would give.
+
+It is the catalogue's **second born-declarative** entry, after `limit-order-book`: the downstream
+forward model is itself pure stochadex configuration, so `declarative.yaml` is the form the
+downstream actually runs and the bespoke Go iterations are a faithful re-expression of it, held
+exact (~1e-12) by the equivalence test on both its step-for-step and whole-suite layers. That
+makes the promotion triage decidable up front and affirmative: a distance-coupled multivariate
+fleet runs as pure data, so the engine is not missing a capability here (a category-1 answer).
+
+Two engine mechanisms make that twin possible, and both were driven into core by this same
+downstream: `from_storage` (the config-level replay of a precomputed series into a live partition,
+new in 0.18.0), which the clear-sky driver uses; and correlated multivariate innovations in the
+expression DSL — drawing the whole innovation vector once and correlating it with a constant
+Cholesky factor (`iid` + `each` + `dot` + `slice`), needing no per-lane draw control. The stub is
+purely structural (its capacity-siting decision layer lives downstream, like `floodrisk`) with six
+sign-correct response claims spanning cloud volatility, geographic dispersion, mean-reversion
+speed, tilt, orientation and latitude.
+
+### Added
+
+- `models/solar-fleet`: an aggregate solar-PV fleet domain-models entry — three partitions
+  (`clearsky` → `sites` → `fleet`) generating a distance-coupled clear-sky-index field and its
+  fleet aggregate, with the full catalogue artifact set (methodology card, data-free `BuildStub`
+  stub, bespoke iterations, ported deterministic geometry, expected-behaviour suite, and an
+  exactly-equivalent `declarative.yaml` twin). The catalogue's second born-declarative entry.
+
+## [0.18.0] — 2026-08-12
+
+Two small additive reach extensions to the pure-config surface, both prompted by gaps a
+downstream application (`solar-fleet`) recorded against the engine. Neither changes any
+existing behaviour, so both are strictly backward-compatible; grouped here rather than
+tagged pending the next release.
+
+The first closes a config-level replay gap: a precomputed external series (a deterministic
+driver — a clear-sky irradiance curve, a forcing series — computed outside the engine)
+could be stepped into a `main:` simulation partition only from Go, because the existing
+`from_storage` iteration held bulk `[][]float64` data with no data-spec form. It now takes
+one: `{type: from_storage, data: [[...], ...]}` carries the series inline as config data,
+with a matching `from_storage` timestep function for the time axis. The series *is* data,
+so no streaming source or toolchain is needed.
+
+The second is a set of inverse-trigonometry primitives in the expression DSL (`asin`,
+`acos`, `atan`, `atan2`, `tan`), the elementwise complement to the existing `sin`/`cos`.
+They make in-DSL geometry (solar azimuth/altitude, angle-from-components) sayable; each is
+a pure elementwise `math.*` wrapper that agrees with compiled Go to rounding.
+
+### Added
+
+- `{type: from_storage}` iteration (and `{type: from_storage}` timestep function): replay a
+  precomputed series into a `main:` partition by step number, its rows/times carried inline
+  as config data with an optional `init_steps_taken` offset. Registered in the data-only
+  iteration registry; the Go form's runtime behaviour is unchanged.
+- `cfg/example_from_storage_config.yaml` — a precomputed driver replayed into a partition
+  and consumed downstream via `params_from_upstream`.
+- Expression DSL functions `asin`, `acos`, `atan`, `atan2(y, x)`, and `tan`.
+
+## [0.17.0] — 2026-08-12
+
+One new domain-models catalogue entry, `limit-order-book`, and nothing else changes — no
+existing behaviour is touched, so this is a strictly backward-compatible addition. It is a
+minor rather than a patch because it adds a new public package (`models/limit-order-book`,
+exporting `BuildStub`, the four iterations, and `ObservedBehaviour`); a patch here is
+reserved for fixes.
+
+The entry is the limit-order-book microsimulation lifted from the downstream
+[cryptobook](https://github.com/umbralcalc/cryptobook) project's best model — its
+"counts route", calibrated against Binance BTC/USD spot flow — in the four-partition
+modular form the downstream verified reproduces the monolith: a shared latent-activity
+`activity` driver (a persistent AR(1) process pulled towards a Gamma innovation) feeds
+`flows` (depth-damped limit arrivals, quote churn, cancellations, and one marketable order
+split into buy and sell legs), which a deterministic `book` matches into a resting ladder,
+which `observables` reads out as counts, depth, spread, and the arrival–depth coupling. The
+one swept driver is the activity-dependent arrival-damping exponent — the model's stability
+brake and the parameter the downstream calibrates — and the headline claim is that
+strengthening it drives the depth/arrival correlation more negative.
+
+It is the catalogue's first **born-declarative** entry, and it inverts the usual
+stub↔twin relationship. cryptobook has no bespoke Go anywhere — its entire forward model
+is stochadex configuration — so the `declarative.yaml` twin is the form the downstream
+actually runs, and the four Go iterations are a faithful re-expression of it rather than
+the other way round. That makes the promotion triage decidable up front and affirmative:
+the DSL already expresses this model, so the bespoke Go is a convenience, not a capability
+gap. Because the stochastic partitions draw from the same `rng.New(seed)` stream in the
+same order the expression evaluator does, the equivalence test is exact (~1e-12) on both
+the per-step and whole-suite oracles. The stub is purely structural (its decision layer
+lives entirely downstream, like `floodrisk`) with six sign-correct response claims spanning
+the damping brake, arrival intensity, marketable rate and size, spread formation, and quote
+churn.
+
+### Added
+
+- `models/limit-order-book`: a limit-order-book microsimulation domain-models entry —
+  four modular partitions (`activity` → `flows` → `book` → `observables`) generating
+  depth-damped order flow and a matched book, with the full catalogue artifact set
+  (methodology card, data-free `BuildStub` stub, bespoke iterations, expected-behaviour
+  suite, and an exactly-equivalent `declarative.yaml` twin). The catalogue's first
+  born-declarative entry.
+
 ## [0.16.0] — 2026-08-11
 
 Two additive inference capabilities, both authorable as pure config and covered by
@@ -1341,7 +1507,10 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.19.0...HEAD
+[0.19.0]: https://github.com/umbralcalc/stochadex/compare/v0.18.0...v0.19.0
+[0.18.0]: https://github.com/umbralcalc/stochadex/compare/v0.17.0...v0.18.0
+[0.17.0]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/umbralcalc/stochadex/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/umbralcalc/stochadex/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/umbralcalc/stochadex/compare/v0.13.1...v0.14.0
