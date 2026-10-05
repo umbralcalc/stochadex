@@ -1,8 +1,10 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -166,5 +168,120 @@ func TestLoadConfigErrors(t *testing.T) {
 	}
 	if !didPanic(func() { LoadApiRunConfigFromYaml(path) }) {
 		t.Error("LoadApiRunConfigFromYaml should still panic on an invalid config")
+	}
+}
+
+// replaceOnce replaces old with new exactly once, failing if old is absent so a
+// test cannot silently run against an unmodified config.
+func replaceOnce(t *testing.T, s, old, new string) string {
+	t.Helper()
+	if !strings.Contains(s, old) {
+		t.Fatalf("test config edit not applied: %q not found", old)
+	}
+	return strings.Replace(s, old, new, 1)
+}
+
+func writeFile(t *testing.T, path, contents string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestFailureClassificationReachesNestedAndDeferredParts covers the parts of a
+// config that are resolved somewhere other than the top-level load.
+func TestFailureClassificationReachesNestedAndDeferredParts(t *testing.T) {
+	dir := t.TempDir()
+	t.Run("an embedded run with an unknown iteration type is a config error at load", func(t *testing.T) {
+		path := filepath.Join(dir, "embedded.yaml")
+		writeFile(t, path, `main:
+  partitions:
+  - {name: inner_run, init_state_values: [0.0], state_history_depth: 1, seed: 0, params: {burn_in_steps: [0]}}
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: nil}
+    termination_condition: {type: number_of_steps, max_steps: 2}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+embedded:
+- name: inner_run
+  partitions:
+  - {name: p, iteration: {type: no_such_process}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+  simulation:
+    output_condition: {type: nil}
+    output_function: {type: nil}
+    termination_condition: {type: number_of_steps, max_steps: 2}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+`)
+		_, err := LoadConfig(path)
+		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "no_such_process") {
+			t.Errorf("expected an ErrConfig naming the unknown type, got %v", err)
+		}
+	})
+	t.Run("a data: sub-simulation with an unknown iteration type is a config error when run", func(t *testing.T) {
+		// data: partitions are resolved only when the macros tier builds storage.
+		path := filepath.Join(dir, "data.yaml")
+		writeFile(t, path, replaceOnce(t, macroConfigYAML,
+			"iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}",
+			"iteration: {type: no_such_process}"))
+		config, err := LoadConfig(path)
+		if err != nil {
+			t.Fatalf("the data: block is resolved at run time, so loading should succeed: %v", err)
+		}
+		_, err = RunToStorage(config)
+		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "no_such_process") {
+			t.Errorf("expected an ErrConfig naming the unknown type, got %v", err)
+		}
+	})
+	t.Run("a misspelled simulation component is a config error at load", func(t *testing.T) {
+		path := filepath.Join(dir, "typo.yaml")
+		writeFile(t, path, replaceOnce(t, executeWithOutput("{type: nil}"),
+			"{type: number_of_steps, max_steps: 5}", "{type: number_of_stpes, max_steps: 5}"))
+		_, err := LoadConfig(path)
+		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "number_of_stpes") {
+			t.Errorf("expected an ErrConfig naming the misspelled type, got %v", err)
+		}
+	})
+	t.Run("RunMacros on a config with no macros is a config error", func(t *testing.T) {
+		_, err := RunMacros(&ApiRunConfig{})
+		if KindOf(err) != ErrConfig {
+			t.Errorf("expected an ErrConfig, got %v", err)
+		}
+	})
+	t.Run("a socket file without an address runs without serving", func(t *testing.T) {
+		configPath := filepath.Join(dir, "plain.yaml")
+		socketPath := filepath.Join(dir, "socket.yaml")
+		writeFile(t, configPath, executeWithOutput("{type: nil}"))
+		writeFile(t, socketPath, "handle: /handle\nmillisecond_delay: 0\n")
+		var err error
+		captureStdout(t, func() {
+			err = Execute([]string{"stochadex", "--config", configPath, "--socket", socketPath})
+		})
+		if err != nil {
+			t.Errorf("an inactive socket config should run normally, got %v", err)
+		}
+	})
+}
+
+// TestArgParseExitsOnBadArgs re-runs this test binary as a child that calls
+// ArgParse with no --config, and checks the child exits with the usage code and
+// prints the usage text. ArgParse used to print usage and carry on with an empty
+// config path.
+func TestArgParseExitsOnBadArgs(t *testing.T) {
+	if os.Getenv("STOCHADEX_ARGPARSE_CHILD") == "1" {
+		os.Args = []string{"stochadex"}
+		ArgParse()
+		return // reaching here means ArgParse did not exit
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestArgParseExitsOnBadArgs$")
+	cmd.Env = append(os.Environ(), "STOCHADEX_ARGPARSE_CHILD=1")
+	output, err := cmd.CombinedOutput()
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != ExitUsage {
+		t.Fatalf("expected the child to exit %d, got %v\n%s", ExitUsage, err, output)
+	}
+	if !strings.Contains(strings.ToLower(string(output)), "usage") {
+		t.Errorf("expected usage text, got:\n%s", output)
 	}
 }
