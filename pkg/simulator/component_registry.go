@@ -186,7 +186,8 @@ func ResolveOutputCondition(spec ComponentSpec) (OutputCondition, error) {
 }
 
 // ResolveOutputFunction builds an OutputFunction from a data spec. Live-object
-// sinks (state storage, channel, websocket) have no data form and are absent.
+// sinks (state storage, channel, a server-side websocket connection) have no
+// data form and are absent; a websocket the run pushes to as a client does.
 func ResolveOutputFunction(spec ComponentSpec) (OutputFunction, error) {
 	reader := newFieldReader(spec.Type, spec.Fields)
 	var result OutputFunction
@@ -197,6 +198,8 @@ func ResolveOutputFunction(spec ComponentSpec) (OutputFunction, error) {
 		result = &StdoutOutputFunction{}
 	case "json_log":
 		result = NewJsonLogOutputFunction(reader.str("path"))
+	case "websocket":
+		result = NewWebsocketPushOutputFunction(reader.str("url"))
 	default:
 		if value, ok, err := resolveExtra("output_function", spec); ok {
 			if err != nil {

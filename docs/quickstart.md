@@ -174,7 +174,7 @@ A **partition** advances a vector state each step from its **params** and, optio
 
 The `simulation` block is all data too: `output_condition`
 (`every_step` / `every_n_steps` / `only_given_partitions` / `nil`), `output_function`
-(`stdout` / `json_log` / `arrow` / `duckdb` / `postgres` / `s3` / `nil`), `termination_condition`
+(`stdout` / `json_log` / `websocket` / `arrow` / `duckdb` / `postgres` / `s3` / `nil`), `termination_condition`
 (`number_of_steps` / `time_elapsed`), `timestep_function`
 (`constant` / `exponential_distribution`).
 
@@ -185,6 +185,14 @@ Beyond `stdout` and `json_log`, write columnar output directly:
 ```yaml
     output_function: {type: arrow, path: run.arrow}                    # Arrow IPC file
     output_function: {type: duckdb, path: run.duckdb, table: results}  # DuckDB table
+```
+
+To stream a run live to another service (a dashboard, a recorder), push it to a websocket
+server. The run connects as a client when it starts, sends each output as a protobuf
+`PartitionState` frame, and closes the connection when it finishes:
+
+```yaml
+    output_function: {type: websocket, url: "ws://localhost:8080/ingest"}
 ```
 
 `postgres` takes local credentials, or `driver`/`dsn` through `database/sql` to reach **any Postgres-wire database** (TimescaleDB, CockroachDB, a managed instance):

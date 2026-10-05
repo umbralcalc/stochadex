@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
@@ -310,6 +311,82 @@ func NewWebsocketOutputFunction(
 	mutex *sync.Mutex,
 ) *WebsocketOutputFunction {
 	return &WebsocketOutputFunction{connection: connection, mutex: mutex}
+}
+
+// WebsocketPushOutputFunction streams outputs to a websocket server, acting as
+// the client: the config names a URL (output_function: {type: websocket, url:
+// ...}) and the run pushes to it. Messages are the same protobuf PartitionState
+// frames the serving mode (WebsocketOutputFunction) sends.
+//
+// It connects when a run starts, never when it is built — building happens when a
+// config is loaded, and loading must not reach out over the network. Finalize
+// sends a normal close frame and disconnects; a later run of the same sink
+// reconnects, so each run is one connection.
+type WebsocketPushOutputFunction struct {
+	url        string
+	connection *websocket.Conn
+	inner      *WebsocketOutputFunction
+	writeMutex sync.Mutex
+	mutex      sync.Mutex
+}
+
+// NewWebsocketPushOutputFunction creates a sink that pushes to url once a run
+// starts.
+func NewWebsocketPushOutputFunction(url string) *WebsocketPushOutputFunction {
+	return &WebsocketPushOutputFunction{url: url}
+}
+
+// Configure connects to the server, panicking if it cannot, as other sinks do
+// when their destination is unavailable.
+func (w *WebsocketPushOutputFunction) Configure(*Settings) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	w.connectLocked()
+}
+
+// connectLocked dials the server if not already connected. The caller holds mutex.
+func (w *WebsocketPushOutputFunction) connectLocked() {
+	if w.connection != nil {
+		return
+	}
+	connection, _, err := websocket.DefaultDialer.Dial(w.url, nil)
+	if err != nil {
+		panic(fmt.Errorf("websocket: connecting to %s: %w", w.url, err))
+	}
+	w.connection = connection
+	w.inner = NewWebsocketOutputFunction(connection, &w.writeMutex)
+}
+
+func (w *WebsocketPushOutputFunction) Output(
+	partitionName string,
+	state []float64,
+	cumulativeTimesteps float64,
+) {
+	w.mutex.Lock()
+	// A caller driving the sink by hand may never call Configure.
+	w.connectLocked()
+	inner := w.inner
+	w.mutex.Unlock()
+	inner.Output(partitionName, state, cumulativeTimesteps)
+}
+
+// Finalize closes the connection cleanly once the run can produce no more output.
+func (w *WebsocketPushOutputFunction) Finalize() {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	if w.connection == nil {
+		return
+	}
+	w.writeMutex.Lock()
+	_ = w.connection.WriteControl(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+		time.Now().Add(time.Second),
+	)
+	w.writeMutex.Unlock()
+	_ = w.connection.Close()
+	w.connection = nil
+	w.inner = nil
 }
 
 // OutputCondition decides whether an output should be emitted this step.

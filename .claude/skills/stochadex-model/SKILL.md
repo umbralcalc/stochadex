@@ -160,7 +160,8 @@ deadlock, the run tells you exactly which partitions form the cycle.
   simulation:
     output_condition:      {type: every_step}            # or nil, every_n_steps{n}, only_given_partitions{partitions:[...]}
     output_function:       {type: stdout}                # or nil, json_log{path},
-                                                         # arrow{path}, duckdb{path,table}
+                                                         # arrow{path}, duckdb{path,table},
+                                                         # websocket{url} (pushes to a server)
     termination_condition: {type: number_of_steps, max_steps: 100}   # or time_elapsed{max_time_elapsed}
     timestep_function:     {type: constant, stepsize: 1.0}           # or exponential_distribution{mean, seed}
     init_time_value:       0.0
@@ -393,6 +394,6 @@ params) `partition_event` (reads `event_partition_index` / `event_state_value_in
 **Environments** (`mcts_self_play`'s `env:`): `tictactoe` only, unless the binary links a module
 that called `api.RegisterEnvironment`.
 **Simulation components:** output_condition `nil|every_step|every_n_steps|only_given_partitions`;
-output_function `nil|stdout|json_log`; termination `number_of_steps|time_elapsed`;
+output_function `nil|stdout|json_log|websocket` (`websocket` pushes each output to field `url:` as a client); termination `number_of_steps|time_elapsed`;
 timestep `constant|exponential_distribution|from_history|from_storage` (`from_storage` replays an
 inline list of times: field `data:`, optional `init_steps_taken`).
