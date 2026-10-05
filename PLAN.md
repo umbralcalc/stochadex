@@ -8,6 +8,9 @@ Status: **accepted** (2026-10-04).
   - **Merged:** 0.3 `RunToStorage` (#95).
   - **In review:** sinks open when a run starts, not at load (#96). This implements
     rule 12 for json_log and Postgres and is a prerequisite for 0.4 and O.2.
+  - **In review:** 0.6, the websocket push output (#97).
+  - **Next:** 0.4 output views, once #96 merges. O.3 structured exit codes can start
+    now, since it only needs 0.3.
   - **Found for 0.4:** `RunToStorage` suppresses only *top-level* sinks; a nested run's
     own sink still writes. View suppression must cover nested views too.
 - The standalone fixes (§1.6) are **merged**: umbralcalc/stochadex#91, #92, #93. They also
@@ -635,7 +638,7 @@ None of these depend on each other, so each can be its own PR.
 | 0.3 | **DONE (#95)**: one programmatic entry point | `api.RunToStorage(config) (*RunResult, error)` with `RunResult.Storage` (batch, macros) or `.Members` (ensemble). It records what the config's `output_condition` selects into an in-memory view, *in place of* the config's sinks, on a copy of the config. `Run` prints its result for macro and ensemble configs (in name order). `RunMacros` / `RunEnsembleToStorage` are deprecated wrappers. In §2.5 terms, this is the convenience form "one in-memory view, config views suppressed". 0.4 generalises it to caller-attached views with suppress or tee, and grows `RunResult` additively. | Storage matches the config's own json_log sink read back; config unmodified; mutation-checked (see #95) |
 | 0.4 | Output views (§2.5) | `outputs:` list of (name, condition, function), with the single `simulation.output_*` pair as shorthand for one view; a tee with per-view conditions; macro results flow through views (interim: replay the final storage through them until Phase 2 removes the replay); the programmatic entry point takes options to attach in-memory views and to suppress or tee config views; ensemble members get per-member sink instances (templated paths). The default stays stdout, byte-identical to today. **Depends on #96 (sinks open at run start).** Suppression must also cover nested views (found in #96). | Each view receives exactly its condition's rows (checked against an independent single-sink run); a suppressed view writes nothing and creates no file; a tee writes all views; per-member ensemble logs match the members' storages; mutation-checked |
 | 0.5 | **DONE (#91)**: fix the serve race | Fresh generator per connection (reload from `sourcePath`); a private `http.ServeMux`; stop on disconnect; configurable origins (default: same-origin + loopback). | Streams match an offline reference run under `-race`; one build per connection; disconnect, origin and YAML-loading tests |
-| 0.6 | Push websocket sink | A websocket *client* view function (`{type: websocket, url: ...}`), usable in `outputs:` like any sink and registered via `RegisterComponent`; it opens its connection in `Configure`, not at load (rule 12) | Test against an in-process `httptest` server; the stream matches an in-memory view of the same run |
+| 0.6 | **IN REVIEW (#97)**: push websocket sink | A websocket *client* view function (`{type: websocket, url: ...}`), usable in `outputs:` like any sink and registered via `RegisterComponent`; it opens its connection in `Configure`, not at load (rule 12) | Test against an in-process `httptest` server; the stream matches an in-memory view of the same run |
 | 0.7 | **DONE (#93)**: covariance init indexing | `i*num+j` | Widths 1–4 against an independent matrix, plus the YAML `default_value` path |
 
 **Versioning:** 0.1 turned silent no-ops into errors. That is called out under
