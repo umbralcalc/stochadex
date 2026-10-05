@@ -24,6 +24,10 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`output_function: {type: websocket, url: ...}` pushes a run to a websocket
+  server.** The engine acts as the client: it connects when the run starts (never at
+  load), sends each output as the same protobuf `PartitionState` frame that serving mode
+  sends, and closes normally in `Finalize`. A later run of the same sink reconnects.
 - **`api.RunToStorage(config) (*api.RunResult, error)`: one programmatic entry point
   for every run shape.** A macros tier, a batch run, or a `run: {mode: ensemble}` all
   go through it. It returns `RunResult.Storage` (batch, macros) or `RunResult.Members`
