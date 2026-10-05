@@ -106,6 +106,12 @@ an exact version rather than assume stability across minors.
   initial state at index `i+j` instead of row-major `i*n+j`. That put `DefaultValue` off
   the diagonal, and burn-in steps (which return the initial state) emitted the wrong
   matrix whenever `DefaultValue` was non-zero.
+- **A non-numeric time value in a CSV now fails the load instead of corrupting the time
+  axis.** `analysis.NewStateTimeStorageFromCsv` (behind `data: {source: {csv: ...}}`) only
+  printed "Error converting string" on a time-column parse failure and kept the row with
+  time 0. It now returns an error naming the file, the 1-based row (counting any header)
+  and the offending value, matching how a state-column parse failure was already handled.
+  A config whose CSV has a bad time value now fails where it used to run on wrong times.
 
 ## [0.19.0] — 2026-10-03
 

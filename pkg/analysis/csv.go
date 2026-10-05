@@ -50,7 +50,9 @@ import (
 // Error Handling:
 //   - File not found: Returns error with file path
 //   - CSV parsing errors: Returns error with parsing details
-//   - Invalid numeric values: Returns error with conversion details
+//   - Invalid numeric values: Returns error with conversion details; a
+//     non-numeric time value names the file, the 1-based row (counting any
+//     header) and the offending value
 //   - Inconsistent row lengths: Returns error with row information
 //
 // Performance Notes:
@@ -75,14 +77,19 @@ func NewStateTimeStorageFromCsv(
 	if err != nil {
 		return nil, fmt.Errorf("parsing %s as CSV: %w", filePath, err)
 	}
-	for _, row := range records {
+	for rowIndex, row := range records {
 		if skipHeaderRow {
 			skipHeaderRow = false
 			continue
 		}
 		time, err := strconv.ParseFloat(row[timeColumn], 64)
 		if err != nil {
-			fmt.Printf("Error converting string: %v", err)
+			// A bad time value must fail the load: keeping the row would
+			// silently place it at time 0 and corrupt the time axis.
+			return nil, fmt.Errorf(
+				"%s: row %d: time column %d value %q is not a number: %w",
+				filePath, rowIndex+1, timeColumn, row[timeColumn], err,
+			)
 		}
 		for partition, columns := range stateColumnsByPartition {
 			data := make([]float64, 0)
