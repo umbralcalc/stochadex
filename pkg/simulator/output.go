@@ -12,6 +12,20 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// ResourceError reports that an external resource a run depends on — an output
+// file, a database, a websocket server — could not be reached when the run
+// started. Sinks raise it (by panicking, as Configure has no error return) so a
+// caller can tell an unavailable destination, which may be worth retrying, from
+// a bug.
+type ResourceError struct {
+	// Resource describes what was being reached, e.g. "json_log: opening run.log".
+	Resource string
+	Err      error
+}
+
+func (e *ResourceError) Error() string { return e.Resource + ": " + e.Err.Error() }
+func (e *ResourceError) Unwrap() error { return e.Err }
+
 // OutputFunction writes state/time to an output sink when the OutputCondition
 // is met.
 //
@@ -140,7 +154,7 @@ func (j *JsonLogOutputFunction) openLocked() {
 	}
 	file, err := os.OpenFile(j.path, flags, 0o644)
 	if err != nil {
-		panic(fmt.Errorf("json_log: opening %s: %w", j.path, err))
+		panic(&ResourceError{Resource: "json_log: opening " + j.path, Err: err})
 	}
 	j.file = file
 	j.created = true
@@ -351,7 +365,7 @@ func (w *WebsocketPushOutputFunction) connectLocked() {
 	}
 	connection, _, err := websocket.DefaultDialer.Dial(w.url, nil)
 	if err != nil {
-		panic(fmt.Errorf("websocket: connecting to %s: %w", w.url, err))
+		panic(&ResourceError{Resource: "websocket: connecting to " + w.url, Err: err})
 	}
 	w.connection = connection
 	w.inner = NewWebsocketOutputFunction(connection, &w.writeMutex)

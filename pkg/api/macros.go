@@ -114,17 +114,18 @@ func (m *MacroConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // configured, otherwise by running the sub-simulation to completion.
 func (d *DataConfig) buildStorage() (*simulator.StateTimeStorage, error) {
 	if d.Source != nil {
-		return d.Source.load()
+		storage, err := d.Source.load()
+		return storage, inputError(err)
 	}
 	run := RunConfig{Partitions: d.Partitions, Expressions: d.Expressions}
 	if err := resolveIterations(run.Partitions); err != nil {
-		return nil, err
+		return nil, configError(err)
 	}
 	generator := run.GetConfigGenerator()
 	// Pre-flight the data: sub-simulation's within-step wiring, so a cyclic data
 	// block fails with a located error rather than an opaque runtime deadlock.
 	if err := CheckForDeadlock(generator); err != nil {
-		return nil, err
+		return nil, configError(err)
 	}
 	partitions := make([]*simulator.PartitionConfig, 0, len(d.Partitions))
 	for _, name := range generator.PartitionNames() {
@@ -216,7 +217,7 @@ func simulationStringsZero(s *simulator.SimulationConfigStrings) bool {
 // in turn lets a later against-storage macro reference an earlier one's output.
 func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 	if err := validateMacroContext(config); err != nil {
-		return nil, err
+		return nil, configError(err)
 	}
 	var storage *simulator.StateTimeStorage
 	ensureStorage := func() error {
@@ -224,7 +225,8 @@ func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 			return nil
 		}
 		if config.Data == nil {
-			return fmt.Errorf("api: against-storage macros require a data: block to analyse")
+			return configError(fmt.Errorf(
+				"api: against-storage macros require a data: block to analyse"))
 		}
 		built, err := config.Data.buildStorage()
 		storage = built
@@ -241,9 +243,15 @@ func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 					return nil, err
 				}
 			}
-			partitions, steps, timestep, err := live.resolveLive(storage)
+			var partitions []*simulator.PartitionConfig
+			var steps int
+			var timestep float64
+			err := expanding(macro.Type, func() (err error) {
+				partitions, steps, timestep, err = live.resolveLive(storage)
+				return err
+			})
 			if err != nil {
-				return nil, fmt.Errorf("macro %q: %w", macro.Type, err)
+				return nil, err
 			}
 			storage = analysis.NewStateTimeStorageFromPartitions(
 				partitions,
@@ -256,16 +264,38 @@ func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 		if err := ensureStorage(); err != nil {
 			return nil, err
 		}
-		partitions, windows, err := macro.Spec.resolve(storage)
+		var partitions []*simulator.PartitionConfig
+		var windows map[string]int
+		err := expanding(macro.Type, func() (err error) {
+			partitions, windows, err = macro.Spec.resolve(storage)
+			return err
+		})
 		if err != nil {
-			return nil, fmt.Errorf("macro %q: %w", macro.Type, err)
+			return nil, err
 		}
 		storage = analysis.AddPartitionsToStateTimeStorage(storage, partitions, windows)
 	}
 	if storage == nil {
-		return nil, fmt.Errorf("api: no macros produced any output")
+		return nil, configError(fmt.Errorf("api: no macros produced any output"))
 	}
 	return storage, nil
+}
+
+// expanding runs one macro's expansion, classifying any failure — returned or
+// panicked — as ErrConfig: expansion only turns the config into partitions, so
+// a failure there (a missing partition reference, a bad window) is the config's,
+// not the simulation's. Failures while the expanded partitions run are not
+// covered and stay ErrRuntime.
+func expanding(macroType string, expand func() error) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = configError(fmt.Errorf("macro %q: %v", macroType, recovered))
+		}
+	}()
+	if err := expand(); err != nil {
+		return configError(fmt.Errorf("macro %q: %w", macroType, err))
+	}
+	return nil
 }
 
 // applyParams merges a macro's params: into a generated partition's Params — how

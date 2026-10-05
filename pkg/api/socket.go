@@ -43,3 +43,21 @@ func LoadSocketConfigFromYaml(path string) *SocketConfig {
 	}
 	return &config
 }
+
+// loadSocketConfig loads a SocketConfig like LoadSocketConfigFromYaml, but
+// quietly and returning an ErrConfig error instead of panicking. An empty path
+// means no websocket.
+func loadSocketConfig(path string) (*SocketConfig, error) {
+	config := SocketConfig{}
+	if path == "" {
+		return &config, nil
+	}
+	yamlFile, err := os.ReadFile(path)
+	if err != nil {
+		return nil, configError(err)
+	}
+	if err := yaml.Unmarshal(yamlFile, &config); err != nil {
+		return nil, configError(err)
+	}
+	return &config, nil
+}

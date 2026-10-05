@@ -87,6 +87,16 @@ type deferredPostgresOutput struct {
 // the sink at load used to.
 func (d *deferredPostgresOutput) Configure(settings *simulator.Settings) {
 	if d.inner == nil {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				err, ok := recovered.(error)
+				if !ok {
+					err = fmt.Errorf("%v", recovered)
+				}
+				panic(&simulator.ResourceError{
+					Resource: "postgres: connecting to table " + d.db.TableName, Err: err})
+			}
+		}()
 		d.inner = analysis.NewPostgresDbOutputFunction(d.db)
 	}
 	d.inner.Configure(settings)

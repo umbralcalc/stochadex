@@ -25,13 +25,13 @@ func TestValidateAcceptsExpressionBackedPartitions(t *testing.T) {
 					Expressions: []ExpressionConfig{{Partition: "declarative"}},
 				},
 			}
-			if didPanic(func() { validateApiRunConfig(config) }) {
-				t.Error("validation panicked despite a matching expression spec")
+			if err := validateApiRunConfig(config); err != nil {
+				t.Errorf("validation failed despite a matching expression spec: %v", err)
 			}
 		},
 	)
 	t.Run(
-		"a partition with neither an iteration, an embedded run nor an expression panics",
+		"a partition with neither an iteration, an embedded run nor an expression is rejected",
 		func(t *testing.T) {
 			config := &ApiRunConfig{
 				Main: RunConfig{
@@ -39,8 +39,9 @@ func TestValidateAcceptsExpressionBackedPartitions(t *testing.T) {
 					Expressions: []ExpressionConfig{{Partition: "somebody_else"}},
 				},
 			}
-			if !didPanic(func() { validateApiRunConfig(config) }) {
-				t.Error("expected a panic for a partition no expression spec names")
+			err := validateApiRunConfig(config)
+			if err == nil || !strings.Contains(err.Error(), "orphan") {
+				t.Errorf("expected an error naming the orphan partition, got %v", err)
 			}
 		},
 	)

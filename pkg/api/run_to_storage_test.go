@@ -213,6 +213,10 @@ func TestRunToStorage(t *testing.T) {
 		{"macros alongside an ensemble run:",
 			macroConfigYAML + "run: {mode: ensemble, seeds: [1]}\n",
 			"run:"},
+		{"an upstream naming a missing partition",
+			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog),
+				"    seed: 2939\n", "    seed: 2939\n    params_from_upstream: {variances: {upstream: ghost}}\n", 1),
+			"ghost"},
 		{"a within-step dependency cycle",
 			`main:
   partitions:

@@ -167,29 +167,75 @@ func CheckForDeadlock(generator *simulator.ConfigGenerator) error {
 // completion offline, emitting through the config's output_function.
 // "ensemble" runs one seeded member per seed concurrently. Macros and ensembles
 // have no output_function of their own, so Run prints what RunToStorage returns.
+//
+// A failure exits the process; a panic raised while running propagates. Use
+// Execute (as the CLI does) for classified errors and exit codes instead.
 func Run(config *ApiRunConfig, socket *SocketConfig) {
+	if err := runChecked(config, socket); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// runChecked is Run, returning its failure instead of exiting.
+func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 	if len(config.Macros) > 0 || config.Run.Mode == "ensemble" {
 		result, err := RunToStorage(config)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		if result.Members != nil {
 			printEnsemble(result.Members)
 		} else {
 			printStorage(result.Storage)
 		}
-		return
+		return nil
 	}
 	generator, err := preparedMainGenerator(config)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	switch config.Run.Mode {
 	case "", "batch":
 		runBatch(config, generator, socket)
+		return nil
 	default:
-		log.Fatal(unknownRunModeError(config.Run.Mode))
+		return configError(unknownRunModeError(config.Run.Mode))
 	}
+}
+
+// runE is runChecked with panics raised while running recovered and classified
+// (see panicError), so every failure the engine can intercept comes back as an
+// *Error. A panic inside a partition's worker goroutine cannot be intercepted
+// and still crashes the process.
+func runE(config *ApiRunConfig, socket *SocketConfig) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = panicError(recovered)
+		}
+	}()
+	return runChecked(config, socket)
+}
+
+// Execute is the CLI's whole run: parse args (os.Args form), load the config and
+// optional socket config, and run. It never exits or panics on a failure it can
+// intercept; it returns an *Error whose kind ExitCode maps to the process exit
+// status. Unlike ArgParse / LoadSocketConfigFromYaml, it writes nothing to
+// stdout of its own, so stdout carries only the run's output.
+func Execute(args []string) error {
+	parsed, err := parseArgs(args)
+	if err != nil {
+		return err
+	}
+	LogRunProvenance(os.Stderr)
+	config, err := LoadConfig(parsed.ConfigFile)
+	if err != nil {
+		return err
+	}
+	socket, err := loadSocketConfig(parsed.SocketFile)
+	if err != nil {
+		return err
+	}
+	return runE(config, socket)
 }
 
 // RunResult is what one run of a config produced. Exactly one field is set:
@@ -232,24 +278,34 @@ func RunToStorage(config *ApiRunConfig) (*RunResult, error) {
 	case "ensemble":
 		members, err := ensembleRuns(config, generator.GetSimulation())
 		if err != nil {
-			return nil, err
+			return nil, configError(err)
 		}
 		return &RunResult{Members: members}, nil
 	default:
-		return nil, unknownRunModeError(config.Run.Mode)
+		return nil, configError(unknownRunModeError(config.Run.Mode))
 	}
 }
 
 // preparedMainGenerator validates a main:-path config and returns its generator,
-// pre-flighted for within-step deadlocks.
-func preparedMainGenerator(config *ApiRunConfig) (*simulator.ConfigGenerator, error) {
+// pre-flighted for within-step deadlocks and for wiring that cannot be built (an
+// expression or upstream naming a partition that does not exist, an index out
+// of range). Building the generator panics on those, so the panic is recovered
+// here and returned as an ErrConfig error before anything runs.
+func preparedMainGenerator(config *ApiRunConfig) (generator *simulator.ConfigGenerator, err error) {
 	if err := validateMainContext(config); err != nil {
-		return nil, err
+		return nil, configError(err)
 	}
-	generator := config.GetConfigGenerator()
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			generator = nil
+			err = configError(fmt.Errorf("invalid config wiring: %v", recovered))
+		}
+	}()
+	generator = config.GetConfigGenerator()
 	if err := CheckForDeadlock(generator); err != nil {
-		return nil, err
+		return nil, configError(err)
 	}
+	generator.GenerateConfigs()
 	return generator, nil
 }
 

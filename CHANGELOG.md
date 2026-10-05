@@ -24,6 +24,14 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Structured exit codes for the CLI, and `api.Execute`, `api.LoadConfig` and
+  `api.ExitCode` for Go callers.** Every failure the engine can intercept is
+  classified and exits with a BSD `sysexits` code: 64 usage, 65 malformed input data,
+  70 runtime failure, 75 an input or output could not be reached (the only class
+  worth retrying), 78 invalid config. Each failure prints one `stochadex: ...` line to
+  stderr instead of a panic trace. `api.Error` carries the kind and wraps the cause,
+  so `errors.Is` / `errors.As` still work. Sinks report an unreachable destination as
+  `simulator.ResourceError`.
 - **`output_function: {type: websocket, url: ...}` pushes a run to a websocket
   server.** The engine acts as the client: it connects when the run starts (never at
   load), sends each output as the same protobuf `PartitionState` frame that serving mode
@@ -43,6 +51,13 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **CLI stdout carries only the run's output.** The CLI no longer prints the
+  "Reading in args ..." and "Parsed no socket config file ..." banners to stdout.
+- **A bad command line exits 64 instead of carrying on.** `ArgParse` used to print
+  the usage text and continue with an empty config path, which then panicked.
+- **`api.RunToStorage` returns bad wiring as an error.** An expression or upstream
+  naming a partition that doesn't exist, or an out-of-range index, used to panic.
+  It now returns an `ErrConfig` error, as the function promises.
 - **`api.RunMacros` and `api.RunEnsembleToStorage` are deprecated** in favour of
   `api.RunToStorage`. Both keep working unchanged.
 - **The CLI prints macro and ensemble results in partition-name order.** Partitions
@@ -67,6 +82,10 @@ an exact version rather than assume stability across minors.
 
 ### Fixed
 
+- **The CSV data source no longer kills the process.**
+  `analysis.NewStateTimeStorageFromCsv` called `log.Fatal` when a file was missing or
+  unparseable, before its own `return err`, so no caller could handle the failure.
+  It now returns the error, wrapping the cause.
 - **Loading a config no longer touches its outputs.** The `json_log` sink created
   (truncating) its file when the config was *loaded*, so loading, `RunToStorage`, and
   every ensemble member's reload wiped the previous run's log, and the file was never
