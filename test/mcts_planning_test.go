@@ -20,13 +20,13 @@ func runPlanningConfig(t *testing.T, yaml string) map[string][][]float64 {
 	if err := os.WriteFile(path, []byte(yaml), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	storage, err := api.RunMacros(api.LoadApiRunConfigFromYaml(path))
+	result, err := api.RunToStorage(api.LoadApiRunConfigFromYaml(path))
 	if err != nil {
 		t.Fatalf("running the planning config: %v", err)
 	}
 	out := make(map[string][][]float64)
-	for _, name := range storage.GetNames() {
-		out[name] = storage.GetValues(name)
+	for _, name := range result.Storage.GetNames() {
+		out[name] = result.Storage.GetValues(name)
 	}
 	return out
 }

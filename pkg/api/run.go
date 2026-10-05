@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -163,38 +164,112 @@ func CheckForDeadlock(generator *simulator.ConfigGenerator) error {
 // Run executes the configured simulation under the mode named by the config's
 // run: block. The default (empty or "batch") preserves pre-run:-tier behaviour:
 // serve a websocket when a socket config is active, otherwise run once to
-// completion offline. "ensemble" runs one seeded member per seed concurrently.
+// completion offline, emitting through the config's output_function.
+// "ensemble" runs one seeded member per seed concurrently. Macros and ensembles
+// have no output_function of their own, so Run prints what RunToStorage returns.
 func Run(config *ApiRunConfig, socket *SocketConfig) {
-	// The macros: tier is its own run context — build storage, expand macros, run
-	// them against storage, emit the result — with no main partitions or coordinator.
-	if len(config.Macros) > 0 {
-		storage, err := runMacros(config)
+	if len(config.Macros) > 0 || config.Run.Mode == "ensemble" {
+		result, err := RunToStorage(config)
 		if err != nil {
 			log.Fatal(err)
 		}
-		printStorage(storage)
+		if result.Members != nil {
+			printEnsemble(result.Members)
+		} else {
+			printStorage(result.Storage)
+		}
 		return
 	}
-	if err := validateMainContext(config); err != nil {
-		log.Fatal(err)
-	}
-	generator := config.GetConfigGenerator()
-	if err := CheckForDeadlock(generator); err != nil {
+	generator, err := preparedMainGenerator(config)
+	if err != nil {
 		log.Fatal(err)
 	}
 	switch config.Run.Mode {
 	case "", "batch":
 		runBatch(config, generator, socket)
-	case "ensemble":
-		if err := runEnsemble(config, generator.GetSimulation()); err != nil {
-			log.Fatal(err)
-		}
 	default:
-		log.Fatalf(
-			"api: unknown run mode %q — expected \"batch\" or \"ensemble\"",
-			config.Run.Mode,
-		)
+		log.Fatal(unknownRunModeError(config.Run.Mode))
 	}
+}
+
+// RunResult is what one run of a config produced. Exactly one field is set:
+// Storage for a batch or macros run, Members for an ensemble run (index-aligned
+// to run.seeds).
+type RunResult struct {
+	Storage *simulator.StateTimeStorage
+	Members []simulator.EnsembleRun
+}
+
+// RunToStorage runs a config and returns what it produced instead of emitting it.
+// It is the single programmatic entry point for every run shape — a macros: tier,
+// a batch run, or a run: {mode: ensemble} — and it returns every failure as an
+// error rather than exiting, so a library caller (a test, a downstream pipeline,
+// an orchestrated step) can act on it.
+//
+// What is recorded is exactly what the config's output_condition selects, written
+// to storage in place of the config's output_function, which is not invoked. This
+// is the rule ensemble members already follow. Every partition is registered in
+// the storage; one the condition never selects is present with no rows. The caller's config is not
+// modified, so it can be run again (or passed to Run) afterwards.
+//
+// Serving a websocket is not a storage-returning run and is only reachable
+// through Run.
+func RunToStorage(config *ApiRunConfig) (*RunResult, error) {
+	if len(config.Macros) > 0 {
+		storage, err := runMacros(config)
+		if err != nil {
+			return nil, err
+		}
+		return &RunResult{Storage: storage}, nil
+	}
+	generator, err := preparedMainGenerator(config)
+	if err != nil {
+		return nil, err
+	}
+	switch config.Run.Mode {
+	case "", "batch":
+		return &RunResult{Storage: runBatchToStorage(generator)}, nil
+	case "ensemble":
+		members, err := ensembleRuns(config, generator.GetSimulation())
+		if err != nil {
+			return nil, err
+		}
+		return &RunResult{Members: members}, nil
+	default:
+		return nil, unknownRunModeError(config.Run.Mode)
+	}
+}
+
+// preparedMainGenerator validates a main:-path config and returns its generator,
+// pre-flighted for within-step deadlocks.
+func preparedMainGenerator(config *ApiRunConfig) (*simulator.ConfigGenerator, error) {
+	if err := validateMainContext(config); err != nil {
+		return nil, err
+	}
+	generator := config.GetConfigGenerator()
+	if err := CheckForDeadlock(generator); err != nil {
+		return nil, err
+	}
+	return generator, nil
+}
+
+// runBatchToStorage runs the generator once to completion, recording what its
+// output_condition selects into fresh storage. The simulation block is copied
+// before its output_function is replaced: the generator holds a pointer to the
+// config's own resolved block, so swapping it in place would rewrite the caller's
+// config.
+func runBatchToStorage(generator *simulator.ConfigGenerator) *simulator.StateTimeStorage {
+	storage := simulator.NewStateTimeStorage()
+	simulation := *generator.GetSimulation()
+	simulation.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: storage}
+	generator.SetSimulation(&simulation)
+	simulator.NewPartitionCoordinator(generator.GenerateConfigs()).Run()
+	return storage
+}
+
+func unknownRunModeError(mode string) error {
+	return fmt.Errorf(
+		"api: unknown run mode %q — expected \"batch\" or \"ensemble\"", mode)
 }
 
 // perConnectionBuild returns a builder that re-loads the config's source file, so
@@ -251,56 +326,24 @@ func runBatch(
 	coordinator.Run()
 }
 
-// RunEnsembleToStorage runs the config's ensemble (run: {mode: ensemble}) and returns
-// each member's recorded storage, index-aligned to run.seeds. It is the programmatic
-// form of Run for ensemble configs — Run prints every member to stdout and exits, which
-// suits a CLI but is unusable from a caller that wants the storages (to compute a
-// statistic across the ensemble) or the error. Like RunMacros for the macros: tier, it
-// lets the seeds and member count live in the config's run: block rather than being
-// passed in Go.
+// RunEnsembleToStorage runs the config's ensemble and returns each member's
+// recorded storage, index-aligned to run.seeds, whatever run.mode says.
 //
-// It runs the same deadlock pre-flight as Run and returns the error rather than exiting.
-// The remaining constraints are inherited from the ensemble mechanism, which rebuilds
-// each member by re-loading the source file for fresh, non-shared iteration instances:
-//   - the config must have been loaded from a file (LoadApiRunConfigFromYaml); an
-//     in-memory config has no path to re-load and is rejected;
-//   - embedded runs are unsupported (their simulation blocks cannot be rebuilt by a
-//     plain re-load);
-//   - every main partition must resolve a data iteration (no embedded-run partitions).
+// The ensemble mechanism rebuilds each member by re-loading the source file for
+// fresh, non-shared iteration instances, so: the config must have been loaded from
+// a file; embedded runs are unsupported; every main partition must resolve a data
+// iteration; and run.seeds must be non-empty.
 //
-// An empty run.seeds is rejected.
+// Deprecated: use RunToStorage with run: {mode: ensemble}, which returns the same
+// members in RunResult.Members.
 func RunEnsembleToStorage(
 	config *ApiRunConfig,
 ) ([]simulator.EnsembleRun, error) {
-	if err := validateMainContext(config); err != nil {
-		return nil, err
-	}
-	generator := config.GetConfigGenerator()
-	if err := CheckForDeadlock(generator); err != nil {
+	generator, err := preparedMainGenerator(config)
+	if err != nil {
 		return nil, err
 	}
 	return ensembleRuns(config, generator.GetSimulation())
-}
-
-// runEnsemble runs one member per configured seed via simulator.RunSeededEnsemble
-// and writes each member's recorded trajectory to stdout, prefixed with its member
-// index and seed.
-//
-// Members are rebuilt by re-loading the source file so each gets fresh, non-shared
-// iteration instances (required by RunSeededEnsemble). Re-loading resolves the whole
-// config — partitions and the simulation block — from data, so each member is
-// self-contained; the resolved sim is passed in only to share the (stateless)
-// components rather than re-resolve them per member.
-func runEnsemble(
-	config *ApiRunConfig,
-	resolvedSim *simulator.SimulationConfig,
-) error {
-	runs, err := ensembleRuns(config, resolvedSim)
-	if err != nil {
-		return err
-	}
-	printEnsemble(runs)
-	return nil
 }
 
 // ensembleRuns validates the config for ensemble mode and runs one member per
@@ -357,11 +400,21 @@ func assertDataOnly(config *ApiRunConfig) error {
 	return nil
 }
 
+// sortedNames returns a storage's partition names in a fixed order. GetNames
+// reads a map, so printing in its order would make the CLI's output order differ
+// from run to run.
+func sortedNames(storage *simulator.StateTimeStorage) []string {
+	names := storage.GetNames()
+	sort.Strings(names)
+	return names
+}
+
 // printStorage writes every recorded row of a StateTimeStorage to stdout in the
-// StdoutOutputFunction format (<time> <partition> [values]).
+// StdoutOutputFunction format (<time> <partition> [values]), partitions in name
+// order.
 func printStorage(storage *simulator.StateTimeStorage) {
 	times := storage.GetTimes()
-	for _, name := range storage.GetNames() {
+	for _, name := range sortedNames(storage) {
 		for step, row := range storage.GetValues(name) {
 			fmt.Printf("%v %s %v\n", times[step], name, row)
 		}
@@ -369,11 +422,12 @@ func printStorage(storage *simulator.StateTimeStorage) {
 }
 
 // printEnsemble writes every recorded row of every member to stdout, matching the
-// StdoutOutputFunction format (<time> <partition> [values]) with a member prefix.
+// StdoutOutputFunction format (<time> <partition> [values]) with a member prefix,
+// partitions in name order.
 func printEnsemble(runs []simulator.EnsembleRun) {
 	for member, run := range runs {
 		times := run.Storage.GetTimes()
-		for _, name := range run.Storage.GetNames() {
+		for _, name := range sortedNames(run.Storage) {
 			values := run.Storage.GetValues(name)
 			for step, row := range values {
 				fmt.Printf(
