@@ -68,9 +68,36 @@ func init() {
 					*target = value
 				}
 			}
-			return analysis.NewPostgresDbOutputFunction(db), nil
+			return &deferredPostgresOutput{db: db}, nil
 		},
 	)
+}
+
+// deferredPostgresOutput connects (and creates its table) when the run starts
+// rather than when the config is loaded: analysis.NewPostgresDbOutputFunction
+// opens the connection and runs CREATE TABLE, so building it at load would make
+// a config unloadable — even just to inspect or check it — without a reachable
+// database, and would create tables for runs that never happen.
+type deferredPostgresOutput struct {
+	db    *analysis.PostgresDb
+	inner *analysis.PostgresDbOutputFunction
+}
+
+// Configure connects on the sink's first run, panicking on failure as building
+// the sink at load used to.
+func (d *deferredPostgresOutput) Configure(settings *simulator.Settings) {
+	if d.inner == nil {
+		d.inner = analysis.NewPostgresDbOutputFunction(d.db)
+	}
+	d.inner.Configure(settings)
+}
+
+func (d *deferredPostgresOutput) Output(
+	partitionName string,
+	state []float64,
+	cumulativeTimesteps float64,
+) {
+	d.inner.Output(partitionName, state, cumulativeTimesteps)
 }
 
 // specString reads a string key from a data spec. A required key that is absent, or any

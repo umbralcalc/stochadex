@@ -138,6 +138,49 @@ func TestJsonLogOutputFunction(t *testing.T) {
 	)
 }
 
+func TestJsonLogOutputFunctionLifecycle(t *testing.T) {
+	t.Run("building the sink does not touch the file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "log.jsonl")
+		if err := os.WriteFile(path, []byte("keep\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		_ = NewJsonLogOutputFunction(path)
+		if got, _ := os.ReadFile(path); string(got) != "keep\n" {
+			t.Errorf("building the sink changed the file to %q", got)
+		}
+		missing := filepath.Join(t.TempDir(), "absent.jsonl")
+		_ = NewJsonLogOutputFunction(missing)
+		if _, err := os.Stat(missing); !os.IsNotExist(err) {
+			t.Error("building the sink created the file")
+		}
+	})
+	t.Run("first Configure truncates, Finalize closes, later Configure appends", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "log.jsonl")
+		if err := os.WriteFile(path, []byte("stale\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		function := NewJsonLogOutputFunction(path)
+		function.Configure(nil)
+		function.Output("a", []float64{1.0}, 1.0)
+		function.Finalize()
+		if function.file != nil {
+			t.Error("Finalize should close the file")
+		}
+		function.Configure(nil)
+		function.Output("a", []float64{2.0}, 2.0)
+		function.Finalize()
+
+		entries := readJsonLog(t, path)
+		if len(entries) != 2 {
+			t.Fatalf("got %d entries, want 2 (stale content truncated, second run appended)",
+				len(entries))
+		}
+		if entries[0].State[0] != 1.0 || entries[1].State[0] != 2.0 {
+			t.Errorf("entries out of order or wrong: %+v", entries)
+		}
+	})
+}
+
 func TestJsonLogChannelOutputFunction(t *testing.T) {
 	t.Run(
 		"Close flushes buffered entries and Output does not alias its slice",

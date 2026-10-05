@@ -63,6 +63,16 @@ an exact version rather than assume stability across minors.
 
 ### Fixed
 
+- **Loading a config no longer touches its outputs.** The `json_log` sink created
+  (truncating) its file when the config was *loaded*, so loading, `RunToStorage`, and
+  every ensemble member's reload wiped the previous run's log, and the file was never
+  closed. It now creates the file when the run starts, closes it in `Finalize`, and
+  reopens it for appending on a later run of the same sink. A nested run's log
+  therefore still accumulates every inner run.
+- **The `postgres` sink connects when the run starts, not at load.** It used to
+  connect and run `CREATE TABLE` while the config was being loaded, so a config with a
+  Postgres sink couldn't be loaded (even to inspect it, or to run it into storage)
+  without a reachable database.
 - **Concurrent websocket clients shared one simulation.** Every connection reused one
   generator, so `GenerateConfigs` handed out the same iteration instances each time.
   Concurrent clients stepped one shared, mutable model, which caused data races and
