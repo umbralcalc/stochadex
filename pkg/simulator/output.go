@@ -105,12 +105,58 @@ type JsonLogEntry struct {
 }
 
 // JsonLogOutputFunction writes newline-delimited JSON log entries.
+//
+// The file is touched only when a run starts, never when the sink is built:
+// building happens when a config is loaded, and loading a config (to inspect it,
+// check it, or run it into storage instead) must not truncate its outputs. The
+// first Configure creates or truncates the file; Finalize closes it; a later
+// Configure on the same sink reopens it for appending. That keeps every run of
+// one sink in one log, which is what a nested run's sink needs: it is configured
+// and finalized once per outer step, and its records accumulate across them.
 type JsonLogOutputFunction struct {
-	file  *os.File
-	mutex *sync.Mutex
+	path    string
+	file    *os.File
+	created bool
+	mutex   *sync.Mutex
 }
 
-func (j *JsonLogOutputFunction) Configure(*Settings) {}
+// Configure opens the log: created (truncated) on the sink's first run, appended
+// to on later ones. It panics if the file cannot be opened, as building it did.
+func (j *JsonLogOutputFunction) Configure(*Settings) {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	j.openLocked()
+}
+
+// openLocked opens the file if it is not already open. The caller holds mutex.
+func (j *JsonLogOutputFunction) openLocked() {
+	if j.file != nil {
+		return
+	}
+	flags := os.O_CREATE | os.O_WRONLY | os.O_TRUNC
+	if j.created {
+		flags = os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	}
+	file, err := os.OpenFile(j.path, flags, 0o644)
+	if err != nil {
+		panic(fmt.Errorf("json_log: opening %s: %w", j.path, err))
+	}
+	j.file = file
+	j.created = true
+}
+
+// Finalize closes the log once the run can produce no more output.
+func (j *JsonLogOutputFunction) Finalize() {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	if j.file == nil {
+		return
+	}
+	if err := j.file.Close(); err != nil {
+		panic(fmt.Errorf("json_log: closing %s: %w", j.path, err))
+	}
+	j.file = nil
+}
 
 func (j *JsonLogOutputFunction) Output(
 	partitionName string,
@@ -131,23 +177,21 @@ func (j *JsonLogOutputFunction) Output(
 
 	j.mutex.Lock()
 	defer j.mutex.Unlock()
+	// A caller driving the sink by hand, without a coordinator, may never call
+	// Configure; open on first output so that still works.
+	j.openLocked()
 	_, err = j.file.Write(jsonData)
 	if err != nil {
 		panic(err)
 	}
 }
 
-// NewJsonLogOutputFunction creates a new JsonLogOutputFunction.
+// NewJsonLogOutputFunction creates a JsonLogOutputFunction writing to filePath.
+// Nothing is opened until the run starts (see JsonLogOutputFunction).
 func NewJsonLogOutputFunction(
 	filePath string,
 ) *JsonLogOutputFunction {
-	var mutex sync.Mutex
-	file, err := os.Create(filePath)
-	if err != nil {
-		log.Fatal("Error creating log file:", err)
-		panic(err)
-	}
-	return &JsonLogOutputFunction{file: file, mutex: &mutex}
+	return &JsonLogOutputFunction{path: filePath, mutex: &sync.Mutex{}}
 }
 
 // JsonLogChannelOutputFunction writes JSON log entries via a background
