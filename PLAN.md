@@ -753,34 +753,32 @@ pick them up at the next tag. Follow the release-flow ritual.
 
 ## 6. Open questions
 
-1. **Interim output in macro mode (0.4).** Is honouring `main.simulation.output_*` an
-   acceptable interim, given Phase 2 makes it the natural home anyway? The alternative
-   is a temporary top-level `output:` key, which would then need deprecating.
-2. **Stream clock semantics.** Should `step_per_message` (an event clock, with timestep
-   = message timestamp delta) be in 1.5, or should 1.5 ship with `hold_last` only and
-   add event clocks once a use case needs them? cryptobook's LOB feed is the likely
-   first use.
-3. **Group C macros alongside hand-written partitions.** Should ES or MCTS be allowed to
-   expand into a `main:` that has its own partitions (e.g. a hand-written reward model
-   in `main:`, referenced by name), or must a clock-bearing macro be alone? Phase 2's
-   clock rule permits it; the question is whether to allow it at first.
-4. **`grouped_aggregation` against a live partition.** It could be allowed if the groups
-   are declared up front (`groups: [...]`) instead of discovered. That is a small
-   extension that would move it from group B to group A.
-5. **Flattening `main:`** (Phase 3). It is cosmetic churn against the skill, recipes,
-   and downstream configs. If done, migrate the downstream configs and skill recipes in
-   the same release (a v0.x minor; see §4.1).
+**Policy (2026-10-05):** don't resolve questions ahead of the evidence. Each one is
+closed once the work since has answered it, or given a "decide by" point and the
+evidence to collect before then. None blocks the next PRs.
 
-6. **Override path syntax (O.1).** **Decided (2026-10-04): select list entries by name
-   only** (`main.partitions[name=w].seed`, `macros[name=rolling_mean].window`). An
-   unknown or ambiguous name is a load error. There are no positional indices, because
-   they break silently when a list is reordered. Still open: whether `${VAR}` placeholders
-   may appear anywhere, or only in string values.
+**Closed:**
+1. ~~Interim output in macro mode (0.4).~~ **Closed by §2.5:** `outputs:` (views) is the
+   permanent form, with `simulation.output_*` as shorthand for one view. No temporary
+   `output:` key.
+3. ~~Group C macros alongside hand-written partitions.~~ **Closed by the spike (§4.2
+   findings 5 and 9):** a clock-bearing macro expands to ordinary partitions plus
+   `simulation:` fields, so sharing a runtime is allowed and a clash is an ordinary
+   duplicate-definition error (rule 2).
+4. ~~`grouped_aggregation` against a live partition.~~ **Closed by spike finding 13:**
+   declared groups are already the iteration's interface, so yes. The remaining
+   undeclared-group policy (error, warning, or "other" bucket) is part of item 2.0c.
+6. *Override path syntax:* list entries by **name only**, decided 2026-10-04. The
+   `${VAR}` part is still open (below).
 
-7. **In-memory nested views (§2.5).** A `StateTimeStorage` has one time axis, so
-   should an in-memory view of a nested run be one storage per outer step, or a flat
-   storage with an outer-step column? Streaming sinks just carry the scope fields.
-   Decide before Phase 1's scoped-record work.
+**Open, with "decide by" points:**
+
+| Q | Question | Decide by | Evidence to gather first |
+|---|---|---|---|
+| 2 | Stream clock: `hold_last` only, or also `step_per_message` (an event clock)? | Phase 1.5 | Ship `hold_last` first; add an event clock when a real feed needs one (cryptobook's limit-order-book feed is the likely first test) |
+| 5 | Flatten `main:` to the top level? | Phase 3 | Agent test A.1: does the `main:` level cause agent authoring errors? Plus the migration cost across downstream configs and recipes |
+| 6 | May `${VAR}` placeholders appear anywhere, or only in string values? | O.1 | What cryptobook's `cfgrun` substitutes today (paths only, or numbers too), and whether non-string placeholders break the dead-key check or the type errors |
+| 7 | In-memory view of a nested run: one storage per outer step, or a flat storage with an outer-step column? | Before Phase 1's scoped-record work | Who reads nested views (debugging likelihood windows, inspecting MCTS trees) and what shape they want; streaming sinks just carry the scope fields either way |
 
 ## 7. Risks
 
