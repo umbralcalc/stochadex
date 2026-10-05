@@ -24,6 +24,14 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`outputs:` sends one run to several sinks, each with its own filter.** A top-level
+  list of views, each `{name, condition, function}`, with the condition defaulting to
+  `every_step`. Every view receives exactly the rows its condition selects, and each
+  sink is configured and finalized like a single output. `output_condition` /
+  `output_function` remain as shorthand for one view; using both forms is a load
+  error, as are unnamed, duplicate-named or function-less views. `RunToStorage` writes
+  none of the views. `outputs:` does not yet apply to `macros:` results. In Go,
+  `simulator.OutputViews` provides the same thing.
 - **Structured exit codes for the CLI, and `api.Execute`, `api.LoadConfig` and
   `api.ExitCode` for Go callers.** Every failure the engine can intercept is
   classified and exits with a BSD `sysexits` code: 64 usage, 65 malformed input data,

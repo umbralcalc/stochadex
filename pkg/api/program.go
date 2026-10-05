@@ -160,10 +160,75 @@ type ApiRunConfig struct {
 	// Macros is the optional macros: tier — partition-set-producing analysis
 	// functions expanded against Data's storage.
 	Macros []MacroConfig `yaml:"macros,omitempty"`
+	// Outputs are the run's output views: each a named sink gated by its own
+	// condition, all fed from the one run. Mutually exclusive with
+	// main.simulation's output_condition / output_function, which are shorthand
+	// for a single unnamed view.
+	Outputs []OutputViewConfig `yaml:"outputs,omitempty"`
 	// sourcePath records the file this config was loaded from, so ensemble mode
 	// can re-load it to build fresh, isolated members. Empty for a config built
 	// in-memory rather than via LoadApiRunConfigFromYaml.
 	sourcePath string `yaml:"-"`
+}
+
+// OutputViewConfig is one entry of outputs:. Condition defaults to every_step.
+type OutputViewConfig struct {
+	Name      string                  `yaml:"name"`
+	Condition simulator.ComponentSpec `yaml:"condition,omitempty"`
+	Function  simulator.ComponentSpec `yaml:"function"`
+}
+
+// resolveOutputs builds the outputs: views and installs them as the main
+// simulation's output, so every run path (batch, serve, ensemble) uses them and
+// every path that replaces the output (RunToStorage, serving a connection)
+// suppresses them alike.
+func (a *ApiRunConfig) resolveOutputs() error {
+	if len(a.Outputs) == 0 {
+		return nil
+	}
+	if !a.Main.SimulationStrings.OutputCondition.IsZero() ||
+		!a.Main.SimulationStrings.OutputFunction.IsZero() {
+		return fmt.Errorf("api: a config sets both outputs: and " +
+			"main.simulation.output_condition / output_function; the latter is " +
+			"shorthand for a single view — move it into outputs:")
+	}
+	if len(a.Macros) > 0 {
+		return fmt.Errorf("api: outputs: does not yet apply to macros: results, " +
+			"which are printed; remove outputs: or the macros: block")
+	}
+	views := make([]simulator.OutputView, 0, len(a.Outputs))
+	seen := make(map[string]bool, len(a.Outputs))
+	for index, view := range a.Outputs {
+		if view.Name == "" {
+			return fmt.Errorf("api: outputs[%d] needs a name", index)
+		}
+		if seen[view.Name] {
+			return fmt.Errorf("api: outputs: names view %q twice", view.Name)
+		}
+		seen[view.Name] = true
+		if view.Function.IsZero() {
+			return fmt.Errorf("api: output view %q needs a function: {type: ...}", view.Name)
+		}
+		function, err := simulator.ResolveOutputFunction(view.Function)
+		if err != nil {
+			return fmt.Errorf("api: output view %q function: %w", view.Name, err)
+		}
+		var condition simulator.OutputCondition = &simulator.EveryStepOutputCondition{}
+		if !view.Condition.IsZero() {
+			condition, err = simulator.ResolveOutputCondition(view.Condition)
+			if err != nil {
+				return fmt.Errorf("api: output view %q condition: %w", view.Name, err)
+			}
+		}
+		views = append(views, simulator.OutputView{
+			Name: view.Name, Condition: condition, Function: function,
+		})
+	}
+	a.Main.Simulation.OutputFunction = &simulator.OutputViews{Views: views}
+	// Not consulted for OutputViews (each view has its own condition), but the
+	// coordinator expects one.
+	a.Main.Simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
+	return nil
 }
 
 // GetConfigGenerator returns a ConfigGenerator for the main run. Any partition
@@ -283,6 +348,9 @@ func LoadConfig(path string) (*ApiRunConfig, error) {
 		if err := config.Embedded[index].Run.resolve(); err != nil {
 			return nil, configError(err)
 		}
+	}
+	if err := config.resolveOutputs(); err != nil {
+		return nil, configError(err)
 	}
 	if err := validateApiRunConfig(&config); err != nil {
 		return nil, configError(err)

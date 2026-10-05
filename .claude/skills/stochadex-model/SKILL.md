@@ -167,6 +167,17 @@ deadlock, the run tells you exactly which partitions form the cycle.
     init_time_value:       0.0
 ```
 
+To feed several sinks, each with its own filter, replace the `output_condition` /
+`output_function` pair with a top-level `outputs:` list of views. Each view is
+`{name, condition (default every_step), function}`. Use one form or the other, not both.
+`outputs:` is not yet allowed with `macros:`.
+
+```yaml
+outputs:
+  - {name: log,  function: {type: json_log, path: run.log}}
+  - {name: dash, condition: {type: only_given_partitions, partitions: [price]}, function: {type: websocket, url: "ws://..."}}
+```
+
 ## Run modes — `run:` (optional; default is one batch run)
 
 ```yaml

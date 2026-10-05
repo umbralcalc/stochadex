@@ -201,9 +201,8 @@ func (s *StateIterator) Iterate(
 	// get the new time for output
 	time := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
 	// also apply the output function if this step requires it
-	if s.OutputCondition.IsOutputStep(s.Partition.Name, newState, timestepsHistory) {
-		s.OutputFunction.Output(s.Partition.Name, newState, time)
-	}
+	emitOutput(s.OutputCondition, s.OutputFunction, s.Partition.Name, newState,
+		timestepsHistory, time)
 	return newState
 }
 
@@ -283,9 +282,8 @@ func NewStateIterator(
 	timestepsHistory *CumulativeTimestepsHistory,
 ) *StateIterator {
 	// allows for the initial state values to potentially be output as well
-	if outputCondition.IsOutputStep(partitionName, initState, timestepsHistory) {
-		outputFunction.Output(partitionName, initState, timestepsHistory.Values.AtVec(0))
-	}
+	emitOutput(outputCondition, outputFunction, partitionName, initState,
+		timestepsHistory, timestepsHistory.Values.AtVec(0))
 	return &StateIterator{
 		Iteration: iteration,
 		Params:    params,

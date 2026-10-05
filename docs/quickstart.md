@@ -220,6 +220,24 @@ table = ipc.open_file("run.arrow").read_all()
 
 > `arrow`, `postgres`, `s3` are in every binary; the container adds `duckdb`. `duckdb` needs the **accelerated** binary. `stochadex --version` prints a `features:` line.
 
+### Several outputs from one run
+
+To send one run to several places, each with its own filter, list them under a top-level
+`outputs:` instead of setting `output_condition` / `output_function`. Each entry is a
+*view*: a name, an optional `condition` (default `every_step`), and a `function`:
+
+```yaml
+outputs:
+  - {name: log,  function: {type: json_log, path: run.log}}
+  - {name: dash, condition: {type: only_given_partitions, partitions: [price]},
+     function: {type: websocket, url: "ws://localhost:8080/ingest"}}
+  - {name: db,   condition: {type: every_n_steps, n: 10},
+     function: {type: postgres, driver: pgx, dsn: "postgres://...", table: results}}
+```
+
+`output_condition` / `output_function` are shorthand for a single view, so a config uses one
+form or the other, not both. `outputs:` does not yet apply to `macros:` results.
+
 ## Two ways to write an update
 
 **A library process**, named with its params:
