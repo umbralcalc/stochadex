@@ -275,6 +275,25 @@ run:
 
 Omit `run` for a single batch run.
 
+### Exit codes
+
+When a run fails, the CLI prints one `stochadex: ...` line to stderr and exits with a code
+that says whether retrying could help. The codes follow BSD `sysexits.h`, so a scheduler or
+workflow engine can act on them without knowing anything about stochadex:
+
+| Exit code | Meaning | Retry? |
+|---|---|---|
+| 0 | the run succeeded | — |
+| 64 | the command line was wrong | no |
+| 65 | an input was reached, but its contents could not be used | no |
+| 70 | the simulation failed while running | no |
+| 75 | an input or output could not be reached: a missing file, a refused connection | **yes** |
+| 78 | the config is invalid: syntax, unknown key or type, wiring, deadlock, run mode | no |
+
+A panic inside a partition's worker goroutine cannot be intercepted, and exits with Go's own
+status 2. Treat it like 70. From Go, `api.Execute(os.Args)` returns the classified error, and
+`api.ExitCode(err)` maps it to these codes.
+
 ## Analysis, inference and optimisation
 
 A `data` block produces a dataset (a sub-simulation, or a `csv` / `json_log` / `postgres` source). Each `macros` entry expands a framework [`macros`](https://stochadex.github.io/pkg/macros.html) constructor into a *set* of partitions against it. All data, all in-process.

@@ -3,7 +3,6 @@ package analysis
 import (
 	"encoding/csv"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 
@@ -66,8 +65,7 @@ func NewStateTimeStorageFromCsv(
 ) (*simulator.StateTimeStorage, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		log.Fatal("Unable to read input file " + filePath)
-		return nil, err
+		return nil, fmt.Errorf("reading input file %s: %w", filePath, err)
 	}
 	defer f.Close()
 
@@ -75,8 +73,7 @@ func NewStateTimeStorageFromCsv(
 	csvReader := csv.NewReader(f)
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		log.Fatal("Unable to parse file as CSV for " + filePath)
-		return nil, err
+		return nil, fmt.Errorf("parsing %s as CSV: %w", filePath, err)
 	}
 	for _, row := range records {
 		if skipHeaderRow {

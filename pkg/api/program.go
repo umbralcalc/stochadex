@@ -183,7 +183,7 @@ func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
 
 // validateApiRunConfig asserts the loaded config is coherent. Any partition
 // without an iteration must correspond to a named embedded run or expression.
-func validateApiRunConfig(config *ApiRunConfig) {
+func validateApiRunConfig(config *ApiRunConfig) error {
 	embeddedNames := make(map[string]bool)
 	for _, embedded := range config.Embedded {
 		embeddedNames[embedded.Name] = true
@@ -195,12 +195,13 @@ func validateApiRunConfig(config *ApiRunConfig) {
 	for _, partition := range config.Main.Partitions {
 		if partition.IterationSpec.IsZero() {
 			if !embeddedNames[partition.Name] && !expressionNames[partition.Name] {
-				panic("config omits iteration for partition name: " +
-					partition.Name +
-					" and no embedded simulation runs or expression specs have this name")
+				return fmt.Errorf("config omits iteration for partition name: %s"+
+					" and no embedded simulation runs or expression specs have this name",
+					partition.Name)
 			}
 		}
 	}
+	return nil
 }
 
 // LoadApiRunConfigFromYaml loads simulation configuration from a YAML file.
@@ -242,17 +243,28 @@ func validateApiRunConfig(config *ApiRunConfig) {
 //   - Panics on YAML parsing errors (malformed YAML, type mismatches)
 //   - Panics on data-spec resolution errors (unknown type, bad field)
 func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
+	config, err := LoadConfig(path)
+	if err != nil {
+		panic(err.(*Error).Err)
+	}
+	return config
+}
+
+// LoadConfig loads and resolves a config like LoadApiRunConfigFromYaml, but
+// returns a failure instead of panicking. Every failure is an ErrConfig *Error:
+// an unreadable file, invalid YAML, a key nothing reads, an unknown type or
+// field, or a partition with no iteration.
+func LoadConfig(path string) (*ApiRunConfig, error) {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
-		panic(err)
+		return nil, configError(err)
 	}
 	if deadKeyErr := validateNoDeadKeys(yamlFile); deadKeyErr != nil {
-		panic(deadKeyErr)
+		return nil, configError(deadKeyErr)
 	}
 	var config ApiRunConfig
-	err = yaml.Unmarshal(yamlFile, &config)
-	if err != nil {
-		panic(err)
+	if err := yaml.Unmarshal(yamlFile, &config); err != nil {
+		return nil, configError(err)
 	}
 	for index := range config.Main.Partitions {
 		config.Main.Partitions[index].Init()
@@ -264,15 +276,17 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 	}
 	// Resolve the data-spec simulation components and data-spec iterations at load
 	// time, so the whole config runs in-process with no code generation.
-	if simErr := config.Main.resolve(); simErr != nil {
-		panic(simErr)
+	if err := config.Main.resolve(); err != nil {
+		return nil, configError(err)
 	}
 	for index := range config.Embedded {
-		if simErr := config.Embedded[index].Run.resolve(); simErr != nil {
-			panic(simErr)
+		if err := config.Embedded[index].Run.resolve(); err != nil {
+			return nil, configError(err)
 		}
 	}
-	validateApiRunConfig(&config)
+	if err := validateApiRunConfig(&config); err != nil {
+		return nil, configError(err)
+	}
 	config.sourcePath = path
-	return &config
+	return &config, nil
 }

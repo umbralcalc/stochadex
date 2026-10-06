@@ -328,7 +328,13 @@ stochadex --config model.yaml
 If every iteration and simulation component is a `{type: ...}` data spec (no Go), it runs
 in-process with no toolchain. Errors are located and actionable — an unknown type names the field,
 a mistyped param key is rejected, and a within-step cycle names the partitions to break. Read the
-error; it tells you what to fix.
+error; it tells you what to fix. The exit code classifies the failure:
+- **78:** the config is wrong; fix it.
+- **65:** an input's contents are unusable.
+- **70:** the simulation failed while running.
+- **75:** an input or output was unreachable (a missing file, a refused connection). This is the
+  only code where re-running unchanged might succeed.
+- **64:** the command line was wrong.
 
 ## Gotchas
 

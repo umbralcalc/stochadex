@@ -3,8 +3,11 @@ package simulator
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
@@ -209,4 +212,35 @@ func TestJsonLogChannelOutputFunction(t *testing.T) {
 			}
 		},
 	)
+}
+
+func TestSinksReportUnreachableDestinations(t *testing.T) {
+	recoverResourceError := func(f func()) (resourceErr *ResourceError) {
+		defer func() {
+			recovered := recover()
+			err, ok := recovered.(error)
+			if !ok || !errors.As(err, &resourceErr) {
+				t.Fatalf("expected a *ResourceError panic, got %v", recovered)
+			}
+		}()
+		f()
+		return nil
+	}
+	t.Run("json_log in a missing directory", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "missing", "run.log")
+		err := recoverResourceError(func() { NewJsonLogOutputFunction(path).Configure(nil) })
+		if !errors.Is(err, fs.ErrNotExist) {
+			t.Errorf("the cause should still be reachable: %v", err)
+		}
+		if !strings.Contains(err.Error(), path) {
+			t.Errorf("the error should name the path: %v", err)
+		}
+	})
+	t.Run("websocket push to an unreachable server", func(t *testing.T) {
+		const url = "ws://127.0.0.1:1/never"
+		err := recoverResourceError(func() { NewWebsocketPushOutputFunction(url).Configure(nil) })
+		if !strings.Contains(err.Error(), url) {
+			t.Errorf("the error should name the URL: %v", err)
+		}
+	})
 }

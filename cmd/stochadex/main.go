@@ -60,7 +60,12 @@ func main() {
 	api.BuildVersion = version
 	api.BuildFeatures = features
 	api.BuildRevision = revision
-	api.RunWithParsedArgs(api.ArgParse())
+	// Every failure the engine can intercept comes back classified, and its exit
+	// code tells an orchestrator whether retrying could help (see api.ExitCode).
+	if err := api.Execute(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, "stochadex:", err)
+		os.Exit(api.ExitCode(err))
+	}
 }
 
 // printVersion reports the build and, crucially, the optional capabilities compiled in.
