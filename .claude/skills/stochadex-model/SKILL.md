@@ -171,7 +171,8 @@ To feed several sinks, each with its own filter, replace the `output_condition` 
 `output_function` pair with a top-level `outputs:` list of views. Each view is
 `{name, condition (default every_step), function}`. Use one form or the other, not both.
 With `macros:`, `outputs:` receives the macro results instead of stdout.
-`outputs:` is not yet allowed with `run: {mode: ensemble}`.
+With `run: {mode: ensemble}`, each member writes its own sinks: put `{member}` or `{seed}` in
+every view's fields (`path: "run-{member}.log"`, quoted). A view without one is rejected.
 
 ```yaml
 outputs:

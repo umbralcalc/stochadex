@@ -179,6 +179,11 @@ func Run(config *ApiRunConfig, socket *SocketConfig) {
 
 // runChecked is Run, returning its failure instead of exiting.
 func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
+	if len(config.Macros) == 0 && config.Run.Mode == "ensemble" && config.outputViews != nil {
+		// Members go to their own output views instead of being printed.
+		_, err := RunWith(config, WithConfigOutputs())
+		return err
+	}
 	if len(config.Macros) > 0 || config.Run.Mode == "ensemble" {
 		result, err := RunToStorage(config)
 		if err != nil {
@@ -290,7 +295,8 @@ func WithConfigOutputs() RunOption {
 //
 // A macros: config's result is also returned as RunResult.Storage, and each
 // captured view receives it replayed as a live run would output it. An ensemble
-// returns RunResult.Members; captured views and WithConfigOutputs do not yet
+// returns RunResult.Members; with WithConfigOutputs each member also writes its
+// own outputs: views ({member} / {seed} substituted). Captured views do not yet
 // apply to ensembles and are rejected.
 func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 	opts := runOptions{}
@@ -328,9 +334,10 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 		}
 		return result, nil
 	}
-	if config.Run.Mode == "ensemble" && (len(requested) > 0 || opts.teeConfigOutputs) {
+	if config.Run.Mode == "ensemble" && len(requested) > 0 {
 		return nil, &Error{Kind: ErrUsage, Err: fmt.Errorf(
-			"api: captured views and WithConfigOutputs do not yet apply to ensemble runs")}
+			"api: captured views do not yet apply to ensemble runs; each member's " +
+				"storage is returned in RunResult.Members")}
 	}
 	generator, err := preparedMainGeneratorWith(config, !opts.teeConfigOutputs)
 	if err != nil {
@@ -350,7 +357,7 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 		simulator.NewPartitionCoordinator(generator.GenerateConfigs()).Run()
 		return &RunResult{Views: views}, nil
 	case "ensemble":
-		members, err := ensembleRuns(config, generator.GetSimulation())
+		members, err := ensembleRuns(config, generator.GetSimulation(), opts.teeConfigOutputs)
 		if err != nil {
 			return nil, configError(err)
 		}
@@ -534,7 +541,7 @@ func RunEnsembleToStorage(
 	if err != nil {
 		return nil, err
 	}
-	return ensembleRuns(config, generator.GetSimulation())
+	return ensembleRuns(config, generator.GetSimulation(), false)
 }
 
 // ensembleRuns validates the config for ensemble mode and runs one member per
@@ -543,6 +550,7 @@ func RunEnsembleToStorage(
 func ensembleRuns(
 	config *ApiRunConfig,
 	resolvedSim *simulator.SimulationConfig,
+	writeOutputs bool,
 ) ([]simulator.EnsembleRun, error) {
 	if len(config.Run.Seeds) == 0 {
 		return nil, fmt.Errorf("api: ensemble run mode requires a non-empty run.seeds")
@@ -561,6 +569,21 @@ func ensembleRuns(
 	}
 	if err := assertDataOnly(config); err != nil {
 		return nil, err
+	}
+	if writeOutputs && len(config.Outputs) > 0 {
+		// Each member re-loads the config (fresh iterations) and gets its own
+		// views, with {member} / {seed} substituted, teed with its storage.
+		build := func(member int, seed uint64) *simulator.ConfigGenerator {
+			memberConfig := LoadApiRunConfigFromYaml(config.sourcePath)
+			generator := memberConfig.GetConfigGenerator()
+			simCopy := *resolvedSim
+			simCopy.OutputFunction = memberConfig.memberOutputViews(member, seed)
+			simCopy.OutputCondition = &simulator.EveryStepOutputCondition{}
+			generator.SetSimulation(&simCopy)
+			return generator
+		}
+		return simulator.RunSeededEnsembleMembers(
+			build, config.Run.Seeds, config.Run.Concurrency), nil
 	}
 	build := func() *simulator.ConfigGenerator {
 		generator := LoadApiRunConfigFromYaml(config.sourcePath).GetConfigGenerator()

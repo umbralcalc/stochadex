@@ -46,7 +46,7 @@ run:
 	config := LoadApiRunConfigFromYaml(path)
 	// Use the config's own resolved (data-spec) simulation, so members run the full
 	// horizon — not a stand-in with a different step count.
-	runs, err := ensembleRuns(config, &config.Main.Simulation)
+	runs, err := ensembleRuns(config, &config.Main.Simulation, false)
 	if err != nil {
 		t.Fatal(err)
 	}
