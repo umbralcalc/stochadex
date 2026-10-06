@@ -24,6 +24,14 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`api.RunWith(config, options...)`: run a config and capture in-memory views.**
+  `api.CaptureView(name, condition)` attaches a view, returned in
+  `RunResult.Views[name]`; `api.WithConfigOutputs()` also writes the config's own
+  outputs. By default those are suppressed, including nested (embedded) runs' sinks,
+  so the run has no side effects outside the process. A `macros:` config's result
+  feeds the captured views through the same replay a live run would produce.
+  Captured views and `WithConfigOutputs` are not yet supported for ensembles and are
+  rejected with a usage error.
 - **`outputs:` works with `macros:`.** A macro config's results go to its output views
   instead of being printed. Each view applies its condition exactly as a live run of
   the same model would: row *k* carries step number *k* and the previous row's time.
@@ -63,6 +71,10 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **`api.RunToStorage` no longer writes nested runs' sinks.** It already suppressed
+  the top-level outputs, but an embedded run's own `output_function` still wrote.
+  `RunToStorage` is now `RunWith` with one view mirroring the config's condition,
+  so all of the config's outputs are suppressed.
 - **`outputs:` with `run: {mode: ensemble}` is a load error.** Ensemble members are
   printed and never reach the views, so the combination was silently ignored. It is
   rejected until per-member views land.
