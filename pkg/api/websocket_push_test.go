@@ -66,21 +66,34 @@ func newPushReceiver(t *testing.T) (*pushReceiver, *httptest.Server) {
 	return receiver, server
 }
 
-// waitForConnections waits until n connections have ended, or fails.
+// waitForConnections waits until n connections have been opened and every one
+// has ended, failing (rather than hanging) if that takes longer than a few
+// seconds — e.g. because a sink was never finalized, leaving its connection open.
 func (p *pushReceiver) waitForConnections(t *testing.T, n int) {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
+	for {
 		p.mutex.Lock()
 		count := len(p.connections)
 		p.mutex.Unlock()
 		if count >= n {
-			p.finished.Wait()
-			return
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("expected %d connections, got %d", n, count)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	t.Fatalf("expected %d connections", n)
+	ended := make(chan struct{})
+	go func() {
+		p.finished.Wait()
+		close(ended)
+	}()
+	select {
+	case <-ended:
+	case <-time.After(time.Until(deadline) + time.Second):
+		t.Fatal("connections did not end: was the sink finalized and its connection closed?")
+	}
 }
 
 func pushConfigYAML(url string) string {
