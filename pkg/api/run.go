@@ -451,6 +451,9 @@ func preparedMainGeneratorWith(
 	if err := validateMainContext(config); err != nil {
 		return nil, configError(err)
 	}
+	if err := bindInputs(config); err != nil {
+		return nil, err
+	}
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			generator = nil
@@ -482,7 +485,11 @@ func perConnectionBuild(
 			"loaded from a file (each connection is rebuilt by re-loading it)")
 	}
 	return func() *simulator.ConfigGenerator {
-		return LoadApiRunConfigFromYaml(config.sourcePath).GetConfigGenerator()
+		connection := LoadApiRunConfigFromYaml(config.sourcePath)
+		if err := bindInputs(connection); err != nil {
+			panic(err)
+		}
+		return connection.GetConfigGenerator()
 	}, nil
 }
 
@@ -575,6 +582,9 @@ func ensembleRuns(
 		// views, with {member} / {seed} substituted, teed with its storage.
 		build := func(member int, seed uint64) *simulator.ConfigGenerator {
 			memberConfig := LoadApiRunConfigFromYaml(config.sourcePath)
+			if err := bindInputs(memberConfig); err != nil {
+				panic(err)
+			}
 			generator := memberConfig.GetConfigGenerator()
 			simCopy := *resolvedSim
 			simCopy.OutputFunction = memberConfig.memberOutputViews(member, seed)
@@ -586,7 +596,11 @@ func ensembleRuns(
 			build, config.Run.Seeds, config.Run.Concurrency), nil
 	}
 	build := func() *simulator.ConfigGenerator {
-		generator := LoadApiRunConfigFromYaml(config.sourcePath).GetConfigGenerator()
+		memberConfig := LoadApiRunConfigFromYaml(config.sourcePath)
+		if err := bindInputs(memberConfig); err != nil {
+			panic(err)
+		}
+		generator := memberConfig.GetConfigGenerator()
 		simCopy := *resolvedSim
 		generator.SetSimulation(&simCopy)
 		return generator

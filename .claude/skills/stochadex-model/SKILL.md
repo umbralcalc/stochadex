@@ -229,6 +229,23 @@ default when you omit `kernel:`) needs none. `vector_covariance` takes the same 
 `vector_variance` (both need a `mean:` reference). Macro results are written to stdout
 automatically — an analysis run needs no `simulation:` block. A later macro may reference an earlier
 macro's output partition by name (they run in order).
+### Replaying data into a run: `inputs:` + `from_input`
+
+```yaml
+inputs:
+  obs: {source: {csv: {path: obs.csv, time_column: 0, state_columns: {flow: [1]}}}}  # or {simulation: {...}}
+main:
+  partitions:
+  - {name: flow, iteration: {type: from_input, input: obs}, state_history_depth: 1, seed: 0}
+  simulation:
+    timestep_function:     {type: from_input, input: obs}
+    termination_condition: {type: input_exhausted, input: obs}
+```
+
+`from_input` replays the input partition of the same name; `partition:` renames it, and
+`init_state_values` default to its first row. Every declared input must be used. This works on
+the `main:` path only (macros keep `data:`).
+
 ### Reading and writing data (I/O)
 
 `data.source` loads a dataset instead of running a sub-simulation; `output_function` writes a
