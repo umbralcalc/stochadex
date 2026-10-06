@@ -170,7 +170,8 @@ deadlock, the run tells you exactly which partitions form the cycle.
 To feed several sinks, each with its own filter, replace the `output_condition` /
 `output_function` pair with a top-level `outputs:` list of views. Each view is
 `{name, condition (default every_step), function}`. Use one form or the other, not both.
-`outputs:` is not yet allowed with `macros:`.
+With `macros:`, `outputs:` receives the macro results instead of stdout.
+`outputs:` is not yet allowed with `run: {mode: ensemble}`.
 
 ```yaml
 outputs:

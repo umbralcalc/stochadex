@@ -169,6 +169,10 @@ type ApiRunConfig struct {
 	// can re-load it to build fresh, isolated members. Empty for a config built
 	// in-memory rather than via LoadApiRunConfigFromYaml.
 	sourcePath string `yaml:"-"`
+	// outputViews are the resolved outputs: views (nil without outputs:). The
+	// main path also installs them as its simulation's output; the macros path
+	// replays its result through them (see replayThroughViews).
+	outputViews *simulator.OutputViews
 }
 
 // OutputViewConfig is one entry of outputs:. Condition defaults to every_step.
@@ -192,9 +196,9 @@ func (a *ApiRunConfig) resolveOutputs() error {
 			"main.simulation.output_condition / output_function; the latter is " +
 			"shorthand for a single view — move it into outputs:")
 	}
-	if len(a.Macros) > 0 {
-		return fmt.Errorf("api: outputs: does not yet apply to macros: results, " +
-			"which are printed; remove outputs: or the macros: block")
+	if a.Run.Mode == "ensemble" {
+		return fmt.Errorf("api: outputs: does not yet apply to ensemble runs, " +
+			"whose members are printed; remove outputs: or run: {mode: ensemble}")
 	}
 	views := make([]simulator.OutputView, 0, len(a.Outputs))
 	seen := make(map[string]bool, len(a.Outputs))
@@ -224,7 +228,8 @@ func (a *ApiRunConfig) resolveOutputs() error {
 			Name: view.Name, Condition: condition, Function: function,
 		})
 	}
-	a.Main.Simulation.OutputFunction = &simulator.OutputViews{Views: views}
+	a.outputViews = &simulator.OutputViews{Views: views}
+	a.Main.Simulation.OutputFunction = a.outputViews
 	// Not consulted for OutputViews (each view has its own condition), but the
 	// coordinator expects one.
 	a.Main.Simulation.OutputCondition = &simulator.EveryStepOutputCondition{}

@@ -164,8 +164,9 @@ func TestOutputViews(t *testing.T) {
 			`output view "a" condition`},
 		{"a view with an unknown sink type",
 			viewsMain("") + "outputs:\n- {name: a, function: {type: carrier_pigeon}}\n", `"a"`},
-		{"outputs: with macros:",
-			macroConfigYAML + "outputs:\n- {name: a, function: {type: nil}}\n", "macros:"},
+		{"outputs: with an ensemble run (members are printed, not yet sent to views)",
+			viewsMain("") + "outputs:\n- {name: a, function: {type: nil}}\nrun: {mode: ensemble, seeds: [1, 2]}\n",
+			"ensemble"},
 	}
 	for _, c := range invalid {
 		t.Run(c.name+" is rejected at load", func(t *testing.T) {

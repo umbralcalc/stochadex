@@ -24,6 +24,10 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`outputs:` works with `macros:`.** A macro config's results go to its output views
+  instead of being printed. Each view applies its condition exactly as a live run of
+  the same model would: row *k* carries step number *k* and the previous row's time.
+  Without `outputs:`, macro results are still printed as before.
 - **`outputs:` sends one run to several sinks, each with its own filter.** A top-level
   list of views, each `{name, condition, function}`, with the condition defaulting to
   `every_step`. Every view receives exactly the rows its condition selects, and each
@@ -59,6 +63,9 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **`outputs:` with `run: {mode: ensemble}` is a load error.** Ensemble members are
+  printed and never reach the views, so the combination was silently ignored. It is
+  rejected until per-member views land.
 - **CLI stdout carries only the run's output.** The CLI no longer prints the
   "Reading in args ..." and "Parsed no socket config file ..." banners to stdout.
 - **A bad command line exits 64 instead of carrying on.** `ArgParse` used to print
