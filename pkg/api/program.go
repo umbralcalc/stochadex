@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -196,10 +198,7 @@ func (a *ApiRunConfig) resolveOutputs() error {
 			"main.simulation.output_condition / output_function; the latter is " +
 			"shorthand for a single view — move it into outputs:")
 	}
-	if a.Run.Mode == "ensemble" {
-		return fmt.Errorf("api: outputs: does not yet apply to ensemble runs, " +
-			"whose members are printed; remove outputs: or run: {mode: ensemble}")
-	}
+	ensemble := a.Run.Mode == "ensemble"
 	views := make([]simulator.OutputView, 0, len(a.Outputs))
 	seen := make(map[string]bool, len(a.Outputs))
 	for index, view := range a.Outputs {
@@ -212,6 +211,16 @@ func (a *ApiRunConfig) resolveOutputs() error {
 		seen[view.Name] = true
 		if view.Function.IsZero() {
 			return fmt.Errorf("api: output view %q needs a function: {type: ...}", view.Name)
+		}
+		templated := hasMemberPlaceholder(view.Function.Fields)
+		switch {
+		case ensemble && !templated && view.Function.Type != "nil":
+			return fmt.Errorf("api: output view %q would have every ensemble member "+
+				"write to the same destination; put {member} or {seed} in it, e.g. "+
+				"path: run-{member}.log", view.Name)
+		case !ensemble && templated:
+			return fmt.Errorf("api: output view %q uses {member} / {seed}, which only "+
+				"apply to run: {mode: ensemble}", view.Name)
 		}
 		function, err := simulator.ResolveOutputFunction(view.Function)
 		if err != nil {
@@ -234,6 +243,68 @@ func (a *ApiRunConfig) resolveOutputs() error {
 	// coordinator expects one.
 	a.Main.Simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
 	return nil
+}
+
+// memberPlaceholders are substituted in an ensemble member's output views.
+var memberPlaceholders = []string{"{member}", "{seed}"}
+
+// hasMemberPlaceholder reports whether any of a spec's string fields contains a
+// member placeholder. Sink specs are flat, so only top-level fields are read: a
+// placeholder anywhere deeper is not found, and validation then rejects the
+// view as shared by every member rather than writing to the wrong place.
+func hasMemberPlaceholder(fields map[string]interface{}) bool {
+	for _, value := range fields {
+		text, ok := value.(string)
+		if !ok {
+			continue
+		}
+		for _, placeholder := range memberPlaceholders {
+			if strings.Contains(text, placeholder) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// substituteMember returns a copy of a spec's fields with {member} and {seed}
+// replaced in its string fields.
+func substituteMember(fields map[string]interface{}, replacer *strings.Replacer) map[string]interface{} {
+	out := make(map[string]interface{}, len(fields))
+	for key, value := range fields {
+		if text, ok := value.(string); ok {
+			value = replacer.Replace(text)
+		}
+		out[key] = value
+	}
+	return out
+}
+
+// memberOutputViews builds one ensemble member's own output views: fresh sink
+// instances, with {member} (its index) and {seed} substituted in every view's
+// function fields. The specs were validated at load, so a failure here is a bug.
+func (a *ApiRunConfig) memberOutputViews(member int, seed uint64) *simulator.OutputViews {
+	replacer := strings.NewReplacer(
+		"{member}", strconv.Itoa(member), "{seed}", strconv.FormatUint(seed, 10))
+	views := &simulator.OutputViews{}
+	for _, view := range a.Outputs {
+		spec := view.Function
+		spec.Fields = substituteMember(view.Function.Fields, replacer)
+		function, err := simulator.ResolveOutputFunction(spec)
+		if err != nil {
+			panic(fmt.Errorf("api: output view %q for member %d: %w", view.Name, member, err))
+		}
+		var condition simulator.OutputCondition = &simulator.EveryStepOutputCondition{}
+		if !view.Condition.IsZero() {
+			condition, err = simulator.ResolveOutputCondition(view.Condition)
+			if err != nil {
+				panic(fmt.Errorf("api: output view %q condition: %w", view.Name, err))
+			}
+		}
+		views.Views = append(views.Views, simulator.OutputView{
+			Name: view.Name, Condition: condition, Function: function})
+	}
+	return views
 }
 
 // GetConfigGenerator returns a ConfigGenerator for the main run. Any partition

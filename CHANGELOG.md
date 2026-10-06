@@ -24,6 +24,16 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Ensembles write per-member outputs.** With `run: {mode: ensemble}`, each member
+  builds its own `outputs:` views, with `{member}` (its index) and `{seed}` substituted
+  in the views' fields. For example, `path: "run-{member}.log"` gives every member its
+  own file, and members are no longer printed.
+  - At load, every ensemble view must use a placeholder, since otherwise all members
+    would write to one destination. A placeholder outside an ensemble is an error.
+  - `RunToStorage` still suppresses member outputs; `RunWith(..., WithConfigOutputs())`
+    writes them and returns the members.
+  - In Go, `simulator.RunSeededEnsembleMembers` runs members with their own outputs,
+    recording each member's storage alongside them.
 - **`api.RunWith(config, options...)`: run a config and capture in-memory views.**
   `api.CaptureView(name, condition)` attaches a view, returned in
   `RunResult.Views[name]`; `api.WithConfigOutputs()` also writes the config's own
@@ -75,9 +85,6 @@ an exact version rather than assume stability across minors.
   the top-level outputs, but an embedded run's own `output_function` still wrote.
   `RunToStorage` is now `RunWith` with one view mirroring the config's condition,
   so all of the config's outputs are suppressed.
-- **`outputs:` with `run: {mode: ensemble}` is a load error.** Ensemble members are
-  printed and never reach the views, so the combination was silently ignored. It is
-  rejected until per-member views land.
 - **CLI stdout carries only the run's output.** The CLI no longer prints the
   "Reading in args ..." and "Parsed no socket config file ..." banners to stdout.
 - **A bad command line exits 64 instead of carrying on.** `ArgParse` used to print

@@ -164,9 +164,12 @@ func TestOutputViews(t *testing.T) {
 			`output view "a" condition`},
 		{"a view with an unknown sink type",
 			viewsMain("") + "outputs:\n- {name: a, function: {type: carrier_pigeon}}\n", `"a"`},
-		{"outputs: with an ensemble run (members are printed, not yet sent to views)",
-			viewsMain("") + "outputs:\n- {name: a, function: {type: nil}}\nrun: {mode: ensemble, seeds: [1, 2]}\n",
-			"ensemble"},
+		{"an ensemble view every member would write to the same file",
+			viewsMain("") + "outputs:\n- {name: a, function: {type: json_log, path: run.log}}\nrun: {mode: ensemble, seeds: [1, 2]}\n",
+			"same destination"},
+		{"a {member} placeholder outside an ensemble",
+			viewsMain("") + "outputs:\n- {name: a, function: {type: json_log, path: \"run-{member}.log\"}}\n",
+			"only apply to run: {mode: ensemble}"},
 	}
 	for _, c := range invalid {
 		t.Run(c.name+" is rejected at load", func(t *testing.T) {

@@ -79,3 +79,61 @@ func runSeededMember(
 	coordinator.Run()
 	return storage
 }
+
+// RunSeededEnsembleMembers is RunSeededEnsemble for members with their own
+// outputs. build receives each member's index and seed, so it can give the
+// member its own sinks (a log file per member, say); each member's storage is
+// recorded alongside that output rather than replacing it, using the member's
+// own output condition. The isolation contract is RunSeededEnsemble's: every
+// build call must return fresh Iteration and output instances.
+func RunSeededEnsembleMembers(
+	build func(member int, seed uint64) *ConfigGenerator,
+	seeds []uint64,
+	maxConcurrency int,
+) []EnsembleRun {
+	if maxConcurrency <= 0 {
+		maxConcurrency = runtime.GOMAXPROCS(0)
+	}
+	results := make([]EnsembleRun, len(seeds))
+	semaphore := make(chan struct{}, maxConcurrency)
+	var waitGroup sync.WaitGroup
+	for member, seed := range seeds {
+		waitGroup.Add(1)
+		semaphore <- struct{}{}
+		go func(member int, seed uint64) {
+			defer waitGroup.Done()
+			defer func() { <-semaphore }()
+			results[member] = EnsembleRun{
+				Seed:    seed,
+				Storage: runMemberWithOutputs(build(member, seed), seed),
+			}
+		}(member, seed)
+	}
+	waitGroup.Wait()
+	return results
+}
+
+// runMemberWithOutputs runs one member under its global seed, teeing its own
+// output with an in-memory storage gated by the member's output condition.
+func runMemberWithOutputs(generator *ConfigGenerator, seed uint64) *StateTimeStorage {
+	generator.SetGlobalSeed(seed)
+	settings, implementations := generator.GenerateConfigs()
+	storage := NewStateTimeStorage()
+	views := []OutputView{{
+		Name:      "member",
+		Condition: implementations.OutputCondition,
+		Function:  &StateTimeStorageOutputFunction{Store: storage},
+	}}
+	switch own := implementations.OutputFunction.(type) {
+	case nil, *NilOutputFunction:
+	case *OutputViews:
+		views = append(views, own.Views...)
+	default:
+		views = append(views, OutputView{
+			Name: "output", Condition: implementations.OutputCondition, Function: own})
+	}
+	implementations.OutputFunction = &OutputViews{Views: views}
+	implementations.OutputCondition = &EveryStepOutputCondition{}
+	NewPartitionCoordinator(settings, implementations).Run()
+	return storage
+}

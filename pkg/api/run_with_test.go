@@ -249,12 +249,8 @@ func TestRunWith(t *testing.T) {
 			t.Errorf("duplicate capture names: expected ErrUsage, got %v", err)
 		}
 		ensemble := readFile(t, "../../cfg/example_ensemble_config.yaml")
-		for name, option := range map[string]RunOption{
-			"a captured view": CaptureView("x", nil), "WithConfigOutputs": WithConfigOutputs(),
-		} {
-			if _, err := RunWith(writeConfig(t, ensemble), option); KindOf(err) != ErrUsage {
-				t.Errorf("%s on an ensemble: expected ErrUsage, got %v", name, err)
-			}
+		if _, err := RunWith(writeConfig(t, ensemble), CaptureView("x", nil)); KindOf(err) != ErrUsage {
+			t.Errorf("a captured view on an ensemble: expected ErrUsage, got %v", err)
 		}
 		members, err := RunWith(writeConfig(t, ensemble))
 		if err != nil || len(members.Members) != 4 {

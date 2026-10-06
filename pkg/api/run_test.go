@@ -180,7 +180,7 @@ func TestRunModeParsing(t *testing.T) {
 func TestEnsembleRuns(t *testing.T) {
 	t.Run("one member per seed, trajectories vary by seed", func(t *testing.T) {
 		config := writeConfig(t, dataOnlyEnsembleYAML)
-		runs, err := ensembleRuns(config, testSim())
+		runs, err := ensembleRuns(config, testSim(), false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -205,11 +205,11 @@ func TestEnsembleRuns(t *testing.T) {
 
 	t.Run("deterministic across repeated runs", func(t *testing.T) {
 		config := writeConfig(t, dataOnlyEnsembleYAML)
-		first, err := ensembleRuns(config, testSim())
+		first, err := ensembleRuns(config, testSim(), false)
 		if err != nil {
 			t.Fatal(err)
 		}
-		second, err := ensembleRuns(config, testSim())
+		second, err := ensembleRuns(config, testSim(), false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -225,14 +225,14 @@ func TestEnsembleRuns(t *testing.T) {
 	t.Run("empty seeds is rejected", func(t *testing.T) {
 		config := writeConfig(t, dataOnlyEnsembleYAML)
 		config.Run.Seeds = nil
-		if _, err := ensembleRuns(config, testSim()); err == nil {
+		if _, err := ensembleRuns(config, testSim(), false); err == nil {
 			t.Error("expected an error for empty run.seeds")
 		}
 	})
 
 	t.Run("in-memory config (no source path) is rejected", func(t *testing.T) {
 		config := &ApiRunConfig{Run: RunModeConfig{Mode: "ensemble", Seeds: []uint64{1}}}
-		if _, err := ensembleRuns(config, testSim()); err == nil {
+		if _, err := ensembleRuns(config, testSim(), false); err == nil {
 			t.Error("expected an error when sourcePath is empty")
 		}
 	})
@@ -297,7 +297,7 @@ func TestRunEnsembleToStorage(t *testing.T) {
 		}
 		// Resolve the simulation the same way the exported path does, so the two
 		// share identical inputs — the wrapper must add nothing but the resolution.
-		internal, err := ensembleRuns(config, config.GetConfigGenerator().GetSimulation())
+		internal, err := ensembleRuns(config, config.GetConfigGenerator().GetSimulation(), false)
 		if err != nil {
 			t.Fatal(err)
 		}

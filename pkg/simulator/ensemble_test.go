@@ -176,3 +176,82 @@ func TestRunSeededEnsembleMemberHarness(t *testing.T) {
 		t.Fatalf("RunWithHarnesses: %v", err)
 	}
 }
+
+func TestRunSeededEnsembleMembers(t *testing.T) {
+	seeds := []uint64{3, 5, 7}
+	reference := RunSeededEnsemble(ensembleBuilder(2, 10), seeds, 0)
+
+	// withOutput builds each member as ensembleBuilder does, but with output set
+	// by makeOutput for that member.
+	withOutput := func(makeOutput func(member int) OutputFunction) func(int, uint64) *ConfigGenerator {
+		return func(member int, seed uint64) *ConfigGenerator {
+			generator := ensembleBuilder(2, 10)()
+			simulation := *generator.GetSimulation()
+			simulation.OutputFunction = makeOutput(member)
+			generator.SetSimulation(&simulation)
+			return generator
+		}
+	}
+	assertMembersMatchReference := func(t *testing.T, runs []EnsembleRun) {
+		t.Helper()
+		for member := range seeds {
+			if runs[member].Seed != seeds[member] {
+				t.Fatalf("member %d seed %d, want %d", member, runs[member].Seed, seeds[member])
+			}
+			for _, name := range reference[member].Storage.GetNames() {
+				want, got := reference[member].Storage.GetValues(name), runs[member].Storage.GetValues(name)
+				if len(got) != len(want) {
+					t.Fatalf("member %d %s: %d rows, want %d", member, name, len(got), len(want))
+				}
+				for i := range want {
+					if !floats.Equal(got[i], want[i]) {
+						t.Fatalf("member %d %s row %d = %v, want %v", member, name, i, got[i], want[i])
+					}
+				}
+			}
+		}
+	}
+
+	t.Run("members match RunSeededEnsemble, and each feeds its own views", func(t *testing.T) {
+		stores := make([]*StateTimeStorage, len(seeds))
+		runs := RunSeededEnsembleMembers(withOutput(func(member int) OutputFunction {
+			stores[member] = NewStateTimeStorage()
+			return &OutputViews{Views: []OutputView{{
+				Name: "own", Condition: &EveryStepOutputCondition{},
+				Function: &StateTimeStorageOutputFunction{Store: stores[member]},
+			}}}
+		}), seeds, 2)
+		assertMembersMatchReference(t, runs)
+		for member := range seeds {
+			// The member's own view saw exactly its member's run.
+			for _, name := range runs[member].Storage.GetNames() {
+				want, got := runs[member].Storage.GetValues(name), stores[member].GetValues(name)
+				if len(got) != len(want) || !floats.Equal(got[len(got)-1], want[len(want)-1]) {
+					t.Fatalf("member %d's own view of %s differs from its storage", member, name)
+				}
+			}
+		}
+	})
+
+	t.Run("a single plain output function is fed too", func(t *testing.T) {
+		sinks := make([]*countingSink, len(seeds))
+		runs := RunSeededEnsembleMembers(withOutput(func(member int) OutputFunction {
+			sinks[member] = &countingSink{}
+			return sinks[member]
+		}), seeds, 0)
+		assertMembersMatchReference(t, runs)
+		for member, sink := range sinks {
+			if sink.outputs != 2*11 || sink.configures != 1 {
+				t.Errorf("member %d's sink: %d outputs, %d configures; want 22 and 1",
+					member, sink.outputs, sink.configures)
+			}
+		}
+	})
+
+	t.Run("a member with no output of its own still records its storage", func(t *testing.T) {
+		runs := RunSeededEnsembleMembers(withOutput(func(int) OutputFunction {
+			return &NilOutputFunction{}
+		}), seeds, 0)
+		assertMembersMatchReference(t, runs)
+	})
+}

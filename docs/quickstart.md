@@ -238,7 +238,11 @@ outputs:
 `output_condition` / `output_function` are shorthand for a single view, so a config uses one
 form or the other, not both. `outputs:` also applies to a `macros:` config: its results go to
 the views, each applying its condition exactly as a live run would, instead of being printed.
-It does not yet apply to `run: {mode: ensemble}`, whose members are printed.
+With `run: {mode: ensemble}`, each member gets its **own** sinks: write `{member}` (the
+member's index) or `{seed}` into a view's fields, e.g. `path: "run-{member}.log"`, and every
+member writes its own file instead of the members being printed. Quote templated values in
+YAML flow style (`{...}`). Every ensemble view must use a placeholder, or all members would
+write to the same place; outside an ensemble, a placeholder is an error.
 
 ## Two ways to write an update
 
