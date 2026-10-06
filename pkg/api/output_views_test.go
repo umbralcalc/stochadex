@@ -132,6 +132,19 @@ func TestOutputViews(t *testing.T) {
 		}
 	})
 
+	t.Run("a view whose sink cannot be reached exits as unavailable", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "config.yaml")
+		if err := os.WriteFile(path, []byte(viewsMain("")+fmt.Sprintf(
+			"outputs:\n- {name: log, function: {type: json_log, path: %q}}\n",
+			filepath.Join(t.TempDir(), "missing", "run.log"))), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		err := Execute([]string{"stochadex", "--config", path})
+		if KindOf(err) != ErrUnavailable || ExitCode(err) != ExitUnavailable {
+			t.Errorf("expected ErrUnavailable (exit 75), got %v", err)
+		}
+	})
+
 	invalid := []struct {
 		name, yaml, wantInError string
 	}{
@@ -164,6 +177,9 @@ func TestOutputViews(t *testing.T) {
 			}()
 			if !strings.Contains(message, c.wantInError) {
 				t.Errorf("expected a load error mentioning %q, got %q", c.wantInError, message)
+			}
+			if _, err := LoadConfig(path); KindOf(err) != ErrConfig {
+				t.Errorf("LoadConfig should classify this as ErrConfig (exit 78), got %v", err)
 			}
 		})
 	}
