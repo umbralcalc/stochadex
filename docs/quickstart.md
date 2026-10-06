@@ -295,6 +295,25 @@ run:
 
 Omit `run` for a single batch run.
 
+### Running a config from Go
+
+`api.RunWith(config, options...)` runs a config and hands results back in memory.
+`api.CaptureView(name, condition)` attaches an in-memory view, which comes back in
+`RunResult.Views[name]`. By default the config's own outputs are **suppressed**: nothing is
+written outside the process, including by nested runs' sinks. That suits tests and tooling.
+`api.WithConfigOutputs()` writes them as well, which suits an orchestrated step that wants
+both. `api.RunToStorage(config)` is the shorthand for one view that mirrors the config's own
+condition.
+
+```go
+config, err := api.LoadConfig("model.yaml")
+result, err := api.RunWith(config,
+    api.CaptureView("prices", &simulator.OnlyGivenPartitionsOutputCondition{
+        Partitions: map[string]bool{"price": true}}),
+    api.WithConfigOutputs()) // also write the config's own outputs
+prices := result.Views["prices"]
+```
+
 ### Exit codes
 
 When a run fails, the CLI prints one `stochadex: ...` line to stderr and exits with a code

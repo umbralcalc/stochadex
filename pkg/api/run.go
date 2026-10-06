@@ -242,43 +242,113 @@ func Execute(args []string) error {
 	return runE(config, socket)
 }
 
-// RunResult is what one run of a config produced. Exactly one field is set:
-// Storage for a batch or macros run, Members for an ensemble run (index-aligned
-// to run.seeds).
+// RunResult is what one run of a config produced. Storage holds a batch run's
+// default view (RunToStorage) or a macros run's result; Views holds the
+// in-memory views a caller attached with CaptureView, by name; Members holds an
+// ensemble's members, index-aligned to run.seeds.
 type RunResult struct {
 	Storage *simulator.StateTimeStorage
+	Views   map[string]*simulator.StateTimeStorage
 	Members []simulator.EnsembleRun
 }
 
-// RunToStorage runs a config and returns what it produced instead of emitting it.
-// It is the single programmatic entry point for every run shape — a macros: tier,
-// a batch run, or a run: {mode: ensemble} — and it returns every failure as an
-// error rather than exiting, so a library caller (a test, a downstream pipeline,
-// an orchestrated step) can act on it.
+// RunOption configures RunWith.
+type RunOption func(*runOptions)
+
+type runOptions struct {
+	captures         []captureView
+	teeConfigOutputs bool
+}
+
+type captureView struct {
+	name      string
+	condition simulator.OutputCondition
+	// mirror records with the config's own output condition (RunToStorage).
+	mirror bool
+}
+
+// CaptureView attaches an in-memory view to a run: the rows condition selects
+// (every step when nil) come back in RunResult.Views[name].
+func CaptureView(name string, condition simulator.OutputCondition) RunOption {
+	return func(o *runOptions) {
+		o.captures = append(o.captures, captureView{name: name, condition: condition})
+	}
+}
+
+// WithConfigOutputs also runs the config's own outputs — its outputs: views or
+// output_function, and any nested run's sinks — alongside the captured views.
+// Without it they are suppressed: nothing is written outside the process.
+func WithConfigOutputs() RunOption {
+	return func(o *runOptions) { o.teeConfigOutputs = true }
+}
+
+// RunWith runs a config, returning the in-memory views the caller attached with
+// CaptureView. By default the config's own outputs are suppressed — including
+// the sinks of nested (embedded) runs — so the run has no side effects outside
+// the process; WithConfigOutputs writes them as well. The caller's config is
+// not modified. Every failure is returned as an error, never an exit.
 //
-// What is recorded is exactly what the config's output_condition selects, written
-// to storage in place of the config's output_function, which is not invoked. This
-// is the rule ensemble members already follow. Every partition is registered in
-// the storage; one the condition never selects is present with no rows. The caller's config is not
-// modified, so it can be run again (or passed to Run) afterwards.
-//
-// Serving a websocket is not a storage-returning run and is only reachable
-// through Run.
-func RunToStorage(config *ApiRunConfig) (*RunResult, error) {
+// A macros: config's result is also returned as RunResult.Storage, and each
+// captured view receives it replayed as a live run would output it. An ensemble
+// returns RunResult.Members; captured views and WithConfigOutputs do not yet
+// apply to ensembles and are rejected.
+func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
+	opts := runOptions{}
+	for _, option := range options {
+		option(&opts)
+	}
+	seen := make(map[string]bool, len(opts.captures))
+	for _, capture := range opts.captures {
+		if seen[capture.name] {
+			return nil, &Error{Kind: ErrUsage, Err: fmt.Errorf(
+				"api: CaptureView names view %q twice", capture.name)}
+		}
+		seen[capture.name] = true
+	}
+	// Captures the caller asked for, as opposed to RunToStorage's mirror view.
+	requested := make([]captureView, 0, len(opts.captures))
+	for _, capture := range opts.captures {
+		if !capture.mirror {
+			requested = append(requested, capture)
+		}
+	}
 	if len(config.Macros) > 0 {
 		storage, err := runMacros(config)
 		if err != nil {
 			return nil, err
 		}
-		return &RunResult{Storage: storage}, nil
+		// The macro result is already the full storage, so a mirror view is not
+		// replayed; only requested views are.
+		result := &RunResult{Storage: storage, Views: map[string]*simulator.StateTimeStorage{}}
+		if len(requested) > 0 {
+			replayThroughViews(storage, captureViews(requested, nil, result.Views))
+		}
+		if opts.teeConfigOutputs && config.outputViews != nil {
+			replayThroughViews(storage, config.outputViews)
+		}
+		return result, nil
 	}
-	generator, err := preparedMainGenerator(config)
+	if config.Run.Mode == "ensemble" && (len(requested) > 0 || opts.teeConfigOutputs) {
+		return nil, &Error{Kind: ErrUsage, Err: fmt.Errorf(
+			"api: captured views and WithConfigOutputs do not yet apply to ensemble runs")}
+	}
+	generator, err := preparedMainGeneratorWith(config, !opts.teeConfigOutputs)
 	if err != nil {
 		return nil, err
 	}
 	switch config.Run.Mode {
 	case "", "batch":
-		return &RunResult{Storage: runBatchToStorage(generator)}, nil
+		views := map[string]*simulator.StateTimeStorage{}
+		simulation := *generator.GetSimulation()
+		outputs := captureViews(opts.captures, simulation.OutputCondition, views)
+		if opts.teeConfigOutputs {
+			outputs.Views = append(outputs.Views, configViews(&simulation)...)
+		}
+		simulation.OutputFunction = outputs
+		simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
+		generator.SetSimulation(&simulation)
+		simulator.NewPartitionCoordinator(generator.GenerateConfigs()).Run()
+		return &RunResult{Views: views}, nil
 	case "ensemble":
 		members, err := ensembleRuns(config, generator.GetSimulation())
 		if err != nil {
@@ -290,12 +360,87 @@ func RunToStorage(config *ApiRunConfig) (*RunResult, error) {
 	}
 }
 
+// captureViews builds one in-memory view per capture, registering each storage
+// in into. A mirror capture uses configCondition.
+func captureViews(
+	captures []captureView,
+	configCondition simulator.OutputCondition,
+	into map[string]*simulator.StateTimeStorage,
+) *simulator.OutputViews {
+	views := &simulator.OutputViews{}
+	for _, capture := range captures {
+		condition := capture.condition
+		switch {
+		case capture.mirror && configCondition != nil:
+			condition = configCondition
+		case condition == nil:
+			condition = &simulator.EveryStepOutputCondition{}
+		}
+		storage := simulator.NewStateTimeStorage()
+		into[capture.name] = storage
+		views.Views = append(views.Views, simulator.OutputView{
+			Name: capture.name, Condition: condition,
+			Function: &simulator.StateTimeStorageOutputFunction{Store: storage},
+		})
+	}
+	return views
+}
+
+// configViews returns the config's own outputs as views: its outputs: views as
+// they are, or its output_condition / output_function pair as one view.
+func configViews(simulation *simulator.SimulationConfig) []simulator.OutputView {
+	if views, ok := simulation.OutputFunction.(*simulator.OutputViews); ok {
+		return views.Views
+	}
+	if simulation.OutputFunction == nil {
+		return nil
+	}
+	return []simulator.OutputView{{
+		Name: "config", Condition: simulation.OutputCondition, Function: simulation.OutputFunction,
+	}}
+}
+
+// RunToStorage runs a config and returns what it produced instead of emitting it:
+// RunWith with one in-memory view that records what the config's own
+// output_condition selects (every step under outputs:), returned as
+// RunResult.Storage, and the config's outputs — nested runs' sinks included —
+// suppressed. A macros: config returns its result; an ensemble its members.
+// Every partition is registered in the storage; one the condition never selects
+// is present with no rows. The caller's config is not modified. Every failure is
+// returned as an error rather than exiting.
+//
+// Serving a websocket is not a storage-returning run and is only reachable
+// through Run.
+func RunToStorage(config *ApiRunConfig) (*RunResult, error) {
+	const defaultView = "\x00default"
+	result, err := RunWith(config, func(o *runOptions) {
+		o.captures = append(o.captures, captureView{name: defaultView, mirror: true})
+	})
+	if err != nil {
+		return nil, err
+	}
+	if storage, ok := result.Views[defaultView]; ok && result.Storage == nil {
+		result.Storage = storage
+	}
+	delete(result.Views, defaultView)
+	return result, nil
+}
+
 // preparedMainGenerator validates a main:-path config and returns its generator,
 // pre-flighted for within-step deadlocks and for wiring that cannot be built (an
 // expression or upstream naming a partition that does not exist, an index out
 // of range). Building the generator panics on those, so the panic is recovered
 // here and returned as an ErrConfig error before anything runs.
-func preparedMainGenerator(config *ApiRunConfig) (generator *simulator.ConfigGenerator, err error) {
+func preparedMainGenerator(config *ApiRunConfig) (*simulator.ConfigGenerator, error) {
+	return preparedMainGeneratorWith(config, false)
+}
+
+// preparedMainGeneratorWith is preparedMainGenerator, optionally building nested
+// runs with their own sinks silenced (see ApiRunConfig.configGenerator).
+func preparedMainGeneratorWith(
+	config *ApiRunConfig,
+	silenceNested bool,
+) (generator *simulator.ConfigGenerator, err error) {
 	if err := validateMainContext(config); err != nil {
 		return nil, configError(err)
 	}
@@ -305,26 +450,12 @@ func preparedMainGenerator(config *ApiRunConfig) (generator *simulator.ConfigGen
 			err = configError(fmt.Errorf("invalid config wiring: %v", recovered))
 		}
 	}()
-	generator = config.GetConfigGenerator()
+	generator = config.configGenerator(silenceNested)
 	if err := CheckForDeadlock(generator); err != nil {
 		return nil, configError(err)
 	}
 	generator.GenerateConfigs()
 	return generator, nil
-}
-
-// runBatchToStorage runs the generator once to completion, recording what its
-// output_condition selects into fresh storage. The simulation block is copied
-// before its output_function is replaced: the generator holds a pointer to the
-// config's own resolved block, so swapping it in place would rewrite the caller's
-// config.
-func runBatchToStorage(generator *simulator.ConfigGenerator) *simulator.StateTimeStorage {
-	storage := simulator.NewStateTimeStorage()
-	simulation := *generator.GetSimulation()
-	simulation.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: storage}
-	generator.SetSimulation(&simulation)
-	simulator.NewPartitionCoordinator(generator.GenerateConfigs()).Run()
-	return storage
 }
 
 func unknownRunModeError(mode string) error {

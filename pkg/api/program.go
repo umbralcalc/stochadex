@@ -240,11 +240,24 @@ func (a *ApiRunConfig) resolveOutputs() error {
 // whose name matches an embedded run is replaced by an embedded simulation
 // iteration wired to that embedded run.
 func (a *ApiRunConfig) GetConfigGenerator() *simulator.ConfigGenerator {
+	return a.configGenerator(false)
+}
+
+// configGenerator builds the main run's generator. With silenceNested, each
+// embedded run is built from a copy of its config whose output is nil, so its
+// own sinks stay closed — how a run whose config outputs are suppressed keeps
+// nested outputs suppressed too. The config itself is not modified.
+func (a *ApiRunConfig) configGenerator(silenceNested bool) *simulator.ConfigGenerator {
 	generator := a.Main.GetConfigGenerator()
 	for _, embedded := range a.Embedded {
+		run := embedded.Run
+		if silenceNested {
+			run.Simulation.OutputCondition = &simulator.NilOutputCondition{}
+			run.Simulation.OutputFunction = &simulator.NilOutputFunction{}
+		}
 		partition := generator.GetPartition(embedded.Name)
 		partition.Iteration = general.NewEmbeddedSimulationRunIteration(
-			embedded.Run.GetConfigGenerator().GenerateConfigs(),
+			run.GetConfigGenerator().GenerateConfigs(),
 		)
 		generator.ResetPartition(embedded.Name, partition)
 	}
