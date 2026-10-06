@@ -220,6 +220,37 @@ table = ipc.open_file("run.arrow").read_all()
 
 > `arrow`, `postgres`, `s3` are in every binary; the container adds `duckdb`. `duckdb` needs the **accelerated** binary. `stochadex --version` prints a `features:` line.
 
+### Driving a run from data: `inputs:`
+
+A run can replay recorded or generated data. Declare it under `inputs:`, then replay one of an
+input's partitions into a `main:` partition with `{type: from_input}`:
+
+```yaml
+inputs:
+  obs:  {source: {csv: {path: obs.csv, time_column: 0, state_columns: {flow: [1]}}}}
+main:
+  partitions:
+  - name: flow                      # replays obs's "flow" (partition: renames)
+    iteration: {type: from_input, input: obs}
+    state_history_depth: 1          # init_state_values default to the input's first row
+    seed: 0
+  # ... partitions that read flow via params_from_upstream ...
+  simulation:
+    timestep_function:     {type: from_input, input: obs}       # the clock follows the input
+    termination_condition: {type: input_exhausted, input: obs}  # and stops when it runs out
+```
+
+An input is any `data.source` (`csv`, `json_log`, `postgres`, plus `arrow` and `s3` in the
+distributed CLI), or a pre-pass simulation (`{simulation: {steps, timestep, partitions: ...}}`).
+A run's `json_log` output can be the next run's input, which is how separate configs chain.
+
+Inputs are read when the run starts, never when the config is loaded:
+- a missing input exits as unavailable (75);
+- an input lacking the named partition exits as a data error (65);
+- an undeclared or unused input is a config error (78).
+
+`inputs:` is not yet available to `macros:` configs, which keep using `data:`.
+
 ### Several outputs from one run
 
 To send one run to several places, each with its own filter, list them under a top-level

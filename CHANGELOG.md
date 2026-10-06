@@ -24,6 +24,24 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`inputs:` and `{type: from_input}`: drive a `main:` run from data.**
+  - **Declaring inputs:** an input is any `data.source`, or a pre-pass
+    `{simulation: ...}`.
+  - **Replaying:** a partition replays one of the input's partitions with
+    `{type: from_input, input: x}`. It defaults to the partition of the same name
+    (`partition:` renames it), and `init_state_values` default to the input's first
+    row.
+  - **Clock and length:** `timestep_function: {type: from_input, input: x}` follows
+    the input's times, and `termination_condition: {type: input_exhausted, input: x}`
+    stops when it runs out.
+  - **When inputs are read:** when a run starts (including for each ensemble member
+    and each served connection), never at load. A missing input is unavailable (75), a
+    partition the input lacks is a data error (65), and an undeclared or unused input
+    is a config error (78).
+  - **Proof:** the solar-fleet catalogue model, driven from a CSV input instead of its
+    inline series, reproduces exactly.
+  - **Not yet:** `inputs:` with `macros:`, and `from_input` inside embedded runs, are
+    rejected for now.
 - **Ensembles write per-member outputs.** With `run: {mode: ensemble}`, each member
   builds its own `outputs:` views, with `{member}` (its index) and `{seed}` substituted
   in the views' fields. For example, `path: "run-{member}.log"` gives every member its

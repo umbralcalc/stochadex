@@ -43,6 +43,9 @@ var wantIterationType = map[string]string{
 	"smc_posterior":                       "*inference.SMCPosteriorIteration",
 	"from_history":                        "*general.FromHistoryIteration",
 	"from_storage":                        "*general.FromStorageIteration",
+	// from_input resolves to a placeholder at load; bindInputs replaces it with a
+	// *general.FromStorageIteration of the input's rows when a run starts.
+	"from_input": "*api.unboundInputIteration",
 
 	// composable (Phase B)
 	"compound_poisson_process":          "*continuous.CompoundPoissonProcessIteration",
@@ -89,6 +92,7 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 	"values_sorting_collection": {"push_and_sort": "param_values"},
 	"expression":                {"fields": []interface{}{map[string]interface{}{"name": "x"}}, "outputs": []interface{}{"x"}},
 	"from_storage":              {"data": []interface{}{[]interface{}{0.0}, []interface{}{1.0}}},
+	"from_input":                {"input": "observed"},
 	"data_generation":           {"likelihood": map[string]interface{}{"type": "normal"}},
 	"data_comparison":           {"likelihood": map[string]interface{}{"type": "normal"}},
 	"posterior_mean":            {"transform": "mean"},

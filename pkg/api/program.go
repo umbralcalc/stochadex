@@ -167,6 +167,9 @@ type ApiRunConfig struct {
 	// main.simulation's output_condition / output_function, which are shorthand
 	// for a single unnamed view.
 	Outputs []OutputViewConfig `yaml:"outputs,omitempty"`
+	// Inputs are named, read-only storages read when a run starts and replayed
+	// into main: partitions with {type: from_input} (see inputs.go).
+	Inputs map[string]InputConfig `yaml:"inputs,omitempty"`
 	// sourcePath records the file this config was loaded from, so ensemble mode
 	// can re-load it to build fresh, isolated members. Empty for a config built
 	// in-memory rather than via LoadApiRunConfigFromYaml.
@@ -439,6 +442,9 @@ func LoadConfig(path string) (*ApiRunConfig, error) {
 		}
 	}
 	if err := config.resolveOutputs(); err != nil {
+		return nil, configError(err)
+	}
+	if err := validateInputs(&config); err != nil {
 		return nil, configError(err)
 	}
 	if err := validateApiRunConfig(&config); err != nil {
