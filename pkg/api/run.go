@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/graph"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/mat"
 )
 
 // StepAndServeWebsocket steps a simulation and streams state updates over a
@@ -183,9 +184,12 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 		if err != nil {
 			return err
 		}
-		if result.Members != nil {
+		switch {
+		case result.Members != nil:
 			printEnsemble(result.Members)
-		} else {
+		case config.outputViews != nil:
+			replayThroughViews(result.Storage, config.outputViews)
+		default:
 			printStorage(result.Storage)
 		}
 		return nil
@@ -508,4 +512,39 @@ func RunWithParsedArgs(args ParsedArgs) {
 		LoadApiRunConfigFromYaml(args.ConfigFile),
 		LoadSocketConfigFromYaml(args.SocketFile),
 	)
+}
+
+// replayThroughViews sends a finished storage through output views as though
+// each row had been output by a live run, so every view's condition selects
+// exactly what it would have: row k carries step number k, and the history
+// holds the previous row's time with the increment to row k's. Partitions go
+// out in name order within a row. This is how a macros: run reaches outputs:
+// until macros expand into the one live runtime (PLAN.md Phase 2).
+func replayThroughViews(storage *simulator.StateTimeStorage, views *simulator.OutputViews) {
+	names := sortedNames(storage)
+	settings := &simulator.Settings{Iterations: make([]simulator.IterationSettings, len(names))}
+	for i, name := range names {
+		settings.Iterations[i].Name = name
+	}
+	views.Configure(settings)
+	times := storage.GetTimes()
+	for step, time := range times {
+		previous := time
+		if step > 0 {
+			previous = times[step-1]
+		}
+		history := &simulator.CumulativeTimestepsHistory{
+			Values:            mat.NewVecDense(1, []float64{previous}),
+			NextIncrement:     time - previous,
+			CurrentStepNumber: step,
+			StateHistoryDepth: 1,
+		}
+		for _, name := range names {
+			rows := storage.GetValues(name)
+			if step < len(rows) {
+				views.OutputStep(name, rows[step], history, time)
+			}
+		}
+	}
+	views.Finalize()
 }

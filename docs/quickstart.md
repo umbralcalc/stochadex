@@ -236,7 +236,9 @@ outputs:
 ```
 
 `output_condition` / `output_function` are shorthand for a single view, so a config uses one
-form or the other, not both. `outputs:` does not yet apply to `macros:` results.
+form or the other, not both. `outputs:` also applies to a `macros:` config: its results go to
+the views, each applying its condition exactly as a live run would, instead of being printed.
+It does not yet apply to `run: {mode: ensemble}`, whose members are printed.
 
 ## Two ways to write an update
 
