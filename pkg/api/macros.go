@@ -220,15 +220,16 @@ func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 		return nil, configError(err)
 	}
 	var storage *simulator.StateTimeStorage
+	inputs := macroInputs(config)
 	ensureStorage := func() error {
 		if storage != nil {
 			return nil
 		}
-		if config.Data == nil {
+		if len(inputs) == 0 {
 			return configError(fmt.Errorf(
-				"api: against-storage macros require a data: block to analyse"))
+				"api: against-storage macros require inputs: (or a data: block) to analyse"))
 		}
-		built, err := config.Data.buildStorage()
+		built, err := loadMacroStorage(inputs)
 		storage = built
 		return err
 	}
@@ -238,7 +239,7 @@ func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 			// A live macro may still need observed data (smc_inference): build the
 			// data: storage when one is configured, but tolerate its absence for
 			// live macros that need none (evolution_strategy_optimisation).
-			if storage == nil && config.Data != nil {
+			if storage == nil && len(inputs) > 0 {
 				if err := ensureStorage(); err != nil {
 					return nil, err
 				}

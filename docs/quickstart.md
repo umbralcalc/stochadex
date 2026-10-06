@@ -249,7 +249,10 @@ Inputs are read when the run starts, never when the config is loaded:
 - an input lacking the named partition exits as a data error (65);
 - an undeclared or unused input is a config error (78).
 
-`inputs:` is not yet available to `macros:` configs, which keep using `data:`.
+A `macros:` config reads `inputs:` too: its macros analyse every input's partitions. When
+there are several inputs they must share one time axis, and a partition name may come from
+only one of them. `data:` is shorthand for a single input, so existing `data:` configs work
+unchanged.
 
 ### Several outputs from one run
 

@@ -40,8 +40,12 @@ an exact version rather than assume stability across minors.
     is a config error (78).
   - **Proof:** the solar-fleet catalogue model, driven from a CSV input instead of its
     inline series, reproduces exactly.
-  - **Not yet:** `inputs:` with `macros:`, and `from_input` inside embedded runs, are
-    rejected for now.
+  - **Macro configs read `inputs:` too.** Their macros analyse every input's
+    partitions. Several inputs must share one time axis, and a partition name may
+    come from only one of them; either mismatch is a data error naming the inputs.
+    `data:` is shorthand for a single input, and every shipped `data:` config gives
+    byte-identical results written as `inputs:`. Setting both is a config error.
+  - **Not yet:** `from_input` inside embedded runs is rejected for now.
 - **Ensembles write per-member outputs.** With `run: {mode: ensemble}`, each member
   builds its own `outputs:` views, with `{member}` (its index) and `{seed}` substituted
   in the views' fields. For example, `path: "run-{member}.log"` gives every member its

@@ -243,8 +243,9 @@ main:
 ```
 
 `from_input` replays the input partition of the same name; `partition:` renames it, and
-`init_state_values` default to its first row. Every declared input must be used. This works on
-the `main:` path only (macros keep `data:`).
+`init_state_values` default to its first row. Every declared input must be used on the `main:`
+path. A `macros:` config's macros read every input's partitions (several inputs must share one
+time axis and not repeat a partition name); `data:` is shorthand for a single input.
 
 ### Reading and writing data (I/O)
 
