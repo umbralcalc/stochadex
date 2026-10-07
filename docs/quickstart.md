@@ -268,14 +268,18 @@ outputs:
      function: {type: postgres, driver: pgx, dsn: "postgres://...", table: results}}
 ```
 
-`output_condition` / `output_function` are shorthand for a single view, so a config uses one
-form or the other, not both. `outputs:` also applies to a `macros:` config: its results go to
-the views, each applying its condition exactly as a live run would, instead of being printed.
-With `run: {mode: ensemble}`, each member gets its **own** sinks: write `{member}` (the
-member's index) or `{seed}` into a view's fields, e.g. `path: "run-{member}.log"`, and every
-member writes its own file instead of the members being printed. Quote templated values in
+`output_condition` / `output_function` are shorthand for one view named `output`, so a config
+uses one form or the other, not both. A config that declares no output at all prints every
+step to stdout. `outputs:` also applies to a `macros:` config: its results go to the views,
+each applying its condition exactly as a live run would, in time order.
+
+With `run: {mode: ensemble}`, each member gets its **own** sinks, the shorthand's included:
+write `{member}` (the member's index) or `{seed}` into a view's fields, e.g.
+`path: "run-{member}.log"`, and every member writes its own file. Quote templated values in
 YAML flow style (`{...}`). Every ensemble view must use a placeholder, or all members would
-write to the same place; outside an ensemble, a placeholder is an error.
+write to the same place; outside an ensemble, a placeholder is an error. `stdout` needs none:
+each member's rows are prefixed `member=<i> seed=<s>` (members run concurrently, so their
+rows interleave, each member's in order).
 
 ## Two ways to write an update
 

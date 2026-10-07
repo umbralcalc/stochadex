@@ -122,6 +122,29 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **Every output goes through `outputs:` views, in every mode.** A config's outputs
+  are now declared in one place:
+  - `main.simulation`'s `output_condition` / `output_function` pair is shorthand for
+    one view named `output`.
+  - A config that declares no output gets the default view: every step to stdout.
+    Before, a batch run with no output crashed the CLI with a nil pointer
+    dereference (exit 70).
+  - **Ensembles:** the shorthand sink is written per member, under the same rule as
+    `outputs:` views. A `json_log` needs `{member}` or `{seed}` in its path, or it is a
+    config error naming `main.simulation's output_function`. Before, the shorthand was
+    silently not written and the CLI printed the members instead. `stdout` needs no
+    placeholder: each member's rows are prefixed `member=<i> seed=<s>`, as before. But
+    members now write as they run, so their rows interleave, each member's in order.
+  - **Macro configs** print their results through the default view, in time order
+    (every partition's row for a time, partitions in name order, then the next time),
+    instead of one partition after another. This is the order a live run prints in.
+  - **Serve:** the shorthand pair is an ordinary view too, so
+    `output_function: {type: connection}` works as a serve config's stream. Each
+    connection's `stdout` view prefixes its rows `connection=<i>`.
+  - **Checked:** every shipped config (16 in `cfg/`, 4 skill recipes) prints exactly
+    the same lines as before. Only the order changed, as above, for macros and
+    ensembles. `api.RunToStorage` still records what the shorthand's condition
+    selects.
 - **`--socket` is deprecated, as an alias for `run: {mode: serve}`.** It still
   serves a batch config, filling the new fields from the socket file and printing a
   deprecation notice to stderr. Its stream is unchanged: the run filtered by

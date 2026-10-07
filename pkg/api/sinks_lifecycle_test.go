@@ -69,12 +69,21 @@ func TestSinksOpenOnlyWhenARunStarts(t *testing.T) {
 		}
 		assertSentinelIntact(t, logPath, "RunToStorage")
 
-		// Ensemble members are rebuilt by re-loading the file once per member.
-		ensemble := writeConfig(t, yaml+"run: {mode: ensemble, seeds: [1, 2, 3]}\n")
+		// Ensemble members are rebuilt by re-loading the file once per member, and
+		// each has its own log.
+		memberPath := filepath.Join(filepath.Dir(logPath), "run-{member}.log")
+		for member := range 3 {
+			writeSentinel(t, strings.Replace(memberPath, "{member}", fmt.Sprint(member), 1))
+		}
+		ensemble := writeConfig(t, fmt.Sprintf(batchConfigYAML, "{type: every_step}", memberPath)+
+			"run: {mode: ensemble, seeds: [1, 2, 3]}\n")
 		if _, err := RunToStorage(ensemble); err != nil {
 			t.Fatal(err)
 		}
-		assertSentinelIntact(t, logPath, "an ensemble run's member reloads")
+		for member := range 3 {
+			assertSentinelIntact(t, strings.Replace(memberPath, "{member}", fmt.Sprint(member), 1),
+				"an ensemble run's member reloads")
+		}
 
 		// Running for real replaces the old output with exactly this run's rows.
 		Run(config, &SocketConfig{})

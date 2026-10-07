@@ -205,11 +205,12 @@ func CheckForDeadlock(generator *simulator.ConfigGenerator) error {
 }
 
 // Run executes the configured simulation under the mode named by the config's
-// run: block. The default (empty or "batch") runs once to completion offline,
-// emitting through the config's output_function; "ensemble" runs one seeded
-// member per seed concurrently; "serve" serves a websocket, one fresh run per
-// connection, until the server fails. Macros and ensembles have no
-// output_function of their own, so Run prints what RunToStorage returns.
+// run: block. The default (empty or "batch") runs once to completion offline;
+// "ensemble" runs one seeded member per seed concurrently, each writing its own
+// views; "serve" serves a websocket, one fresh run per connection, until the
+// server fails. A macros: run's result is replayed through the views. Every
+// mode writes through the config's outputs: views, which hold the shorthand
+// output pair or, when no output is declared, every step to stdout.
 //
 // An active socket config is a deprecated alias for run: {mode: serve}: it
 // switches a batch config to serving with the socket's address, handle,
@@ -229,25 +230,11 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 	if err != nil {
 		return err
 	}
-	if len(config.Macros) == 0 && config.Run.Mode == "ensemble" && config.outputViews != nil {
-		// Members go to their own output views instead of being printed.
+	if len(config.Macros) > 0 || config.Run.Mode == "ensemble" {
+		// A macros run's result is replayed through its views; each ensemble
+		// member writes its own.
 		_, err := RunWith(config, WithConfigOutputs())
 		return err
-	}
-	if len(config.Macros) > 0 || config.Run.Mode == "ensemble" {
-		result, err := RunToStorage(config)
-		if err != nil {
-			return err
-		}
-		switch {
-		case result.Members != nil:
-			printEnsemble(result.Members)
-		case config.outputViews != nil:
-			replayThroughViews(result.Storage, config.outputViews)
-		default:
-			printStorage(result.Storage)
-		}
-		return nil
 	}
 	generator, err := preparedMainGenerator(config)
 	if err != nil {
@@ -587,7 +574,7 @@ func ensembleRuns(
 	if err := assertDataOnly(config); err != nil {
 		return nil, err
 	}
-	if writeOutputs && len(config.Outputs) > 0 {
+	if writeOutputs {
 		// Each member re-loads the config (fresh iterations) and gets its own
 		// views, with {member} / {seed} substituted, teed with its storage.
 		build := func(member int, seed uint64) *simulator.ConfigGenerator {
@@ -645,36 +632,6 @@ func sortedNames(storage *simulator.StateTimeStorage) []string {
 	names := storage.GetNames()
 	sort.Strings(names)
 	return names
-}
-
-// printStorage writes every recorded row of a StateTimeStorage to stdout in the
-// StdoutOutputFunction format (<time> <partition> [values]), partitions in name
-// order.
-func printStorage(storage *simulator.StateTimeStorage) {
-	times := storage.GetTimes()
-	for _, name := range sortedNames(storage) {
-		for step, row := range storage.GetValues(name) {
-			fmt.Printf("%v %s %v\n", times[step], name, row)
-		}
-	}
-}
-
-// printEnsemble writes every recorded row of every member to stdout, matching the
-// StdoutOutputFunction format (<time> <partition> [values]) with a member prefix,
-// partitions in name order.
-func printEnsemble(runs []simulator.EnsembleRun) {
-	for member, run := range runs {
-		times := run.Storage.GetTimes()
-		for _, name := range sortedNames(run.Storage) {
-			values := run.Storage.GetValues(name)
-			for step, row := range values {
-				fmt.Printf(
-					"member=%d seed=%d %v %s %v\n",
-					member, run.Seed, times[step], name, row,
-				)
-			}
-		}
-	}
 }
 
 // RunWithParsedArgs runs the configured simulation. The whole config is data

@@ -169,10 +169,12 @@ deadlock, the run tells you exactly which partitions form the cycle.
 
 To feed several sinks, each with its own filter, replace the `output_condition` /
 `output_function` pair with a top-level `outputs:` list of views. Each view is
-`{name, condition (default every_step), function}`. Use one form or the other, not both.
+`{name, condition (default every_step), function}`. Use one form or the other, not both
+(the pair is shorthand for one view; no output at all means every step to stdout).
 With `macros:`, `outputs:` receives the macro results instead of stdout.
-With `run: {mode: ensemble}`, each member writes its own sinks: put `{member}` or `{seed}` in
-every view's fields (`path: "run-{member}.log"`, quoted). A view without one is rejected.
+With `run: {mode: ensemble}`, each member writes its own sinks, the shorthand's included: put
+`{member}` or `{seed}` in every view's fields (`path: "run-{member}.log"`, quoted). A view
+without one is rejected, except `stdout`, which prefixes each row `member=<i> seed=<s>`.
 With `run: {mode: serve}`, each connection writes its own sinks the same way, with `{connection}`;
 the view with `function: {type: connection}` is what the client receives (exactly one, serve only).
 
@@ -239,7 +241,7 @@ A macro takes an optional **`params:`** map for the kernel (or iteration) it wra
 `exponential` kernel *requires* `exponential_weighting_timescale`; the `instantaneous` kernel (the
 default when you omit `kernel:`) needs none. `vector_covariance` takes the same fields as
 `vector_variance` (both need a `mean:` reference). Macro results are written to stdout
-automatically — an analysis run needs no `simulation:` block. A later macro may reference an earlier
+automatically, row by row in time order — an analysis run needs no `simulation:` block. A later macro may reference an earlier
 macro's output partition by name (they run in order).
 ### Replaying data into a run: `inputs:` + `from_input`
 

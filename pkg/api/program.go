@@ -81,7 +81,19 @@ type RunConfig struct {
 // resolve fills the run's data-spec components at load time: the simulation
 // components and each partition whose iteration: was given as a data spec.
 func (r *RunConfig) resolve() error {
-	resolved, err := r.SimulationStrings.ResolveDataComponents()
+	return r.resolveWith(true)
+}
+
+// resolveWith is resolve, leaving the output pair unresolved when withOutputs is
+// false: the main run's pair is resolved as an outputs: view instead (see
+// ApiRunConfig.resolveOutputs), where a served {type: connection} is known.
+func (r *RunConfig) resolveWith(withOutputs bool) error {
+	components := r.SimulationStrings
+	if !withOutputs {
+		components.OutputCondition = simulator.ComponentSpec{}
+		components.OutputFunction = simulator.ComponentSpec{}
+	}
+	resolved, err := components.ResolveDataComponents()
 	if err != nil {
 		return err
 	}
@@ -180,10 +192,17 @@ type ApiRunConfig struct {
 	// can re-load it to build fresh, isolated members. Empty for a config built
 	// in-memory rather than via LoadApiRunConfigFromYaml.
 	sourcePath string `yaml:"-"`
-	// outputViews are the resolved outputs: views (nil without outputs:). The
-	// main path also installs them as its simulation's output; the macros path
+	// outputViews are the resolved outputs: views, including the one made from
+	// the shorthand output pair or the default (see resolveOutputs). The main
+	// path also installs them as its simulation's output; the macros path
 	// replays its result through them (see replayThroughViews).
 	outputViews *simulator.OutputViews
+	// outputsDeclared reports whether the config itself wrote outputs:, as
+	// opposed to Outputs holding the shorthand or default view.
+	outputsDeclared bool
+	// socketAlias marks a config served through the deprecated --socket alias
+	// (see withSocketAlias).
+	socketAlias bool
 }
 
 // OutputViewConfig is one entry of outputs:. Condition defaults to every_step.
@@ -191,21 +210,63 @@ type OutputViewConfig struct {
 	Name      string                  `yaml:"name"`
 	Condition simulator.ComponentSpec `yaml:"condition,omitempty"`
 	Function  simulator.ComponentSpec `yaml:"function"`
+	// fromShorthand marks the view made from main.simulation's output pair, or
+	// the default when no output is declared, so errors can name what the user
+	// actually wrote.
+	fromShorthand bool
 }
 
-// resolveOutputs builds the outputs: views and installs them as the main
-// simulation's output, so every run path (batch, serve, ensemble) uses them and
-// every path that replaces the output (RunToStorage, serving a connection)
-// suppresses them alike.
-func (a *ApiRunConfig) resolveOutputs() error {
-	if len(a.Outputs) == 0 {
-		return nil
+// label names a view in errors as the user wrote it.
+func (v OutputViewConfig) label() string {
+	if v.fromShorthand {
+		return "main.simulation's output_function"
 	}
-	if !a.Main.SimulationStrings.OutputCondition.IsZero() ||
-		!a.Main.SimulationStrings.OutputFunction.IsZero() {
+	return fmt.Sprintf("output view %q", v.Name)
+}
+
+// shorthandView names the view that main.simulation's output_condition /
+// output_function pair, or the default when no output is declared, becomes.
+const shorthandView = "output"
+
+// resolveOutputs makes outputs: the one place a config's outputs are declared
+// (PLAN.md rule 14), then builds its views and installs them as the main
+// simulation's output, so every run path (batch, ensemble, serve, macros) uses
+// them and every path that replaces the output (RunToStorage, serving a
+// connection) suppresses them alike.
+//
+// main.simulation's output_condition / output_function pair is shorthand for
+// one view named "output", and a config declaring no output at all gets the
+// default view: every step to stdout.
+func (a *ApiRunConfig) resolveOutputs() error {
+	pair := &a.Main.SimulationStrings
+	shorthand := !pair.OutputCondition.IsZero() || !pair.OutputFunction.IsZero()
+	if len(a.Outputs) > 0 && shorthand {
 		return fmt.Errorf("api: a config sets both outputs: and " +
 			"main.simulation.output_condition / output_function; the latter is " +
 			"shorthand for a single view — move it into outputs:")
+	}
+	a.outputsDeclared = len(a.Outputs) > 0
+	// The run's own condition is what RunToStorage mirrors: the shorthand's, or
+	// every step.
+	var mirror simulator.OutputCondition = &simulator.EveryStepOutputCondition{}
+	switch {
+	case shorthand:
+		function := pair.OutputFunction
+		if function.IsZero() {
+			function = simulator.ComponentSpec{Type: "stdout"}
+		}
+		a.Outputs = []OutputViewConfig{{Name: shorthandView, Condition: pair.OutputCondition,
+			Function: function, fromShorthand: true}}
+		if !pair.OutputCondition.IsZero() {
+			resolved, err := simulator.ResolveOutputCondition(pair.OutputCondition)
+			if err != nil {
+				return fmt.Errorf("api: main.simulation's output_condition: %w", err)
+			}
+			mirror = resolved
+		}
+	case len(a.Outputs) == 0:
+		a.Outputs = []OutputViewConfig{{Name: shorthandView,
+			Function: simulator.ComponentSpec{Type: "stdout"}, fromShorthand: true}}
 	}
 	views := make([]simulator.OutputView, 0, len(a.Outputs))
 	seen := make(map[string]bool, len(a.Outputs))
@@ -227,13 +288,13 @@ func (a *ApiRunConfig) resolveOutputs() error {
 		if view.Function.Type == connectionSink {
 			// Stands in until a served connection substitutes its websocket.
 			if len(view.Function.Fields) > 0 {
-				return fmt.Errorf("api: output view %q: {type: connection} takes no "+
-					"fields; it sends to whichever client the run is served to", view.Name)
+				return fmt.Errorf("api: %s: {type: connection} takes no "+
+					"fields; it sends to whichever client the run is served to", view.label())
 			}
 		} else {
 			resolved, err := simulator.ResolveOutputFunction(view.Function)
 			if err != nil {
-				return fmt.Errorf("api: output view %q function: %w", view.Name, err)
+				return fmt.Errorf("api: %s: %w", view.label(), err)
 			}
 			function = resolved
 		}
@@ -241,7 +302,7 @@ func (a *ApiRunConfig) resolveOutputs() error {
 		if !view.Condition.IsZero() {
 			resolved, err := simulator.ResolveOutputCondition(view.Condition)
 			if err != nil {
-				return fmt.Errorf("api: output view %q condition: %w", view.Name, err)
+				return fmt.Errorf("api: %s condition: %w", view.label(), err)
 			}
 			condition = resolved
 		}
@@ -251,9 +312,8 @@ func (a *ApiRunConfig) resolveOutputs() error {
 	}
 	a.outputViews = &simulator.OutputViews{Views: views}
 	a.Main.Simulation.OutputFunction = a.outputViews
-	// Not consulted for OutputViews (each view has its own condition), but the
-	// coordinator expects one.
-	a.Main.Simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
+	// Not consulted for OutputViews (each view has its own condition).
+	a.Main.Simulation.OutputCondition = mirror
 	return nil
 }
 
@@ -276,26 +336,28 @@ var (
 func checkInstancePlaceholders(view OutputViewConfig, mode string) error {
 	member := hasPlaceholder(view.Function.Fields, memberPlaceholders)
 	connection := hasPlaceholder(view.Function.Fields, connectionPlaceholders)
-	// A nil sink writes nowhere, and a connection sink is the instance's own.
-	shared := view.Function.Type != "nil" && view.Function.Type != connectionSink
+	// A nil sink writes nowhere, a connection sink is the instance's own, and
+	// stdout tags each row with the instance that wrote it.
+	shared := view.Function.Type != "nil" && view.Function.Type != connectionSink &&
+		view.Function.Type != "stdout"
 	switch {
 	case mode != "serve" && view.Function.Type == connectionSink:
-		return fmt.Errorf("api: output view %q sends to {type: connection}, which "+
-			"only applies to run: {mode: serve}", view.Name)
+		return fmt.Errorf("api: %s sends to {type: connection}, which "+
+			"only applies to run: {mode: serve}", view.label())
 	case mode == "ensemble" && !member && shared:
-		return fmt.Errorf("api: output view %q would have every ensemble member "+
+		return fmt.Errorf("api: %s would have every ensemble member "+
 			"write to the same destination; put {member} or {seed} in it, e.g. "+
-			"path: run-{member}.log", view.Name)
+			"path: run-{member}.log", view.label())
 	case mode == "serve" && !connection && shared:
-		return fmt.Errorf("api: output view %q would have every served connection "+
+		return fmt.Errorf("api: %s would have every served connection "+
 			"write to the same destination; put {connection} in it, e.g. "+
-			"path: run-{connection}.log", view.Name)
+			"path: run-{connection}.log", view.label())
 	case mode != "ensemble" && member:
-		return fmt.Errorf("api: output view %q uses {member} / {seed}, which only "+
-			"apply to run: {mode: ensemble}", view.Name)
+		return fmt.Errorf("api: %s uses {member} / {seed}, which only "+
+			"apply to run: {mode: ensemble}", view.label())
 	case mode != "serve" && connection:
-		return fmt.Errorf("api: output view %q uses {connection}, which only "+
-			"applies to run: {mode: serve}", view.Name)
+		return fmt.Errorf("api: %s uses {connection}, which only "+
+			"applies to run: {mode: serve}", view.label())
 	}
 	return nil
 }
@@ -336,8 +398,9 @@ func substituteFields(fields map[string]interface{}, replacer *strings.Replacer)
 // instances, with {member} (its index) and {seed} substituted in every view's
 // function fields.
 func (a *ApiRunConfig) memberOutputViews(member int, seed uint64) *simulator.OutputViews {
-	return a.instanceOutputViews(fmt.Sprintf("member %d", member), strings.NewReplacer(
-		"{member}", strconv.Itoa(member), "{seed}", strconv.FormatUint(seed, 10)), nil)
+	return a.instanceOutputViews(fmt.Sprintf("member=%d seed=%d", member, seed),
+		strings.NewReplacer("{member}", strconv.Itoa(member),
+			"{seed}", strconv.FormatUint(seed, 10)), nil)
 }
 
 // connectionOutputViews builds one served connection's own output views: fresh
@@ -347,13 +410,14 @@ func (a *ApiRunConfig) connectionOutputViews(
 	connection int,
 	stream simulator.OutputFunction,
 ) *simulator.OutputViews {
-	return a.instanceOutputViews(fmt.Sprintf("connection %d", connection),
+	return a.instanceOutputViews(fmt.Sprintf("connection=%d", connection),
 		strings.NewReplacer("{connection}", strconv.Itoa(connection)), stream)
 }
 
 // instanceOutputViews builds fresh sink instances for every output view, with
-// replacer applied to each function's fields; a connection view sends to stream.
-// The specs were validated at load, so a failure here is a bug.
+// replacer applied to each function's fields; a connection view sends to stream,
+// and a stdout view prefixes each row with instance ("member=0 seed=11"). The
+// specs were validated at load, so a failure here is a bug.
 func (a *ApiRunConfig) instanceOutputViews(
 	instance string,
 	replacer *strings.Replacer,
@@ -368,6 +432,9 @@ func (a *ApiRunConfig) instanceOutputViews(
 			resolved, err := simulator.ResolveOutputFunction(spec)
 			if err != nil {
 				panic(fmt.Errorf("api: output view %q for %s: %w", view.Name, instance, err))
+			}
+			if stdout, ok := resolved.(*simulator.StdoutOutputFunction); ok {
+				stdout.Prefix = instance
 			}
 			function = resolved
 		}
@@ -508,7 +575,7 @@ func LoadConfig(path string) (*ApiRunConfig, error) {
 	}
 	// Resolve the data-spec simulation components and data-spec iterations at load
 	// time, so the whole config runs in-process with no code generation.
-	if err := config.Main.resolve(); err != nil {
+	if err := config.Main.resolveWith(false); err != nil {
 		return nil, configError(err)
 	}
 	for index := range config.Embedded {
