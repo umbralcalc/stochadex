@@ -200,9 +200,14 @@ func (s *StateIterator) Iterate(
 	)
 	// get the new time for output
 	time := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
-	// also apply the output function if this step requires it
-	emitOutput(s.OutputCondition, s.OutputFunction, s.Partition.Name, newState,
-		timestepsHistory, time)
+	// also apply the output function if this step requires it. This is
+	// emitOutput written out by hand: it runs once per partition per step, and
+	// emitOutput is too big to inline, so calling it cost ~1ns per output.
+	if views, ok := s.OutputFunction.(*OutputViews); ok {
+		views.OutputStep(s.Partition.Name, newState, timestepsHistory, time)
+	} else if s.OutputCondition.IsOutputStep(s.Partition.Name, newState, timestepsHistory) {
+		s.OutputFunction.Output(s.Partition.Name, newState, time)
+	}
 	return newState
 }
 

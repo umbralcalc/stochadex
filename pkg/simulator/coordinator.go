@@ -78,6 +78,8 @@ type PartitionCoordinator struct {
 	// FinalizingOutputFunction; per-step output goes through the iterators.
 	OutputFunction  OutputFunction
 	newWorkChannels [](chan *IteratorInputMessage)
+	// outputFinalized records that finalizeOutput has run.
+	outputFinalized bool
 }
 
 // RequestMoreIterations spawns a goroutine per partition to run
@@ -180,7 +182,8 @@ func (c *PartitionCoordinator) ReadyToTerminate() bool {
 // workers, inline execution, ...).
 //
 // The caller drives Step until ReadyToTerminate reports true and must call the
-// stepper's Close when done to release any resources it holds:
+// stepper's Close when done, which releases any resources the strategy holds
+// and finalizes the run's output (a buffered log is only complete after it):
 //
 //	stepper := coordinator.NewStepper()
 //	defer stepper.Close()
@@ -188,10 +191,46 @@ func (c *PartitionCoordinator) ReadyToTerminate() bool {
 //	    stepper.Step()
 //	}
 func (c *PartitionCoordinator) NewStepper() Stepper {
-	if c.RunStrategy != nil {
-		return c.RunStrategy.NewStepper(c)
+	switch strategy := c.RunStrategy.(type) {
+	case nil:
+		return (&SpawnPerStepExecution{}).NewStepper(c)
+	case *SpawnPerStepExecution, *PersistentWorkerExecution, *InlineExecution:
+		// The built-in steppers finalize the output in their own Close, so
+		// Step is called directly, with no wrapper in front of it.
+		return strategy.NewStepper(c)
+	default:
+		return &finalizingStepper{Stepper: strategy.NewStepper(c), coordinator: c}
 	}
-	return (&SpawnPerStepExecution{}).NewStepper(c)
+}
+
+// finalizeOutput gives the run's output its Finalize once no further output can
+// arrive, so a resource-holding sink flushes and seals (see
+// FinalizingOutputFunction). Every stepper's Close calls it, so every way of
+// driving a run — Run, or a caller stepping it — finalizes the output, under
+// every execution strategy.
+//
+// It runs at most once per coordinator, so a custom strategy whose stepper
+// delegates to a built-in one does not finalize twice.
+func (c *PartitionCoordinator) finalizeOutput() {
+	if c.outputFinalized {
+		return
+	}
+	c.outputFinalized = true
+	if f, ok := c.OutputFunction.(FinalizingOutputFunction); ok {
+		f.Finalize()
+	}
+}
+
+// finalizingStepper finalizes the output on Close for an execution strategy
+// outside this package, whose stepper cannot call finalizeOutput itself.
+type finalizingStepper struct {
+	Stepper
+	coordinator *PartitionCoordinator
+}
+
+func (s *finalizingStepper) Close() {
+	s.Stepper.Close()
+	s.coordinator.finalizeOutput()
 }
 
 // Run advances the coordinator to termination under its configured RunStrategy
@@ -200,18 +239,12 @@ func (c *PartitionCoordinator) NewStepper() Stepper {
 // until termination, then release the stepper.
 func (c *PartitionCoordinator) Run() {
 	stepper := c.NewStepper()
+	// Close also finalizes the output (see NewStepper).
 	defer stepper.Close()
 
 	// terminate the for loop if the condition has been met
 	for !c.ReadyToTerminate() {
 		stepper.Step()
-	}
-
-	// Give a resource-holding sink its one chance to flush/seal once no further
-	// output can arrive (see FinalizingOutputFunction). Sinks that do not implement
-	// it are untouched.
-	if f, ok := c.OutputFunction.(FinalizingOutputFunction); ok {
-		f.Finalize()
 	}
 }
 
@@ -244,6 +277,14 @@ func NewPartitionCoordinator(
 		}
 	}
 	implementations.OutputFunction.Configure(settings)
+	// A single view is a sink and its condition: hand those to the iterators
+	// directly rather than through OutputViews, which costs a few ns per
+	// output. The coordinator keeps the views for Finalize.
+	outputCondition, outputFunction := implementations.OutputCondition,
+		implementations.OutputFunction
+	if views, ok := outputFunction.(*OutputViews); ok && len(views.Views) == 1 {
+		outputCondition, outputFunction = views.Views[0].Condition, views.Views[0].Function
+	}
 	for index, iteration := range settings.Iterations {
 		stateHistoryValues := mat.NewDense(
 			iteration.StateHistoryDepth,
@@ -282,8 +323,8 @@ func NewPartitionCoordinator(
 						Copies:  listenersByPartition[index],
 					},
 				},
-				implementations.OutputCondition,
-				implementations.OutputFunction,
+				outputCondition,
+				outputFunction,
 				iteration.InitStateValues,
 				timestepsHistory,
 			),

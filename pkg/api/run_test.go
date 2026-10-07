@@ -158,7 +158,7 @@ func testSim() *simulator.SimulationConfig {
 
 // writeConfig writes contents to a temp file and loads it, so sourcePath is set
 // exactly as the CLI path sets it.
-func writeConfig(t *testing.T, contents string) *ApiRunConfig {
+func writeConfig(t testing.TB, contents string) *ApiRunConfig {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {

@@ -137,6 +137,37 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **`json_log` buffers a run's entries: 70–85% faster runs that write a log.**
+  It wrote one system call per entry; a run's entries now go out in 64 KB
+  blocks, and `Finalize` flushes them. Measured on a real file against v0.19.0,
+  the sink alone is 83% faster per run, with 18% fewer allocations per entry, and
+  configs writing a `json_log` run 70–85% faster end to end.
+  - **A log is complete once its run has finished,** not entry by entry as the run
+    goes. A sink driven by hand (`Output` with no `Configure`) still writes each
+    entry immediately.
+  - **A `Stepper`'s `Close` now finalizes the run's output,** under every
+    execution strategy, as `Run` always did. A caller stepping a run itself gets
+    complete logs by closing the stepper as documented. Fixed-step re-entrant runs
+    (`ReentrantSimulation`, and embedded runs through it) used to leave their
+    sinks unfinalized, holding a file open. A custom `ExecutionStrategy`'s
+    stepper is finalized for it. Finalizing happens once per coordinator. Code
+    stepping a coordinator with `coordinator.Step(wg)` and never closing a
+    stepper must call the output's `Finalize` itself to complete a `json_log`.
+  - **A failed write is unavailable (75):** a `json_log` write or flush that
+    fails, such as on a full disk, is a `ResourceError`, like failing to open
+    the file. It used to panic with a plain error.
+- **Output views cost nothing per step.** Since `outputs:` views, every config's
+  output went through `simulator.OutputViews`, which cost 2–3 ns per output: up
+  to 21% on small inline runs. A coordinator now hands a single view's sink and
+  condition to its partitions directly. The per-output check for views is
+  written into `StateIterator.Iterate`, where the separate `emitOutput` call
+  cost ~1 ns per output. The simulator's step benchmarks, and configs without
+  output, are back level with v0.19.0.
+- **A config run generates its configs once.** Since `api.RunToStorage` (#95), a
+  run generated its configs to check the wiring, then generated them again to run,
+  reconfiguring every iteration: 3 extra allocations per partition per run, plus
+  28 more. It now runs from the configs it checked, and a config run allocates
+  exactly what v0.19.0 did.
 - **Every output goes through `outputs:` views, in every mode.** A config's outputs
   are now declared in one place:
   - `main.simulation`'s `output_condition` / `output_function` pair is shorthand for
