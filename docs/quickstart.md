@@ -340,17 +340,24 @@ run:
   websocket: {address: ":2112", handle: /handle}   # handle defaults to /
   pace_ms: 200                                      # delay between steps
   # websocket.allowed_origins: ["https://dash.example.com"]   # or "*"
+outputs:
+  - {name: stream, function: {type: connection}}    # what each client receives
+  - {name: log, function: {type: json_log, path: "session-{connection}.log"}}
 ```
 
 Every client that connects gets its **own fresh run** of the model, streamed step by step as
 protobuf `PartitionState` frames, and the run stops if the client leaves. By default, a browser
-page may connect only from the server's own host or from a loopback host. The stream is the
-config's output with the websocket as its sink: it follows `output_condition`, and the
-shorthand `output_function` is not written. With `outputs:` views, the stream carries every
-step and each connection also writes its own views. Put `{connection}` (the connection's
-index, from 0) in each view's fields, e.g. `path: "session-{connection}.log"`, just as
-ensembles use `{member}`. Serve mode does not apply to `macros:` configs yet. The old
-`--socket socket.yaml` flag still works as an alias for this block, but it is deprecated.
+page may connect only from the server's own host or from a loopback host.
+
+What a client receives is an output like any other. It is the `outputs:` view whose function is
+`{type: connection}`, and that view's `condition` filters it. A serve config declares exactly
+one such view and uses `outputs:` rather than the `output_condition` / `output_function` pair.
+Each connection also writes its own copy of the other views. Put `{connection}` (the
+connection's index, from 0) in each view's fields, just as ensembles use `{member}`.
+
+Serve mode does not apply to `macros:` configs yet. The old `--socket socket.yaml` flag still
+works as an alias for a batch config with the shorthand pair: it streams the run filtered by
+`output_condition`, and doesn't write `output_function`. It is deprecated.
 
 ### Running a config from Go
 
