@@ -60,9 +60,10 @@ Status: **accepted** (2026-10-04).
     **In review (#111):** that cost is removed (level with v0.19.0), and
     `json_log` is buffered, which makes log-writing runs 70–85% faster. A
     `Stepper`'s `Close` now finalizes output. The PR adds committed benchmarks
-    (`BenchmarkConfigRun*`) and allocation guards. Open: about 8 extra per-run
-    setup allocations per config run (76 for 16 partitions), which are per run,
-    not per step.
+    (`BenchmarkConfigRun*`) and allocation guards. It also fixes per-run
+    allocations: since #95, a run generated its configs twice, once to check
+    and once to run, which cost 76 allocations for 16 partitions. A config run
+    now allocates exactly what v0.19.0 did.
   - **Next:** 1.5 stream inputs, which drive `InjectParams`. IO.3 needs Q7 decided
     first; IO.4 and IO.5 can go any time. O.1 and O.4 can run alongside.
 
