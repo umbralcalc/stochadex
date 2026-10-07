@@ -151,13 +151,12 @@ One row per step, `<time> <partition> [<state values>]`:
 5 walk [1.101502572408065]
 ```
 
-Stream over a websocket for live dashboards (publish the port for the container):
+To serve it over a websocket for live dashboards, add a `run:` block (see
+[run modes](#run-modes)) and publish the port for the container:
 
 ```bash
-stochadex --config walk.yaml --socket cfg/socket.yaml
-
 docker run --rm -p 2112:2112 -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest \
-  --config walk.yaml --socket cfg/socket.yaml
+  --config cfg/example_serve_config.yaml
 ```
 
 ## The anatomy of a partition
@@ -332,6 +331,26 @@ run:
 ```
 
 Omit `run` for a single batch run.
+
+To serve the model over a websocket, for a live dashboard:
+
+```yaml
+run:
+  mode: serve
+  websocket: {address: ":2112", handle: /handle}   # handle defaults to /
+  pace_ms: 200                                      # delay between steps
+  # websocket.allowed_origins: ["https://dash.example.com"]   # or "*"
+```
+
+Every client that connects gets its **own fresh run** of the model, streamed step by step as
+protobuf `PartitionState` frames, and the run stops if the client leaves. By default, a browser
+page may connect only from the server's own host or from a loopback host. The stream is the
+config's output with the websocket as its sink: it follows `output_condition`, and the
+shorthand `output_function` is not written. With `outputs:` views, the stream carries every
+step and each connection also writes its own views. Put `{connection}` (the connection's
+index, from 0) in each view's fields, e.g. `path: "session-{connection}.log"`, just as
+ensembles use `{member}`. Serve mode does not apply to `macros:` configs yet. The old
+`--socket socket.yaml` flag still works as an alias for this block, but it is deprecated.
 
 ### Running a config from Go
 

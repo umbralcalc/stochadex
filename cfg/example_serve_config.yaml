@@ -1,0 +1,23 @@
+# Serves a random walk over a websocket: every client that connects to
+# ws://localhost:2112/handle gets its own fresh run, streamed step by step as
+# protobuf PartitionState frames, paced at 200ms per step.
+#
+#   stochadex --config cfg/example_serve_config.yaml
+main:
+  partitions:
+  - name: walk
+    iteration: {type: wiener_process}
+    params: {variances: [1.0, 4.0]}
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 1
+    seed: 7
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: nil}
+    termination_condition: {type: number_of_steps, max_steps: 100}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+run:
+  mode: serve
+  websocket: {address: ":2112", handle: /handle}
+  pace_ms: 200

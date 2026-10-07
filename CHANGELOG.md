@@ -24,6 +24,22 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`run: {mode: serve}`: serve a model over a websocket from the config.**
+  - **Config:** `run: {mode: serve, websocket: {address, handle, allowed_origins}, pace_ms}`
+    replaces the separate socket file (`handle` defaults to `/`). Every connection
+    gets its own fresh run, streamed step by step. See
+    `cfg/example_serve_config.yaml`.
+  - **Outputs:** the stream follows `output_condition`, and the shorthand
+    `output_function` is not written, as with `--socket`. With `outputs:` views, the
+    stream carries every step and each connection writes its own views, with
+    `{connection}` substituted (like an ensemble's `{member}`). A view that every
+    connection would share is a config error. Views are finalized when a run ends,
+    including when the client leaves early.
+  - **Errors:** a missing or malformed address is a config error. So are
+    `websocket` / `pace_ms` outside serve mode, and `seeds` / `concurrency` in it.
+    An address already in use is unavailable (75). `RunWith` on a serve config is a
+    usage error.
+  - **Not yet:** serve mode for `macros:` configs.
 - **`inputs:` and `{type: from_input}`: drive a `main:` run from data.**
   - **Declaring inputs:** an input is any `data.source`, or a pre-pass
     `{simulation: ...}`.
@@ -103,6 +119,13 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **`--socket` is deprecated, as an alias for `run: {mode: serve}`.** It still
+  serves a batch config, filling the new fields from the socket file and printing a
+  deprecation notice to stderr. It used to be ignored silently alongside an
+  ensemble or a `macros:` config; that, and passing it alongside a config that
+  already serves, is now a usage error (64). With `outputs:` views, each view now
+  needs `{connection}`. `api.StepAndServeWebsocket` and
+  `api.NewWebsocketHandler` are unchanged.
 - **`api.RunToStorage` no longer writes nested runs' sinks.** It already suppressed
   the top-level outputs, but an embedded run's own `output_function` still wrote.
   `RunToStorage` is now `RunWith` with one view mirroring the config's condition,

@@ -28,7 +28,8 @@
 //	embedded: named sub-runs, each a whole RunConfig (EmbeddedRunConfig). A main-run
 //	          partition whose name matches one is replaced by an embedded simulation
 //	          iteration wired to it, which is how a simulation nests inside a partition.
-//	run:      execution mode — batch or ensemble, with seeds and concurrency (RunModeConfig).
+//	run:      execution mode — batch, ensemble (seeds, concurrency) or serve (websocket,
+//	          pace_ms; see serve.go) (RunModeConfig).
 //	data:     a StateTimeStorage, produced either by a sub-simulation or by a pre-recorded
 //	          source (DataSource: csv, json_log, postgres, plus registered ones).
 //	macros:   each entry expands one pkg/macros constructor into a set of partitions over

@@ -136,11 +136,12 @@ type EmbeddedRunConfig struct {
 // one thing that is not a partition and that the partition tiers cannot express.
 //
 // Modes:
-//   - "" or "batch": run once to completion (or serve a websocket when a socket
-//     config is active). This is the default.
+//   - "" or "batch": run once to completion. This is the default.
 //   - "ensemble": run one member per seed concurrently, varying the global seed,
 //     via simulator.RunSeededEnsemble. Each member is rebuilt by re-loading the
 //     source file to get fresh, non-shared iteration instances.
+//   - "serve": serve a websocket; each connection gets its own fresh run of the
+//     model, streamed to it step by step (see serve.go).
 type RunModeConfig struct {
 	Mode string `yaml:"mode,omitempty"`
 	// Seeds are the per-member global seeds for ensemble mode (one member each).
@@ -148,6 +149,11 @@ type RunModeConfig struct {
 	// Concurrency bounds how many ensemble members run at once; <= 0 defaults to
 	// GOMAXPROCS.
 	Concurrency int `yaml:"concurrency,omitempty"`
+	// Websocket is where serve mode listens.
+	Websocket *WebsocketServeConfig `yaml:"websocket,omitempty"`
+	// PaceMs is serve mode's delay between steps, in milliseconds, so a client
+	// sees the run at a watchable rate.
+	PaceMs uint64 `yaml:"pace_ms,omitempty"`
 }
 
 // ApiRunConfig is the concrete, YAML-loadable configuration for an API run:
@@ -201,7 +207,6 @@ func (a *ApiRunConfig) resolveOutputs() error {
 			"main.simulation.output_condition / output_function; the latter is " +
 			"shorthand for a single view — move it into outputs:")
 	}
-	ensemble := a.Run.Mode == "ensemble"
 	views := make([]simulator.OutputView, 0, len(a.Outputs))
 	seen := make(map[string]bool, len(a.Outputs))
 	for index, view := range a.Outputs {
@@ -215,15 +220,8 @@ func (a *ApiRunConfig) resolveOutputs() error {
 		if view.Function.IsZero() {
 			return fmt.Errorf("api: output view %q needs a function: {type: ...}", view.Name)
 		}
-		templated := hasMemberPlaceholder(view.Function.Fields)
-		switch {
-		case ensemble && !templated && view.Function.Type != "nil":
-			return fmt.Errorf("api: output view %q would have every ensemble member "+
-				"write to the same destination; put {member} or {seed} in it, e.g. "+
-				"path: run-{member}.log", view.Name)
-		case !ensemble && templated:
-			return fmt.Errorf("api: output view %q uses {member} / {seed}, which only "+
-				"apply to run: {mode: ensemble}", view.Name)
+		if err := checkInstancePlaceholders(view, a.Run.Mode); err != nil {
+			return err
 		}
 		function, err := simulator.ResolveOutputFunction(view.Function)
 		if err != nil {
@@ -248,20 +246,52 @@ func (a *ApiRunConfig) resolveOutputs() error {
 	return nil
 }
 
-// memberPlaceholders are substituted in an ensemble member's output views.
-var memberPlaceholders = []string{"{member}", "{seed}"}
+// memberPlaceholders are substituted in an ensemble member's output views, and
+// connectionPlaceholders in a served connection's.
+var (
+	memberPlaceholders     = []string{"{member}", "{seed}"}
+	connectionPlaceholders = []string{"{connection}"}
+)
 
-// hasMemberPlaceholder reports whether any of a spec's string fields contains a
-// member placeholder. Sink specs are flat, so only top-level fields are read: a
+// checkInstancePlaceholders applies the rule for run modes that write one set
+// of output views per run instance — an ensemble member, a served connection.
+// Each instance gets its own sinks, so a view must name its destination with
+// that mode's placeholder or every instance writes to the same place; and a
+// placeholder for another mode would never be substituted.
+func checkInstancePlaceholders(view OutputViewConfig, mode string) error {
+	member := hasPlaceholder(view.Function.Fields, memberPlaceholders)
+	connection := hasPlaceholder(view.Function.Fields, connectionPlaceholders)
+	shared := view.Function.Type != "nil"
+	switch {
+	case mode == "ensemble" && !member && shared:
+		return fmt.Errorf("api: output view %q would have every ensemble member "+
+			"write to the same destination; put {member} or {seed} in it, e.g. "+
+			"path: run-{member}.log", view.Name)
+	case mode == "serve" && !connection && shared:
+		return fmt.Errorf("api: output view %q would have every served connection "+
+			"write to the same destination; put {connection} in it, e.g. "+
+			"path: run-{connection}.log", view.Name)
+	case mode != "ensemble" && member:
+		return fmt.Errorf("api: output view %q uses {member} / {seed}, which only "+
+			"apply to run: {mode: ensemble}", view.Name)
+	case mode != "serve" && connection:
+		return fmt.Errorf("api: output view %q uses {connection}, which only "+
+			"applies to run: {mode: serve}", view.Name)
+	}
+	return nil
+}
+
+// hasPlaceholder reports whether any of a spec's string fields contains one of
+// placeholders. Sink specs are flat, so only top-level fields are read: a
 // placeholder anywhere deeper is not found, and validation then rejects the
-// view as shared by every member rather than writing to the wrong place.
-func hasMemberPlaceholder(fields map[string]interface{}) bool {
+// view as shared by every instance rather than writing to the wrong place.
+func hasPlaceholder(fields map[string]interface{}, placeholders []string) bool {
 	for _, value := range fields {
 		text, ok := value.(string)
 		if !ok {
 			continue
 		}
-		for _, placeholder := range memberPlaceholders {
+		for _, placeholder := range placeholders {
 			if strings.Contains(text, placeholder) {
 				return true
 			}
@@ -270,9 +300,9 @@ func hasMemberPlaceholder(fields map[string]interface{}) bool {
 	return false
 }
 
-// substituteMember returns a copy of a spec's fields with {member} and {seed}
-// replaced in its string fields.
-func substituteMember(fields map[string]interface{}, replacer *strings.Replacer) map[string]interface{} {
+// substituteFields returns a copy of a spec's fields with replacer applied to
+// its string fields.
+func substituteFields(fields map[string]interface{}, replacer *strings.Replacer) map[string]interface{} {
 	out := make(map[string]interface{}, len(fields))
 	for key, value := range fields {
 		if text, ok := value.(string); ok {
@@ -285,17 +315,33 @@ func substituteMember(fields map[string]interface{}, replacer *strings.Replacer)
 
 // memberOutputViews builds one ensemble member's own output views: fresh sink
 // instances, with {member} (its index) and {seed} substituted in every view's
-// function fields. The specs were validated at load, so a failure here is a bug.
+// function fields.
 func (a *ApiRunConfig) memberOutputViews(member int, seed uint64) *simulator.OutputViews {
-	replacer := strings.NewReplacer(
-		"{member}", strconv.Itoa(member), "{seed}", strconv.FormatUint(seed, 10))
+	return a.instanceOutputViews(fmt.Sprintf("member %d", member), strings.NewReplacer(
+		"{member}", strconv.Itoa(member), "{seed}", strconv.FormatUint(seed, 10)))
+}
+
+// connectionOutputViews builds one served connection's own output views: fresh
+// sink instances, with {connection} (its index) substituted.
+func (a *ApiRunConfig) connectionOutputViews(connection int) *simulator.OutputViews {
+	return a.instanceOutputViews(fmt.Sprintf("connection %d", connection),
+		strings.NewReplacer("{connection}", strconv.Itoa(connection)))
+}
+
+// instanceOutputViews builds fresh sink instances for every output view, with
+// replacer applied to each function's fields. The specs were validated at
+// load, so a failure here is a bug.
+func (a *ApiRunConfig) instanceOutputViews(
+	instance string,
+	replacer *strings.Replacer,
+) *simulator.OutputViews {
 	views := &simulator.OutputViews{}
 	for _, view := range a.Outputs {
 		spec := view.Function
-		spec.Fields = substituteMember(view.Function.Fields, replacer)
+		spec.Fields = substituteFields(view.Function.Fields, replacer)
 		function, err := simulator.ResolveOutputFunction(spec)
 		if err != nil {
-			panic(fmt.Errorf("api: output view %q for member %d: %w", view.Name, member, err))
+			panic(fmt.Errorf("api: output view %q for %s: %w", view.Name, instance, err))
 		}
 		var condition simulator.OutputCondition = &simulator.EveryStepOutputCondition{}
 		if !view.Condition.IsZero() {
@@ -445,6 +491,9 @@ func LoadConfig(path string) (*ApiRunConfig, error) {
 		return nil, configError(err)
 	}
 	if err := validateInputs(&config); err != nil {
+		return nil, configError(err)
+	}
+	if err := validateRunMode(&config); err != nil {
 		return nil, configError(err)
 	}
 	if err := validateApiRunConfig(&config); err != nil {

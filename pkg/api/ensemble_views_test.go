@@ -120,13 +120,13 @@ func TestEnsembleMemberViews(t *testing.T) {
 
 func TestMemberPlaceholders(t *testing.T) {
 	fields := map[string]interface{}{"path": "run-{member}-{seed}.log", "buffer": 64, "table": "t"}
-	if !hasMemberPlaceholder(fields) {
+	if !hasPlaceholder(fields, memberPlaceholders) {
 		t.Error("a placeholder in a string field should be found")
 	}
-	if hasMemberPlaceholder(map[string]interface{}{"path": "run.log", "buffer": 64}) {
+	if hasPlaceholder(map[string]interface{}{"path": "run.log", "buffer": 64}, memberPlaceholders) {
 		t.Error("no placeholder should be found when none is present")
 	}
-	got := substituteMember(fields, strings.NewReplacer("{member}", "3", "{seed}", "44"))
+	got := substituteFields(fields, strings.NewReplacer("{member}", "3", "{seed}", "44"))
 	if got["path"] != "run-3-44.log" || got["buffer"] != 64 || got["table"] != "t" {
 		t.Errorf("substitution should replace placeholders in strings and keep other fields, got %v", got)
 	}

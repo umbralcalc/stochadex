@@ -1,3 +1,6 @@
+# Deprecated: put run: {mode: serve, websocket: {address, handle}, pace_ms} in
+# the config instead (see cfg/example_serve_config.yaml). --socket with this
+# file is an alias for exactly that.
 address: ":2112"
 handle: "/handle"
 millisecond_delay: 200

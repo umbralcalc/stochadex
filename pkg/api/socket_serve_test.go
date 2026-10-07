@@ -120,6 +120,14 @@ func assertMatchesReference(
 	}
 }
 
+// reloadBuild is a NewWebsocketHandler build that re-loads the config file for
+// every connection, so concurrent clients never share iteration instances.
+func reloadBuild(path string) func() *simulator.ConfigGenerator {
+	return func() *simulator.ConfigGenerator {
+		return LoadApiRunConfigFromYaml(path).GetConfigGenerator()
+	}
+}
+
 func writeServeConfig(t *testing.T, yaml string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "serve.yaml")
@@ -135,15 +143,10 @@ func wsURLOf(server *httptest.Server) string {
 
 func TestWebsocketServing(t *testing.T) {
 	path := writeServeConfig(t, serveConfigYAML)
-	config := LoadApiRunConfigFromYaml(path)
 	reference := referenceRun(t, path)
 
 	t.Run("a single client receives exactly the offline run", func(t *testing.T) {
-		build, err := perConnectionBuild(config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		server := httptest.NewServer(NewWebsocketHandler(build, 0, nil))
+		server := httptest.NewServer(NewWebsocketHandler(reloadBuild(path), 0, nil))
 		defer server.Close()
 		// the initial state plus 40 steps, for 2 partitions
 		if len(reference) != 82 {
@@ -156,10 +159,7 @@ func TestWebsocketServing(t *testing.T) {
 		// Each connection must be built afresh: count the builds, and check every
 		// client's stream against the offline run rather than only against each
 		// other, so identical-but-wrong streams cannot pass.
-		inner, err := perConnectionBuild(config)
-		if err != nil {
-			t.Fatal(err)
-		}
+		inner := reloadBuild(path)
 		var builds atomic.Int32
 		build := func() *simulator.ConfigGenerator {
 			builds.Add(1)
@@ -194,10 +194,7 @@ func TestWebsocketServing(t *testing.T) {
 		// A run that would take ~1000s to finish: the handler must return soon
 		// after the client goes away rather than stepping to termination.
 		long := strings.Replace(serveConfigYAML, "max_steps: 40", "max_steps: 1000000", 1)
-		build, err := perConnectionBuild(LoadApiRunConfigFromYaml(writeServeConfig(t, long)))
-		if err != nil {
-			t.Fatal(err)
-		}
+		build := reloadBuild(writeServeConfig(t, long))
 		handlerDone := make(chan struct{})
 		handler := NewWebsocketHandler(build, 1, nil)
 		server := httptest.NewServer(http.HandlerFunc(
@@ -227,7 +224,7 @@ func TestWebsocketServing(t *testing.T) {
 	})
 
 	t.Run("an in-memory config cannot be served", func(t *testing.T) {
-		if _, err := perConnectionBuild(&ApiRunConfig{}); err == nil {
+		if _, err := serveHandler(&ApiRunConfig{}); err == nil {
 			t.Error("expected an error serving a config with no source file")
 		}
 	})
@@ -235,10 +232,7 @@ func TestWebsocketServing(t *testing.T) {
 
 func TestWebsocketOriginEnforcement(t *testing.T) {
 	path := writeServeConfig(t, serveConfigYAML)
-	build, err := perConnectionBuild(LoadApiRunConfigFromYaml(path))
-	if err != nil {
-		t.Fatal(err)
-	}
+	build := reloadBuild(path)
 	dialWithOrigin := func(server *httptest.Server, origin string) (*http.Response, error) {
 		header := http.Header{}
 		header.Set("Origin", origin)
