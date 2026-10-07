@@ -34,7 +34,7 @@ Status: **accepted** (2026-10-04).
     reject it but to desugar it, with a `stdout` sink that knows which run instance it
     belongs to (IO.2).
     - IO.1, the served stream as an `outputs:` view `{type: connection}` (#108).
-  - **In review:** IO.2, every output an `outputs:` view in every mode (#109).
+  - **Merged:** IO.2, every output an `outputs:` view in every mode (#109).
     - The shorthand pair is one view named `output`; no output declared means a
       default stdout view, which fixes a CLI crash on batch configs with no output.
     - `stdout` is prefixed per member or connection.
@@ -44,7 +44,13 @@ Status: **accepted** (2026-10-04).
       now print in time order (as Phase 2 will anyway), and ensemble members
       interleave. All 20 shipped configs print the **same lines** as the previous
       binary.
-  - **Next:** 1.4 injection port, then 1.5 stream inputs. IO.3 needs Q7 decided
+  - **In review:** 1.4, `PartitionCoordinator.InjectParams` (#110).
+    - Guards: unknown partition, undeclared key, wrong width, and an upstream-fed key
+      are errors.
+    - Found while building it: an iterator's params map **is** the `Settings`' map,
+      so dexetera-style writes leak into later runs built from the same settings.
+      `InjectParams` writes into a copy.
+  - **Next:** 1.5 stream inputs, which drive `InjectParams`. IO.3 needs Q7 decided
     first; IO.4 and IO.5 can go any time. O.1 and O.4 can run alongside.
 
 ## 0. Summary
@@ -705,7 +711,7 @@ None of these depend on each other, so each can be its own PR.
 | 1.1 | **DONE (#105, #106)**: `inputs:` block. The `main:` path is in #105; macros reading `inputs:` (`data:` as an alias) is in #106 | A map from name to one of `{source: ...}` (all registered sources) or `{simulation: {partitions, expressions, steps, timestep, init_time}}`. `data:` desugars to a single unnamed input. Partition names across inputs must be unique, or loading fails. | `data:` configs produce byte-identical output; dead-key check covers `inputs:` |
 | 1.2 | **DONE (#105)**: `from_input` iteration | `{type: from_input, input: x, partition: p}` replays an input partition as a main partition. It builds on #86's inline `from_storage`, sourcing the rows from a named input instead of inline data. Plus `timestep_function: {type: from_input, input: x}` and `termination_condition: {type: input_exhausted}`. This promotes `FromStorageIteration` from "live-object, no data form" to a data spec, because the data now has a name. | Re-express one downstream pattern (e.g. a floodrisk forward run) as YAML, matching the Go version exactly; coverage test entry moves from excluded to registered |
 | 1.3 | **DONE (#107)**: `run: {mode: serve}`. The stream moves into `outputs:` in IO.1 | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. Each connection attaches a websocket *view* to its own fresh run (§2.5), alongside any config views. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works; a served stream matches an in-memory view of the same run |
-| 1.4 | Injection port in the engine | Move dexetera's `ApplyActionState` idea into the engine as `simulator.InjectParams(coordinator, partition, key, values)` (or a `Stepper` hook). It runs only between steps. | Unit test: an injection before step k is visible at step k and not before |
+| 1.4 | **IN REVIEW (#110)**: injection port in the engine, `PartitionCoordinator.InjectParams` | Move dexetera's `ApplyActionState` idea into the engine as `simulator.InjectParams(coordinator, partition, key, values)` (or a `Stepper` hook). It runs only between steps. | Unit test: an injection before step k is visible at step k and not before |
 | 1.5 | Stream inputs | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
 | 1.6 | Guard rails | Reject `stream:` inputs under `ensemble`. Pick a backpressure policy (bounded buffer, drop-oldest default, configurable). | Load-time error tests |
 | 1.7 | Keyboard on the new path | Re-express keyboard input as a `stream` transport (`{keyboard: {...}}`) feeding a `param_values` partition. Keep `UserInputIteration` and mark it legacy. | The existing keyboard test still passes; the new form has a test |
