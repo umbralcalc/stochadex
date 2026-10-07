@@ -140,8 +140,9 @@ func validateInputs(config *ApiRunConfig) error {
 			return fmt.Errorf("api: input %q: a simulation: input cannot also set source:", name)
 		}
 	}
-	if len(config.Inputs) > 0 && len(config.Macros) > 0 {
-		return fmt.Errorf("api: inputs: is not yet available to macros:; use data:")
+	if len(config.Inputs) > 0 && config.Data != nil {
+		return fmt.Errorf("api: a config sets both data: and inputs:; data: is " +
+			"shorthand for a single input — move it into inputs:")
 	}
 	used := map[string]bool{}
 	reference := func(where, input string) error {
@@ -176,8 +177,10 @@ func validateInputs(config *ApiRunConfig) error {
 			return err
 		}
 	}
+	// A macros: config analyses every input (they are combined into the storage
+	// its macros read), so only main: inputs can go unused.
 	for name := range config.Inputs {
-		if !used[name] {
+		if len(config.Macros) == 0 && !used[name] {
 			return fmt.Errorf("api: input %q is never used; replay it with "+
 				"{type: from_input, input: %s} or remove it", name, name)
 		}
@@ -270,4 +273,86 @@ func inputRows(storage *simulator.StateTimeStorage, input, partition string) ([]
 	}
 	return nil, withKind(ErrData, fmt.Errorf(
 		"api: input %q has no partition %q (it has: %s)", input, partition, strings.Join(names, ", ")))
+}
+
+// macroInputs returns the inputs a macros: config analyses: its inputs:, or its
+// data: block desugared to a single input named "data" (a data: source is a
+// source input; a data: sub-simulation is a simulation input).
+func macroInputs(config *ApiRunConfig) map[string]InputConfig {
+	switch {
+	case len(config.Inputs) > 0:
+		return config.Inputs
+	case config.Data == nil:
+		return nil
+	case config.Data.Source != nil:
+		return map[string]InputConfig{"data": {Source: config.Data.Source}}
+	default:
+		return map[string]InputConfig{"data": {Simulation: config.Data}}
+	}
+}
+
+// loadMacroStorage loads a macros: config's inputs into the one storage its
+// macros analyse. A single input is used as it is. Several are combined: they
+// must share one time axis (the storage has one), and a partition name may come
+// from only one input; either mismatch is ErrData naming the inputs involved.
+func loadMacroStorage(inputs map[string]InputConfig) (*simulator.StateTimeStorage, error) {
+	names := make([]string, 0, len(inputs))
+	for name := range inputs {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	load := func(name string) (*simulator.StateTimeStorage, error) {
+		input := inputs[name]
+		storage, err := input.load()
+		if err != nil {
+			return nil, fmt.Errorf("api: loading input %q: %w", name, err)
+		}
+		return storage, nil
+	}
+	if len(names) == 1 {
+		return load(names[0])
+	}
+	merged := simulator.NewStateTimeStorage()
+	owners := map[string]string{}
+	var times []float64
+	for _, name := range names {
+		storage, err := load(name)
+		if err != nil {
+			return nil, err
+		}
+		if times == nil {
+			times = storage.GetTimes()
+		} else if err := sameTimes(names[0], times, name, storage.GetTimes()); err != nil {
+			return nil, err
+		}
+		for _, partition := range storage.GetNames() {
+			if owner, taken := owners[partition]; taken {
+				return nil, withKind(ErrData, fmt.Errorf(
+					"api: partition %q is in both input %q and input %q", partition, owner, name))
+			}
+			owners[partition] = name
+			merged.SetValues(partition, storage.GetValues(partition))
+		}
+	}
+	merged.SetTimes(times)
+	return merged, nil
+}
+
+// sameTimes is ErrData unless two inputs' time axes are identical.
+func sameTimes(firstName string, first []float64, otherName string, other []float64) error {
+	if len(first) != len(other) {
+		return withKind(ErrData, fmt.Errorf(
+			"api: inputs %q and %q have different time axes (%d vs %d rows); the "+
+				"macros analyse one storage, so every input must share one",
+			firstName, otherName, len(first), len(other)))
+	}
+	for i := range first {
+		if first[i] != other[i] {
+			return withKind(ErrData, fmt.Errorf(
+				"api: inputs %q and %q have different time axes (row %d: %v vs %v); the "+
+					"macros analyse one storage, so every input must share one",
+				firstName, otherName, i, first[i], other[i]))
+		}
+	}
+	return nil
 }

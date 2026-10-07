@@ -284,7 +284,7 @@ func TestInputs(t *testing.T) {
 		{"a clock naming an undeclared input", strings.Replace(inputsConfig(simulationInput,
 			"{type: from_input, input: src, partition: source}"), "{type: from_input, input: src}", "{type: from_input, input: nope}", 1),
 			`names input "nope"`},
-		{"inputs: with macros:", macroConfigYAML + "inputs:\n" + simulationInput + "\n", "not yet available to macros:"},
+		{"both data: and inputs:", macroConfigYAML + "inputs:\n" + simulationInput + "\n", "both data: and inputs:"},
 	}
 	for _, c := range loadErrors {
 		t.Run(c.name+" is a config error at load", func(t *testing.T) {
