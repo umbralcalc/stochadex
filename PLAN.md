@@ -44,7 +44,7 @@ Status: **accepted** (2026-10-04).
       now print in time order (as Phase 2 will anyway), and ensemble members
       interleave. All 20 shipped configs print the **same lines** as the previous
       binary.
-  - **In review:** 1.4, `PartitionCoordinator.InjectParams` (#110).
+  - **Merged:** 1.4, `PartitionCoordinator.InjectParams` (#110).
     - Guards: unknown partition, undeclared key, wrong width, and an upstream-fed key
       are errors.
     - Writes in place (decided 2026-10-07): 72 ns and one allocation, the copy of
@@ -53,6 +53,16 @@ Status: **accepted** (2026-10-04).
       map per call to avoid that cost about as much as an inline step, and
       guarded a case nothing in the engine hits; build from the config again to
       start fresh.
+  - **Decided (2026-10-07): engine performance is protected.** The plan's changes
+    must not slow the step loop; measure every per-step change against v0.19.0
+    with interleaved `benchstat` runs. An audit found the output refactor
+    (#101, #109) had cost 2–3 ns per output, up to 21% on small inline runs.
+    **In review (#111):** that cost is removed (level with v0.19.0), and
+    `json_log` is buffered, which makes log-writing runs 70–85% faster. A
+    `Stepper`'s `Close` now finalizes output. The PR adds committed benchmarks
+    (`BenchmarkConfigRun*`) and allocation guards. Open: about 8 extra per-run
+    setup allocations per config run (76 for 16 partitions), which are per run,
+    not per step.
   - **Next:** 1.5 stream inputs, which drive `InjectParams`. IO.3 needs Q7 decided
     first; IO.4 and IO.5 can go any time. O.1 and O.4 can run alongside.
 
@@ -496,6 +506,11 @@ New capabilities:
 ---
 
 ## 4. Phases
+
+**Performance bar for every item** (decided 2026-10-07): no slowdown in the step
+loop. A change that touches anything run per step is benchmarked against v0.19.0
+(the commit before #91), interleaving the two binaries under `benchstat`. The PR
+states the numbers, and allocations per step are pinned by tests.
 
 **Test bar for every item** (set by #91–#93):
 - Assert against an independent reference, not the implementation's own logic.
