@@ -47,7 +47,7 @@ func parseArgs(args []string) (ParsedArgs, error) {
 		"socket",
 		&argparse.Options{
 			Required: false,
-			Help:     "yaml config path for socket",
+			Help:     "deprecated: yaml socket config path; use run: {mode: serve} in the config",
 		},
 	)
 	if err := parser.Parse(args); err != nil {

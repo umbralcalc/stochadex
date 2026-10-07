@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/graph"
@@ -51,6 +52,26 @@ func NewWebsocketHandler(
 	stepDelay time.Duration,
 	allowedOrigins []string,
 ) http.Handler {
+	return newStreamHandler(func(stream simulator.OutputFunction) (*simulator.ConfigGenerator, error) {
+		generator := build()
+		simulation := generator.GetSimulation()
+		simulation.OutputFunction = stream
+		generator.SetSimulation(simulation)
+		return generator, nil
+	}, stepDelay*time.Millisecond, allowedOrigins)
+}
+
+// newStreamHandler is the websocket handler for both serving paths. For each
+// connection, build returns a fresh generator whose output includes stream, the
+// connection's websocket. The run is stepped under its execution strategy with
+// pace between steps, until it terminates or the client disconnects, and its
+// output is then finalized, so any sinks alongside the stream are flushed. If
+// the run cannot be built, the client is sent a close frame giving the reason.
+func newStreamHandler(
+	build func(stream simulator.OutputFunction) (*simulator.ConfigGenerator, error),
+	pace time.Duration,
+	allowedOrigins []string,
+) http.Handler {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: websocketOriginCheck(allowedOrigins),
 	}
@@ -75,14 +96,24 @@ func NewWebsocketHandler(
 		}()
 
 		var mutex sync.Mutex
-		generator := build()
-		simulationConfig := generator.GetSimulation()
-		simulationConfig.OutputFunction =
-			simulator.NewWebsocketOutputFunction(connection, &mutex)
-		generator.SetSimulation(simulationConfig)
+		generator, err := build(simulator.NewWebsocketOutputFunction(connection, &mutex))
+		if err != nil {
+			log.Println("Error building a served run:", err)
+			mutex.Lock()
+			connection.WriteControl(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseInternalServerErr, closeReason(err)),
+				time.Now().Add(time.Second))
+			mutex.Unlock()
+			return
+		}
 		coordinator := simulator.NewPartitionCoordinator(
 			generator.GenerateConfigs(),
 		)
+		defer func() {
+			if finalizing, ok := coordinator.OutputFunction.(simulator.FinalizingOutputFunction); ok {
+				finalizing.Finalize()
+			}
+		}()
 
 		// step under the configured execution strategy, sleeping between
 		// steps so the websocket streams state at a watchable rate
@@ -95,9 +126,20 @@ func NewWebsocketHandler(
 			default:
 			}
 			stepper.Step()
-			time.Sleep(stepDelay * time.Millisecond)
+			time.Sleep(pace)
 		}
 	})
+}
+
+// closeReason is err's text cut to fit a websocket close frame, whose reason
+// must be valid UTF-8 within 123 bytes: whole characters, at most 120 bytes.
+func closeReason(err error) string {
+	reason := err.Error()
+	for len(reason) > 120 {
+		_, size := utf8.DecodeLastRuneInString(reason)
+		reason = reason[:len(reason)-size]
+	}
+	return reason
 }
 
 // websocketOriginCheck admits a websocket upgrade when the request carries no
@@ -163,11 +205,15 @@ func CheckForDeadlock(generator *simulator.ConfigGenerator) error {
 }
 
 // Run executes the configured simulation under the mode named by the config's
-// run: block. The default (empty or "batch") preserves pre-run:-tier behaviour:
-// serve a websocket when a socket config is active, otherwise run once to
-// completion offline, emitting through the config's output_function.
-// "ensemble" runs one seeded member per seed concurrently. Macros and ensembles
-// have no output_function of their own, so Run prints what RunToStorage returns.
+// run: block. The default (empty or "batch") runs once to completion offline,
+// emitting through the config's output_function; "ensemble" runs one seeded
+// member per seed concurrently; "serve" serves a websocket, one fresh run per
+// connection, until the server fails. Macros and ensembles have no
+// output_function of their own, so Run prints what RunToStorage returns.
+//
+// An active socket config is a deprecated alias for run: {mode: serve}: it
+// switches a batch config to serving with the socket's address, handle,
+// origins and delay.
 //
 // A failure exits the process; a panic raised while running propagates. Use
 // Execute (as the CLI does) for classified errors and exit codes instead.
@@ -179,6 +225,10 @@ func Run(config *ApiRunConfig, socket *SocketConfig) {
 
 // runChecked is Run, returning its failure instead of exiting.
 func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
+	config, err := withSocketAlias(config, socket, os.Stderr)
+	if err != nil {
+		return err
+	}
 	if len(config.Macros) == 0 && config.Run.Mode == "ensemble" && config.outputViews != nil {
 		// Members go to their own output views instead of being printed.
 		_, err := RunWith(config, WithConfigOutputs())
@@ -205,8 +255,10 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 	}
 	switch config.Run.Mode {
 	case "", "batch":
-		runBatch(config, generator, socket)
+		simulator.NewPartitionCoordinator(generator.GenerateConfigs()).Run()
 		return nil
+	case "serve":
+		return runServe(config)
 	default:
 		return configError(unknownRunModeError(config.Run.Mode))
 	}
@@ -333,6 +385,11 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 			replayThroughViews(storage, config.outputViews)
 		}
 		return result, nil
+	}
+	if config.Run.Mode == "serve" {
+		return nil, &Error{Kind: ErrUsage, Err: fmt.Errorf(
+			"api: a serve config runs once per websocket connection; serve it with " +
+				"Run / Execute, or run it once with run: {mode: batch}")}
 	}
 	if config.Run.Mode == "ensemble" && len(requested) > 0 {
 		return nil, &Error{Kind: ErrUsage, Err: fmt.Errorf(
@@ -470,27 +527,7 @@ func preparedMainGeneratorWith(
 
 func unknownRunModeError(mode string) error {
 	return fmt.Errorf(
-		"api: unknown run mode %q — expected \"batch\" or \"ensemble\"", mode)
-}
-
-// perConnectionBuild returns a builder that re-loads the config's source file, so
-// every websocket connection gets fresh, non-shared iteration instances (the same
-// mechanism ensemble mode uses for its members). A config built in memory has no
-// file to re-load and is rejected.
-func perConnectionBuild(
-	config *ApiRunConfig,
-) (func() *simulator.ConfigGenerator, error) {
-	if config.sourcePath == "" {
-		return nil, fmt.Errorf("api: serving a websocket requires a config " +
-			"loaded from a file (each connection is rebuilt by re-loading it)")
-	}
-	return func() *simulator.ConfigGenerator {
-		connection := LoadApiRunConfigFromYaml(config.sourcePath)
-		if err := bindInputs(connection); err != nil {
-			panic(err)
-		}
-		return connection.GetConfigGenerator()
-	}, nil
+		"api: unknown run mode %q — expected \"batch\", \"ensemble\" or \"serve\"", mode)
 }
 
 // validateMainContext rejects a data: block on a config with no macros:. Only the
@@ -502,33 +539,6 @@ func validateMainContext(config *ApiRunConfig) error {
 			"read by the macros: tier and the main simulation ignores it")
 	}
 	return nil
-}
-
-// runBatch serves a websocket when the socket is active, otherwise runs the
-// simulation once to completion.
-func runBatch(
-	config *ApiRunConfig,
-	generator *simulator.ConfigGenerator,
-	socket *SocketConfig,
-) {
-	if socket.Active() {
-		build, err := perConnectionBuild(config)
-		if err != nil {
-			log.Fatal(err)
-		}
-		StepAndServeWebsocket(
-			build,
-			time.Duration(socket.MillisecondDelay),
-			socket.Handle,
-			socket.Address,
-			socket.AllowedOrigins,
-		)
-		return
-	}
-	coordinator := simulator.NewPartitionCoordinator(
-		generator.GenerateConfigs(),
-	)
-	coordinator.Run()
 }
 
 // RunEnsembleToStorage runs the config's ensemble and returns each member's

@@ -173,6 +173,7 @@ To feed several sinks, each with its own filter, replace the `output_condition` 
 With `macros:`, `outputs:` receives the macro results instead of stdout.
 With `run: {mode: ensemble}`, each member writes its own sinks: put `{member}` or `{seed}` in
 every view's fields (`path: "run-{member}.log"`, quoted). A view without one is rejected.
+With `run: {mode: serve}`, each connection writes its own sinks the same way, with `{connection}`.
 
 ```yaml
 outputs:
@@ -188,6 +189,16 @@ run:
   seeds: [11, 22, 33, 44]  # output rows are prefixed member=<i> seed=<s>
   # concurrency: 4         # optional; defaults to GOMAXPROCS
 ```
+
+```yaml
+run:
+  mode: serve                                      # websocket server: every connection
+  websocket: {address: ":2112", handle: /handle}   # gets its own fresh run, streamed as
+  pace_ms: 200                                     # protobuf frames, pace_ms apart
+```
+
+The stream follows `output_condition`; the shorthand `output_function` is not written.
+Not for `macros:` configs yet.
 
 ## Analysis & inference — `data:` + `macros:`
 

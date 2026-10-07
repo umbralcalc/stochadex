@@ -195,10 +195,11 @@ func validateMacroContext(config *ApiRunConfig) error {
 			"macros run in their own context and ignore embedded runs")
 	}
 	if (config.Run.Mode != "" && config.Run.Mode != "batch") ||
-		len(config.Run.Seeds) > 0 || config.Run.Concurrency != 0 {
+		len(config.Run.Seeds) > 0 || config.Run.Concurrency != 0 ||
+		config.Run.Websocket != nil || config.Run.PaceMs != 0 {
 		return fmt.Errorf("api: a config sets run: alongside macros:; macros " +
-			"always run once and do not yet support run modes (ensemble, seeds, " +
-			"concurrency)")
+			"always run once and do not yet support run modes (ensemble, serve, " +
+			"seeds, concurrency, websocket, pace_ms)")
 	}
 	return nil
 }
