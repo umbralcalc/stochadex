@@ -23,12 +23,16 @@ Status: **accepted** (2026-10-04).
   - **Follow-up to decide:** an ensemble config's shorthand `output_function`
     (e.g. `stdout` in `cfg/example_ensemble_config.yaml`) is still silently
     ignored. Options: reject it, or make it per-member like `outputs:` views.
-  - **In review:** the rest of 1.1, in #106. Macros read `inputs:`, and `data:` is
-    shorthand for a single input named `data`. Several inputs must share one time axis
-    and must not repeat a partition name; either mismatch is ErrData. Acceptance test:
-    all 9 shipped `data:` configs give byte-identical results through `inputs:`.
-  - **Next:** 1.3 serve mode in the config, then 1.4 / 1.5 stream inputs. O.1 and O.4
-    can run alongside.
+    - The rest of 1.1 (#106): macros read `inputs:`, and `data:` is shorthand for a
+      single input. All 9 shipped `data:` configs give byte-identical results.
+  - **In review:** 1.3 `run: {mode: serve}`, in #107. Each connection gets its own
+    fresh run. The stream follows `output_condition`, and the shorthand
+    `output_function` is not written. `outputs:` views are written per connection with
+    `{connection}`, like an ensemble's `{member}`. `--socket` is a deprecated alias.
+    Serve for `macros:` configs stays with 2.8.
+  - **Follow-up to decide (now covers two modes):** the shorthand `output_function` is
+    not written under ensemble or serve. Decide one rule for both.
+  - **Next:** 1.4 injection port, then 1.5 stream inputs. O.1 and O.4 can run alongside.
 
 ## 0. Summary
 
@@ -660,9 +664,9 @@ None of these depend on each other, so each can be its own PR.
 
 | # | Item | Detail | Acceptance |
 |---|---|---|---|
-| 1.1 | **DONE (#105) / IN REVIEW (#106)**: `inputs:` block. The `main:` path is in #105; macros reading `inputs:` (`data:` as an alias) is in #106 | A map from name to one of `{source: ...}` (all registered sources) or `{simulation: {partitions, expressions, steps, timestep, init_time}}`. `data:` desugars to a single unnamed input. Partition names across inputs must be unique, or loading fails. | `data:` configs produce byte-identical output; dead-key check covers `inputs:` |
+| 1.1 | **DONE (#105, #106)**: `inputs:` block. The `main:` path is in #105; macros reading `inputs:` (`data:` as an alias) is in #106 | A map from name to one of `{source: ...}` (all registered sources) or `{simulation: {partitions, expressions, steps, timestep, init_time}}`. `data:` desugars to a single unnamed input. Partition names across inputs must be unique, or loading fails. | `data:` configs produce byte-identical output; dead-key check covers `inputs:` |
 | 1.2 | **DONE (#105)**: `from_input` iteration | `{type: from_input, input: x, partition: p}` replays an input partition as a main partition. It builds on #86's inline `from_storage`, sourcing the rows from a named input instead of inline data. Plus `timestep_function: {type: from_input, input: x}` and `termination_condition: {type: input_exhausted}`. This promotes `FromStorageIteration` from "live-object, no data form" to a data spec, because the data now has a name. | Re-express one downstream pattern (e.g. a floodrisk forward run) as YAML, matching the Go version exactly; coverage test entry moves from excluded to registered |
-| 1.3 | `run: {mode: serve}` | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. Each connection attaches a websocket *view* to its own fresh run (§2.5), alongside any config views. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works; a served stream matches an in-memory view of the same run |
+| 1.3 | **IN REVIEW (#107)**: `run: {mode: serve}` | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. Each connection attaches a websocket *view* to its own fresh run (§2.5), alongside any config views. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works; a served stream matches an in-memory view of the same run |
 | 1.4 | Injection port in the engine | Move dexetera's `ApplyActionState` idea into the engine as `simulator.InjectParams(coordinator, partition, key, values)` (or a `Stepper` hook). It runs only between steps. | Unit test: an injection before step k is visible at step k and not before |
 | 1.5 | Stream inputs | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
 | 1.6 | Guard rails | Reject `stream:` inputs under `ensemble`. Pick a backpressure policy (bounded buffer, drop-oldest default, configurable). | Load-time error tests |
