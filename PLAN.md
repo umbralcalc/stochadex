@@ -47,9 +47,12 @@ Status: **accepted** (2026-10-04).
   - **In review:** 1.4, `PartitionCoordinator.InjectParams` (#110).
     - Guards: unknown partition, undeclared key, wrong width, and an upstream-fed key
       are errors.
-    - Found while building it: an iterator's params map **is** the `Settings`' map,
-      so dexetera-style writes leak into later runs built from the same settings.
-      `InjectParams` writes into a copy.
+    - Writes in place (decided 2026-10-07): 72 ns and one allocation, the copy of
+      the values. A partition's params map is the `Settings`' own map, so, like
+      `params_from_upstream`, an injection lands in the `Settings`. Copying the
+      map per call to avoid that cost about as much as an inline step, and
+      guarded a case nothing in the engine hits; build from the config again to
+      start fresh.
   - **Next:** 1.5 stream inputs, which drive `InjectParams`. IO.3 needs Q7 decided
     first; IO.4 and IO.5 can go any time. O.1 and O.4 can run alongside.
 
