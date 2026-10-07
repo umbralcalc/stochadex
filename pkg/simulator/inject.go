@@ -1,9 +1,6 @@
 package simulator
 
-import (
-	"fmt"
-	"maps"
-)
+import "fmt"
 
 // InjectParams sets the params key of the named partition to values, from the
 // next step on: a step that starts after InjectParams returns sees the new
@@ -24,9 +21,11 @@ import (
 // overwrite it at the start of the next step. An iteration that reads the key
 // only in Configure does not see injected values.
 //
-// The values are copied, and the coordinator's Settings are not modified: a
-// coordinator built afresh from the same settings (a harness rerun, a
-// ReentrantSimulation) starts from the configured values, not injected ones.
+// The values are copied, so the caller may reuse its slice. The write lands in
+// the params map the partition was built with, which is the Settings' own (as
+// params_from_upstream's writes do), so a coordinator built afresh from the
+// same Settings starts from the last injected values: to start from the
+// configured ones, build from the config again.
 func (c *PartitionCoordinator) InjectParams(partition, key string, values []float64) error {
 	var iterator *StateIterator
 	for _, candidate := range c.Iterators {
@@ -52,11 +51,6 @@ func (c *PartitionCoordinator) InjectParams(partition, key string, values []floa
 		return fmt.Errorf("simulator: InjectParams: partition %q params key %q has "+
 			"width %d, got %d values", partition, key, len(current), len(values))
 	}
-	// The iterator's map is the Settings' own map, so write into a copy of it:
-	// writing through would leak the injection into every later run built
-	// from these settings.
-	params := maps.Clone(iterator.Params.Map)
-	params[key] = append([]float64(nil), values...)
-	iterator.Params.Map = params
+	iterator.Params.Set(key, append([]float64(nil), values...))
 	return nil
 }

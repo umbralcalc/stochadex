@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -144,7 +145,7 @@ func TestInjectParams(t *testing.T) {
 		})
 	}
 
-	t.Run("the settings are untouched: a fresh coordinator starts from the configured values", func(t *testing.T) {
+	t.Run("it writes in place: a coordinator rebuilt from the same settings starts from it", func(t *testing.T) {
 		settings := injectSettings()
 		stepWithInjections(t, settings, 3, nil, func(coordinator *PartitionCoordinator, step int) {
 			if step == 1 {
@@ -153,11 +154,30 @@ func TestInjectParams(t *testing.T) {
 				}
 			}
 		})
-		if got := settings.Iterations[0].Params.Map["level"]; !floats.Equal(got, configured) {
-			t.Fatalf("settings' level = %v after an injection, want %v", got, configured)
+		if got := settings.Iterations[0].Params.Map["level"]; !floats.Equal(got, injected) {
+			t.Fatalf("settings' level = %v after an injection, want %v", got, injected)
 		}
 		rerun := stepWithInjections(t, settings, 3, nil, func(*PartitionCoordinator, int) {})
-		assertRows(t, rerun, "dial", 3, func(int) []float64 { return configured })
+		assertRows(t, rerun, "dial", 3, func(int) []float64 { return injected })
+		// Building from the config again starts from the configured values.
+		fresh := stepWithInjections(t, injectSettings(), 3, nil, func(*PartitionCoordinator, int) {})
+		assertRows(t, fresh, "dial", 3, func(int) []float64 { return configured })
+	})
+
+	t.Run("an injection allocates only the copy of its values", func(t *testing.T) {
+		coordinator := NewPartitionCoordinator(injectSettings(),
+			injectImplementations(3, nil, NewStateTimeStorage()))
+		for i := range 6 { // a partition with several params keys
+			coordinator.Iterators[0].Params.Map[fmt.Sprint("key", i)] = []float64{1, 2, 3}
+		}
+		allocs := testing.AllocsPerRun(1000, func() {
+			if err := coordinator.InjectParams("dial", "level", injected); err != nil {
+				t.Fatal(err)
+			}
+		})
+		if allocs > 1 {
+			t.Errorf("InjectParams made %v allocations, want at most 1 (the values' copy)", allocs)
+		}
 	})
 
 	t.Run("the caller's slice is copied", func(t *testing.T) {
@@ -206,4 +226,16 @@ func TestInjectParams(t *testing.T) {
 			t.Error(err)
 		}
 	})
+}
+
+func BenchmarkInjectParams(b *testing.B) {
+	coordinator := NewPartitionCoordinator(injectSettings(),
+		injectImplementations(3, nil, NewStateTimeStorage()))
+	values := []float64{7, 9}
+	b.ReportAllocs()
+	for b.Loop() {
+		if err := coordinator.InjectParams("dial", "level", values); err != nil {
+			b.Fatal(err)
+		}
+	}
 }
