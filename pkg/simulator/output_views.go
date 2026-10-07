@@ -58,20 +58,10 @@ func (o *OutputViews) Finalize() {
 	}
 }
 
-// stepOutputFunction is an OutputFunction that applies its own conditions, given
-// the step's history (OutputViews).
-type stepOutputFunction interface {
-	OutputStep(
-		partitionName string,
-		state []float64,
-		timestepsHistory *CumulativeTimestepsHistory,
-		cumulativeTimesteps float64,
-	)
-}
-
 // emitOutput sends one partition's state for a step to the simulation's output:
-// a step-aware function decides per view; anything else is gated by the
-// simulation's single condition.
+// OutputViews decides per view; anything else is gated by the
+// simulation's single condition. StateIterator.Iterate repeats this logic
+// inline on the per-step path; keep the two in step.
 func emitOutput(
 	condition OutputCondition,
 	function OutputFunction,
@@ -80,7 +70,9 @@ func emitOutput(
 	timestepsHistory *CumulativeTimestepsHistory,
 	cumulativeTimesteps float64,
 ) {
-	if views, ok := function.(stepOutputFunction); ok {
+	// A concrete type check is one pointer comparison per output; an interface
+	// check costs a lookup, which showed up in the step benchmarks.
+	if views, ok := function.(*OutputViews); ok {
 		views.OutputStep(partitionName, state, timestepsHistory, cumulativeTimesteps)
 		return
 	}

@@ -79,9 +79,9 @@ type spawnPerStepStepper struct {
 // Step advances the coordinator by one spawn-per-step tick.
 func (s *spawnPerStepStepper) Step() { s.coordinator.Step(&s.waitGroup) }
 
-// Close releases the stepper. Spawn-per-step holds no long-lived resources, so
-// this does nothing.
-func (s *spawnPerStepStepper) Close() {}
+// Close releases the stepper and finalizes the run's output. Spawn-per-step
+// holds no long-lived resources of its own.
+func (s *spawnPerStepStepper) Close() { s.coordinator.finalizeOutput() }
 
 // PersistentWorkerExecution runs the simulation with one long-lived goroutine
 // per partition rather than spawning a fresh goroutine per partition per phase
@@ -179,7 +179,11 @@ func (s *persistentWorkerStepper) Step() {
 
 // Close releases the persistent workers. Every worker is parked on an
 // iteration-phase wake-up between steps, so closing quit returns them all.
-func (s *persistentWorkerStepper) Close() { close(s.quit) }
+// It then finalizes the run's output.
+func (s *persistentWorkerStepper) Close() {
+	close(s.quit)
+	s.coordinator.finalizeOutput()
+}
 
 // InlineExecution runs the simulation entirely on the calling goroutine: no
 // worker goroutines, no channel handshakes and no WaitGroup barrier. Each step
@@ -261,6 +265,6 @@ func (s *inlineStepper) Step() {
 	c.advanceTimestepsHistory()
 }
 
-// Close releases the stepper. Inline execution holds no long-lived resources,
-// so this does nothing.
-func (s *inlineStepper) Close() {}
+// Close releases the stepper and finalizes the run's output. Inline execution
+// holds no long-lived resources of its own.
+func (s *inlineStepper) Close() { s.coordinator.finalizeOutput() }

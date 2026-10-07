@@ -109,14 +109,10 @@ func newStreamHandler(
 		coordinator := simulator.NewPartitionCoordinator(
 			generator.GenerateConfigs(),
 		)
-		defer func() {
-			if finalizing, ok := coordinator.OutputFunction.(simulator.FinalizingOutputFunction); ok {
-				finalizing.Finalize()
-			}
-		}()
 
 		// step under the configured execution strategy, sleeping between
-		// steps so the websocket streams state at a watchable rate
+		// steps so the websocket streams state at a watchable rate; Close
+		// finalizes the run's output, including when the client leaves early
 		stepper := coordinator.NewStepper()
 		defer stepper.Close()
 		for !coordinator.ReadyToTerminate() {
