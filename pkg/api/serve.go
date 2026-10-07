@@ -58,12 +58,6 @@ func validateRunMode(config *ApiRunConfig) error {
 	}
 	// What a client receives is an output like any other, so it is declared in
 	// outputs: (PLAN.md rule 14), with its own condition.
-	if !config.Main.SimulationStrings.OutputCondition.IsZero() ||
-		!config.Main.SimulationStrings.OutputFunction.IsZero() {
-		return fmt.Errorf("api: run: {mode: serve} streams an outputs: view, not " +
-			"main.simulation's output_condition / output_function; replace them with " +
-			"outputs: [{name: stream, condition: ..., function: {type: connection}}]")
-	}
 	streams := 0
 	for _, view := range config.Outputs {
 		if view.Function.Type == connectionSink {
@@ -105,7 +99,7 @@ func withSocketAlias(
 	case config.Run.Mode != "" && config.Run.Mode != "batch":
 		return nil, usage("api: --socket only applies to a batch run, not "+
 			"run: {mode: %s}", config.Run.Mode)
-	case len(config.Outputs) > 0:
+	case config.outputsDeclared:
 		return nil, usage("api: --socket does not support outputs: views; use " +
 			"run: {mode: serve} with a view of function {type: connection} instead")
 	}
@@ -113,6 +107,7 @@ func withSocketAlias(
 		"websocket: {address: %q, handle: %q}, pace_ms: %d} in the config instead\n",
 		socket.Address, socket.Handle, socket.MillisecondDelay)
 	served := *config
+	served.socketAlias = true
 	served.Run = RunModeConfig{
 		Mode: "serve",
 		Websocket: &WebsocketServeConfig{
@@ -133,10 +128,11 @@ func withSocketAlias(
 // inputs afresh, so a connection whose inputs have gone is closed with the
 // reason rather than served.
 //
-// A config served through the deprecated --socket alias is a batch config with
-// the shorthand output pair, which has no connection view: its client receives
-// the run gated by output_condition, and its output_function is not written,
-// exactly as --socket always behaved.
+// A config served through the deprecated --socket alias declares no outputs:,
+// so its one view is the shorthand pair's (or the default): the alias sends that
+// view to the connection instead of its sink, so the client receives the run
+// gated by output_condition and output_function is not written, exactly as
+// --socket always behaved.
 func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 	if config.sourcePath == "" {
 		return nil, fmt.Errorf("api: serving a websocket requires a config " +
@@ -155,12 +151,11 @@ func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 		}
 		generator := connectionConfig.GetConfigGenerator()
 		simulation := generator.GetSimulation()
-		if len(connectionConfig.Outputs) > 0 {
-			simulation.OutputFunction = connectionConfig.connectionOutputViews(connection, stream)
-			simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
-		} else {
-			simulation.OutputFunction = stream // the --socket alias (see above)
+		if config.socketAlias {
+			connectionConfig.Outputs[0].Function = simulator.ComponentSpec{Type: connectionSink}
 		}
+		simulation.OutputFunction = connectionConfig.connectionOutputViews(connection, stream)
+		simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
 		generator.SetSimulation(simulation)
 		return generator, nil
 	}

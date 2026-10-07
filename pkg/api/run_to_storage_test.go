@@ -207,7 +207,7 @@ func TestRunToStorage(t *testing.T) {
 				"data:\n  steps: 5\n  partitions: []\n",
 			"data:"},
 		{"ensemble with no seeds",
-			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog),
+			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog+"-{member}"),
 				"main:", "run: {mode: ensemble}\nmain:", 1),
 			"run.seeds"},
 		{"macros alongside an ensemble run:",
@@ -244,10 +244,35 @@ func TestRunToStorage(t *testing.T) {
 	}
 }
 
+// rowLines formats a storage's rows as a stdout view writes them — "<time>
+// <partition> [values]", led by prefix when set — in time order, partitions in
+// name order within a time. It is the reference the CLI's printed output is
+// checked against: an independent formatting of RunToStorage's result.
+func rowLines(storage *simulator.StateTimeStorage, prefix string) []string {
+	names := storage.GetNames()
+	sort.Strings(names)
+	lines := []string{}
+	for step, time := range storage.GetTimes() {
+		for _, name := range names {
+			values := storage.GetValues(name)
+			if step >= len(values) {
+				continue
+			}
+			line := fmt.Sprintf("%v %s %v", time, name, values[step])
+			if prefix != "" {
+				line = prefix + " " + line
+			}
+			lines = append(lines, line)
+		}
+	}
+	return lines
+}
+
 // TestRunPrintsRunToStorage pins that the CLI's printed output for macros and
-// ensemble configs is exactly RunToStorage's result, formatted.
+// ensemble configs is exactly RunToStorage's result, written through the
+// config's default stdout view.
 func TestRunPrintsRunToStorage(t *testing.T) {
-	t.Run("macros", func(t *testing.T) {
+	t.Run("macros: the result, row by row in time order", func(t *testing.T) {
 		printed := captureStdout(t, func() {
 			Run(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"), &SocketConfig{})
 		})
@@ -255,13 +280,13 @@ func TestRunPrintsRunToStorage(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := captureStdout(t, func() { printStorage(result.Storage) })
-		if printed != want || printed == "" {
-			t.Errorf("Run's macro output differs from RunToStorage printed "+
+		want := strings.Join(rowLines(result.Storage, ""), "\n") + "\n"
+		if printed != want || len(want) < 1000 {
+			t.Errorf("Run's macro output differs from RunToStorage's rows "+
 				"(%d vs %d bytes)", len(printed), len(want))
 		}
 	})
-	t.Run("ensemble", func(t *testing.T) {
+	t.Run("ensemble: each member's rows, prefixed, in its own time order", func(t *testing.T) {
 		printed := captureStdout(t, func() {
 			Run(LoadApiRunConfigFromYaml("../../cfg/example_ensemble_config.yaml"), &SocketConfig{})
 		})
@@ -269,16 +294,30 @@ func TestRunPrintsRunToStorage(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := captureStdout(t, func() { printEnsemble(result.Members) })
-		if printed != want || printed == "" {
-			t.Errorf("Run's ensemble output differs from RunToStorage printed "+
-				"(%d vs %d bytes)", len(printed), len(want))
+		// Members run concurrently, so their lines interleave; each member's own
+		// lines keep its order.
+		byMember := map[string][]string{}
+		for _, line := range strings.Split(strings.TrimSpace(printed), "\n") {
+			fields := strings.Fields(line)
+			byMember[fields[0]+" "+fields[1]] = append(byMember[fields[0]+" "+fields[1]], line)
+		}
+		if len(byMember) != len(result.Members) || len(result.Members) != 4 {
+			t.Fatalf("printed %d members, RunToStorage has %d, want 4", len(byMember), len(result.Members))
+		}
+		for member, run := range result.Members {
+			prefix := fmt.Sprintf("member=%d seed=%d", member, run.Seed)
+			want := rowLines(run.Storage, prefix)
+			if strings.Join(byMember[prefix], "\n") != strings.Join(want, "\n") || len(want) != 21 {
+				t.Errorf("%s printed %d lines, want its 21 rows in order:\n%v\nvs\n%v",
+					prefix, len(byMember[prefix]), byMember[prefix], want)
+			}
 		}
 	})
 }
 
-// TestRunOutputIsDeterministic pins that the CLI prints partitions in a fixed
-// order: storage names come from a map, so unsorted printing varied run to run.
+// TestRunOutputIsDeterministic pins that the CLI prints a macros result in a
+// fixed order: time order, partitions in name order within a time. Storage names
+// come from a map, so unsorted printing varied run to run.
 func TestRunOutputIsDeterministic(t *testing.T) {
 	first := captureStdout(t, func() {
 		Run(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"), &SocketConfig{})
@@ -293,16 +332,10 @@ func TestRunOutputIsDeterministic(t *testing.T) {
 			t.Fatalf("run %d printed different output from run 0", i+1)
 		}
 	}
-	// name order: data_stream, rolling_mean, rolling_var
 	lines := strings.Split(strings.TrimSpace(first), "\n")
-	order := []string{}
-	for _, line := range lines {
-		name := strings.Fields(line)[1]
-		if len(order) == 0 || order[len(order)-1] != name {
-			order = append(order, name)
+	for i, want := range []string{"data_stream", "rolling_mean", "rolling_var", "data_stream"} {
+		if name := strings.Fields(lines[i])[1]; name != want {
+			t.Errorf("line %d is partition %s, want %s (time order, names in order)", i, name, want)
 		}
-	}
-	if strings.Join(order, ",") != "data_stream,rolling_mean,rolling_var" {
-		t.Errorf("partitions printed in order %v, want name order", order)
 	}
 }

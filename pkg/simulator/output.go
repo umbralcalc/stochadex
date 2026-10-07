@@ -65,7 +65,12 @@ func (f *NilOutputFunction) Output(
 }
 
 // StdoutOutputFunction outputs the state to the terminal.
-type StdoutOutputFunction struct{}
+type StdoutOutputFunction struct {
+	// Prefix, when set, leads each row, naming which of several concurrent runs
+	// wrote it (e.g. "member=0 seed=11"). Each row is one write, so rows from
+	// concurrent runs never interleave within a line.
+	Prefix string
+}
 
 func (s *StdoutOutputFunction) Configure(*Settings) {}
 
@@ -74,7 +79,11 @@ func (s *StdoutOutputFunction) Output(
 	state []float64,
 	cumulativeTimesteps float64,
 ) {
-	fmt.Println(cumulativeTimesteps, partitionName, state)
+	if s.Prefix == "" {
+		fmt.Println(cumulativeTimesteps, partitionName, state)
+		return
+	}
+	fmt.Println(s.Prefix, cumulativeTimesteps, partitionName, state)
 }
 
 // StateTimeStorageOutputFunction stores output into StateTimeStorage when the
