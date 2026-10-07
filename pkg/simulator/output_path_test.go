@@ -139,6 +139,18 @@ func TestSingleOutputViewIsUnwrapped(t *testing.T) {
 	})
 }
 
+// panickedResourceError runs f and returns the *ResourceError it panicked
+// with, or nil if it did not panic with one.
+func panickedResourceError(f func()) (resourceErr *ResourceError) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			resourceErr, _ = recovered.(*ResourceError)
+		}
+	}()
+	f()
+	return nil
+}
+
 func TestJsonLogBuffersARun(t *testing.T) {
 	const entries = 3000 // ~200 KB, several buffers' worth
 	write := func(path string, configure bool) *JsonLogOutputFunction {
@@ -180,6 +192,23 @@ func TestJsonLogBuffersARun(t *testing.T) {
 		sink.Output("p", []float64{1}, 0)
 		if entries := readJsonLog(t, path); len(entries) != 1 {
 			t.Errorf("an unconfigured sink should write straight to the file, got %d entries", len(entries))
+		}
+	})
+
+	t.Run("a failed write is a resource error, buffered or not", func(t *testing.T) {
+		// Closing the file under the sink makes every later write fail.
+		buffered := NewJsonLogOutputFunction(filepath.Join(t.TempDir(), "buffered.log"))
+		buffered.Configure(nil)
+		buffered.Output("p", []float64{1}, 0)
+		buffered.file.Close()
+		if err := panickedResourceError(buffered.Finalize); err == nil {
+			t.Error("a failed flush in Finalize should panic with a ResourceError")
+		}
+		byHand := NewJsonLogOutputFunction(filepath.Join(t.TempDir(), "hand.log"))
+		byHand.Output("p", []float64{1}, 0)
+		byHand.file.Close()
+		if err := panickedResourceError(func() { byHand.Output("p", []float64{2}, 1) }); err == nil {
+			t.Error("a failed write should panic with a ResourceError")
 		}
 	})
 

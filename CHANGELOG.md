@@ -153,6 +153,9 @@ an exact version rather than assume stability across minors.
     stepper is finalized for it. Finalizing happens once per coordinator. Code
     stepping a coordinator with `coordinator.Step(wg)` and never closing a
     stepper must call the output's `Finalize` itself to complete a `json_log`.
+  - **A failed write is unavailable (75):** a `json_log` write or flush that
+    fails, such as on a full disk, is a `ResourceError`, like failing to open
+    the file. It used to panic with a plain error.
 - **Output views cost nothing per step.** Since `outputs:` views, every config's
   output went through `simulator.OutputViews`, which cost 2–3 ns per output: up
   to 21% on small inline runs. A coordinator now hands a single view's sink and
