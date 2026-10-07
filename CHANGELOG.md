@@ -24,6 +24,21 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`PartitionCoordinator.InjectParams(partition, key, values)`: input from
+  outside a run, between steps.** It sets one partition's params key from the next
+  step on: a step that starts after it returns sees the new values, and they stay
+  until injected again. Every execution strategy supports it.
+  - **Guarded:** an unknown partition, an undeclared key, a different width, or a
+    key fed by `params_from_upstream` (which would overwrite it) is an error.
+  - **Cheap:** it writes in place, allocating only a copy of the values, so the
+    caller may reuse its slice. Like `params_from_upstream`'s writes, it lands in
+    the `Settings` the coordinator was built from: a coordinator rebuilt from the
+    same `Settings` starts from the last injected values, so build from the config
+    again to start fresh.
+  - This is the engine's version of dexetera's `simio.ApplyActionState`, which
+    writes `Iterators[i].Params` directly and ignores unknown names. It is the
+    port that live stream inputs will drive.
+
 - **`run: {mode: serve}`: serve a model over a websocket from the config.**
   - **Config:** `run: {mode: serve, websocket: {address, handle, allowed_origins}, pace_ms}`
     replaces the separate socket file (`handle` defaults to `/`). Every connection

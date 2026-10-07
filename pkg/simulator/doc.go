@@ -22,4 +22,11 @@
 //   - Coordinate concurrent execution of simulation components
 //   - Store and retrieve simulation results and intermediate states
 //   - Implement custom termination and output conditions
+//
+// Input from outside a run:
+// A run driven step by step (PartitionCoordinator.NewStepper) can take input
+// from outside — a user's action, a live feed — only through
+// PartitionCoordinator.InjectParams, between steps. Input never reaches a
+// partition inside Iterate, so iterations stay pure functions of their params,
+// histories and seed, and a run with no injections is reproducible exactly.
 package simulator
