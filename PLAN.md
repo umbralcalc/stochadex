@@ -20,19 +20,22 @@ Status: **accepted** (2026-10-04).
       **Phase 0 is complete.**
     - Phase 1 items 1.1 `inputs:` and 1.2 `from_input` for the `main:` path (#105).
       Acceptance test: solar-fleet driven from a CSV input reproduces exactly.
-  - **Follow-up to decide:** an ensemble config's shorthand `output_function`
-    (e.g. `stdout` in `cfg/example_ensemble_config.yaml`) is still silently
-    ignored. Options: reject it, or make it per-member like `outputs:` views.
     - The rest of 1.1 (#106): macros read `inputs:`, and `data:` is shorthand for a
       single input. All 9 shipped `data:` configs give byte-identical results.
-  - **In review:** 1.3 `run: {mode: serve}`, in #107. Each connection gets its own
-    fresh run. The stream follows `output_condition`, and the shorthand
-    `output_function` is not written. `outputs:` views are written per connection with
-    `{connection}`, like an ensemble's `{member}`. `--socket` is a deprecated alias.
-    Serve for `macros:` configs stays with 2.8.
-  - **Follow-up to decide (now covers two modes):** the shorthand `output_function` is
-    not written under ensemble or serve. Decide one rule for both.
-  - **Next:** 1.4 injection port, then 1.5 stream inputs. O.1 and O.4 can run alongside.
+    - 1.3 `run: {mode: serve}` (#107). Each connection gets its own fresh run;
+      `outputs:` views are written per connection with `{connection}`; `--socket` is a
+      deprecated alias.
+  - **Decided (2026-10-07): one place in, one place out (rule 14).** A review of the
+    work so far against this rule found that outputs are still declared in five places,
+    and that #107's served stream is one of them: it lives in `run:` and takes its
+    filter from the shorthand `output_condition`. The new **Phase 1b** (IO.1–IO.6)
+    closes these gaps. It also settles the open follow-up about the shorthand
+    `output_function` going unwritten under ensemble and serve. The answer is not to
+    reject it but to desugar it, with a `stdout` sink that knows which run instance it
+    belongs to (IO.2).
+  - **Next:** IO.1 (the served stream as an `outputs:` view), then IO.2. They come
+    before 1.4, because they change what serve and ensemble write. O.1 and O.4 can run
+    alongside.
 
 ## 0. Summary
 
@@ -241,7 +244,7 @@ API), and were mutation-checked (each test fails with its fix reverted).
 | **Fixed input** | A read-only `StateTimeStorage` that exists before the runtime is built: a file, a database, or a labelled pre-pass simulation | `inputs: {name: {source: ...}}` or `{simulation: ...}` |
 | **Live input** | A per-step stream from outside, injected into partition params **between** steps; optionally recorded | `inputs: {name: {stream: ...}}` |
 | **Runtime** | One coordinator, one clock, built from partitions, expressions, embedded runs and macro expansions | `main:` (+ `macros:`) |
-| **Output view** | A (name, condition, function): a sink plus the filter selecting what it receives; several views form a tee; nested views carry scope | `outputs:` (or the `simulation.output_*` shorthand); caller-attached in-memory views for `RunResult` (§2.5) |
+| **Output view** | A (name, condition, function): a sink plus the filter selecting what it receives; several views form a tee; nested views carry scope | `outputs:` only. The `simulation.output_*` pair is shorthand that becomes one `outputs:` entry at load (IO.2). Caller-attached in-memory views for `RunResult` are added by the Go API, not the config (§2.5) |
 | **Run mode** | How many runtimes exist and how they are paced | `run: {mode: batch \| ensemble \| serve}` |
 
 ### 2.2 Rules
@@ -309,6 +312,25 @@ API), and were mutation-checked (each test fails with its fix reverted).
     downstream repo registered (an `mcts_self_play` environment, an `onnx_inference`
     iteration). That is still core language. A macro may expand into such names, but it
     may not carry decision rules or bespoke maths that the core cannot express.
+
+14. **One place in, one place out.** `inputs:` is the only place external data enters a
+    run. `outputs:` is the only place results leave it. `run:` decides how many runtimes
+    there are (one, one per seed, one per connection). Everything else (partitions,
+    params, expressions, wiring, `embedded:`) describes the model.
+    - **Shorthand is allowed only if it becomes these blocks at load.** Examples:
+      `data:`, the `simulation.output_*` pair, and the default "print to stdout" when
+      nothing is declared. `stochadex expand` shows the result.
+    - **Why:** a config's I/O contract can then be read from two blocks. That is what
+      makes a config easy to reason about, and what makes configs chainable by an
+      orchestrator. Track O's `inspect --io` manifest (O.2) and provenance hashes (O.5)
+      need a *complete* list of reads and writes, and they get one only if nothing
+      reads or writes from anywhere else.
+    - **Params are model, not inputs:** a literal in `params:` is part of the model's
+      definition. Inputs are external data read when a run starts.
+    - **A bidirectional transport appears in both blocks.** For example, a served
+      connection is an `outputs:` view, and its live actions (1.5) are an `inputs:`
+      stream that refers to the same connection. The rule is about where things are
+      declared, not about each transport doing only one job.
 
 ### 2.3 Target YAML (end of Phase 2)
 
@@ -418,9 +440,13 @@ in-memory one. The unifying formulation:
   clobber outputs. Views must open their resources in `Configure` and commit them in
   `Finalize`, which is also Track O's all-or-nothing outputs (O.4). Fixing json_log is
   the next PR.
-- **Websocket serving is a view.** `run: {mode: serve}` attaches a websocket view per
-  connection. Live stream *inputs* (Phase 1) are the mirror image: sources bound at
-  the step boundary.
+- **Websocket serving is a view.** `run: {mode: serve}` says *where to listen* and that
+  each connection is its own runtime. What each connection receives is an ordinary
+  `outputs:` view, `{name: stream, condition: ..., function: {type: connection}}`
+  (IO.1). #107 shipped a first form in which the stream lived in `run:` and borrowed
+  the shorthand `output_condition`; IO.1 moves it into `outputs:` per rule 14. Live
+  stream *inputs* (1.5) are the mirror image: sources bound at the step boundary, and
+  declared in `inputs:`.
 
 ## 3. Capability preservation
 
@@ -428,7 +454,9 @@ in-memory one. The unifying formulation:
 |---|---|---|
 | `main:` batch / ensemble | unchanged | — |
 | `embedded:` (hierarchical / nested sims) | unchanged; composition inside one runtime | — |
-| Websocket serving (`-s` socket file) | `run: {mode: serve}`; the fresh build per connection is already in place (#91); `-s` kept as a deprecated alias | 1 (schema) |
+| Websocket serving (`-s` socket file) | `run: {mode: serve}` (#107), with the stream as an `outputs:` view `{type: connection}` (IO.1); `-s` kept as a deprecated alias | 1, 1b |
+| A nested (embedded) run's own `output_function` | top-level `outputs:` views addressing nested partitions by scoped path (IO.3); the nested form becomes deprecated shorthand | 1b |
+| Inline data in a partition (`from_storage` values, #86) | an `{inline: ...}` input source; the inline form becomes shorthand (IO.4) | 1b |
 | `data.source` csv / json_log / postgres / arrow / s3 | `inputs: {x: {source: ...}}`; `data:` desugars to it | 1 |
 | `data:` sub-simulation (6 configs/recipes) | `inputs: {x: {simulation: ...}}`, same draws | 1 |
 | Against-storage macro chain (`example_macro_config`) | expanders in one runtime; **exact oracle** | 2 |
@@ -666,11 +694,39 @@ None of these depend on each other, so each can be its own PR.
 |---|---|---|---|
 | 1.1 | **DONE (#105, #106)**: `inputs:` block. The `main:` path is in #105; macros reading `inputs:` (`data:` as an alias) is in #106 | A map from name to one of `{source: ...}` (all registered sources) or `{simulation: {partitions, expressions, steps, timestep, init_time}}`. `data:` desugars to a single unnamed input. Partition names across inputs must be unique, or loading fails. | `data:` configs produce byte-identical output; dead-key check covers `inputs:` |
 | 1.2 | **DONE (#105)**: `from_input` iteration | `{type: from_input, input: x, partition: p}` replays an input partition as a main partition. It builds on #86's inline `from_storage`, sourcing the rows from a named input instead of inline data. Plus `timestep_function: {type: from_input, input: x}` and `termination_condition: {type: input_exhausted}`. This promotes `FromStorageIteration` from "live-object, no data form" to a data spec, because the data now has a name. | Re-express one downstream pattern (e.g. a floodrisk forward run) as YAML, matching the Go version exactly; coverage test entry moves from excluded to registered |
-| 1.3 | **IN REVIEW (#107)**: `run: {mode: serve}` | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. Each connection attaches a websocket *view* to its own fresh run (§2.5), alongside any config views. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works; a served stream matches an in-memory view of the same run |
+| 1.3 | **DONE (#107)**: `run: {mode: serve}`. The stream moves into `outputs:` in IO.1 | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. Each connection attaches a websocket *view* to its own fresh run (§2.5), alongside any config views. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works; a served stream matches an in-memory view of the same run |
 | 1.4 | Injection port in the engine | Move dexetera's `ApplyActionState` idea into the engine as `simulator.InjectParams(coordinator, partition, key, values)` (or a `Stepper` hook). It runs only between steps. | Unit test: an injection before step k is visible at step k and not before |
 | 1.5 | Stream inputs | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
 | 1.6 | Guard rails | Reject `stream:` inputs under `ensemble`. Pick a backpressure policy (bounded buffer, drop-oldest default, configurable). | Load-time error tests |
 | 1.7 | Keyboard on the new path | Re-express keyboard input as a `stream` transport (`{keyboard: {...}}`) feeding a `param_values` partition. Keep `UserInputIteration` and mark it legacy. | The existing keyboard test still passes; the new form has a test |
+
+### Phase 1b — one place in, one place out (rule 14)
+
+Added 2026-10-07 after a review of the work so far against rule 14. Before this phase,
+outputs could be declared in five places:
+- `outputs:` views;
+- the `simulation.output_*` shorthand, which batch, ensemble and serve each treated
+  differently;
+- an embedded run's own `output_function`;
+- the CLI printing results when nothing was declared (macros, ensembles);
+- the served stream in `run:` (#107).
+
+Inputs had two stragglers:
+- inline data inside a partition;
+- model files read from a path inside a partition spec (an ONNX model).
+
+| # | Item | Detail | Acceptance |
+|---|---|---|---|
+| IO.1 | The served stream is an `outputs:` view | A new output function `{type: connection}`, valid only under `run: {mode: serve}`, sends that view's rows to the connection being served. A serve config must declare exactly one, with its own condition. It no longer borrows the shorthand `output_condition`, and the shorthand is rejected under serve until IO.2 makes it an ordinary view. Each connection substitutes its websocket for the `connection` view and builds fresh instances of the others (`{connection}` as in #107). `--socket` keeps its exact old behaviour on a shorthand config (stream gated by `output_condition`, `output_function` not written), and is rejected with `outputs:` views, which it never supported (found in review: with `--socket`, views using `{connection}` were rejected at load, and views without it were rejected by the alias). | The served stream equals an in-memory capture with the view's condition; a serve config with zero or two `connection` views, or one outside serve, is a config error; the `--socket` flow is unchanged; mutation-checked |
+| IO.2 | The shorthand becomes one view, in every mode | At load, `output_condition` / `output_function` becomes `outputs: [{name: output, ...}]`, so batch, ensemble and serve share one code path, and the run-mode rules (`{member}` / `{connection}`) apply to it as to any view. `stdout` becomes **instance-aware**: under ensemble or serve it prefixes each row with `member=<i> seed=<s>` or `connection=<i>`, as the CLI's ensemble printing already does, so it needs no placeholder. When a config declares no output at all, the default ("print to stdout") becomes an explicit default view. The CLI's separate printing paths for macros and ensembles then go away. **This replaces "reject or make per-member" (the old follow-up):** desugaring makes the silent drop impossible rather than an error. | Every shipped config's stdout is byte-identical before and after (the ensemble example included); a shorthand `json_log` with `{member}` writes per member; an ensemble with a shorthand `json_log` without a placeholder is a config error naming the shorthand; `expand` shows the desugared view |
+| IO.3 | Nested runs write through top-level views | An `outputs:` view can select nested partitions by scoped path (`test_likelihood/test_data`). Its records carry the scope (path, outer step and time), per §2.5. An embedded run's own `output_function` becomes deprecated shorthand for such a view. Needs Q7 decided first. | A scoped view of a nested run equals the nested sink's records, each with its outer step; two nested partitions with the same inner name are told apart |
+| IO.4 | Inline data is an input | An `{inline: {times: [...], partitions: {name: [[...], ...]}}}` input source. The inline `from_storage` form becomes shorthand for an inline input plus `from_input`. | `cfg/example_from_storage_config.yaml` is byte-identical through the inline input |
+| IO.5 | Model files are inputs | A file an iteration reads (an ONNX model, today) is declared once in `inputs:` and referred to by name, so `inspect --io` and provenance (O.5) see it. Either declared or discovered: decide by Q8. | The manifest lists the model file; changing its contents changes the provenance hash |
+| IO.6 | Retire the shorthand forms | Once IO.1–IO.4 land, `data:`, the `simulation.output_*` pair and `--socket` print a deprecation notice. They are removed in a later v0.x minor (§4.1). | Each deprecated form prints its notice once and still gives identical results |
+
+**What this unlocks:** O.2's manifest becomes "`inputs:` and `outputs:` after
+desugaring", and its exhaustiveness test (the manifest's paths match what a run actually
+reads and writes) becomes a check of rule 14 itself.
 
 ### Phase 2 — macros as expanders inside the single runtime
 
@@ -798,7 +854,8 @@ evidence to collect before then. None blocks the next PRs.
 | 2 | Stream clock: `hold_last` only, or also `step_per_message` (an event clock)? | Phase 1.5 | Ship `hold_last` first; add an event clock when a real feed needs one (cryptobook's limit-order-book feed is the likely first test) |
 | 5 | Flatten `main:` to the top level? | Phase 3 | Agent test A.1: does the `main:` level cause agent authoring errors? Plus the migration cost across downstream configs and recipes |
 | 6 | May `${VAR}` placeholders appear anywhere, or only in string values? | O.1 | What cryptobook's `cfgrun` substitutes today (paths only, or numbers too), and whether non-string placeholders break the dead-key check or the type errors |
-| 7 | In-memory view of a nested run: one storage per outer step, or a flat storage with an outer-step column? | Before Phase 1's scoped-record work | Who reads nested views (debugging likelihood windows, inspecting MCTS trees) and what shape they want; streaming sinks just carry the scope fields either way |
+| 7 | In-memory view of a nested run: one storage per outer step, or a flat storage with an outer-step column? | IO.3 (rule 14 now gives the direction: nested runs write through top-level views, so their records must carry scope) | Who reads nested views (debugging likelihood windows, inspecting MCTS trees) and what shape they want; streaming sinks just carry the scope fields either way |
+| 8 | Model files (e.g. ONNX): declared in `inputs:` and referred to by name, or discovered by `inspect --io` from known spec fields? | IO.5 | How many registered iterations read files, and whether downstream registrations (`RegisterIteration`) can declare which of their fields are file paths. Declaring keeps rule 14 exact; discovering keeps configs shorter |
 
 ## 7. Risks
 
