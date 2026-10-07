@@ -56,6 +56,25 @@ func validateRunMode(config *ApiRunConfig) error {
 	if _, _, err := net.SplitHostPort(run.Websocket.Address); err != nil {
 		return fmt.Errorf("api: run.websocket.address %q: %w", run.Websocket.Address, err)
 	}
+	// What a client receives is an output like any other, so it is declared in
+	// outputs: (PLAN.md rule 14), with its own condition.
+	if !config.Main.SimulationStrings.OutputCondition.IsZero() ||
+		!config.Main.SimulationStrings.OutputFunction.IsZero() {
+		return fmt.Errorf("api: run: {mode: serve} streams an outputs: view, not " +
+			"main.simulation's output_condition / output_function; replace them with " +
+			"outputs: [{name: stream, condition: ..., function: {type: connection}}]")
+	}
+	streams := 0
+	for _, view := range config.Outputs {
+		if view.Function.Type == connectionSink {
+			streams++
+		}
+	}
+	if streams != 1 {
+		return fmt.Errorf("api: run: {mode: serve} needs exactly one outputs: view "+
+			"with function {type: connection} — what each client receives — got %d; "+
+			"e.g. outputs: [{name: stream, function: {type: connection}}]", streams)
+	}
 	return nil
 }
 
@@ -86,11 +105,9 @@ func withSocketAlias(
 	case config.Run.Mode != "" && config.Run.Mode != "batch":
 		return nil, usage("api: --socket only applies to a batch run, not "+
 			"run: {mode: %s}", config.Run.Mode)
-	}
-	for _, view := range config.Outputs {
-		if err := checkInstancePlaceholders(view, "serve"); err != nil {
-			return nil, configError(err)
-		}
+	case len(config.Outputs) > 0:
+		return nil, usage("api: --socket does not support outputs: views; use " +
+			"run: {mode: serve} with a view of function {type: connection} instead")
 	}
 	fmt.Fprintf(notices, "stochadex: --socket is deprecated; put run: {mode: serve, "+
 		"websocket: {address: %q, handle: %q}, pace_ms: %d} in the config instead\n",
@@ -109,14 +126,17 @@ func withSocketAlias(
 }
 
 // serveHandler returns the websocket handler behind run: {mode: serve}. Each
-// connection re-loads the config for a fresh, unshared run of the model and
-// streams it to the client. The stream is the config's output with the
-// websocket in place of its sink: gated by output_condition when the config
-// uses the shorthand pair (whose output_function is not written), or every
-// step alongside the config's outputs: views, which each connection writes for
-// itself with {connection} substituted. Each connection reads the config file
-// and its inputs afresh, so a connection whose inputs have gone is closed with
-// the reason rather than served.
+// connection re-loads the config for a fresh, unshared run of the model. The
+// client receives the config's {type: connection} view, gated by that view's
+// condition, and the connection writes the other outputs: views for itself with
+// {connection} substituted. Each connection reads the config file and its
+// inputs afresh, so a connection whose inputs have gone is closed with the
+// reason rather than served.
+//
+// A config served through the deprecated --socket alias is a batch config with
+// the shorthand output pair, which has no connection view: its client receives
+// the run gated by output_condition, and its output_function is not written,
+// exactly as --socket always behaved.
 func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 	if config.sourcePath == "" {
 		return nil, fmt.Errorf("api: serving a websocket requires a config " +
@@ -136,16 +156,10 @@ func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 		generator := connectionConfig.GetConfigGenerator()
 		simulation := generator.GetSimulation()
 		if len(connectionConfig.Outputs) > 0 {
-			views := connectionConfig.connectionOutputViews(connection)
-			views.Views = append([]simulator.OutputView{{
-				Name:      "websocket",
-				Condition: &simulator.EveryStepOutputCondition{},
-				Function:  stream,
-			}}, views.Views...)
-			simulation.OutputFunction = views
+			simulation.OutputFunction = connectionConfig.connectionOutputViews(connection, stream)
 			simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
 		} else {
-			simulation.OutputFunction = stream
+			simulation.OutputFunction = stream // the --socket alias (see above)
 		}
 		generator.SetSimulation(simulation)
 		return generator, nil

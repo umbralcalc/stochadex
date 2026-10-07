@@ -223,16 +223,27 @@ func (a *ApiRunConfig) resolveOutputs() error {
 		if err := checkInstancePlaceholders(view, a.Run.Mode); err != nil {
 			return err
 		}
-		function, err := simulator.ResolveOutputFunction(view.Function)
-		if err != nil {
-			return fmt.Errorf("api: output view %q function: %w", view.Name, err)
+		var function simulator.OutputFunction = &simulator.NilOutputFunction{}
+		if view.Function.Type == connectionSink {
+			// Stands in until a served connection substitutes its websocket.
+			if len(view.Function.Fields) > 0 {
+				return fmt.Errorf("api: output view %q: {type: connection} takes no "+
+					"fields; it sends to whichever client the run is served to", view.Name)
+			}
+		} else {
+			resolved, err := simulator.ResolveOutputFunction(view.Function)
+			if err != nil {
+				return fmt.Errorf("api: output view %q function: %w", view.Name, err)
+			}
+			function = resolved
 		}
 		var condition simulator.OutputCondition = &simulator.EveryStepOutputCondition{}
 		if !view.Condition.IsZero() {
-			condition, err = simulator.ResolveOutputCondition(view.Condition)
+			resolved, err := simulator.ResolveOutputCondition(view.Condition)
 			if err != nil {
 				return fmt.Errorf("api: output view %q condition: %w", view.Name, err)
 			}
+			condition = resolved
 		}
 		views = append(views, simulator.OutputView{
 			Name: view.Name, Condition: condition, Function: function,
@@ -245,6 +256,10 @@ func (a *ApiRunConfig) resolveOutputs() error {
 	a.Main.Simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
 	return nil
 }
+
+// connectionSink is the output function type that sends a view's rows to the
+// client a run is served to (run: {mode: serve}).
+const connectionSink = "connection"
 
 // memberPlaceholders are substituted in an ensemble member's output views, and
 // connectionPlaceholders in a served connection's.
@@ -261,8 +276,12 @@ var (
 func checkInstancePlaceholders(view OutputViewConfig, mode string) error {
 	member := hasPlaceholder(view.Function.Fields, memberPlaceholders)
 	connection := hasPlaceholder(view.Function.Fields, connectionPlaceholders)
-	shared := view.Function.Type != "nil"
+	// A nil sink writes nowhere, and a connection sink is the instance's own.
+	shared := view.Function.Type != "nil" && view.Function.Type != connectionSink
 	switch {
+	case mode != "serve" && view.Function.Type == connectionSink:
+		return fmt.Errorf("api: output view %q sends to {type: connection}, which "+
+			"only applies to run: {mode: serve}", view.Name)
 	case mode == "ensemble" && !member && shared:
 		return fmt.Errorf("api: output view %q would have every ensemble member "+
 			"write to the same destination; put {member} or {seed} in it, e.g. "+
@@ -318,37 +337,47 @@ func substituteFields(fields map[string]interface{}, replacer *strings.Replacer)
 // function fields.
 func (a *ApiRunConfig) memberOutputViews(member int, seed uint64) *simulator.OutputViews {
 	return a.instanceOutputViews(fmt.Sprintf("member %d", member), strings.NewReplacer(
-		"{member}", strconv.Itoa(member), "{seed}", strconv.FormatUint(seed, 10)))
+		"{member}", strconv.Itoa(member), "{seed}", strconv.FormatUint(seed, 10)), nil)
 }
 
 // connectionOutputViews builds one served connection's own output views: fresh
-// sink instances, with {connection} (its index) substituted.
-func (a *ApiRunConfig) connectionOutputViews(connection int) *simulator.OutputViews {
+// sink instances, with {connection} (its index) substituted, and the connection
+// view sending to stream, that connection's websocket.
+func (a *ApiRunConfig) connectionOutputViews(
+	connection int,
+	stream simulator.OutputFunction,
+) *simulator.OutputViews {
 	return a.instanceOutputViews(fmt.Sprintf("connection %d", connection),
-		strings.NewReplacer("{connection}", strconv.Itoa(connection)))
+		strings.NewReplacer("{connection}", strconv.Itoa(connection)), stream)
 }
 
 // instanceOutputViews builds fresh sink instances for every output view, with
-// replacer applied to each function's fields. The specs were validated at
-// load, so a failure here is a bug.
+// replacer applied to each function's fields; a connection view sends to stream.
+// The specs were validated at load, so a failure here is a bug.
 func (a *ApiRunConfig) instanceOutputViews(
 	instance string,
 	replacer *strings.Replacer,
+	stream simulator.OutputFunction,
 ) *simulator.OutputViews {
 	views := &simulator.OutputViews{}
 	for _, view := range a.Outputs {
-		spec := view.Function
-		spec.Fields = substituteFields(view.Function.Fields, replacer)
-		function, err := simulator.ResolveOutputFunction(spec)
-		if err != nil {
-			panic(fmt.Errorf("api: output view %q for %s: %w", view.Name, instance, err))
+		function := stream
+		if view.Function.Type != connectionSink {
+			spec := view.Function
+			spec.Fields = substituteFields(view.Function.Fields, replacer)
+			resolved, err := simulator.ResolveOutputFunction(spec)
+			if err != nil {
+				panic(fmt.Errorf("api: output view %q for %s: %w", view.Name, instance, err))
+			}
+			function = resolved
 		}
 		var condition simulator.OutputCondition = &simulator.EveryStepOutputCondition{}
 		if !view.Condition.IsZero() {
-			condition, err = simulator.ResolveOutputCondition(view.Condition)
+			resolved, err := simulator.ResolveOutputCondition(view.Condition)
 			if err != nil {
 				panic(fmt.Errorf("api: output view %q condition: %w", view.Name, err))
 			}
+			condition = resolved
 		}
 		views.Views = append(views.Views, simulator.OutputView{
 			Name: view.Name, Condition: condition, Function: function})

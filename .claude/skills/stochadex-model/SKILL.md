@@ -173,7 +173,8 @@ To feed several sinks, each with its own filter, replace the `output_condition` 
 With `macros:`, `outputs:` receives the macro results instead of stdout.
 With `run: {mode: ensemble}`, each member writes its own sinks: put `{member}` or `{seed}` in
 every view's fields (`path: "run-{member}.log"`, quoted). A view without one is rejected.
-With `run: {mode: serve}`, each connection writes its own sinks the same way, with `{connection}`.
+With `run: {mode: serve}`, each connection writes its own sinks the same way, with `{connection}`;
+the view with `function: {type: connection}` is what the client receives (exactly one, serve only).
 
 ```yaml
 outputs:
@@ -195,9 +196,9 @@ run:
   mode: serve                                      # websocket server: every connection
   websocket: {address: ":2112", handle: /handle}   # gets its own fresh run, streamed as
   pace_ms: 200                                     # protobuf frames, pace_ms apart
+outputs:                                           # required in serve mode, instead of
+  - {name: stream, function: {type: connection}}   # the output_condition/function pair
 ```
-
-The stream follows `output_condition`; the shorthand `output_function` is not written.
 Not for `macros:` configs yet.
 
 ## Analysis & inference — `data:` + `macros:`
