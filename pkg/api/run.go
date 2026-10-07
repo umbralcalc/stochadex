@@ -232,13 +232,13 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 		_, err := RunWith(config, WithConfigOutputs())
 		return err
 	}
-	generator, err := preparedMainGenerator(config)
+	prepared, err := preparedMainGenerator(config)
 	if err != nil {
 		return err
 	}
 	switch config.Run.Mode {
 	case "", "batch":
-		simulator.NewPartitionCoordinator(generator.GenerateConfigs()).Run()
+		simulator.NewPartitionCoordinator(prepared.settings, prepared.implementations).Run()
 		return nil
 	case "serve":
 		return runServe(config)
@@ -379,25 +379,27 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 			"api: captured views do not yet apply to ensemble runs; each member's " +
 				"storage is returned in RunResult.Members")}
 	}
-	generator, err := preparedMainGeneratorWith(config, !opts.teeConfigOutputs)
+	prepared, err := preparedMainGeneratorWith(config, !opts.teeConfigOutputs)
 	if err != nil {
 		return nil, err
 	}
 	switch config.Run.Mode {
 	case "", "batch":
 		views := map[string]*simulator.StateTimeStorage{}
-		simulation := *generator.GetSimulation()
+		simulation := prepared.generator.GetSimulation()
 		outputs := captureViews(opts.captures, simulation.OutputCondition, views)
 		if opts.teeConfigOutputs {
-			outputs.Views = append(outputs.Views, configViews(&simulation)...)
+			outputs.Views = append(outputs.Views, configViews(simulation)...)
 		}
-		simulation.OutputFunction = outputs
-		simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
-		generator.SetSimulation(&simulation)
-		simulator.NewPartitionCoordinator(generator.GenerateConfigs()).Run()
+		// Swap the output on the already-generated run rather than generating
+		// it again: generating reconfigures every iteration.
+		implementations := *prepared.implementations
+		implementations.OutputFunction = outputs
+		implementations.OutputCondition = &simulator.EveryStepOutputCondition{}
+		simulator.NewPartitionCoordinator(prepared.settings, &implementations).Run()
 		return &RunResult{Views: views}, nil
 	case "ensemble":
-		members, err := ensembleRuns(config, generator.GetSimulation(), opts.teeConfigOutputs)
+		members, err := ensembleRuns(config, prepared.generator.GetSimulation(), opts.teeConfigOutputs)
 		if err != nil {
 			return nil, configError(err)
 		}
@@ -473,12 +475,22 @@ func RunToStorage(config *ApiRunConfig) (*RunResult, error) {
 	return result, nil
 }
 
-// preparedMainGenerator validates a main:-path config and returns its generator,
-// pre-flighted for within-step deadlocks and for wiring that cannot be built (an
-// expression or upstream naming a partition that does not exist, an index out
-// of range). Building the generator panics on those, so the panic is recovered
-// here and returned as an ErrConfig error before anything runs.
-func preparedMainGenerator(config *ApiRunConfig) (*simulator.ConfigGenerator, error) {
+// preparedRun is a main:-path config made ready to run: its generator, and the
+// settings and implementations it generated, which the run uses as they are.
+type preparedRun struct {
+	generator       *simulator.ConfigGenerator
+	settings        *simulator.Settings
+	implementations *simulator.Implementations
+}
+
+// preparedMainGenerator validates a main:-path config and returns it ready to
+// run, pre-flighted for within-step deadlocks and for wiring that cannot be
+// built (an expression or upstream naming a partition that does not exist, an
+// index out of range). Generating the configs panics on those, so the panic is
+// recovered here and returned as an ErrConfig error before anything runs. The
+// run uses the configs generated here: generating again would reconfigure every
+// iteration, re-creating each one's random source.
+func preparedMainGenerator(config *ApiRunConfig) (preparedRun, error) {
 	return preparedMainGeneratorWith(config, false)
 }
 
@@ -487,25 +499,26 @@ func preparedMainGenerator(config *ApiRunConfig) (*simulator.ConfigGenerator, er
 func preparedMainGeneratorWith(
 	config *ApiRunConfig,
 	silenceNested bool,
-) (generator *simulator.ConfigGenerator, err error) {
+) (prepared preparedRun, err error) {
 	if err := validateMainContext(config); err != nil {
-		return nil, configError(err)
+		return preparedRun{}, configError(err)
 	}
 	if err := bindInputs(config); err != nil {
-		return nil, err
+		return preparedRun{}, err
 	}
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			generator = nil
+			prepared = preparedRun{}
 			err = configError(fmt.Errorf("invalid config wiring: %v", recovered))
 		}
 	}()
-	generator = config.configGenerator(silenceNested)
+	generator := config.configGenerator(silenceNested)
 	if err := CheckForDeadlock(generator); err != nil {
-		return nil, configError(err)
+		return preparedRun{}, configError(err)
 	}
-	generator.GenerateConfigs()
-	return generator, nil
+	settings, implementations := generator.GenerateConfigs()
+	return preparedRun{generator: generator, settings: settings,
+		implementations: implementations}, nil
 }
 
 func unknownRunModeError(mode string) error {
@@ -537,11 +550,11 @@ func validateMainContext(config *ApiRunConfig) error {
 func RunEnsembleToStorage(
 	config *ApiRunConfig,
 ) ([]simulator.EnsembleRun, error) {
-	generator, err := preparedMainGenerator(config)
+	prepared, err := preparedMainGenerator(config)
 	if err != nil {
 		return nil, err
 	}
-	return ensembleRuns(config, generator.GetSimulation(), false)
+	return ensembleRuns(config, prepared.generator.GetSimulation(), false)
 }
 
 // ensembleRuns validates the config for ensemble mode and runs one member per

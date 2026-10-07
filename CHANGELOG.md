@@ -163,6 +163,11 @@ an exact version rather than assume stability across minors.
   written into `StateIterator.Iterate`, where the separate `emitOutput` call
   cost ~1 ns per output. The simulator's step benchmarks, and configs without
   output, are back level with v0.19.0.
+- **A config run generates its configs once.** Since `api.RunToStorage` (#95), a
+  run generated its configs to check the wiring, then generated them again to run,
+  reconfiguring every iteration: 3 extra allocations per partition per run, plus
+  28 more. It now runs from the configs it checked, and a config run allocates
+  exactly what v0.19.0 did.
 - **Every output goes through `outputs:` views, in every mode.** A config's outputs
   are now declared in one place:
   - `main.simulation`'s `output_condition` / `output_function` pair is shorthand for
