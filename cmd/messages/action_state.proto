@@ -1,0 +1,28 @@
+// action_state.proto defines ActionState, a wire format for input sent into a
+// running simulation: a served client's actions, decoded by a stream input with
+// decode: protobuf_action_state (pkg/api/streams.go). It is wire-compatible with
+// dexetera's ActionState (same fields and numbers), so its clients' messages
+// decode unchanged. Go, JS, and Python bindings are generated from this file by
+// generate_proto.sh — edit here and regenerate; never hand-edit the generated
+// files.
+
+syntax = "proto3";
+
+option go_package = "./pkg/simulator";
+
+// ActionState carries one message's worth of action values. As a stream input,
+// each named entry of partitions sets that stream partition; with no named
+// entries, values sets the stream partition named "values" (dexetera's
+// broadcast vector), which any number of partitions can read.
+message ActionState {
+  // The broadcast vector, used when partitions is empty.
+  repeated double values = 1;
+  // Values by stream partition name. When non-empty, values is ignored.
+  map<string, ActionValues> partitions = 2;
+}
+
+// ActionValues is one named entry of ActionState.partitions (proto3 has no
+// map<string, repeated double>).
+message ActionValues {
+  repeated double values = 1;
+}

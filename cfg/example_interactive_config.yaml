@@ -1,0 +1,34 @@
+# Serves an interactive random walk: each client that connects to
+# ws://localhost:2112/handle gets its own run, streamed back step by step, and
+# can steer it by sending messages on the same connection. A message such as
+#
+#   {"partition_name": "drift", "state": [0.5]}
+#
+# sets the walk's drift from the next step on, held until the next message.
+# Each connection records the drift it was given, so its run can be replayed
+# offline with the stream swapped for {source: {json_log: {path: ...}}}.
+#
+#   stochadex --config cfg/example_interactive_config.yaml
+inputs:
+  controls:
+    stream: {connection: {}}
+    record: "controls-{connection}.log"
+main:
+  partitions:
+  - name: walk
+    iteration: {type: drift_diffusion}
+    params: {drift_coefficients: [0.0], diffusion_coefficients: [0.3]}
+    params_from_input: {drift_coefficients: {input: controls, partition: drift}}
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 7
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 1000}
+    timestep_function: {type: constant, stepsize: 0.1}
+    init_time_value: 0.0
+outputs:
+  - {name: stream, function: {type: connection}}
+run:
+  mode: serve
+  websocket: {address: ":2112", handle: /handle}
+  pace_ms: 100

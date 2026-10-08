@@ -291,8 +291,42 @@ main:
   `{source: {json_log: {path: feed.log}}}` and the run repeats exactly.
 - **Errors:** a stream that can't be reached is unavailable (75). A message that can't be
   decoded, or a value of the wrong width, is a data error (65).
-- **Not yet:** streams don't apply to `macros:` configs. `params_from_input` doesn't yet apply
-  under `ensemble` or `serve`.
+- **Not yet:** streams don't apply to `macros:` configs, and `params_from_input` doesn't yet
+  apply under `ensemble`.
+
+#### Two-way serving: a client steers its own run
+
+Under `run: {mode: serve}`, a stream can read the client the run is served to:
+`stream: {connection: {}}`. Its messages arrive on the same connection the `{type: connection}`
+view streams out on, so each client both watches and steers its own run
+(`cfg/example_interactive_config.yaml`):
+
+```yaml
+inputs:
+  controls:
+    stream: {connection: {}}
+    record: "controls-{connection}.log"     # one record per connection
+main:
+  partitions:
+  - name: walk
+    iteration: {type: drift_diffusion}
+    params: {drift_coefficients: [0.0], diffusion_coefficients: [0.3]}
+    params_from_input: {drift_coefficients: {input: controls, partition: drift}}
+    ...
+outputs:
+  - {name: stream, function: {type: connection}}
+run: {mode: serve, websocket: {address: ":2112", handle: /handle}, pace_ms: 100}
+```
+
+- **Messages:** a client sends `{"partition_name": "drift", "state": [0.5]}` as JSON. With
+  `decode: protobuf_action_state`, it sends an `ActionState` protobuf instead
+  (`cmd/messages/action_state.proto`, wire-compatible with dexetera's). Each entry of its
+  `partitions` sets that stream partition. With none, its `values` set the stream partition
+  named `values`, which any number of partitions can read.
+- **Per connection:** a config reads one served client, and under `serve`, `record:` paths need
+  `{connection}`.
+- **Errors:** a message that can't be decoded ends the connection with a close frame giving
+  the reason.
 
 ### Several outputs from one run
 

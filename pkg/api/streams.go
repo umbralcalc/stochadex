@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"google.golang.org/protobuf/proto"
 )
 
 // params_from_input and stream inputs (PLAN.md 1.5). A partition's params key
@@ -21,6 +25,13 @@ import (
 // From a stream input, each step gets the newest value a message has brought,
 // and holds it until the next (on_empty: hold_last); until the first message
 // the key keeps its configured value.
+//
+// A stream is either a websocket server the run connects to as a client
+// (stream: {websocket: {url}}), or, under run: {mode: serve}, the client the run
+// is served to (stream: {connection: {}}), whose messages arrive on the same
+// connection its {type: connection} view streams out on. Messages are json_log
+// entries (decode: json) or simulator.ActionState protobufs (decode:
+// protobuf_action_state, dexetera's wire format).
 //
 // Values only ever enter between steps, through
 // simulator.PartitionCoordinator.InjectParams, never inside Iterate. A run with
@@ -54,7 +65,9 @@ type streamBinding struct {
 // partition it is bound to, and its recording.
 type streamFeed struct {
 	name     string
-	url      string
+	url      string // a websocket server's; empty for a served client
+	served   bool   // the served client's messages, delivered by the handler
+	decode   string
 	record   string
 	bindings []streamBinding
 	// sources are the stream partitions bound, in name order; current holds the
@@ -106,8 +119,13 @@ func newParamFeeds(config *ApiRunConfig, loader *inputLoader) (*paramFeeds, erro
 			}
 			stream, ok := byName[binding.Input]
 			if !ok {
-				stream = &streamFeed{name: binding.Input, url: input.Stream.Websocket.URL,
+				stream = &streamFeed{name: binding.Input, decode: input.Decode,
 					record: input.Record, current: map[string][]float64{}}
+				if input.Stream.Websocket != nil {
+					stream.url = input.Stream.Websocket.URL
+				} else {
+					stream.served = true
+				}
 				byName[binding.Input] = stream
 				feeds.streams = append(feeds.streams, stream)
 			}
@@ -167,20 +185,63 @@ func runCoordinator(coordinator *simulator.PartitionCoordinator, feeds *paramFee
 		coordinator.Run()
 		return nil
 	}
-	if err := feeds.open(coordinator); err != nil {
-		return err
+	return runSteps(coordinator, feeds, 0, nil)
+}
+
+// runSteps steps a coordinator to termination under its execution strategy,
+// setting its params from feeds (which may be nil) between steps, sleeping pace
+// after each step, and returning early once stop is closed (a served client has
+// gone). Closing the stepper finalizes the run's output, however it ends.
+func runSteps(
+	coordinator *simulator.PartitionCoordinator,
+	feeds *paramFeeds,
+	pace time.Duration,
+	stop <-chan struct{},
+) error {
+	if feeds != nil {
+		if err := feeds.open(coordinator); err != nil {
+			return err
+		}
+		defer feeds.close()
 	}
-	defer feeds.close()
 	stepper := coordinator.NewStepper()
 	defer stepper.Close()
 	for step := 1; !coordinator.ReadyToTerminate(); step++ {
-		if err := feeds.beforeStep(coordinator, step); err != nil {
-			return err
+		select {
+		case <-stop:
+			return nil
+		default:
+		}
+		if feeds != nil {
+			if err := feeds.beforeStep(coordinator, step); err != nil {
+				return err
+			}
 		}
 		stepper.Step()
-		feeds.afterStep(coordinator)
+		if feeds != nil {
+			feeds.afterStep(coordinator)
+		}
+		time.Sleep(pace)
 	}
 	return nil
+}
+
+// forConnection gives a served connection's feeds their own record paths, with
+// {connection} substituted.
+func (f *paramFeeds) forConnection(connection int) {
+	for _, stream := range f.streams {
+		stream.record = strings.ReplaceAll(stream.record, "{connection}", strconv.Itoa(connection))
+	}
+}
+
+// deliverServed passes a message from the served client to the stream that
+// reads it, if the config declares one.
+func (f *paramFeeds) deliverServed(message []byte) {
+	for _, stream := range f.streams {
+		if stream.served {
+			stream.deliver(message)
+		}
+	}
 }
 
 // open resolves every params key the feeds set (once, so each step is a copy),
@@ -256,18 +317,23 @@ func (f *paramFeeds) afterStep(coordinator *simulator.PartitionCoordinator) {
 	}
 }
 
-// open connects to the stream's server, starts the reader, and opens the
-// recording. A server that cannot be reached is ErrUnavailable.
+// open connects to the stream's server and starts the reader (a served client
+// is read by the handler instead), and opens the recording. A server that
+// cannot be reached is ErrUnavailable.
 func (s *streamFeed) open() error {
-	connection, _, err := websocket.DefaultDialer.Dial(s.url, nil)
-	if err != nil {
-		return &Error{Kind: ErrUnavailable, Err: fmt.Errorf(
-			"api: stream input %q: connecting to %s: %w", s.name, s.url, err)}
-	}
-	s.connection = connection
+	s.mutex.Lock()
 	s.latest, s.fresh, s.err = map[string][]float64{}, map[string]bool{}, nil
-	s.done = make(chan struct{})
-	go s.read()
+	s.mutex.Unlock()
+	if !s.served {
+		connection, _, err := websocket.DefaultDialer.Dial(s.url, nil)
+		if err != nil {
+			return &Error{Kind: ErrUnavailable, Err: fmt.Errorf(
+				"api: stream input %q: connecting to %s: %w", s.name, s.url, err)}
+		}
+		s.connection = connection
+		s.done = make(chan struct{})
+		go s.read()
+	}
 	if s.record != "" {
 		s.recorder = simulator.NewJsonLogOutputFunction(s.record)
 		s.recorder.Configure(nil)
@@ -275,35 +341,48 @@ func (s *streamFeed) open() error {
 	return nil
 }
 
-// read keeps the newest value of each bound partition from the stream's
-// messages, until the connection closes. A message that cannot be decoded
-// stops reading and fails the run at the next step.
+// read delivers the server's messages until the connection closes, or a
+// message cannot be decoded.
 func (s *streamFeed) read() {
 	defer close(s.done)
-	wanted := map[string]bool{}
-	for _, source := range s.sources {
-		wanted[source] = true
-	}
 	for {
 		_, message, err := s.connection.ReadMessage()
 		if err != nil {
 			return // the stream has ended; the run holds the last values
 		}
-		entries, err := decodeEntries(message)
-		s.mutex.Lock()
-		if err != nil {
-			s.err = withKind(ErrData, fmt.Errorf("api: stream input %q: %w", s.name, err))
-			s.mutex.Unlock()
+		if err := s.deliver(message); err != nil {
 			return
 		}
-		for _, entry := range entries {
-			if wanted[entry.PartitionName] {
-				s.latest[entry.PartitionName] = entry.State
-				s.fresh[entry.PartitionName] = true
-			}
-		}
-		s.mutex.Unlock()
 	}
+}
+
+// deliver keeps the newest value of each bound partition a message carries.
+// A message that cannot be decoded fails the run at its next step, and later
+// messages are not read.
+func (s *streamFeed) deliver(message []byte) error {
+	var entries []simulator.JsonLogEntry
+	var err error
+	if s.decode == "protobuf_action_state" {
+		entries, err = decodeActionState(message)
+	} else {
+		entries, err = decodeEntries(message)
+	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if s.err != nil {
+		return s.err
+	}
+	if err != nil {
+		s.err = withKind(ErrData, fmt.Errorf("api: stream input %q: %w", s.name, err))
+		return s.err
+	}
+	for _, entry := range entries {
+		if _, bound := s.current[entry.PartitionName]; bound {
+			s.latest[entry.PartitionName] = entry.State
+			s.fresh[entry.PartitionName] = true
+		}
+	}
+	return nil
 }
 
 // inject applies every partition value that arrived since the last step.
@@ -345,9 +424,11 @@ func (s *streamFeed) recordRow(coordinator *simulator.PartitionCoordinator) {
 // close disconnects the stream, waits for its reader, and completes the
 // recording.
 func (s *streamFeed) close() {
-	s.connection.Close()
-	<-s.done
-	s.connection = nil
+	if s.connection != nil {
+		s.connection.Close()
+		<-s.done
+		s.connection = nil
+	}
 	if s.recorder != nil {
 		s.recorder.Finalize()
 		s.recorder = nil
@@ -375,6 +456,24 @@ func decodeEntries(message []byte) ([]simulator.JsonLogEntry, error) {
 		if entry.PartitionName == "" {
 			return nil, fmt.Errorf("message %q has an entry with no partition_name", truncate(trimmed))
 		}
+	}
+	return entries, nil
+}
+
+// decodeActionState reads a protobuf_action_state stream message: each named
+// entry of partitions sets that stream partition, or, with none, values sets
+// the stream partition named "values" (dexetera's broadcast vector).
+func decodeActionState(message []byte) ([]simulator.JsonLogEntry, error) {
+	var state simulator.ActionState
+	if err := proto.Unmarshal(message, &state); err != nil {
+		return nil, fmt.Errorf("decoding an ActionState message: %w", err)
+	}
+	if len(state.Partitions) == 0 {
+		return []simulator.JsonLogEntry{{PartitionName: "values", State: state.Values}}, nil
+	}
+	entries := make([]simulator.JsonLogEntry, 0, len(state.Partitions))
+	for name, values := range state.Partitions {
+		entries = append(entries, simulator.JsonLogEntry{PartitionName: name, State: values.GetValues()})
 	}
 	return entries, nil
 }

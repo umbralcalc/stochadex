@@ -52,23 +52,33 @@ func NewWebsocketHandler(
 	stepDelay time.Duration,
 	allowedOrigins []string,
 ) http.Handler {
-	return newStreamHandler(func(stream simulator.OutputFunction) (*simulator.ConfigGenerator, error) {
+	return newStreamHandler(func(stream simulator.OutputFunction) (servedRun, error) {
 		generator := build()
 		simulation := generator.GetSimulation()
 		simulation.OutputFunction = stream
 		generator.SetSimulation(simulation)
-		return generator, nil
+		return servedRun{coordinator: simulator.NewPartitionCoordinator(
+			generator.GenerateConfigs())}, nil
 	}, stepDelay*time.Millisecond, allowedOrigins)
 }
 
+// servedRun is one connection's run: its coordinator, and the feeds that set
+// its params between steps (nil without params_from_input).
+type servedRun struct {
+	coordinator *simulator.PartitionCoordinator
+	feeds       *paramFeeds
+}
+
 // newStreamHandler is the websocket handler for both serving paths. For each
-// connection, build returns a fresh generator whose output includes stream, the
-// connection's websocket. The run is stepped under its execution strategy with
-// pace between steps, until it terminates or the client disconnects, and its
-// output is then finalized, so any sinks alongside the stream are flushed. If
-// the run cannot be built, the client is sent a close frame giving the reason.
+// connection, build returns a fresh run whose output includes stream, the
+// connection's websocket. The client's messages go to the run's served-client
+// stream, if it has one. The run is stepped under its execution strategy, its
+// feeds applied between steps, with pace after each, until it terminates or
+// the client disconnects; its output is then finalized, so any sinks alongside
+// the stream are flushed. If the run cannot be built, or fails, the client is
+// sent a close frame giving the reason.
 func newStreamHandler(
-	build func(stream simulator.OutputFunction) (*simulator.ConfigGenerator, error),
+	build func(stream simulator.OutputFunction) (servedRun, error),
 	pace time.Duration,
 	allowedOrigins []string,
 ) http.Handler {
@@ -83,46 +93,43 @@ func newStreamHandler(
 		}
 		defer connection.Close()
 
-		// gorilla only processes control frames (including close) while
-		// reading, so drain reads to learn when the client has gone away
-		closed := make(chan struct{})
-		go func() {
-			defer close(closed)
-			for {
-				if _, _, err := connection.ReadMessage(); err != nil {
-					return
-				}
-			}
-		}()
-
 		var mutex sync.Mutex
-		generator, err := build(simulator.NewWebsocketOutputFunction(connection, &mutex))
-		if err != nil {
-			log.Println("Error building a served run:", err)
+		fail := func(err error) {
+			log.Println("Error in a served run:", err)
 			mutex.Lock()
 			connection.WriteControl(websocket.CloseMessage,
 				websocket.FormatCloseMessage(websocket.CloseInternalServerErr, closeReason(err)),
 				time.Now().Add(time.Second))
 			mutex.Unlock()
+		}
+		run, err := build(simulator.NewWebsocketOutputFunction(connection, &mutex))
+		if err != nil {
+			fail(err)
 			return
 		}
-		coordinator := simulator.NewPartitionCoordinator(
-			generator.GenerateConfigs(),
-		)
 
-		// step under the configured execution strategy, sleeping between
-		// steps so the websocket streams state at a watchable rate; Close
-		// finalizes the run's output, including when the client leaves early
-		stepper := coordinator.NewStepper()
-		defer stepper.Close()
-		for !coordinator.ReadyToTerminate() {
-			select {
-			case <-closed:
-				return
-			default:
+		// Read the client's messages: they go to the run's served-client
+		// stream, if it has one. Reading also handles the close frame (gorilla
+		// processes control frames only while reading), which is how the run
+		// learns the client has gone.
+		closed := make(chan struct{})
+		go func() {
+			defer close(closed)
+			for {
+				_, message, err := connection.ReadMessage()
+				if err != nil {
+					return
+				}
+				if run.feeds != nil {
+					run.feeds.deliverServed(message)
+				}
 			}
-			stepper.Step()
-			time.Sleep(pace)
+		}()
+
+		// Step under the configured execution strategy, sleeping between steps
+		// so the websocket streams state at a watchable rate.
+		if err := runSteps(run.coordinator, run.feeds, pace, closed); err != nil {
+			fail(err)
 		}
 	})
 }

@@ -266,7 +266,9 @@ To set a **param** from an input instead (no extra partition; cheaper), declare 
 `feed: {stream: {websocket: {url: "ws://..."}}, record: feed.log}`. Messages are json_log
 entries `{"partition_name": p, "state": [...]}`. Replay a run by swapping the stream for
 `{source: {json_log: {path: feed.log}}}`. Streams only feed `params_from_input`, and not under
-ensemble or serve. A `macros:` config's macros read every input's partitions (several inputs must share one
+ensemble. Under `run: {mode: serve}`, `stream: {connection: {}}` reads the served client's own
+messages (two-way: the client steers its run); `record:` then needs `{connection}`;
+`decode: protobuf_action_state` reads dexetera's ActionState protobufs. A `macros:` config's macros read every input's partitions (several inputs must share one
 time axis and not repeat a partition name); `data:` is shorthand for a single input.
 
 ### Reading and writing data (I/O)
