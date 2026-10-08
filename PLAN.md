@@ -71,7 +71,13 @@ Status: **accepted** (2026-10-04).
     - **Performance:** `params_from_input` from stored data is 60% faster than a
       `from_input` partition read through `params_from_upstream`, with 84% fewer
       allocations, via a new `simulator.ParamsInjector` that copies in place.
-  - **In review:** 1.5b, two-way serving (#113).
+  - **Merged:** 1.5b, two-way serving (#113).
+  - **Clarified (2026-10-08):** rules 15 (embedded runs are model, not inputs) and 16
+    (`main:` and `macros:` compose in one runtime, with unambiguous names).
+  - **In review:** an embedded-runs PR. It parses the host's forwarding keys once
+    (`EmbeddedSimulationRunIteration` compiled a regex and scanned every params key
+    on every outer step), checks inner partition names at load, and tests
+    `params_from_input` reaching an inner run.
     - `stream: {connection: {}}` reads the served client's own messages.
     - `decode: protobuf_action_state` reads dexetera-compatible `ActionState` (a new
       `cmd/messages/action_state.proto`).
@@ -377,6 +383,45 @@ API), and were mutation-checked (each test fails with its fix reverted).
       connection is an `outputs:` view, and its live actions (1.5) are an `inputs:`
       stream that refers to the same connection. The rule is about where things are
       declared, not about each transport doing only one job.
+
+15. **Embedded runs are model, not inputs** (clarified 2026-10-08). An input exists
+    before the runtime starts: read or computed once, read-only, and independent of the
+    run's state. That covers `{source:}`, a `{simulation:}` pre-pass, and Phase 2's
+    nested-run input `{run:}`. An `embedded:` run is re-run inside a partition every
+    outer step, so it can depend on the run's state, and it stays under `embedded:`.
+    - **How it gets params:** its host partition forwards every params key of the form
+      `<inner_partition>/<param>` into the inner run at each outer step. So
+      `params_from_upstream`, `params_from_input` and literal params all reach an inner
+      run through its host.
+    - **Lag-1 state reads:** use the `/initial_state_from_partition_history` and
+      `/update_from_partition_history` suffixes.
+    - **What the plan changes:** only the edges. Its outputs move to top-level scoped
+      views (IO.3), and in Phase 2 its partitions may read inputs (`from_input`, rule 5).
+
+16. **`main:` and `macros:` compose in one runtime** (clarified 2026-10-08). Today they
+    are mutually exclusive, because macros run in a separate context and #92 rejects
+    the ignored `main:`. That is a Phase 0 guard, lifted in Phase 2. In the target, a
+    macro expands into the same runtime as the hand-written `main:` (rule 3), so a macro
+    can analyse a live main partition, plan over a hand-written model, or sit beside
+    hand-written extras. Four rules keep that unambiguous:
+    1. **The core language only has `main:`.** `stochadex expand` turns every macro into
+       plain partitions with byte-identical output (rule 9). There is always exactly one
+       simulation to reason about.
+    2. **One clock** (rule 2). A clock-bearing macro and a hand-written clock are a
+       duplicate-definition error.
+    3. **Names are unambiguous.** A partition name may be defined once across `main:`,
+       every input and every macro's outputs. A macro reference (`partition_name: y`)
+       that could resolve to more than one is a config error naming each, never a
+       precedence rule.
+    4. **Expansion never reads data** (rule 5), so what a macro adds depends only on the
+       config.
+
+    A macro reads three sources: main partitions (live), input partitions (through a
+    `from_input` replay its expansion emits), and earlier macros' outputs (ordinary
+    `params_from_upstream` edges). The calibrate → plan chain is the exception: its
+    earlier macros become a nested-run input. A macro generates config; what it
+    generates is often analysis, inference, optimisation or search stepped forward as
+    partitions, not a generative domain model.
 
 ### 2.3 Target YAML (end of Phase 2)
 
@@ -747,7 +792,7 @@ None of these depend on each other, so each can be its own PR.
 | 1.2 | **DONE (#105)**: `from_input` iteration | `{type: from_input, input: x, partition: p}` replays an input partition as a main partition. It builds on #86's inline `from_storage`, sourcing the rows from a named input instead of inline data. Plus `timestep_function: {type: from_input, input: x}` and `termination_condition: {type: input_exhausted}`. This promotes `FromStorageIteration` from "live-object, no data form" to a data spec, because the data now has a name. | Re-express one downstream pattern (e.g. a floodrisk forward run) as YAML, matching the Go version exactly; coverage test entry moves from excluded to registered |
 | 1.3 | **DONE (#107)**: `run: {mode: serve}`. The stream moves into `outputs:` in IO.1 | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. Each connection attaches a websocket *view* to its own fresh run (§2.5), alongside any config views. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works; a served stream matches an in-memory view of the same run |
 | 1.4 | **IN REVIEW (#110)**: injection port in the engine, `PartitionCoordinator.InjectParams` | Move dexetera's `ApplyActionState` idea into the engine as `simulator.InjectParams(coordinator, partition, key, values)` (or a `Stepper` hook). It runs only between steps. | Unit test: an injection before step k is visible at step k and not before |
-| 1.5 | **1.5a DONE (#112); 1.5b IN REVIEW (#113)**: stream inputs | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
+| 1.5 | **DONE (#112, #113)**: stream inputs (1.5a), two-way serving (1.5b) | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
 | 1.6 | **DONE (#112)**: guard rails | Reject `stream:` inputs under `ensemble`. Pick a backpressure policy (bounded buffer, drop-oldest default, configurable). | Load-time error tests |
 | 1.7 | Keyboard on the new path | Re-express keyboard input as a `stream` transport (`{keyboard: {...}}`) feeding a `param_values` partition. Keep `UserInputIteration` and mark it legacy. | The existing keyboard test still passes; the new form has a test |
 
