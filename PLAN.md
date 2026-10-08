@@ -74,7 +74,15 @@ Status: **accepted** (2026-10-04).
   - **Merged:** 1.5b, two-way serving (#113).
   - **Clarified (2026-10-08):** rules 15 (embedded runs are model, not inputs) and 16
     (`main:` and `macros:` compose in one runtime, with unambiguous names).
-  - **In review:** #114, embedded runs.
+  - **Merged:** #114, embedded runs.
+  - **In review:** v0.20.0 release (#115), then dexetera onto the engine's primitives
+    (umbralcalc/dexetera#1, a draft until the tag exists).
+    - The dexetera change uses `ActionState`, `ParamsInjector` and inline stepping, which
+      runs 12–15× faster per step in WebAssembly.
+    - Not serve: dexetera runs in the browser, and all 5 downstream dashboards use its
+      in-browser driver.
+    - energy-balancer needs a one-line action-width fix when it upgrades.
+  - **Previously in review:** #114, embedded runs.
     - Parses the host's forwarding keys once: 32% faster per outer step, 67% less
       memory.
     - Checks inner partition names at load.
@@ -950,7 +958,7 @@ evidence to collect before then. None blocks the next PRs.
 
 | Q | Question | Decide by | Evidence to gather first |
 |---|---|---|---|
-| 2 | ~~Stream clock: `hold_last` only, or also `step_per_message` (an event clock)?~~ **Decided (2026-10-08): `hold_last` only, for now** (#112). Add an event clock when a real feed needs one (cryptobook's limit-order-book feed is the likely first test) | Phase 1.5 | — |
+| 2 | ~~Stream clock: `hold_last` only, or also `step_per_message` (an event clock)?~~ **Decided (2026-10-08): `hold_last` only, for now** (#112). Add an event clock when a real feed needs one. **Evidence (2026-10-08):** dexact's protocol (dexetera's websocket driver) is lock-step, one step per inbound `ActionState`. So it is the first concrete user, if dexact ever drives a server-side stochadex serve. Nothing downstream uses that path today; cryptobook's feed is the other candidate | Phase 1.5 | — |
 | 5 | Flatten `main:` to the top level? | Phase 3 | Agent test A.1: does the `main:` level cause agent authoring errors? Plus the migration cost across downstream configs and recipes |
 | 6 | May `${VAR}` placeholders appear anywhere, or only in string values? | O.1 | What cryptobook's `cfgrun` substitutes today (paths only, or numbers too), and whether non-string placeholders break the dead-key check or the type errors |
 | 7 | In-memory view of a nested run: one storage per outer step, or a flat storage with an outer-step column? | IO.3 (rule 14 now gives the direction: nested runs write through top-level views, so their records must carry scope) | Who reads nested views (debugging likelihood windows, inspecting MCTS trees) and what shape they want; streaming sinks just carry the scope fields either way |
