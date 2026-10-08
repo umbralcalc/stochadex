@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -500,6 +501,50 @@ func validateApiRunConfig(config *ApiRunConfig) error {
 				return fmt.Errorf("config omits iteration for partition name: %s"+
 					" and no embedded simulation runs or expression specs have this name",
 					partition.Name)
+			}
+		}
+	}
+	return validateEmbeddedForwarding(config)
+}
+
+// validateEmbeddedForwarding checks, at load, that every params key a host
+// partition forwards into its embedded run ("<inner_partition>/<param>", in its
+// params or params_from_upstream) names a partition the
+// embedded run has. Without it, a misspelled inner partition fails the run
+// instead of the load.
+func validateEmbeddedForwarding(config *ApiRunConfig) error {
+	inner := map[string]map[string]bool{}
+	for _, embedded := range config.Embedded {
+		inner[embedded.Name] = map[string]bool{}
+		for _, partition := range embedded.Run.Partitions {
+			inner[embedded.Name][partition.Name] = true
+		}
+	}
+	for _, host := range config.Main.Partitions {
+		partitions, isHost := inner[host.Name]
+		if !isHost {
+			continue
+		}
+		keys := []string{}
+		for key := range host.Params.Map {
+			keys = append(keys, key)
+		}
+		// A params_from_input key is always declared in params too.
+		for key := range host.ParamsFromUpstream {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			innerName, _, forwards := general.ForwardedParamTarget(key)
+			if forwards && !partitions[innerName] {
+				names := make([]string, 0, len(partitions))
+				for name := range partitions {
+					names = append(names, name)
+				}
+				sort.Strings(names)
+				return fmt.Errorf("partition %q forwards params key %q into embedded run "+
+					"%q, which has no partition %q (it has: %s)", host.Name, key, host.Name,
+					innerName, strings.Join(names, ", "))
 			}
 		}
 	}

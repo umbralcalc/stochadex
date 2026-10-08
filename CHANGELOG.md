@@ -179,6 +179,17 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **Embedded runs are 32% faster per outer step.** `EmbeddedSimulationRunIteration`
+  compiled a regular expression and pattern-matched every one of its host's params keys
+  on every outer step. It now finds the forwarded keys (`<inner_partition>/<param>`, in
+  the host's params or `params_from_upstream`) once, in `Configure`, and reuses its
+  histories map. On a 500-step benchmark that's 32% faster, with 67% less memory and
+  42% fewer allocations.
+- **A misspelled inner partition in a forwarded key is a config error at load,**
+  naming the key and the embedded run's partitions. It used to panic at the first
+  step. Programmatic use without the API panics at `Configure`, naming the key.
+- **`general.ForwardedParamTarget(key)`** reports which inner partition and param a host
+  key forwards to.
 - **`json_log` buffers a run's entries: 70–85% faster runs that write a log.**
   It wrote one system call per entry; a run's entries now go out in 64 KB
   blocks, and `Finalize` flushes them. Measured on a real file against v0.19.0,
