@@ -258,7 +258,15 @@ main:
 
 `from_input` replays the input partition of the same name; `partition:` renames it, and
 `init_state_values` default to its first row. Every declared input must be used on the `main:`
-path. A `macros:` config's macros read every input's partitions (several inputs must share one
+path.
+
+To set a **param** from an input instead (no extra partition; cheaper), declare it and bind it:
+`params: {variances: [1.0]}, params_from_input: {variances: {input: obs}}` (step *k* gets row
+*k*). An input can be a live stream, read between steps, holding the last value:
+`feed: {stream: {websocket: {url: "ws://..."}}, record: feed.log}`. Messages are json_log
+entries `{"partition_name": p, "state": [...]}`. Replay a run by swapping the stream for
+`{source: {json_log: {path: feed.log}}}`. Streams only feed `params_from_input`, and not under
+ensemble or serve. A `macros:` config's macros read every input's partitions (several inputs must share one
 time axis and not repeat a partition name); `data:` is shorthand for a single input.
 
 ### Reading and writing data (I/O)

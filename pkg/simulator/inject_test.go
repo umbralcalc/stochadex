@@ -1,12 +1,22 @@
 package simulator
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
 )
+
+// aliasingEchoIteration's next state is its "level" params slice itself.
+type aliasingEchoIteration struct{}
+
+func (a *aliasingEchoIteration) Configure(int, *Settings) {}
+
+func (a *aliasingEchoIteration) Iterate(
+	params *Params, _ int, _ []*StateHistory, _ *CumulativeTimestepsHistory,
+) []float64 {
+	return params.Get("level")
+}
 
 // paramEchoIteration's next state is a copy of its "level" param, so its
 // output shows exactly which params value each step read.
@@ -164,19 +174,46 @@ func TestInjectParams(t *testing.T) {
 		assertRows(t, fresh, "dial", 3, func(int) []float64 { return configured })
 	})
 
-	t.Run("an injection allocates only the copy of its values", func(t *testing.T) {
+	t.Run("an injector resolved once injects without allocating", func(t *testing.T) {
 		coordinator := NewPartitionCoordinator(injectSettings(),
 			injectImplementations(3, nil, NewStateTimeStorage()))
-		for i := range 6 { // a partition with several params keys
-			coordinator.Iterators[0].Params.Map[fmt.Sprint("key", i)] = []float64{1, 2, 3}
+		injector, err := coordinator.NewParamsInjector("dial", "level")
+		if err != nil {
+			t.Fatal(err)
 		}
-		allocs := testing.AllocsPerRun(1000, func() {
-			if err := coordinator.InjectParams("dial", "level", injected); err != nil {
+		if allocs := testing.AllocsPerRun(1000, func() {
+			if err := injector.Inject(injected); err != nil {
 				t.Fatal(err)
 			}
-		})
-		if allocs > 1 {
-			t.Errorf("InjectParams made %v allocations, want at most 1 (the values' copy)", allocs)
+		}); allocs != 0 {
+			t.Errorf("Inject made %v allocations, want 0", allocs)
+		}
+		if err := injector.Inject([]float64{1}); err == nil ||
+			!strings.Contains(err.Error(), `params key "level" has width 2, got 1 values`) {
+			t.Errorf("a wrong width should be an error, got %v", err)
+		}
+	})
+
+	t.Run("injecting in place leaves rows already recorded alone", func(t *testing.T) {
+		// aliasingEchoIteration returns its params slice itself as its state, so
+		// a write into that slice would show in recorded rows if they aliased it.
+		settings := injectSettings()
+		implementations := injectImplementations(4, nil, NewStateTimeStorage())
+		store := implementations.OutputFunction.(*StateTimeStorageOutputFunction).Store
+		implementations.Iterations[0] = &aliasingEchoIteration{}
+		coordinator := NewPartitionCoordinator(settings, implementations)
+		stepper := coordinator.NewStepper()
+		for step := 1; !coordinator.ReadyToTerminate(); step++ {
+			if err := coordinator.InjectParams("dial", "level", []float64{float64(step), 0}); err != nil {
+				t.Fatal(err)
+			}
+			stepper.Step()
+		}
+		stepper.Close()
+		for step, row := range store.GetValues("dial")[1:] {
+			if row[0] != float64(step+1) {
+				t.Fatalf("recorded step %d = %v, want [%d 0]", step+1, row, step+1)
+			}
 		}
 	})
 

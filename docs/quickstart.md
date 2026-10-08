@@ -253,6 +253,47 @@ there are several inputs they must share one time axis, and a partition name may
 only one of them. `data:` is shorthand for a single input, so existing `data:` configs work
 unchanged.
 
+### Setting params from an input, including a live stream
+
+An input can set a partition's params instead of its state. Declare the param with the value it
+has until the input sets it, and name where it comes from:
+
+```yaml
+  - name: walk
+    iteration: {type: wiener_process}
+    params: {variances: [1.0]}
+    params_from_input: {variances: {input: vol}}   # partition: defaults to the key's name
+```
+
+From a stored input, step *k* gets row *k*, as `from_input` does (row 0 is the initial state).
+This is the cheaper way to drive params from data: there is no extra partition, and nothing is
+copied or allocated per step.
+
+An input can also be a **live stream**, read while the run runs:
+
+```yaml
+inputs:
+  feed:
+    stream: {websocket: {url: "ws://localhost:9000/prices"}}   # connects as a client
+    record: feed.log                                           # optional
+main:
+  partitions:
+  - name: trader
+    params: {price: [100.0]}                     # the price until the first message
+    params_from_input: {price: {input: feed}}
+```
+
+- **Messages:** each message is a `json_log` entry, `{"partition_name": "price", "state":
+  [101.5]}`, or a JSON array of them. Entries for partitions nothing reads are ignored.
+- **Timing:** values enter only between steps. Each step gets the newest value a message has
+  brought, and holds it until the next (`on_empty: hold_last`, the default).
+- **Replay:** `record:` writes what each step was given as a `json_log`. Swap the stream for
+  `{source: {json_log: {path: feed.log}}}` and the run repeats exactly.
+- **Errors:** a stream that can't be reached is unavailable (75). A message that can't be
+  decoded, or a value of the wrong width, is a data error (65).
+- **Not yet:** streams don't apply to `macros:` configs. `params_from_input` doesn't yet apply
+  under `ensemble` or `serve`.
+
 ### Several outputs from one run
 
 To send one run to several places, each with its own filter, list them under a top-level

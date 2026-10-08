@@ -181,7 +181,7 @@ func replaceOnce(t *testing.T, s, old, new string) string {
 	return strings.Replace(s, old, new, 1)
 }
 
-func writeFile(t *testing.T, path, contents string) {
+func writeFile(t testing.TB, path, contents string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
 		t.Fatal(err)

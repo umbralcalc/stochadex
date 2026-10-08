@@ -203,6 +203,9 @@ type ApiRunConfig struct {
 	// socketAlias marks a config served through the deprecated --socket alias
 	// (see withSocketAlias).
 	socketAlias bool
+	// boundParamRows holds the stored input rows params_from_input keys read,
+	// by "partition/key", once a run has read them (see storedParamRows).
+	boundParamRows map[string][][]float64
 }
 
 // OutputViewConfig is one entry of outputs:. Condition defaults to every_step.
