@@ -64,15 +64,23 @@ Status: **accepted** (2026-10-04).
     allocations: since #95, a run generated its configs twice, once to check
     and once to run, which cost 76 allocations for 16 partitions. A config run
     now allocates exactly what v0.19.0 did.
-  - **In review:** 1.5a and 1.6, stream inputs and `params_from_input` (#112).
+  - **Merged:** 1.5a and 1.6, stream inputs and `params_from_input` (#112).
     - **Q2 decided:** `hold_last` only, for now.
     - **Backpressure:** one "latest wins" slot per stream partition, so there's no
       queue to bound.
     - **Performance:** `params_from_input` from stored data is 60% faster than a
       `from_input` partition read through `params_from_upstream`, with 84% fewer
       allocations, via a new `simulator.ParamsInjector` that copies in place.
-  - **Next:** 1.5b, a served client's own messages as a stream (two-way serve), plus
-    dexetera's `protobuf_action_state` decoding. IO.3 needs Q7 decided
+  - **In review:** 1.5b, two-way serving (#113).
+    - `stream: {connection: {}}` reads the served client's own messages.
+    - `decode: protobuf_action_state` reads dexetera-compatible `ActionState` (a new
+      `cmd/messages/action_state.proto`).
+    - Serve runs `params_from_input` and stream inputs per connection; batch runs and
+      served connections share one stepping loop.
+  - **Next:** a choice. 1.7 (keyboard as a stream transport, which needs a
+    `RegisterStream` hook), or the dexetera migration onto two-way serve (it can drop
+    `simio`'s own stepping), or the parallel tracks: IO.4, IO.5, O.1, O.4. IO.3 still
+    waits on Q7. IO.3 needs Q7 decided
     first; IO.4 and IO.5 can go any time. O.1 and O.4 can run alongside.
 
 ## 0. Summary
@@ -739,8 +747,8 @@ None of these depend on each other, so each can be its own PR.
 | 1.2 | **DONE (#105)**: `from_input` iteration | `{type: from_input, input: x, partition: p}` replays an input partition as a main partition. It builds on #86's inline `from_storage`, sourcing the rows from a named input instead of inline data. Plus `timestep_function: {type: from_input, input: x}` and `termination_condition: {type: input_exhausted}`. This promotes `FromStorageIteration` from "live-object, no data form" to a data spec, because the data now has a name. | Re-express one downstream pattern (e.g. a floodrisk forward run) as YAML, matching the Go version exactly; coverage test entry moves from excluded to registered |
 | 1.3 | **DONE (#107)**: `run: {mode: serve}`. The stream moves into `outputs:` in IO.1 | Moves the socket file into the config: `websocket: {address, handle, allowed_origins}`, plus `pace_ms`. Each connection attaches a websocket *view* to its own fresh run (§2.5), alongside any config views. `-s` stays as a deprecated alias that fills these fields. | `cfg/socket.yaml` flow still works; new config form works; a served stream matches an in-memory view of the same run |
 | 1.4 | **IN REVIEW (#110)**: injection port in the engine, `PartitionCoordinator.InjectParams` | Move dexetera's `ApplyActionState` idea into the engine as `simulator.InjectParams(coordinator, partition, key, values)` (or a `Stepper` hook). It runs only between steps. | Unit test: an injection before step k is visible at step k and not before |
-| 1.5 | **1.5a IN REVIEW (#112)**; 1.5b next: stream inputs | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
-| 1.6 | **IN REVIEW (#112)**: guard rails | Reject `stream:` inputs under `ensemble`. Pick a backpressure policy (bounded buffer, drop-oldest default, configurable). | Load-time error tests |
+| 1.5 | **1.5a DONE (#112); 1.5b IN REVIEW (#113)**: stream inputs | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
+| 1.6 | **DONE (#112)**: guard rails | Reject `stream:` inputs under `ensemble`. Pick a backpressure policy (bounded buffer, drop-oldest default, configurable). | Load-time error tests |
 | 1.7 | Keyboard on the new path | Re-express keyboard input as a `stream` transport (`{keyboard: {...}}`) feeding a `param_values` partition. Keep `UserInputIteration` and mark it legacy. | The existing keyboard test still passes; the new form has a test |
 
 ### Phase 1b — one place in, one place out (rule 14)
