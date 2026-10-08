@@ -74,10 +74,13 @@ Status: **accepted** (2026-10-04).
   - **Merged:** 1.5b, two-way serving (#113).
   - **Clarified (2026-10-08):** rules 15 (embedded runs are model, not inputs) and 16
     (`main:` and `macros:` compose in one runtime, with unambiguous names).
-  - **In review:** an embedded-runs PR. It parses the host's forwarding keys once
-    (`EmbeddedSimulationRunIteration` compiled a regex and scanned every params key
-    on every outer step), checks inner partition names at load, and tests
-    `params_from_input` reaching an inner run.
+  - **In review:** #114, embedded runs.
+    - Parses the host's forwarding keys once: 32% faster per outer step, 67% less
+      memory.
+    - Checks inner partition names at load.
+    - Tests `params_from_input` reaching an inner run through its host (rule 15).
+    - Still open: building the inner run's coordinator every outer step (~39
+      allocations per step).
     - `stream: {connection: {}}` reads the served client's own messages.
     - `decode: protobuf_action_state` reads dexetera-compatible `ActionState` (a new
       `cmd/messages/action_state.proto`).
