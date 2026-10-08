@@ -22,6 +22,34 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-10-08
+
+This release makes a config **inputs → one runtime → outputs** (the config-runtime plan's
+Phases 0 and 1). Data enters through `inputs:`, including live streams, and results leave
+through `outputs:` views, in every run mode. It also adds serving from the config, two-way
+serving and injecting params between steps, and a performance audit that leaves the step
+loop as fast as v0.19.0 or faster.
+
+**Upgrading from 0.19.** These are the changes most likely to need action; each is detailed
+below.
+- **Output:**
+  - **An ensemble's shorthand `output_function` is now written per member.** Before, it was
+    silently ignored. A `json_log` there needs `{member}` or `{seed}` in its path.
+  - **Macro results print in time order,** not one partition after another, and **ensemble
+    members' stdout rows interleave** as members run (each row keeps its `member=` prefix).
+  - **A `json_log` is complete once its run has finished.** Code stepping a coordinator with
+    `coordinator.Step(wg)`, without closing a stepper, must call the output's `Finalize`.
+- **Serving and the CLI:**
+  - **`--socket` is deprecated** in favour of `run: {mode: serve}`, and is rejected alongside
+    serve configs, ensembles, macros, `outputs:` views and stream inputs.
+  - **CLI exit codes are classified:** 64 usage, 65 data, 70 runtime, 75 unavailable
+    (retryable), 78 config.
+- **Config keys a run never reads are load errors,** for example `data:` without `macros:`,
+  or `main:` alongside `macros:`.
+- **Go API:**
+  - **`InjectParams` writes in place,** and `StepAndServeWebsocket` takes a per-connection
+    builder and an origin allow-list.
+
 ### Added
 
 - **Two-way serving: a served client steers its own run.** Under
@@ -265,9 +293,11 @@ an exact version rather than assume stability across minors.
   It now returns an `ErrConfig` error, as the function promises.
 - **`api.RunMacros` and `api.RunEnsembleToStorage` are deprecated** in favour of
   `api.RunToStorage`. Both keep working unchanged.
-- **The CLI prints macro and ensemble results in partition-name order.** Partitions
-  were previously printed in Go map order, which varied from run to run. `Run`'s
-  output for these configs is now exactly `RunToStorage`'s result, printed.
+- **The CLI prints macro and ensemble results deterministically.** Partitions were
+  previously printed in Go map order, which varied from run to run. A macros run's
+  output is now exactly `RunToStorage`'s result, row by row in time order (partitions
+  in name order within a time). Ensemble members write their rows as they run,
+  prefixed `member=<i> seed=<s>` (see "Every output goes through `outputs:` views").
 
 - **`api.StepAndServeWebsocket` takes a per-connection builder and an origin allow-list**
   (`build func() *simulator.ConfigGenerator, …, allowedOrigins []string`). The new
@@ -1751,7 +1781,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/umbralcalc/stochadex/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/umbralcalc/stochadex/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/umbralcalc/stochadex/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/umbralcalc/stochadex/compare/v0.16.0...v0.17.0
