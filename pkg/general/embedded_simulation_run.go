@@ -3,6 +3,7 @@ package general
 import (
 	"fmt"
 	"regexp"
+	"sort"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/mat"
@@ -31,6 +32,27 @@ type StateMemoryIteration interface {
 type NamedIndexedState struct {
 	NamedIndex simulator.NamedPartitionIndex
 	History    *simulator.StateHistory
+}
+
+// forwardedParamPattern matches a host's params key that forwards into an
+// embedded run: "<innerPartitionName>/<param_name>".
+var forwardedParamPattern = regexp.MustCompile(`(\w+)/(\w+)`)
+
+// ForwardedParamTarget reports whether a host partition's params key forwards
+// into its embedded run, and if so the inner partition and param it sets.
+func ForwardedParamTarget(key string) (innerPartition, param string, ok bool) {
+	matches := forwardedParamPattern.FindStringSubmatch(key)
+	if len(matches) != 3 {
+		return "", "", false
+	}
+	return matches[1], matches[2], true
+}
+
+// forwardedParam is one host params key forwarded into the inner run.
+type forwardedParam struct {
+	outer string // the host's params key
+	inner int    // the inner partition's index
+	param string // the inner params key, or "init_state_values"
 }
 
 // EmbeddedSimulationRunIteration runs a nested simulation to termination at
@@ -65,6 +87,8 @@ type EmbeddedSimulationRunIteration struct {
 	updateFromHistories   map[int][]simulator.NamedPartitionIndex
 	initStatesFromHistory map[int]NamedIndexedState
 	warmStartConfigs      map[int][2]int
+	forwards              []forwardedParam // parsed once, by Configure
+	histories             map[int]*simulator.StateHistory
 	timestepFunction      *FromHistoryTimestepFunction
 	burnInSteps           int
 	reseedBase            *uint64
@@ -99,10 +123,11 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 	e.updateFromHistories = make(map[int][]simulator.NamedPartitionIndex)
 	e.initStatesFromHistory = make(map[int]NamedIndexedState)
 	e.warmStartConfigs = make(map[int][2]int)
-	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
+	e.forwards = e.forwardedParams(settings.Iterations[partitionIndex])
+	e.histories = make(map[int]*simulator.StateHistory)
 	for outParamsName, paramsValues := range settings.
 		Iterations[partitionIndex].Params.Map {
-		matches := pattern.FindStringSubmatch(outParamsName)
+		matches := forwardedParamPattern.FindStringSubmatch(outParamsName)
 		if len(matches) == 3 {
 			switch matches[2] {
 			case "initial_state_from_partition_history":
@@ -160,6 +185,40 @@ func (e *EmbeddedSimulationRunIteration) Configure(
 		settings.Iterations[partitionIndex].Params.GetIndex("burn_in_steps", 0))
 }
 
+// forwardedParams parses, once, which of the host's params keys forward into
+// the inner run: every key of the form "<innerPartitionName>/<param_name>" in
+// its params or set by params_from_upstream, which are all the keys its params
+// can hold while it runs. An inner partition that does not exist panics here,
+// at Configure, rather than at the first step.
+func (e *EmbeddedSimulationRunIteration) forwardedParams(
+	host simulator.IterationSettings,
+) []forwardedParam {
+	keys := make([]string, 0, len(host.Params.Map)+len(host.ParamsFromUpstream))
+	for key := range host.Params.Map {
+		keys = append(keys, key)
+	}
+	for key := range host.ParamsFromUpstream {
+		if _, declared := host.Params.Map[key]; !declared {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+	forwards := make([]forwardedParam, 0)
+	for _, key := range keys {
+		innerName, param, ok := ForwardedParamTarget(key)
+		if !ok {
+			continue
+		}
+		inner, ok := e.partitionNameToIndex[innerName]
+		if !ok {
+			panic(fmt.Sprintf("embedded run: params key %q forwards into partition %q, "+
+				"which the embedded run does not have", key, innerName))
+		}
+		forwards = append(forwards, forwardedParam{outer: key, inner: inner, param: param})
+	}
+	return forwards
+}
+
 func (e *EmbeddedSimulationRunIteration) updateStateMemoryAndTime(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
@@ -206,24 +265,17 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 		return stateHistories[partitionIndex].GetNextStateRowToUpdate()
 	}
 
-	// set the initial conditions from params and the other params
-	// that may have been configured
-	pattern := regexp.MustCompile(`(\w+)/(\w+)`)
-	for outParamsName, paramsValues := range params.Map {
-		matches := pattern.FindStringSubmatch(outParamsName)
-		if len(matches) == 3 {
-			inPartition, ok := e.partitionNameToIndex[matches[1]]
-			if !ok {
-				panic("input partition was not found in embedded sim")
-			}
-			inParamsName := matches[2]
-			switch inParamsName {
-			case "init_state_values":
-				e.settings.Iterations[inPartition].InitStateValues = paramsValues
-			default:
-				e.settings.Iterations[inPartition].Params.Set(
-					inParamsName, paramsValues)
-			}
+	// forward the host's "<inner>/<param>" params into the inner run: initial
+	// conditions and params, as parsed once by Configure
+	for _, forward := range e.forwards {
+		paramsValues, ok := params.Map[forward.outer]
+		if !ok {
+			continue
+		}
+		if forward.param == "init_state_values" {
+			e.settings.Iterations[forward.inner].InitStateValues = paramsValues
+		} else {
+			e.settings.Iterations[forward.inner].Params.Set(forward.param, paramsValues)
 		}
 	}
 
@@ -250,7 +302,8 @@ func (e *EmbeddedSimulationRunIteration) Iterate(
 
 	// roll each configured window forward by one and drop in the outer
 	// partition's latest row, so the inner simulation starts from that history
-	histories := make(map[int]*simulator.StateHistory, len(e.initStatesFromHistory))
+	// The map is reused: a run reads it and does not keep it.
+	histories := e.histories
 	for inIndex, out := range e.initStatesFromHistory {
 		for i := out.History.StateHistoryDepth - 1; i > 0; i-- {
 			out.History.Values.SetRow(i, out.History.Values.RawRowView(i-1))
