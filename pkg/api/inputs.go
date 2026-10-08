@@ -22,14 +22,41 @@ import (
 // immediately before the run's generator is built. A missing input is therefore
 // ErrUnavailable and a partition the input lacks is ErrData, both at run time.
 
-// InputConfig is one entry of inputs:. Exactly one field is set.
+// InputConfig is one entry of inputs:. Exactly one of Source, Simulation and
+// Stream is set.
 type InputConfig struct {
 	// Source loads the input from a file or database (the data.source spellings).
 	Source *DataSource `yaml:"source,omitempty"`
 	// Simulation produces the input by running a sub-simulation first.
 	Simulation *DataConfig `yaml:"simulation,omitempty"`
+	// Stream reads the input live, from outside the run, while it runs (see
+	// streams.go). Only params_from_input reads a stream input.
+	Stream *StreamConfig `yaml:"stream,omitempty"`
+	// Decode is how a stream's messages are read: "json" (the default), each
+	// message a json_log entry, or a JSON array of them.
+	Decode string `yaml:"decode,omitempty"`
+	// OnEmpty is what a stream input gives a step that no new message has
+	// reached: "hold_last" (the default, and for now the only choice) holds the
+	// last value.
+	OnEmpty string `yaml:"on_empty,omitempty"`
+	// Record writes the values a stream input gave each step to this json_log
+	// path, so the run can be replayed from it as a source input.
+	Record string `yaml:"record,omitempty"`
 }
 
+// StreamConfig is a stream input's transport. Exactly one field is set.
+type StreamConfig struct {
+	// Websocket connects to a websocket server as a client and reads its
+	// messages.
+	Websocket *WebsocketStreamConfig `yaml:"websocket,omitempty"`
+}
+
+// WebsocketStreamConfig is a websocket stream's server address.
+type WebsocketStreamConfig struct {
+	URL string `yaml:"url"`
+}
+
+// load reads a stored input. Validation keeps stream inputs from reaching it.
 func (i *InputConfig) load() (*simulator.StateTimeStorage, error) {
 	if i.Source != nil {
 		storage, err := i.Source.load()
@@ -132,12 +159,37 @@ func init() {
 // validateInputs checks, at load, that the inputs: block and every reference
 // to it are coherent — without reading any input.
 func validateInputs(config *ApiRunConfig) error {
+	streams := false
 	for name, input := range config.Inputs {
+		set := 0
+		for _, present := range []bool{input.Source != nil, input.Simulation != nil, input.Stream != nil} {
+			if present {
+				set++
+			}
+		}
 		switch {
-		case (input.Source == nil) == (input.Simulation == nil):
-			return fmt.Errorf("api: input %q needs exactly one of source: or simulation:", name)
+		case set != 1:
+			return fmt.Errorf("api: input %q needs exactly one of source:, simulation: or stream:", name)
 		case input.Simulation != nil && input.Simulation.Source != nil:
 			return fmt.Errorf("api: input %q: a simulation: input cannot also set source:", name)
+		}
+		if err := validateStreamInput(name, input); err != nil {
+			return err
+		}
+		streams = streams || input.Stream != nil
+	}
+	if streams && len(config.Macros) > 0 {
+		return fmt.Errorf("api: macros read their inputs' stored rows, which a stream " +
+			"input does not have; record the stream and use the record as a source input")
+	}
+	if config.Run.Mode == "ensemble" || config.Run.Mode == "serve" {
+		feeds := streams
+		for _, partition := range config.Main.Partitions {
+			feeds = feeds || len(partition.ParamsFromInput) > 0
+		}
+		if feeds {
+			return fmt.Errorf("api: params_from_input and stream inputs do not yet apply "+
+				"to run: {mode: %s}", config.Run.Mode)
 		}
 	}
 	if len(config.Inputs) > 0 && config.Data != nil {
@@ -152,12 +204,27 @@ func validateInputs(config *ApiRunConfig) error {
 		used[input] = true
 		return nil
 	}
+	// storedOnly is reference for readers of an input's stored rows, which a
+	// stream input does not have.
+	storedOnly := func(where, input string) error {
+		if err := reference(where, input); err != nil {
+			return err
+		}
+		if config.Inputs[input].Stream != nil {
+			return fmt.Errorf("api: %s reads input %q's stored rows, but it is a "+
+				"stream input; set params from it with params_from_input instead", where, input)
+		}
+		return nil
+	}
 	for _, partition := range config.Main.Partitions {
 		if unbound, ok := partition.Iteration.(*unboundInputIteration); ok {
-			if err := reference(fmt.Sprintf("partition %q", partition.Name), unbound.input); err != nil {
+			if err := storedOnly(fmt.Sprintf("partition %q", partition.Name), unbound.input); err != nil {
 				return err
 			}
 		}
+	}
+	if err := validateParamsFromInput(config, reference); err != nil {
+		return err
 	}
 	for _, embedded := range config.Embedded {
 		for _, partition := range embedded.Run.Partitions {
@@ -165,15 +232,19 @@ func validateInputs(config *ApiRunConfig) error {
 				return fmt.Errorf("api: from_input is not yet supported inside embedded "+
 					"runs (partition %q of %q)", partition.Name, embedded.Name)
 			}
+			if len(partition.ParamsFromInput) > 0 {
+				return fmt.Errorf("api: params_from_input is not yet supported inside "+
+					"embedded runs (partition %q of %q)", partition.Name, embedded.Name)
+			}
 		}
 	}
 	if timesteps, ok := config.Main.Simulation.TimestepFunction.(*unboundInputTimesteps); ok {
-		if err := reference("timestep_function from_input", timesteps.input); err != nil {
+		if err := storedOnly("timestep_function from_input", timesteps.input); err != nil {
 			return err
 		}
 	}
 	if exhausted, ok := config.Main.Simulation.TerminationCondition.(*unboundInputExhausted); ok {
-		if err := reference("termination_condition input_exhausted", exhausted.input); err != nil {
+		if err := storedOnly("termination_condition input_exhausted", exhausted.input); err != nil {
 			return err
 		}
 	}
@@ -182,10 +253,100 @@ func validateInputs(config *ApiRunConfig) error {
 	for name := range config.Inputs {
 		if len(config.Macros) == 0 && !used[name] {
 			return fmt.Errorf("api: input %q is never used; replay it with "+
-				"{type: from_input, input: %s} or remove it", name, name)
+				"{type: from_input, input: %s}, set params from it with "+
+				"params_from_input, or remove it", name, name)
 		}
 	}
 	return nil
+}
+
+// validateStreamInput checks a stream input's transport and options, and that
+// the stream options are not set on any other kind of input.
+func validateStreamInput(name string, input InputConfig) error {
+	if input.Stream == nil {
+		if input.Decode != "" || input.OnEmpty != "" || input.Record != "" {
+			return fmt.Errorf("api: input %q: decode:, on_empty: and record: only "+
+				"apply to stream: inputs", name)
+		}
+		return nil
+	}
+	if input.Stream.Websocket == nil || input.Stream.Websocket.URL == "" {
+		return fmt.Errorf("api: input %q: stream: needs a transport, e.g. "+
+			"stream: {websocket: {url: \"ws://localhost:9000/feed\"}}", name)
+	}
+	if input.Decode != "" && input.Decode != "json" {
+		return fmt.Errorf("api: input %q: unknown decode %q (expected json)", name, input.Decode)
+	}
+	if input.OnEmpty != "" && input.OnEmpty != "hold_last" {
+		return fmt.Errorf("api: input %q: on_empty %q is not supported yet; a stream "+
+			"input holds its last value between messages (hold_last)", name, input.OnEmpty)
+	}
+	return nil
+}
+
+// validateParamsFromInput checks every main partition's params_from_input:
+// each names a declared input (via reference), sets a key the partition
+// declares in its params (whose value it has until the input gives it one),
+// and is not also set by params_from_upstream. Partitions set from the same
+// stream partition must declare the same initial value, since a recording of
+// the stream holds one value for it per step.
+func validateParamsFromInput(config *ApiRunConfig, reference func(where, input string) error) error {
+	initial := map[string][]float64{}
+	initialFrom := map[string]string{}
+	for _, partition := range config.Main.Partitions {
+		keys := make([]string, 0, len(partition.ParamsFromInput))
+		for key := range partition.ParamsFromInput {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			binding := partition.ParamsFromInput[key]
+			where := fmt.Sprintf("partition %q params_from_input %q", partition.Name, key)
+			if err := reference(where, binding.Input); err != nil {
+				return err
+			}
+			values, declared := partition.Params.Map[key]
+			if !declared || len(values) == 0 {
+				return fmt.Errorf("api: %s: declare %q in the partition's params with "+
+					"the value it has until the input sets it", where, key)
+			}
+			if _, upstream := partition.ParamsFromUpstream[key]; upstream {
+				return fmt.Errorf("api: %s: %q is also set by params_from_upstream", where, key)
+			}
+			if config.Inputs[binding.Input].Stream == nil {
+				continue
+			}
+			source := binding.Input + "/" + sourcePartition(binding, key)
+			if previous, seen := initial[source]; seen && !floatsEqual(previous, values) {
+				return fmt.Errorf("api: %s and %s are both set from stream %s but declare "+
+					"different initial values (%v vs %v); a recording holds one value for it",
+					initialFrom[source], where, source, previous, values)
+			}
+			initial[source], initialFrom[source] = values, where
+		}
+	}
+	return nil
+}
+
+// sourcePartition is the input partition a params_from_input binding reads:
+// the one it names, or the params key's own name.
+func sourcePartition(binding simulator.InputParamConfig, key string) string {
+	if binding.Partition != "" {
+		return binding.Partition
+	}
+	return key
+}
+
+func floatsEqual(a, b []float64) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // bindInputs loads the inputs a config's main run uses and binds its
@@ -196,19 +357,44 @@ func validateInputs(config *ApiRunConfig) error {
 // is a no-op. Failures are classified: a missing input is ErrUnavailable, a
 // partition the input lacks or a width mismatch is ErrData.
 func bindInputs(config *ApiRunConfig) error {
-	storages := map[string]*simulator.StateTimeStorage{}
-	storageOf := func(name string) (*simulator.StateTimeStorage, error) {
-		if storage, ok := storages[name]; ok {
-			return storage, nil
-		}
-		input := config.Inputs[name]
-		storage, err := input.load()
-		if err != nil {
-			return nil, fmt.Errorf("api: loading input %q: %w", name, err)
-		}
-		storages[name] = storage
+	return bindInputsWith(config, &inputLoader{config: config})
+}
+
+// inputLoader loads a config's inputs on first use, each at most once per run.
+// Its map is made on the first load, so a run with no inputs allocates nothing.
+type inputLoader struct {
+	config   *ApiRunConfig
+	storages map[string]*simulator.StateTimeStorage
+}
+
+func (l *inputLoader) storage(name string) (*simulator.StateTimeStorage, error) {
+	if storage, ok := l.storages[name]; ok {
 		return storage, nil
 	}
+	input := l.config.Inputs[name]
+	storage, err := input.load()
+	if err != nil {
+		return nil, fmt.Errorf("api: loading input %q: %w", name, err)
+	}
+	if l.storages == nil {
+		l.storages = map[string]*simulator.StateTimeStorage{}
+	}
+	l.storages[name] = storage
+	return storage, nil
+}
+
+// bindInputsWith is bindInputs, loading through loader, so the run's
+// params_from_input feeds share the inputs it loaded.
+func bindInputsWith(config *ApiRunConfig, loader *inputLoader) error {
+	return bindPlaceholders(config, loader.storage)
+}
+
+// bindPlaceholders binds a config's from_input placeholders, loading inputs
+// through storageOf.
+func bindPlaceholders(
+	config *ApiRunConfig,
+	storageOf func(name string) (*simulator.StateTimeStorage, error),
+) error {
 	for index := range config.Main.Partitions {
 		partition := &config.Main.Partitions[index]
 		unbound, ok := partition.Iteration.(*unboundInputIteration)

@@ -57,3 +57,51 @@ func BenchmarkConfigRunTinyInlineJsonLog(b *testing.B) {
 func BenchmarkConfigRunWideJsonLog(b *testing.B) {
 	benchmarkConfig(b, 16, 4, 500, jsonLogTo(b), "")
 }
+
+// paramsDrivenYAML is a 2000-step inline run whose walk's variances come from a
+// CSV input, either through params_from_input or, the older way, through a
+// from_input partition read with params_from_upstream (listed first: inline
+// execution runs a producer before its consumer).
+func paramsDrivenYAML(b *testing.B, fromInput bool) string {
+	b.Helper()
+	var csv strings.Builder
+	for i := range 2001 {
+		fmt.Fprintf(&csv, "%d,%v\n", i, 1+float64(i%7))
+	}
+	path := filepath.Join(b.TempDir(), "vol.csv")
+	writeFile(b, path, csv.String())
+	binding := "params_from_input: {variances: {input: vol}}"
+	extra := ""
+	if !fromInput {
+		binding = "params_from_upstream: {variances: {upstream: variances}}"
+		extra = "  - {name: variances, iteration: {type: from_input, input: vol}, state_history_depth: 1, seed: 0}\n"
+	}
+	return fmt.Sprintf(`inputs:
+  vol: {source: {csv: {path: %q, time_column: 0, state_columns: {variances: [1]}}}}
+main:
+  partitions:
+%s  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, %s, init_state_values: [0.0], state_history_depth: 1, seed: 3}
+  simulation:
+    output_condition: {type: every_step}
+    output_function: {type: nil}
+    execution_strategy: {type: inline}
+    termination_condition: {type: number_of_steps, max_steps: 2000}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+`, path, extra, binding)
+}
+
+func benchmarkParamsDriven(b *testing.B, fromInput bool) {
+	config := writeConfig(b, paramsDrivenYAML(b, fromInput))
+	b.ReportAllocs()
+	for b.Loop() {
+		Run(config, &SocketConfig{})
+	}
+}
+
+// BenchmarkConfigRunParamsFromInput sets a param from an input between steps.
+func BenchmarkConfigRunParamsFromInput(b *testing.B) { benchmarkParamsDriven(b, true) }
+
+// BenchmarkConfigRunParamsFromUpstream does the same through a from_input
+// partition and params_from_upstream, for comparison.
+func BenchmarkConfigRunParamsFromUpstream(b *testing.B) { benchmarkParamsDriven(b, false) }

@@ -92,9 +92,20 @@ type PartitionConfig struct {
 	Params             Params                         `yaml:"params"`
 	ParamsAsPartitions map[string][]string            `yaml:"params_as_partitions,omitempty"`
 	ParamsFromUpstream map[string]NamedUpstreamConfig `yaml:"params_from_upstream,omitempty"`
-	InitStateValues    []float64                      `yaml:"init_state_values"`
-	StateHistoryDepth  int                            `yaml:"state_history_depth"`
-	Seed               uint64                         `yaml:"seed"`
+	// ParamsFromInput sets params keys from a named input of the config, between
+	// steps. It is resolved by pkg/api, which owns inputs; the simulator itself
+	// never reads it.
+	ParamsFromInput   map[string]InputParamConfig `yaml:"params_from_input,omitempty"`
+	InitStateValues   []float64                   `yaml:"init_state_values"`
+	StateHistoryDepth int                         `yaml:"state_history_depth"`
+	Seed              uint64                      `yaml:"seed"`
+}
+
+// InputParamConfig names where a params key's values come from: a partition of
+// one of the config's inputs (the key's own name when Partition is empty).
+type InputParamConfig struct {
+	Input     string `yaml:"input"`
+	Partition string `yaml:"partition,omitempty"`
 }
 
 // Init ensures params maps are initialised; call after unmarshalling YAML.

@@ -24,6 +24,30 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Stream inputs and `params_from_input`: drive a run's params from data, live or
+  stored.**
+  - **`params_from_input: {key: {input: x, partition: p}}`** on a partition sets a params
+    key from an input between steps. From a stored input, step *k* gets row *k*, as
+    `from_input` does. It is the cheaper way to drive params from data: 60% faster, with
+    84% fewer allocations, than a `from_input` partition read through
+    `params_from_upstream`, since nothing is copied or allocated per step. A config reads
+    the rows once, as `from_input` binds once.
+  - **`inputs: {x: {stream: {websocket: {url: ...}}}}`** reads an input live while the run
+    runs, as a websocket client. Messages are `json_log` entries (or arrays of them).
+    Values enter only between steps, and each step holds the newest
+    (`on_empty: hold_last`; other policies are not supported yet).
+  - **`record: path`** writes the value each step was given as a `json_log`. Replaying
+    with the stream swapped for that file as a source input repeats the run exactly.
+  - **Errors:** an unreachable stream is unavailable (75). An undecodable message, a
+    wrong width, or a stored input with too few rows is a data error (65). Stream options
+    on a stored input, `from_input` on a stream, an undeclared or upstream-fed key, or
+    streams with macros, ensembles or serve are config errors (78).
+  - A config with no `params_from_input` runs exactly as before: same loop, same
+    allocations.
+- **`simulator.PartitionCoordinator.NewParamsInjector(partition, key)`** resolves a
+  params key once for injection; its `Inject` is a width check and an in-place copy,
+  with no allocation. `InjectParams` now also copies in place, without allocating.
+
 - **`PartitionCoordinator.InjectParams(partition, key, values)`: input from
   outside a run, between steps.** It sets one partition's params key from the next
   step on: a step that starts after it returns sees the new values, and they stay

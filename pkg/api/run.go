@@ -238,8 +238,9 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 	}
 	switch config.Run.Mode {
 	case "", "batch":
-		simulator.NewPartitionCoordinator(prepared.settings, prepared.implementations).Run()
-		return nil
+		return runCoordinator(
+			simulator.NewPartitionCoordinator(prepared.settings, prepared.implementations),
+			prepared.feeds)
 	case "serve":
 		return runServe(config)
 	default:
@@ -396,7 +397,11 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 		implementations := *prepared.implementations
 		implementations.OutputFunction = outputs
 		implementations.OutputCondition = &simulator.EveryStepOutputCondition{}
-		simulator.NewPartitionCoordinator(prepared.settings, &implementations).Run()
+		if err := runCoordinator(
+			simulator.NewPartitionCoordinator(prepared.settings, &implementations),
+			prepared.feeds); err != nil {
+			return nil, err
+		}
 		return &RunResult{Views: views}, nil
 	case "ensemble":
 		members, err := ensembleRuns(config, prepared.generator.GetSimulation(), opts.teeConfigOutputs)
@@ -481,6 +486,9 @@ type preparedRun struct {
 	generator       *simulator.ConfigGenerator
 	settings        *simulator.Settings
 	implementations *simulator.Implementations
+	// feeds set params from inputs between steps (nil without
+	// params_from_input; see streams.go).
+	feeds *paramFeeds
 }
 
 // preparedMainGenerator validates a main:-path config and returns it ready to
@@ -503,7 +511,12 @@ func preparedMainGeneratorWith(
 	if err := validateMainContext(config); err != nil {
 		return preparedRun{}, configError(err)
 	}
-	if err := bindInputs(config); err != nil {
+	loader := inputLoader{config: config}
+	if err := bindInputsWith(config, &loader); err != nil {
+		return preparedRun{}, err
+	}
+	feeds, err := newParamFeeds(config, &loader)
+	if err != nil {
 		return preparedRun{}, err
 	}
 	defer func() {
@@ -518,7 +531,7 @@ func preparedMainGeneratorWith(
 	}
 	settings, implementations := generator.GenerateConfigs()
 	return preparedRun{generator: generator, settings: settings,
-		implementations: implementations}, nil
+		implementations: implementations, feeds: feeds}, nil
 }
 
 func unknownRunModeError(mode string) error {
