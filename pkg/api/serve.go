@@ -102,6 +102,9 @@ func withSocketAlias(
 	case config.outputsDeclared:
 		return nil, usage("api: --socket does not support outputs: views; use " +
 			"run: {mode: serve} with a view of function {type: connection} instead")
+	case hasStreamInputs(config):
+		return nil, usage("api: --socket does not support stream inputs; use " +
+			"run: {mode: serve} instead")
 	}
 	fmt.Fprintf(notices, "stochadex: --socket is deprecated; put run: {mode: serve, "+
 		"websocket: {address: %q, handle: %q}, pace_ms: %d} in the config instead\n",
@@ -118,6 +121,16 @@ func withSocketAlias(
 		PaceMs: socket.MillisecondDelay,
 	}
 	return &served, nil
+}
+
+// hasStreamInputs reports whether any of a config's inputs is a stream.
+func hasStreamInputs(config *ApiRunConfig) bool {
+	for _, input := range config.Inputs {
+		if input.Stream != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // serveHandler returns the websocket handler behind run: {mode: serve}. Each
@@ -140,24 +153,29 @@ func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 	}
 	path := config.sourcePath
 	var connections atomic.Int64
-	build := func(stream simulator.OutputFunction) (*simulator.ConfigGenerator, error) {
+	build := func(stream simulator.OutputFunction) (servedRun, error) {
 		connection := int(connections.Add(1) - 1)
 		connectionConfig, err := LoadConfig(path)
 		if err != nil {
-			return nil, err
+			return servedRun{}, err
 		}
-		if err := bindInputs(connectionConfig); err != nil {
-			return nil, err
+		prepared, err := preparedMainGenerator(connectionConfig)
+		if err != nil {
+			return servedRun{}, err
 		}
-		generator := connectionConfig.GetConfigGenerator()
-		simulation := generator.GetSimulation()
 		if config.socketAlias {
 			connectionConfig.Outputs[0].Function = simulator.ComponentSpec{Type: connectionSink}
 		}
-		simulation.OutputFunction = connectionConfig.connectionOutputViews(connection, stream)
-		simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
-		generator.SetSimulation(simulation)
-		return generator, nil
+		implementations := *prepared.implementations
+		implementations.OutputFunction = connectionConfig.connectionOutputViews(connection, stream)
+		implementations.OutputCondition = &simulator.EveryStepOutputCondition{}
+		if prepared.feeds != nil {
+			prepared.feeds.forConnection(connection)
+		}
+		return servedRun{
+			coordinator: simulator.NewPartitionCoordinator(prepared.settings, &implementations),
+			feeds:       prepared.feeds,
+		}, nil
 	}
 	return newStreamHandler(build, time.Duration(config.Run.PaceMs)*time.Millisecond,
 		config.Run.Websocket.AllowedOrigins), nil

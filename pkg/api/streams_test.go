@@ -358,7 +358,7 @@ func TestParamsFromStoredInput(t *testing.T) {
 func TestStreamInputValidation(t *testing.T) {
 	stream := `    stream: {websocket: {url: "ws://localhost:9000/feed"}}`
 	cases := []struct{ name, yaml, want string }{
-		{"a stream with no transport", streamConfigYAML("    stream: {}", 5), "stream: needs a transport"},
+		{"a stream with no transport", streamConfigYAML("    stream: {}", 5), "stream: needs one transport"},
 		{"an unknown decode", streamConfigYAML(stream+"\n    decode: csv", 5), `unknown decode "csv"`},
 		{"an on_empty other than hold_last", streamConfigYAML(stream+"\n    on_empty: block", 5),
 			`on_empty "block" is not supported yet`},
@@ -387,8 +387,6 @@ func TestStreamInputValidation(t *testing.T) {
 			"{level: {input: feed}}", "{level: {input: fed}}", 1), `names input "fed"`},
 		{"a stream under an ensemble", streamConfigYAML(stream, 5) + "run: {mode: ensemble, seeds: [1]}\n",
 			"do not yet apply to run: {mode: ensemble}"},
-		{"params_from_input under serve", streamConfigYAML(stream, 5) + serveRun(":2112"),
-			"do not yet apply to run: {mode: serve}"},
 		{"two widths for one stream partition", strings.Replace(streamConfigYAML(stream, 5),
 			"params: {variances: [1.0]}, params_from_upstream: {variances: {upstream: dial}}",
 			"params: {variances: [0.0, 0.0]}, params_from_input: {variances: {input: feed, partition: level}}", 1),

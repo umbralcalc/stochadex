@@ -33,14 +33,16 @@ type InputConfig struct {
 	// streams.go). Only params_from_input reads a stream input.
 	Stream *StreamConfig `yaml:"stream,omitempty"`
 	// Decode is how a stream's messages are read: "json" (the default), each
-	// message a json_log entry, or a JSON array of them.
+	// message a json_log entry or a JSON array of them; or
+	// "protobuf_action_state", each message a simulator.ActionState.
 	Decode string `yaml:"decode,omitempty"`
 	// OnEmpty is what a stream input gives a step that no new message has
 	// reached: "hold_last" (the default, and for now the only choice) holds the
 	// last value.
 	OnEmpty string `yaml:"on_empty,omitempty"`
 	// Record writes the values a stream input gave each step to this json_log
-	// path, so the run can be replayed from it as a source input.
+	// path, so the run can be replayed from it as a source input. Under
+	// run: {mode: serve} it must contain {connection}, as output views must.
 	Record string `yaml:"record,omitempty"`
 }
 
@@ -49,7 +51,15 @@ type StreamConfig struct {
 	// Websocket connects to a websocket server as a client and reads its
 	// messages.
 	Websocket *WebsocketStreamConfig `yaml:"websocket,omitempty"`
+	// Connection reads the messages of the client a run is served to, under
+	// run: {mode: serve}: the connection its {type: connection} view streams
+	// to, read in the other direction.
+	Connection *ConnectionStreamConfig `yaml:"connection,omitempty"`
 }
+
+// ConnectionStreamConfig selects a served client as a stream. It has no fields:
+// spell it connection: {}.
+type ConnectionStreamConfig struct{}
 
 // WebsocketStreamConfig is a websocket stream's server address.
 type WebsocketStreamConfig struct {
@@ -159,7 +169,8 @@ func init() {
 // validateInputs checks, at load, that the inputs: block and every reference
 // to it are coherent — without reading any input.
 func validateInputs(config *ApiRunConfig) error {
-	streams := false
+	streams, connections := false, 0
+	serving := config.Run.Mode == "serve"
 	for name, input := range config.Inputs {
 		set := 0
 		for _, present := range []bool{input.Source != nil, input.Simulation != nil, input.Stream != nil} {
@@ -177,19 +188,38 @@ func validateInputs(config *ApiRunConfig) error {
 			return err
 		}
 		streams = streams || input.Stream != nil
+		if input.Stream != nil && input.Stream.Connection != nil {
+			if !serving {
+				return fmt.Errorf("api: input %q reads a served client (stream: "+
+					"{connection: {}}), which only applies to run: {mode: serve}", name)
+			}
+			connections++
+		}
+		switch perConnection := strings.Contains(input.Record, "{connection}"); {
+		case serving && input.Record != "" && !perConnection:
+			return fmt.Errorf("api: input %q's record: would have every served connection "+
+				"write to the same file; put {connection} in it, e.g. record: feed-{connection}.log", name)
+		case !serving && perConnection:
+			return fmt.Errorf("api: input %q's record: uses {connection}, which only "+
+				"applies to run: {mode: serve}", name)
+		}
+	}
+	if connections > 1 {
+		return fmt.Errorf("api: %d inputs read the served client; a run is served one "+
+			"connection, so declare one and bind each partition to its partitions", connections)
 	}
 	if streams && len(config.Macros) > 0 {
 		return fmt.Errorf("api: macros read their inputs' stored rows, which a stream " +
 			"input does not have; record the stream and use the record as a source input")
 	}
-	if config.Run.Mode == "ensemble" || config.Run.Mode == "serve" {
+	if config.Run.Mode == "ensemble" {
 		feeds := streams
 		for _, partition := range config.Main.Partitions {
 			feeds = feeds || len(partition.ParamsFromInput) > 0
 		}
 		if feeds {
-			return fmt.Errorf("api: params_from_input and stream inputs do not yet apply "+
-				"to run: {mode: %s}", config.Run.Mode)
+			return fmt.Errorf("api: params_from_input and stream inputs do not yet apply " +
+				"to run: {mode: ensemble}")
 		}
 	}
 	if len(config.Inputs) > 0 && config.Data != nil {
@@ -270,12 +300,18 @@ func validateStreamInput(name string, input InputConfig) error {
 		}
 		return nil
 	}
-	if input.Stream.Websocket == nil || input.Stream.Websocket.URL == "" {
-		return fmt.Errorf("api: input %q: stream: needs a transport, e.g. "+
-			"stream: {websocket: {url: \"ws://localhost:9000/feed\"}}", name)
+	websocketClient := input.Stream.Websocket != nil
+	if websocketClient == (input.Stream.Connection != nil) ||
+		websocketClient && input.Stream.Websocket.URL == "" {
+		return fmt.Errorf("api: input %q: stream: needs one transport, e.g. "+
+			"stream: {websocket: {url: \"ws://localhost:9000/feed\"}}, or "+
+			"stream: {connection: {}} for a served client", name)
 	}
-	if input.Decode != "" && input.Decode != "json" {
-		return fmt.Errorf("api: input %q: unknown decode %q (expected json)", name, input.Decode)
+	switch input.Decode {
+	case "", "json", "protobuf_action_state":
+	default:
+		return fmt.Errorf("api: input %q: unknown decode %q (expected json or "+
+			"protobuf_action_state)", name, input.Decode)
 	}
 	if input.OnEmpty != "" && input.OnEmpty != "hold_last" {
 		return fmt.Errorf("api: input %q: on_empty %q is not supported yet; a stream "+

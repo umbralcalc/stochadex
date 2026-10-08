@@ -24,6 +24,24 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Two-way serving: a served client steers its own run.** Under
+  `run: {mode: serve}`, `inputs: {x: {stream: {connection: {}}}}` reads the messages
+  of the client the run is served to, on the same connection its `{type: connection}`
+  view streams out on. They set params through `params_from_input`, between steps.
+  See `cfg/example_interactive_config.yaml`.
+  - **`decode: protobuf_action_state`** reads `ActionState` protobufs
+    (`cmd/messages/action_state.proto`, with Go, JS and Python bindings),
+    wire-compatible with dexetera's. Named entries set those stream partitions; with
+    none, the broadcast `values` set the stream partition `values`. This lets dexetera
+    move off its own stepping code.
+  - **Serve mode now runs `params_from_input` and stream inputs,** including streams
+    from websocket servers, for each connection. Under `serve`, `record:` paths need
+    `{connection}`, as output views do.
+  - **Errors:** a served run that fails, for example on a message that can't be
+    decoded, ends its connection with a close frame giving the reason. A served client
+    stream outside `serve`, two of them in one config, or stream inputs with the
+    deprecated `--socket` alias are config or usage errors.
+
 - **Stream inputs and `params_from_input`: drive a run's params from data, live or
   stored.**
   - **`params_from_input: {key: {input: x, partition: p}}`** on a partition sets a params
