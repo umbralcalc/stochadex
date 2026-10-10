@@ -131,10 +131,33 @@ type IOManifest struct {
 	Run       ManifestRun     `json:"run"`
 	Clock     *ManifestClock  `json:"clock,omitempty"`
 	Inputs    []ManifestInput `json:"inputs"`
-	// Outputs are every place the run writes: the outputs: views (including
-	// the shorthand and default view), each embedded run's own output, and
-	// each stream input's record file.
+	// Outputs are every place the run writes its results: the outputs: views
+	// (including the shorthand and default view) and each stream input's
+	// record file. Debug logs are listed apart, in Debug.
 	Outputs []ManifestOutput `json:"outputs"`
+	// Embedded describes each embedded run as the outer run sees it: a black
+	// box whose host partition's row, each outer step, is its inner partitions'
+	// final states concatenated in Columns' order.
+	Embedded []ManifestEmbedded `json:"embedded,omitempty"`
+	// Debug lists the logs a run writes only because its config asks for an
+	// embedded run's inner detail: every inner step of every outer step. They
+	// are for debugging, not results (rule 14), so provenance and
+	// --skip-if-unchanged ignore them.
+	Debug []ManifestOutput `json:"debug,omitempty"`
+}
+
+// ManifestEmbedded is an embedded run's host partition and its column layout.
+type ManifestEmbedded struct {
+	Partition string            `json:"partition"`
+	Columns   []ManifestColumns `json:"columns"`
+}
+
+// ManifestColumns are the columns of a host partition's row that hold one
+// inner partition's final state: [Offset, Offset+Width).
+type ManifestColumns struct {
+	Partition string `json:"partition"`
+	Offset    int    `json:"offset"`
+	Width     int    `json:"width"`
 }
 
 // ManifestRun is how many runtimes a config makes, and of what kind.
@@ -262,11 +285,12 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 		})
 	}
 	for _, embedded := range config.Embedded {
+		manifest.Embedded = append(manifest.Embedded, embeddedLayout(embedded))
 		function := embedded.Run.SimulationStrings.OutputFunction
 		if function.IsZero() || function.Type == "nil" {
 			continue
 		}
-		manifest.Outputs = append(manifest.Outputs, ManifestOutput{
+		manifest.Debug = append(manifest.Debug, ManifestOutput{
 			Name:       embedded.Name,
 			DeclaredIn: "embedded[name=" + embedded.Name + "].simulation",
 			Condition:  conditionName(embedded.Run.SimulationStrings.OutputCondition),
@@ -274,6 +298,21 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 		})
 	}
 	return manifest
+}
+
+// embeddedLayout is where each inner partition's final state sits in its host
+// partition's row: in the inner run's partition order, each as wide as its
+// state.
+func embeddedLayout(embedded EmbeddedRunConfig) ManifestEmbedded {
+	layout := ManifestEmbedded{Partition: embedded.Name, Columns: []ManifestColumns{}}
+	offset := 0
+	for _, partition := range embedded.Run.Partitions {
+		width := len(partition.InitStateValues)
+		layout.Columns = append(layout.Columns, ManifestColumns{
+			Partition: partition.Name, Offset: offset, Width: width})
+		offset += width
+	}
+	return layout
 }
 
 func manifestRun(config *ApiRunConfig) ManifestRun {

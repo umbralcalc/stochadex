@@ -384,11 +384,13 @@ func TestProvenanceSidecars(t *testing.T) {
 			if err := Execute([]string{"stochadex", "--config", config, "--provenance"}); err != nil {
 				t.Fatal(err)
 			}
-			targets := []string{"run.log", "nested.log", "run.arrow"}
+			// An embedded run's log is a debug log, not a result: it is written,
+			// but carries no provenance.
+			targets := []string{"run.log", "run.arrow"}
+			want := []string{"nested.log"}
 			if ensemble {
-				targets = []string{"member-0.log", "member-1.log"}
+				targets, want = []string{"member-0.log", "member-1.log"}, []string{}
 			}
-			want := []string{}
 			for _, target := range targets {
 				want = append(want, target, target+sidecarSuffix)
 				if got := readProvenance(t, filepath.Join(dir, target)); got.Key != inspected.Key || got.Key == "" {
@@ -414,9 +416,10 @@ func TestProvenanceSidecars(t *testing.T) {
 		if got := readAll(t, log+sidecarSuffix); got != earlierLog {
 			t.Errorf("the earlier sidecar changed: %q", got)
 		}
-		if _, err := os.Stat(nested + sidecarSuffix); err == nil {
-			t.Error("a failed run wrote provenance")
+		if _, err := os.Stat(log + sidecarSuffix + ".partial"); err == nil {
+			t.Error("a failed run started writing provenance")
 		}
+		_ = nested
 	})
 
 	t.Run("a sidecar that cannot be written fails the run as unavailable", func(t *testing.T) {

@@ -307,6 +307,13 @@ func Execute(args []string) error {
 		}
 		options = append(options, shard)
 	}
+	for _, spec := range parsed.DebugEmbedded {
+		debug, err := debugEmbeddedOption(spec)
+		if err != nil {
+			return err
+		}
+		options = append(options, debug)
+	}
 	config, err := LoadConfig(parsed.ConfigFile, options...)
 	if err != nil {
 		return err

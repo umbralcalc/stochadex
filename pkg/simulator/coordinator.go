@@ -276,6 +276,18 @@ func NewPartitionCoordinator(
 			listenersByPartition[values.Upstream] += 1
 		}
 	}
+	// No output function means no output: an embedded run outputs nothing
+	// unless its config asks (its host partition's row is what the outer run
+	// records). A function without a condition outputs every step.
+	if implementations.OutputFunction == nil {
+		implementations.OutputFunction = &NilOutputFunction{}
+		if implementations.OutputCondition == nil {
+			implementations.OutputCondition = &NilOutputCondition{}
+		}
+	}
+	if implementations.OutputCondition == nil {
+		implementations.OutputCondition = &EveryStepOutputCondition{}
+	}
 	implementations.OutputFunction.Configure(settings)
 	// A single view is a sink and its condition: hand those to the iterators
 	// directly rather than through OutputViews, which costs a few ns per

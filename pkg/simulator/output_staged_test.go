@@ -226,3 +226,43 @@ func writeFile(t *testing.T, path, contents string) {
 		t.Fatal(err)
 	}
 }
+
+func TestCoordinatorOutputDefaults(t *testing.T) {
+	t.Run("no output function outputs nothing, under every strategy", func(t *testing.T) {
+		for name, strategy := range outputStrategies() {
+			implementations := injectImplementations(5, strategy, nil)
+			implementations.OutputFunction, implementations.OutputCondition = nil, nil
+			coordinator := NewPartitionCoordinator(injectSettings(), implementations)
+			coordinator.Run()
+			if _, ok := implementations.OutputFunction.(*NilOutputFunction); !ok {
+				t.Errorf("%s: want a nil sink in place of none, got %T", name, implementations.OutputFunction)
+			}
+			// Never output, rather than every step to a sink that drops it: the
+			// quiet default makes no output call per partition per step.
+			if _, ok := implementations.OutputCondition.(*NilOutputCondition); !ok {
+				t.Errorf("%s: want a never-output condition, got %T", name, implementations.OutputCondition)
+			}
+		}
+	})
+
+	t.Run("an output function with no condition outputs every step", func(t *testing.T) {
+		store := NewStateTimeStorage()
+		implementations := injectImplementations(5, &InlineExecution{}, store)
+		implementations.OutputCondition = nil
+		NewPartitionCoordinator(injectSettings(), implementations).Run()
+		for _, name := range []string{"dial", "follower"} {
+			if rows := len(store.GetValues(name)); rows != 6 {
+				t.Errorf("%s: %d rows, want the initial row and 5 steps", name, rows)
+			}
+		}
+	})
+
+	t.Run("a condition with no function still outputs nothing", func(t *testing.T) {
+		implementations := injectImplementations(5, &InlineExecution{}, nil)
+		implementations.OutputFunction = nil
+		NewPartitionCoordinator(injectSettings(), implementations).Run()
+		if _, ok := implementations.OutputCondition.(*EveryStepOutputCondition); !ok {
+			t.Errorf("the given condition should be kept, got %T", implementations.OutputCondition)
+		}
+	})
+}
