@@ -202,6 +202,9 @@ type ApiRunConfig struct {
 	// fileReaders are the iteration fields that read each file input, by
 	// config path (see resolveFileInputs).
 	fileReaders map[string][]string
+	// deprecations are notices for the deprecated forms the config uses (see
+	// deprecations.go).
+	deprecations []string
 	// readsFiles are the partitions whose iterations read a file input, as
 	// "main/<name>" or "<embedded run>/<name>", which Check stands in for.
 	readsFiles map[string]bool
@@ -695,6 +698,7 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 			return nil, configError(err)
 		}
 	}
+	findDeprecations(&config)
 	if err := config.resolveOutputs(); err != nil {
 		return nil, configError(err)
 	}

@@ -129,8 +129,6 @@ main:
     state_history_depth: 1
     seed: 7
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: stdout}
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -140,7 +138,8 @@ main:
 stochadex --config walk.yaml
 ```
 
-One row per step, `<time> <partition> [<state values>]`:
+With no `outputs:` declared, every step prints to stdout, one row per step,
+`<time> <partition> [<state values>]`:
 
 ```
 0 walk [0]
@@ -171,19 +170,35 @@ A **partition** advances a vector state each step from its **params** and, optio
 | `seed` | Per-partition RNG seed. |
 | `iteration` | A library process named as data, *or* omit it and supply `expressions`. |
 
-The `simulation` block is all data too: `output_condition`
-(`every_step` / `every_n_steps` / `only_given_partitions` / `nil`), `output_function`
-(`stdout` / `json_log` / `websocket` / `arrow` / `duckdb` / `postgres` / `s3` / `nil`), `termination_condition`
+The `simulation` block is all data too: `termination_condition`
 (`number_of_steps` / `time_elapsed`), `timestep_function`
 (`constant` / `exponential_distribution`).
 
-### Writing results out
+### Writing results: `outputs:`
+
+Results leave a run through a top-level `outputs:` list of *views*. Each view has a name, an
+optional `condition` (default `every_step`), and a `function`:
+
+```yaml
+outputs:
+  - {name: log, function: {type: json_log, path: run.log}}
+  - {name: sparse, condition: {type: every_n_steps, n: 10}, function: {type: stdout}}
+```
+
+Conditions are `every_step`, `every_n_steps`, `only_given_partitions` and `nil`. Functions are
+`stdout`, `json_log`, `websocket`, `arrow`, `duckdb`, `postgres`, `s3` and `nil`. A config with
+no `outputs:` prints every step to stdout. (The older `simulation.output_condition` /
+`output_function` pair is deprecated shorthand for one view named `output`; a config that
+uses it prints a notice giving the exact `outputs:` line to replace it with.)
+
+### Columnar, streaming and database outputs
 
 Beyond `stdout` and `json_log`, write columnar output directly:
 
 ```yaml
-    output_function: {type: arrow, path: run.arrow}                    # Arrow IPC file
-    output_function: {type: duckdb, path: run.duckdb, table: results}  # DuckDB table
+outputs:
+  - {name: columns, function: {type: arrow, path: run.arrow}}                     # Arrow IPC file
+  - {name: table, function: {type: duckdb, path: run.duckdb, table: results}}   # DuckDB table
 ```
 
 To stream a run live to another service (a dashboard, a recorder), push it to a websocket
@@ -191,22 +206,25 @@ server. The run connects as a client when it starts, sends each output as a prot
 `PartitionState` frame, and closes the connection when it finishes:
 
 ```yaml
-    output_function: {type: websocket, url: "ws://localhost:8080/ingest"}
+outputs:
+  - {name: push, function: {type: websocket, url: "ws://localhost:8080/ingest"}}
 ```
 
 `postgres` takes local credentials, or `driver`/`dsn` through `database/sql` to reach **any Postgres-wire database** (TimescaleDB, CockroachDB, a managed instance):
 
 ```yaml
-    output_function: {type: postgres, driver: pgx, dsn: "postgres://...", table: results}
+outputs:
+  - {name: db, function: {type: postgres, driver: pgx, dsn: "postgres://...", table: results}}
 ```
 
 `s3` is a **transport, not a format**: give it a `format:` and it reuses the normal sink, so anything writable locally is writable to object storage. Credentials come from the standard AWS chain, never the config file. Set `endpoint:` for any S3-compatible store (MinIO, R2, Ceph):
 
 ```yaml
-    output_function: {type: s3, bucket: my-bucket, key: runs/out.arrow, format: arrow}
+outputs:
+  - {name: lake, function: {type: s3, bucket: my-bucket, key: runs/out.arrow, format: arrow}}
 ```
 
-The same formats work as `data:` sources to read a run back in: `{arrow: {path: run.arrow}}`, `{postgres: {...}}`, `{s3: {bucket, key, format}}`. Name a source the binary lacks and the error lists the ones it has.
+The same formats work as input sources to read a run back in: `{arrow: {path: run.arrow}}`, `{postgres: {...}}`, `{s3: {bucket, key, format}}`. Name a source the binary lacks and the error lists the ones it has.
 
 `arrow` writes one IPC file (a `time` column plus a fixed-size list column per partition), read natively by Polars, pandas and DuckDB:
 
@@ -215,7 +233,7 @@ import pyarrow.ipc as ipc
 table = ipc.open_file("run.arrow").read_all()
 ```
 
-`duckdb` lands the same data in a DuckDB table (zero-copy). Both write once at the end, so they need an `output_condition` that emits every partition every step.
+`duckdb` lands the same data in a DuckDB table (zero-copy). Both write once at the end, so they need a view whose condition emits every partition every step.
 
 > `arrow`, `postgres`, `s3` are in every binary; the container adds `duckdb`. `duckdb` needs the **accelerated** binary. `stochadex --version` prints a `features:` line.
 
@@ -255,7 +273,7 @@ main:
     termination_condition: {type: input_exhausted, input: obs}  # and stops when it runs out
 ```
 
-An input is any `data.source` (`csv`, `json_log`, `postgres`, plus `arrow` and `s3` in the
+An input is any `source:` (`csv`, `json_log`, `postgres`, plus `arrow` and `s3` in the
 distributed CLI), or a pre-pass simulation (`{simulation: {steps, timestep, partitions: ...}}`).
 A run's `json_log` output can be the next run's input, which is how separate configs chain.
 
@@ -299,8 +317,8 @@ Inputs are read when the run starts, never when the config is loaded:
 
 A `macros:` config reads `inputs:` too: its macros analyse every input's partitions. When
 there are several inputs they must share one time axis, and a partition name may come from
-only one of them. `data:` is shorthand for a single input, so existing `data:` configs work
-unchanged.
+only one of them. (A top-level `data:` block, the older spelling of a single input named
+`data`, still works but is deprecated: it prints a notice naming its replacement.)
 
 ### Setting params from an input, including a live stream
 
@@ -379,9 +397,8 @@ run: {mode: serve, websocket: {address: ":2112", handle: /handle}, pace_ms: 100}
 
 ### Several outputs from one run
 
-To send one run to several places, each with its own filter, list them under a top-level
-`outputs:` instead of setting `output_condition` / `output_function`. Each entry is a
-*view*: a name, an optional `condition` (default `every_step`), and a `function`:
+To send one run to several places, each with its own filter, list several views under
+`outputs:`:
 
 ```yaml
 outputs:
@@ -392,10 +409,8 @@ outputs:
      function: {type: postgres, driver: pgx, dsn: "postgres://...", table: results}}
 ```
 
-`output_condition` / `output_function` are shorthand for one view named `output`, so a config
-uses one form or the other, not both. A config that declares no output at all prints every
-step to stdout. `outputs:` also applies to a `macros:` config: its results go to the views,
-each applying its condition exactly as a live run would, in time order.
+`outputs:` also applies to a `macros:` config: its results go to the views, each applying its
+condition exactly as a live run would, in time order.
 
 With `run: {mode: ensemble}`, each member gets its **own** sinks, the shorthand's included:
 write `{member}` (the member's index) or `{seed}` into a view's fields, e.g.
@@ -508,7 +523,7 @@ page may connect only from the server's own host or from a loopback host.
 
 What a client receives is an output like any other. It is the `outputs:` view whose function is
 `{type: connection}`, and that view's `condition` filters it. A serve config declares exactly
-one such view and uses `outputs:` rather than the `output_condition` / `output_function` pair.
+one such view.
 Each connection also writes its own copy of the other views. Put `{connection}` (the
 connection's index, from 0) in each view's fields, just as ensembles use `{member}`.
 
@@ -677,19 +692,21 @@ status 2. Treat it like 70. From Go, `api.Execute(os.Args)` returns the classifi
 
 ## Analysis, inference and optimisation
 
-A `data` block produces a dataset (a sub-simulation, or a `csv` / `json_log` / `postgres` source). Each `macros` entry expands a framework [`macros`](https://stochadex.github.io/pkg/macros.html) constructor into a *set* of partitions against it. All data, all in-process.
+The config's `inputs:` produce a dataset (a sub-simulation, or a `csv` / `json_log` / `postgres` source). Each `macros` entry expands a framework [`macros`](https://stochadex.github.io/pkg/macros.html) constructor into a *set* of partitions against it. All data, all in-process.
 
 ```yaml
-data:
-  steps: 500
-  timestep: 1.0
-  partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 200
-    seed: 291
+inputs:
+  data:
+    simulation:
+      steps: 500
+      timestep: 1.0
+      partitions:
+      - name: data_stream
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
+        init_state_values: [1.3, 8.3]
+        state_history_depth: 200
+        seed: 291
 macros:
 - type: vector_mean
   name: rolling_mean

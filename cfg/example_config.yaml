@@ -19,8 +19,8 @@ main:
 
   simulation:
 
-    output_condition: {type: every_step}
-    output_function: {type: json_log, path: "./nbs/data/test.log"}
     termination_condition: {type: number_of_steps, max_steps: 100}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: json_log, path: "./nbs/data/test.log"}}

@@ -9,15 +9,17 @@
 # rolling buffer ahead of the same tail — see analysis/regression.go for the exact
 # layouts.) There are no convergence levers here: OLS is closed-form, so more
 # `steps` just tightens the estimate against the noise.
-data:
-  steps: 400
-  timestep: 1.0
-  partitions:
-  - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: y, init_state_values: [0.0], state_history_depth: 1, seed: 71}
-  expressions:
-  - {partition: x, fields: [{name: v}], outputs: ["0.05 * t"]}
-  - {partition: y, fields: [{name: v}], outputs: ["2.5 * (0.05 * t) + 1.0 + shared(normal(0, 1.5))"]}
+inputs:
+  data:
+    simulation:
+      steps: 400
+      timestep: 1.0
+      partitions:
+      - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+      - {name: y, init_state_values: [0.0], state_history_depth: 1, seed: 71}
+      expressions:
+      - {partition: x, fields: [{name: v}], outputs: ["0.05 * t"]}
+      - {partition: y, fields: [{name: v}], outputs: ["2.5 * (0.05 * t) + 1.0 + shared(normal(0, 1.5))"]}
 macros:
 - type: scalar_regression_stats
   name: ols

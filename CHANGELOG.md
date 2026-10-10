@@ -109,6 +109,17 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **`data:` and the main run's `output_condition` / `output_function` pair are deprecated**
+  (PLAN.md IO.6), as `--socket` already was. A config that uses them still loads and runs
+  exactly as before, and the CLI prints one notice per form on stderr, naming its
+  replacement: `inputs: {data: ...}`, and the exact `outputs:` line for the pair. They will
+  be removed in a later v0.x minor. Library callers read the notices with
+  `ApiRunConfig.Deprecations()` (the library prints nothing), and `inspect --io` lists them.
+  An embedded run's own output pair is not deprecated: it is that run's debug log.
+- **Every shipped config, model twin and skill recipe now uses `inputs:` and `outputs:`,**
+  and the quickstart and agent skill teach them. Each migrated config runs identically to its
+  old form (every partition's every step, each ensemble member and each macro result).
+
 - **Provenance has no `files` list any more:** model files are inputs, fingerprinted under
   `inputs`.
 

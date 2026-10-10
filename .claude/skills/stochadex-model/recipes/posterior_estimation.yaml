@@ -22,16 +22,18 @@
 #     the zero-filled tail of the replay buffer, so the loglike scores zeros
 #     instead of the data and the posterior freezes at its prior. The engine only
 #     warns, so read the log if nothing is converging.
-data:
-  steps: 2000
-  timestep: 1.0
-  partitions:
-  - name: test_data
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 2000
-    seed: 123
+inputs:
+  data:
+    simulation:
+      steps: 2000
+      timestep: 1.0
+      partitions:
+      - name: test_data
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
+        init_state_values: [1.3, 8.3]
+        state_history_depth: 2000
+        seed: 123
 macros:
 - type: posterior_estimation
   log_norm: {name: test_post_log_norm, default: 0.0}
