@@ -14,13 +14,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/umbralcalc/stochadex/pkg/simulator"
 	yaml3 "gopkg.in/yaml.v3"
 )
 
 // Provenance and caching (PLAN.md O.5). A run's provenance says exactly what
 // produced its outputs: the config as resolved (after --set and ${VAR}), a
-// fingerprint of each input's contents, any model file an iteration reads, and
+// fingerprint of each input's contents (model files are inputs too), and
 // the build that ran it. Its Key hashes all of that, so two runs with the same
 // key produce the same outputs: an orchestrator can use it as an idempotency
 // key, and --skip-if-unchanged skips a run whose outputs already carry it.
@@ -46,7 +45,6 @@ type Provenance struct {
 	Uncacheable []string          `json:"uncacheable,omitempty"`
 	Config      ProvenanceConfig  `json:"config"`
 	Inputs      []ProvenanceInput `json:"inputs"`
-	Files       []ProvenanceFile  `json:"files,omitempty"`
 	Seeds       []uint64          `json:"seeds,omitempty"`
 	Build       ProvenanceBuild   `json:"build"`
 }
@@ -67,13 +65,6 @@ type ProvenanceInput struct {
 	Kind        string `json:"kind"`
 	Location    string `json:"location,omitempty"`
 	Fingerprint string `json:"fingerprint,omitempty"`
-}
-
-// ProvenanceFile is a file an iteration reads that is not an input: a model
-// file named by a model_path field. (IO.5 will make these inputs.)
-type ProvenanceFile struct {
-	Path   string `json:"path"`
-	SHA256 string `json:"sha256"`
 }
 
 // ProvenanceBuild is the build that ran. Version and Revision are what its
@@ -132,14 +123,18 @@ func ComputeProvenance(config *ApiRunConfig) (*Provenance, error) {
 		uncacheable("the build is not a release or a stamped image, so it cannot be " +
 			"pinned (Go's own version-control stamp is not trusted)")
 	}
-	inputs := config.Inputs
-	if len(config.Macros) > 0 {
-		inputs = macroInputs(config)
-	}
+	inputs := runInputs(config)
 	for _, name := range sortedKeys(inputs) {
 		input := inputs[name]
 		entry := ProvenanceInput{Name: name}
 		switch {
+		case input.File != nil:
+			entry.Kind, entry.Location = "file", input.File.Path
+			digest, err := fileDigest(input.File.Path)
+			if err != nil {
+				return nil, inputError(fmt.Errorf("api: fingerprinting input %q: %w", name, err))
+			}
+			entry.Fingerprint = "sha256:" + digest
 		case input.Stream != nil:
 			entry.Kind = "stream"
 			uncacheable("input %q is a live stream", name)
@@ -159,13 +154,6 @@ func ComputeProvenance(config *ApiRunConfig) (*Provenance, error) {
 		}
 		p.Inputs = append(p.Inputs, entry)
 	}
-	for _, path := range modelPaths(config) {
-		digest, err := fileDigest(path)
-		if err != nil {
-			return nil, inputError(fmt.Errorf("api: fingerprinting model file %s: %w", path, err))
-		}
-		p.Files = append(p.Files, ProvenanceFile{Path: path, SHA256: digest})
-	}
 	if len(p.Uncacheable) == 0 {
 		p.Key = p.key()
 	}
@@ -178,20 +166,15 @@ func (p *Provenance) key() string {
 	for i, input := range p.Inputs {
 		inputs[i] = input.Name + "=" + input.Fingerprint
 	}
-	files := make([]string, len(p.Files))
-	for i, file := range p.Files {
-		files[i] = file.Path + "=" + file.SHA256
-	}
 	identity, _ := json.Marshal(struct {
 		Config   string
 		Inputs   []string
-		Files    []string
 		Version  string
 		Revision string
 		Features []string
 		OS, Arch string
 		Image    string
-	}{p.Config.SHA256, inputs, files, p.Build.Version, p.Build.Revision, p.Build.Features,
+	}{p.Config.SHA256, inputs, p.Build.Version, p.Build.Revision, p.Build.Features,
 		p.Build.OS, p.Build.Arch, p.Build.Image})
 	sum := sha256.Sum256(identity)
 	return hex.EncodeToString(sum[:])
@@ -258,58 +241,6 @@ func fileDigest(path string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-
-// modelPaths finds the files iterations read through a model_path field,
-// anywhere in a partition's iteration spec, in main, embedded runs and data:.
-func modelPaths(config *ApiRunConfig) []string {
-	found := map[string]bool{}
-	var walk func(value interface{})
-	walk = func(value interface{}) {
-		switch v := value.(type) {
-		case map[string]interface{}:
-			for key, field := range v {
-				if path, ok := field.(string); ok && key == "model_path" {
-					found[path] = true
-				}
-				walk(field)
-			}
-		case map[interface{}]interface{}:
-			for key, field := range v {
-				if path, ok := field.(string); ok && key == "model_path" {
-					found[path] = true
-				}
-				walk(field)
-			}
-		case []interface{}:
-			for _, item := range v {
-				walk(item)
-			}
-		case simulator.ComponentSpec:
-			walk(v.Fields)
-		}
-	}
-	partitions := append([]simulator.PartitionConfig(nil), config.Main.Partitions...)
-	for _, embedded := range config.Embedded {
-		partitions = append(partitions, embedded.Run.Partitions...)
-	}
-	if config.Data != nil {
-		partitions = append(partitions, config.Data.Partitions...)
-	}
-	for _, input := range config.Inputs {
-		if input.Simulation != nil {
-			partitions = append(partitions, input.Simulation.Partitions...)
-		}
-	}
-	for _, partition := range partitions {
-		walk(partition.IterationSpec.Fields)
-	}
-	paths := make([]string, 0, len(found))
-	for path := range found {
-		paths = append(paths, path)
-	}
-	sort.Strings(paths)
-	return paths
 }
 
 // buildVCS reads Go's version-control stamp, and buildModuleVersion the main

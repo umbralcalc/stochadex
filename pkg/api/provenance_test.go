@@ -578,10 +578,14 @@ func TestProvenanceFindsModelFilesAnywhereInASpec(t *testing.T) {
 		}
 		return provenance
 	}
+	// Every model_path, at any depth, is an implicit file input.
 	first := compute()
 	found := []string{}
-	for _, file := range first.Files {
-		found = append(found, file.Path)
+	for _, input := range first.Inputs {
+		if input.Kind == "file" && input.Name == implicitFilePrefix+input.Location &&
+			strings.HasPrefix(input.Fingerprint, "sha256:") {
+			found = append(found, input.Location)
+		}
 	}
 	want := append([]string(nil), paths...)
 	slices.Sort(want)

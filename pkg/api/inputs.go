@@ -32,6 +32,9 @@ type InputConfig struct {
 	// Stream reads the input live, from outside the run, while it runs (see
 	// streams.go). Only params_from_input reads a stream input.
 	Stream *StreamConfig `yaml:"stream,omitempty"`
+	// File is a file an iteration reads, such as a model, named by an
+	// iteration field {input: NAME} (see file_inputs.go).
+	File *FileInputConfig `yaml:"file,omitempty"`
 	// Decode is how a stream's messages are read: "json" (the default), each
 	// message a json_log entry or a JSON array of them; or
 	// "protobuf_action_state", each message a simulator.ActionState.
@@ -68,6 +71,9 @@ type WebsocketStreamConfig struct {
 
 // load reads a stored input. Validation keeps stream inputs from reaching it.
 func (i *InputConfig) load() (*simulator.StateTimeStorage, error) {
+	if i.File != nil {
+		return nil, fmt.Errorf("api: a file input has no rows to load")
+	}
 	if i.Source != nil {
 		storage, err := i.Source.load()
 		return storage, inputError(err)
@@ -232,14 +238,17 @@ func validateInputs(config *ApiRunConfig) error {
 	serving := config.Run.Mode == "serve"
 	for name, input := range config.Inputs {
 		set := 0
-		for _, present := range []bool{input.Source != nil, input.Simulation != nil, input.Stream != nil} {
+		for _, present := range []bool{input.Source != nil, input.Simulation != nil,
+			input.Stream != nil, input.File != nil} {
 			if present {
 				set++
 			}
 		}
 		switch {
 		case set != 1:
-			return fmt.Errorf("api: input %q needs exactly one of source:, simulation: or stream:", name)
+			return fmt.Errorf("api: input %q needs exactly one of source:, simulation:, stream: or file:", name)
+		case input.File != nil && input.File.Path == "":
+			return fmt.Errorf("api: input %q: file: needs a path", name)
 		case input.Simulation != nil && input.Simulation.Source != nil:
 			return fmt.Errorf("api: input %q: a simulation: input cannot also set source:", name)
 		}
@@ -291,9 +300,19 @@ func validateInputs(config *ApiRunConfig) error {
 			"shorthand for a single input — move it into inputs:")
 	}
 	used := map[string]bool{}
+	for name := range config.fileReaders {
+		used[name] = true
+	}
+	// reference is for readers of an input's rows, which a file input does not
+	// have.
 	reference := func(where, input string) error {
-		if _, ok := config.Inputs[input]; !ok {
+		declared, ok := config.Inputs[input]
+		if !ok {
 			return fmt.Errorf("api: %s names input %q, which inputs: does not declare", where, input)
+		}
+		if declared.File != nil {
+			return fmt.Errorf("api: %s reads input %q's rows, but it is a file; an "+
+				"iteration reads a file through a field {input: %s}", where, input, input)
 		}
 		used[input] = true
 		return nil
@@ -567,7 +586,14 @@ func inputRows(storage *simulator.StateTimeStorage, input, partition string) ([]
 func macroInputs(config *ApiRunConfig) map[string]InputConfig {
 	switch {
 	case len(config.Inputs) > 0:
-		return config.Inputs
+		// Macros analyse data; a file input is read by an iteration instead.
+		data := map[string]InputConfig{}
+		for name, input := range config.Inputs {
+			if input.File == nil {
+				data[name] = input
+			}
+		}
+		return data
 	case config.Data == nil:
 		return nil
 	case config.Data.Source != nil:

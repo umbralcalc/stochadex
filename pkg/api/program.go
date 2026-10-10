@@ -199,6 +199,12 @@ type ApiRunConfig struct {
 	// ${VAR} placeholders it filled, for the I/O manifest (inspect.go).
 	overrides []string
 	variables []string
+	// fileReaders are the iteration fields that read each file input, by
+	// config path (see resolveFileInputs).
+	fileReaders map[string][]string
+	// readsFiles are the partitions whose iterations read a file input, as
+	// "main/<name>" or "<embedded run>/<name>", which Check stands in for.
+	readsFiles map[string]bool
 	// outputViews are the resolved outputs: views, including the one made from
 	// the shorthand output pair or the default (see resolveOutputs). The main
 	// path also installs them as its simulation's output; the macros path
@@ -666,6 +672,9 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 		return nil, configError(err)
 	}
 	if err := desugarFromStorage(&config); err != nil {
+		return nil, configError(err)
+	}
+	if err := resolveFileInputs(&config); err != nil {
 		return nil, configError(err)
 	}
 	for index := range config.Main.Partitions {

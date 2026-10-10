@@ -367,7 +367,7 @@ func TestStreamInputValidation(t *testing.T) {
 			"decode:, on_empty: and record: only apply to stream: inputs"},
 		{"both stream: and source:", streamConfigYAML(stream+
 			"\n    source: {csv: {path: x.csv, time_column: 0, state_columns: {level: [1]}}}", 5),
-			"needs exactly one of source:, simulation: or stream:"},
+			"needs exactly one of source:, simulation:, stream: or file:"},
 		{"from_input on a stream", strings.Replace(streamConfigYAML(stream, 5),
 			"iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, params_from_input: {level: {input: feed}}",
 			"iteration: {type: from_input, input: feed, partition: level}", 1),
