@@ -518,6 +518,41 @@ The manifest never copies a sink's or source's fields. It gives a location, with
 credentials removed from URLs and connection strings, and names the `${VAR}`s it filled
 without their values. From Go, use `api.Check(config)` and `api.Manifest(config)`.
 
+### Skipping runs whose outputs are up to date
+
+`--provenance` writes `<output>.provenance.json` beside each `json_log` and `arrow` file a
+run writes. It records what produced the file:
+- the config as resolved, after `--set` and `${VAR}`;
+- a fingerprint of each input's contents (an S3 object by its version);
+- any model file an iteration reads through `model_path`;
+- the build that ran it.
+
+Its `key` hashes all of that, so the same key means the same outputs. A sidecar is written
+only after the outputs are published.
+
+```bash
+stochadex --config model.yaml --skip-if-unchanged   # implies --provenance
+```
+
+With `--skip-if-unchanged`, a run whose file outputs all exist and already carry its key is
+skipped: it exits 0 and says so on stderr. Change an input, a value, the model file or the
+binary, and it runs. `stochadex inspect --provenance -c model.yaml` prints the provenance
+and key without running, to use as an idempotency key in a workflow engine. It reads the
+inputs, to fingerprint them.
+
+A run has a key only when everything that decides its outputs can be fingerprinted. It
+has none, and is never skipped, when:
+- an input is a Postgres table (its rows can change under the same query) or a live
+  stream;
+- it is served;
+- the binary isn't a release, a stamped image, or a `go install ...@vX`. A local build
+  isn't cached: Go's own commit stamp can't be trusted (a build may have uncommitted
+  changes, and inside a git worktree Go stamps the main checkout's commit). To cache
+  with a local build, stamp it: `go build -ldflags "-X main.revision=$(git rev-parse HEAD)"`.
+
+The provenance says which applies. Reformatting the config, its comments or its key order
+doesn't change the key.
+
 ### Running a config from Go
 
 `api.RunWith(config, options...)` runs a config and hands results back in memory.
