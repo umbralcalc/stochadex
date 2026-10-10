@@ -111,6 +111,65 @@ func (u *unboundInputExhausted) Terminate(
 	panic(fmt.Sprintf("api: termination_condition input_exhausted (input %q) was run unbound", u.input))
 }
 
+// fromStoragePrefix names the inputs that inline from_storage data becomes.
+const fromStoragePrefix = "from_storage/"
+
+// desugarFromStorage makes inline data an input (PLAN.md rule 14, IO.4): a main
+// partition whose iteration is {type: from_storage, data: rows} becomes a
+// from_input partition reading an inline input of those rows, and a
+// timestep_function {type: from_storage, data: times} a from_input clock
+// reading an inline input of those times. Both bind to the same replay they
+// always did. One that also sets init_steps_taken, which from_input has no
+// equivalent of, is left as written; so is one whose data does not parse, so
+// that its own builder reports it.
+func desugarFromStorage(config *ApiRunConfig) error {
+	add := func(name string, source *InlineSource) error {
+		if _, exists := config.Inputs[name]; exists {
+			return fmt.Errorf("api: input %q is the name inline from_storage data "+
+				"takes; rename the input", name)
+		}
+		if config.Inputs == nil {
+			config.Inputs = map[string]InputConfig{}
+		}
+		config.Inputs[name] = InputConfig{Source: &DataSource{Inline: source}}
+		return nil
+	}
+	for index := range config.Main.Partitions {
+		partition := &config.Main.Partitions[index]
+		spec := partition.IterationSpec
+		if spec.Type != "from_storage" || len(spec.Fields) != 1 {
+			continue
+		}
+		rows, err := floatMatrix("from_storage", "data", spec.Fields["data"])
+		if err != nil || len(rows) == 0 {
+			continue
+		}
+		times := make([]float64, len(rows))
+		for i := range times {
+			times[i] = float64(i)
+		}
+		name := fromStoragePrefix + partition.Name
+		if err := add(name, &InlineSource{Times: times,
+			Partitions: map[string][][]float64{partition.Name: rows}}); err != nil {
+			return err
+		}
+		partition.IterationSpec = simulator.ComponentSpec{Type: "from_input",
+			Fields: map[string]interface{}{"input": name}}
+	}
+	clock := &config.Main.SimulationStrings.TimestepFunction
+	if clock.Type == "from_storage" && len(clock.Fields) == 1 {
+		if times, err := floatRow("from_storage", "data", clock.Fields["data"]); err == nil && len(times) > 0 {
+			name := fromStoragePrefix + "timestep_function"
+			if err := add(name, &InlineSource{Times: times}); err != nil {
+				return err
+			}
+			*clock = simulator.ComponentSpec{Type: "from_input",
+				Fields: map[string]interface{}{"input": name}}
+		}
+	}
+	return nil
+}
+
 func buildFromInput(fields map[string]interface{}) (simulator.Iteration, error) {
 	iteration := &unboundInputIteration{}
 	for key, value := range fields {
@@ -183,6 +242,11 @@ func validateInputs(config *ApiRunConfig) error {
 			return fmt.Errorf("api: input %q needs exactly one of source:, simulation: or stream:", name)
 		case input.Simulation != nil && input.Simulation.Source != nil:
 			return fmt.Errorf("api: input %q: a simulation: input cannot also set source:", name)
+		}
+		if input.Source != nil && input.Source.Inline != nil {
+			if _, err := input.Source.Inline.storage(); err != nil {
+				return fmt.Errorf("api: input %q: %w", name, err)
+			}
 		}
 		if err := validateStreamInput(name, input); err != nil {
 			return err

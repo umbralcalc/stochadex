@@ -216,6 +216,9 @@ func configDigest(source []byte) string {
 // cannot be.
 func sourceFingerprint(source *DataSource) (fingerprint, uncacheable string, err error) {
 	switch {
+	case source.Inline != nil:
+		// Carried in the config, so its digest covers it.
+		return "config", "", nil
 	case source.Csv != nil:
 		digest, err := fileDigest(source.Csv.Path)
 		return "sha256:" + digest, "", err

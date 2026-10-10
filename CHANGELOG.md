@@ -24,6 +24,12 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Inline data is an input: `source: {inline: {times, partitions}}`.** A series carried in
+  the config can be declared under `inputs:` (or `data:`) like any file, and is checked at
+  load: a row per time, rows of one width. A `from_storage` iteration or timestep function
+  with inline `data:` is now shorthand for an inline input read by `from_input`, so the
+  I/O manifest and provenance see it as an input; it runs exactly as before. (One that sets
+  `init_steps_taken`, and any inside an embedded run, stays as written.)
 - **Embedded runs are black boxes, and `inspect --io` shows their layout.** At each outer
   step an embedded run's host partition records its inner partitions' final states,
   concatenated in order. Its inner steps are written nowhere by default, so they cost no
