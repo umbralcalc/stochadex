@@ -87,10 +87,21 @@ Status: **accepted** (2026-10-04).
       the run. Streaming sinks (stdout, websocket, connection, postgres) say so.
     - Cost: one atomic rename per file output per run (~90µs on APFS); runs without file
       outputs allocate exactly as before. CI now runs the CLI module's tests.
-  - **In review:** O.6, `--seed-range FROM:TO` (#120): an override of `run.seeds`, so checks,
+  - **Decided (2026-10-10): embedded runs are black boxes by default.** The outer run
+    records only an embedded run's result: its host partition's row each outer step, the
+    inner partitions' final states concatenated in order. Inner steps are written nowhere
+    unless asked, so the default is neither verbose nor slow; full inner output is a
+    **debug** facility. This rewrites IO.3 and closes Q7 (below).
+    - **In review:** IO.3 as rewritten (#121). It also fixes the quiet default, which
+      crashed (an embedded run with no declared output dereferenced a nil sink); a run
+      with no output function now outputs nothing and makes no per-step output call.
+      `inspect --io` lists each host's column layout and lists embedded logs under
+      `debug`; provenance and `--skip-if-unchanged` ignore them. `--debug-embedded
+      NAME=PATH` turns a debug log on without editing the config.
+  - **Merged:** O.6, `--seed-range FROM:TO` (#120), completing Track O: an override of `run.seeds`, so checks,
     manifest and provenance key see the shard's seeds; shards together equal the single
     run, member for member. A shard warns on outputs named by `{member}` alone (it
-    restarts at 0 per shard). **Track O is complete with this.**
+    restarts at 0 per shard).
   - **Merged:** O.5, provenance sidecars and `--skip-if-unchanged` (#119).
     - Opt-in (`--provenance`). Key = canonical config digest + input content fingerprints
       (S3 by version) + `model_path` files (stopgap until IO.5) + build.
@@ -427,6 +438,12 @@ API), and were mutation-checked (each test fails with its fix reverted).
       reads or writes from anywhere else.
     - **Params are model, not inputs:** a literal in `params:` is part of the model's
       definition. Inputs are external data read when a run starts.
+    - **An embedded run is a black box; its own log is for debugging (decided
+      2026-10-10).** The result of an embedded run is its host partition's row, which
+      `outputs:` records like any other partition. An embedded run's own
+      `output_function` (or `--debug-embedded`) is a debug log of every inner step, not a
+      result: it is off by default, so a run is never verbose or slowed by inner output
+      unless asked, and provenance and caching ignore it.
     - **A bidirectional transport appears in both blocks.** For example, a served
       connection is an `outputs:` view, and its live actions (1.5) are an `inputs:`
       stream that refers to the same connection. The rule is about where things are
@@ -562,6 +579,10 @@ in-memory one. The unifying formulation:
   json_log per member. Under views, each member gets fresh sink instances, with paths
   templated by member and seed (`path: "run-{member}.log"`), or a member-tagging
   wrapper for shared sinks. `RunResult.Members[i]` holds each member's in-memory views.
+- **Superseded (2026-10-10): embedded runs are black boxes; see rule 14.** The text
+  below was the reasoning for scoped nested views, which are no longer planned: the
+  outer run records an embedded run's result (its host row), and inner detail is a
+  debug log. Kept for the record.
 - **Nested views need scope.** A nested run's own sink *is* called, once per outer
   step. A probe confirmed a json_log inside the posterior's likelihood window wrote
   1608 correct lines (4 inner runs × 201 rows × 2 partitions). But each line carries
@@ -863,7 +884,7 @@ Inputs had two stragglers:
 |---|---|---|---|
 | IO.1 | **DONE (#108)**: the served stream is an `outputs:` view | A new output function `{type: connection}`, valid only under `run: {mode: serve}`, sends that view's rows to the connection being served. A serve config must declare exactly one, with its own condition. It no longer borrows the shorthand `output_condition`, and the shorthand is rejected under serve until IO.2 makes it an ordinary view. Each connection substitutes its websocket for the `connection` view and builds fresh instances of the others (`{connection}` as in #107). `--socket` keeps its exact old behaviour on a shorthand config (stream gated by `output_condition`, `output_function` not written), and is rejected with `outputs:` views, which it never supported (found in review: with `--socket`, views using `{connection}` were rejected at load, and views without it were rejected by the alias). | The served stream equals an in-memory capture with the view's condition; a serve config with zero or two `connection` views, or one outside serve, is a config error; the `--socket` flow is unchanged; mutation-checked |
 | IO.2 | **IN REVIEW (#109)**: the shorthand becomes one view, in every mode | At load, `output_condition` / `output_function` becomes `outputs: [{name: output, ...}]`, so batch, ensemble and serve share one code path, and the run-mode rules (`{member}` / `{connection}`) apply to it as to any view. `stdout` becomes **instance-aware**: under ensemble or serve it prefixes each row with `member=<i> seed=<s>` or `connection=<i>`, as the CLI's ensemble printing already does, so it needs no placeholder. When a config declares no output at all, the default ("print to stdout") becomes an explicit default view. The CLI's separate printing paths for macros and ensembles then go away. **This replaces "reject or make per-member" (the old follow-up):** desugaring makes the silent drop impossible rather than an error. | Every shipped config prints the same lines as before (as a set: order was already non-deterministic for batch configs with several partitions, and changes by design for macros and ensembles); a shorthand `json_log` with `{member}` writes per member; an ensemble with a shorthand `json_log` without a placeholder is a config error naming the shorthand; `expand` shows the desugared view |
-| IO.3 | Nested runs write through top-level views | An `outputs:` view can select nested partitions by scoped path (`test_likelihood/test_data`). Its records carry the scope (path, outer step and time), per §2.5. An embedded run's own `output_function` becomes deprecated shorthand for such a view. Needs Q7 decided first. | A scoped view of a nested run equals the nested sink's records, each with its outer step; two nested partitions with the same inner name are told apart |
+| IO.3 | **In review (#121)**, rewritten 2026-10-10: embedded runs are black boxes | The outer run records an embedded run's host row (inner final states, concatenated in order); inner steps are written nowhere by default. `inspect --io` lists each host's column layout. An embedded run's own `output_function` is a **debug log**, listed apart and ignored by provenance and caching; `--debug-embedded NAME=PATH` turns one on without an edit. (Replaces "nested runs write through top-level views with scoped records", which needed Q7.) | The layout splits every host row into its inner partitions' final states (checked against known values); a run with no declared inner output writes nothing; a debug log is opt-in, listed apart and has no provenance |
 | IO.4 | Inline data is an input | An `{inline: {times: [...], partitions: {name: [[...], ...]}}}` input source. The inline `from_storage` form becomes shorthand for an inline input plus `from_input`. | `cfg/example_from_storage_config.yaml` is byte-identical through the inline input |
 | IO.5 | Model files are inputs | A file an iteration reads (an ONNX model, today) is declared once in `inputs:` and referred to by name, so `inspect --io` and provenance (O.5) see it. Either declared or discovered: decide by Q8. | The manifest lists the model file; changing its contents changes the provenance hash |
 | IO.6 | Retire the shorthand forms | Once IO.1–IO.4 land, `data:`, the `simulation.output_*` pair and `--socket` print a deprecation notice. They are removed in a later v0.x minor (§4.1). | Each deprecated form prints its notice once and still gives identical results |
@@ -934,7 +955,7 @@ retried, cached or monitored separately into its own config.
 | O.3 | **DONE (#99)**: structured exit codes | Distinct codes for: a config or validation error (never retry); input unavailable or a transient I/O failure (retry); a runtime numerical failure (don't retry); success. Replace the `panic` / `log.Fatal` paths in loading and `Run` with typed errors mapped at the CLI edge. Library callers get the typed errors through `RunToStorage` (0.3). | 0.3 | A table test drives one representative failure of each class through the CLI binary and asserts its exit code; no `panic` is reachable from a bad config |
 | O.4 | **DONE (#118)**: all-or-nothing outputs | Every file and object *view* (§2.5, rule 12) opens in `Configure`, writes to a temporary name, and commits in `Finalize` on clean termination: rename for local files, a final put or multipart complete for S3. A failed or killed run leaves no output at the final path. Sinks without an atomic commit (Postgres, websocket) document their behaviour. | 0.4 (sinks for every runtime) | Kill a run mid-way, then check no final-path output exists; let it complete and check the output matches a reference; each sink states its guarantee in its docs |
 | O.5 | **DONE (#119)**: provenance hashes / caching key | Extend `LogRunProvenance` and write a sidecar `*.provenance.json` alongside the outputs. It holds the config hash (after overrides), each input's content hash or object version (or a recorded-stream path), the seeds, and the existing build/image fields. Optional `--skip-if-unchanged`: exit with a "cached" status when an existing sidecar matches. Also usable directly as a DBOS idempotency key. | O.1, Phase 1 | The same config, inputs and seeds give the same hash, and changing any one changes it (property test); `--skip-if-unchanged` skips only on an exact match |
-| O.6 | **In review (#120)**: splitting an ensemble across machines | Ensemble seeds can be overridden per invocation (`--set run.seeds=…` via O.1, or `--seed-range 1000:1999`). Each shard writes its own outputs and provenance. Gathering shards is left to the orchestrator or downstream. | O.1 | Two shards' outputs together equal the single-machine ensemble with the same seeds, member for member |
+| O.6 | **DONE (#120)**: splitting an ensemble across machines | Ensemble seeds can be overridden per invocation (`--set run.seeds=…` via O.1, or `--seed-range 1000:1999`). Each shard writes its own outputs and provenance. Gathering shards is left to the orchestrator or downstream. | O.1 | Two shards' outputs together equal the single-machine ensemble with the same seeds, member for member |
 
 **Order:**
 1. O.3 and the `main:` / `run:` part of O.1 can start now. They don't need `inputs:`.
@@ -978,6 +999,9 @@ closed once the work since has answered it, or given a "decide by" point and the
 evidence to collect before then. None blocks the next PRs.
 
 **Closed:**
+7. ~~In-memory view of a nested run: one storage per outer step, or flat with an
+   outer-step column?~~ **Moot (2026-10-10):** embedded runs are black boxes (rule 14);
+   nothing captures nested runs as views, and debugging reads the debug log.
 1. ~~Interim output in macro mode (0.4).~~ **Closed by §2.5:** `outputs:` (views) is the
    permanent form, with `simulation.output_*` as shorthand for one view. No temporary
    `output:` key.
@@ -999,7 +1023,6 @@ evidence to collect before then. None blocks the next PRs.
 |---|---|---|---|
 | 2 | ~~Stream clock: `hold_last` only, or also `step_per_message` (an event clock)?~~ **Decided (2026-10-08): `hold_last` only, for now** (#112). Add an event clock when a real feed needs one. **Evidence (2026-10-08):** dexact's protocol (dexetera's websocket driver) is lock-step, one step per inbound `ActionState`. So it is the first concrete user, if dexact ever drives a server-side stochadex serve. Nothing downstream uses that path today; cryptobook's feed is the other candidate | Phase 1.5 | — |
 | 5 | Flatten `main:` to the top level? | Phase 3 | Agent test A.1: does the `main:` level cause agent authoring errors? Plus the migration cost across downstream configs and recipes |
-| 7 | In-memory view of a nested run: one storage per outer step, or a flat storage with an outer-step column? | IO.3 (rule 14 now gives the direction: nested runs write through top-level views, so their records must carry scope) | Who reads nested views (debugging likelihood windows, inspecting MCTS trees) and what shape they want; streaming sinks just carry the scope fields either way |
 | 8 | Model files (e.g. ONNX): declared in `inputs:` and referred to by name, or discovered by `inspect --io` from known spec fields? | IO.5 | How many registered iterations read files, and whether downstream registrations (`RegisterIteration`) can declare which of their fields are file paths. Declaring keeps rule 14 exact; discovering keeps configs shorter |
 
 ## 7. Risks
