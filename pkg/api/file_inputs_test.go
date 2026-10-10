@@ -273,6 +273,46 @@ func TestFileInputs(t *testing.T) {
 		}
 	})
 
+	t.Run("a bad reference is reported where it is, at any depth or scope", func(t *testing.T) {
+		inner := func(model string) string {
+			return checkYAML(hostPartition, "embedded:\n- name: nested\n  partitions:\n"+
+				sizedPartition("inner", model)+"  simulation:\n    termination_condition: "+
+				"{type: number_of_steps, max_steps: 2}\n    timestep_function: {type: constant, stepsize: 1.0}\n"+
+				"    init_time_value: 0.0\n")
+		}
+		subSimulation := "inputs:\n  data:\n    simulation:\n      steps: 3\n      timestep: 1.0\n" +
+			"      partitions:\n" + strings.ReplaceAll(sizedPartition("stream", "{input: nope}"), "  - ", "      - ") +
+			checkYAML(walkPartition("w", ""), "")
+		cases := map[string]struct{ yaml, want string }{
+			"in an embedded run": {inner("{input: nope}"),
+				`embedded[name=nested].partitions[name=inner].iteration.model_path names input "nope"`},
+			"in an input's sub-simulation": {subSimulation,
+				`inputs.data.simulation.partitions[name=stream].iteration.model_path names input "nope"`},
+			"in a sub-spec's list": {checkYAML("  - {name: r, iteration: {type: model_reader, model_path: x.onnx, "+
+				"stages: [{weights: {input: nope}}]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}\n", ""),
+				`main.partitions[name=r].iteration.stages[0].weights names input "nope"`},
+		}
+		for name, c := range cases {
+			_, err := LoadConfig(writeConfigPath(t, c.yaml))
+			if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("%s: expected ErrConfig containing %q, got %v", name, c.want, err)
+			}
+		}
+	})
+
+	t.Run("only a source or simulation input has rows to load", func(t *testing.T) {
+		// Validation routes no file or stream input to loading; were one to
+		// arrive, loading refuses it rather than dereferencing a missing source.
+		for name, input := range map[string]InputConfig{
+			"a file":   {File: &FileInputConfig{Path: brain}},
+			"a stream": {Stream: &StreamConfig{Connection: &ConnectionStreamConfig{}}},
+		} {
+			if _, err := input.load(); err == nil || !strings.Contains(err.Error(), "has stored rows to load") {
+				t.Errorf("loading %s input: got %v", name, err)
+			}
+		}
+	})
+
 	csvInput := "  obs: {source: {csv: {path: x.csv, time_column: 0, state_columns: {o: [1]}}}}\n"
 	errorCases := []struct{ name, yaml, want string }{
 		{"a reference to an undeclared input", checkYAML(sizedPartition("p", "{input: nope}"), ""),

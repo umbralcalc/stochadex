@@ -69,16 +69,17 @@ type WebsocketStreamConfig struct {
 	URL string `yaml:"url"`
 }
 
-// load reads a stored input. Validation keeps stream inputs from reaching it.
+// load reads a stored input's rows. Validation keeps stream and file inputs,
+// which have no stored rows, from reaching it.
 func (i *InputConfig) load() (*simulator.StateTimeStorage, error) {
-	if i.File != nil {
-		return nil, fmt.Errorf("api: a file input has no rows to load")
-	}
-	if i.Source != nil {
+	switch {
+	case i.Source != nil:
 		storage, err := i.Source.load()
 		return storage, inputError(err)
+	case i.Simulation != nil:
+		return i.Simulation.buildStorage()
 	}
-	return i.Simulation.buildStorage()
+	return nil, fmt.Errorf("api: only a source: or simulation: input has stored rows to load")
 }
 
 // unboundInputIteration is what {type: from_input} resolves to at load: a

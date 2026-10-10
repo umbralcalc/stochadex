@@ -123,19 +123,12 @@ func resolveFileField(config *ApiRunConfig, where, key string, value interface{}
 		config.fileReaders[name] = append(config.fileReaders[name], where)
 		return value, nil
 	}
+	// Nested fields come from YAML: mappings are map[interface{}]interface{}.
 	switch nested := value.(type) {
 	case map[interface{}]interface{}:
 		for field, inner := range nested {
 			label, _ := field.(string)
 			resolved, err := resolveFileField(config, where+"."+label, label, inner)
-			if err != nil {
-				return nil, err
-			}
-			nested[field] = resolved
-		}
-	case map[string]interface{}:
-		for field, inner := range nested {
-			resolved, err := resolveFileField(config, where+"."+field, field, inner)
 			if err != nil {
 				return nil, err
 			}
@@ -154,19 +147,13 @@ func resolveFileField(config *ApiRunConfig, where, key string, value interface{}
 }
 
 // inputReference reads a field written {input: NAME}: a mapping with that one
-// key.
+// key. Fields come from YAML, which decodes a nested mapping as
+// map[interface{}]interface{}.
 func inputReference(value interface{}) (string, bool) {
-	switch mapping := value.(type) {
-	case map[interface{}]interface{}:
-		if len(mapping) == 1 {
-			name, ok := mapping["input"].(string)
-			return name, ok
-		}
-	case map[string]interface{}:
-		if len(mapping) == 1 {
-			name, ok := mapping["input"].(string)
-			return name, ok
-		}
+	mapping, ok := value.(map[interface{}]interface{})
+	if !ok || len(mapping) != 1 {
+		return "", false
 	}
-	return "", false
+	name, ok := mapping["input"].(string)
+	return name, ok
 }
