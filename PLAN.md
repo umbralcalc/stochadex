@@ -75,8 +75,18 @@ Status: **accepted** (2026-10-04).
   - **Clarified (2026-10-08):** rules 15 (embedded runs are model, not inputs) and 16
     (`main:` and `macros:` compose in one runtime, with unambiguous names).
   - **Merged:** #114, embedded runs.
-  - **In review:** v0.20.0 release (#115), then dexetera onto the engine's primitives
-    (umbralcalc/dexetera#1, a draft until the tag exists).
+  - **Merged:** v0.20.0 release (#115), then dexetera onto the engine's primitives
+    (umbralcalc/dexetera#1). All five downstream dashboards (AMR, business-survival,
+    energy-balancer, floodrisk, trywizard) are on v0.20.0 and the new dexetera, each with
+    a `TestDashboardStarts` check; none of them has CI, so their tests ran locally.
+  - **In review:** O.1, per-invocation overrides (#116): `--set path=value` and `${VAR}`.
+    - **Q6 decided (2026-10-10): placeholders may stand for any value**, not only
+      strings. Evidence: cryptobook's 40 `cfgrun` substitutions replace numbers, param
+      lists, paths and a `{type: ...}` name.
+    - Unquoted, a placeholder's text reads as YAML as if written there; quoted, it is text.
+    - `--set` paths must already exist and keep their shape (cryptobook's own guard).
+    - Ensemble members and served connections are rebuilt from the loaded document,
+      not the file, so a server keeps the config it validated at startup.
     - The dexetera change uses `ActionState`, `ParamsInjector` and inline stepping, which
       runs 12–15× faster per step in WebAssembly.
     - Not serve: dexetera runs in the browser, and all 5 downstream dashboards use its
@@ -892,7 +902,7 @@ retried, cached or monitored separately into its own config.
 
 | # | Item | Detail | Depends on | Acceptance |
 |---|---|---|---|---|
-| O.1 | **Per-invocation overrides** | A CLI `--set path=value` (repeatable), plus `${VAR}` placeholders resolved from the environment at load time. Paths address the config tree (`inputs.obs.source.s3.key`, `main.partitions[name=w].seed`, `run.seeds`). List entries are selected **by name only**; there are no positional indices (§6 Q6). Overrides are applied before the dead-key check and validation, so a bad path is a load error. Replaces cryptobook's YAML text substitution. | Phase 1 (`inputs:` gives stable, named paths); the `main:` / `run:` paths can land earlier | An overridden run matches the same run with the value edited into the file; an unknown path or type mismatch is rejected with the path named; an unset `${VAR}` is an error, not an empty string |
+| O.1 | **In review (#116)**: per-invocation overrides | A CLI `--set path=value` (repeatable), plus `${VAR}` placeholders resolved from the environment at load time. Paths address the config tree (`inputs.obs.source.s3.key`, `main.partitions[name=w].seed`, `run.seeds`). List entries are selected **by name only**; there are no positional indices (§6 Q6). Overrides are applied before the dead-key check and validation, so a bad path is a load error. Replaces cryptobook's YAML text substitution. | Phase 1 (`inputs:` gives stable, named paths); the `main:` / `run:` paths can land earlier | An overridden run matches the same run with the value edited into the file; an unknown path or type mismatch is rejected with the path named; an unset `${VAR}` is an error, not an empty string |
 | O.2 | **I/O manifest and dry run** | `stochadex inspect --io -c cfg.yaml` emits JSON describing the run: inputs (kind, location, partitions), output views (name, condition, sink, location, scope for nested views), run mode, seeds, the clock source, and the resolved overrides. `--check` loads, validates and runs the deadlock pre-flight, then exits without running. | Phase 1 for `inputs:`; it can report today's `data:` / `output_function` earlier | The manifest is golden-tested for every `cfg/example_*.yaml`; `--check` exits 0 on every shipped config and non-zero, naming the problem, on each known-bad case; a test checks that the manifest's input/output paths line up with what a real run reads and writes |
 | O.3 | **DONE (#99)**: structured exit codes | Distinct codes for: a config or validation error (never retry); input unavailable or a transient I/O failure (retry); a runtime numerical failure (don't retry); success. Replace the `panic` / `log.Fatal` paths in loading and `Run` with typed errors mapped at the CLI edge. Library callers get the typed errors through `RunToStorage` (0.3). | 0.3 | A table test drives one representative failure of each class through the CLI binary and asserts its exit code; no `panic` is reachable from a bad config |
 | O.4 | **All-or-nothing outputs** | Every file and object *view* (§2.5, rule 12) opens in `Configure`, writes to a temporary name, and commits in `Finalize` on clean termination: rename for local files, a final put or multipart complete for S3. A failed or killed run leaves no output at the final path. Sinks without an atomic commit (Postgres, websocket) document their behaviour. | 0.4 (sinks for every runtime) | Kill a run mid-way, then check no final-path output exists; let it complete and check the output matches a reference; each sink states its guarantee in its docs |
@@ -951,8 +961,10 @@ evidence to collect before then. None blocks the next PRs.
 4. ~~`grouped_aggregation` against a live partition.~~ **Closed by spike finding 13:**
    declared groups are already the iteration's interface, so yes. The remaining
    undeclared-group policy (error, warning, or "other" bucket) is part of item 2.0c.
-6. *Override path syntax:* list entries by **name only**, decided 2026-10-04. The
-   `${VAR}` part is still open (below).
+6. *Override path syntax:* list entries by **name only**, decided 2026-10-04.
+   ~~Where `${VAR}` may appear~~ **decided 2026-10-10 (#116): in any value, not keys.**
+   cryptobook's substitutions cover numbers, lists, paths and type names; overrides
+   apply before the dead-key check and type checks, so neither is affected.
 
 **Open, with "decide by" points:**
 
@@ -960,7 +972,6 @@ evidence to collect before then. None blocks the next PRs.
 |---|---|---|---|
 | 2 | ~~Stream clock: `hold_last` only, or also `step_per_message` (an event clock)?~~ **Decided (2026-10-08): `hold_last` only, for now** (#112). Add an event clock when a real feed needs one. **Evidence (2026-10-08):** dexact's protocol (dexetera's websocket driver) is lock-step, one step per inbound `ActionState`. So it is the first concrete user, if dexact ever drives a server-side stochadex serve. Nothing downstream uses that path today; cryptobook's feed is the other candidate | Phase 1.5 | — |
 | 5 | Flatten `main:` to the top level? | Phase 3 | Agent test A.1: does the `main:` level cause agent authoring errors? Plus the migration cost across downstream configs and recipes |
-| 6 | May `${VAR}` placeholders appear anywhere, or only in string values? | O.1 | What cryptobook's `cfgrun` substitutes today (paths only, or numbers too), and whether non-string placeholders break the dead-key check or the type errors |
 | 7 | In-memory view of a nested run: one storage per outer step, or a flat storage with an outer-step column? | IO.3 (rule 14 now gives the direction: nested runs write through top-level views, so their records must carry scope) | Who reads nested views (debugging likelihood windows, inspecting MCTS trees) and what shape they want; streaming sinks just carry the scope fields either way |
 | 8 | Model files (e.g. ONNX): declared in `inputs:` and referred to by name, or discovered by `inspect --io` from known spec fields? | IO.5 | How many registered iterations read files, and whether downstream registrations (`RegisterIteration`) can declare which of their fields are file paths. Declaring keeps rule 14 exact; discovering keeps configs shorter |
 
