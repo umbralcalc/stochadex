@@ -104,6 +104,9 @@ type OutputFunction struct {
 	bucket string
 	key    string
 	config Config
+	// held is set by Stage: the upload waits for Commit, and a failed one is
+	// returned from it rather than only reported.
+	held bool
 }
 
 // NewOutputFunction wraps inner, which must write to the file at staged.
@@ -132,22 +135,42 @@ func (o *OutputFunction) Output(
 // Finalize seals the inner sink, uploads the staged file, and removes it. Errors are
 // reported on stderr rather than panicking: the simulation itself has already completed
 // successfully by this point, and losing the run to a transfer failure would be worse than
-// reporting it.
+// reporting it. Once staged (see Stage), Finalize only seals the inner sink, and Commit
+// uploads.
 func (o *OutputFunction) Finalize() {
 	if f, ok := o.inner.(simulator.FinalizingOutputFunction); ok {
 		f.Finalize()
 	}
-	defer os.Remove(o.staged)
+	if o.held {
+		return
+	}
+	if err := o.upload(); err != nil {
+		fmt.Fprintf(os.Stderr, "stochadex: %v\n", err)
+	}
+}
 
+// Stage holds the upload back until Commit, so a run that fails or is killed
+// uploads nothing and leaves any object already at the key as it was. An S3 put
+// replaces an object whole, so the object at the key is always a whole run's.
+func (o *OutputFunction) Stage() { o.held = true }
+
+// Commit uploads the run, once it has ended cleanly.
+func (o *OutputFunction) Commit() error { return o.upload() }
+
+// Abort discards the run without uploading it.
+func (o *OutputFunction) Abort() { os.Remove(o.staged) }
+
+// upload sends the staged file to the key, then removes it.
+func (o *OutputFunction) upload() error {
+	defer os.Remove(o.staged)
 	ctx := context.Background()
 	client, err := NewClient(ctx, o.config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "stochadex: %v\n", err)
-		return
+		return err
 	}
 	if err := Upload(ctx, client, o.bucket, o.key, o.staged); err != nil {
-		fmt.Fprintf(os.Stderr, "stochadex: %v\n", err)
-		return
+		return err
 	}
 	fmt.Fprintf(os.Stderr, "stochadex: wrote s3://%s/%s\n", o.bucket, o.key)
+	return nil
 }

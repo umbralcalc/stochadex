@@ -82,13 +82,14 @@ jobs:
       # release cannot be the first time either is compiled: the portable one (pure Go,
       # what most users download) and the accelerated one (cgo + system BLAS + DuckDB).
       # Ubuntu runners have OpenBLAS available via apt for the cblas link.
-      - name: Build the CLI (portable, pure Go)
-        run: cd cmd/stochadex && CGO_ENABLED=0 go build ./...
-      - name: Build the CLI (accelerated, cgo + BLAS + DuckDB)
+      - name: Build and test the CLI (portable, pure Go)
+        run: cd cmd/stochadex && CGO_ENABLED=0 go build ./... && CGO_ENABLED=0 go test ./... -count=1
+      - name: Build and test the CLI (accelerated, cgo + BLAS + DuckDB)
         run: |
           sudo apt-get update && sudo apt-get install -y libopenblas-dev
           cd cmd/stochadex && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" \
-            go build -tags "cblas duckdb_arrow" ./...
+            go build -tags "cblas duckdb_arrow" ./... && \
+            CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" go test -tags "cblas duckdb_arrow" ./... -count=1
       # The onnx tag wires the opt-in ONNX inference partition into the CLI. It only
       # dlopens the ONNX Runtime at run time, so this is a compile check — no library
       # needed to build — proving a release cannot be the first time it is compiled in.

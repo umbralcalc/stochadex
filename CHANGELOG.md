@@ -24,6 +24,19 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **All-or-nothing outputs.** A config run's files, objects and tables appear only once the
+  whole run has ended cleanly; a failed, crashed or killed run leaves nothing at their
+  destinations, and any earlier output there intact, so retries are safe.
+  - `json_log`, `arrow` and stream `record:` files are written to `<path>.partial` and
+    renamed into place; `s3` uploads, and `duckdb` ingests, only then. An embedded run's
+    output is published with its outer run, and a served session's when it ends (the
+    client leaving counts as a clean end).
+  - `stdout`, `websocket`, `{type: connection}` and `postgres` stream as the run goes, and
+    say so in the docs.
+  - From Go: `simulator.StagedOutputFunction` (`Stage`, `Commit`, `Abort`). Sinks are
+    staged only when a caller stages them, so a coordinator driven directly writes as
+    before.
+
 - **Per-invocation overrides: `--set` and `${VAR}`.** One config file now runs as many
   parameterised jobs, as an orchestrator step needs.
   - `--set path=value` (repeatable; `api.WithSet` from Go) replaces one value for the run:
@@ -53,6 +66,11 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **An `arrow`, `duckdb` or `s3` output that cannot be written fails a config run**
+  (exit 75), instead of printing to stderr and exiting 0. So does a `json_log` that cannot
+  be published.
+- **Each file output costs one rename per run** (about 90µs on macOS APFS) to replace the
+  file atomically. The step loop is unchanged, and runs with no file output are as before.
 - **A partition with `state_history_depth` below 1 is a config error naming it,** in
   `main:` and in embedded runs. Before, the run failed as it started, with
   `mat: zero length in matrix dimension` and no word of which partition.
