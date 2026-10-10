@@ -14,6 +14,9 @@ import (
 type ParsedArgs struct {
 	ConfigFile string
 	Sets       []string
+	// SeedRange runs one shard of an ensemble: FROM:TO, the seeds FROM to TO
+	// inclusive, in place of run.seeds (--seed-range).
+	SeedRange  string
 	SocketFile string
 	// Check validates the config and exits without running it (--check).
 	Check bool
@@ -54,7 +57,7 @@ func parseArgs(args []string) (ParsedArgs, error) {
 		"stochadex",
 		"A generalised simulation engine",
 	)
-	configFile, sets := configArgs(parser)
+	configFile, sets, seedRange := configArgs(parser)
 	socketFile := parser.String(
 		"s",
 		"socket",
@@ -93,6 +96,7 @@ func parseArgs(args []string) (ParsedArgs, error) {
 	return ParsedArgs{
 		ConfigFile:      *configFile,
 		Sets:            *sets,
+		SeedRange:       *seedRange,
 		SocketFile:      *socketFile,
 		Check:           *check,
 		Provenance:      *provenance || *skip,
@@ -106,7 +110,7 @@ func parseInspectArgs(args []string) (ParsedArgs, error) {
 		"stochadex inspect",
 		"Describe a config without running it",
 	)
-	configFile, sets := configArgs(parser)
+	configFile, sets, seedRange := configArgs(parser)
 	io := parser.Flag(
 		"",
 		"io",
@@ -130,13 +134,13 @@ func parseInspectArgs(args []string) (ParsedArgs, error) {
 	if err != nil {
 		return ParsedArgs{}, &Error{Kind: ErrUsage, Err: errors.New(parser.Usage(err))}
 	}
-	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, InspectIO: *io,
-		InspectProvenance: *provenance}, nil
+	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, SeedRange: *seedRange,
+		InspectIO: *io, InspectProvenance: *provenance}, nil
 }
 
 // configArgs declares the arguments every command takes: the config and its
 // overrides.
-func configArgs(parser *argparse.Parser) (configFile *string, sets *[]string) {
+func configArgs(parser *argparse.Parser) (configFile *string, sets *[]string, seedRange *string) {
 	configFile = parser.String(
 		"c",
 		"config",
@@ -154,5 +158,14 @@ func configArgs(parser *argparse.Parser) (configFile *string, sets *[]string) {
 				"e.g. main.partitions[name=w].seed=7",
 		},
 	)
-	return configFile, sets
+	seedRange = parser.String(
+		"",
+		"seed-range",
+		&argparse.Options{
+			Required: false,
+			Help: "run this shard of an ensemble: the seeds FROM to TO inclusive, as " +
+				"FROM:TO, in place of run.seeds",
+		},
+	)
+	return configFile, sets, seedRange
 }
