@@ -12,13 +12,13 @@ import (
 
 var ensembleSeeds = []uint64{11, 22, 33, 44}
 
-// ensembleViewsYAML is cfg/example_ensemble_config.yaml with its output pair
+// ensembleViewsYAML is cfg/example_ensemble_config.yaml with its stdout view
 // replaced by two per-member views: every step to run-{member}.log, and every
 // 5th step to sparse-{seed}.log.
 func ensembleViewsYAML(t *testing.T, dir string) string {
 	t.Helper()
 	yaml := replaceOnce(t, readFile(t, "../../cfg/example_ensemble_config.yaml"),
-		"    output_condition: {type: every_step}\n    output_function: {type: stdout}\n", "")
+		"outputs:\n- {name: output, condition: {type: every_step}, function: {type: stdout}}\n", "")
 	return yaml + fmt.Sprintf(`outputs:
 - {name: log, function: {type: json_log, path: %q}}
 - {name: sparse, condition: {type: every_n_steps, n: 5}, function: {type: json_log, path: %q}}

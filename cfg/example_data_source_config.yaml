@@ -4,13 +4,14 @@
 #
 # Point `path` at a CSV whose columns are: time, then the state values named by
 # state_columns. `json_log:` is the other file source (a JSON-lines run log).
-data:
-  source:
-    csv:
-      path: "cfg/example_data.csv"
-      time_column: 0
-      state_columns: {stream: [1, 2]}
-      skip_header: false
+inputs:
+  data:
+    source:
+      csv:
+        path: "cfg/example_data.csv"
+        time_column: 0
+        state_columns: {stream: [1, 2]}
+        skip_header: false
 macros:
 - type: vector_mean
   name: rolling_mean

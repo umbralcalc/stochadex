@@ -8,59 +8,45 @@ import (
 	"testing"
 )
 
-// dataAsInputs rewrites a config's data: block as an equivalent inputs: entry —
-// a data: source as a source input, a data: sub-simulation as a simulation
-// input. It moves the block as text, re-indented, rather than re-encoding the
-// document: a YAML round trip through interface{} turns a bare y into true.
-func dataAsInputs(t *testing.T, contents string) string {
+// inputsAsData rewrites a config whose only input is inputs: {data: ...} in the
+// deprecated data: shorthand it stands for, as configs were written before
+// IO.6: a source input's block, or a simulation input's sub-simulation.
+func inputsAsData(t *testing.T, contents string) string {
 	t.Helper()
 	lines := strings.Split(contents, "\n")
 	start := -1
-	for i, line := range lines {
-		if line == "data:" {
+	for i := range lines[:len(lines)-1] {
+		if lines[i] == "inputs:" && lines[i+1] == "  data:" {
 			start = i
 			break
 		}
 	}
 	if start < 0 {
-		t.Fatal("config has no top-level data: block to rewrite")
+		t.Fatal("config has no inputs: {data: ...} to rewrite")
 	}
-	end := start + 1
-	for end < len(lines) {
-		line := lines[end]
-		if line != "" && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "#") {
-			break
-		}
+	end := start + 2
+	for end < len(lines) && (lines[end] == "" || strings.HasPrefix(lines[end], "   ")) {
 		end++
 	}
-	block := lines[start+1 : end]
-	isSource := false
-	for _, line := range block {
-		if strings.HasPrefix(line, "  source:") {
-			isSource = true
-		}
+	block, cut := lines[start+2:end], "  "
+	if len(block) > 0 && block[0] == "    simulation:" {
+		block, cut = block[1:], "    "
 	}
-	indent, header := "  ", []string{"inputs:", "  observed:"}
-	if !isSource {
-		indent, header = "    ", []string{"inputs:", "  observed:", "    simulation:"}
-	}
-	moved := append([]string{}, header...)
+	moved := []string{"data:"}
 	for _, line := range block {
-		if strings.TrimSpace(line) == "" {
-			moved = append(moved, line)
-			continue
-		}
-		moved = append(moved, indent+line)
+		moved = append(moved, strings.TrimPrefix(line, cut))
 	}
 	out := append(append(append([]string{}, lines[:start]...), moved...), lines[end:]...)
 	return strings.Join(out, "\n")
 }
 
-// TestDataBlocksAsInputs is PLAN.md item 1.1's acceptance test: every shipped
-// config that analyses a data: block — the cfg/ examples and the agent skill's
-// recipes, covering csv sources, sub-simulations, against-storage and live
-// macros — gives byte-identical results with that block moved into inputs:.
-func TestDataBlocksAsInputs(t *testing.T) {
+// TestDataShorthandIsAnInput keeps the deprecated data: shorthand honest until
+// it is removed (PLAN.md 1.1, IO.6): every shipped config that analyses an
+// inputs: {data: ...} — the cfg/ examples and the agent skill's recipes,
+// covering csv sources, sub-simulations, against-storage and live macros —
+// gives byte-identical results written in the data: form, which carries its
+// deprecation notice.
+func TestDataShorthandIsAnInput(t *testing.T) {
 	wd, _ := os.Getwd()
 	if err := os.Chdir("../.."); err != nil { // configs carry repo-relative paths
 		t.Fatal(err)
@@ -72,28 +58,33 @@ func TestDataBlocksAsInputs(t *testing.T) {
 	for _, pattern := range []string{"cfg/*.yaml", ".claude/skills/stochadex-model/recipes/*.yaml"} {
 		matches, _ := filepath.Glob(pattern)
 		for _, path := range matches {
-			if strings.Contains(readFile(t, path), "\ndata:") || strings.HasPrefix(readFile(t, path), "data:") {
+			if strings.Contains(readFile(t, path), "\ninputs:\n  data:\n") &&
+				strings.Contains(readFile(t, path), "\nmacros:") {
 				paths = append(paths, path)
 			}
 		}
 	}
 	if len(paths) < 9 {
-		t.Fatalf("expected the 6 cfg examples and 3 recipes that use data:, found %v", paths)
+		t.Fatalf("expected the 6 cfg examples and 3 recipes that analyse inputs: {data: ...}, found %v", paths)
 	}
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
-			original, err := RunToStorage(LoadApiRunConfigFromYaml(path))
+			declared, err := RunToStorage(LoadApiRunConfigFromYaml(path))
 			if err != nil {
 				t.Fatal(err)
 			}
-			rewritten := filepath.Join(scratch, strings.ReplaceAll(path, "/", "_"))
-			writeFile(t, rewritten, dataAsInputs(t, readFile(t, path)))
-			asInputs, err := RunToStorage(LoadApiRunConfigFromYaml(rewritten))
+			legacy := filepath.Join(scratch, strings.ReplaceAll(path, "/", "_"))
+			writeFile(t, legacy, inputsAsData(t, readFile(t, path)))
+			config := LoadApiRunConfigFromYaml(legacy)
+			if notices := config.Deprecations(); len(notices) != 1 || !strings.HasPrefix(notices[0], "data: is deprecated") {
+				t.Fatalf("the data: form should carry its notice, got %v", notices)
+			}
+			shorthand, err := RunToStorage(config)
 			if err != nil {
 				t.Fatal(err)
 			}
-			assertSameStorage(t, "inputs: vs data:", asInputs.Storage, original.Storage)
-			assertSameStorage(t, "data: vs inputs:", original.Storage, asInputs.Storage)
+			assertSameStorage(t, "data: vs inputs:", shorthand.Storage, declared.Storage)
+			assertSameStorage(t, "inputs: vs data:", declared.Storage, shorthand.Storage)
 		})
 	}
 }

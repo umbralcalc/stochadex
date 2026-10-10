@@ -137,7 +137,8 @@ main:
   # Standalone run length: the 48 steps the baked clear-sky driver covers (one day).
   # A caller (see declarativeBuildStub) overrides this and injects a longer driver.
   simulation:
-    output_condition: {type: every_step}
     termination_condition: {type: number_of_steps, max_steps: 48}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: stdout}}

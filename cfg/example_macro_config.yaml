@@ -8,18 +8,20 @@
 # Presence of macros: selects the analysis run context (in-process, no toolchain).
 # Here: a Normal data stream, its exponential-kernel rolling mean (-> [1.8, 5.0])
 # and rolling variance (-> diag[2.5, 9.0]).
-data:
-  steps: 500
-  timestep: 1.0
-  partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
-    params:
-      mean: [1.8, 5.0]
-      covariance_matrix: [2.5, 0.0, 0.0, 9.0]
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 200
-    seed: 291
+inputs:
+  data:
+    simulation:
+      steps: 500
+      timestep: 1.0
+      partitions:
+      - name: data_stream
+        iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
+        params:
+          mean: [1.8, 5.0]
+          covariance_matrix: [2.5, 0.0, 0.0, 9.0]
+        init_state_values: [1.3, 8.3]
+        state_history_depth: 200
+        seed: 291
 macros:
 - type: vector_mean
   name: rolling_mean

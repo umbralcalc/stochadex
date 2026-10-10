@@ -2,16 +2,18 @@
 # `model.partitions` is written once and run once per particle, with each
 # particle's parameters routed in by `param_forwarding` and its random streams
 # seeded independently. Recovers the observed stream's mean.
-data:
-  steps: 60
-  timestep: 1.0
-  partitions:
-  - name: obs
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [2.0], covariance_matrix: [0.5]}
-    init_state_values: [2.0]
-    state_history_depth: 1
-    seed: 7
+inputs:
+  data:
+    simulation:
+      steps: 60
+      timestep: 1.0
+      partitions:
+      - name: obs
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [2.0], covariance_matrix: [0.5]}
+        init_state_values: [2.0]
+        state_history_depth: 1
+        seed: 7
 macros:
 - type: smc_inference
   proposal_name: smc_proposals

@@ -27,8 +27,6 @@ main:
   # Simulation components as data specs (not Go strings), so this whole config is
   # data-only: it resolves and runs in-process, with no Go toolchain.
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: stdout}
     termination_condition: {type: number_of_steps, max_steps: 20}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -37,3 +35,5 @@ run:
   mode: ensemble
   seeds: [11, 22, 33, 44]
   # concurrency: 4   # optional; defaults to GOMAXPROCS
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: stdout}}

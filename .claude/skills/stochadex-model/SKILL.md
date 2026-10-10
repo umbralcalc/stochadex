@@ -77,11 +77,10 @@ main:
     outputs:                     # one expression per field = the next state vector
     - "x + drift * dt + noise * x * shared(normal(0, 1)) * sqrt(dt)"
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: stdout}
     termination_condition: {type: number_of_steps, max_steps: 50}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+# With no outputs: declared, every step prints to stdout.
 ```
 
 **Names an expression may use:** the partition's own **field names** (current committed value),
@@ -158,20 +157,20 @@ deadlock, the run tells you exactly which partitions form the cycle.
 
 ```yaml
   simulation:
-    output_condition:      {type: every_step}            # or nil, every_n_steps{n}, only_given_partitions{partitions:[...]}
-    output_function:       {type: stdout}                # or nil, json_log{path},
-                                                         # arrow{path}, duckdb{path,table},
-                                                         # websocket{url} (pushes to a server)
     termination_condition: {type: number_of_steps, max_steps: 100}   # or time_elapsed{max_time_elapsed}
     timestep_function:     {type: constant, stepsize: 1.0}           # or exponential_distribution{mean, seed}
     init_time_value:       0.0
 ```
 
-To feed several sinks, each with its own filter, replace the `output_condition` /
-`output_function` pair with a top-level `outputs:` list of views. Each view is
-`{name, condition (default every_step), function}`. Use one form or the other, not both
-(the pair is shorthand for one view; no output at all means every step to stdout).
-With `macros:`, `outputs:` receives the macro results instead of stdout.
+## Outputs — `outputs:`
+
+Results leave a run through a top-level `outputs:` list of views, each
+`{name, condition (default every_step), function}`. With none declared, every step prints to
+stdout. Conditions: `every_step`, `every_n_steps{n}`, `only_given_partitions{partitions:[...]}`,
+`nil`. Functions: `stdout`, `json_log{path}`, `arrow{path}`, `duckdb{path,table}`,
+`websocket{url}` (pushes to a server), `postgres{...}`, `s3{...}`, `nil`. (Don't write
+`simulation.output_condition` / `output_function`: it is deprecated shorthand for one view.)
+With `macros:`, `outputs:` receives the macro results.
 With `run: {mode: ensemble}`, each member writes its own sinks, the shorthand's included: put
 `{member}` or `{seed}` in every view's fields (`path: "run-{member}.log"`, quoted). A view
 without one is rejected, except `stdout`, which prefixes each row `member=<i> seed=<s>`.
@@ -198,29 +197,32 @@ run:
   mode: serve                                      # websocket server: every connection
   websocket: {address: ":2112", handle: /handle}   # gets its own fresh run, streamed as
   pace_ms: 200                                     # protobuf frames, pace_ms apart
-outputs:                                           # required in serve mode, instead of
-  - {name: stream, function: {type: connection}}   # the output_condition/function pair
+outputs:                                           # required in serve mode: what each
+  - {name: stream, function: {type: connection}}   # client receives
 ```
 Not for `macros:` configs yet.
 
-## Analysis & inference — `data:` + `macros:`
+## Analysis & inference — `inputs:` + `macros:`
 
-A macro expands one of the built-in analysis constructors into a *set* of partitions. `data:`
-produces the dataset they analyse — a sub-simulation run for `steps`, or a file source — and each
-macro runs against it. This whole block is data and runs in-process.
+A macro expands one of the built-in analysis constructors into a *set* of partitions. The
+config's `inputs:` produce the dataset they analyse — a sub-simulation run for `steps`, or a
+file source — and each macro runs against it. This whole block is data and runs in-process.
+(A top-level `data:` block is deprecated shorthand for `inputs: {data: ...}`; don't write it.)
 
 ```yaml
 # Generate a Normal data stream, then estimate its rolling mean and variance.
-data:
-  steps: 500
-  timestep: 1.0
-  partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
-    params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 200          # must be >= the macros' window (they aggregate this much history)
-    seed: 291
+inputs:
+  data:
+    simulation:
+      steps: 500
+      timestep: 1.0
+      partitions:
+      - name: data_stream
+        iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
+        params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
+        init_state_values: [1.3, 8.3]
+        state_history_depth: 200      # must be >= the macros' window (they aggregate this much history)
+        seed: 291
 macros:
 - type: vector_mean
   name: rolling_mean
@@ -269,14 +271,15 @@ entries `{"partition_name": p, "state": [...]}`. Replay a run by swapping the st
 ensemble. Under `run: {mode: serve}`, `stream: {connection: {}}` reads the served client's own
 messages (two-way: the client steers its run); `record:` then needs `{connection}`;
 `decode: protobuf_action_state` reads dexetera's ActionState protobufs. A `macros:` config's macros read every input's partitions (several inputs must share one
-time axis and not repeat a partition name); `data:` is shorthand for a single input.
+time axis and not repeat a partition name).
 
 ### Reading and writing data (I/O)
 
-`data.source` loads a dataset instead of running a sub-simulation; `output_function` writes a
-run out. The same formats work in both directions, so a run can be written and read back:
+An input's `source:` loads a dataset instead of running a sub-simulation; an `outputs:` view's
+`function:` writes a run out. The same formats work in both directions, so a run can be written
+and read back:
 
-| Source (`data.source:`) | Sink (`output_function:`) |
+| Source (an input's `source:`) | Sink (an `outputs:` view's `function:`) |
 |---|---|
 | `{csv: {path: x.csv, time_column: 0, state_columns: {series: [1,2]}}}` | `{type: stdout}` / `{type: json_log, path: run.log}` |
 | `{json_log: {path: run.log}}` | `{type: arrow, path: run.arrow}` |
@@ -291,11 +294,11 @@ chain (env, shared config, IAM role) — never put them in the config. Optional 
 
 If you name a source this binary doesn't have, the error lists the ones it does.
 
-Notable macros (all take a `data:` block): `vector_mean` / `vector_variance` / `vector_covariance`,
+Notable macros (all analyse the config's inputs): `vector_mean` / `vector_variance` / `vector_covariance`,
 `grouped_aggregation`, `scalar_regression_stats`, `likelihood_comparison`, and
 `posterior_estimation` (online Bayesian estimation of a simulation's parameters — its spec nests a
 `comparison:` with a windowed embedded model). `evolution_strategy_optimisation` and `smc_inference`
-run live (no `data:` needed; give them `steps:`).
+run live (no inputs needed; give them `steps:`).
 
 Two decision-making macros also run live, and the distinction between them matters:
 
@@ -471,7 +474,8 @@ params) `partition_event` (reads `event_partition_index` / `event_state_value_in
 `mcts_self_play` (needs a registered `env:`) `mcts_planning` (tree search over your own model).
 **Environments** (`mcts_self_play`'s `env:`): `tictactoe` only, unless the binary links a module
 that called `api.RegisterEnvironment`.
-**Simulation components:** output_condition `nil|every_step|every_n_steps|only_given_partitions`;
-output_function `nil|stdout|json_log|websocket` (`websocket` pushes each output to field `url:` as a client); termination `number_of_steps|time_elapsed`;
+**Output view components:** condition `nil|every_step|every_n_steps|only_given_partitions`;
+function `nil|stdout|json_log|websocket` (`websocket` pushes each output to field `url:` as a client).
+**Simulation components:** termination `number_of_steps|time_elapsed`;
 timestep `constant|exponential_distribution|from_history|from_storage` (`from_storage` replays an
 inline list of times: field `data:`, optional `init_steps_taken`).

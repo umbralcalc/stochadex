@@ -12,7 +12,7 @@
   "outputs": [
     {
       "name": "output",
-      "declared_in": "main.simulation",
+      "declared_in": "outputs",
       "condition": "every_step",
       "sink": "stdout",
       "location": "stdout"

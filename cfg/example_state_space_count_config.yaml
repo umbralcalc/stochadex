@@ -22,16 +22,18 @@
 # `moments` mean output with a driven latent process (e.g. an ornstein_uhlenbeck or
 # gamma partition whose params are forwarded from the particle), leaving the
 # variance/observation wiring untouched.
-data:
-  steps: 400
-  timestep: 1.0
-  partitions:
-  - name: counts
-    iteration: {type: data_generation, likelihood: {type: negative_binomial}}
-    params: {mean: [8.0], variance: [40.0]}   # dispersion r = 8^2 / (40 - 8) = 2.0
-    init_state_values: [8.0]
-    state_history_depth: 1
-    seed: 7
+inputs:
+  data:
+    simulation:
+      steps: 400
+      timestep: 1.0
+      partitions:
+      - name: counts
+        iteration: {type: data_generation, likelihood: {type: negative_binomial}}
+        params: {mean: [8.0], variance: [40.0]}   # dispersion r = 8^2 / (40 - 8) = 2.0
+        init_state_values: [8.0]
+        state_history_depth: 1
+        seed: 7
 macros:
 - type: smc_inference
   proposal_name: smc_proposals

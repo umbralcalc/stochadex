@@ -318,6 +318,9 @@ func Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	for _, notice := range config.Deprecations() {
+		fmt.Fprintln(os.Stderr, "stochadex: "+notice)
+	}
 	if parsed.SeedRange != "" {
 		warnSharedMemberNames(config, os.Stderr)
 	}
@@ -813,8 +816,12 @@ func RunWithParsedArgs(args ParsedArgs) {
 		}
 		options = append(options, shard)
 	}
+	config := LoadApiRunConfigFromYaml(args.ConfigFile, options...)
+	for _, notice := range config.Deprecations() {
+		fmt.Fprintln(os.Stderr, "stochadex: "+notice)
+	}
 	Run(
-		LoadApiRunConfigFromYaml(args.ConfigFile, options...),
+		config,
 		LoadSocketConfigFromYaml(args.SocketFile),
 	)
 }
