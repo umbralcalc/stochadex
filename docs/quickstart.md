@@ -474,6 +474,34 @@ Overrides are applied before the config is checked, so every check applies to th
 Ensemble members and served connections all run the overridden config. A server keeps the
 config it validated at startup, so editing the file while it runs changes nothing.
 
+### Checking a config without running it
+
+`--check` validates a config and exits without running it: every load check, the run mode's
+requirements, the partitions' wiring, the deadlock pre-flight, and each iteration's setup. It
+reads no inputs and writes nothing, so it works in a pipeline before an earlier step has
+produced this one's inputs. The few checks that need an input's contents (which partitions
+it has, and their widths where the config doesn't declare them) happen when the run reads
+it.
+
+```bash
+stochadex --config model.yaml --check     # exit 0 when valid; 78 naming the problem when not
+```
+
+`stochadex inspect --io` prints, as JSON, what a run would read and write, without running
+it:
+- its inputs: kind, location, and what reads them;
+- every place it writes: each `outputs:` view, an embedded run's own output, and a stream
+  input's `record:` file, with one path per member for an ensemble;
+- the run mode, seeds, clock and any overrides.
+
+```bash
+stochadex inspect --io -c model.yaml --set 'run.seeds=[1, 2]'
+```
+
+The manifest never copies a sink's or source's fields. It gives a location, with any
+credentials removed from URLs and connection strings, and names the `${VAR}`s it filled
+without their values. From Go, use `api.Check(config)` and `api.Manifest(config)`.
+
 ### Running a config from Go
 
 `api.RunWith(config, options...)` runs a config and hands results back in memory.

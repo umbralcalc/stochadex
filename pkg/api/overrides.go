@@ -150,34 +150,52 @@ func lineOf(data, match []byte) int {
 	return bytes.Count(data[:bytes.Index(data, match)], []byte("\n")) + 1
 }
 
-// resolveSource applies the options' sets and the document's placeholders,
-// returning the document to load. A document with neither is returned as is,
-// with a nil blame. Otherwise blame, given the error loading the result failed
-// with, says which override is at fault (see blameSet).
-func resolveSource(data []byte, options []LoadOption) (
-	resolved []byte,
-	blame func(failure error, load func([]byte) error) error,
-	err error,
-) {
+// resolution is a document with its overrides applied.
+type resolution struct {
+	source []byte
+	// blame, given the error loading source failed with, says which override is
+	// at fault (see blameSet). Nil when there were no overrides.
+	blame func(failure error, load func([]byte) error) error
+	// sets are the --set overrides applied, as written; variables the ${VAR}
+	// names filled, in the order they were filled.
+	sets      []string
+	variables []string
+}
+
+// resolveSource applies the options' sets and the document's placeholders. A
+// document with neither is returned as is.
+func resolveSource(data []byte, options []LoadOption) (resolution, error) {
 	o := loadOptions{lookup: os.LookupEnv}
 	for _, option := range options {
 		option(&o)
 	}
 	if len(o.sets) == 0 && !bytes.Contains(data, []byte("${")) {
-		return data, nil, nil
+		return resolution{source: data}, nil
 	}
 	p, err := tokenize(data)
 	if err != nil {
-		return nil, nil, err
+		return resolution{}, err
 	}
-	resolved, err = render(p, o, len(o.sets))
-	if err != nil {
-		return nil, nil, err
+	r := resolution{}
+	recording := o
+	seen := map[string]bool{}
+	recording.lookup = func(name string) (string, bool) {
+		if !seen[name] {
+			seen[name] = true
+			r.variables = append(r.variables, name)
+		}
+		return o.lookup(name)
 	}
-	blame = func(failure error, load func([]byte) error) error {
+	if r.source, err = render(p, recording, len(o.sets)); err != nil {
+		return resolution{}, err
+	}
+	for _, set := range o.sets {
+		r.sets = append(r.sets, set.String())
+	}
+	r.blame = func(failure error, load func([]byte) error) error {
 		return blameSet(data, p, o, failure, load)
 	}
-	return resolved, blame, nil
+	return r, nil
 }
 
 // lineNumbers matches yaml.v2's line prefix, which counts lines of the

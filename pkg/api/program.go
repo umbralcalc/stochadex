@@ -195,6 +195,10 @@ type ApiRunConfig struct {
 	// by reload. Both are empty for a config built in memory.
 	sourcePath string `yaml:"-"`
 	source     []byte `yaml:"-"`
+	// overrides are the --set overrides LoadConfig applied, and variables the
+	// ${VAR} placeholders it filled, for the I/O manifest (inspect.go).
+	overrides []string
+	variables []string
 	// outputViews are the resolved outputs: views, including the one made from
 	// the shorthand output pair or the default (see resolveOutputs). The main
 	// path also installs them as its simulation's output; the macros path
@@ -506,6 +510,20 @@ func validateApiRunConfig(config *ApiRunConfig) error {
 			}
 		}
 	}
+	runs := map[string][]simulator.PartitionConfig{"main": config.Main.Partitions}
+	for _, embedded := range config.Embedded {
+		runs["embedded run "+embedded.Name] = embedded.Run.Partitions
+	}
+	for _, run := range sortedKeys(runs) {
+		for _, partition := range runs[run] {
+			// A run keeps at least the current state, so a depth below 1 would
+			// fail as the run starts, with no word of which partition.
+			if partition.StateHistoryDepth < 1 {
+				return fmt.Errorf("api: %s partition %q needs state_history_depth of "+
+					"at least 1, got %d", run, partition.Name, partition.StateHistoryDepth)
+			}
+		}
+	}
 	return validateEmbeddedForwarding(config)
 }
 
@@ -612,18 +630,22 @@ func LoadConfig(path string, options ...LoadOption) (*ApiRunConfig, error) {
 	if err != nil {
 		return nil, configError(err)
 	}
-	source, blame, err := resolveSource(yamlFile, options)
+	resolved, err := resolveSource(yamlFile, options)
 	if err != nil {
 		return nil, configError(err)
 	}
-	config, err := loadConfigData(source, path)
-	if err != nil && blame != nil {
-		return nil, configError(blame(err, func(data []byte) error {
-			_, err := loadConfigData(data, path)
-			return err
-		}))
+	config, err := loadConfigData(resolved.source, path)
+	if err != nil {
+		if resolved.blame != nil {
+			err = configError(resolved.blame(err, func(data []byte) error {
+				_, err := loadConfigData(data, path)
+				return err
+			}))
+		}
+		return nil, err
 	}
-	return config, err
+	config.overrides, config.variables = resolved.sets, resolved.variables
+	return config, nil
 }
 
 // reload builds a fresh config from the document this one was loaded from, with

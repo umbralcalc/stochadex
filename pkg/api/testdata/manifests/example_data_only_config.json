@@ -1,0 +1,21 @@
+{
+  "config": "cfg/example_data_only_config.yaml",
+  "run": {
+    "mode": "batch",
+    "runtime": "main"
+  },
+  "clock": {
+    "timestep": "constant",
+    "termination": "number_of_steps"
+  },
+  "inputs": [],
+  "outputs": [
+    {
+      "name": "output",
+      "declared_in": "main.simulation",
+      "condition": "every_step",
+      "sink": "stdout",
+      "location": "stdout"
+    }
+  ]
+}

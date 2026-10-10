@@ -1,0 +1,42 @@
+{
+  "config": "cfg/example_interactive_config.yaml",
+  "run": {
+    "mode": "serve",
+    "runtime": "main",
+    "address": ":2112",
+    "handle": "/handle"
+  },
+  "clock": {
+    "timestep": "constant",
+    "termination": "number_of_steps"
+  },
+  "inputs": [
+    {
+      "name": "controls",
+      "kind": "stream",
+      "location": "connection",
+      "partitions": [
+        "drift"
+      ],
+      "read_by": [
+        "main.partitions[name=walk].params_from_input.drift_coefficients"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "controls",
+      "declared_in": "inputs.controls.record",
+      "condition": "every_step",
+      "sink": "json_log",
+      "location": "controls-{connection}.log"
+    },
+    {
+      "name": "stream",
+      "declared_in": "outputs",
+      "condition": "every_step",
+      "sink": "connection",
+      "location": "connection"
+    }
+  ]
+}

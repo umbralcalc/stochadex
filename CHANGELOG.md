@@ -37,8 +37,25 @@ an exact version rather than assume stability across minors.
   - Overrides are applied before every check, and a failure that only an override causes
     names that override.
 
+- **`--check` and `stochadex inspect --io`: look at a run before spending one.**
+  - `--check` (`api.Check`) validates a config and exits: every load check, the run mode's
+    requirements, the partitions' wiring, the deadlock pre-flight and each iteration's
+    setup. It reads no inputs and writes nothing, so it works before an earlier pipeline
+    step has produced this one's inputs. Only checks that need an input's contents are
+    left to the run. A `macros:` config is checked as far as its context, since its
+    expansion needs its inputs until Phase 2.
+  - `stochadex inspect --io` (`api.Manifest`) prints, as JSON, what a run reads and writes:
+    inputs with their kind, location and readers; every write (each `outputs:` view, an
+    embedded run's own output, a stream input's `record:` file, one path per ensemble
+    member); the run mode, seeds, clock and overrides. It reports locations, never a
+    sink's or source's fields, removes credentials from URLs and connection strings, and
+    withholds `${VAR}` values.
+
 ### Changed
 
+- **A partition with `state_history_depth` below 1 is a config error naming it,** in
+  `main:` and in embedded runs. Before, the run failed as it started, with
+  `mat: zero length in matrix dimension` and no word of which partition.
 - **Ensemble members and served connections are rebuilt from the config as loaded,** with
   its overrides, instead of re-reading the file. A server therefore keeps the config it
   validated at startup, and editing the file while it serves no longer affects later

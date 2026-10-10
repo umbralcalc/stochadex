@@ -209,11 +209,11 @@ func TestSetOverrides(t *testing.T) {
 
 	t.Run("a config with no overrides is decoded from the file's own bytes", func(t *testing.T) {
 		data := []byte(model)
-		source, blame, err := resolveSource(data, nil)
-		if err != nil || blame != nil {
+		resolved, err := resolveSource(data, nil)
+		if err != nil || resolved.blame != nil {
 			t.Fatal(err)
 		}
-		if &source[0] != &data[0] {
+		if &resolved.source[0] != &data[0] {
 			t.Error("a config with nothing to resolve should not be re-encoded")
 		}
 	})
@@ -503,12 +503,12 @@ macros:
 		config := "macros:\n- {type: scalar_regression_stats, name: r, intercept: yes, " +
 			"y: {partition_name: a}, x: {partition_name: b}}\n"
 		intercept := func(value string) (bool, error) {
-			source, _, err := resolveSource([]byte(config), []LoadOption{WithSet("macros[name=r].intercept", value)})
+			resolved, err := resolveSource([]byte(config), []LoadOption{WithSet("macros[name=r].intercept", value)})
 			if err != nil {
 				return false, err
 			}
 			var decoded ApiRunConfig
-			if err := yaml.Unmarshal(source, &decoded); err != nil {
+			if err := yaml.Unmarshal(resolved.source, &decoded); err != nil {
 				return false, err
 			}
 			return decoded.Macros[0].Spec.(*scalarRegressionStatsSpec).Intercept, nil

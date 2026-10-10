@@ -380,6 +380,10 @@ macro *names* only, so change the numbers and the objective/model, but keep the 
 stochadex --config model.yaml
 ```
 
+Before spending a run, `stochadex --config model.yaml --check` validates the config, including
+its wiring and the deadlock pre-flight, without running it. `stochadex inspect --io -c
+model.yaml` prints, as JSON, what the run would read and write.
+
 To vary a run, don't rewrite the YAML: `--set path=value` (repeatable) replaces one value,
 such as `--set 'main.partitions[name=w].seed=7'` or `--set 'run.seeds=[1, 2]'`. A list entry is
 selected by its `name`, and the path must already exist. `${VAR}` in a value is filled from the

@@ -1,0 +1,20 @@
+{
+  "config": "cfg/example_planning_config.yaml",
+  "run": {
+    "mode": "batch",
+    "runtime": "macros",
+    "macros": [
+      "mcts_planning"
+    ]
+  },
+  "inputs": [],
+  "outputs": [
+    {
+      "name": "output",
+      "declared_in": "default",
+      "condition": "every_step",
+      "sink": "stdout",
+      "location": "stdout"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "config": "cfg/example_smc_config.yaml",
+  "run": {
+    "mode": "batch",
+    "runtime": "macros",
+    "macros": [
+      "smc_inference"
+    ]
+  },
+  "inputs": [
+    {
+      "name": "data",
+      "kind": "simulation",
+      "read_by": [
+        "macros"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "output",
+      "declared_in": "default",
+      "condition": "every_step",
+      "sink": "stdout",
+      "location": "stdout"
+    }
+  ]
+}
