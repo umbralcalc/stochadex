@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 // fileSizeIteration reads the file its model_path names when it is configured,
@@ -182,8 +183,9 @@ func TestFileInputs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// A kernel-weighted mean is arithmetic, so it equals 123 up to rounding.
 		rows := result.Storage.GetValues("rolling_mean")
-		if rows[len(rows)-1][0] != 123 {
+		if !scalar.EqualWithinAbs(rows[len(rows)-1][0], 123, 1e-9) {
 			t.Errorf("the rolling mean of a constant 123 is %v", rows[len(rows)-1][0])
 		}
 		config, err := LoadConfig(writeConfigPath(t, yaml))

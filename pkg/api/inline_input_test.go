@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 // fromStorageTwinYAML is cfg/example_from_storage_config.yaml written with its
@@ -77,7 +78,8 @@ func TestInlineInputs(t *testing.T) {
 			if drivers[step][0] != irradiance {
 				t.Fatalf("step %d: driver %v, want %v", step, drivers[step][0], irradiance)
 			}
-			if step > 0 && power[step][0] != math.Max(0.2*irradiance, 0) {
+			// The expression engine and Go each compute this, so compare to rounding.
+			if step > 0 && !scalar.EqualWithinAbs(power[step][0], math.Max(0.2*irradiance, 0), 1e-12) {
 				t.Fatalf("step %d: power %v, want %v", step, power[step][0], 0.2*irradiance)
 			}
 		}
