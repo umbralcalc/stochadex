@@ -87,6 +87,7 @@ Status: **accepted** (2026-10-04).
       the run. Streaming sinks (stdout, websocket, connection, postgres) say so.
     - Cost: one atomic rename per file output per run (~90µs on APFS); runs without file
       outputs allocate exactly as before. CI now runs the CLI module's tests.
+  - **Decided (2026-10-10): Q8, model files are declared in `inputs:`** (IO.5).
   - **Decided (2026-10-10): embedded runs are black boxes by default.** The outer run
     records only an embedded run's result: its host partition's row each outer step, the
     inner partitions' final states concatenated in order. Inner steps are written nowhere
@@ -886,7 +887,7 @@ Inputs had two stragglers:
 | IO.2 | **IN REVIEW (#109)**: the shorthand becomes one view, in every mode | At load, `output_condition` / `output_function` becomes `outputs: [{name: output, ...}]`, so batch, ensemble and serve share one code path, and the run-mode rules (`{member}` / `{connection}`) apply to it as to any view. `stdout` becomes **instance-aware**: under ensemble or serve it prefixes each row with `member=<i> seed=<s>` or `connection=<i>`, as the CLI's ensemble printing already does, so it needs no placeholder. When a config declares no output at all, the default ("print to stdout") becomes an explicit default view. The CLI's separate printing paths for macros and ensembles then go away. **This replaces "reject or make per-member" (the old follow-up):** desugaring makes the silent drop impossible rather than an error. | Every shipped config prints the same lines as before (as a set: order was already non-deterministic for batch configs with several partitions, and changes by design for macros and ensembles); a shorthand `json_log` with `{member}` writes per member; an ensemble with a shorthand `json_log` without a placeholder is a config error naming the shorthand; `expand` shows the desugared view |
 | IO.3 | **In review (#121)**, rewritten 2026-10-10: embedded runs are black boxes | The outer run records an embedded run's host row (inner final states, concatenated in order); inner steps are written nowhere by default. `inspect --io` lists each host's column layout. An embedded run's own `output_function` is a **debug log**, listed apart and ignored by provenance and caching; `--debug-embedded NAME=PATH` turns one on without an edit. (Replaces "nested runs write through top-level views with scoped records", which needed Q7.) | The layout splits every host row into its inner partitions' final states (checked against known values); a run with no declared inner output writes nothing; a debug log is opt-in, listed apart and has no provenance |
 | IO.4 | Inline data is an input | An `{inline: {times: [...], partitions: {name: [[...], ...]}}}` input source. The inline `from_storage` form becomes shorthand for an inline input plus `from_input`. | `cfg/example_from_storage_config.yaml` is byte-identical through the inline input |
-| IO.5 | Model files are inputs | A file an iteration reads (an ONNX model, today) is declared once in `inputs:` and referred to by name, so `inspect --io` and provenance (O.5) see it. Either declared or discovered: decide by Q8. | The manifest lists the model file; changing its contents changes the provenance hash |
+| IO.5 | Model files are inputs (Q8 decided: declared) | A file an iteration reads (an ONNX model, today) is declared once in `inputs:` (e.g. `{file: {path: model.onnx}}`) and the iteration names that input, so `inspect --io` and provenance (O.5) see it as an input. `model_path` becomes shorthand for an implicit input. | The manifest lists the model file; changing its contents changes the provenance hash |
 | IO.6 | Retire the shorthand forms | Once IO.1–IO.4 land, `data:`, the `simulation.output_*` pair and `--socket` print a deprecation notice. They are removed in a later v0.x minor (§4.1). | Each deprecated form prints its notice once and still gives identical results |
 
 **What this unlocks:** O.2's manifest becomes "`inputs:` and `outputs:` after
@@ -999,6 +1000,11 @@ closed once the work since has answered it, or given a "decide by" point and the
 evidence to collect before then. None blocks the next PRs.
 
 **Closed:**
+8. ~~Model files (e.g. ONNX): declared in `inputs:`, or discovered from known spec
+   fields?~~ **Decided (2026-10-10): declared in `inputs:`** and referred to by name,
+   which keeps rule 14 exact. The bare `model_path` spelling becomes shorthand that
+   desugars to an implicit input; O.5's `model_path` discovery is replaced by the
+   input's fingerprint.
 7. ~~In-memory view of a nested run: one storage per outer step, or flat with an
    outer-step column?~~ **Moot (2026-10-10):** embedded runs are black boxes (rule 14);
    nothing captures nested runs as views, and debugging reads the debug log.
@@ -1023,7 +1029,6 @@ evidence to collect before then. None blocks the next PRs.
 |---|---|---|---|
 | 2 | ~~Stream clock: `hold_last` only, or also `step_per_message` (an event clock)?~~ **Decided (2026-10-08): `hold_last` only, for now** (#112). Add an event clock when a real feed needs one. **Evidence (2026-10-08):** dexact's protocol (dexetera's websocket driver) is lock-step, one step per inbound `ActionState`. So it is the first concrete user, if dexact ever drives a server-side stochadex serve. Nothing downstream uses that path today; cryptobook's feed is the other candidate | Phase 1.5 | — |
 | 5 | Flatten `main:` to the top level? | Phase 3 | Agent test A.1: does the `main:` level cause agent authoring errors? Plus the migration cost across downstream configs and recipes |
-| 8 | Model files (e.g. ONNX): declared in `inputs:` and referred to by name, or discovered by `inspect --io` from known spec fields? | IO.5 | How many registered iterations read files, and whether downstream registrations (`RegisterIteration`) can declare which of their fields are file paths. Declaring keeps rule 14 exact; discovering keeps configs shorter |
 
 ## 7. Risks
 
