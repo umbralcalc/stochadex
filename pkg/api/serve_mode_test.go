@@ -276,7 +276,7 @@ main:
 		}
 	})
 
-	t.Run("a connection after the config file broke is closed with the reason", func(t *testing.T) {
+	t.Run("a connection serves the config validated at startup, not the file as edited since", func(t *testing.T) {
 		path := writeConfigPath(t, served)
 		handler, err := serveHandler(LoadApiRunConfigFromYaml(path))
 		if err != nil {
@@ -285,17 +285,8 @@ main:
 		server := httptest.NewServer(handler)
 		defer server.Close()
 		writeFile(t, path, replaceOnce(t, served, "wiener_process}", "wiener_proces}"))
-		connection, _, err := websocket.DefaultDialer.Dial(wsURLOf(server), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer connection.Close()
-		_, _, err = connection.ReadMessage()
-		closeErr, ok := err.(*websocket.CloseError)
-		if !ok || closeErr.Code != websocket.CloseInternalServerErr ||
-			!strings.Contains(closeErr.Text, "wiener_proces") {
-			t.Errorf("expected a 1011 close naming the bad type, got %v", err)
-		}
+		assertMatchesReference(t, "stream", readStream(t, wsURLOf(server)),
+			capturedRun(t, serveConfigYAML, nil))
 	})
 
 	t.Run("a long reason is cut to fit a close frame, on a character boundary", func(t *testing.T) {

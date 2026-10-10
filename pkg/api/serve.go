@@ -134,11 +134,11 @@ func hasStreamInputs(config *ApiRunConfig) bool {
 }
 
 // serveHandler returns the websocket handler behind run: {mode: serve}. Each
-// connection re-loads the config for a fresh, unshared run of the model. The
+// connection rebuilds the config, from the document loaded at startup with its
+// overrides applied, for a fresh, unshared run of the model. The
 // client receives the config's {type: connection} view, gated by that view's
 // condition, and the connection writes the other outputs: views for itself with
-// {connection} substituted. Each connection reads the config file and its
-// inputs afresh, so a connection whose inputs have gone is closed with the
+// {connection} substituted. Each connection reads its inputs afresh, so a connection whose inputs have gone is closed with the
 // reason rather than served.
 //
 // A config served through the deprecated --socket alias declares no outputs:,
@@ -151,11 +151,10 @@ func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 		return nil, fmt.Errorf("api: serving a websocket requires a config " +
 			"loaded from a file (each connection is rebuilt by re-loading it)")
 	}
-	path := config.sourcePath
 	var connections atomic.Int64
 	build := func(stream simulator.OutputFunction) (servedRun, error) {
 		connection := int(connections.Add(1) - 1)
-		connectionConfig, err := LoadConfig(path)
+		connectionConfig, err := config.reload()
 		if err != nil {
 			return servedRun{}, err
 		}

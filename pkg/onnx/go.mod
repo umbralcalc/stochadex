@@ -26,6 +26,7 @@ require (
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 // Local development builds against the sibling engine module in the tree; external

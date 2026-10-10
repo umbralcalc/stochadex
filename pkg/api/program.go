@@ -189,10 +189,12 @@ type ApiRunConfig struct {
 	// Inputs are named, read-only storages read when a run starts and replayed
 	// into main: partitions with {type: from_input} (see inputs.go).
 	Inputs map[string]InputConfig `yaml:"inputs,omitempty"`
-	// sourcePath records the file this config was loaded from, so ensemble mode
-	// can re-load it to build fresh, isolated members. Empty for a config built
-	// in-memory rather than via LoadApiRunConfigFromYaml.
+	// sourcePath records the file this config was loaded from, and source the
+	// document read from it with any overrides applied (see LoadConfig), so
+	// ensemble members and served connections are rebuilt fresh and isolated
+	// by reload. Both are empty for a config built in memory.
 	sourcePath string `yaml:"-"`
+	source     []byte `yaml:"-"`
 	// outputViews are the resolved outputs: views, including the one made from
 	// the shorthand output pair or the default (see resolveOutputs). The main
 	// path also installs them as its simulation's output; the macros path
@@ -589,8 +591,8 @@ func validateEmbeddedForwarding(config *ApiRunConfig) error {
 //   - Panics on file read errors (file not found, permission denied)
 //   - Panics on YAML parsing errors (malformed YAML, type mismatches)
 //   - Panics on data-spec resolution errors (unknown type, bad field)
-func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
-	config, err := LoadConfig(path)
+func LoadApiRunConfigFromYaml(path string, options ...LoadOption) *ApiRunConfig {
+	config, err := LoadConfig(path, options...)
 	if err != nil {
 		panic(err.(*Error).Err)
 	}
@@ -601,11 +603,39 @@ func LoadApiRunConfigFromYaml(path string) *ApiRunConfig {
 // returns a failure instead of panicking. Every failure is an ErrConfig *Error:
 // an unreadable file, invalid YAML, a key nothing reads, an unknown type or
 // field, or a partition with no iteration.
-func LoadConfig(path string) (*ApiRunConfig, error) {
+//
+// options apply per-invocation overrides before anything is checked: WithSet
+// replaces a value by its path, and ${VAR} placeholders in the file are filled
+// from the environment (or WithEnv). See overrides.go.
+func LoadConfig(path string, options ...LoadOption) (*ApiRunConfig, error) {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
 		return nil, configError(err)
 	}
+	source, blame, err := resolveSource(yamlFile, options)
+	if err != nil {
+		return nil, configError(err)
+	}
+	config, err := loadConfigData(source, path)
+	if err != nil && blame != nil {
+		return nil, configError(blame(err, func(data []byte) error {
+			_, err := loadConfigData(data, path)
+			return err
+		}))
+	}
+	return config, err
+}
+
+// reload builds a fresh config from the document this one was loaded from, with
+// its overrides already applied, for a run that needs new instances: an
+// ensemble member or a served connection.
+func (c *ApiRunConfig) reload() (*ApiRunConfig, error) {
+	return loadConfigData(c.source, c.sourcePath)
+}
+
+// loadConfigData decodes, resolves and validates a config document. path is
+// where it came from.
+func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 	if deadKeyErr := validateNoDeadKeys(yamlFile); deadKeyErr != nil {
 		return nil, configError(deadKeyErr)
 	}
@@ -644,5 +674,6 @@ func LoadConfig(path string) (*ApiRunConfig, error) {
 		return nil, configError(err)
 	}
 	config.sourcePath = path
+	config.source = yamlFile
 	return &config, nil
 }

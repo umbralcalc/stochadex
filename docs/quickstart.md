@@ -438,6 +438,42 @@ Serve mode does not apply to `macros:` configs yet. The old `--socket socket.yam
 works as an alias for a batch config with the shorthand pair: it streams the run filtered by
 `output_condition`, and doesn't write `output_function`. It is deprecated.
 
+### Varying a run without editing the file
+
+One config can run as many jobs. `--set path=value` replaces one value for this run, and can
+be repeated:
+
+```bash
+stochadex --config model.yaml \
+  --set 'main.partitions[name=price].seed=7' \
+  --set main.simulation.termination_condition.max_steps=8000 \
+  --set 'run.seeds=[1, 2, 3]'
+```
+
+A path joins keys with dots, and selects a list entry by its `name`, never by its position.
+The value is read as YAML. The path must already exist in the file, and the new value must
+have the old one's shape: a number for a number, a list for a list. So a typo is an error
+naming the `--set`, never a run that quietly ignores it. Text takes the value exactly as
+written.
+
+A config can also leave a value to the environment with `${VAR}`:
+
+```yaml
+    seed: ${SEED}
+    params: {rate: [${RATE}]}
+outputs:
+  - {name: log, function: {type: json_log, path: "runs/${RUN_ID}.log"}}
+```
+
+Unquoted, the variable's text reads as YAML, exactly as if it were written there. So
+`${RATE}` can be a number, and a whole value can be a list or a `{type: ...}`. Quoted, it is
+text. An unset or empty variable is a config error, as is a placeholder in a key. Write
+`$${` for a literal `${`.
+
+Overrides are applied before the config is checked, so every check applies to the result.
+Ensemble members and served connections all run the overridden config. A server keeps the
+config it validated at startup, so editing the file while it runs changes nothing.
+
 ### Running a config from Go
 
 `api.RunWith(config, options...)` runs a config and hands results back in memory.
@@ -449,7 +485,8 @@ both. `api.RunToStorage(config)` is the shorthand for one view that mirrors the 
 condition.
 
 ```go
-config, err := api.LoadConfig("model.yaml")
+config, err := api.LoadConfig("model.yaml",
+    api.WithSet("main.partitions[name=price].seed", "7")) // optional overrides, as --set
 result, err := api.RunWith(config,
     api.CaptureView("prices", &simulator.OnlyGivenPartitionsOutputCondition{
         Partitions: map[string]bool{"price": true}}),
