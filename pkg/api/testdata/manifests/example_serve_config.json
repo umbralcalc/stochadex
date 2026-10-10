@@ -1,0 +1,23 @@
+{
+  "config": "cfg/example_serve_config.yaml",
+  "run": {
+    "mode": "serve",
+    "runtime": "main",
+    "address": ":2112",
+    "handle": "/handle"
+  },
+  "clock": {
+    "timestep": "constant",
+    "termination": "number_of_steps"
+  },
+  "inputs": [],
+  "outputs": [
+    {
+      "name": "stream",
+      "declared_in": "outputs",
+      "condition": "every_step",
+      "sink": "connection",
+      "location": "connection"
+    }
+  ]
+}

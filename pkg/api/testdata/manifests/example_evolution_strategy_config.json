@@ -1,0 +1,20 @@
+{
+  "config": "cfg/example_evolution_strategy_config.yaml",
+  "run": {
+    "mode": "batch",
+    "runtime": "macros",
+    "macros": [
+      "evolution_strategy_optimisation"
+    ]
+  },
+  "inputs": [],
+  "outputs": [
+    {
+      "name": "output",
+      "declared_in": "default",
+      "condition": "every_step",
+      "sink": "stdout",
+      "location": "stdout"
+    }
+  ]
+}

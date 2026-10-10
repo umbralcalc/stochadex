@@ -1,7 +1,9 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -287,9 +289,27 @@ func Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	if parsed.InspectIO {
+		manifest, err := json.MarshalIndent(Manifest(config), "", "  ")
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintf(os.Stdout, "%s\n", manifest)
+		return err
+	}
 	socket, err := loadSocketConfig(parsed.SocketFile)
 	if err != nil {
 		return err
+	}
+	if parsed.Check {
+		if config, err = withSocketAlias(config, socket, io.Discard); err != nil {
+			return err
+		}
+		if err := Check(config); err != nil {
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "stochadex: %s is valid\n", parsed.ConfigFile)
+		return nil
 	}
 	return runE(config, socket)
 }
@@ -589,22 +609,7 @@ func ensembleRuns(
 	resolvedSim *simulator.SimulationConfig,
 	writeOutputs bool,
 ) ([]simulator.EnsembleRun, error) {
-	if len(config.Run.Seeds) == 0 {
-		return nil, fmt.Errorf("api: ensemble run mode requires a non-empty run.seeds")
-	}
-	if config.sourcePath == "" {
-		return nil, fmt.Errorf(
-			"api: ensemble run mode requires a config loaded from a file " +
-				"(members are rebuilt by re-loading it)",
-		)
-	}
-	if len(config.Embedded) > 0 {
-		return nil, fmt.Errorf(
-			"api: ensemble run mode does not yet support embedded runs (their " +
-				"simulation blocks cannot be rebuilt by a plain re-load)",
-		)
-	}
-	if err := assertDataOnly(config); err != nil {
+	if err := validateEnsemble(config); err != nil {
 		return nil, err
 	}
 	if writeOutputs {
@@ -638,6 +643,26 @@ func ensembleRuns(
 	return simulator.RunSeededEnsemble(
 		build, config.Run.Seeds, config.Run.Concurrency,
 	), nil
+}
+
+// validateEnsemble checks what an ensemble run needs before building members.
+func validateEnsemble(config *ApiRunConfig) error {
+	if len(config.Run.Seeds) == 0 {
+		return fmt.Errorf("api: ensemble run mode requires a non-empty run.seeds")
+	}
+	if config.sourcePath == "" {
+		return fmt.Errorf(
+			"api: ensemble run mode requires a config loaded from a file " +
+				"(members are rebuilt by re-loading it)",
+		)
+	}
+	if len(config.Embedded) > 0 {
+		return fmt.Errorf(
+			"api: ensemble run mode does not yet support embedded runs (their " +
+				"simulation blocks cannot be rebuilt by a plain re-load)",
+		)
+	}
+	return assertDataOnly(config)
 }
 
 // mustReload is reload for an ensemble member's build, which cannot return an

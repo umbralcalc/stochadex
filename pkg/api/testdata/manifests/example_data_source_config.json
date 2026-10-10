@@ -1,0 +1,32 @@
+{
+  "config": "cfg/example_data_source_config.yaml",
+  "run": {
+    "mode": "batch",
+    "runtime": "macros",
+    "macros": [
+      "vector_mean"
+    ]
+  },
+  "inputs": [
+    {
+      "name": "data",
+      "kind": "csv",
+      "location": "cfg/example_data.csv",
+      "partitions": [
+        "stream"
+      ],
+      "read_by": [
+        "macros"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "output",
+      "declared_in": "default",
+      "condition": "every_step",
+      "sink": "stdout",
+      "location": "stdout"
+    }
+  ]
+}

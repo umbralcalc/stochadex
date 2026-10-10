@@ -1,0 +1,29 @@
+{
+  "config": "cfg/example_macro_config.yaml",
+  "run": {
+    "mode": "batch",
+    "runtime": "macros",
+    "macros": [
+      "vector_mean",
+      "vector_variance"
+    ]
+  },
+  "inputs": [
+    {
+      "name": "data",
+      "kind": "simulation",
+      "read_by": [
+        "macros"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "output",
+      "declared_in": "default",
+      "condition": "every_step",
+      "sink": "stdout",
+      "location": "stdout"
+    }
+  ]
+}

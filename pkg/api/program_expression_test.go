@@ -20,7 +20,7 @@ func TestValidateAcceptsExpressionBackedPartitions(t *testing.T) {
 			config := &ApiRunConfig{
 				Main: RunConfig{
 					Partitions: []simulator.PartitionConfig{
-						{Name: "declarative"}, // no iteration, but matched below
+						{Name: "declarative", StateHistoryDepth: 1}, // no iteration, but matched below
 					},
 					Expressions: []ExpressionConfig{{Partition: "declarative"}},
 				},
