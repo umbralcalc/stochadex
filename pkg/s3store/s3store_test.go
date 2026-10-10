@@ -158,4 +158,53 @@ func TestS3StoreRoundTrip(t *testing.T) {
 			t.Errorf("staged file %s still exists after Finalize", staged)
 		}
 	})
+
+	t.Run("a staged OutputFunction uploads only at Commit, and never after Abort", func(t *testing.T) {
+		var _ simulator.StagedOutputFunction = (*OutputFunction)(nil)
+		run := func(key string) (*OutputFunction, string) {
+			staged := filepath.Join(t.TempDir(), "out.log")
+			sink := NewOutputFunction(&stagingSink{path: staged}, staged, bucket, key, config)
+			sink.Stage()
+			sink.Configure(nil)
+			sink.Output("walk", []float64{1.0}, 0.0)
+			sink.Finalize()
+			return sink, staged
+		}
+		exists := func(key string) bool {
+			_, cleanup, err := Fetch(ctx, client, bucket, key)
+			cleanup()
+			return err == nil
+		}
+
+		committed, _ := run("staged/committed.log")
+		if exists("staged/committed.log") {
+			t.Fatal("a staged run was uploaded at Finalize")
+		}
+		if err := committed.Commit(); err != nil {
+			t.Fatalf("Commit: %v", err)
+		}
+		if !exists("staged/committed.log") {
+			t.Error("Commit did not upload the run")
+		}
+
+		aborted, staged := run("staged/aborted.log")
+		aborted.Abort()
+		if exists("staged/aborted.log") {
+			t.Error("an aborted run was uploaded")
+		}
+		if _, err := os.Stat(staged); !os.IsNotExist(err) {
+			t.Error("Abort left the staged file behind")
+		}
+	})
+
+	t.Run("a staged upload that fails is returned from Commit", func(t *testing.T) {
+		staged := filepath.Join(t.TempDir(), "out.log")
+		sink := NewOutputFunction(&stagingSink{path: staged}, staged, "no-such-bucket", "x.log", config)
+		sink.Stage()
+		sink.Configure(nil)
+		sink.Finalize()
+		if err := sink.Commit(); err == nil {
+			t.Error("an upload to a missing bucket should fail the commit")
+		}
+	})
 }

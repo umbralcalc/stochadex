@@ -26,6 +26,9 @@ import (
 // The `driver`/`dsn` form goes through database/sql, so it reaches any Postgres-wire
 // database (TimescaleDB, CockroachDB, a managed instance with sslmode) — and any other
 // database whose driver is compiled in — rather than only a local Postgres.
+//
+// Rows are inserted as the run goes, so this sink is not staged (see
+// simulator.StagedOutputFunction): a run that fails leaves the rows it reached.
 func init() {
 	simulator.RegisterComponent(
 		"output_function",

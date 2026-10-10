@@ -44,8 +44,11 @@ import (
 
 // paramFeeds sets a run's params from its inputs between steps.
 type paramFeeds struct {
-	stored  []storedFeed
-	streams []*streamFeed
+	// recorders are the stream inputs' record: files, staged as they open
+	// (see staging.go).
+	recorders []simulator.StagedOutputFunction
+	stored    []storedFeed
+	streams   []*streamFeed
 }
 
 // storedFeed sets one params key from a stored input's rows.
@@ -275,6 +278,9 @@ func (f *paramFeeds) open(coordinator *simulator.PartitionCoordinator) error {
 			}
 			return err
 		}
+		if stream.recorder != nil {
+			f.recorders = append(f.recorders, stream.recorder)
+		}
 		stream.recordRow(coordinator)
 	}
 	return nil
@@ -336,6 +342,7 @@ func (s *streamFeed) open() error {
 	}
 	if s.record != "" {
 		s.recorder = simulator.NewJsonLogOutputFunction(s.record)
+		s.recorder.Stage()
 		s.recorder.Configure(nil)
 	}
 	return nil

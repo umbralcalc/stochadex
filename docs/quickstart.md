@@ -219,6 +219,22 @@ table = ipc.open_file("run.arrow").read_all()
 
 > `arrow`, `postgres`, `s3` are in every binary; the container adds `duckdb`. `duckdb` needs the **accelerated** binary. `stochadex --version` prints a `features:` line.
 
+**All or nothing.** A run's files, objects and tables appear only once the whole run has
+ended cleanly. A failed, crashed or killed run leaves nothing at their destinations, and
+any earlier run's output there untouched, so a retry is always safe:
+
+| Output | While the run is going | Once it has ended cleanly |
+|---|---|---|
+| `json_log`, `arrow`, a stream input's `record:` | written to `<path>.partial` | renamed to `<path>`, replacing the file in one step |
+| `s3` | staged in a local temporary file | uploaded: an object is replaced whole |
+| `duckdb` | held in memory | ingested in one `CREATE TABLE AS` |
+| `stdout`, `websocket`, `{type: connection}`, `postgres` | streamed as the run goes | (nothing held back: a failed run leaves what it sent) |
+
+An embedded run's own output is published with its outer run. A served connection's
+outputs are published when its session ends, and the client leaving counts as a clean end.
+A killed run can leave a `.partial` file behind, which the next run replaces. Publishing
+costs one rename per file, once per run and never per step.
+
 ### Driving a run from data: `inputs:`
 
 A run can replay recorded or generated data. Declare it under `inputs:`, then replay one of an

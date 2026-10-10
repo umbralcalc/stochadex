@@ -69,6 +69,9 @@ func NewWebsocketHandler(
 type servedRun struct {
 	coordinator *simulator.PartitionCoordinator
 	feeds       *paramFeeds
+	// outputs are the connection's own staged sinks, published when its run
+	// ends cleanly (see staging.go).
+	outputs *stagedOutputs
 }
 
 // newStreamHandler is the websocket handler for both serving paths. For each
@@ -129,8 +132,16 @@ func newStreamHandler(
 		}()
 
 		// Step under the configured execution strategy, sleeping between steps
-		// so the websocket streams state at a watchable rate.
-		if err := runSteps(run.coordinator, run.feeds, pace, closed); err != nil {
+		// so the websocket streams state at a watchable rate. The client leaving
+		// ends a session cleanly, so its outputs are published then too.
+		if run.outputs != nil {
+			defer run.outputs.discard()
+		}
+		err = runSteps(run.coordinator, run.feeds, pace, closed)
+		if run.outputs != nil {
+			err = run.outputs.finish(err)
+		}
+		if err != nil {
 			fail(err)
 		}
 	})
@@ -247,9 +258,13 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 	}
 	switch config.Run.Mode {
 	case "", "batch":
-		return runCoordinator(
+		outputs := stagedOutputs{feeds: prepared.feeds}
+		outputs.stageNested(config)
+		outputs.stage(prepared.implementations.OutputFunction)
+		defer outputs.discard()
+		return outputs.finish(runCoordinator(
 			simulator.NewPartitionCoordinator(prepared.settings, prepared.implementations),
-			prepared.feeds)
+			prepared.feeds))
 	case "serve":
 		return runServe(config)
 	default:
@@ -397,7 +412,13 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 			replayThroughViews(storage, captureViews(requested, nil, result.Views))
 		}
 		if opts.teeConfigOutputs && config.outputViews != nil {
+			var outputs stagedOutputs
+			outputs.stage(config.outputViews)
+			defer outputs.discard()
 			replayThroughViews(storage, config.outputViews)
+			if err := outputs.finish(nil); err != nil {
+				return nil, err
+			}
 		}
 		return result, nil
 	}
@@ -428,9 +449,16 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 		implementations := *prepared.implementations
 		implementations.OutputFunction = outputs
 		implementations.OutputCondition = &simulator.EveryStepOutputCondition{}
-		if err := runCoordinator(
+		staged := stagedOutputs{feeds: prepared.feeds}
+		if opts.teeConfigOutputs {
+			// Nested runs' sinks run only when the config's outputs do.
+			staged.stageNested(config)
+		}
+		staged.stage(outputs)
+		defer staged.discard()
+		if err := staged.finish(runCoordinator(
 			simulator.NewPartitionCoordinator(prepared.settings, &implementations),
-			prepared.feeds); err != nil {
+			prepared.feeds)); err != nil {
 			return nil, err
 		}
 		return &RunResult{Views: views}, nil
@@ -615,6 +643,9 @@ func ensembleRuns(
 	if writeOutputs {
 		// Each member re-loads the config (fresh iterations) and gets its own
 		// views, with {member} / {seed} substituted, teed with its storage.
+		// They are published together, once every member has finished.
+		// Members are built concurrently, so each writes only its own slot.
+		views := make([]*simulator.OutputViews, len(config.Run.Seeds))
 		build := func(member int, seed uint64) *simulator.ConfigGenerator {
 			memberConfig := mustReload(config)
 			if err := bindInputs(memberConfig); err != nil {
@@ -622,13 +653,23 @@ func ensembleRuns(
 			}
 			generator := memberConfig.GetConfigGenerator()
 			simCopy := *resolvedSim
-			simCopy.OutputFunction = memberConfig.memberOutputViews(member, seed)
+			memberViews := memberConfig.memberOutputViews(member, seed)
+			memberViews.Stage()
+			views[member] = memberViews
+			simCopy.OutputFunction = memberViews
 			simCopy.OutputCondition = &simulator.EveryStepOutputCondition{}
 			generator.SetSimulation(&simCopy)
 			return generator
 		}
-		return simulator.RunSeededEnsembleMembers(
-			build, config.Run.Seeds, config.Run.Concurrency), nil
+		outputs := &stagedOutputs{}
+		defer outputs.discard()
+		members := simulator.RunSeededEnsembleMembers(
+			build, config.Run.Seeds, config.Run.Concurrency)
+		for _, memberViews := range views {
+			// Already staged as each member was built.
+			outputs.add(memberViews)
+		}
+		return members, outputs.finish(nil)
 	}
 	build := func() *simulator.ConfigGenerator {
 		memberConfig := mustReload(config)

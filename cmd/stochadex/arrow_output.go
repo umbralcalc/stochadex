@@ -40,6 +40,9 @@ type arrowFileOutput struct {
 	store *arrowstore.ArrowStateTimeStorage
 	inner *arrowstore.ArrowStateTimeStorageOutputFunction
 	path  string
+	// staged, written and failed track a staged run (see Stage).
+	staged, written bool
+	failed          error
 }
 
 func (a *arrowFileOutput) Configure(settings *simulator.Settings) {
@@ -55,6 +58,44 @@ func (a *arrowFileOutput) Output(
 }
 
 func (a *arrowFileOutput) Finalize() {
+	if err := a.write(); err != nil {
+		if !a.staged {
+			fmt.Fprintf(os.Stderr, "stochadex: %v\n", err)
+			return
+		}
+		a.failed = err
+	}
+}
+
+// Stage writes the file under a ".partial" name until Commit, so a run that
+// fails or is killed leaves any file at the path as it was.
+func (a *arrowFileOutput) Stage() { a.staged = true }
+
+// Commit renames the staged file into place, or returns why it was not written.
+func (a *arrowFileOutput) Commit() error {
+	if a.failed != nil {
+		return a.failed
+	}
+	if !a.written {
+		return nil
+	}
+	return os.Rename(a.writePath(), a.path)
+}
+
+// Abort removes the staged file.
+func (a *arrowFileOutput) Abort() { os.Remove(a.writePath()) }
+
+func (a *arrowFileOutput) writePath() string {
+	if a.staged {
+		return a.path + ".partial"
+	}
+	return a.path
+}
+
+// write writes the run's record to the file. A run whose partitions produced
+// differing row counts has no single table to write, which is reported and is
+// not a failure to write.
+func (a *arrowFileOutput) write() error {
 	defer a.store.Release()
 
 	// Record finalises the builders and returns nil when partitions produced differing
@@ -66,29 +107,28 @@ func (a *arrowFileOutput) Finalize() {
 				"so the run is not a single rectangular table. Use an output_condition "+
 				"that emits every partition every step (e.g. {type: every_step}).\n",
 			a.path)
-		return
+		return nil
 	}
 	defer record.Release()
 
-	file, err := os.Create(a.path)
+	file, err := os.Create(a.writePath())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "stochadex: creating %s: %v\n", a.path, err)
-		return
+		return fmt.Errorf("creating %s: %w", a.writePath(), err)
 	}
 	defer file.Close()
 
 	writer, err := ipc.NewFileWriter(file, ipc.WithSchema(record.Schema()))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "stochadex: opening Arrow writer for %s: %v\n", a.path, err)
-		return
+		return fmt.Errorf("opening Arrow writer for %s: %w", a.path, err)
 	}
 	if err := writer.Write(record); err != nil {
-		fmt.Fprintf(os.Stderr, "stochadex: writing %s: %v\n", a.path, err)
-		return
+		return fmt.Errorf("writing %s: %w", a.path, err)
 	}
 	if err := writer.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "stochadex: closing %s: %v\n", a.path, err)
+		return fmt.Errorf("closing %s: %w", a.path, err)
 	}
+	a.written = true
+	return nil
 }
 
 // stringField reads a required string key from a data spec, with an error naming the

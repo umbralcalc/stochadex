@@ -1,5 +1,7 @@
 package simulator
 
+import "errors"
+
 // OutputView is one named output: a sink gated by its own condition. A config's
 // outputs: list is a set of views; the classic output_condition/output_function
 // pair is a single unnamed view.
@@ -54,6 +56,35 @@ func (o *OutputViews) Finalize() {
 	for _, view := range o.Views {
 		if finalizing, ok := view.Function.(FinalizingOutputFunction); ok {
 			finalizing.Finalize()
+		}
+	}
+}
+
+// Stage stages every view's sink that can be staged (see StagedOutputFunction).
+func (o *OutputViews) Stage() {
+	for _, view := range o.Views {
+		if staged, ok := view.Function.(StagedOutputFunction); ok {
+			staged.Stage()
+		}
+	}
+}
+
+// Commit commits every staged view's sink, returning every failure.
+func (o *OutputViews) Commit() error {
+	var failures []error
+	for _, view := range o.Views {
+		if staged, ok := view.Function.(StagedOutputFunction); ok {
+			failures = append(failures, staged.Commit())
+		}
+	}
+	return errors.Join(failures...)
+}
+
+// Abort aborts every staged view's sink.
+func (o *OutputViews) Abort() {
+	for _, view := range o.Views {
+		if staged, ok := view.Function.(StagedOutputFunction); ok {
+			staged.Abort()
 		}
 	}
 }

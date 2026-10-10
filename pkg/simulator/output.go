@@ -53,6 +53,24 @@ type FinalizingOutputFunction interface {
 	Finalize()
 }
 
+// StagedOutputFunction is an output function that can hold back what it writes
+// until the run that wrote it is known to have ended cleanly. Once staged, it
+// writes somewhere provisional; Commit publishes that to its destination, and
+// Abort discards it. A run that fails, or is killed, then leaves nothing at the
+// destination, and any earlier output there intact.
+//
+// It is OPTIONAL, like FinalizingOutputFunction, and opt-in: a sink that is
+// never staged writes straight to its destination, as it always has. Stage is
+// called before the sink's first run; Commit or Abort once, after its last
+// Finalize. A nested run's sink is finalized once per outer step but committed
+// once, when the outer run ends.
+type StagedOutputFunction interface {
+	OutputFunction
+	Stage()
+	Commit() error
+	Abort()
+}
+
 // NilOutputFunction outputs nothing from the simulation.
 type NilOutputFunction struct{}
 
@@ -65,7 +83,9 @@ func (f *NilOutputFunction) Output(
 ) {
 }
 
-// StdoutOutputFunction outputs the state to the terminal.
+// StdoutOutputFunction outputs the state to the terminal. It streams each row
+// as the run goes, so it cannot be staged: a run that fails has printed the
+// rows it reached.
 type StdoutOutputFunction struct {
 	// Prefix, when set, leads each row, naming which of several concurrent runs
 	// wrote it (e.g. "member=0 seed=11"). Each row is one write, so rows from
@@ -144,13 +164,21 @@ type JsonLogEntry struct {
 // Close, finalize the run's output, so a log is complete once its run has
 // finished. A sink driven by hand, with Output but no Configure, writes each
 // entry straight to the file.
+//
+// Staged (see StagedOutputFunction), the log is written to path + ".partial"
+// and Commit renames it to path, which replaces the file atomically: the log at
+// path is always a whole run's. Abort removes the partial file.
 type JsonLogOutputFunction struct {
 	path    string
 	file    *os.File
 	writer  *bufio.Writer // nil when driven by hand: entries go straight to file
 	created bool
+	partial string // set by Stage: where the run is written until Commit
 	mutex   *sync.Mutex
 }
+
+// partialSuffix is appended to a staged file's path while its run writes it.
+const partialSuffix = ".partial"
 
 // jsonLogBufferSize is how many bytes of entries a run's log holds before
 // writing them out.
@@ -177,12 +205,76 @@ func (j *JsonLogOutputFunction) openLocked() {
 	if j.created {
 		flags = os.O_CREATE | os.O_WRONLY | os.O_APPEND
 	}
-	file, err := os.OpenFile(j.path, flags, 0o644)
+	file, err := os.OpenFile(j.writePath(), flags, 0o644)
 	if err != nil {
-		panic(&ResourceError{Resource: "json_log: opening " + j.path, Err: err})
+		panic(&ResourceError{Resource: "json_log: opening " + j.writePath(), Err: err})
 	}
 	j.file = file
 	j.created = true
+}
+
+// writePath is where the log is written: its path, or the partial file while
+// staged.
+func (j *JsonLogOutputFunction) writePath() string {
+	if j.partial != "" {
+		return j.partial
+	}
+	return j.path
+}
+
+// Stage makes the log write to a partial file until Commit. Call it before the
+// sink's first run.
+func (j *JsonLogOutputFunction) Stage() {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	j.partial = j.path + partialSuffix
+}
+
+// Commit publishes the staged log at its path. A sink that never ran writes
+// nothing, leaving any file at the path as it was.
+func (j *JsonLogOutputFunction) Commit() error {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	if !j.created {
+		return nil
+	}
+	if err := j.closeLocked(); err != nil {
+		return err
+	}
+	j.created = false
+	if err := os.Rename(j.writePath(), j.path); err != nil {
+		return &ResourceError{Resource: "json_log: publishing " + j.path, Err: err}
+	}
+	return nil
+}
+
+// Abort discards the staged log, along with any partial file a killed run left.
+func (j *JsonLogOutputFunction) Abort() {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	j.closeLocked()
+	j.created = false
+	os.Remove(j.writePath())
+}
+
+// closeLocked flushes and closes the file if it is open. The caller holds mutex.
+func (j *JsonLogOutputFunction) closeLocked() error {
+	if j.file == nil {
+		return nil
+	}
+	var err error
+	if j.writer != nil {
+		err = j.writer.Flush()
+		j.writer = nil
+	}
+	if closeErr := j.file.Close(); err == nil {
+		err = closeErr
+	}
+	j.file = nil
+	if err != nil {
+		return &ResourceError{Resource: "json_log: writing " + j.writePath(), Err: err}
+	}
+	return nil
 }
 
 // Finalize writes out the run's buffered entries and closes the log, once the
@@ -190,19 +282,9 @@ func (j *JsonLogOutputFunction) openLocked() {
 func (j *JsonLogOutputFunction) Finalize() {
 	j.mutex.Lock()
 	defer j.mutex.Unlock()
-	if j.file == nil {
-		return
+	if err := j.closeLocked(); err != nil {
+		panic(err)
 	}
-	if j.writer != nil {
-		if err := j.writer.Flush(); err != nil {
-			panic(&ResourceError{Resource: "json_log: writing " + j.path, Err: err})
-		}
-		j.writer = nil
-	}
-	if err := j.file.Close(); err != nil {
-		panic(fmt.Errorf("json_log: closing %s: %w", j.path, err))
-	}
-	j.file = nil
 }
 
 func (j *JsonLogOutputFunction) Output(
@@ -236,7 +318,7 @@ func (j *JsonLogOutputFunction) Output(
 		_, err = j.file.Write(append(jsonData, '\n'))
 	}
 	if err != nil {
-		panic(&ResourceError{Resource: "json_log: writing " + j.path, Err: err})
+		panic(&ResourceError{Resource: "json_log: writing " + j.writePath(), Err: err})
 	}
 }
 
@@ -313,6 +395,9 @@ func NewJsonLogChannelOutputFunction(
 
 // WebsocketOutputFunction serialises and sends outputs via a websocket
 // connection when the condition is met.
+//
+// Like every streaming sink, it is not staged (see StagedOutputFunction): the
+// client has received each row as it was sent.
 type WebsocketOutputFunction struct {
 	connection *websocket.Conn
 	mutex      *sync.Mutex
@@ -375,6 +460,9 @@ func NewWebsocketOutputFunction(
 // config is loaded, and loading must not reach out over the network. Finalize
 // sends a normal close frame and disconnects; a later run of the same sink
 // reconnects, so each run is one connection.
+//
+// It streams as the run goes, so it is not staged (see StagedOutputFunction):
+// a run that fails has sent the rows it reached.
 type WebsocketPushOutputFunction struct {
 	url        string
 	connection *websocket.Conn

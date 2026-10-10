@@ -49,6 +49,8 @@ type duckdbOutput struct {
 	inner *arrowstore.ArrowStateTimeStorageOutputFunction
 	path  string
 	table string
+	// held is set by Stage: the ingest waits for Commit.
+	held bool
 }
 
 func (d *duckdbOutput) Configure(settings *simulator.Settings) {
@@ -64,19 +66,37 @@ func (d *duckdbOutput) Output(
 }
 
 func (d *duckdbOutput) Finalize() {
+	if d.held {
+		return
+	}
+	if err := d.ingest(); err != nil {
+		fmt.Fprintf(os.Stderr, "stochadex: %v\n", err)
+	}
+}
+
+// Stage holds the ingest back until Commit, so a run that fails or is killed
+// leaves the database as it was. The ingest is one CREATE TABLE AS statement.
+func (d *duckdbOutput) Stage() { d.held = true }
+
+// Commit ingests the run, once it has ended cleanly.
+func (d *duckdbOutput) Commit() error { return d.ingest() }
+
+// Abort discards the run without ingesting it.
+func (d *duckdbOutput) Abort() { d.store.Release() }
+
+func (d *duckdbOutput) ingest() error {
 	defer d.store.Release()
 
 	db, err := sql.Open("duckdb", d.path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "stochadex: opening DuckDB at %s: %v\n", d.path, err)
-		return
+		return fmt.Errorf("opening DuckDB at %s: %w", d.path, err)
 	}
 	defer db.Close()
 
 	rows, err := duckdbstore.IngestToTable(context.Background(), db, d.store, d.table)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "stochadex: ingesting into %s.%s: %v\n", d.path, d.table, err)
-		return
+		return fmt.Errorf("ingesting into %s.%s: %w", d.path, d.table, err)
 	}
 	fmt.Fprintf(os.Stderr, "stochadex: wrote %d rows to %s in %s\n", rows, d.table, d.path)
+	return nil
 }

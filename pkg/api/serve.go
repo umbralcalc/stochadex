@@ -166,14 +166,21 @@ func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 			connectionConfig.Outputs[0].Function = simulator.ComponentSpec{Type: connectionSink}
 		}
 		implementations := *prepared.implementations
-		implementations.OutputFunction = connectionConfig.connectionOutputViews(connection, stream)
+		views := connectionConfig.connectionOutputViews(connection, stream)
+		implementations.OutputFunction = views
 		implementations.OutputCondition = &simulator.EveryStepOutputCondition{}
 		if prepared.feeds != nil {
 			prepared.feeds.forConnection(connection)
 		}
+		// Staged before the coordinator configures them, so nothing is written
+		// at a final path.
+		outputs := &stagedOutputs{feeds: prepared.feeds}
+		outputs.stageNested(connectionConfig)
+		outputs.stage(views)
 		return servedRun{
 			coordinator: simulator.NewPartitionCoordinator(prepared.settings, &implementations),
 			feeds:       prepared.feeds,
+			outputs:     outputs,
 		}, nil
 	}
 	return newStreamHandler(build, time.Duration(config.Run.PaceMs)*time.Millisecond,
