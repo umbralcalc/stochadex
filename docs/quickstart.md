@@ -275,6 +275,23 @@ A `from_storage` iteration or timestep function with inline `data:` is shorthand
 inline input read by `from_input`, so `inspect --io` and provenance see that data as an
 input too.
 
+A file an iteration reads, such as an ONNX model, is an input too. Declare it with `file:`
+and name it in the iteration field that takes its path:
+
+```yaml
+inputs:
+  brain: {file: {path: models/brain.onnx}}
+main:
+  partitions:
+  - name: policy
+    iteration: {type: onnx_inference, model_path: {input: brain}}
+    # ...
+```
+
+Any iteration field written `{input: NAME}` is given that file's path when the config
+loads. A plain `model_path: models/brain.onnx` is shorthand for a file input of that path.
+`--check` doesn't read model files, and a run reads them when it starts.
+
 Inputs are read when the run starts, never when the config is loaded:
 - a missing input exits as unavailable (75);
 - an input lacking the named partition exits as a data error (65);
@@ -589,8 +606,8 @@ without their values. From Go, use `api.Check(config)` and `api.Manifest(config)
 `--provenance` writes `<output>.provenance.json` beside each `json_log` and `arrow` file a
 run writes. It records what produced the file:
 - the config as resolved, after `--set` and `${VAR}`;
-- a fingerprint of each input's contents (an S3 object by its version);
-- any model file an iteration reads through `model_path`;
+- a fingerprint of each input's contents, model files included (an S3 object by its
+  version);
 - the build that ran it.
 
 Its `key` hashes all of that, so the same key means the same outputs. A sidecar is written

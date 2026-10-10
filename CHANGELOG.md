@@ -24,6 +24,14 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Model files are inputs: `inputs: {brain: {file: {path: model.onnx}}}`.** An iteration
+  field written `{input: NAME}` (e.g. `model_path: {input: brain}`) is given that file's
+  path at load, so the I/O manifest lists the file and provenance fingerprints it like any
+  input. A plain `model_path:` is shorthand for a file input of that path, shared by every
+  partition naming the same file. A file input can't be replayed by `from_input` or set
+  params, macros don't analyse it, and `--check` doesn't read it (it stands in for the
+  partitions that would).
+
 - **Inline data is an input: `source: {inline: {times, partitions}}`.** A series carried in
   the config can be declared under `inputs:` (or `data:`) like any file, and is checked at
   load: a row per time, rows of one width. A `from_storage` iteration or timestep function
@@ -100,6 +108,9 @@ an exact version rather than assume stability across minors.
     withholds `${VAR}` values.
 
 ### Changed
+
+- **Provenance has no `files` list any more:** model files are inputs, fingerprinted under
+  `inputs`.
 
 - **An embedded run's own output is a debug log, not a result** (PLAN.md rule 14). The I/O
   manifest lists it under `debug` instead of `outputs`, provenance gives it no sidecar, and

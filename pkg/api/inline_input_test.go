@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/floats/scalar"
 )
 
 // fromStorageTwinYAML is cfg/example_from_storage_config.yaml written with its
@@ -77,7 +78,8 @@ func TestInlineInputs(t *testing.T) {
 			if drivers[step][0] != irradiance {
 				t.Fatalf("step %d: driver %v, want %v", step, drivers[step][0], irradiance)
 			}
-			if step > 0 && power[step][0] != math.Max(0.2*irradiance, 0) {
+			// The expression engine and Go each compute this, so compare to rounding.
+			if step > 0 && !scalar.EqualWithinAbs(power[step][0], math.Max(0.2*irradiance, 0), 1e-12) {
 				t.Fatalf("step %d: power %v, want %v", step, power[step][0], 0.2*irradiance)
 			}
 		}
@@ -231,6 +233,33 @@ main:
 		}
 	})
 
+	t.Run("from_storage data that does not parse is left for its own builder to report", func(t *testing.T) {
+		data, err := os.ReadFile(shipped)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cases := map[string]struct{ from, to, want string }{
+			// The builder's own message names the partition it belongs to.
+			"a partition's rows": {"      data: [[0.0], [5.0],", "      data: [[zero], [5.0],",
+				`partition "clear_sky_driver": from_storage: data[0][0] must be a number, got string`},
+			"the clock's times": {"      data: [0.0, 1.0, 2.0,", "      data: [zero, 1.0, 2.0,",
+				"from_storage: data[0] must be a number, got string"},
+		}
+		for name, c := range cases {
+			yaml := strings.Replace(string(data), c.from, c.to, 1)
+			if yaml == string(data) {
+				t.Fatalf("%s: the fixture did not change", name)
+			}
+			config, err := LoadConfig(writeConfigPath(t, yaml))
+			if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("%s: expected the builder's ErrConfig containing %q, got %v", name, c.want, err)
+			}
+			if config != nil {
+				t.Errorf("%s: a config with bad data loaded", name)
+			}
+		}
+	})
+
 	errorCases := []struct{ name, source, want string }{
 		{"rows that do not match the times", "{times: [0, 1, 2], partitions: {p: [[1], [2]]}}",
 			`input "x": inline: partition "p" has 2 rows for 3 times`},
@@ -255,11 +284,13 @@ main:
 		if err != nil {
 			t.Fatal(err)
 		}
-		yaml := "inputs:\n  from_storage/clear_sky_driver: {source: {inline: {times: [0], partitions: {q: [[1]]}}}}\n" + string(data)
-		_, err = LoadConfig(writeConfigPath(t, yaml))
-		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(),
-			`input "from_storage/clear_sky_driver" is the name inline from_storage data takes`) {
-			t.Errorf("expected a naming error, got %v", err)
+		for _, name := range []string{"from_storage/clear_sky_driver", "from_storage/timestep_function"} {
+			yaml := "inputs:\n  " + name + ": {source: {inline: {times: [0], partitions: {q: [[1]]}}}}\n" + string(data)
+			_, err = LoadConfig(writeConfigPath(t, yaml))
+			if KindOf(err) != ErrConfig || !strings.Contains(err.Error(),
+				`input "`+name+`" is the name inline from_storage data takes`) {
+				t.Errorf("%s: expected a naming error, got %v", name, err)
+			}
 		}
 	})
 }

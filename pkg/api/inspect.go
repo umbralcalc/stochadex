@@ -55,6 +55,11 @@ func Check(config *ApiRunConfig) error {
 		checked = *reloaded
 	} else {
 		checked.Main.Partitions = append([]simulator.PartitionConfig(nil), config.Main.Partitions...)
+		checked.Embedded = append([]EmbeddedRunConfig(nil), config.Embedded...)
+		for index := range checked.Embedded {
+			checked.Embedded[index].Run.Partitions = append([]simulator.PartitionConfig(nil),
+				config.Embedded[index].Run.Partitions...)
+		}
 	}
 	standInInputs(&checked)
 	return checkWiring(&checked)
@@ -101,9 +106,23 @@ func standInInputs(config *ApiRunConfig) {
 		}
 		partition.Iteration = &inputStandIn{}
 	}
+	// A partition that reads a file input, such as a model, reads it when it is
+	// configured, so a check configures a stand-in instead.
+	standIn := func(scope string, partitions []simulator.PartitionConfig) {
+		for index := range partitions {
+			if config.readsFiles[scope+"/"+partitions[index].Name] {
+				partitions[index].Iteration = &inputStandIn{}
+			}
+		}
+	}
+	standIn("main", config.Main.Partitions)
+	for _, embedded := range config.Embedded {
+		standIn(embedded.Name, embedded.Run.Partitions)
+	}
 }
 
-// inputStandIn stands in for a from_input partition while a config is checked.
+// inputStandIn stands in, while a config is checked, for a partition that
+// would read an input: a from_input partition, or one reading a file input.
 type inputStandIn struct{}
 
 func (*inputStandIn) Configure(int, *simulator.Settings) {}
@@ -232,15 +251,15 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 		}
 	}
 	readers := inputReaders(config)
-	inputs := config.Inputs
-	if len(config.Macros) > 0 {
-		inputs = macroInputs(config)
-	}
+	inputs := runInputs(config)
 	for _, name := range sortedKeys(inputs) {
 		input := inputs[name]
 		entry := ManifestInput{Name: name, ReadBy: readers[name].by,
 			Partitions: readers[name].partitions}
 		switch {
+		case input.File != nil:
+			entry.Kind, entry.Location = "file", input.File.Path
+			entry.ReadBy = config.fileReaders[name]
 		case input.Stream != nil:
 			entry.Kind = "stream"
 			if input.Stream.Websocket != nil {
@@ -256,7 +275,7 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 		default:
 			entry.Kind = "simulation"
 		}
-		if len(config.Macros) > 0 {
+		if len(config.Macros) > 0 && input.File == nil {
 			entry.ReadBy = []string{"macros"}
 		}
 		manifest.Inputs = append(manifest.Inputs, entry)
@@ -331,6 +350,15 @@ func manifestRun(config *ApiRunConfig) ManifestRun {
 		run.Address, run.Handle = config.Run.Websocket.Address, config.Run.Websocket.Handle
 	}
 	return run
+}
+
+// runInputs are every input a run reads: its inputs:, or a macros: config's
+// data: as an input.
+func runInputs(config *ApiRunConfig) map[string]InputConfig {
+	if len(config.Inputs) > 0 || len(config.Macros) == 0 {
+		return config.Inputs
+	}
+	return macroInputs(config)
 }
 
 // readers is what reads one input: config paths, and the input partitions read.

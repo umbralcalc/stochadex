@@ -26,11 +26,19 @@
 //
 // # Config surface
 //
+// The model file is an input of the config, declared once under inputs: and
+// named by model_path, so the run's I/O manifest and provenance see it:
+//
+//	inputs:
+//	  brain: {file: {path: model.onnx}}
+//
+// A plain path, model_path: model.onnx, is shorthand for such an input.
+//
 // A single-input model uses the shorthand:
 //
 //	iteration:
 //	  type: onnx_inference
-//	  model_path: model.onnx        # required
+//	  model_path: {input: brain}    # required: the file input (or a plain path)
 //	  input_param: input            # params key holding the feature vector (default "input")
 //	  input_name: ...               # ONNX graph input name (default: the sole input)
 //	  output_name: ...              # ONNX graph output name (default: the sole output)
@@ -43,7 +51,7 @@
 //
 //	iteration:
 //	  type: onnx_inference
-//	  model_path: model.onnx
+//	  model_path: {input: brain}
 //	  inputs:                       # {params key: ONNX input name}, every input bound
 //	    features: input
 //	    theta: parameters
