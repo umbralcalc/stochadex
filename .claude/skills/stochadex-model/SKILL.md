@@ -388,6 +388,10 @@ model.yaml` prints, as JSON, what the run would read and write.
 config, inputs, model files and binary); `stochadex inspect --provenance -c model.yaml`
 prints that key without running.
 
+An embedded run is a black box: its host partition's row is its inner partitions' final
+states, concatenated in order, and its inner steps are written nowhere. `inspect --io` gives
+the column layout. To see every inner step while debugging, add `--debug-embedded NAME=PATH`.
+
 To vary a run, don't rewrite the YAML: `--set path=value` (repeatable) replaces one value,
 such as `--set 'main.partitions[name=w].seed=7'` or `--set 'run.seeds=[1, 2]'`. A list entry is
 selected by its `name`, and the path must already exist. `${VAR}` in a value is filled from the

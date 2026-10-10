@@ -230,7 +230,7 @@ any earlier run's output there untouched, so a retry is always safe:
 | `duckdb` | held in memory | ingested in one `CREATE TABLE AS` |
 | `stdout`, `websocket`, `{type: connection}`, `postgres` | streamed as the run goes | (nothing held back: a failed run leaves what it sent) |
 
-An embedded run's own output is published with its outer run. A served connection's
+An embedded run's debug log is published with its outer run. A served connection's
 outputs are published when its session ends, and the client leaving counts as a clean end.
 A killed run can leave a `.partial` file behind, which the next run replaces. Publishing
 costs one rename per file, once per run and never per step.
@@ -416,6 +416,35 @@ Partitions read each other two ways, differing in **timing**:
 
 `params_from_upstream` **deadlocks** if two partitions each depend on the other within a step. Break the cycle with a lag-1 `upstreams` read in at least one direction. For mutually-coupled models (predator-prey and friends), lag-1 both ways is the faithful explicit-Euler step. The run pre-flights this and names the cycle instead of hanging.
 
+## Embedded runs are black boxes
+
+An embedded run (`embedded:`) runs a whole inner simulation inside one partition, from the
+start, at every outer step. The outer run sees only the result. At each outer step the host
+partition's row is its inner partitions' final states, concatenated in inner partition
+order, and outputs record that row like any other. The inner steps themselves are written
+nowhere: an embedded run with thousands of inner steps per outer step costs no output and
+fills no log.
+
+`stochadex inspect --io` gives each host partition's column layout, so you don't have to
+work out which columns hold which inner partition:
+
+```json
+"embedded": [{"partition": "forecast", "columns": [
+  {"partition": "inner", "offset": 0, "width": 1},
+  {"partition": "other", "offset": 1, "width": 2}]}]
+```
+
+To debug an embedded run, write every inner step of every outer step to a log, with no
+edit to the config:
+
+```bash
+stochadex --config model.yaml --debug-embedded forecast=forecast-debug.log
+```
+
+A debug log is for debugging, not a result. `inspect --io` lists it under `debug`, it gets
+no provenance sidecar, and `--skip-if-unchanged` ignores it. It is verbose by nature: each
+inner run follows the last, so inner times repeat once per outer step.
+
 ## Run modes
 
 ```yaml
@@ -525,8 +554,10 @@ stochadex --config model.yaml --check     # exit 0 when valid; 78 naming the pro
 `stochadex inspect --io` prints, as JSON, what a run would read and write, without running
 it:
 - its inputs: kind, location, and what reads them;
-- every place it writes: each `outputs:` view, an embedded run's own output, and a stream
-  input's `record:` file, with one path per member for an ensemble;
+- every place it writes its results: each `outputs:` view and a stream input's `record:`
+  file, with one path per member for an ensemble;
+- each embedded run's column layout, and any debug logs, listed apart (see "Embedded runs
+  are black boxes");
 - the run mode, seeds, clock and any overrides.
 
 ```bash

@@ -63,11 +63,11 @@ func fileInputs(manifest *IOManifest) []string {
 	return files
 }
 
-// fileOutputs are the files a manifest says a run writes: each member's for an
-// ensemble.
+// fileOutputs are the files a manifest says a run writes, debug logs
+// included: each member's for an ensemble.
 func fileOutputs(manifest *IOManifest) []string {
 	files := []string{}
-	for _, output := range manifest.Outputs {
+	for _, output := range append(append([]ManifestOutput(nil), manifest.Outputs...), manifest.Debug...) {
 		switch output.Sink {
 		case "stdout", "nil", connectionSink:
 			continue
@@ -613,6 +613,10 @@ func TestManifestOfEveryMainRunReadAndWrite(t *testing.T) {
 				Location: "out/run.log"},
 			{Name: "screen", DeclaredIn: "outputs", Condition: "only_given_partitions", Sink: "stdout",
 				Location: "stdout"},
+		},
+		Embedded: []ManifestEmbedded{{Partition: "nested",
+			Columns: []ManifestColumns{{Partition: "inner", Offset: 0, Width: 1}}}},
+		Debug: []ManifestOutput{
 			{Name: "nested", DeclaredIn: "embedded[name=nested].simulation", Condition: "every_step",
 				Sink: "json_log", Location: "out/nested.log"},
 		},

@@ -16,8 +16,11 @@ type ParsedArgs struct {
 	Sets       []string
 	// SeedRange runs one shard of an ensemble: FROM:TO, the seeds FROM to TO
 	// inclusive, in place of run.seeds (--seed-range).
-	SeedRange  string
-	SocketFile string
+	SeedRange string
+	// DebugEmbedded writes embedded runs' inner steps to json_logs, each
+	// NAME=PATH (--debug-embedded).
+	DebugEmbedded []string
+	SocketFile    string
 	// Check validates the config and exits without running it (--check).
 	Check bool
 	// InspectIO prints the config's I/O manifest instead of running it
@@ -57,7 +60,7 @@ func parseArgs(args []string) (ParsedArgs, error) {
 		"stochadex",
 		"A generalised simulation engine",
 	)
-	configFile, sets, seedRange := configArgs(parser)
+	configFile, sets, seedRange, debugEmbedded := configArgs(parser)
 	socketFile := parser.String(
 		"s",
 		"socket",
@@ -97,6 +100,7 @@ func parseArgs(args []string) (ParsedArgs, error) {
 		ConfigFile:      *configFile,
 		Sets:            *sets,
 		SeedRange:       *seedRange,
+		DebugEmbedded:   *debugEmbedded,
 		SocketFile:      *socketFile,
 		Check:           *check,
 		Provenance:      *provenance || *skip,
@@ -110,7 +114,7 @@ func parseInspectArgs(args []string) (ParsedArgs, error) {
 		"stochadex inspect",
 		"Describe a config without running it",
 	)
-	configFile, sets, seedRange := configArgs(parser)
+	configFile, sets, seedRange, debugEmbedded := configArgs(parser)
 	io := parser.Flag(
 		"",
 		"io",
@@ -135,12 +139,14 @@ func parseInspectArgs(args []string) (ParsedArgs, error) {
 		return ParsedArgs{}, &Error{Kind: ErrUsage, Err: errors.New(parser.Usage(err))}
 	}
 	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, SeedRange: *seedRange,
-		InspectIO: *io, InspectProvenance: *provenance}, nil
+		DebugEmbedded: *debugEmbedded, InspectIO: *io, InspectProvenance: *provenance}, nil
 }
 
 // configArgs declares the arguments every command takes: the config and its
 // overrides.
-func configArgs(parser *argparse.Parser) (configFile *string, sets *[]string, seedRange *string) {
+func configArgs(parser *argparse.Parser) (
+	configFile *string, sets *[]string, seedRange *string, debugEmbedded *[]string,
+) {
 	configFile = parser.String(
 		"c",
 		"config",
@@ -167,5 +173,14 @@ func configArgs(parser *argparse.Parser) (configFile *string, sets *[]string, se
 				"FROM:TO, in place of run.seeds",
 		},
 	)
-	return configFile, sets, seedRange
+	debugEmbedded = parser.StringList(
+		"",
+		"debug-embedded",
+		&argparse.Options{
+			Required: false,
+			Help: "write an embedded run's inner steps, every one of every outer step, to " +
+				"a json_log, as NAME=PATH (repeatable); by default an embedded run writes nothing",
+		},
+	)
+	return configFile, sets, seedRange, debugEmbedded
 }

@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -52,6 +53,9 @@ type setOverride struct {
 	path, value string
 	// label names the override in errors when it was not written as a --set.
 	label string
+	// adds marks an override that adds its last key, which must not exist yet
+	// (see debugEmbeddedOption); every other override replaces a value.
+	adds bool
 }
 
 func (s setOverride) String() string {
@@ -112,6 +116,28 @@ func seedRangeOption(spec string) (LoadOption, error) {
 	return func(o *loadOptions) {
 		o.sets = append(o.sets, setOverride{path: "run.seeds", value: seeds.String(),
 			label: "--seed-range " + spec})
+	}, nil
+}
+
+// debugEmbeddedOption reads --debug-embedded NAME=PATH: write embedded run
+// NAME's inner detail, every inner step of every outer step, to a json_log at
+// PATH. By default an embedded run is a black box that writes nothing (its host
+// partition's row is what the outer run records), so this only adds an output
+// to a run that declares none.
+func debugEmbeddedOption(spec string) (LoadOption, error) {
+	name, path, found := strings.Cut(spec, "=")
+	if !found || name == "" || path == "" {
+		return nil, &Error{Kind: ErrUsage, Err: fmt.Errorf(
+			"--debug-embedded %s: expected NAME=PATH, an embedded run and a log path", spec)}
+	}
+	encoded, _ := json.Marshal(path)
+	return func(o *loadOptions) {
+		o.sets = append(o.sets, setOverride{
+			path:  "embedded[name=" + name + "].simulation.output_function",
+			value: "{type: json_log, path: " + string(encoded) + "}",
+			label: "--debug-embedded " + spec,
+			adds:  true,
+		})
 	}, nil
 }
 
@@ -468,12 +494,24 @@ func applySet(root *yaml3.Node, set setOverride) error {
 		return failf("%v", err)
 	}
 	node, at := root, ""
-	for _, segment := range segments {
+	for index, segment := range segments {
 		if node.Kind != yaml3.MappingNode {
 			return failf("%s is not a mapping, so it has no %s", at, segment.key)
 		}
 		at = strings.TrimPrefix(at+"."+segment.key, ".")
 		value := mappingValue(node, segment.key)
+		if set.adds && index == len(segments)-1 {
+			if value != nil {
+				return failf("%s is already set; change it with --set", at)
+			}
+			added, err := parseValue(set.value)
+			if err != nil {
+				return failf("the value is not valid YAML: %v", err)
+			}
+			node.Content = append(node.Content,
+				&yaml3.Node{Kind: yaml3.ScalarNode, Tag: "!!str", Value: segment.key}, added)
+			return nil
+		}
 		if value == nil {
 			return failf("the config has no %s", at)
 		}

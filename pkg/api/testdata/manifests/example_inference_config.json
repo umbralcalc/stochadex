@@ -17,5 +17,32 @@
       "sink": "stdout",
       "location": "stdout"
     }
+  ],
+  "embedded": [
+    {
+      "partition": "ornstein_uhlenbeck_simulation",
+      "columns": [
+        {
+          "partition": "data_rolling_mean_copy",
+          "offset": 0,
+          "width": 4
+        },
+        {
+          "partition": "data_rolling_cov_copy",
+          "offset": 4,
+          "width": 16
+        },
+        {
+          "partition": "simulation_iteration",
+          "offset": 20,
+          "width": 4
+        },
+        {
+          "partition": "data_comparison_to_simulation",
+          "offset": 24,
+          "width": 1
+        }
+      ]
+    }
   ]
 }

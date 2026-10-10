@@ -59,7 +59,11 @@ func (s *Settings) Init() {
 
 // Implementations provides concrete implementations for a simulation run.
 type Implementations struct {
-	Iterations           []Iteration
+	Iterations []Iteration
+	// OutputCondition and OutputFunction say what a run outputs. With no
+	// OutputFunction a run outputs nothing, which is how an embedded run is a
+	// black box by default; with a function but no condition, it outputs every
+	// step.
 	OutputCondition      OutputCondition
 	OutputFunction       OutputFunction
 	TerminationCondition TerminationCondition

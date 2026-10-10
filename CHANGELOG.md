@@ -24,6 +24,14 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Embedded runs are black boxes, and `inspect --io` shows their layout.** At each outer
+  step an embedded run's host partition records its inner partitions' final states,
+  concatenated in order. Its inner steps are written nowhere by default, so they cost no
+  output. `inspect --io` gives each host partition's `columns` (offset and width per inner
+  partition).
+- **`--debug-embedded NAME=PATH`** writes an embedded run's every inner step to a json_log,
+  with no edit to the config. It refuses a run that already declares its own output.
+
 - **`--seed-range FROM:TO`: run one shard of an ensemble.** It runs seeds FROM to TO
   inclusive, in place of `run.seeds`, exactly as `--set 'run.seeds=[...]'` would. Each
   shard writes its own outputs and provenance, and shards together equal the single-machine
@@ -87,6 +95,10 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **An embedded run's own output is a debug log, not a result** (PLAN.md rule 14). The I/O
+  manifest lists it under `debug` instead of `outputs`, provenance gives it no sidecar, and
+  `--skip-if-unchanged` ignores it.
+
 - **An `arrow`, `duckdb` or `s3` output that cannot be written fails a config run**
   (exit 75), instead of printing to stderr and exiting 0. So does a `json_log` that cannot
   be published.
@@ -99,6 +111,13 @@ an exact version rather than assume stability across minors.
   its overrides, instead of re-reading the file. A server therefore keeps the config it
   validated at startup, and editing the file while it serves no longer affects later
   connections.
+
+### Fixed
+
+- **An embedded run that declares no output no longer crashes.** It writes nothing, as a
+  black box should; before, it had to declare `output_function: {type: nil}`. More
+  generally, a run with no output function outputs nothing, and one with a function but no
+  condition outputs every step.
 
 ## [0.20.0] — 2026-10-08
 
