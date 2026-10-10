@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/scientificgo/special v0.0.2
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

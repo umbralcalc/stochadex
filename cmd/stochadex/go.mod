@@ -29,7 +29,10 @@ require (
 	github.com/umbralcalc/stochadex/pkg/s3store v0.0.0
 )
 
-require github.com/yalue/onnxruntime_go v1.31.0 // indirect
+require (
+	github.com/yalue/onnxruntime_go v1.31.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	github.com/akamensky/argparse v1.4.0 // indirect

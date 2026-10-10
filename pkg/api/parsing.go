@@ -9,9 +9,11 @@ import (
 )
 
 // ParsedArgs bundles CLI-derived inputs for running the API: the YAML config
-// path and an optional socket config path.
+// path, any --set overrides (each path=value), and an optional socket config
+// path.
 type ParsedArgs struct {
 	ConfigFile string
+	Sets       []string
 	SocketFile string
 }
 
@@ -42,6 +44,15 @@ func parseArgs(args []string) (ParsedArgs, error) {
 			Help:     "yaml config path",
 		},
 	)
+	sets := parser.StringList(
+		"",
+		"set",
+		&argparse.Options{
+			Required: false,
+			Help: "override a config value for this run, as path=value (repeatable); " +
+				"e.g. main.partitions[name=w].seed=7",
+		},
+	)
 	socketFile := parser.String(
 		"s",
 		"socket",
@@ -55,6 +66,7 @@ func parseArgs(args []string) (ParsedArgs, error) {
 	}
 	return ParsedArgs{
 		ConfigFile: *configFile,
+		Sets:       *sets,
 		SocketFile: *socketFile,
 	}, nil
 }

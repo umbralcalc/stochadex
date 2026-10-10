@@ -22,6 +22,28 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **Per-invocation overrides: `--set` and `${VAR}`.** One config file now runs as many
+  parameterised jobs, as an orchestrator step needs.
+  - `--set path=value` (repeatable; `api.WithSet` from Go) replaces one value for the run:
+    `--set 'main.partitions[name=w].seed=7'`. A path joins keys with dots and selects a list
+    entry by its `name`, never its position.
+  - The path must already exist, and the value must have the old one's shape, so a typo is
+    a config error naming the `--set` rather than a run that measures the unmodified config.
+  - `${VAR}` in a value is filled from the environment (`api.WithEnv` from Go). Unquoted,
+    its text reads as YAML, so it can be a number, a list or a `{type: ...}`; quoted, it is
+    text. An unset or empty variable, or a placeholder in a key, is a config error.
+  - Overrides are applied before every check, and a failure that only an override causes
+    names that override.
+
+### Changed
+
+- **Ensemble members and served connections are rebuilt from the config as loaded,** with
+  its overrides, instead of re-reading the file. A server therefore keeps the config it
+  validated at startup, and editing the file while it serves no longer affects later
+  connections.
+
 ## [0.20.0] — 2026-10-08
 
 This release makes a config **inputs → one runtime → outputs** (the config-runtime plan's

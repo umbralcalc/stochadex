@@ -279,7 +279,11 @@ func Execute(args []string) error {
 		return err
 	}
 	LogRunProvenance(os.Stderr)
-	config, err := LoadConfig(parsed.ConfigFile)
+	options, err := setOptions(parsed.Sets)
+	if err != nil {
+		return err
+	}
+	config, err := LoadConfig(parsed.ConfigFile, options...)
 	if err != nil {
 		return err
 	}
@@ -607,7 +611,7 @@ func ensembleRuns(
 		// Each member re-loads the config (fresh iterations) and gets its own
 		// views, with {member} / {seed} substituted, teed with its storage.
 		build := func(member int, seed uint64) *simulator.ConfigGenerator {
-			memberConfig := LoadApiRunConfigFromYaml(config.sourcePath)
+			memberConfig := mustReload(config)
 			if err := bindInputs(memberConfig); err != nil {
 				panic(err)
 			}
@@ -622,7 +626,7 @@ func ensembleRuns(
 			build, config.Run.Seeds, config.Run.Concurrency), nil
 	}
 	build := func() *simulator.ConfigGenerator {
-		memberConfig := LoadApiRunConfigFromYaml(config.sourcePath)
+		memberConfig := mustReload(config)
 		if err := bindInputs(memberConfig); err != nil {
 			panic(err)
 		}
@@ -636,12 +640,22 @@ func ensembleRuns(
 	), nil
 }
 
+// mustReload is reload for an ensemble member's build, which cannot return an
+// error. The document already loaded once, so a failure here is a bug.
+func mustReload(config *ApiRunConfig) *ApiRunConfig {
+	reloaded, err := config.reload()
+	if err != nil {
+		panic(err)
+	}
+	return reloaded
+}
+
 // assertDataOnly reports an error unless every main partition has an iteration
 // after re-loading from file. A partition with no iteration relies on an embedded
 // run (rejected separately), so ensemble mode rejects it with a clear message
 // rather than failing later inside GenerateConfigs.
 func assertDataOnly(config *ApiRunConfig) error {
-	generator := LoadApiRunConfigFromYaml(config.sourcePath).GetConfigGenerator()
+	generator := mustReload(config).GetConfigGenerator()
 	for _, name := range generator.PartitionNames() {
 		if generator.GetPartition(name).Iteration == nil {
 			return fmt.Errorf(
@@ -672,8 +686,12 @@ func RunWithParsedArgs(args ParsedArgs) {
 	// when the orchestrator supplies it, the exact image) that produced it.
 	LogRunProvenance(os.Stderr)
 
+	options, err := setOptions(args.Sets)
+	if err != nil {
+		panic(err)
+	}
 	Run(
-		LoadApiRunConfigFromYaml(args.ConfigFile),
+		LoadApiRunConfigFromYaml(args.ConfigFile, options...),
 		LoadSocketConfigFromYaml(args.SocketFile),
 	)
 }

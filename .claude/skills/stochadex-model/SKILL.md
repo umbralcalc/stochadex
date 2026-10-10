@@ -380,6 +380,11 @@ macro *names* only, so change the numbers and the objective/model, but keep the 
 stochadex --config model.yaml
 ```
 
+To vary a run, don't rewrite the YAML: `--set path=value` (repeatable) replaces one value,
+such as `--set 'main.partitions[name=w].seed=7'` or `--set 'run.seeds=[1, 2]'`. A list entry is
+selected by its `name`, and the path must already exist. `${VAR}` in a value is filled from the
+environment, and an unset variable is an error.
+
 If every iteration and simulation component is a `{type: ...}` data spec (no Go), it runs
 in-process with no toolchain. Errors are located and actionable — an unknown type names the field,
 a mistyped param key is rejected, and a within-step cycle names the partitions to break. Read the
