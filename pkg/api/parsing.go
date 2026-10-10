@@ -20,6 +20,14 @@ type ParsedArgs struct {
 	// InspectIO prints the config's I/O manifest instead of running it
 	// (stochadex inspect --io).
 	InspectIO bool
+	// InspectProvenance prints the run's provenance, with its key, instead of
+	// running it (stochadex inspect --provenance).
+	InspectProvenance bool
+	// Provenance writes a provenance sidecar beside each file output
+	// (--provenance); SkipIfUnchanged skips a run whose outputs already carry
+	// its key, and implies Provenance (--skip-if-unchanged).
+	Provenance      bool
+	SkipIfUnchanged bool
 }
 
 // ArgParse parses CLI flags into a ParsedArgs.
@@ -63,14 +71,32 @@ func parseArgs(args []string) (ParsedArgs, error) {
 				"reading its inputs; exits 0 when it is valid",
 		},
 	)
+	provenance := parser.Flag(
+		"",
+		"provenance",
+		&argparse.Options{
+			Help: "write <output>" + sidecarSuffix + " beside each file output: what made it, " +
+				"and a key identifying the run",
+		},
+	)
+	skip := parser.Flag(
+		"",
+		"skip-if-unchanged",
+		&argparse.Options{
+			Help: "do not run when every file output already carries this run's key; " +
+				"implies --provenance",
+		},
+	)
 	if err := parser.Parse(args); err != nil {
 		return ParsedArgs{}, &Error{Kind: ErrUsage, Err: errors.New(parser.Usage(err))}
 	}
 	return ParsedArgs{
-		ConfigFile: *configFile,
-		Sets:       *sets,
-		SocketFile: *socketFile,
-		Check:      *check,
+		ConfigFile:      *configFile,
+		Sets:            *sets,
+		SocketFile:      *socketFile,
+		Check:           *check,
+		Provenance:      *provenance || *skip,
+		SkipIfUnchanged: *skip,
 	}, nil
 }
 
@@ -85,15 +111,27 @@ func parseInspectArgs(args []string) (ParsedArgs, error) {
 		"",
 		"io",
 		&argparse.Options{
-			Required: true,
 			Help: "print, as JSON, what a run reads and writes: inputs, outputs, run " +
 				"mode, seeds, clock and overrides",
 		},
 	)
-	if err := parser.Parse(args); err != nil {
+	provenance := parser.Flag(
+		"",
+		"provenance",
+		&argparse.Options{
+			Help: "print, as JSON, what a run would be made from, with the key that " +
+				"identifies it (reads its inputs to fingerprint them)",
+		},
+	)
+	err := parser.Parse(args)
+	if err == nil && *io == *provenance {
+		err = errors.New("give exactly one of --io and --provenance")
+	}
+	if err != nil {
 		return ParsedArgs{}, &Error{Kind: ErrUsage, Err: errors.New(parser.Usage(err))}
 	}
-	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, InspectIO: *io}, nil
+	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, InspectIO: *io,
+		InspectProvenance: *provenance}, nil
 }
 
 // configArgs declares the arguments every command takes: the config and its

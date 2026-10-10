@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -69,6 +70,24 @@ func Fetch(
 			"s3store: downloading s3://%s/%s: %w", bucket, key, err)
 	}
 	return file.Name(), cleanup, nil
+}
+
+// Version identifies the current contents of an object without downloading it:
+// its version ID on a versioned bucket, otherwise its ETag. Either changes
+// whenever the object is rewritten, so it fingerprints the object for a run's
+// provenance.
+func Version(ctx context.Context, client *s3.Client, bucket, key string) (string, error) {
+	head, err := client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: &bucket, Key: &key})
+	if err != nil {
+		return "", fmt.Errorf("s3store: reading s3://%s/%s: %w", bucket, key, err)
+	}
+	if head.VersionId != nil && *head.VersionId != "" && *head.VersionId != "null" {
+		return "s3-version:" + *head.VersionId, nil
+	}
+	if head.ETag != nil {
+		return "s3-etag:" + strings.Trim(*head.ETag, `"`), nil
+	}
+	return "", fmt.Errorf("s3store: s3://%s/%s has neither a version nor an ETag", bucket, key)
 }
 
 // Upload copies a local file to an object.

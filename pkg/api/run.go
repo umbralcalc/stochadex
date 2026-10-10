@@ -305,12 +305,14 @@ func Execute(args []string) error {
 		return err
 	}
 	if parsed.InspectIO {
-		manifest, err := json.MarshalIndent(Manifest(config), "", "  ")
+		return printJSON(Manifest(config))
+	}
+	if parsed.InspectProvenance {
+		provenance, err := ComputeProvenance(config)
 		if err != nil {
 			return err
 		}
-		_, err = fmt.Fprintf(os.Stdout, "%s\n", manifest)
-		return err
+		return printJSON(provenance)
 	}
 	socket, err := loadSocketConfig(parsed.SocketFile)
 	if err != nil {
@@ -326,7 +328,38 @@ func Execute(args []string) error {
 		fmt.Fprintf(os.Stderr, "stochadex: %s is valid\n", parsed.ConfigFile)
 		return nil
 	}
-	return runE(config, socket)
+	if !parsed.Provenance {
+		return runE(config, socket)
+	}
+	// Fingerprinted before the run, from the inputs it is about to read.
+	provenance, err := ComputeProvenance(config)
+	if err != nil {
+		return err
+	}
+	targets := sidecarTargets(config)
+	if parsed.SkipIfUnchanged {
+		current, why := upToDate(provenance, targets)
+		if current {
+			fmt.Fprintf(os.Stderr, "stochadex: skipped: every output already carries key %s\n",
+				provenance.Key)
+			return nil
+		}
+		fmt.Fprintf(os.Stderr, "stochadex: running: %s\n", why)
+	}
+	if err := runE(config, socket); err != nil {
+		return err
+	}
+	return writeSidecars(provenance, targets)
+}
+
+// printJSON prints v to stdout as indented JSON.
+func printJSON(v any) error {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(os.Stdout, "%s\n", data)
+	return err
 }
 
 // RunResult is what one run of a config produced. Storage holds a batch run's

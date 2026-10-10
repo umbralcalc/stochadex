@@ -24,6 +24,21 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **Provenance and `--skip-if-unchanged`.** `--provenance` writes
+  `<output>.provenance.json` beside each `json_log` and `arrow` output, once the outputs
+  are published. It records the resolved config (after overrides), a fingerprint of each
+  input's contents (an S3 object by its version), any `model_path` file, the build, and a
+  `key` hashing them all.
+  - `--skip-if-unchanged` skips a run whose outputs all exist and carry its key (exit 0, one
+    stderr line). `stochadex inspect --provenance` prints the key without running, for use
+    as an idempotency key.
+  - A run with a Postgres or live-stream input, a served run, and a build that isn't a
+    release, a stamped image or a `go install ...@vX` have no key and are never skipped;
+    the provenance says why. Go's own commit stamp is recorded but not trusted: inside a
+    git worktree it names the main checkout's commit.
+  - From Go: `api.ComputeProvenance`, and `api.RegisterSourceFingerprint` for registered
+    sources (the CLI registers S3's).
+
 - **All-or-nothing outputs.** A config run's files, objects and tables appear only once the
   whole run has ended cleanly; a failed, crashed or killed run leaves nothing at their
   destinations, and any earlier output there intact, so retries are safe.

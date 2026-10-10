@@ -28,6 +28,24 @@ import (
 // the standard AWS chain, never the config. Optional `region:` and `endpoint:` are passed
 // through; set `endpoint:` for any S3-compatible store.
 func init() {
+	// A run's provenance fingerprints an S3 input by its object's version, which
+	// changes whenever the object does, without downloading it.
+	api.RegisterSourceFingerprint("s3", func(fields map[string]interface{}) (string, error) {
+		bucket, err := sourceStringNamed(fields, "s3 source", "bucket")
+		if err != nil {
+			return "", err
+		}
+		key, err := sourceStringNamed(fields, "s3 source", "key")
+		if err != nil {
+			return "", err
+		}
+		ctx := context.Background()
+		client, err := s3store.NewClient(ctx, s3ConfigFrom(fields))
+		if err != nil {
+			return "", err
+		}
+		return s3store.Version(ctx, client, bucket, key)
+	})
 	api.RegisterDataSource("s3", func(
 		fields map[string]interface{},
 	) (*simulator.StateTimeStorage, error) {

@@ -113,6 +113,33 @@ func TestS3StoreRoundTrip(t *testing.T) {
 		}
 	})
 
+	t.Run("Version changes when the object is rewritten, and not otherwise", func(t *testing.T) {
+		local := filepath.Join(t.TempDir(), "in.csv")
+		version := func(contents string) string {
+			if contents != "" {
+				os.WriteFile(local, []byte(contents), 0o644)
+				if err := Upload(ctx, client, bucket, "versioned/in.csv", local); err != nil {
+					t.Fatal(err)
+				}
+			}
+			v, err := Version(ctx, client, bucket, "versioned/in.csv")
+			if err != nil {
+				t.Fatal(err)
+			}
+			return v
+		}
+		first := version("0,1.0\n")
+		if again := version(""); again != first {
+			t.Errorf("an unchanged object's version moved: %s then %s", first, again)
+		}
+		if changed := version("0,2.0\n"); changed == first {
+			t.Errorf("a rewritten object kept its version %s", first)
+		}
+		if _, err := Version(ctx, client, bucket, "versioned/absent.csv"); err == nil {
+			t.Error("a missing object should have no version")
+		}
+	})
+
 	t.Run("Fetch of a missing key errors and names the object", func(t *testing.T) {
 		_, cleanup, err := Fetch(ctx, client, bucket, "definitely/absent.csv")
 		defer cleanup()

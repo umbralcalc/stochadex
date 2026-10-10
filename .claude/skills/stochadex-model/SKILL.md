@@ -384,6 +384,10 @@ Before spending a run, `stochadex --config model.yaml --check` validates the con
 its wiring and the deadlock pre-flight, without running it. `stochadex inspect --io -c
 model.yaml` prints, as JSON, what the run would read and write.
 
+`--skip-if-unchanged` skips a run whose file outputs already carry its provenance key (same
+config, inputs, model files and binary); `stochadex inspect --provenance -c model.yaml`
+prints that key without running.
+
 To vary a run, don't rewrite the YAML: `--set path=value` (repeatable) replaces one value,
 such as `--set 'main.partitions[name=w].seed=7'` or `--set 'run.seeds=[1, 2]'`. A list entry is
 selected by its `name`, and the path must already exist. `${VAR}` in a value is filled from the
