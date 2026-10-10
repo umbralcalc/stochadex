@@ -300,9 +300,19 @@ func Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	if parsed.SeedRange != "" {
+		shard, err := seedRangeOption(parsed.SeedRange)
+		if err != nil {
+			return err
+		}
+		options = append(options, shard)
+	}
 	config, err := LoadConfig(parsed.ConfigFile, options...)
 	if err != nil {
 		return err
+	}
+	if parsed.SeedRange != "" {
+		warnSharedMemberNames(config, os.Stderr)
 	}
 	if parsed.InspectIO {
 		return printJSON(Manifest(config))
@@ -788,6 +798,13 @@ func RunWithParsedArgs(args ParsedArgs) {
 	options, err := setOptions(args.Sets)
 	if err != nil {
 		panic(err)
+	}
+	if args.SeedRange != "" {
+		shard, err := seedRangeOption(args.SeedRange)
+		if err != nil {
+			panic(err)
+		}
+		options = append(options, shard)
 	}
 	Run(
 		LoadApiRunConfigFromYaml(args.ConfigFile, options...),

@@ -24,6 +24,12 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`--seed-range FROM:TO`: run one shard of an ensemble.** It runs seeds FROM to TO
+  inclusive, in place of `run.seeds`, exactly as `--set 'run.seeds=[...]'` would. Each
+  shard writes its own outputs and provenance, and shards together equal the single-machine
+  ensemble, member for member. A shard warns when an output names members by `{member}`
+  alone, which restarts at 0 in every shard; `{seed}` is unique across shards.
+
 - **Provenance and `--skip-if-unchanged`.** `--provenance` writes
   `<output>.provenance.json` beside each `json_log` and `arrow` output, once the outputs
   are published. It records the resolved config (after overrides), a fingerprint of each

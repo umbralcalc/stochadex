@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -47,15 +48,24 @@ type loadOptions struct {
 	lookup func(string) (string, bool)
 }
 
-type setOverride struct{ path, value string }
+type setOverride struct {
+	path, value string
+	// label names the override in errors when it was not written as a --set.
+	label string
+}
 
-func (s setOverride) String() string { return "--set " + s.path + "=" + s.value }
+func (s setOverride) String() string {
+	if s.label != "" {
+		return s.label
+	}
+	return "--set " + s.path + "=" + s.value
+}
 
 // WithSet replaces the value at path with value, read as YAML. path joins
 // mapping keys with dots and selects a list entry by name, as in
 // main.partitions[name=w].params.rate; it must already exist in the config.
 func WithSet(path, value string) LoadOption {
-	return func(o *loadOptions) { o.sets = append(o.sets, setOverride{path, value}) }
+	return func(o *loadOptions) { o.sets = append(o.sets, setOverride{path: path, value: value}) }
 }
 
 // WithEnv fills ${VAR} placeholders from lookup instead of the process
@@ -75,6 +85,49 @@ func setOptions(args []string) ([]LoadOption, error) {
 		options = append(options, option)
 	}
 	return options, nil
+}
+
+// seedRangeOption reads --seed-range FROM:TO as an override of run.seeds with
+// the seeds FROM to TO inclusive, so it is checked, and fingerprinted, exactly as
+// a --set of the same list would be.
+func seedRangeOption(spec string) (LoadOption, error) {
+	// Without a colon, TO is empty and does not parse.
+	from, to, _ := strings.Cut(spec, ":")
+	first, err1 := strconv.ParseUint(from, 10, 64)
+	last, err2 := strconv.ParseUint(to, 10, 64)
+	if err1 != nil || err2 != nil || first > last {
+		return nil, &Error{Kind: ErrUsage, Err: fmt.Errorf(
+			"--seed-range %s: expected FROM:TO, two seeds with FROM no greater than TO", spec)}
+	}
+	var seeds strings.Builder
+	seeds.WriteByte('[')
+	for seed := first; ; seed++ {
+		seeds.WriteString(strconv.FormatUint(seed, 10))
+		if seed == last {
+			break
+		}
+		seeds.WriteString(", ")
+	}
+	seeds.WriteByte(']')
+	return func(o *loadOptions) {
+		o.sets = append(o.sets, setOverride{path: "run.seeds", value: seeds.String(),
+			label: "--seed-range " + spec})
+	}, nil
+}
+
+// warnSharedMemberNames warns when a shard's outputs name members by {member}
+// alone: every --seed-range shard numbers its members from 0, so shards writing
+// to the same place would overwrite each other. {seed} is unique across shards.
+// It is a warning, not an error: shards may be given separate places by --set.
+func warnSharedMemberNames(config *ApiRunConfig, w io.Writer) {
+	for _, view := range config.Outputs {
+		if hasPlaceholder(view.Function.Fields, []string{"{member}"}) &&
+			!hasPlaceholder(view.Function.Fields, []string{"{seed}"}) {
+			fmt.Fprintf(w, "stochadex: warning: %s names members by {member}, which every "+
+				"--seed-range shard numbers from 0; put {seed} in it, or give each shard its "+
+				"own place, so shards do not overwrite each other\n", view.label())
+		}
+	}
 }
 
 // parseSetArg splits a --set argument at its first '=' outside a [name=...]

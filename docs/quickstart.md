@@ -490,6 +490,25 @@ Overrides are applied before the config is checked, so every check applies to th
 Ensemble members and served connections all run the overridden config. A server keeps the
 config it validated at startup, so editing the file while it runs changes nothing.
 
+### Splitting an ensemble across machines
+
+A member's run depends only on its seed, so an ensemble can be split into shards, each run
+on its own machine, and the shards together are the whole ensemble:
+
+```bash
+stochadex --config ensemble.yaml --seed-range 1000:1499   # machine 1
+stochadex --config ensemble.yaml --seed-range 1500:1999   # machine 2
+```
+
+`--seed-range FROM:TO` runs seeds FROM to TO inclusive, in place of `run.seeds`, exactly
+as `--set 'run.seeds=[...]'` would. Each shard writes its own outputs and provenance, and
+gathering them is left to the workflow engine.
+
+Name members' outputs by `{seed}`, as in `path: "runs/member-{seed}.log"`. `{member}` is a
+member's position within its own shard, so it restarts at 0 in every shard, and shards
+writing to the same place would overwrite each other. A shard warns when an output uses
+`{member}` without `{seed}`.
+
 ### Checking a config without running it
 
 `--check` validates a config and exits without running it: every load check, the run mode's
