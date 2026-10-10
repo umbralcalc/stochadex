@@ -259,6 +259,22 @@ An input is any `data.source` (`csv`, `json_log`, `postgres`, plus `arrow` and `
 distributed CLI), or a pre-pass simulation (`{simulation: {steps, timestep, partitions: ...}}`).
 A run's `json_log` output can be the next run's input, which is how separate configs chain.
 
+A short series can be carried in the config itself, as an `inline` source. It needs a row
+per time, and an input with only `times:` can drive a clock:
+
+```yaml
+inputs:
+  sun:
+    source:
+      inline:
+        times: [0.0, 1.0, 2.0, 3.0]
+        partitions: {clear_sky: [[0.0], [5.0], [30.0], [120.0]]}
+```
+
+A `from_storage` iteration or timestep function with inline `data:` is shorthand for an
+inline input read by `from_input`, so `inspect --io` and provenance see that data as an
+input too.
+
 Inputs are read when the run starts, never when the config is loaded:
 - a missing input exits as unavailable (75);
 - an input lacking the named partition exits as a data error (65);

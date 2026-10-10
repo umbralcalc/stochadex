@@ -665,6 +665,9 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 	if err := yaml.Unmarshal(yamlFile, &config); err != nil {
 		return nil, configError(err)
 	}
+	if err := desugarFromStorage(&config); err != nil {
+		return nil, configError(err)
+	}
 	for index := range config.Main.Partitions {
 		config.Main.Partitions[index].Init()
 	}

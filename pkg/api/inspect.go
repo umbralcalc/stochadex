@@ -420,6 +420,8 @@ func sinkLocation(spec simulator.ComponentSpec) string {
 // sourceLocation is a stored input's kind and where it is read from.
 func sourceLocation(source *DataSource) (kind, location string) {
 	switch {
+	case source.Inline != nil:
+		return "inline", ""
 	case source.Csv != nil:
 		return "csv", source.Csv.Path
 	case source.JsonLog != nil:

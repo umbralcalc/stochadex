@@ -5,10 +5,29 @@
     "runtime": "main"
   },
   "clock": {
-    "timestep": "from_storage",
+    "timestep": "from_input",
+    "timestep_input": "from_storage/timestep_function",
     "termination": "number_of_steps"
   },
-  "inputs": [],
+  "inputs": [
+    {
+      "name": "from_storage/clear_sky_driver",
+      "kind": "inline",
+      "partitions": [
+        "clear_sky_driver"
+      ],
+      "read_by": [
+        "main.partitions[name=clear_sky_driver]"
+      ]
+    },
+    {
+      "name": "from_storage/timestep_function",
+      "kind": "inline",
+      "read_by": [
+        "main.simulation.timestep_function"
+      ]
+    }
+  ],
   "outputs": [
     {
       "name": "output",

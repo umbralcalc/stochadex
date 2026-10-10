@@ -17,6 +17,8 @@ type DataSource struct {
 	Csv      *csvSource      `yaml:"csv,omitempty"`
 	JsonLog  *jsonLogSource  `yaml:"json_log,omitempty"`
 	Postgres *postgresSource `yaml:"postgres,omitempty"`
+	// Inline carries the data in the config itself.
+	Inline *InlineSource `yaml:"inline,omitempty"`
 	// Extra captures any source key not named above, so a package layered on top of
 	// api can contribute one through RegisterDataSource without this struct (and
 	// therefore the engine's go.mod) having to know about its dependencies. The Arrow
@@ -42,6 +44,41 @@ func RegisterDataSource(
 		panic("api: duplicate data source registration " + name)
 	}
 	extraDataSources[name] = build
+}
+
+// InlineSource is data carried in the config itself (source: {inline: ...}): a
+// time axis, and each partition's rows, one row per time. A source with only
+// times can drive a clock (timestep_function: {type: from_input}).
+type InlineSource struct {
+	Times      []float64              `yaml:"times"`
+	Partitions map[string][][]float64 `yaml:"partitions,omitempty"`
+}
+
+// storage builds the data as a StateTimeStorage, checking its shape: a row per
+// time, each partition's rows as wide as each other.
+func (s *InlineSource) storage() (*simulator.StateTimeStorage, error) {
+	if len(s.Times) == 0 {
+		return nil, fmt.Errorf("inline: needs times:, the time of each row")
+	}
+	storage := simulator.NewStateTimeStorage()
+	for _, name := range sortedKeys(s.Partitions) {
+		rows := s.Partitions[name]
+		if len(rows) != len(s.Times) {
+			return nil, fmt.Errorf("inline: partition %q has %d rows for %d times",
+				name, len(rows), len(s.Times))
+		}
+		copied := make([][]float64, len(rows))
+		for i, row := range rows {
+			if len(row) == 0 || len(row) != len(rows[0]) {
+				return nil, fmt.Errorf("inline: partition %q's row %d has %d values, "+
+					"want %d like its first", name, i, len(row), len(rows[0]))
+			}
+			copied[i] = append([]float64(nil), row...)
+		}
+		storage.SetValues(name, copied)
+	}
+	storage.SetTimes(append([]float64(nil), s.Times...))
+	return storage, nil
 }
 
 type csvSource struct {
@@ -71,7 +108,7 @@ type postgresSource struct {
 // load reads storage from whichever single source is configured.
 func (s *DataSource) load() (*simulator.StateTimeStorage, error) {
 	set := len(s.Extra)
-	for _, present := range []bool{s.Csv != nil, s.JsonLog != nil, s.Postgres != nil} {
+	for _, present := range []bool{s.Csv != nil, s.JsonLog != nil, s.Postgres != nil, s.Inline != nil} {
 		if present {
 			set++
 		}
@@ -80,6 +117,8 @@ func (s *DataSource) load() (*simulator.StateTimeStorage, error) {
 		return nil, fmt.Errorf("api: data.source sets more than one source; pick one")
 	}
 	switch {
+	case s.Inline != nil:
+		return s.Inline.storage()
 	case s.Csv != nil:
 		return analysis.NewStateTimeStorageFromCsv(
 			s.Csv.Path, s.Csv.TimeColumn, s.Csv.StateColumns, s.Csv.SkipHeader,
