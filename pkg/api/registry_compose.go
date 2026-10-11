@@ -611,6 +611,9 @@ func registerComposableIterations() {
 	// ExpressionIteration. This is what lets a reward/objective be written as maths
 	// (e.g. a negative squared distance) where the block form cannot reach.
 	iterationBuilders["expression"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+		if err := refuseBooleanValues(f, "expression"); err != nil {
+			return nil, err
+		}
 		// Re-encode the spec fields and strictly decode them into the typed
 		// ExpressionIteration (fields/upstreams/bindings/outputs), rejecting unknown keys.
 		encoded, err := yaml.Marshal(f)

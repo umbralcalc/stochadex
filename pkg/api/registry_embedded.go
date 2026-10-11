@@ -62,6 +62,9 @@ func buildEmbeddedSimulationRun(fields map[string]interface{}) (simulator.Iterat
 func decodeNestedRun(fields map[string]interface{}) (*ApiRunConfig, error) {
 	// Fields decoded from YAML always marshal back (yaml.v2 panics, rather
 	// than erring, on a value that cannot).
+	if err := refuseNestedExpressionBooleans(fields); err != nil {
+		return nil, err
+	}
 	raw, _ := yaml.Marshal(fields)
 	var spec embeddedRunSpec
 	if err := yaml.UnmarshalStrict(raw, &spec); err != nil {
@@ -83,6 +86,27 @@ func decodeNestedRun(fields map[string]interface{}) (*ApiRunConfig, error) {
 		return nil, err
 	}
 	return config, nil
+}
+
+// refuseNestedExpressionBooleans applies refuseBooleanValues to each expressions:
+// entry of a nested run and of the embedded runs it states, which reach the typed
+// decode through interface{} and so lose a name YAML read as a boolean.
+func refuseNestedExpressionBooleans(fields map[string]interface{}) error {
+	run, _ := fields["run"].(map[interface{}]interface{})
+	runs := map[string]interface{}{"run": run}
+	embedded, _ := run["embedded"].([]interface{})
+	for i, entry := range embedded {
+		if entry, ok := entry.(map[interface{}]interface{}); ok {
+			runs[fmt.Sprintf("run.embedded[%d].run", i)] = entry["run"]
+		}
+	}
+	for _, at := range sortedKeys(runs) {
+		inner, _ := runs[at].(map[interface{}]interface{})
+		if err := refuseBooleanValues(inner["expressions"], at+".expressions"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // nestedRunOf returns the run a partition's embedded_simulation_run states,

@@ -289,7 +289,15 @@ func (s *mctsPlanningSpec) resolveLive(
 		return nil, 0, 0, fmt.Errorf("mcts_planning needs model.partitions")
 	}
 
-	settings, implementations, err := s.Model.build()
+	// The planner writes the action, and any parameter draw, into the model's
+	// params, so those keys are the model partitions' names too.
+	injected := map[string][]string{s.ActionPartition: {s.ActionParam}}
+	if s.Parameters != nil {
+		for _, target := range s.Parameters.Targets {
+			injected[target.Partition] = append(injected[target.Partition], target.Param)
+		}
+	}
+	settings, implementations, err := s.Model.build(injected)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -433,14 +441,20 @@ func (s *mctsPlanningSpec) resolveLive(
 
 // build resolves the model's partitions and wraps them in the minimal simulation
 // config a re-entrant model needs — the planner supplies the run length, so the
-// model's own termination condition is never consulted.
-func (m *planningModelSpec) build() (
+// model's own termination condition is never consulted. injected maps a partition
+// to the params keys the planner writes into it, which its expressions must not
+// confuse with any other name.
+func (m *planningModelSpec) build(injected map[string][]string) (
 	*simulator.Settings, *simulator.Implementations, error,
 ) {
 	partitions := make([]simulator.PartitionConfig, len(m.Partitions))
 	copy(partitions, m.Partitions)
 	if err := resolveIterations(partitions); err != nil {
 		return nil, nil, fmt.Errorf("mcts_planning model: %w", err)
+	}
+	if err := checkExpressionNames(
+		RunConfig{Partitions: partitions}, nil, injected, "mcts_planning model"); err != nil {
+		return nil, nil, err
 	}
 	timestep := m.Timestep
 	if timestep == 0 {

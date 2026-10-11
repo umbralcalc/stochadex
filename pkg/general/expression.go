@@ -6,7 +6,9 @@ import (
 	"go/parser"
 	"go/token"
 	"math"
+	"sort"
 	"strconv"
+	"strings"
 
 	"gonum.org/v1/gonum/stat/distuv"
 
@@ -50,6 +52,12 @@ type ExpressionBinding struct {
 //   - dt, the timestep increment; t, the current cumulative time; step, the step number;
 //   - pi;
 //   - any binding declared earlier.
+//
+// These share one namespace, so each name must mean one thing: a field, params key, upstream
+// alias or binding may not be spelled like a builtin (dt, t, step, pi), and no name may be
+// declared twice, whether by two kinds (a field and a params key both called x) or by one (two
+// fields called x). Configure refuses either, rather than letting the order the environment
+// is filled in decide which one an expression reads. See CheckNames.
 //
 // Functions: where, clamp, min, max, abs, floor, exp, log, sqrt, pow, sin, cos, erf, erfc,
 // fill, width, slice, concat, sum, dot, lag, each, scan, iid and shared, plus the draws normal,
@@ -165,6 +173,8 @@ type ExpressionIteration struct {
 	parsedOutputs  []ast.Expr
 	sampler        *rng.Sampler
 	out            []float64
+	vettedFor      *simulator.Settings
+	vettedKeys     int
 }
 
 type parsedExprBinding struct {
@@ -223,6 +233,18 @@ func (e *ExpressionIteration) Configure(
 		e.upstreamIndex[alias] = found
 	}
 
+	// Configure runs again on every reseed, which a planner does once per rollout, with
+	// the same settings. So the names are vetted once per settings and params key count
+	// (a planner's injected action is a new key, and is vetted when it arrives), without
+	// allocating, and CheckNames only words a refusal. What is remembered is only that
+	// the names were vetted, so no run's output depends on it.
+	iteration := settings.Iterations[partitionIndex]
+	keys := len(iteration.Params.Map) + len(iteration.ParamsFromUpstream)
+	if e.vettedFor != settings || e.vettedKeys != keys {
+		e.vetNames(iteration)
+		e.vettedFor, e.vettedKeys = settings, keys
+	}
+
 	e.parsedBindings = make([]parsedExprBinding, 0, len(e.Bindings))
 	for _, b := range e.Bindings {
 		parsed, err := parser.ParseExpr(b.Expr)
@@ -242,6 +264,160 @@ func (e *ExpressionIteration) Configure(
 	}
 
 	e.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
+}
+
+// vetNames panics, naming the partition, if CheckNames refuses its names.
+func (e *ExpressionIteration) vetNames(iteration simulator.IterationSettings) {
+	if e.namesAreUnambiguous(iteration) {
+		return
+	}
+	params := make([]string, 0, len(iteration.Params.Map)+len(iteration.ParamsFromUpstream))
+	for key := range iteration.Params.Map {
+		params = append(params, key)
+	}
+	for key := range iteration.ParamsFromUpstream {
+		params = append(params, key)
+	}
+	if err := e.CheckNames(params); err != nil {
+		panic(fmt.Sprintf("expression partition %q: %s", iteration.Name, err))
+	}
+}
+
+// namesAreUnambiguous is CheckNames without allocating, for Configure, using the
+// field and upstream indexes it has just built: it reports whether every name is
+// declared once and none is spelled like a builtin. It must refuse whatever
+// CheckNames refuses, which TestExpressionNameClashes pins pair by pair.
+func (e *ExpressionIteration) namesAreUnambiguous(iteration simulator.IterationSettings) bool {
+	if len(e.fieldIndex) != len(e.Fields) {
+		return false
+	}
+	for _, f := range e.Fields {
+		if isExpressionBuiltin(f.Name) {
+			return false
+		}
+	}
+	for alias := range e.upstreamIndex {
+		if _, field := e.fieldIndex[alias]; field || isExpressionBuiltin(alias) {
+			return false
+		}
+	}
+	declared := func(name string) bool {
+		_, field := e.fieldIndex[name]
+		_, alias := e.upstreamIndex[name]
+		return field || alias || isExpressionBuiltin(name)
+	}
+	for key := range iteration.Params.Map {
+		if declared(key) {
+			return false
+		}
+	}
+	for key := range iteration.ParamsFromUpstream {
+		if declared(key) {
+			return false
+		}
+	}
+	for i, b := range e.Bindings {
+		if declared(b.Name) {
+			return false
+		}
+		if _, param := iteration.Params.Map[b.Name]; param {
+			return false
+		}
+		if _, param := iteration.ParamsFromUpstream[b.Name]; param {
+			return false
+		}
+		for _, earlier := range e.Bindings[:i] {
+			if earlier.Name == b.Name {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// isExpressionBuiltin reports whether name is one of expressionBuiltins.
+func isExpressionBuiltin(name string) bool {
+	_, ok := expressionBuiltins[name]
+	return ok
+}
+
+// expressionBuiltins are the names every expression can read without declaring them, with
+// what each holds, for the message that refuses a declaration spelled like one.
+var expressionBuiltins = map[string]string{
+	"dt":   "the timestep increment",
+	"t":    "the current time",
+	"step": "the step number",
+	"pi":   "the constant pi",
+}
+
+// CheckNames reports a name this expression would resolve ambiguously, given the keys of
+// the params its partition will hold (params and params_from_upstream alike): a field,
+// params key, upstream alias or binding spelled like a builtin, or a name declared twice.
+// Expressions read all of these from one namespace, filled in a fixed order, so either
+// would otherwise make one declaration silently hide another — a params key called step
+// reads as the step number, and the param is never seen. Configure calls it; a loader
+// that knows a partition's params before Configure runs can call it to refuse earlier.
+// The error names the clash and the rename that fixes it, but not the partition, which
+// the caller adds.
+func (e *ExpressionIteration) CheckNames(params []string) error {
+	declared := map[string]string{}
+	declare := func(kind, name string) error {
+		if meaning, ok := expressionBuiltins[name]; ok {
+			return fmt.Errorf("%s %q is spelled like the builtin %s (%s), which would "+
+				"silently replace it in every expression; rename the %s", kind, name, name,
+				meaning, kind)
+		}
+		if earlier, ok := declared[name]; ok {
+			if earlier == kind {
+				return fmt.Errorf("two %ss are named %q, so expressions could only ever "+
+					"read one of them; rename one", kind, name)
+			}
+			return fmt.Errorf("%q is both %s and %s, so expressions could only ever "+
+				"read one of them; rename one", name, withArticle(earlier), withArticle(kind))
+		}
+		declared[name] = kind
+		return nil
+	}
+	for _, f := range e.Fields {
+		if err := declare("field", f.Name); err != nil {
+			return err
+		}
+	}
+	sortedParams := append([]string(nil), params...)
+	sort.Strings(sortedParams)
+	for i, key := range sortedParams {
+		// A key both declared and set by params_from_upstream is one params key.
+		if i > 0 && key == sortedParams[i-1] {
+			continue
+		}
+		if err := declare("params key", key); err != nil {
+			return err
+		}
+	}
+	aliases := make([]string, 0, len(e.Upstreams))
+	for alias := range e.Upstreams {
+		aliases = append(aliases, alias)
+	}
+	sort.Strings(aliases)
+	for _, alias := range aliases {
+		if err := declare("upstream alias", alias); err != nil {
+			return err
+		}
+	}
+	for _, b := range e.Bindings {
+		if err := declare("binding", b.Name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// withArticle prefixes a kind of name with its indefinite article.
+func withArticle(kind string) string {
+	if strings.ContainsRune("aeiou", rune(kind[0])) {
+		return "an " + kind
+	}
+	return "a " + kind
 }
 
 // Iterate evaluates the bindings in order and then each field's output expression,

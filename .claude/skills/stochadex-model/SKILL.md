@@ -84,8 +84,14 @@ main:
 ```
 
 **Names an expression may use:** the partition's own **field names** (current committed value),
-its **params keys**, `dt` (timestep), `t` (time), `step` (step number), any earlier **binding**,
-and an **upstream alias** (see wiring below).
+its **params keys**, `dt` (timestep), `t` (time), `step` (step number), `pi`, any earlier
+**binding**, and an **upstream alias** (see wiring below). They share one namespace, so each must
+mean one thing: no field, params key (including one set by `params_from_upstream`, forwarded by a
+host, or written by a planner's `action_param`), alias or binding may be called `dt`, `t`, `step`
+or `pi`, and no name may be declared twice (a field and a param both called `x`, two bindings
+called `b`). The load refuses either, naming the partition and the clash — rename one. Quote a
+name that YAML would read as a boolean: `{name: "n"}`, not `{name: n}` (likewise `y`, `yes`,
+`no`, `on`, `off`).
 
 **Functions:** `sqrt pow exp log abs min max clamp(x,lo,hi) where(cond,a,b) floor sin cos tan asin acos atan atan2(y,x) erf erfc`,
 `slice(v,i,n)`, `concat(a,b)`, `width(v)`, `lag(name,n)` (a value n steps back), plus `+ - * /`

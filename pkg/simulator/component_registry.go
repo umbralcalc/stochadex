@@ -29,8 +29,42 @@ func (c *ComponentSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		)
 	}
 	delete(asMap, "type")
+	for key, value := range asMap {
+		if err := refuseBooleanKeys(value, key); err != nil {
+			return fmt.Errorf("component spec {type: %s}: %w", kind, err)
+		}
+	}
 	c.Type = kind
 	c.Fields = asMap
+	return nil
+}
+
+// refuseBooleanKeys rejects a mapping key, anywhere in a spec's value, that YAML 1.1
+// read as a boolean. A spec's fields are decoded into interface{} rather than into a
+// typed struct, and there yaml.v2 reads an unquoted y, n, yes, no, on or off (as well
+// as true and false) as a boolean; re-encoded for the typed decode that follows, a
+// key written n becomes false, and the name the config gave is lost. at is the path
+// to value, for the message.
+func refuseBooleanKeys(value interface{}, at string) error {
+	switch typed := value.(type) {
+	case map[interface{}]interface{}:
+		for key, inner := range typed {
+			if boolean, ok := key.(bool); ok {
+				return fmt.Errorf("%s has a key that YAML reads as the boolean %v (an "+
+					"unquoted y, n, yes, no, on, off, true or false is one); quote the "+
+					"key to keep it a name", at, boolean)
+			}
+			if err := refuseBooleanKeys(inner, fmt.Sprintf("%s.%v", at, key)); err != nil {
+				return err
+			}
+		}
+	case []interface{}:
+		for i, inner := range typed {
+			if err := refuseBooleanKeys(inner, fmt.Sprintf("%s[%d]", at, i)); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
