@@ -117,6 +117,22 @@ func (e *PersistentWorkerExecution) NewStepper(c *PartitionCoordinator) Stepper 
 	}
 	for partitionIndex, iterator := range c.Iterators {
 		go func(partitionIndex int, iterator *StateIterator) {
+			// A panic in the partition's work ends this worker: it is
+			// recorded, and acknowledged on the phase's barrier, for Step to
+			// re-raise (see PartitionPanic). Recovering once per worker rather
+			// than once per phase keeps the per-step loop free of defers.
+			updating := false
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					if updating {
+						c.failure.record(iterator, recovered)
+						s.updateWaitGroup.Done()
+					} else {
+						c.failure.failIteration(iterator, recovered)
+						s.iterateWaitGroup.Done()
+					}
+				}
+			}()
 			workChannel := c.newWorkChannels[partitionIndex]
 			for {
 				// Iteration-phase wake-up. This is the only point at which a
@@ -133,8 +149,15 @@ func (e *PersistentWorkerExecution) NewStepper(c *PartitionCoordinator) Stepper 
 
 				// Update-phase wake-up. A Step always sends the update wake-up
 				// before it returns, so a plain receive is safe here and avoids
-				// the extra select overhead.
-				iterator.ApplyHistoryUpdate(<-workChannel)
+				// the extra select overhead. A nil wake-up means a partition
+				// panicked in the iteration phase and the run is over.
+				message = <-workChannel
+				if message == nil {
+					return
+				}
+				updating = true
+				iterator.ApplyHistoryUpdate(message)
+				updating = false
 				s.updateWaitGroup.Done()
 			}
 		}(partitionIndex, iterator)
@@ -166,6 +189,14 @@ func (s *persistentWorkerStepper) Step() {
 		channel <- c.Shared
 	}
 	s.iterateWaitGroup.Wait()
+	if c.failure.first.Load() != nil {
+		// Release the workers parked on their update-phase wake-up (a failed
+		// worker has already returned; its buffered wake-up is never read).
+		for _, channel := range c.newWorkChannels {
+			channel <- nil
+		}
+		c.failure.raise()
+	}
 
 	// update phase: wake every worker, then wait for all to finish
 	s.updateWaitGroup.Add(numPartitions)
@@ -173,13 +204,16 @@ func (s *persistentWorkerStepper) Step() {
 		channel <- c.Shared
 	}
 	s.updateWaitGroup.Wait()
+	// A worker that failed here has returned; the rest are parked on their
+	// iteration-phase wake-up, where Close releases them.
+	c.failure.raise()
 
 	c.advanceTimestepsHistory()
 }
 
 // Close releases the persistent workers. Every worker is parked on an
-// iteration-phase wake-up between steps, so closing quit returns them all.
-// It then finalizes the run's output.
+// iteration-phase wake-up between steps (or has returned, if a Step panicked),
+// so closing quit returns them all. It then finalizes the run's output.
 func (s *persistentWorkerStepper) Close() {
 	close(s.quit)
 	s.coordinator.finalizeOutput()
@@ -244,6 +278,11 @@ type inlineStepper struct {
 // Step advances the coordinator by one tick, running the iteration phase for
 // every partition and then the update phase for every partition, in index
 // order, on the calling goroutine.
+//
+// Step defers nothing: a deferred recover per step would cost a few percent
+// of an inline step. It records which partition's work is in progress instead,
+// so a caller that defers NamePartitionPanic around its loop over Step (as Run
+// does) gets a panic in that work as a *PartitionPanic naming the partition.
 func (s *inlineStepper) Step() {
 	c := s.coordinator
 
@@ -255,12 +294,15 @@ func (s *inlineStepper) Step() {
 	// committed values. Upstream params are read directly from producers'
 	// staged output, which the ordering check guarantees is already set this
 	// step.
-	for _, iterator := range c.Iterators {
+	for index, iterator := range c.Iterators {
+		c.inlineRunning = index + 1
 		iterator.IteratePendingInline(c.Shared)
 	}
-	for _, iterator := range c.Iterators {
+	for index, iterator := range c.Iterators {
+		c.inlineRunning = index + 1
 		iterator.ApplyHistoryUpdate(c.Shared)
 	}
+	c.inlineRunning = 0
 
 	c.advanceTimestepsHistory()
 }

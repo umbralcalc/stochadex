@@ -1,5 +1,7 @@
 package simulator
 
+import "fmt"
+
 // Iteration defines the interface for per-partition state update functions
 // in stochadex simulations.
 //
@@ -116,21 +118,50 @@ type StateValueChannels struct {
 }
 
 // UpdateUpstreamParams updates Params with values received from upstream
-// channels.
+// channels. It receives from every upstream before it fails, so no producer is
+// left blocked on a send to it: it panics with errUpstreamFailed if an upstream
+// sent the upstreamFailed sentinel because it panicked this step, and with an
+// error naming the edge if an upstream sent too few values for its indices.
 func (s *StateValueChannels) UpdateUpstreamParams(params *Params) {
+	var failure error
 	for name, upstream := range s.Upstreams {
+		values := <-upstream.Channel
+		if failure != nil {
+			continue
+		}
+		if isUpstreamFailed(values) {
+			// The upstream panicked this step: stop rather than iterate on
+			// values it never produced (see partitionFailure).
+			failure = errUpstreamFailed
+			continue
+		}
 		switch indices := upstream.Indices; indices {
 		case nil:
-			params.Set(name, <-upstream.Channel)
+			params.Set(name, values)
 		default:
-			values := <-upstream.Channel
 			indexedValues := make([]float64, len(indices))
 			for i, index := range indices {
+				// This check stands in for the slice's own bounds check, which
+				// would panic before the remaining upstreams were received.
+				if uint(index) >= uint(len(values)) {
+					failure = upstreamIndexError(name, upstream, len(values), index)
+					break
+				}
 				indexedValues[i] = values[index]
 			}
 			params.Set(name, indexedValues)
 		}
 	}
+	if failure != nil {
+		panic(failure)
+	}
+}
+
+// upstreamIndexError says that upstream sent too few values for the index its
+// params_from_upstream edge reads into name.
+func upstreamIndexError(name string, upstream *UpstreamStateValues, sent, index int) error {
+	return fmt.Errorf("params_from_upstream %q reads index %d of partition %d, "+
+		"which sent %d values this step", name, index, upstream.Upstream, sent)
 }
 
 // UpdateUpstreamParamsInline updates Params with values read directly from the
@@ -142,6 +173,9 @@ func (s *StateValueChannels) UpdateUpstreamParamsInline(
 	params *Params,
 	stateHistories []*StateHistory,
 ) {
+	if len(s.Upstreams) == 0 {
+		return
+	}
 	for name, upstream := range s.Upstreams {
 		values := stateHistories[upstream.Upstream].NextValues
 		switch indices := upstream.Indices; indices {

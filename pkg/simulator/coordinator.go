@@ -78,18 +78,30 @@ type PartitionCoordinator struct {
 	// FinalizingOutputFunction; per-step output goes through the iterators.
 	OutputFunction  OutputFunction
 	newWorkChannels [](chan *IteratorInputMessage)
+	// failure holds a panic recovered from a partition's work on a worker
+	// goroutine, for the step to re-raise on the coordinator's goroutine.
+	failure partitionFailure
+	// inlineRunning is one more than the index of the partition whose work an
+	// inline Step is doing, or 0 when none is (see NamePartitionPanic).
+	inlineRunning int
 	// outputFinalized records that finalizeOutput has run.
 	outputFinalized bool
 }
 
 // RequestMoreIterations spawns a goroutine per partition to run
-// ReceiveAndIteratePending.
+// ReceiveAndIteratePending. A panic in a partition's work is recovered on its
+// goroutine and held for Step to re-raise (see PartitionPanic).
 func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 	// setup iterators to receive and send their iteration results
 	for partitionIndex, iterator := range c.Iterators {
 		wg.Add(1)
 		go func(partitionIndex int, iterator *StateIterator) {
-			defer wg.Done()
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					c.failure.failIteration(iterator, recovered)
+				}
+				wg.Done()
+			}()
 			iterator.ReceiveAndIteratePending(c.newWorkChannels[partitionIndex])
 		}(partitionIndex, iterator)
 	}
@@ -101,13 +113,20 @@ func (c *PartitionCoordinator) RequestMoreIterations(wg *sync.WaitGroup) {
 }
 
 // UpdateHistory spawns a goroutine per partition to run UpdateHistory and
-// shifts time history forward, adding NextIncrement to t[0].
+// shifts time history forward, adding NextIncrement to t[0]. A panic in a
+// partition's update is recovered on its goroutine and held for Step to
+// re-raise.
 func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	// setup iterators to receive and send their iteration results
 	for partitionIndex, iterator := range c.Iterators {
 		wg.Add(1)
 		go func(partitionIndex int, iterator *StateIterator) {
-			defer wg.Done()
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					c.failure.record(iterator, recovered)
+				}
+				wg.Done()
+			}()
 			iterator.UpdateHistory(c.newWorkChannels[partitionIndex])
 		}(partitionIndex, iterator)
 	}
@@ -153,16 +172,21 @@ func (c *PartitionCoordinator) advanceTimestepsHistory() {
 // strategies advance a step through their own Stepper. Callers that want to
 // drive a step under the coordinator's configured strategy should use
 // NewStepper instead.
+//
+// If a partition's work panics, Step panics with a *PartitionPanic on the
+// calling goroutine once the phase's other workers have finished.
 func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	c.beginStep()
 
 	// begin by requesting iterations for the next step and waiting
 	c.RequestMoreIterations(wg)
 	wg.Wait()
+	c.failure.raise()
 
 	// then implement the pending state and time updates to the histories
 	c.UpdateHistory(wg)
 	wg.Wait()
+	c.failure.raise()
 }
 
 // ReadyToTerminate returns whether the TerminationCondition is met.
@@ -242,8 +266,62 @@ func (c *PartitionCoordinator) Run() {
 	// Close also finalizes the output (see NewStepper).
 	defer stepper.Close()
 
+	defer c.NamePartitionPanic()
+
 	// terminate the for loop if the condition has been met
 	for !c.ReadyToTerminate() {
+		stepper.Step()
+	}
+}
+
+// NamePartitionPanic, deferred around a loop that steps c, re-raises a panic
+// from a partition's work under inline execution as a *PartitionPanic naming
+// the partition, as the concurrent strategies' Step already raises it. Inline
+// Step defers nothing, to stay at serial speed, so a caller stepping c itself
+// defers this once for the loop:
+//
+//	stepper := coordinator.NewStepper()
+//	defer stepper.Close()
+//	defer coordinator.NamePartitionPanic()
+//	for !coordinator.ReadyToTerminate() {
+//	    stepper.Step()
+//	}
+//
+// Run does this. It must be deferred directly, as above, to recover. Any other
+// panic propagates as it was.
+func (c *PartitionCoordinator) NamePartitionPanic() {
+	if c.inlineRunning == 0 {
+		return
+	}
+	if recovered := recover(); recovered != nil {
+		c.raiseInlinePanic(recovered)
+	}
+}
+
+// raiseInlinePanic raises recovered, recovered while an inline Step was doing
+// a partition's work, as a *PartitionPanic naming that partition.
+func (c *PartitionCoordinator) raiseInlinePanic(recovered any) {
+	failure := &partitionFailure{}
+	failure.record(c.Iterators[c.inlineRunning-1], recovered)
+	failure.raise()
+}
+
+// stepFor steps the coordinator steps times under its configured strategy,
+// then closes the stepper. Its one deferred call both names a partition's panic
+// under inline execution (as NamePartitionPanic does) and closes the stepper,
+// so a short run, a reentrant evaluation of a step or two, pays for one defer.
+func (c *PartitionCoordinator) stepFor(steps int) {
+	stepper := c.NewStepper()
+	defer func() {
+		if c.inlineRunning != 0 {
+			if recovered := recover(); recovered != nil {
+				stepper.Close()
+				c.raiseInlinePanic(recovered)
+			}
+		}
+		stepper.Close()
+	}()
+	for range steps {
 		stepper.Step()
 	}
 }

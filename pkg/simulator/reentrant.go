@@ -143,11 +143,7 @@ func (r *ReentrantSimulation) evaluate(run ReentrantRun) *PartitionCoordinator {
 		coordinator.Shared.StateHistories[index] = history
 	}
 	if run.Steps > 0 {
-		stepper := coordinator.NewStepper()
-		for i := 0; i < run.Steps; i++ {
-			stepper.Step()
-		}
-		stepper.Close()
+		coordinator.stepFor(run.Steps)
 	} else {
 		coordinator.Run()
 	}

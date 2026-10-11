@@ -219,6 +219,7 @@ func runSteps(
 	}
 	stepper := coordinator.NewStepper()
 	defer stepper.Close()
+	defer coordinator.NamePartitionPanic()
 	for step := 1; !coordinator.ReadyToTerminate(); step++ {
 		select {
 		case <-stop:
