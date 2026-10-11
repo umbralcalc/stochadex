@@ -502,9 +502,21 @@ func (a *ApiRunConfig) configGenerator(silenceNested bool) *simulator.ConfigGene
 	return generator
 }
 
-// validateApiRunConfig asserts the loaded config is coherent. Any partition
-// without an iteration must correspond to a named embedded run or expression.
+// validateApiRunConfig asserts the loaded config is coherent: its run's shape
+// (validateRunShape), and that every partition reading a history its host feeds
+// it is fed, at any depth of nesting.
 func validateApiRunConfig(config *ApiRunConfig) error {
+	if err := validateRunShape(config); err != nil {
+		return err
+	}
+	return validateMemoryFeeds(config)
+}
+
+// validateRunShape checks one run and the embedded runs it hosts: any partition
+// without an iteration corresponds to a named embedded run or expression, every
+// partition keeps some history, and hosts forward only into partitions their
+// runs have.
+func validateRunShape(config *ApiRunConfig) error {
 	embeddedNames := make(map[string]bool)
 	for _, embedded := range config.Embedded {
 		embeddedNames[embedded.Name] = true
@@ -536,10 +548,7 @@ func validateApiRunConfig(config *ApiRunConfig) error {
 			}
 		}
 	}
-	if err := validateEmbeddedForwarding(config); err != nil {
-		return err
-	}
-	return validateMemoryFeeds(config)
+	return validateEmbeddedForwarding(config)
 }
 
 // validateMemoryFeeds checks, at load, that every partition reading a history
@@ -550,43 +559,67 @@ func validateApiRunConfig(config *ApiRunConfig) error {
 // "<fed partition>->data_values" for each partition fed to it. Unfed, the
 // iteration has no history and the run panics mid-step.
 func validateMemoryFeeds(config *ApiRunConfig) error {
-	for _, partition := range config.Main.Partitions {
-		if _, ok := partition.Iteration.(general.StateMemoryIteration); ok {
-			return fmt.Errorf("api: main partition %q (%s) reads a history its host feeds "+
-				"it, so it only runs inside an embedded run", partition.Name, partition.IterationSpec.Type)
+	return checkMemoryFeeds(config.Main.Partitions, config.Embedded, nil)
+}
+
+// checkMemoryFeeds checks one run's partitions, fed by host (nil for the main
+// run, which nothing feeds), and the runs they host: the embedded runs, and
+// each embedded_simulation_run's own run.
+func checkMemoryFeeds(
+	partitions []simulator.PartitionConfig,
+	embedded []EmbeddedRunConfig,
+	host *simulator.PartitionConfig,
+) error {
+	hosts := map[string]simulator.PartitionConfig{}
+	for _, partition := range partitions {
+		hosts[partition.Name] = partition
+		if err := checkMemoryFed(partition, host); err != nil {
+			return err
+		}
+		if nested, ok := nestedRunOf(partition); ok {
+			if err := checkMemoryFeeds(nested.Main.Partitions, nested.Embedded, &partition); err != nil {
+				return err
+			}
 		}
 	}
-	hosts := map[string]simulator.PartitionConfig{}
-	for _, partition := range config.Main.Partitions {
-		hosts[partition.Name] = partition
-	}
-	for _, embedded := range config.Embedded {
-		host, hosted := hosts[embedded.Name]
+	for _, run := range embedded {
+		runHost, hosted := hosts[run.Name]
 		if !hosted {
 			continue // an embedded run no partition hosts never runs
 		}
-		for _, partition := range embedded.Run.Partitions {
-			if _, ok := partition.Iteration.(general.StateMemoryIteration); !ok {
-				continue
-			}
-			key := partition.Name + "/update_from_partition_history"
-			fed := host.ParamsAsPartitions[key]
-			if len(fed) == 0 {
-				return fmt.Errorf("api: embedded run %q partition %q (%s) reads a history "+
-					"its host feeds it, but host %q does not; add params_as_partitions: "+
-					"{%s: [<partition>]}", embedded.Name, partition.Name,
-					partition.IterationSpec.Type, host.Name, key)
-			}
-			if _, ok := partition.Iteration.(*inference.DataComparisonGradientIteration); !ok {
-				continue
-			}
-			for _, name := range fed {
-				if _, ok := partition.Params.Map[name+"->data_values"]; !ok {
-					return fmt.Errorf("api: embedded run %q partition %q is fed %q, so it "+
-						"declares \"%s->data_values\" in its params (e.g. %s->data_values: [])",
-						embedded.Name, partition.Name, name, name, name)
-				}
-			}
+		if err := checkMemoryFeeds(run.Run.Partitions, nil, &runHost); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkMemoryFed checks that a partition reading a history its host feeds it
+// has a host that does.
+func checkMemoryFed(partition simulator.PartitionConfig, host *simulator.PartitionConfig) error {
+	if _, ok := partition.Iteration.(general.StateMemoryIteration); !ok {
+		return nil
+	}
+	if host == nil {
+		return fmt.Errorf("api: main partition %q (%s) reads a history its host feeds "+
+			"it, so it only runs inside an embedded run", partition.Name, partition.IterationSpec.Type)
+	}
+	key := partition.Name + "/update_from_partition_history"
+	fed := host.ParamsAsPartitions[key]
+	if len(fed) == 0 {
+		return fmt.Errorf("api: embedded run %q partition %q (%s) reads a history "+
+			"its host feeds it, but host %q does not; add params_as_partitions: "+
+			"{%s: [<partition>]}", host.Name, partition.Name,
+			partition.IterationSpec.Type, host.Name, key)
+	}
+	if _, ok := partition.Iteration.(*inference.DataComparisonGradientIteration); !ok {
+		return nil
+	}
+	for _, name := range fed {
+		if _, ok := partition.Params.Map[name+"->data_values"]; !ok {
+			return fmt.Errorf("api: embedded run %q partition %q is fed %q, so it "+
+				"declares \"%s->data_values\" in its params (e.g. %s->data_values: [])",
+				host.Name, partition.Name, name, name, name)
 		}
 	}
 	return nil
@@ -603,6 +636,14 @@ func validateEmbeddedForwarding(config *ApiRunConfig) error {
 		inner[embedded.Name] = map[string]bool{}
 		for _, partition := range embedded.Run.Partitions {
 			inner[embedded.Name][partition.Name] = true
+		}
+	}
+	for _, host := range config.Main.Partitions {
+		if nested, ok := nestedRunOf(host); ok {
+			inner[host.Name] = map[string]bool{}
+			for _, partition := range nested.Main.Partitions {
+				inner[host.Name][partition.Name] = true
+			}
 		}
 	}
 	for _, host := range config.Main.Partitions {

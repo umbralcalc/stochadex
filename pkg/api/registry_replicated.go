@@ -56,7 +56,7 @@ func buildReplicatedSimulationRun(fields map[string]interface{}) (simulator.Iter
 		err = spec.validate()
 	}
 	if err == nil {
-		err = checkReplicaWiring(spec.Run.GetConfigGenerator())
+		err = checkRunWiring(spec.Run.GetConfigGenerator())
 	}
 	if err != nil {
 		return nil, fmt.Errorf("replicated_simulation_run: %w", err)
@@ -136,10 +136,10 @@ func (s *replicatedRunSpec) validate() error {
 	return nil
 }
 
-// checkReplicaWiring builds one replica's generator, classifying the wiring
-// panics GenerateConfigs raises, and a within-step cycle that would deadlock
-// every replica, as errors.
-func checkReplicaWiring(generator *simulator.ConfigGenerator) (err error) {
+// checkRunWiring builds a run held inside a partition (one replica's, or a
+// nested run's), classifying the wiring panics GenerateConfigs raises, and a
+// within-step cycle that would deadlock it at every outer step, as errors.
+func checkRunWiring(generator *simulator.ConfigGenerator) (err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = fmt.Errorf("invalid run wiring: %v", recovered)

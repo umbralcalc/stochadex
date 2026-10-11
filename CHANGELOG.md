@@ -45,6 +45,12 @@ an exact version rather than assume stability across minors.
 - **`{type: data_comparison_gradient}`**, the gradient step of `likelihood_mean_function_fit`, so
   that fit can be written out in the core language (a hand-written twin reproduces the macro
   exactly). It runs inside an embedded run whose host feeds it a batch of data.
+- **`{type: embedded_simulation_run, run: {...}}`** states an embedded run in place, as a
+  partition's iteration, so a run can host runs of its own to any depth (a three-level run in
+  one file reproduces the same levels built by hand). It behaves exactly like the top-level
+  `embedded:` block of the same name: forwarding, memory feeds and the black-box row are the
+  same, `inspect --io` gives its column layout, and the load-time checks apply at every level.
+  A run stated in place writes no output of its own and reads no inputs.
 
 ### Changed
 

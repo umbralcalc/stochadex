@@ -66,6 +66,7 @@ var wantIterationType = map[string]string{
 	"smc_proposal":                      "*inference.SMCProposalIteration",
 	"replicated_simulation_run":         "*general.ReplicatedSimulationRunIteration",
 	"data_comparison_gradient":          "*inference.DataComparisonGradientIteration",
+	"embedded_simulation_run":           "*general.EmbeddedSimulationRunIteration",
 }
 
 // iterationSpecFixtures gives a minimal valid Fields map for each composable
@@ -100,6 +101,15 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 	"posterior_mean":            {"transform": "mean"},
 	"smc_proposal":              {"priors": []interface{}{map[string]interface{}{"type": "uniform", "lo": 0.0, "hi": 1.0}}},
 	"data_comparison_gradient":  {"likelihood": map[string]interface{}{"type": "normal"}, "gradient_function": "mean_gradient"},
+	"embedded_simulation_run": {"run": map[string]interface{}{
+		"partitions": []interface{}{map[string]interface{}{
+			"name": "x", "iteration": map[string]interface{}{"type": "constant_values"},
+			"params": map[string]interface{}{}, "init_state_values": []interface{}{0.0},
+			"state_history_depth": 1}},
+		"simulation": map[string]interface{}{
+			"termination_condition": map[string]interface{}{"type": "number_of_steps", "max_steps": 1},
+			"timestep_function":     map[string]interface{}{"type": "constant", "stepsize": 1.0}},
+	}},
 	"replicated_simulation_run": {
 		"replicas": 2,
 		"run": map[string]interface{}{

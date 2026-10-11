@@ -10,16 +10,14 @@ import (
 )
 
 // excludedIterations names every Iteration implementation in the candidate
-// packages that is deliberately NOT in the registry (data-only in Phase A,
-// composable in Phase B), each with the reason:
-//   - "live-object": holds a live object bound at runtime by its caller — a whole
-//     *Settings/*Implementations pair — with no data form as a standalone
-//     partition. It is still reachable from config indirectly, constructed by the
-//     embedded: tier. (Bulk [][]float64 data is no longer here: from_storage now
-//     carries its rows inline as config data, so it is registered rather than
-//     excluded. Nor is a batch *StateHistory an embedded run's host feeds in at
-//     run time: from_history and data_comparison_gradient have data specs, and
-//     validateMemoryFeeds checks at load that something feeds them.)
+// packages that is deliberately NOT in the registry, each with the reason. It is
+// empty: every iteration has a data form. The last exclusions were live objects
+// bound at run time — a batch *StateHistory an embedded run's host feeds in
+// (from_history, data_comparison_gradient), and a whole
+// *Settings/*Implementations pair (embedded_simulation_run, whose run: is now
+// stated as data, to any depth). validateMemoryFeeds checks at load that
+// something feeds the former. (Bulk [][]float64 data was never a reason:
+// from_storage carries its rows inline as config data.)
 //
 // Drift test 2 asserts every Iterate-implementing type in the candidate packages
 // is either registered (wantIterationType) or listed here. A NEW iteration then
@@ -28,12 +26,8 @@ import (
 //
 // A field of live-object *type* is not on its own grounds for exclusion: an RNG
 // source that Configure assigns from the partition seed is inert as config, and
-// nested iterations are expressible as recursive specs. Both of those cases were
-// excluded here once and have since been registered.
-var excludedIterations = map[string]string{
-	// live-object — no data form as a standalone partition
-	"EmbeddedSimulationRunIteration": "live-object: *Settings/*Implementations (built by the embedded: tier)",
-}
+// nested iterations are expressible as recursive specs.
+var excludedIterations = map[string]string{}
 
 // candidatePackages are the packages whose Iteration implementations are
 // candidates for the data-only registry (agents/analysis iterations are the

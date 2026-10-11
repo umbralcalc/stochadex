@@ -396,6 +396,11 @@ prints that key without running.
 An embedded run is a black box: its host partition's row is its inner partitions' final
 states, concatenated in order, and its inner steps are written nowhere. `inspect --io` gives
 the column layout. To see every inner step while debugging, add `--debug-embedded NAME=PATH`.
+A run can also be stated in place, as a partition's `iteration: {type: embedded_simulation_run,
+run: {partitions, expressions, simulation, embedded}}`. It behaves exactly like a top-level
+`embedded:` run of the same name (the host forwards `<inner>/<param>` keys and feeds memory the
+same way), and its `run:` can host runs of its own, so nesting goes to any depth. A run stated
+in place writes no output of its own and reads no inputs.
 
 To vary a run, don't rewrite the YAML: `--set path=value` (repeatable) replaces one value,
 such as `--set 'main.partitions[name=w].seed=7'` or `--set 'run.seeds=[1, 2]'`. A list entry is
