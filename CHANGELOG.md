@@ -36,6 +36,23 @@ an exact version rather than assume stability across minors.
   the config loads; it can't be used under `run: {mode: serve}`.
 - **`run: {pace_ms}` paces a batch run from the CLI** in real time, not only a served one.
   `RunWith` and `RunToStorage` stay unpaced.
+- **`{type: replicated_simulation_run}`** states a model once and runs it once per replica
+  at every step, forwarding each replica its slice of a parameter vector and outputting each
+  replica's final row of one partition. It is the `smc_inference` particle evaluator made
+  generic (`general.ReplicatedSimulationRunIteration`), so SMC can be written out in the core
+  language and the same block serves sensitivity sweeps or in-partition ensembles. A
+  hand-written twin of an SMC config reproduces the macro exactly.
+
+### Changed
+
+- **`macros.SMCParticleEvaluationIteration` moved to `pkg/general`** as
+  `ReplicatedSimulationRunIteration` (built by `NewReplicatedSimulationRunIteration`, which
+  returns an error instead of panicking). `smc_inference` uses it and gives the same results.
+  Its parameter is now `replica_params` (was `particle_params`) and its output-index field is
+  `OutputPartition` (was `LoglikeIndex`). `SMCInnerSimConfig` and `SMCParticleModel` are
+  unchanged.
+- **An SMC `param_forwarding` index outside the particle's own parameters is an error.**
+  It used to read the next particle's parameters silently.
 
 ## [0.21.0] — 2026-10-10
 

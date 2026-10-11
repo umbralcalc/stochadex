@@ -452,6 +452,13 @@ optional `log_weight_indices`, `past_discounting_factor` — wire the partition 
 `observation_noise_variance`, optional `observation_indices` and `inflation`; wire `forecast_ensemble`
 and `latest_data_values` with `params_from_upstream`; state is the analysis ensemble flattened
 member-major — see `cfg/example_enkf_config.yaml`).
+`replicated_simulation_run` (states a model once and runs it `replicas:` times every step, e.g.
+one per SMC particle or sweep point: field `run: {partitions, expressions, simulation}` is one
+replica's model, which writes no output of its own and reads no inputs; `output_partition:` names
+the partition whose final row each replica outputs, and the row is those rows concatenated in
+replica order. With `params_per_replica: d`, wire a `replica_params` param of `replicas × d`
+values with `params_from_upstream`; replica *r* gets `[r*d, (r+1)*d)`, routed into its model by
+`param_forwarding: {"partition/param": [indices]}`. Seeds are derived per step and replica).
 `from_storage` (replays a precomputed series into a partition by step number: field `data:` is a
 list of rows `[[...], [...], ...]` carried inline as config data, optional `init_steps_taken`; row 0
 seeds the init state and step *n* emits row *n*. Use it for a deterministic driver — a clear-sky
