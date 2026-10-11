@@ -87,6 +87,14 @@ Status: **accepted** (2026-10-04).
       the run. Streaming sinks (stdout, websocket, connection, postgres) say so.
     - Cost: one atomic rename per file output per run (~90µs on APFS); runs without file
       outputs allocate exactly as before. CI now runs the CLI module's tests.
+  - **In review:** 1.7, the keyboard as a stream transport (#126). `api.RegisterStreamTransport`
+    (checked at load, opened at run start, refused under serve); `pkg/keyboard` registers
+    `keyboard` and the CLI imports it, so `pkg/api` gains no terminal dependency. `run:
+    {pace_ms}` now paces a batch CLI run. `UserInputIteration` kept, deprecated. **Phase 1 is
+    complete with this.**
+  - **Downstream (2026-10-11):** all five repos bumped to v0.21.0 and merged, their configs
+    migrated to `inputs:`/`outputs:` (each verified identical to its old form); their
+    `CLAUDE.md` files had taught the YAML code-generation form removed in v0.9.0, now fixed.
   - **Released: v0.21.0** (#125, 2026-10-10): Track O and Phase 1b (#116–#124).
   - **Merged:** IO.6, deprecation notices (#124). `data:` and the main run's output pair
     print one notice each (CLI, stderr; the library records them in `Deprecations()` and
@@ -882,7 +890,7 @@ None of these depend on each other, so each can be its own PR.
 | 1.4 | **IN REVIEW (#110)**: injection port in the engine, `PartitionCoordinator.InjectParams` | Move dexetera's `ApplyActionState` idea into the engine as `simulator.InjectParams(coordinator, partition, key, values)` (or a `Stepper` hook). It runs only between steps. | Unit test: an injection before step k is visible at step k and not before |
 | 1.5 | **DONE (#112, #113)**: stream inputs (1.5a), two-way serving (1.5b) | `inputs: {x: {stream: {<transport>: {...}}, decode: json \| protobuf_action_state, on_empty: hold_last \| default \| block \| step_per_message, record: path}}` bound with `params_from_input`. Add a `RegisterStream` hook. The websocket transport ships in the engine (gorilla is already a dependency); others such as Kafka/MQTT go downstream or in `cmd/`. | Live-then-replay test: run against an in-process websocket server with `record:`, replay from the record as a `source: json_log` input, and get identical storage |
 | 1.6 | **DONE (#112)**: guard rails | Reject `stream:` inputs under `ensemble`. Pick a backpressure policy (bounded buffer, drop-oldest default, configurable). | Load-time error tests |
-| 1.7 | Keyboard on the new path | Re-express keyboard input as a `stream` transport (`{keyboard: {...}}`) feeding a `param_values` partition. Keep `UserInputIteration` and mark it legacy. | The existing keyboard test still passes; the new form has a test |
+| 1.7 | **In review (#126)**: keyboard on the new path | Re-express keyboard input as a `stream` transport (`{keyboard: {...}}`) feeding a `param_values` partition. Keep `UserInputIteration` and mark it legacy. | The existing keyboard test still passes; the new form has a test |
 
 ### Phase 1b — one place in, one place out (rule 14)
 
