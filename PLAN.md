@@ -87,11 +87,23 @@ Status: **accepted** (2026-10-04).
       the run. Streaming sinks (stdout, websocket, connection, postgres) say so.
     - Cost: one atomic rename per file output per run (~90µs on APFS); runs without file
       outputs allocate exactly as before. CI now runs the CLI module's tests.
-  - **In review:** 1.7, the keyboard as a stream transport (#126). `api.RegisterStreamTransport`
+  - **In review:** 2.0, `replicated_simulation_run` (#127). The SMC particle evaluator moves
+    to `pkg/general` as `ReplicatedSimulationRunIteration` with a `{type: ...}` spec whose
+    model is an ordinary `run:` block; `smc_inference` builds on it, byte-identical to main
+    (checked with a stochastic particle model). The spike's SMC twin is a regression test.
+    **Found:** `simulator.DeriveSeed` is XOR-linear, so nested derivations commute: (step k,
+    replica r) shares a seed with (step r+1, replica k-1), and within a step replica 0's
+    partition 1 shares a stream with replica 1's partition 0; `embedded_simulation_run`'s
+    reseed mode likewise across (step, partition). Pre-existing; #127 preserves behaviour.
+    A nonlinear `DeriveSeed` changes derived seeds engine-wide — proposed separately.
+  - **Merged:** 1.7, the keyboard as a stream transport (#126). `api.RegisterStreamTransport`
     (checked at load, opened at run start, refused under serve); `pkg/keyboard` registers
     `keyboard` and the CLI imports it, so `pkg/api` gains no terminal dependency. `run:
     {pace_ms}` now paces a batch CLI run. `UserInputIteration` kept, deprecated. **Phase 1 is
-    complete with this.**
+    complete.**
+  - **Phase 2 order (2026-10-11):** the spike's new core specs first, each with its spike
+    twin as a regression test — 2.0 (#127), then 2.0c, 2.0b, 2.0d — then the expander
+    interface 2.1 with 2.2–2.4, then 2.5, the exact oracle 2.6, and the rest.
   - **Downstream (2026-10-11):** all five repos bumped to v0.21.0 and merged, their configs
     migrated to `inputs:`/`outputs:` (each verified identical to its old form); their
     `CLAUDE.md` files had taught the YAML code-generation form removed in v0.9.0, now fixed.
@@ -940,7 +952,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | 2.0b | `pkg/agents` iteration specs | Register `mcts_apply`, `mcts_tree`, `mcts_rollout` with an `environment:` sub-spec (`{type: simulation, ...}` data-defined, or a registered name) plus search settings; add `pkg/agents` to the registry coverage scan (§4.2 findings 6 and 7) | The spike's exact planning twin, kept as a regression test |
 | 2.0c | Remaining core specs from the spike | `data_comparison_gradient` (finding 12; fix the coverage exclusion reason); recursive `embedded_simulation_run` with `run: {main, embedded}` (finding 14), making top-level `embedded:` a special case of it; an undeclared-group policy for `values_grouped_aggregation` (finding 13) | The spike's exact fit, grouped and 3-level nested twins, kept as regression tests |
 | 2.0d | Environments as components | Change `RegisterEnvironment` from a partition builder to a component builder (typed wrapper building the apply, tree and rollout iterations); the component spec carries only environment-defining fields (finding 11); migrate card-game-studio's `cardgame_rulesvm` | The spike's exact `tictactoe` self-play twin; card-game-studio's tests pass after migration |
-| 2.0 | Promote `replicated_simulation_run` | Move `SMCParticleEvaluationIteration` from `pkg/macros` to `pkg/general` under the generic name, with a `{type: ...}` spec (§4.2 finding 3); `smc_inference` expands to it | The spike's exact SMC twin, kept as a regression test |
+| 2.0 | **In review (#127)**: promote `replicated_simulation_run` | Move `SMCParticleEvaluationIteration` from `pkg/macros` to `pkg/general` under the generic name, with a `{type: ...}` spec (§4.2 finding 3); `smc_inference` expands to it | The spike's exact SMC twin, kept as a regression test |
 | 2.11 | `stochadex expand` and the twin oracle | A CLI subcommand and an `api.Expand(config)` function emit the core-language config. For every shipped macro config, the expanded config runs byte-identically to the macro form. Sub-specs shared by several partitions are emitted once as YAML anchors (§4.2 finding 8). **Known core-language gaps to close by adding `{type: ...}` specs** (from `registry_coverage_test.go` and the macro constructors): (a) `DataComparisonGradientIteration` (`likelihood_mean_function_fit`), excluded today as "live-object built by macros:"; (b) an embedded simulation *inside a partition* (likelihood windows, SMC particles, the planning model), where `embedded:` is top-level only, so nesting needs a recursive spec; (c) the `pkg/agents` MCTS iterations, now item 2.0b; the spike proved their data-path specs give an exact twin. Each gap is either closed or recorded as a known gap; a tolerance is never widened. | The golden twin test passes for every `cfg/` macro config and skill recipe; the coverage test gains the agents package |
 | 2.12 | Performance gate | Benchmark each shipped macro config, macro path versus expanded single-runtime path: wall-clock, allocations and peak memory, under the default and `inline` / `persistent_worker` execution strategies | No regression beyond noise on any config before 2.9 retires the old path; results recorded in `docs/performance.md` |
 | 2.13 | Core semantics reference and schema | A written reference for the core language (execution order, within-step vs lag-1 reads, embedded-run semantics, clock resolution, input binding, origin annotations), plus a JSON Schema generated from the registries for editor and agent tooling | Schema drift test: every registered `{type: ...}` appears in it; the reference is linked from the skill |
