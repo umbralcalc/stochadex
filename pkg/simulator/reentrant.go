@@ -144,10 +144,11 @@ func (r *ReentrantSimulation) evaluate(run ReentrantRun) *PartitionCoordinator {
 	}
 	if run.Steps > 0 {
 		stepper := coordinator.NewStepper()
+		defer stepper.Close()
+		defer coordinator.NamePartitionPanic()
 		for i := 0; i < run.Steps; i++ {
 			stepper.Step()
 		}
-		stepper.Close()
 	} else {
 		coordinator.Run()
 	}

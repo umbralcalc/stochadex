@@ -116,14 +116,20 @@ type StateValueChannels struct {
 }
 
 // UpdateUpstreamParams updates Params with values received from upstream
-// channels.
+// channels. It panics with errUpstreamFailed if an upstream sends the
+// upstreamFailed sentinel because it panicked this step.
 func (s *StateValueChannels) UpdateUpstreamParams(params *Params) {
 	for name, upstream := range s.Upstreams {
+		values := <-upstream.Channel
+		if isUpstreamFailed(values) {
+			// The upstream panicked this step: stop rather than iterate on
+			// values it never produced (see partitionFailure).
+			panic(errUpstreamFailed)
+		}
 		switch indices := upstream.Indices; indices {
 		case nil:
-			params.Set(name, <-upstream.Channel)
+			params.Set(name, values)
 		default:
-			values := <-upstream.Channel
 			indexedValues := make([]float64, len(indices))
 			for i, index := range indices {
 				indexedValues[i] = values[index]

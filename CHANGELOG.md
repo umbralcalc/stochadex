@@ -58,6 +58,15 @@ an exact version rather than assume stability across minors.
   undeclared group together. A hand-written twin of a `grouped_aggregation` config, its groups
   declared, reproduces the macro exactly.
 
+- **`simulator.PartitionPanic`** is what a run now panics with when a partition's work
+  panics: its `Iterate`, its output, or the update of its history. It names the partition
+  and carries the panic value (`errors.Is` / `errors.As` see through to an error value) and
+  the stack where it was recovered.
+- **`PartitionCoordinator.NamePartitionPanic`**, deferred around a loop over a stepper's
+  `Step`, gives a `PartitionPanic` under inline execution too, as `Run` does: inline `Step`
+  defers nothing, to stay at serial speed. The concurrent strategies' `Step` raises one
+  without it.
+
 ### Changed
 
 - **A partition that reads a history its embedded run's host feeds it** (`from_history`,
@@ -80,6 +89,14 @@ an exact version rather than assume stability across minors.
   replica 0's partition 1 had replica 1's partition 0's; with `SetReseedBase`, an embedded
   run's step s partition i had step i's partition s's. Results are distributionally equivalent but not the same numbers;
   unseeded and non-reseeded runs are unaffected.
+
+- **A panic in a partition no longer crashes the process.** Under every execution strategy
+  the coordinator recovers it on the partition's worker goroutine and re-raises it on its own
+  once the step's other workers have finished or stopped, as a `*simulator.PartitionPanic`.
+  `Execute`, `RunWith` and `RunToStorage` return it as an `ErrRuntime` error naming the
+  partition (`RunWith` used to panic). Partitions that read the failed one within the step
+  don't run, and a failure in `Iterate` leaves every history at the last completed step.
+  Ensemble members still run on goroutines of their own, where a panic still crashes.
 
 ## [0.21.0] — 2026-10-10
 

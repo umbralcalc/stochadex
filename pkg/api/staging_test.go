@@ -153,14 +153,10 @@ func TestAllOrNothingOutputs(t *testing.T) {
 		writeFileAt(t, log, earlierLog)
 		writeFileAt(t, nested, earlierLog)
 		config := writeConfig(t, stagedYAML(20, 0, log, nested))
-		func() {
-			defer func() {
-				if recover() == nil {
-					t.Error("expected the run to panic at step 20")
-				}
-			}()
-			RunWith(config, WithConfigOutputs())
-		}()
+		_, err := RunWith(config, WithConfigOutputs())
+		if KindOf(err) != ErrRuntime || !strings.Contains(err.Error(), "failing at step 20") {
+			t.Fatalf("expected the run to fail at step 20, got %v", err)
+		}
 		assertOnlyEarlier(t, log, nested)
 	})
 

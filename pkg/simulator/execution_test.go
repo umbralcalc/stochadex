@@ -372,3 +372,26 @@ func TestPersistentWorkerExecutionLongRun(t *testing.T) {
 		settings, makeIterations, 200, &PersistentWorkerExecution{})
 	assertStoresEqual(t, reference, got, "persistent_worker_long_run")
 }
+
+// benchmarkChain runs the chain topology, whose within-step
+// params_from_upstream edge exercises the value-channel broadcast and receive.
+func benchmarkChain(b *testing.B, strategy ExecutionStrategy) {
+	settings, makeIterations := chainSettings()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		runStrategyConfig(settings, makeIterations, 1000, strategy)
+	}
+}
+
+func BenchmarkChainSpawnPerStep(b *testing.B) {
+	benchmarkChain(b, &SpawnPerStepExecution{})
+}
+
+func BenchmarkChainPersistentWorker(b *testing.B) {
+	benchmarkChain(b, &PersistentWorkerExecution{})
+}
+
+func BenchmarkChainInline(b *testing.B) {
+	benchmarkChain(b, &InlineExecution{})
+}

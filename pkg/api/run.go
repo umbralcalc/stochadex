@@ -275,15 +275,24 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 
 // runE is runChecked with panics raised while running recovered and classified
 // (see panicError), so every failure the engine can intercept comes back as an
-// *Error. A panic inside a partition's worker goroutine cannot be intercepted
-// and still crashes the process.
-func runE(config *ApiRunConfig, socket *SocketConfig) (err error) {
+// *Error. That includes a panic in a partition's work under every execution
+// strategy: the coordinator recovers it on the partition's worker goroutine and
+// re-raises it on its own as a *simulator.PartitionPanic, so it comes back as
+// an ErrRuntime naming the partition. An ensemble member runs on a goroutine of
+// its own, where a panic still crashes the process.
+func runE(config *ApiRunConfig, socket *SocketConfig) error {
+	return runRecovered(func() error { return runChecked(config, socket) })
+}
+
+// runRecovered calls run, returning a panic raised in it as a classified error
+// (see panicError) rather than letting it propagate.
+func runRecovered(run func() error) (err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = panicError(recovered)
 		}
 	}()
-	return runChecked(config, socket)
+	return run()
 }
 
 // Execute is the CLI's whole run: parse args (os.Args form), load the config and
@@ -427,7 +436,9 @@ func WithConfigOutputs() RunOption {
 // CaptureView. By default the config's own outputs are suppressed — including
 // the sinks of nested (embedded) runs — so the run has no side effects outside
 // the process; WithConfigOutputs writes them as well. The caller's config is
-// not modified. Every failure is returned as an error, never an exit.
+// not modified. Every failure is returned as an error, never an exit: a
+// partition that panics, under any execution strategy, fails the run with an
+// ErrRuntime naming it.
 //
 // A macros: config's result is also returned as RunResult.Storage, and each
 // captured view receives it replayed as a live run would output it. An ensemble
@@ -510,10 +521,13 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 		}
 		staged.stage(outputs)
 		defer staged.discard()
-		// RunWith returns a run's results, so it runs unpaced.
-		if err := staged.finish(runCoordinator(
-			simulator.NewPartitionCoordinator(prepared.settings, &implementations),
-			prepared.feeds, 0)); err != nil {
+		// RunWith returns a run's results, so it runs unpaced. A partition that
+		// panics fails the run with an ErrRuntime naming it.
+		if err := staged.finish(runRecovered(func() error {
+			return runCoordinator(
+				simulator.NewPartitionCoordinator(prepared.settings, &implementations),
+				prepared.feeds, 0)
+		})); err != nil {
 			return nil, err
 		}
 		return &RunResult{Views: views}, nil
