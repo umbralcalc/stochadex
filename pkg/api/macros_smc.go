@@ -11,7 +11,7 @@ import (
 
 // smc_inference is a live macro. Its model is stated once, as an ordinary set of
 // partitions, and instantiated per particle by
-// macros.SMCParticleEvaluationIteration, which also derives each particle's
+// general.ReplicatedSimulationRunIteration, which also derives each particle's
 // seeds.
 
 type smcInferenceSpec struct {

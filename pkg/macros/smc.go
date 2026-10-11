@@ -1,9 +1,11 @@
 package macros
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
+	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -11,8 +13,8 @@ import (
 // SMCInnerSimConfig describes the model ONE particle runs.
 //
 // The model is stated once and instantiated per particle (see
-// SMCParticleEvaluationIteration), rather than replicated into a single
-// simulation with names templated by particle index.
+// general.ReplicatedSimulationRunIteration), rather than replicated into a
+// single simulation with names templated by particle index.
 type SMCInnerSimConfig struct {
 	// Partitions for one particle's model (data, model, loglike, etc.).
 	// They are registered in the order given.
@@ -68,9 +70,20 @@ func NewSMCInferencePartitions(
 
 	// One model per particle, evaluated in parallel each round. The particle
 	// count is a property of this run rather than of the model's configuration.
-	evaluation := NewSMCParticleEvaluationIteration(
-		func() *SMCInnerSimConfig { return applied.Model.Build(d) }, N, d,
+	evaluation, err := general.NewReplicatedSimulationRunIteration(
+		func() *general.ReplicatedModel {
+			model := applied.Model.Build(d)
+			return &general.ReplicatedModel{
+				Partitions:      model.Partitions,
+				Simulation:      model.Simulation,
+				OutputPartition: model.LoglikePartition,
+				ParamForwarding: model.ParamForwarding,
+			}
+		}, N, d,
 	)
+	if err != nil {
+		panic(fmt.Sprintf("macros: SMC particle model: %v", err))
+	}
 
 	// Init states. The evaluation partition's row is one log-likelihood per
 	// particle, so the posterior reads it whole.
@@ -108,10 +121,10 @@ func NewSMCInferencePartitions(
 		Name:      applied.SimName,
 		Iteration: evaluation,
 		Params: simulator.NewParams(map[string][]float64{
-			"particle_params": make([]float64, N*d),
+			"replica_params": make([]float64, N*d),
 		}),
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"particle_params": {Upstream: applied.ProposalName},
+			"replica_params": {Upstream: applied.ProposalName},
 		},
 		InitStateValues:   evaluationInit,
 		StateHistoryDepth: 2,
