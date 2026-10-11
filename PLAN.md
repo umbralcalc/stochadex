@@ -89,7 +89,8 @@ Status: **accepted** (2026-10-04).
       outputs allocate exactly as before. CI now runs the CLI module's tests.
   - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
     strategy (#132), so an iteration's runtime failure no longer crashes the process.
-  - **In review:** 2.0b, `mcts_tree` / `mcts_rollout` / `mcts_apply` over an
+  - **Merged:** expression names that the DSL would shadow or that clash are refused at load (#134).
+  - **Merged:** 2.0b, `mcts_tree` / `mcts_rollout` / `mcts_apply` over an
     `environment: {type: simulation}` component (#133). `mcts_planning` builds through the
     same environment spec (byte-identical to main); twins of the example (optimum 160), an
     all-fields variant and a long-horizon chain are exact; coverage scan includes pkg/agents.
@@ -968,7 +969,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | 2.7 | Tooling coverage | The deadlock pre-flight and `cmd/stochadex-graph` operate on the single expanded generator, so macro configs are covered | Graph render test for `example_macro_config` shows the `rolling_mean → rolling_var` edge |
 | 2.8 | `run:` everywhere | `ensemble` and `serve` work for macro configs | Ensemble posterior test: per-seed results differ, and the ensemble mean is near the truth |
 | 2.9 | Retire the replay coordinator path | `runMacros`' sequential storage-threading loop is deleted; `AddPartitionsToStateTimeStorage` stays in `pkg/analysis` for Go users and notebooks | — |
-| 2.0b | **In review (#133)**: `pkg/agents` iteration specs | Register `mcts_apply`, `mcts_tree`, `mcts_rollout` with an `environment:` sub-spec (`{type: simulation, ...}` data-defined, or a registered name) plus search settings; add `pkg/agents` to the registry coverage scan (§4.2 findings 6 and 7) | The spike's exact planning twin, kept as a regression test |
+| 2.0b | **DONE (#133)**: `pkg/agents` iteration specs | Register `mcts_apply`, `mcts_tree`, `mcts_rollout` with an `environment:` sub-spec (`{type: simulation, ...}` data-defined, or a registered name) plus search settings; add `pkg/agents` to the registry coverage scan (§4.2 findings 6 and 7) | The spike's exact planning twin, kept as a regression test |
 | 2.0c | **DONE (#129, #130, #131)**: remaining core specs from the spike | `data_comparison_gradient` (finding 12; fix the coverage exclusion reason); recursive `embedded_simulation_run` with `run: {main, embedded}` (finding 14), making top-level `embedded:` a special case of it; an undeclared-group policy for `values_grouped_aggregation` (finding 13) | The spike's exact fit, grouped and 3-level nested twins, kept as regression tests |
 | 2.0d | Environments as components | Change `RegisterEnvironment` from a partition builder to a component builder (typed wrapper building the apply, tree and rollout iterations); the component spec carries only environment-defining fields (finding 11); migrate card-game-studio's `cardgame_rulesvm` | The spike's exact `tictactoe` self-play twin; card-game-studio's tests pass after migration |
 | 2.0 | **DONE (#127)**: promote `replicated_simulation_run` | Move `SMCParticleEvaluationIteration` from `pkg/macros` to `pkg/general` under the generic name, with a `{type: ...}` spec (§4.2 finding 3); `smc_inference` expands to it | The spike's exact SMC twin, kept as a regression test |
