@@ -361,6 +361,35 @@ main:
 - **Not yet:** streams don't apply to `macros:` configs, and `params_from_input` doesn't yet
   apply under `ensemble`.
 
+#### Steering a run from the keyboard
+
+A stream can be the keyboard. Each mapped key sets a stream partition's value, which holds
+until the next mapped key. Unmapped keys are ignored, and Esc stops listening; the run
+carries on with the last value. Pace the run so there's time to press anything:
+
+```yaml
+inputs:
+  keys:
+    stream:
+      keyboard: {partition: steer, keys: {a: [-1.0], d: [1.0], s: [0.0]}}
+    record: keys.log                # what the keyboard gave each step, for replay
+main:
+  partitions:
+  - name: steering
+    iteration: {type: param_values}
+    params: {param_values: [0.0]}
+    params_from_input: {param_values: {input: keys, partition: steer}}
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+  # ... partitions that read steering via params_from_upstream ...
+run: {pace_ms: 200}                 # a step every 200ms
+```
+
+Replaying `keys.log` as `{source: {json_log: {path: keys.log}}}` repeats the run exactly.
+The keyboard is available in the `stochadex` CLI; from Go, import
+`github.com/umbralcalc/stochadex/pkg/keyboard` to register it.
+
 #### Two-way serving: a client steers its own run
 
 Under `run: {mode: serve}`, a stream can read the client the run is served to:
@@ -502,7 +531,9 @@ run:
   # concurrency: 4         # optional; defaults to GOMAXPROCS
 ```
 
-Omit `run` for a single batch run.
+Omit `run` for a single batch run. `run: {pace_ms: 200}` paces a batch run from the CLI in
+real time, a step every 200ms, for watching it or steering it from the keyboard. Results
+taken from Go with `RunWith` or `RunToStorage` are not paced.
 
 To serve the model over a websocket, for a live dashboard:
 

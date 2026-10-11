@@ -90,6 +90,12 @@ func (s *StandardKeystrokeChannel) Get(
 //   - Graceful handling of keyboard initialization errors
 //   - Automatic fallback to default values on timeout
 //   - Clean exit on ESC key press
+//
+// Deprecated: steer a run from the keyboard with a stream input instead,
+// stream: {keyboard: {partition, keys}}, feeding a param_values partition
+// through params_from_input (see stream.go). That works from a YAML config,
+// records what was pressed for replay, and holds a value until the next key.
+// This iteration is kept for Go code that builds it directly.
 type UserInputIteration struct {
 	Channel          KeystrokeChannel
 	keystrokeMap     map[string]int64

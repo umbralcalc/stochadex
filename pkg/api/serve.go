@@ -39,9 +39,12 @@ func validateRunMode(config *ApiRunConfig) error {
 	}
 	run := &config.Run
 	if run.Mode != "serve" {
-		if run.Websocket != nil || run.PaceMs != 0 {
-			return fmt.Errorf("api: run.websocket and run.pace_ms only apply to " +
-				"run: {mode: serve}")
+		if run.Websocket != nil {
+			return fmt.Errorf("api: run.websocket only applies to run: {mode: serve}")
+		}
+		if run.PaceMs != 0 && run.Mode == "ensemble" {
+			return fmt.Errorf("api: run.pace_ms paces a batch or served run, not " +
+				"run: {mode: ensemble}")
 		}
 		return nil
 	}

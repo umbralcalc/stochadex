@@ -268,7 +268,9 @@ To set a **param** from an input instead (no extra partition; cheaper), declare 
 `feed: {stream: {websocket: {url: "ws://..."}}, record: feed.log}`. Messages are json_log
 entries `{"partition_name": p, "state": [...]}`. Replay a run by swapping the stream for
 `{source: {json_log: {path: feed.log}}}`. Streams only feed `params_from_input`, and not under
-ensemble. Under `run: {mode: serve}`, `stream: {connection: {}}` reads the served client's own
+ensemble. `stream: {keyboard: {partition: steer, keys: {a: [-1.0], d: [1.0]}}}` reads key presses
+(each sets the partition until the next; Esc stops), with `run: {pace_ms: 200}` to step in real
+time. Under `run: {mode: serve}`, `stream: {connection: {}}` reads the served client's own
 messages (two-way: the client steers its run); `record:` then needs `{connection}`;
 `decode: protobuf_action_state` reads dexetera's ActionState protobufs. A `macros:` config's macros read every input's partitions (several inputs must share one
 time axis and not repeat a partition name).

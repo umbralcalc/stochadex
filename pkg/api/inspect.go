@@ -266,7 +266,9 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 			entry.ReadBy = config.fileReaders[name]
 		case input.Stream != nil:
 			entry.Kind = "stream"
-			if input.Stream.Websocket != nil {
+			if transport, _, ok := input.Stream.registeredTransport(); ok {
+				entry.Location = transport
+			} else if input.Stream.Websocket != nil {
 				entry.Location = redactURL(input.Stream.Websocket.URL)
 			} else {
 				entry.Location = connectionSink

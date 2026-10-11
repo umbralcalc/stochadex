@@ -30,6 +30,7 @@ require (
 )
 
 require (
+	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203 // indirect
 	github.com/yalue/onnxruntime_go v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
@@ -81,7 +82,7 @@ require (
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
-	gonum.org/v1/gonum v0.17.0 // indirect
+	gonum.org/v1/gonum v0.17.0
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

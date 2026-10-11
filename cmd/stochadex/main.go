@@ -33,6 +33,8 @@ import (
 	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/api"
+	// Registers the keyboard stream transport: stream: {keyboard: {...}}.
+	_ "github.com/umbralcalc/stochadex/pkg/keyboard"
 )
 
 // version is stamped at build time with -ldflags "-X main.version=<tag>". It is a real

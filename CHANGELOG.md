@@ -22,6 +22,21 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **Steer a run from the keyboard with a stream input:**
+  `stream: {keyboard: {partition: steer, keys: {a: [-1.0], d: [1.0]}}}`, feeding a
+  `param_values` partition through `params_from_input`. Each mapped key sets the partition
+  until the next (hold_last), Esc stops listening, and `record:` captures the presses so the
+  run replays exactly. The `stochadex` CLI includes it; from Go, import `pkg/keyboard`.
+  `keyboard.UserInputIteration` is kept for Go code and marked deprecated.
+- **`api.RegisterStreamTransport`** lets a package outside `pkg/api` contribute a stream
+  transport, as `RegisterDataSource` does for sources, so `pkg/api` (which dashboards compile
+  to WebAssembly) need not depend on a terminal library. A transport checks its fields when
+  the config loads; it can't be used under `run: {mode: serve}`.
+- **`run: {pace_ms}` paces a batch run from the CLI** in real time, not only a served one.
+  `RunWith` and `RunToStorage` stay unpaced.
+
 ## [0.21.0] — 2026-10-10
 
 This release makes a config a well-behaved step in a workflow engine (the config-runtime
