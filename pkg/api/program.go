@@ -509,6 +509,9 @@ func validateApiRunConfig(config *ApiRunConfig) error {
 	if err := validateRunShape(config); err != nil {
 		return err
 	}
+	if err := validateExpressionNames(config); err != nil {
+		return err
+	}
 	return validateMemoryFeeds(config)
 }
 

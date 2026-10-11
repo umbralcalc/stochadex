@@ -32,7 +32,7 @@ main:
   - name: observations
     iteration:
       type: expression
-      fields: [{name: y}]
+      fields: [{name: "y"}]
       outputs: ["truth_now + shared(normal(0, 0.7071068))"]
     params: {truth_now: [0.0]}
     params_from_upstream:

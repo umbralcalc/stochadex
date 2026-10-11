@@ -121,6 +121,9 @@ func (d *DataConfig) buildStorage() (*simulator.StateTimeStorage, error) {
 	if err := resolveIterations(run.Partitions); err != nil {
 		return nil, configError(err)
 	}
+	if err := checkExpressionNames(run, nil, nil, "sub-simulation"); err != nil {
+		return nil, configError(err)
+	}
 	generator := run.GetConfigGenerator()
 	// Pre-flight the data: sub-simulation's within-step wiring, so a cyclic data
 	// block fails with a located error rather than an opaque runtime deadlock.

@@ -75,6 +75,25 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **An expression partition's names must each mean one thing, checked at load.** A field,
+  params key (including a `params_from_upstream` or `params_as_partitions` key, one a host
+  forwards into its embedded run, and the `action_param` or a parameter target of `mcts_planning`
+  or a `{type: simulation}` environment),
+  upstream alias or binding named `dt`, `t`, `step` or `pi` is now an error, as is a name
+  declared twice — by two kinds (a field and a params key both called `x`) or by one (two
+  fields, or two bindings). Each used to be resolved silently by the order the expression
+  environment is filled in: an `mcts_planning` action param called `step` read as the step
+  number, so the action did nothing. The error names the partition, the clash and the rename.
+  `ExpressionIteration.Configure` refuses the same, and `ExpressionIteration.CheckNames` is
+  exported for loaders. **Breaking** for a config that relied on a clash; every shipped and
+  downstream config checked loads unchanged.
+- **A name YAML 1.1 reads as a boolean is a load error saying to quote it,** where a
+  `{type: ...}` spec used to lose it: its fields are decoded into `interface{}` and re-encoded,
+  so an unquoted `y`, `n`, `yes`, `no`, `on` or `off` became `true` or `false`. Any such
+  mapping key in a spec is refused, as is any boolean value in an expression spec (inline
+  `{type: expression}` or a nested run's `expressions:`), where every value is text.
+  `cfg/example_enkf_config.yaml` declared a field `{name: y}`, which had always loaded as a
+  field named `true` (nothing read it); it now quotes the name.
 - **A partition that reads a history its embedded run's host feeds it** (`from_history`,
   `data_comparison_gradient`) is checked at load: it must be inside an embedded run whose host
   feeds it, and a gradient must declare `<partition>->data_values` for each partition fed to

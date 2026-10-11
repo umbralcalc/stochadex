@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -27,6 +28,41 @@ func TestComponentSpecUnmarshal(t *testing.T) {
 		}
 		if _, ok := spec.Fields["stepsize"]; !ok {
 			t.Errorf("stepsize should be in Fields: %v", spec.Fields)
+		}
+	})
+
+	t.Run("a key YAML reads as a boolean is rejected, at any depth", func(t *testing.T) {
+		// Re-encoded for the typed decode, the key n would arrive as false.
+		for _, c := range []struct{ doc, at string }{
+			{"{type: expression, upstreams: {n: source}}", "upstreams has a key"},
+			{"{type: run, run: {partitions: [{params: {yes: [1]}}]}}",
+				"run.partitions[0].params has a key"},
+		} {
+			var spec ComponentSpec
+			err := yaml.Unmarshal([]byte(c.doc), &spec)
+			if err == nil {
+				t.Fatalf("%s: expected an error for a boolean key", c.doc)
+			}
+			for _, fragment := range []string{c.at, "quote the key"} {
+				if !strings.Contains(err.Error(), fragment) {
+					t.Errorf("%s: error %q does not mention %q", c.doc, err, fragment)
+				}
+			}
+		}
+	})
+
+	t.Run("positive control: quoted keys and boolean values are kept", func(t *testing.T) {
+		var spec ComponentSpec
+		doc := `{type: expression, upstreams: {"n": source}, list: [{"y": 1}], flag: yes}`
+		if err := yaml.Unmarshal([]byte(doc), &spec); err != nil {
+			t.Fatal(err)
+		}
+		upstreams := spec.Fields["upstreams"].(map[interface{}]interface{})
+		if upstreams["n"] != "source" {
+			t.Errorf("upstreams = %v, want the key n kept as written", upstreams)
+		}
+		if spec.Fields["flag"] != true {
+			t.Errorf("flag = %v, want a boolean value left alone", spec.Fields["flag"])
 		}
 	})
 

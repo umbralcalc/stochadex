@@ -950,3 +950,179 @@ func TestExpressionConfigErrors(t *testing.T) {
 		Outputs: []string{"1"},
 	})
 }
+
+// TestExpressionNameClashes pins that Configure refuses a name expressions would
+// resolve ambiguously — spelled like a builtin, or declared twice — naming the
+// partition, the clash and the fix, since the environment is filled in a fixed
+// order and one declaration would otherwise silently hide the other.
+func TestExpressionNameClashes(t *testing.T) {
+	settingsWith := func(params map[string][]float64, fromUpstream ...string) *simulator.Settings {
+		upstreams := map[string]simulator.UpstreamConfig{}
+		for _, key := range fromUpstream {
+			upstreams[key] = simulator.UpstreamConfig{Upstream: 0}
+		}
+		return &simulator.Settings{Iterations: []simulator.IterationSettings{{
+			Name: "walker", Seed: 1, Params: simulator.NewParams(params),
+			ParamsFromUpstream: upstreams,
+		}}}
+	}
+	refused := []struct {
+		name     string
+		e        *ExpressionIteration
+		settings *simulator.Settings
+		want     []string
+	}{
+		{"a params key spelled like a builtin",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}}, Outputs: []string{"x"}},
+			settingsWith(map[string][]float64{"step": {1}}),
+			[]string{`expression partition "walker"`, `params key "step"`,
+				"builtin step (the step number)", "rename the params key"}},
+		{"a params_from_upstream key spelled like a builtin",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}}, Outputs: []string{"x"}},
+			settingsWith(map[string][]float64{}, "pi"),
+			[]string{`params key "pi"`, "builtin pi"}},
+		{"a field spelled like a builtin",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "dt"}}, Outputs: []string{"1"}},
+			settingsWith(map[string][]float64{}),
+			[]string{`field "dt"`, "rename the field"}},
+		{"an upstream alias spelled like a builtin",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}},
+				Upstreams: map[string]string{"t": "walker"}, Outputs: []string{"x"}},
+			settingsWith(map[string][]float64{}),
+			[]string{`upstream alias "t"`, "rename the upstream alias"}},
+		{"a binding spelled like a builtin",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}},
+				Bindings: []ExpressionBinding{{Name: "step", Expr: "1"}}, Outputs: []string{"x"}},
+			settingsWith(map[string][]float64{}),
+			[]string{`binding "step"`, "rename the binding"}},
+		{"a field and a params key with one name",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}}, Outputs: []string{"x"}},
+			settingsWith(map[string][]float64{"x": {1}}),
+			[]string{`"x" is both a field and a params key`, "rename one"}},
+		{"a params key and an upstream alias with one name",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}},
+				Upstreams: map[string]string{"up": "walker"}, Outputs: []string{"x"}},
+			settingsWith(map[string][]float64{"up": {1}}),
+			[]string{`"up" is both a params key and an upstream alias`}},
+		{"an upstream alias and a binding with one name",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}},
+				Upstreams: map[string]string{"up": "walker"},
+				Bindings:  []ExpressionBinding{{Name: "up", Expr: "1"}}, Outputs: []string{"x"}},
+			settingsWith(map[string][]float64{}),
+			[]string{`"up" is both an upstream alias and a binding`}},
+		{"two fields with one name",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}, {Name: "x"}},
+				Outputs: []string{"x", "x"}},
+			settingsWith(map[string][]float64{}),
+			[]string{`two fields are named "x"`}},
+		{"two bindings with one name",
+			&ExpressionIteration{Fields: []ExpressionField{{Name: "x"}},
+				Bindings: []ExpressionBinding{{Name: "b", Expr: "1"}, {Name: "b", Expr: "b"}},
+				Outputs:  []string{"x"}},
+			settingsWith(map[string][]float64{}),
+			[]string{`two bindings are named "b"`}},
+	}
+	for _, c := range refused {
+		t.Run(c.name, func(t *testing.T) {
+			defer func() {
+				msg := stringifyPanic(recover())
+				if msg == "" {
+					t.Fatalf("expected a panic for %s", c.name)
+				}
+				for _, fragment := range c.want {
+					if !strings.Contains(msg, fragment) {
+						t.Errorf("panic %q does not mention %q", msg, fragment)
+					}
+				}
+			}()
+			c.e.Configure(0, c.settings)
+		})
+	}
+	// Every pair of kinds, so the allocation-free check Configure runs first cannot
+	// miss a clash CheckNames would refuse.
+	kinds := []string{"field", "params", "params_from_upstream", "upstream", "binding"}
+	build := func(declarations ...[2]string) (*ExpressionIteration, *simulator.Settings) {
+		e := &ExpressionIteration{
+			Fields: []ExpressionField{{Name: "own"}}, Upstreams: map[string]string{},
+			Outputs: []string{"own"},
+		}
+		params := map[string][]float64{}
+		var fromUpstream []string
+		for _, d := range declarations {
+			switch kind, name := d[0], d[1]; kind {
+			case "field":
+				e.Fields = append(e.Fields, ExpressionField{Name: name})
+				e.Outputs = append(e.Outputs, "1")
+			case "params":
+				params[name] = []float64{1}
+			case "params_from_upstream":
+				fromUpstream = append(fromUpstream, name)
+			case "upstream":
+				e.Upstreams[name] = "walker"
+			case "binding":
+				e.Bindings = append(e.Bindings, ExpressionBinding{Name: name, Expr: "1"})
+			}
+		}
+		return e, settingsWith(params, fromUpstream...)
+	}
+	configurePanics := func(e *ExpressionIteration, settings *simulator.Settings) (msg string) {
+		defer func() { msg = stringifyPanic(recover()) }()
+		e.Configure(0, settings)
+		return ""
+	}
+	builtins := []string{"dt", "t", "step", "pi"}
+	for i, kind := range kinds {
+		builtin := builtins[i%len(builtins)]
+		t.Run("matrix: "+kind+" named "+builtin, func(t *testing.T) {
+			msg := configurePanics(build([2]string{kind, builtin}))
+			if !strings.Contains(msg, `expression partition "walker"`) ||
+				!strings.Contains(msg, "builtin "+builtin) {
+				t.Errorf("Configure panic = %q, want the partition and builtin %s named",
+					msg, builtin)
+			}
+		})
+		for _, other := range kinds[i:] {
+			if other == kind && kind != "field" && kind != "binding" {
+				continue // a map cannot hold a key twice
+			}
+			t.Run("matrix: "+kind+" and "+other+" named x", func(t *testing.T) {
+				msg := configurePanics(build([2]string{kind, "x"}, [2]string{other, "x"}))
+				if kind == "params" && other == "params_from_upstream" {
+					// Declaring a key and setting it from upstream is one params key.
+					if msg != "" {
+						t.Errorf("Configure panicked: %s", msg)
+					}
+					return
+				}
+				if !strings.Contains(msg, `expression partition "walker"`) ||
+					!strings.Contains(msg, `"x"`) || !strings.Contains(msg, "rename") {
+					t.Errorf("Configure panic = %q, want the partition, the name and a rename", msg)
+				}
+			})
+		}
+	}
+	t.Run("a key arriving between reconfigures is vetted when it arrives", func(t *testing.T) {
+		// A re-entrant run (a planner) reconfigures with the same settings after
+		// writing its action into the params, which may be a key they never listed.
+		e := &ExpressionIteration{Fields: []ExpressionField{{Name: "x"}}, Outputs: []string{"x"}}
+		settings := settingsWith(map[string][]float64{"rate": {1}})
+		e.Configure(0, settings)
+		e.Configure(0, settings)
+		settings.Iterations[0].Params.Set("step", []float64{1})
+		if msg := configurePanics(e, settings); !strings.Contains(msg, `params key "step"`) {
+			t.Errorf("reconfigure after a step key arrived: panic = %q, want it refused", msg)
+		}
+	})
+	t.Run("positive control: free names, and a key both declared and set from upstream", func(t *testing.T) {
+		e := &ExpressionIteration{
+			Fields:    []ExpressionField{{Name: "x"}},
+			Upstreams: map[string]string{"up": "walker"},
+			Bindings:  []ExpressionBinding{{Name: "b", Expr: "rate + level"}},
+			Outputs:   []string{"x + b + dt + step + t + pi"},
+		}
+		e.Configure(0, settingsWith(map[string][]float64{"rate": {1}, "level": {0}}, "level"))
+		if err := e.CheckNames([]string{"rate", "level", "level"}); err != nil {
+			t.Errorf("CheckNames: %v", err)
+		}
+	})
+}

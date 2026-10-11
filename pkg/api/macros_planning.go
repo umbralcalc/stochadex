@@ -347,7 +347,15 @@ func (e *simulationEnvironmentSpec) build(
 		return nil, fmt.Errorf("%s needs model.partitions", what)
 	}
 
-	settings, implementations, err := e.Model.build()
+	// The planner writes the action, and any parameter draw, into the model's
+	// params, so those keys are the model partitions' names too.
+	injected := map[string][]string{e.ActionPartition: {e.ActionParam}}
+	if e.Parameters != nil {
+		for _, target := range e.Parameters.Targets {
+			injected[target.Partition] = append(injected[target.Partition], target.Param)
+		}
+	}
+	settings, implementations, err := e.Model.build(injected, what)
 	if err != nil {
 		return nil, err
 	}
@@ -481,14 +489,20 @@ func (e *simulationEnvironment) typed() *typedMCTSEnvironment[[]float64, int] {
 
 // build resolves the model's partitions and wraps them in the minimal simulation
 // config a re-entrant model needs — the planner supplies the run length, so the
-// model's own termination condition is never consulted.
-func (m *planningModelSpec) build() (
+// model's own termination condition is never consulted. injected maps a partition
+// to the params keys the planner writes into it, which its expressions must not
+// confuse with any other name.
+func (m *planningModelSpec) build(injected map[string][]string, what string) (
 	*simulator.Settings, *simulator.Implementations, error,
 ) {
 	partitions := make([]simulator.PartitionConfig, len(m.Partitions))
 	copy(partitions, m.Partitions)
 	if err := resolveIterations(partitions); err != nil {
 		return nil, nil, fmt.Errorf("mcts_planning model: %w", err)
+	}
+	if err := checkExpressionNames(
+		RunConfig{Partitions: partitions}, nil, injected, what+" model"); err != nil {
+		return nil, nil, err
 	}
 	timestep := m.Timestep
 	if timestep == 0 {
