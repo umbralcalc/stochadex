@@ -64,6 +64,7 @@ var wantIterationType = map[string]string{
 	"expression":                        "*general.ExpressionIteration",
 	"posterior_mean":                    "*inference.PosteriorMeanIteration",
 	"smc_proposal":                      "*inference.SMCProposalIteration",
+	"replicated_simulation_run":         "*general.ReplicatedSimulationRunIteration",
 }
 
 // iterationSpecFixtures gives a minimal valid Fields map for each composable
@@ -97,6 +98,19 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 	"data_comparison":           {"likelihood": map[string]interface{}{"type": "normal"}},
 	"posterior_mean":            {"transform": "mean"},
 	"smc_proposal":              {"priors": []interface{}{map[string]interface{}{"type": "uniform", "lo": 0.0, "hi": 1.0}}},
+	"replicated_simulation_run": {
+		"replicas": 2,
+		"run": map[string]interface{}{
+			"partitions": []interface{}{map[string]interface{}{
+				"name": "x", "iteration": map[string]interface{}{"type": "constant_values"},
+				"params": map[string]interface{}{}, "init_state_values": []interface{}{0.0},
+				"state_history_depth": 1}},
+			"simulation": map[string]interface{}{
+				"termination_condition": map[string]interface{}{"type": "number_of_steps", "max_steps": 1},
+				"timestep_function":     map[string]interface{}{"type": "constant", "stepsize": 1.0}},
+		},
+		"output_partition": "x",
+	},
 }
 
 // TestIterationRegistryConstructs is drift test 1: every registered name builds a

@@ -1,0 +1,76 @@
+# Core-language twin of smc_macro.yaml: the smc_inference macro's three
+# partitions written out, its particle evaluator as a replicated_simulation_run
+# whose model replays the observed series inline. The two must agree exactly.
+main:
+  partitions:
+  - name: smc_proposals
+    iteration: {type: smc_proposal, priors: [{type: uniform, lo: -5.0, hi: 10.0}]}
+    params: {verbose: [0], num_particles: [100], prior_types: [0], prior_params: [-5, 10, 0, 0]}
+    params_as_partitions: {posterior_partition: [smc_posterior]}
+    init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    state_history_depth: 2
+    seed: 42
+  - name: smc_sim
+    iteration:
+      type: replicated_simulation_run
+      replicas: 100
+      params_per_replica: 1
+      run:
+        partitions:
+        - name: observed_data
+          iteration: {type: from_storage, data: [[2], [1.9273440279585206], [3.29178884563193], [1.2996020338075276], [1.4890590268666326], [2.7710860041795584], [1.4837976308407457], [3.0878176427291333], [2.0037838034670257], [2.3989401496605076], [2.191406086953522], [1.8082526495470301], [2.026823559014198], [2.1536359652642667], [2.4651501029985434], [1.246941670680726], [2.0640510099729896], [-0.1396700924541392], [2.1548570762322057], [2.708523932314914], [2.5824086567220097], [1.113575869068128], [2.256807117706303], [2.0735301488502462], [1.4523337736610937], [2.2906727396330617], [0.9850434732992217], [1.646695447980703], [2.2303434672317826], [1.3120935646557355], [1.6766986631751026], [2.2292076428088046], [2.396935171688962], [3.0190262644455212], [1.8344796735592908], [1.288838263226006], [2.135825177048855], [2.1161593155633436], [3.5548493699765347], [1.9028266011031674], [2.2433720989596324], [1.6035547975174451], [1.6659249638330738], [3.0527738611045394], [1.6166462330142914], [3.4726780871518153], [0.8353165332293027], [2.945809074580194], [2.6087540498090163], [2.10949555540349], [3.3132289089439606], [0.8511519947155424], [2.4765144690283405], [2.221040561421053], [2.13594723774273], [2.5499282035041033], [1.9305687622297654], [2.761606453642215], [1.8489454557742115], [2.879243338858354], [2.378197490727515]]}
+          params: {}
+          init_state_values: [2]
+          state_history_depth: 2
+          seed: 0
+        - name: pred
+          iteration: {type: param_values}
+          params: {param_values: [0.0]}
+          init_state_values: [0.0]
+          state_history_depth: 2
+          seed: 0
+        - name: noisy
+          iteration: {type: ornstein_uhlenbeck}
+          params: {thetas: [1.0], mus: [0.0], sigmas: [0.3]}
+          init_state_values: [2.0]
+          state_history_depth: 2
+          seed: 0
+        - name: loglike
+          iteration: {type: data_comparison, likelihood: {type: normal}}
+          params: {mean: [0.0], variance: [0.5], latest_data_values: [2.0], cumulative: [1], burn_in_steps: [0]}
+          params_from_upstream:
+            mean: {upstream: noisy}
+            latest_data_values: {upstream: observed_data}
+          init_state_values: [0.0]
+          state_history_depth: 2
+          seed: 0
+        simulation:
+          output_function: {type: nil}
+          termination_condition: {type: number_of_steps, max_steps: 60}
+          timestep_function: {type: constant, stepsize: 1.0}
+          init_time_value: 0.0
+      output_partition: loglike
+      param_forwarding: {"pred/param_values": [0], "noisy/mus": [0]}
+    params: {replica_params: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
+    params_from_upstream: {replica_params: {upstream: smc_proposals}}
+    init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    state_history_depth: 2
+    seed: 142
+  - name: smc_posterior
+    iteration: {type: smc_posterior, param_names: [mean]}
+    params:
+      verbose: [0]
+      num_particles: [100]
+      num_params: [1]
+      particle_loglikes: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      particle_params: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    params_from_upstream:
+      particle_loglikes: {upstream: smc_sim}
+      particle_params: {upstream: smc_proposals}
+    init_state_values: [0, 1, 0]
+    state_history_depth: 2
+    seed: 0
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 3}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0

@@ -3,6 +3,7 @@ package macros
 import (
 	"math"
 	"math/rand/v2"
+	"strings"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
@@ -141,124 +142,39 @@ func TestRunSMCInference(t *testing.T) {
 	)
 }
 
-// TestSMCParticleEvaluationRejectsBadModel covers the two ways a particle model
-// can name something that is not there. Both would otherwise surface as a
-// silently unscored or unparameterised particle, which looks like a converging
-// run producing meaningless numbers.
-func TestSMCParticleEvaluationRejectsBadModel(t *testing.T) {
-	build := func(loglike string, forwarding map[string][]int) func() *SMCInnerSimConfig {
-		return func() *SMCInnerSimConfig {
+// TestSMCInferenceRejectsBadModel checks a particle model naming a loglike
+// partition it lacks fails when the partitions are built, rather than leaving
+// every particle unscored: a run that looks like it converges on nothing.
+func TestSMCInferenceRejectsBadModel(t *testing.T) {
+	defer func() {
+		recovered := recover()
+		if message, _ := recovered.(string); !strings.Contains(message,
+			`macros: SMC particle model: output partition "absent" is not in the replicated model`) {
+			t.Errorf("expected a panic naming the missing partition, got %v", recovered)
+		}
+	}()
+	NewSMCInferencePartitions(AppliedSMCInference{
+		ProposalName: "p", SimName: "s", PosteriorName: "q", NumParticles: 2, NumRounds: 1,
+		Priors:     []inference.Prior{&inference.UniformPrior{Lo: 0, Hi: 1}},
+		ParamNames: []string{"x"},
+		Model: SMCParticleModel{Build: func(int) *SMCInnerSimConfig {
 			return &SMCInnerSimConfig{
 				Partitions: []*simulator.PartitionConfig{{
-					Name:      "pred",
-					Iteration: &general.ParamValuesIteration{},
-					Params: simulator.NewParams(map[string][]float64{
-						"param_values": {0.0},
-					}),
+					Name:              "pred",
+					Iteration:         &general.ParamValuesIteration{},
+					Params:            simulator.NewParams(map[string][]float64{"param_values": {0.0}}),
 					InitStateValues:   []float64{0.0},
 					StateHistoryDepth: 1,
-					Seed:              0,
 				}},
 				Simulation: &simulator.SimulationConfig{
 					OutputCondition:      &simulator.NilOutputCondition{},
 					OutputFunction:       &simulator.NilOutputFunction{},
 					TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
 					TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
-					InitTimeValue:        0,
 				},
-				LoglikePartition: loglike,
-				ParamForwarding:  forwarding,
+				LoglikePartition: "absent",
+				ParamForwarding:  map[string][]int{"pred/param_values": {0}},
 			}
-		}
-	}
-
-	for _, testCase := range []struct {
-		name       string
-		loglike    string
-		forwarding map[string][]int
-	}{
-		{
-			name:       "unknown loglike partition",
-			loglike:    "absent",
-			forwarding: map[string][]int{"pred/param_values": {0}},
-		},
-		{
-			name:       "forwarding names an unknown partition",
-			loglike:    "pred",
-			forwarding: map[string][]int{"absent/param_values": {0}},
-		},
-		{
-			name:       "forwarding key is not partition/param",
-			loglike:    "pred",
-			forwarding: map[string][]int{"param_values": {0}},
-		},
-	} {
-		t.Run(testCase.name, func(t *testing.T) {
-			defer func() {
-				if recover() == nil {
-					t.Errorf("expected a panic for %s", testCase.name)
-				}
-			}()
-			NewSMCParticleEvaluationIteration(
-				build(testCase.loglike, testCase.forwarding), 2, 1)
-		})
-	}
-}
-
-// TestSMCParticleEvaluationIndependence checks each particle gets its own model
-// instance. Sharing one would couple the particles, since parameter forwarding
-// writes into params at evaluation time.
-func TestSMCParticleEvaluationIndependence(t *testing.T) {
-	build := func() *SMCInnerSimConfig {
-		return &SMCInnerSimConfig{
-			Partitions: []*simulator.PartitionConfig{{
-				Name:      "pred",
-				Iteration: &general.ParamValuesIteration{},
-				Params: simulator.NewParams(map[string][]float64{
-					"param_values": {0.0},
-				}),
-				InitStateValues:   []float64{0.0},
-				StateHistoryDepth: 1,
-				Seed:              0,
-			}},
-			Simulation: &simulator.SimulationConfig{
-				OutputCondition:      &simulator.NilOutputCondition{},
-				OutputFunction:       &simulator.NilOutputFunction{},
-				TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1},
-				TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
-				InitTimeValue:        0,
-			},
-			LoglikePartition: "pred",
-			ParamForwarding:  map[string][]int{"pred/param_values": {0}},
-		}
-	}
-	const particles = 3
-	evaluation := NewSMCParticleEvaluationIteration(build, particles, 1)
-	if len(evaluation.Simulations) != particles {
-		t.Fatalf("expected one simulation per particle, got %d", len(evaluation.Simulations))
-	}
-	for i := 0; i < particles; i++ {
-		for j := i + 1; j < particles; j++ {
-			if evaluation.Simulations[i] == evaluation.Simulations[j] {
-				t.Fatalf("particles %d and %d share a model instance", i, j)
-			}
-		}
-	}
-
-	// Each particle's own parameter reaches its own model: the partition echoes
-	// param_values, so the row it reports is the parameter it was given.
-	evaluation.Configure(0, &simulator.Settings{
-		Iterations: []simulator.IterationSettings{{Name: "eval", Seed: 3}},
+		}},
 	})
-	params := simulator.NewParams(map[string][]float64{
-		"particle_params": {10, 20, 30},
-	})
-	out := evaluation.Iterate(&params, 0, nil,
-		&simulator.CumulativeTimestepsHistory{CurrentStepNumber: 1})
-	for particle, want := range []float64{10, 20, 30} {
-		if out[particle] != want {
-			t.Errorf("particle %d scored %v, want its own parameter %v",
-				particle, out[particle], want)
-		}
-	}
 }
