@@ -174,16 +174,23 @@ func TestUndeclaredGroupsPolicies(t *testing.T) {
 
 	t.Run("other gathers in group-key order, whatever the map order", func(t *testing.T) {
 		// Groups 0, 1 and 2 hold 1e16, 1 and -1e16, and only group 5 is
-		// declared. In key order the sum is (1e16 + 1) - 1e16 = 0 in float64;
-		// other orders give 1.
+		// declared. Their float64 sum depends on the order they are added in
+		// (1e16 + 1 rounds to 1e16), so if gathering followed Go's randomised
+		// map order, repeated runs would disagree. Which value the fixed order
+		// gives depends on how floats.Dot accumulates on the platform, so the
+		// claim is only that every run gives the same one.
+		var first float64
 		for attempt := 0; attempt < 100; attempt++ {
 			settings := groupedOnlyZeroAndOne(t)
 			settings.Iterations[0].InitStateValues = []float64{0, 1, 2, 5, 5, 5, 5, 5, 5, 5}
 			settings.Iterations[1].InitStateValues = []float64{1e16, 1, -1e16, 0, 0, 0, 0, 0, 0, 0}
 			settings.Iterations[2].Params.Set("accepted_value_group_tupindex_0", []float64{5})
 			settings.Iterations[2].StateWidth = 2
-			if got := iterateOnce(t, UndeclaredGroupsOther, settings); got[1] != 0 {
-				t.Fatalf("attempt %d: other is %v, want 0 from summing in key order", attempt, got[1])
+			got := iterateOnce(t, UndeclaredGroupsOther, settings)[1]
+			if attempt == 0 {
+				first = got
+			} else if got != first {
+				t.Fatalf("attempt %d: other is %v, but attempt 0 gave %v", attempt, got, first)
 			}
 		}
 	})

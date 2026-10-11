@@ -135,15 +135,18 @@ func TestUndeclaredGroups(t *testing.T) {
 	})
 
 	t.Run("other gathers groups in key order, so its value does not depend on map order", func(t *testing.T) {
-		// In key order (groups 3, 4, 5) the sum is (1e16 + 1) - 1e16 = 0 in
-		// float64; any other order gives 1.
+		// Groups 3, 4 and 5 hold 1e16, 1 and -1e16, whose float64 sum depends
+		// on the order they are added in. Which value the fixed key order gives
+		// depends on how floats.Dot accumulates on the platform, so the claim is
+		// that every run gives the same one.
 		yaml := strings.NewReplacer(
 			"vals: [[1], [2], [4], [8], [16], [32], [64], [128]]", "vals: [[1e16], [1], [-1e16], [0], [0], [0], [0], [0]]",
 			"grp: [[1], [3], [2], [4], [1], [3], [2], [4]]", "grp: [[3], [4], [5], [1], [1], [1], [1], [1]]",
 		).Replace(groupedYAML(", undeclared_groups: other", "[0, 0, 0]"))
-		for attempt := 0; attempt < 100; attempt++ {
-			if other := run(t, yaml)[2][2]; other != 0 {
-				t.Fatalf("attempt %d: other is %v, want 0 from summing in key order", attempt, other)
+		first := run(t, yaml)[2][2]
+		for attempt := 1; attempt < 100; attempt++ {
+			if other := run(t, yaml)[2][2]; other != first {
+				t.Fatalf("attempt %d: other is %v, but attempt 0 gave %v", attempt, other, first)
 			}
 		}
 	})
