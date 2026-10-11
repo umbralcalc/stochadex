@@ -438,6 +438,14 @@ type aggregationFunc = func(
 	weightings map[string][]float64,
 ) []float64
 
+// undeclaredGroupPolicies are values_grouped_aggregation's undeclared_groups:
+// what happens to a group its declared (accepted) groups leave out.
+var undeclaredGroupPolicies = map[string]general.UndeclaredGroups{
+	"drop":  general.UndeclaredGroupsDrop,
+	"error": general.UndeclaredGroupsError,
+	"other": general.UndeclaredGroupsOther,
+}
+
 var aggregationFunctions = map[string]aggregationFunc{
 	"count": general.CountAggregation,
 	"sum":   general.SumAggregation,
@@ -488,6 +496,13 @@ func registerComposableIterations() {
 		it := &general.ValuesGroupedAggregationIteration{
 			Aggregation: namedFunc(r, "aggregation", aggregationFunctions),
 			Kernel:      r.kernel("kernel"),
+		}
+		if value, set := r.value("undeclared_groups", false); set {
+			policy, known := undeclaredGroupPolicies[fmt.Sprint(value)]
+			if !known {
+				r.fail("field \"undeclared_groups\" must be drop, error or other, got %v", value)
+			}
+			it.Undeclared = policy
 		}
 		return it, r.done()
 	}

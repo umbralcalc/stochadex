@@ -51,6 +51,12 @@ an exact version rather than assume stability across minors.
   `embedded:` block of the same name: forwarding, memory feeds and the black-box row are the
   same, `inspect --io` gives its column layout, and the load-time checks apply at every level.
   A run stated in place writes no output of its own and reads no inputs.
+- **`values_grouped_aggregation` takes `undeclared_groups: drop | error | other`** for a group
+  its declared groups (`accepted_value_group_tupindex_k`) leave out. `drop`, the default and
+  the behaviour so far, treats the declared groups as an accept-list; `error` fails the run
+  naming the group; `other` adds one output after the declared groups' that aggregates every
+  undeclared group together. A hand-written twin of a `grouped_aggregation` config, its groups
+  declared, reproduces the macro exactly.
 
 ### Changed
 

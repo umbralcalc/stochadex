@@ -1,0 +1,22 @@
+# grouped_aggregation where groups APPEAR over time: grp cycles through more
+# distinct values as t grows, so discovering the group set needs the whole series.
+inputs:
+  data:
+    simulation:
+      steps: 40
+      timestep: 1.0
+      partitions:
+      - {name: vals, init_state_values: [0.0, 1.0, 2.0], state_history_depth: 2, seed: 0}
+      - {name: grp, init_state_values: [0.0, 0.0, 1.0], state_history_depth: 2, seed: 0}
+      expressions:
+      - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "2 * t + 1", "t * t"]}
+      - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["floor(t / 10)", "floor(t / 15)", "1"]}
+macros:
+- type: grouped_aggregation
+  name: agg
+  aggregation: sum
+  group_by: [{partition_name: grp}]
+  precision: 1
+  data: {partition_name: vals}
+  window: 3
+
