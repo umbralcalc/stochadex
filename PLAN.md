@@ -89,6 +89,11 @@ Status: **accepted** (2026-10-04).
       outputs allocate exactly as before. CI now runs the CLI module's tests.
   - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
     strategy (#132), so an iteration's runtime failure no longer crashes the process.
+  - **In review:** 2.0b, `mcts_tree` / `mcts_rollout` / `mcts_apply` over an
+    `environment: {type: simulation}` component (#133). `mcts_planning` builds through the
+    same environment spec (byte-identical to main); twins of the example (optimum 160), an
+    all-fields variant and a long-horizon chain are exact; coverage scan includes pkg/agents.
+    Groundwork for 2.0d: `typedMCTSEnvironment[S, A]`.
   - **2.0c DONE.** Merged: part 3 (#131), part 2 (#130). Next: 2.0b, then 2.0d.
   - **Merged:** 2.0c part 2, recursive `embedded_simulation_run` spec (#130): a run
     stated in place, hosting runs to any depth; equivalent to top-level `embedded:` (tested),
