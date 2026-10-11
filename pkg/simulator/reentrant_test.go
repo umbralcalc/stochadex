@@ -126,6 +126,57 @@ func TestDeriveSeedSeparatesStreams(t *testing.T) {
 	}
 }
 
+// TestDeriveSeedNestingDoesNotCommute checks the composition callers rely on:
+// a replicated run seeds replica r at step k with DeriveSeed(DeriveSeed(base,
+// k), r), and ReseedIterations then derives once more per partition. Every
+// (step, replica, partition) triple must get its own seed. An XOR-linear
+// derivation fails this, because the nested indices then commute and cancel.
+func TestDeriveSeedNestingDoesNotCommute(t *testing.T) {
+	const base = 7
+	nested := func(step, replica int) uint64 {
+		return simulator.DeriveSeed(simulator.DeriveSeed(base, step), replica)
+	}
+	if nested(2, 5) == nested(5, 2) {
+		t.Error("step 2 replica 5 must not share a seed with step 5 replica 2")
+	}
+	step := nested(3, 0)
+	if simulator.DeriveSeed(step, 1) == simulator.DeriveSeed(nested(3, 1), 0) {
+		t.Error("replica 0's partition 1 must not share a seed with replica 1's partition 0")
+	}
+
+	seen := make(map[uint64][3]int)
+	for k := 0; k < 16; k++ {
+		for r := 0; r < 16; r++ {
+			for i := 0; i < 16; i++ {
+				seed := simulator.DeriveSeed(nested(k, r), i)
+				if other, ok := seen[seed]; ok {
+					t.Fatalf("(step, replica, partition) %v and %v share seed %#x",
+						[3]int{k, r, i}, other, seed)
+				}
+				seen[seed] = [3]int{k, r, i}
+			}
+		}
+	}
+}
+
+// TestDeriveSeedMatchesSplitMix64 pins DeriveSeed to an independent reference.
+// With base 0 the XOR offset is the splitmix64 state increment, so stream n
+// must reproduce the (n+1)-th output of splitmix64 seeded with 0 — the
+// published test vector of Vigna's reference implementation.
+func TestDeriveSeedMatchesSplitMix64(t *testing.T) {
+	for stream, want := range []uint64{
+		0xe220a8397b1dcdaf,
+		0x6e789e6aa1b965f4,
+		0x06c45d188009454f,
+		0xf88bb8a8724c81ec,
+	} {
+		if got := simulator.DeriveSeed(0, stream); got != want {
+			t.Errorf("DeriveSeed(0, %d) = %#x, want splitmix64 output %#x",
+				stream, got, want)
+		}
+	}
+}
+
 func TestReentrantSimulationPartitionLookup(t *testing.T) {
 	simulation := newTestReentrantSimulation(t)
 	index, ok := simulation.PartitionIndex("walk")
