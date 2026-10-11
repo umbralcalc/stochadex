@@ -141,7 +141,7 @@ func TestUndeclaredGroups(t *testing.T) {
 			"vals: [[1], [2], [4], [8], [16], [32], [64], [128]]", "vals: [[1e16], [1], [-1e16], [0], [0], [0], [0], [0]]",
 			"grp: [[1], [3], [2], [4], [1], [3], [2], [4]]", "grp: [[3], [4], [5], [1], [1], [1], [1], [1]]",
 		).Replace(groupedYAML(", undeclared_groups: other", "[0, 0, 0]"))
-		for attempt := 0; attempt < 30; attempt++ {
+		for attempt := 0; attempt < 100; attempt++ {
 			if other := run(t, yaml)[2][2]; other != 0 {
 				t.Fatalf("attempt %d: other is %v, want 0 from summing in key order", attempt, other)
 			}

@@ -1,11 +1,13 @@
 package general
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/mat"
 )
 
@@ -123,9 +125,13 @@ func TestUndeclaredGroupsPolicies(t *testing.T) {
 		}
 	})
 
-	t.Run("error panics at an undeclared latest group, naming it", func(t *testing.T) {
-		settings := groupedOnlyZeroAndOne(t)
-		aggregation := iterations(UndeclaredGroupsError)[2]
+	// iterateOnce configures partition_2 under policy and iterates it once on
+	// the colocated settings' rows: groups [0 1 2 2 2 0 1 0 1 2] and values
+	// [5 2 48 11 621 1 1 2 8 245]. The instantaneous kernel weighs only the
+	// latest rows, so each output is a plain sum over them.
+	iterateOnce := func(t *testing.T, policy UndeclaredGroups, settings *simulator.Settings) []float64 {
+		t.Helper()
+		aggregation := iterations(policy)[2]
 		aggregation.Configure(2, settings)
 		histories := make([]*simulator.StateHistory, len(settings.Iterations))
 		for index, partition := range settings.Iterations {
@@ -137,12 +143,83 @@ func TestUndeclaredGroupsPolicies(t *testing.T) {
 		params.Set("latest_states", settings.Iterations[1].InitStateValues)
 		timesteps := &simulator.CumulativeTimestepsHistory{
 			Values: mat.NewVecDense(1, []float64{0}), NextIncrement: 1, StateHistoryDepth: 1}
+		return aggregation.Iterate(&params, 2, histories, timesteps)
+	}
+
+	t.Run("drop sums the declared groups and leaves the rest out", func(t *testing.T) {
+		got := iterateOnce(t, UndeclaredGroupsDrop, groupedOnlyZeroAndOne(t))
+		// Group 0: 5+1+2; group 1: 2+1+8; group 2 is undeclared.
+		if want := []float64{8, 11, 0}; !floats.Equal(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("other sums the undeclared groups into one more output", func(t *testing.T) {
+		got := iterateOnce(t, UndeclaredGroupsOther, groupedOnlyZeroAndOne(t))
+		// Group 2's values, 48+11+621+245, are the other output.
+		if want := []float64{8, 11, 925}; !floats.Equal(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("other gathers every undeclared group, not just one", func(t *testing.T) {
+		settings := groupedOnlyZeroAndOne(t)
+		settings.Iterations[2].Params.Set("accepted_value_group_tupindex_0", []float64{0})
+		settings.Iterations[2].StateWidth = 2
+		// Groups 1 (2+1+8) and 2 (48+11+621+245) together.
+		if got, want := iterateOnce(t, UndeclaredGroupsOther, settings), []float64{8, 936}; !floats.Equal(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("other gathers in group-key order, whatever the map order", func(t *testing.T) {
+		// Groups 0, 1 and 2 hold 1e16, 1 and -1e16, and only group 5 is
+		// declared. In key order the sum is (1e16 + 1) - 1e16 = 0 in float64;
+		// other orders give 1.
+		for attempt := 0; attempt < 100; attempt++ {
+			settings := groupedOnlyZeroAndOne(t)
+			settings.Iterations[0].InitStateValues = []float64{0, 1, 2, 5, 5, 5, 5, 5, 5, 5}
+			settings.Iterations[1].InitStateValues = []float64{1e16, 1, -1e16, 0, 0, 0, 0, 0, 0, 0}
+			settings.Iterations[2].Params.Set("accepted_value_group_tupindex_0", []float64{5})
+			settings.Iterations[2].StateWidth = 2
+			if got := iterateOnce(t, UndeclaredGroupsOther, settings); got[1] != 0 {
+				t.Fatalf("attempt %d: other is %v, want 0 from summing in key order", attempt, got[1])
+			}
+		}
+	})
+
+	t.Run("other refuses a state not one wider than the declared groups", func(t *testing.T) {
+		for _, width := range []int{2, 4} {
+			settings := groupedOnlyZeroAndOne(t)
+			settings.Iterations[2].StateWidth = width
+			func() {
+				defer func() {
+					want := fmt.Sprintf(`values_grouped_aggregation: partition "partition_2" declares 2 `+
+						`groups, so with undeclared groups gathered as "other" its state is 3 wide, not %d`, width)
+					if message, _ := recover().(string); message != want {
+						t.Errorf("width %d: panicked with %q, want %q", width, message, want)
+					}
+				}()
+				iterations(UndeclaredGroupsOther)[2].Configure(2, settings)
+			}()
+		}
+	})
+
+	t.Run("error panics at an undeclared latest group, naming it", func(t *testing.T) {
 		defer func() {
 			if message, _ := recover().(string); !strings.Contains(message,
 				"values_grouped_aggregation: group (2.00) is not declared") {
 				t.Errorf("expected a panic naming group 2.00, got %q", message)
 			}
 		}()
-		aggregation.Iterate(&params, 2, histories, timesteps)
+		iterateOnce(t, UndeclaredGroupsError, groupedOnlyZeroAndOne(t))
+	})
+
+	t.Run("error passes when every latest group is declared", func(t *testing.T) {
+		settings := groupedOnlyZeroAndOne(t)
+		settings.Iterations[2].Params.Set("accepted_value_group_tupindex_0", []float64{0, 1, 2})
+		if got, want := iterateOnce(t, UndeclaredGroupsError, settings), []float64{8, 11, 925}; !floats.Equal(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
 	})
 }
