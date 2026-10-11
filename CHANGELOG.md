@@ -77,7 +77,8 @@ an exact version rather than assume stability across minors.
 
 - **An expression partition's names must each mean one thing, checked at load.** A field,
   params key (including a `params_from_upstream` or `params_as_partitions` key, one a host
-  forwards into its embedded run, and an `mcts_planning` `action_param` or parameter target),
+  forwards into its embedded run, and the `action_param` or a parameter target of `mcts_planning`
+  or a `{type: simulation}` environment),
   upstream alias or binding named `dt`, `t`, `step` or `pi` is now an error, as is a name
   declared twice — by two kinds (a field and a params key both called `x`) or by one (two
   fields, or two bindings). Each used to be resolved silently by the order the expression
