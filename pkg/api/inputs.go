@@ -58,6 +58,9 @@ type StreamConfig struct {
 	// run: {mode: serve}: the connection its {type: connection} view streams
 	// to, read in the other direction.
 	Connection *ConnectionStreamConfig `yaml:"connection,omitempty"`
+	// Extra holds a transport registered with RegisterStreamTransport, such as
+	// keyboard, by name.
+	Extra map[string]map[string]interface{} `yaml:",inline"`
 }
 
 // ConnectionStreamConfig selects a served client as a stream. It has no fields:
@@ -262,6 +265,10 @@ func validateInputs(config *ApiRunConfig) error {
 			return err
 		}
 		streams = streams || input.Stream != nil
+		if input.Stream != nil && len(input.Stream.Extra) > 0 && serving {
+			return fmt.Errorf("api: input %q reads a stream transport this process "+
+				"opens once, which a served run, one per connection, cannot share", name)
+		}
 		if input.Stream != nil && input.Stream.Connection != nil {
 			if !serving {
 				return fmt.Errorf("api: input %q reads a served client (stream: "+
@@ -385,11 +392,21 @@ func validateStreamInput(name string, input InputConfig) error {
 		return nil
 	}
 	websocketClient := input.Stream.Websocket != nil
-	if websocketClient == (input.Stream.Connection != nil) ||
-		websocketClient && input.Stream.Websocket.URL == "" {
+	transports := len(input.Stream.Extra)
+	for _, set := range []bool{websocketClient, input.Stream.Connection != nil} {
+		if set {
+			transports++
+		}
+	}
+	if transports != 1 || websocketClient && input.Stream.Websocket.URL == "" {
 		return fmt.Errorf("api: input %q: stream: needs one transport, e.g. "+
 			"stream: {websocket: {url: \"ws://localhost:9000/feed\"}}, or "+
 			"stream: {connection: {}} for a served client", name)
+	}
+	if transport, fields, ok := input.Stream.registeredTransport(); ok {
+		if err := checkRegisteredTransport(name, transport, fields); err != nil {
+			return err
+		}
 	}
 	switch input.Decode {
 	case "", "json", "protobuf_action_state":

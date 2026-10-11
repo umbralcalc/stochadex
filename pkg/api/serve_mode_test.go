@@ -440,9 +440,9 @@ func TestServeModeValidation(t *testing.T) {
 		{"an address with no port", serveConfigYAML + serveRun("localhost"),
 			`run.websocket.address "localhost"`},
 		{"websocket on a batch run", serveConfigYAML + "run: {websocket: {address: \":2112\"}}\n",
-			"only apply to run: {mode: serve}"},
+			"run.websocket only applies to run: {mode: serve}"},
 		{"pace_ms on an ensemble", serveConfigYAML + "run: {mode: ensemble, seeds: [1], pace_ms: 5}\n",
-			"only apply to run: {mode: serve}"},
+			"run.pace_ms paces a batch or served run, not run: {mode: ensemble}"},
 		{"seeds on a serve run", serveConfigYAML +
 			"run: {mode: serve, seeds: [1], websocket: {address: \":2112\"}}\n",
 			"only apply to run: {mode: ensemble}"},

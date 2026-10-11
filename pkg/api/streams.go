@@ -67,12 +67,16 @@ type streamBinding struct {
 // streamFeed is one stream input: its transport, the newest value of each
 // partition it is bound to, and its recording.
 type streamFeed struct {
-	name     string
-	url      string // a websocket server's; empty for a served client
-	served   bool   // the served client's messages, delivered by the handler
-	decode   string
-	record   string
-	bindings []streamBinding
+	name   string
+	url    string // a websocket server's; empty for a served client
+	served bool   // the served client's messages, delivered by the handler
+	// transport and fields name a registered transport, and source is it open.
+	transport string
+	fields    map[string]interface{}
+	source    StreamSource
+	decode    string
+	record    string
+	bindings  []streamBinding
 	// sources are the stream partitions bound, in name order; current holds the
 	// value each is giving the run, starting with the partition's configured one.
 	sources []string
@@ -124,7 +128,9 @@ func newParamFeeds(config *ApiRunConfig, loader *inputLoader) (*paramFeeds, erro
 			if !ok {
 				stream = &streamFeed{name: binding.Input, decode: input.Decode,
 					record: input.Record, current: map[string][]float64{}}
-				if input.Stream.Websocket != nil {
+				if transport, fields, ok := input.Stream.registeredTransport(); ok {
+					stream.transport, stream.fields = transport, fields
+				} else if input.Stream.Websocket != nil {
 					stream.url = input.Stream.Websocket.URL
 				} else {
 					stream.served = true
@@ -183,12 +189,16 @@ func storedParamRows(
 
 // runCoordinator runs a coordinator to termination, setting its params from
 // feeds between steps. Without feeds it is coordinator.Run.
-func runCoordinator(coordinator *simulator.PartitionCoordinator, feeds *paramFeeds) error {
-	if feeds == nil {
+func runCoordinator(
+	coordinator *simulator.PartitionCoordinator,
+	feeds *paramFeeds,
+	pace time.Duration,
+) error {
+	if feeds == nil && pace == 0 {
 		coordinator.Run()
 		return nil
 	}
-	return runSteps(coordinator, feeds, 0, nil)
+	return runSteps(coordinator, feeds, pace, nil)
 }
 
 // runSteps steps a coordinator to termination under its execution strategy,
@@ -330,7 +340,20 @@ func (s *streamFeed) open() error {
 	s.mutex.Lock()
 	s.latest, s.fresh, s.err = map[string][]float64{}, map[string]bool{}, nil
 	s.mutex.Unlock()
-	if !s.served {
+	if s.transport != "" {
+		transport, _ := streamTransport(s.transport)
+		source, err := transport.Open(s.fields)
+		if err != nil {
+			return &Error{Kind: ErrUnavailable, Err: fmt.Errorf(
+				"api: stream input %q: opening %s: %w", s.name, s.transport, err)}
+		}
+		s.source = source
+		s.done = make(chan struct{})
+		go func() {
+			defer close(s.done)
+			source.Read(s.deliver)
+		}()
+	} else if !s.served {
 		connection, _, err := websocket.DefaultDialer.Dial(s.url, nil)
 		if err != nil {
 			return &Error{Kind: ErrUnavailable, Err: fmt.Errorf(
@@ -431,6 +454,11 @@ func (s *streamFeed) recordRow(coordinator *simulator.PartitionCoordinator) {
 // close disconnects the stream, waits for its reader, and completes the
 // recording.
 func (s *streamFeed) close() {
+	if s.source != nil {
+		s.source.Close()
+		<-s.done
+		s.source = nil
+	}
 	if s.connection != nil {
 		s.connection.Close()
 		<-s.done

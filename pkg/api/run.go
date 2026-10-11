@@ -262,9 +262,10 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 		outputs.stageNested(config)
 		outputs.stage(prepared.implementations.OutputFunction)
 		defer outputs.discard()
+		// A CLI run keeps run.pace_ms, so it can be watched, or steered, live.
 		return outputs.finish(runCoordinator(
 			simulator.NewPartitionCoordinator(prepared.settings, prepared.implementations),
-			prepared.feeds))
+			prepared.feeds, time.Duration(config.Run.PaceMs)*time.Millisecond))
 	case "serve":
 		return runServe(config)
 	default:
@@ -509,9 +510,10 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 		}
 		staged.stage(outputs)
 		defer staged.discard()
+		// RunWith returns a run's results, so it runs unpaced.
 		if err := staged.finish(runCoordinator(
 			simulator.NewPartitionCoordinator(prepared.settings, &implementations),
-			prepared.feeds)); err != nil {
+			prepared.feeds, 0)); err != nil {
 			return nil, err
 		}
 		return &RunResult{Views: views}, nil

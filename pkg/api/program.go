@@ -164,8 +164,10 @@ type RunModeConfig struct {
 	Concurrency int `yaml:"concurrency,omitempty"`
 	// Websocket is where serve mode listens.
 	Websocket *WebsocketServeConfig `yaml:"websocket,omitempty"`
-	// PaceMs is serve mode's delay between steps, in milliseconds, so a client
-	// sees the run at a watchable rate.
+	// PaceMs is a delay between steps, in milliseconds, so a served client, or
+	// someone at the keyboard, sees the run at a watchable rate. It paces a
+	// served run and a batch run from the CLI; RunWith and RunToStorage, which
+	// return a run's results, run unpaced.
 	PaceMs uint64 `yaml:"pace_ms,omitempty"`
 }
 
