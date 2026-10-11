@@ -89,8 +89,8 @@ func (f *partitionFailure) raise() {
 
 // failIteration records a panic recovered from iterator's iteration phase and
 // tells its within-step consumers, which are waiting on its values, to stop.
-// The value channels are buffered to the partition's listener count, so this
-// never blocks.
+// Each consumer receives from all of its upstreams before it stops (see
+// UpdateUpstreamParams), so every one of these sends is received.
 func (f *partitionFailure) failIteration(iterator *StateIterator, recovered any) {
 	f.record(iterator, recovered)
 	if downstream := iterator.ValueChannels.Downstream; downstream != nil {

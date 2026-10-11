@@ -19,6 +19,7 @@ type panicsAtStepIteration struct {
 	failAt     int
 	value      any
 	wrongWidth bool
+	shortWidth bool
 	step       int
 }
 
@@ -40,6 +41,9 @@ func (p *panicsAtStepIteration) Iterate(
 	}
 	if p.wrongWidth {
 		return append(values, 0)
+	}
+	if p.shortWidth {
+		return values[:1]
 	}
 	panic(p.value)
 }
@@ -260,6 +264,57 @@ func TestPartitionPanic(t *testing.T) {
 		}
 	})
 
+	t.Run("a reentrant run of a fixed number of steps names the partition", func(t *testing.T) {
+		for strategyName, strategy := range allStrategies() {
+			before := runtime.NumGoroutine()
+			settings, makeIterations := failingChain(1, "boom", false)
+			iterations := makeIterations()
+			for index, iteration := range iterations {
+				iteration.Configure(index, settings)
+			}
+			reentrant := NewReentrantSimulation(settings, &Implementations{
+				Iterations:           iterations,
+				TerminationCondition: &NumberOfStepsTerminationCondition{MaxNumberOfSteps: 20},
+				TimestepFunction:     &ConstantTimestepFunction{Stepsize: 1.0},
+				ExecutionStrategy:    strategy,
+			})
+			// Four steps run cleanly; the next run's first step is the fifth.
+			reentrant.Run(ReentrantRun{Steps: 4})
+			recovered := panicFrom(func() { reentrant.Run(ReentrantRun{Steps: 3}) })
+			if failure, ok := recovered.(*PartitionPanic); !ok || failure.Partition != "partition_1" {
+				t.Errorf("%s: want partition_1's PartitionPanic, got %T %v",
+					strategyName, recovered, recovered)
+			}
+			waitForGoroutines(t, before)
+		}
+	})
+
+	t.Run("an upstream sending too few values for an indexed read fails its consumer", func(t *testing.T) {
+		// partition_2 reads three indices of partition_0, which sends one value
+		// at step 5, and also reads partition_1 twice. Map order decides which it
+		// receives first, so repeat: whatever the order, partition_1's sends
+		// must all be received, or its worker would block forever.
+		for attempt := range 20 {
+			for strategyName, strategy := range allStrategies() {
+				before := runtime.NumGoroutine()
+				settings, makeIterations := shortUpstreamSettings()
+				recovered := panicFrom(func() {
+					runStrategyConfig(settings, makeIterations, 20, strategy)
+				})
+				failure, ok := recovered.(*PartitionPanic)
+				if !ok || failure.Partition != "partition_2" {
+					t.Fatalf("attempt %d, %s: want partition_2's PartitionPanic, got %T %v",
+						attempt, strategyName, recovered, recovered)
+				}
+				if strategyName != "inline" && !strings.Contains(failure.Error(),
+					`params_from_upstream "multipliers" reads index 1 of partition 0, which sent 1 values this step`) {
+					t.Errorf("%s: got %q", strategyName, failure.Error())
+				}
+				waitForGoroutines(t, before)
+			}
+		}
+	})
+
 	t.Run("runs that do not panic are unchanged", func(t *testing.T) {
 		settings, makeIterations := chainSettings()
 		reference := runStrategyConfig(settings, makeIterations, 20, nil)
@@ -351,4 +406,34 @@ func (g *goexitIteration) Iterate(
 ) []float64 {
 	runtime.Goexit()
 	return nil
+}
+
+// shortUpstreamSettings is partition_2 reading indices 0 to 2 of partition_0,
+// which sends only one value at step 5, alongside two reads of all of
+// partition_1.
+func shortUpstreamSettings() (*Settings, func() []Iteration) {
+	settings := &Settings{
+		Iterations: []IterationSettings{
+			{Name: "partition_0", Params: NewParams(map[string][]float64{}),
+				InitStateValues: []float64{1, 2, 3}, StateWidth: 3, StateHistoryDepth: 2},
+			{Name: "partition_1", Params: NewParams(map[string][]float64{}),
+				InitStateValues: []float64{1, 1, 1}, StateWidth: 3, StateHistoryDepth: 2},
+			{Name: "partition_2", Params: NewParams(map[string][]float64{}),
+				ParamsFromUpstream: map[string]UpstreamConfig{
+					"multipliers": {Upstream: 0, Indices: []int{0, 1, 2}},
+					"unused":      {Upstream: 1},
+					"unused_too":  {Upstream: 1},
+				},
+				InitStateValues: []float64{1, 1, 1}, StateWidth: 3, StateHistoryDepth: 2},
+		},
+		TimestepsHistoryDepth: 2,
+	}
+	settings.Init()
+	return settings, func() []Iteration {
+		return []Iteration{
+			&panicsAtStepIteration{Iteration: &doublingProcessIteration{}, failAt: 5, shortWidth: true},
+			&doublingProcessIteration{},
+			&paramMultProcessIteration{},
+		}
+	}
 }

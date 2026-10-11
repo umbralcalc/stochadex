@@ -146,3 +146,29 @@ func TestPartitionPanicComesBackAsAnError(t *testing.T) {
 		})
 	}
 }
+
+func TestUndeclaredGroupErrorComesBackAsAnError(t *testing.T) {
+	// The motivating case: values_grouped_aggregation with undeclared_groups:
+	// error panics mid-run on group 3, which only appears at step 1, from a
+	// partition fed within the step by two upstreams.
+	for _, strategy := range []string{"", "spawn_per_step", "persistent_worker", "inline"} {
+		t.Run("strategy "+strategy, func(t *testing.T) {
+			yaml := groupedYAML(", undeclared_groups: error", "[0, 0]")
+			if strategy != "" {
+				yaml = strings.Replace(yaml, "    init_time_value: 0.0\n",
+					"    init_time_value: 0.0\n    execution_strategy: {type: "+strategy+"}\n", 1)
+			}
+			before := runtime.NumGoroutine()
+			_, err := RunToStorage(writeConfig(t, yaml))
+			if KindOf(err) != ErrRuntime {
+				t.Fatalf("want an ErrRuntime, got kind %d: %v", KindOf(err), err)
+			}
+			const want = `simulation failed: partition "agg" panicked: ` +
+				`values_grouped_aggregation: group (3.0) is not declared`
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("want the error to contain %q, got %q", want, err.Error())
+			}
+			assertNoLeakedGoroutines(t, before)
+		})
+	}
+}

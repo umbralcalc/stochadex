@@ -97,6 +97,9 @@ an exact version rather than assume stability across minors.
   partition (`RunWith` used to panic). Partitions that read the failed one within the step
   don't run, and a failure in `Iterate` leaves every history at the last completed step.
   Ensemble members still run on goroutines of their own, where a panic still crashes.
+- **Small inline runs are faster** (about 6–12% on one- and few-partition configs): an inline
+  step no longer ranges over a partition's empty upstream map. This more than pays for
+  recording which partition is running, so no strategy is slower than before.
 
 ## [0.21.0] — 2026-10-10
 

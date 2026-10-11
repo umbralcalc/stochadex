@@ -293,13 +293,37 @@ func (c *PartitionCoordinator) NamePartitionPanic() {
 	if c.inlineRunning == 0 {
 		return
 	}
-	recovered := recover()
-	if recovered == nil {
-		return
+	if recovered := recover(); recovered != nil {
+		c.raiseInlinePanic(recovered)
 	}
+}
+
+// raiseInlinePanic raises recovered, recovered while an inline Step was doing
+// a partition's work, as a *PartitionPanic naming that partition.
+func (c *PartitionCoordinator) raiseInlinePanic(recovered any) {
 	failure := &partitionFailure{}
 	failure.record(c.Iterators[c.inlineRunning-1], recovered)
 	failure.raise()
+}
+
+// stepFor steps the coordinator steps times under its configured strategy,
+// then closes the stepper. Its one deferred call both names a partition's panic
+// under inline execution (as NamePartitionPanic does) and closes the stepper,
+// so a short run, a reentrant evaluation of a step or two, pays for one defer.
+func (c *PartitionCoordinator) stepFor(steps int) {
+	stepper := c.NewStepper()
+	defer func() {
+		if c.inlineRunning != 0 {
+			if recovered := recover(); recovered != nil {
+				stepper.Close()
+				c.raiseInlinePanic(recovered)
+			}
+		}
+		stepper.Close()
+	}()
+	for range steps {
+		stepper.Step()
+	}
 }
 
 // NewPartitionCoordinator wires Settings and Implementations into a runnable
@@ -321,16 +345,14 @@ func NewPartitionCoordinator(
 	valueChannels := make([](chan []float64), 0)
 	listenersByPartition := make(map[int]int)
 	for _, iteration := range settings.Iterations {
+		valueChannels = append(valueChannels, make(chan []float64))
 		for _, values := range iteration.ParamsFromUpstream {
+			_, ok := listenersByPartition[values.Upstream]
+			if !ok {
+				listenersByPartition[values.Upstream] = 0
+			}
 			listenersByPartition[values.Upstream] += 1
 		}
-	}
-	// Each value channel holds one step's broadcast to every listener, so a
-	// producer never waits on a consumer that stopped mid-step because another
-	// of its upstreams panicked (see partitionFailure).
-	for index := range settings.Iterations {
-		valueChannels = append(valueChannels,
-			make(chan []float64, listenersByPartition[index]))
 	}
 	// No output function means no output: an embedded run outputs nothing
 	// unless its config asks (its host partition's row is what the outer run
