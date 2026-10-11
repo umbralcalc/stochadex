@@ -465,6 +465,13 @@ mean of the likelihood's gradient in its mean over a batch of data. It runs only
 {<partition>/update_from_partition_history: [<data partition>]}` and the partition declares
 `<data partition>->data_values: []`; pair it with `gradient_descent` to fit a mean, as
 `likelihood_mean_function_fit` does).
+`mcts_tree` / `mcts_rollout` / `mcts_apply` (the three partitions `mcts_planning` wires, as data:
+each takes `environment: {type: simulation, horizon, actions, action_partition, action_param,
+reward_partition, model, ...}` — `mcts_planning`'s decision-problem fields — plus only the settings it
+reads: the tree `exploration`, `max_tree_depth`, `pinned_noise`; the rollout `rollout_max_steps`; apply
+`best_index_slot`. Simulations per decision are the search run's step count and seeds are the
+partitions' seeds. State the environment once with a YAML anchor (`environment: &env {...}`, then
+`environment: *env`); `pkg/api/testdata/planning/example_twin.yaml` is the planning example written out).
 `replicated_simulation_run` (states a model once and runs it `replicas:` times every step, e.g.
 one per SMC particle or sweep point: field `run: {partitions, expressions, simulation}` is one
 replica's model, which writes no output of its own and reads no inputs; `output_partition:` names

@@ -1,0 +1,88 @@
+# Core-language twin of cfg/example_planning_config.yaml (mcts_planning): the macro's apply
+# partition and its search, an embedded run of the tree and rollout partitions,
+# each an mcts_* iteration over the same {type: simulation} environment, stated
+# once with a YAML anchor. The two must agree exactly.
+main:
+  partitions:
+  - name: plan_apply
+    iteration:
+      type: mcts_apply
+      environment: &env
+        type: simulation
+        horizon: 8
+        return_range: [-400, 400]
+        actions: [[1], [0], [-1]]
+        action_partition: battery
+        action_param: dispatch
+        reward_partition: revenue
+        model:
+          partitions:
+          - name: price
+            iteration:
+              type: expression
+              fields: [{name: price}, {name: phase}]
+              bindings:
+              - {name: nextphase, expr: "phase + 1 - 4 * floor((phase + 1) / 4)"}
+              outputs: ["where(nextphase < 2, 10, 90)", "nextphase"]
+            init_state_values: [90.0, 3.0]
+            state_history_depth: 1
+            seed: 0
+          - name: battery
+            iteration:
+              type: expression
+              fields: [{name: soc}, {name: flow}]
+              bindings:
+              - {name: nextsoc, expr: "clamp(soc + dispatch, 0, 1)"}
+              outputs: ["nextsoc", "nextsoc - soc"]
+            params: {dispatch: [0.0]}
+            init_state_values: [0.0, 0.0]
+            state_history_depth: 1
+            seed: 0
+          - name: revenue
+            iteration:
+              type: expression
+              fields: [{name: r}]
+              outputs: ["0 - flow * price"]
+            params: {flow: [0.0], price: [0.0]}
+            params_from_upstream:
+              flow: {upstream: battery, indices: [1]}
+              price: {upstream: price, indices: [0]}
+            init_state_values: [0.0]
+            state_history_depth: 1
+            seed: 0
+    params_as_partitions: {best_idx_partition: [plan_search]}
+    init_state_values: [0, 0, 90, 3, 0, 0, 0]
+    state_history_depth: 1
+    seed: 99
+  - name: plan_search
+    iteration:
+      type: embedded_simulation_run
+      run:
+        partitions:
+        - name: plan_tree
+          iteration: {type: mcts_tree, environment: *env}
+          params_as_partitions: {rollout_scores_partition: [plan_rollout]}
+          init_state_values: [0, 0, 0, 90, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+          state_history_depth: 1
+          seed: 99
+        - name: plan_rollout
+          iteration: {type: mcts_rollout, environment: *env}
+          params_from_upstream:
+            leaf: {upstream: plan_tree, indices: [1, 2, 3, 4, 5, 6, 7, 8]}
+          init_state_values: [0, 0]
+          state_history_depth: 1
+          seed: 98
+        simulation:
+          termination_condition: {type: number_of_steps, max_steps: 400}
+          timestep_function: {type: constant, stepsize: 1.0}
+          init_time_value: 0.0
+    params: {burn_in_steps: [0]}
+    params_from_upstream:
+      plan_tree/root_state: {upstream: plan_apply, indices: [0, 1, 2, 3, 4, 5, 6]}
+    init_state_values: [-1, 0, 0, 90, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    state_history_depth: 1
+    seed: 99
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 8}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0

@@ -10,8 +10,8 @@ import (
 )
 
 // excludedIterations names every Iteration implementation in the candidate
-// packages that is deliberately NOT in the registry, each with the reason. It is
-// empty: every iteration has a data form. The last exclusions were live objects
+// packages that is deliberately NOT in the registry, each with the reason. Only
+// MAST, which nothing wires yet, is left. The last live-object exclusions were
 // bound at run time — a batch *StateHistory an embedded run's host feeds in
 // (from_history, data_comparison_gradient), and a whole
 // *Settings/*Implementations pair (embedded_simulation_run, whose run: is now
@@ -27,13 +27,19 @@ import (
 // A field of live-object *type* is not on its own grounds for exclusion: an RNG
 // source that Configure assigns from the partition seed is inert as config, and
 // nested iterations are expressible as recursive specs.
-var excludedIterations = map[string]string{}
+var excludedIterations = map[string]string{
+	// MAST is an optional rollout strategy that no macro wires yet; its data
+	// spec waits for a config that needs it (it would take the environment
+	// like mcts_rollout, plus its aggregation partition).
+	"MASTRolloutIteration":     "unwired: optional MAST rollout strategy, no macro or config uses it yet",
+	"MASTAggregationIteration": "unwired: MAST's per-action statistics, used only with MASTRolloutIteration",
+}
 
 // candidatePackages are the packages whose Iteration implementations are
-// candidates for the data-only registry (agents/analysis iterations are the
-// macro tier, out of scope here).
+// candidates for the data-only registry. pkg/agents is among them: its MCTS
+// iterations have data specs over a {type: ...} environment.
 var candidatePackages = []string{
-	"../continuous", "../discrete", "../general", "../inference",
+	"../continuous", "../discrete", "../general", "../inference", "../agents",
 }
 
 // TestIterationCoverage is drift test 2: it scans the candidate packages for every
@@ -42,7 +48,9 @@ var candidatePackages = []string{
 func TestIterationCoverage(t *testing.T) {
 	registered := make(map[string]bool)
 	for _, goType := range wantIterationType {
-		// goType is like "*continuous.WienerProcessIteration"; take the bare name.
+		// goType is like "*continuous.WienerProcessIteration", or
+		// "*agents.MCTSTreeIteration[[]float64,int]"; take the bare name.
+		goType, _, _ = strings.Cut(goType, "[")
 		registered[goType[strings.LastIndex(goType, ".")+1:]] = true
 	}
 
@@ -121,7 +129,15 @@ func pointerReceiverType(recv *ast.FieldList) string {
 	if !ok {
 		return ""
 	}
-	ident, ok := star.X.(*ast.Ident)
+	// A generic receiver, *T[S, A], names its type through an index expression.
+	base := star.X
+	switch generic := base.(type) {
+	case *ast.IndexExpr:
+		base = generic.X
+	case *ast.IndexListExpr:
+		base = generic.X
+	}
+	ident, ok := base.(*ast.Ident)
 	if !ok || !ident.IsExported() {
 		return ""
 	}
