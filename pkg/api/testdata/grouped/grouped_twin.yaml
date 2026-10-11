@@ -1,0 +1,30 @@
+# Core-language twin of grouped_macro.yaml (grouped_aggregation), with the
+# group set DECLARED (accepted_value_group_tupindex_0) instead of discovered.
+main:
+  partitions:
+  - {name: vals, init_state_values: [0.0, 1.0, 2.0], state_history_depth: 3, seed: 0}
+  - {name: grp, init_state_values: [0.0, 0.0, 1.0], state_history_depth: 3, seed: 0}
+  - name: agg
+    iteration: {type: values_grouped_aggregation, aggregation: sum, kernel: {type: instantaneous}}
+    params:
+      accepted_value_group_tupindex_0: [0, 1, 2, 3]
+      default_values: [0, 0, 0, 0]
+      float_precision: [1]
+      grouping_value_indices_tupindex_0: [0, 1, 2]
+      state_value_indices: [0, 1, 2]
+    params_as_partitions:
+      grouping_partition_tupindex_0: [grp]
+      state_partition: [vals]
+    params_from_upstream:
+      latest_groupings_tupindex_0: {upstream: grp}
+      latest_states: {upstream: vals}
+    init_state_values: [0, 0, 0, 0]
+    state_history_depth: 1
+    seed: 0
+  expressions:
+  - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "2 * t + 1", "t * t"]}
+  - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["floor(t / 10)", "floor(t / 15)", "1"]}
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 40}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0

@@ -444,7 +444,9 @@ partition it is excited by with `params_as_partitions: {hawkes_partition_index: 
 `cumulative` (field `iteration: {...}`), `discounted_cumulative` (`iteration`),
 `data_generation` (`likelihood: {...}`), `data_comparison` (`likelihood`),
 `values_function_vector_mean` / `values_function_vector_covariance` (`function: <name>`, `kernel: {...}`),
-`values_grouped_aggregation` (`aggregation: <name>`, `kernel`),
+`values_grouped_aggregation` (`aggregation: <name>`, `kernel`; params `accepted_value_group_tupindex_k`
+are an accept-list, and a group not among them is dropped unless `undeclared_groups: error` (fail
+the run naming it) or `other` (one more output, after the declared groups', aggregating them all)),
 `values_function` (either `function: <name>` or `transform: <name>` + `reduce: <name>`),
 `values_changing_events` (fields `event_iteration: {...}` and `iteration_by_event:` — a *list* of
 `{event: <number>, iteration: {...}}` pairs; falls back to `default_values` params, else the
