@@ -6,10 +6,20 @@ import "gonum.org/v1/gonum/mat"
 // re-entrant run get distinct but jointly-determined seeds. Splitting this way
 // means two runs sharing a base seed reproduce each other exactly, while two
 // partitions within a run do not share a random stream.
+//
+// Callers nest it — a replicated run derives per step, then per replica, and
+// ReseedIterations derives once more per partition — so the mix must not be
+// linear. With a bare XOR the nested indices commute and cancel (step k's
+// replica r would equal step r's replica k), and distinct streams collide.
 func DeriveSeed(base uint64, stream int) uint64 {
-	// Odd multiplier from the 64-bit golden ratio: cheap, and adequate for
-	// decorrelating per-partition streams that are already PCG-seeded.
-	return base ^ (uint64(stream+1) * 0x9e3779b97f4a7c15)
+	// Offset the base by an odd multiple of the 64-bit golden ratio, then apply
+	// the splitmix64 finaliser. The finaliser is a bijection, so distinct
+	// streams of one base stay distinct, and its nonlinearity is what stops
+	// nested derivations from commuting.
+	z := base ^ (uint64(stream+1) * 0x9e3779b97f4a7c15)
+	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9
+	z = (z ^ (z >> 27)) * 0x94d049bb133111eb
+	return z ^ (z >> 31)
 }
 
 // ReseedIterations re-Configures every iteration with a seed derived from base,

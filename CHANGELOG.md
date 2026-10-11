@@ -37,6 +37,17 @@ an exact version rather than assume stability across minors.
 - **`run: {pace_ms}` paces a batch run from the CLI** in real time, not only a served one.
   `RunWith` and `RunToStorage` stay unpaced.
 
+### Changed
+
+- **Derived seeds change, so seeded results of SMC, embedded reseeding and MCTS planning
+  differ from earlier versions.** `simulator.DeriveSeed` now applies the splitmix64
+  finaliser instead of a bare XOR. The XOR form made nested derivations commute, so random
+  streams that should be independent were shared: in `smc_inference`, round k's particle r
+  had round r's particle k's seed, and within one round particle 0's partition 1 had
+  particle 1's partition 0's; with `SetReseedBase`, an embedded run's step s partition i had
+  step i's partition s's. Results are distributionally equivalent but not the same numbers;
+  unseeded and non-reseeded runs are unaffected.
+
 ## [0.21.0] — 2026-10-10
 
 This release makes a config a well-behaved step in a workflow engine (the config-runtime
