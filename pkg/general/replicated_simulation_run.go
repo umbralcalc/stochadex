@@ -39,9 +39,8 @@ type ReplicaParamForwarding struct {
 // A slice of a flat parameter vector is forwarded into each replica before it
 // runs, so replicas differ by their parameters (an SMC particle's proposal, an
 // evolution-strategy candidate, a sensitivity-sweep point) and by their seeds.
-// Seeds are derived here, per step and per replica, so no config can leave the
-// replicas of a step sharing a random stream, or one replica repeating its
-// stream every step.
+// Seeds are derived here, per step and per replica, so no config can leave two
+// replicas, or one replica at two steps, sharing a random stream.
 // Replicas run concurrently and synchronise once per step.
 //
 // # Row layout

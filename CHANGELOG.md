@@ -42,9 +42,16 @@ an exact version rather than assume stability across minors.
   generic (`general.ReplicatedSimulationRunIteration`), so SMC can be written out in the core
   language and the same block serves sensitivity sweeps or in-partition ensembles. A
   hand-written twin of an SMC config reproduces the macro exactly.
+- **`{type: data_comparison_gradient}`**, the gradient step of `likelihood_mean_function_fit`, so
+  that fit can be written out in the core language (a hand-written twin reproduces the macro
+  exactly). It runs inside an embedded run whose host feeds it a batch of data.
 
 ### Changed
 
+- **A partition that reads a history its embedded run's host feeds it** (`from_history`,
+  `data_comparison_gradient`) is checked at load: it must be inside an embedded run whose host
+  feeds it, and a gradient must declare `<partition>->data_values` for each partition fed to
+  it. Each of these used to fail mid-run.
 - **`macros.SMCParticleEvaluationIteration` moved to `pkg/general`** as
   `ReplicatedSimulationRunIteration` (built by `NewReplicatedSimulationRunIteration`, which
   returns an error instead of panicking). `smc_inference` uses it and gives the same results.

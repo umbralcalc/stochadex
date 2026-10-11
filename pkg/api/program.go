@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
+	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gopkg.in/yaml.v2"
 )
@@ -535,7 +536,60 @@ func validateApiRunConfig(config *ApiRunConfig) error {
 			}
 		}
 	}
-	return validateEmbeddedForwarding(config)
+	if err := validateEmbeddedForwarding(config); err != nil {
+		return err
+	}
+	return validateMemoryFeeds(config)
+}
+
+// validateMemoryFeeds checks, at load, that every partition reading a history
+// its host feeds it (a general.StateMemoryIteration: from_history,
+// data_comparison_gradient) is fed: it sits in an embedded run whose host
+// partition names it with "<partition>/update_from_partition_history" in
+// params_as_partitions. A data_comparison_gradient also declares
+// "<fed partition>->data_values" for each partition fed to it. Unfed, the
+// iteration has no history and the run panics mid-step.
+func validateMemoryFeeds(config *ApiRunConfig) error {
+	for _, partition := range config.Main.Partitions {
+		if _, ok := partition.Iteration.(general.StateMemoryIteration); ok {
+			return fmt.Errorf("api: main partition %q (%s) reads a history its host feeds "+
+				"it, so it only runs inside an embedded run", partition.Name, partition.IterationSpec.Type)
+		}
+	}
+	hosts := map[string]simulator.PartitionConfig{}
+	for _, partition := range config.Main.Partitions {
+		hosts[partition.Name] = partition
+	}
+	for _, embedded := range config.Embedded {
+		host, hosted := hosts[embedded.Name]
+		if !hosted {
+			continue // an embedded run no partition hosts never runs
+		}
+		for _, partition := range embedded.Run.Partitions {
+			if _, ok := partition.Iteration.(general.StateMemoryIteration); !ok {
+				continue
+			}
+			key := partition.Name + "/update_from_partition_history"
+			fed := host.ParamsAsPartitions[key]
+			if len(fed) == 0 {
+				return fmt.Errorf("api: embedded run %q partition %q (%s) reads a history "+
+					"its host feeds it, but host %q does not; add params_as_partitions: "+
+					"{%s: [<partition>]}", embedded.Name, partition.Name,
+					partition.IterationSpec.Type, host.Name, key)
+			}
+			if _, ok := partition.Iteration.(*inference.DataComparisonGradientIteration); !ok {
+				continue
+			}
+			for _, name := range fed {
+				if _, ok := partition.Params.Map[name+"->data_values"]; !ok {
+					return fmt.Errorf("api: embedded run %q partition %q is fed %q, so it "+
+						"declares \"%s->data_values\" in its params (e.g. %s->data_values: [])",
+						embedded.Name, partition.Name, name, name, name)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // validateEmbeddedForwarding checks, at load, that every params key a host

@@ -106,6 +106,10 @@ func (s *replicatedRunSpec) validate() error {
 			return fmt.Errorf("from_input is not yet supported inside a replicated run "+
 				"(partition %q)", partition.Name)
 		}
+		if _, ok := partition.Iteration.(general.StateMemoryIteration); ok {
+			return fmt.Errorf("partition %q reads a history an embedded run's host feeds "+
+				"it, which no replica has", partition.Name)
+		}
 		if len(partition.ParamsFromInput) > 0 {
 			return fmt.Errorf("params_from_input is not yet supported inside a replicated "+
 				"run (partition %q)", partition.Name)

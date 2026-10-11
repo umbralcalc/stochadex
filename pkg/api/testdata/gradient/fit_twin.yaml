@@ -1,0 +1,47 @@
+# Core-language twin of fit_macro.yaml: test_data runs live in the same run, and
+# the fit is an embedded run of data_comparison_gradient feeding
+# gradient_descent, its batch fed by the host from test_data's history.
+main:
+  partitions:
+  - name: test_data
+    iteration: {type: data_generation, likelihood: {type: normal}}
+    params: {mean: [2.0, 3.0], covariance_matrix: [1.0, 0.0, 0.0, 1.0]}
+    init_state_values: [2.0, 3.0]
+    state_history_depth: 10
+    seed: 5
+  - name: mean_fit
+    params: {burn_in_steps: [10]}
+    params_as_partitions:
+      gradient/update_from_partition_history: [test_data]
+    params_from_upstream:
+      gradient/target_state: {upstream: test_data}
+    init_state_values: [0.0, 0.0, 0.0, 0.0]
+    state_history_depth: 10
+    seed: 0
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 100}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+embedded:
+- name: mean_fit
+  partitions:
+  - name: gradient
+    iteration: {type: data_comparison_gradient, likelihood: {type: normal}, gradient_function: mean_gradient}
+    params:
+      covariance_matrix: [1.0, 0.0, 0.0, 1.0]
+      test_data->data_values: []
+    params_as_partitions: {mean_partition: [gradient_descent]}
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+  - name: gradient_descent
+    iteration: {type: gradient_descent}
+    params: {learning_rate: [0.005]}
+    params_from_upstream: {gradient: {upstream: gradient}}
+    init_state_values: [0.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 3}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0

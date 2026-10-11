@@ -452,6 +452,12 @@ optional `log_weight_indices`, `past_discounting_factor` — wire the partition 
 `observation_noise_variance`, optional `observation_indices` and `inflation`; wire `forecast_ensemble`
 and `latest_data_values` with `params_from_upstream`; state is the analysis ensemble flattened
 member-major — see `cfg/example_enkf_config.yaml`).
+`data_comparison_gradient` (fields `likelihood: {...}`, `gradient_function: mean_gradient`; the
+mean of the likelihood's gradient in its mean over a batch of data. It runs only inside an
+`embedded:` run: the host feeds the batch with `params_as_partitions:
+{<partition>/update_from_partition_history: [<data partition>]}` and the partition declares
+`<data partition>->data_values: []`; pair it with `gradient_descent` to fit a mean, as
+`likelihood_mean_function_fit` does).
 `replicated_simulation_run` (states a model once and runs it `replicas:` times every step, e.g.
 one per SMC particle or sweep point: field `run: {partitions, expressions, simulation}` is one
 replica's model, which writes no output of its own and reads no inputs; `output_partition:` names

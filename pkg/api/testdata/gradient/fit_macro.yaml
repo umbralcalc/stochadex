@@ -1,0 +1,26 @@
+# likelihood_mean_function_fit: gradient descent on a normal likelihood's mean,
+# fitted to a rolling window of test_data. fit_twin.yaml is its core-language twin.
+inputs:
+  data:
+    simulation:
+      steps: 100
+      timestep: 1.0
+      partitions:
+      - name: test_data
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [2.0, 3.0], covariance_matrix: [1.0, 0.0, 0.0, 1.0]}
+        init_state_values: [2.0, 3.0]
+        state_history_depth: 100
+        seed: 5
+macros:
+- type: likelihood_mean_function_fit
+  name: mean_fit
+  model:
+    likelihood: {type: normal}
+    params: {covariance_matrix: [1.0, 0.0, 0.0, 1.0]}
+  gradient: {function: mean_gradient, width: 2}
+  data: {partition_name: test_data}
+  window: {depth: 10}
+  learning_rate: 0.005
+  descent_iterations: 3
+  window_data_history_depth: {test_data: 10}
