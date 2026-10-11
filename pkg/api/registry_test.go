@@ -67,6 +67,9 @@ var wantIterationType = map[string]string{
 	"replicated_simulation_run":         "*general.ReplicatedSimulationRunIteration",
 	"data_comparison_gradient":          "*inference.DataComparisonGradientIteration",
 	"embedded_simulation_run":           "*general.EmbeddedSimulationRunIteration",
+	"mcts_tree":                         "*agents.MCTSTreeIteration[[]float64,int]",
+	"mcts_rollout":                      "*agents.MCTSRolloutIteration[[]float64,int]",
+	"mcts_apply":                        "*agents.ApplyIteration[[]float64,int]",
 }
 
 // iterationSpecFixtures gives a minimal valid Fields map for each composable
@@ -110,6 +113,9 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 			"termination_condition": map[string]interface{}{"type": "number_of_steps", "max_steps": 1},
 			"timestep_function":     map[string]interface{}{"type": "constant", "stepsize": 1.0}},
 	}},
+	"mcts_tree":    {"environment": mctsFixtureEnvironment},
+	"mcts_rollout": {"environment": mctsFixtureEnvironment},
+	"mcts_apply":   {"environment": mctsFixtureEnvironment},
 	"replicated_simulation_run": {
 		"replicas": 2,
 		"run": map[string]interface{}{
@@ -123,6 +129,18 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 		},
 		"output_partition": "x",
 	},
+}
+
+// mctsFixtureEnvironment is a one-partition decision problem: the action is
+// the reward.
+var mctsFixtureEnvironment = map[string]interface{}{
+	"type": "simulation", "horizon": 2, "actions": []interface{}{[]interface{}{0.0}, []interface{}{1.0}},
+	"action_partition": "r", "action_param": "param_values", "reward_partition": "r",
+	"return_range": []interface{}{0.0, 2.0},
+	"model": map[string]interface{}{"partitions": []interface{}{map[string]interface{}{
+		"name": "r", "iteration": map[string]interface{}{"type": "param_values"},
+		"params":            map[string]interface{}{"param_values": []interface{}{0.0}},
+		"init_state_values": []interface{}{0.0}, "state_history_depth": 1}}},
 }
 
 // TestIterationRegistryConstructs is drift test 1: every registered name builds a

@@ -1,0 +1,76 @@
+# cfg/example_planning_config.yaml made stochastic and given every
+# environment field and search setting: a noisy price whose scale is an
+# uncertain parameter (two weighted samples, with in-tree belief updating), a
+# progress proxy, a discount, and explicit exploration, depth and rollout
+# length. planning_twin.yaml is its core-language twin.
+macros:
+- type: mcts_planning
+  name: plan
+  # Decisions to take, and how far each search looks ahead.
+  steps: 8
+  horizon: 8
+  sims_per_decision: 60
+  discount: 0.95
+  exploration: 0.8
+  max_tree_depth: 5
+  rollout_max_steps: 4
+  progress_partition: battery
+  parameters:
+    samples: [[2.0], [8.0]]
+    weights: [0.3, 0.7]
+    targets: [{partition: price, param: scale, indices: [0]}]
+    belief: {observation_partition: price, variance: 4.0}
+  seed: 99
+  # UCB1 needs a bounded value scale, so returns are normalised against this.
+  # Widen it rather than letting returns clamp: a saturated score carries no
+  # gradient for the search.
+  return_range: [-400, 400]
+  # The discrete action set. Each entry is written to action_param on
+  # action_partition, so an action is whatever the model already reads as a
+  # parameter — here charge / hold / discharge.
+  actions: [[1], [0], [-1]]
+  action_partition: battery
+  action_param: dispatch
+  # The partition whose state[0] is the reward earned by the step just taken.
+  reward_partition: revenue
+  model:
+    partitions:
+    # Price cycles 10, 10, 90, 90. The phase is carried in the row because a
+    # planning run restarts the model every transition — it has to be Markov in
+    # its own state, with no reliance on the step counter.
+    - name: price
+      iteration:
+        type: expression
+        fields: [{name: price}, {name: phase}]
+        bindings:
+        - {name: nextphase, expr: "phase + 1 - 4 * floor((phase + 1) / 4)"}
+        outputs: ["where(nextphase < 2, 10, 90) + scale * shared(normal(0, 1))", "nextphase"]
+      params: {scale: [5.0]}
+      init_state_values: [90.0, 3.0]
+      state_history_depth: 1
+      seed: 0
+    # State of charge, clamped to [0, 1], reporting the flow that happened.
+    - name: battery
+      iteration:
+        type: expression
+        fields: [{name: soc}, {name: flow}]
+        bindings:
+        - {name: nextsoc, expr: "clamp(soc + dispatch, 0, 1)"}
+        outputs: ["nextsoc", "nextsoc - soc"]
+      params: {dispatch: [0.0]}
+      init_state_values: [0.0, 0.0]
+      state_history_depth: 1
+      seed: 0
+    # Reward: discharging (flow < 0) sells at the prevailing price.
+    - name: revenue
+      iteration:
+        type: expression
+        fields: [{name: r}]
+        outputs: ["0 - flow * price"]
+      params: {flow: [0.0], price: [0.0]}
+      params_from_upstream:
+        flow: {upstream: battery, indices: [1]}
+        price: {upstream: price, indices: [0]}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0

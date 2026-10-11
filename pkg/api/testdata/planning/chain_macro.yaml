@@ -1,0 +1,41 @@
+# A decision problem whose horizon (230) is longer than the agents' default
+# tree depth (14) and rollout length (220), so the defaults mcts_planning sets
+# from the horizon decide the plan: one action, which counts up, rewarded by
+# the count and scored by its progress towards the horizon when a rollout is
+# cut short. chain_twin.yaml is its core-language twin.
+macros:
+- type: mcts_planning
+  name: plan
+  steps: 2
+  horizon: 230
+  sims_per_decision: 20
+  seed: 3
+  pinned_noise: true
+  return_range: [0, 30000]
+  actions: [[1]]
+  action_partition: count
+  action_param: stride
+  reward_partition: count
+  progress_partition: progress
+  model:
+    partitions:
+    - name: count
+      iteration:
+        type: expression
+        fields: [{name: level}]
+        outputs: ["level + stride"]
+      params: {stride: [0.0]}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0
+    - name: progress
+      iteration:
+        type: expression
+        fields: [{name: p}]
+        outputs: ["level / 230"]
+      params: {level: [0.0]}
+      params_from_upstream:
+        level: {upstream: count, indices: [0]}
+      init_state_values: [0.0]
+      state_history_depth: 1
+      seed: 0

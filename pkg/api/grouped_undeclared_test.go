@@ -105,6 +105,15 @@ func TestUndeclaredGroups(t *testing.T) {
 		}
 	})
 
+	t.Run("error fails the run at the first undeclared group, naming it", func(t *testing.T) {
+		_, err := RunToStorage(writeConfig(t, groupedYAML(", undeclared_groups: error", "[0, 0]")))
+		if KindOf(err) != ErrRuntime || !strings.Contains(err.Error(), `partition "agg" panicked: `+
+			"values_grouped_aggregation: group (3.0) is not declared in accepted_value_group_tupindex_*; "+
+			"declare it, or set undeclared_groups to drop or other") {
+			t.Errorf("expected a runtime error naming group 3.0, got %v", err)
+		}
+	})
+
 	t.Run("error checks each step's latest rows, not the initial row in the window", func(t *testing.T) {
 		// Every group the series has is declared, but the grouping partition
 		// starts in group 9, which the window holds for the first steps.

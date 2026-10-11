@@ -37,6 +37,10 @@
 //     (macros.NewMCTSSelfPlayPartitions wires this up)
 //   - Per-simulation telemetry: run MCTSTreeIteration + MCTSRolloutIteration
 //     directly without the apply layer, then read the tree's row
+//   - YAML / pkg/api use, planning: {type: mcts_tree}, {type: mcts_rollout} and
+//     {type: mcts_apply} build the three iterations over an
+//     environment: {type: simulation, ...} (a SimulationEnvironment stated as
+//     data), which is what the mcts_planning macro expands to.
 //   - YAML / pkg/api use: register an environment with api.RegisterEnvironment
 //     and name it from the mcts_self_play macro's env: spec. The registered
 //     builder keeps the type parameters on the Go side — it fills the typed half
