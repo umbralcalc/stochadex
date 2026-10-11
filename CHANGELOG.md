@@ -22,6 +22,38 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-10-10
+
+This release makes a config a well-behaved step in a workflow engine (the config-runtime
+plan's Track O), and finishes making `inputs:` the one place data enters a run and
+`outputs:` the one place results leave it (Phase 1b). A run can now be parameterised from
+outside the file (`--set`, `${VAR}`), checked and described without running (`--check`,
+`inspect --io`), cached by a provenance key (`--skip-if-unchanged`) and split across
+machines (`--seed-range`). Its file outputs appear only when it has finished cleanly.
+Embedded runs are black boxes by default, inline data and model files are inputs, and the
+older shorthand forms print deprecation notices naming their replacements.
+
+**Upgrading from 0.20.** These are the changes most likely to need action; each is detailed
+below.
+- **Deprecation notices:** `data:` and the main run's `simulation.output_condition` /
+  `output_function` pair still work but print a notice on stderr, giving the replacement
+  (`inputs: {data: ...}`, and the exact `outputs:` line to paste). They will be removed in
+  a later v0.x minor.
+- **Outputs:**
+  - **File outputs are written under `<path>.partial` and renamed into place** when the run
+    ends cleanly; a failed or killed run leaves any earlier output untouched. This costs one
+    rename per file output per run. `s3` uploads and `duckdb` ingests also wait for a clean
+    end.
+  - **An `arrow`, `duckdb` or `s3` output that cannot be written now fails the run**
+    (exit 75), where before it printed to stderr and exited 0.
+- **Config errors that used to fail at run start now fail at load:** a `state_history_depth`
+  below 1.
+- **Serving:** a server keeps the config it validated at startup; editing the file while it
+  serves no longer affects later connections.
+- **Go API:** `LoadConfig` takes optional overrides (`api.WithSet`, `api.WithEnv`); existing
+  calls are unchanged. A coordinator given no output function now outputs nothing instead of
+  crashing.
+
 ### Added
 
 - **Model files are inputs: `inputs: {brain: {file: {path: model.onnx}}}`.** An iteration
@@ -44,7 +76,10 @@ an exact version rather than assume stability across minors.
   output. `inspect --io` gives each host partition's `columns` (offset and width per inner
   partition).
 - **`--debug-embedded NAME=PATH`** writes an embedded run's every inner step to a json_log,
-  with no edit to the config. It refuses a run that already declares its own output.
+  with no edit to the config. It refuses a run that already declares its own output. An
+  embedded run's own output, declared or added this way, is a debug log rather than a result
+  (PLAN.md rule 14): the I/O manifest lists it under `debug`, provenance gives it no
+  sidecar, and `--skip-if-unchanged` ignores it.
 
 - **`--seed-range FROM:TO`: run one shard of an ensemble.** It runs seeds FROM to TO
   inclusive, in place of `run.seeds`, exactly as `--set 'run.seeds=[...]'` would. Each
@@ -119,14 +154,6 @@ an exact version rather than assume stability across minors.
 - **Every shipped config, model twin and skill recipe now uses `inputs:` and `outputs:`,**
   and the quickstart and agent skill teach them. Each migrated config runs identically to its
   old form (every partition's every step, each ensemble member and each macro result).
-
-- **Provenance has no `files` list any more:** model files are inputs, fingerprinted under
-  `inputs`.
-
-- **An embedded run's own output is a debug log, not a result** (PLAN.md rule 14). The I/O
-  manifest lists it under `debug` instead of `outputs`, provenance gives it no sidecar, and
-  `--skip-if-unchanged` ignores it.
-
 - **An `arrow`, `duckdb` or `s3` output that cannot be written fails a config run**
   (exit 75), instead of printing to stderr and exiting 0. So does a `json_log` that cannot
   be published.
@@ -1906,7 +1933,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.21.0...HEAD
+[0.21.0]: https://github.com/umbralcalc/stochadex/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/umbralcalc/stochadex/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/umbralcalc/stochadex/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/umbralcalc/stochadex/compare/v0.17.0...v0.18.0
