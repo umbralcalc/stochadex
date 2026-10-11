@@ -1,6 +1,7 @@
 package general
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -108,25 +109,23 @@ func TestReplicatedSimulationRunIteration(t *testing.T) {
 		}
 	})
 
-	t.Run("replicas in a step, and one replica across steps, draw from distinct streams", func(t *testing.T) {
+	t.Run("no two (step, replica) runs share a stream", func(t *testing.T) {
 		iteration, err := NewReplicatedSimulationRunIteration(echoModel("walk", nil), 3, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
-		// A one-wide output: the walk's final value per replica.
+		// A one-wide output: the walk's final value per replica. Steps 1-3 and
+		// replicas 0-2 include (step 1, replica 2) and (step 2, replica 1),
+		// which a commuting seed derivation would put on one stream.
 		rows := replicatedRun(t, iteration, nil, 3, 3)
+		seen := map[float64]string{}
 		for step, row := range rows[1:] {
 			for replica, value := range row {
-				for other := replica + 1; other < len(row); other++ {
-					if row[other] == value {
-						t.Errorf("step %d: replicas %d and %d drew alike", step+1, replica, other)
-					}
+				run := fmt.Sprintf("(step %d, replica %d)", step+1, replica)
+				if other, ok := seen[value]; ok {
+					t.Errorf("%s drew %v, as %s did", run, value, other)
 				}
-				for later := step + 2; later < len(rows); later++ {
-					if rows[later][replica] == value {
-						t.Errorf("replica %d repeated its step %d draw at step %d", replica, step+1, later)
-					}
-				}
+				seen[value] = run
 			}
 		}
 	})

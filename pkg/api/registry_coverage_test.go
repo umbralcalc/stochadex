@@ -12,12 +12,14 @@ import (
 // excludedIterations names every Iteration implementation in the candidate
 // packages that is deliberately NOT in the registry (data-only in Phase A,
 // composable in Phase B), each with the reason:
-//   - "live-object": holds a live object bound at runtime by its caller — a batch
-//     *StateHistory or a whole *Settings/*Implementations pair — with no data form
-//     as a standalone partition. Both are still reachable from config indirectly,
-//     constructed by the macros: and embedded: tiers respectively. (Bulk
-//     [][]float64 data is no longer here: from_storage now carries its rows inline
-//     as config data, so it is registered rather than excluded.)
+//   - "live-object": holds a live object bound at runtime by its caller — a whole
+//     *Settings/*Implementations pair — with no data form as a standalone
+//     partition. It is still reachable from config indirectly, constructed by the
+//     embedded: tier. (Bulk [][]float64 data is no longer here: from_storage now
+//     carries its rows inline as config data, so it is registered rather than
+//     excluded. Nor is a batch *StateHistory an embedded run's host feeds in at
+//     run time: from_history and data_comparison_gradient have data specs, and
+//     validateMemoryFeeds checks at load that something feeds them.)
 //
 // Drift test 2 asserts every Iterate-implementing type in the candidate packages
 // is either registered (wantIterationType) or listed here. A NEW iteration then
@@ -30,8 +32,7 @@ import (
 // excluded here once and have since been registered.
 var excludedIterations = map[string]string{
 	// live-object — no data form as a standalone partition
-	"DataComparisonGradientIteration": "live-object: *StateHistory batch + gradient func (built by macros:)",
-	"EmbeddedSimulationRunIteration":  "live-object: *Settings/*Implementations (built by the embedded: tier)",
+	"EmbeddedSimulationRunIteration": "live-object: *Settings/*Implementations (built by the embedded: tier)",
 }
 
 // candidatePackages are the packages whose Iteration implementations are

@@ -310,6 +310,30 @@ func resolveKernel(spec simulator.ComponentSpec) (kernels.IntegrationKernel, err
 
 // resolveLikelihood builds a LikelihoodDistribution. Only normal carries a data
 // field; the rest configure from params.
+// resolveGradientLikelihood resolves a likelihood spec to one that can give
+// its log-likelihood's gradient in the mean.
+func resolveGradientLikelihood(
+	spec simulator.ComponentSpec,
+) (inference.LikelihoodDistributionWithGradient, error) {
+	likelihood, err := resolveLikelihood(spec)
+	if err != nil {
+		return nil, err
+	}
+	return gradientLikelihood(likelihood)
+}
+
+// gradientLikelihood returns a likelihood that can give its log-likelihood's
+// gradient in the mean, or an error naming the one that cannot.
+func gradientLikelihood(
+	likelihood inference.LikelihoodDistribution,
+) (inference.LikelihoodDistributionWithGradient, error) {
+	withGradient, ok := likelihood.(inference.LikelihoodDistributionWithGradient)
+	if !ok {
+		return nil, fmt.Errorf("likelihood %T does not support gradients", likelihood)
+	}
+	return withGradient, nil
+}
+
 func resolveLikelihood(spec simulator.ComponentSpec) (inference.LikelihoodDistribution, error) {
 	reader := newSpecReader("likelihood "+spec.Type, spec.Fields)
 	var result inference.LikelihoodDistribution
@@ -486,6 +510,23 @@ func registerComposableIterations() {
 		r := newSpecReader("data_comparison", f)
 		it := &inference.DataComparisonIteration{Likelihood: r.likelihood("likelihood")}
 		return it, r.done()
+	}
+	// data_comparison_gradient averages a likelihood's mean gradient over a
+	// batch its embedded run's host feeds it (as from_history's data is fed),
+	// so it only runs inside an embedded run; validateMemoryFeeds checks that.
+	iterationBuilders["data_comparison_gradient"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+		r := newSpecReader("data_comparison_gradient", f)
+		spec, _ := r.nestedSpec("likelihood", true)
+		gradient := namedFunc(r, "gradient_function", meanGradientFunctions)
+		if err := r.done(); err != nil {
+			return nil, err
+		}
+		withGradient, err := resolveGradientLikelihood(spec)
+		if err != nil {
+			return nil, fmt.Errorf("data_comparison_gradient: field \"likelihood\": %w", err)
+		}
+		return &inference.DataComparisonGradientIteration{
+			Likelihood: withGradient, GradientFunc: gradient}, nil
 	}
 	iterationBuilders["posterior_mean"] = func(f map[string]interface{}) (simulator.Iteration, error) {
 		r := newSpecReader("posterior_mean", f)

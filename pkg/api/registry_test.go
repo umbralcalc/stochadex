@@ -65,6 +65,7 @@ var wantIterationType = map[string]string{
 	"posterior_mean":                    "*inference.PosteriorMeanIteration",
 	"smc_proposal":                      "*inference.SMCProposalIteration",
 	"replicated_simulation_run":         "*general.ReplicatedSimulationRunIteration",
+	"data_comparison_gradient":          "*inference.DataComparisonGradientIteration",
 }
 
 // iterationSpecFixtures gives a minimal valid Fields map for each composable
@@ -98,6 +99,7 @@ var iterationSpecFixtures = map[string]map[string]interface{}{
 	"data_comparison":           {"likelihood": map[string]interface{}{"type": "normal"}},
 	"posterior_mean":            {"transform": "mean"},
 	"smc_proposal":              {"priors": []interface{}{map[string]interface{}{"type": "uniform", "lo": 0.0, "hi": 1.0}}},
+	"data_comparison_gradient":  {"likelihood": map[string]interface{}{"type": "normal"}, "gradient_function": "mean_gradient"},
 	"replicated_simulation_run": {
 		"replicas": 2,
 		"run": map[string]interface{}{

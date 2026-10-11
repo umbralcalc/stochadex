@@ -210,14 +210,9 @@ type parameterisedModelWithGradientSpec struct {
 }
 
 func (s parameterisedModelWithGradientSpec) resolve() (macros.ParameterisedModelWithGradient, error) {
-	likelihood, err := resolveLikelihood(s.Likelihood)
+	withGradient, err := resolveGradientLikelihood(s.Likelihood)
 	if err != nil {
 		return macros.ParameterisedModelWithGradient{}, err
-	}
-	withGradient, ok := likelihood.(inference.LikelihoodDistributionWithGradient)
-	if !ok {
-		return macros.ParameterisedModelWithGradient{}, fmt.Errorf(
-			"likelihood %q does not support gradients", s.Likelihood.Type)
 	}
 	return macros.ParameterisedModelWithGradient{
 		Likelihood:         withGradient,
