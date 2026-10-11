@@ -87,7 +87,8 @@ Status: **accepted** (2026-10-04).
       the run. Streaming sinks (stdout, websocket, connection, postgres) say so.
     - Cost: one atomic rename per file output per run (~90µs on APFS); runs without file
       outputs allocate exactly as before. CI now runs the CLI module's tests.
-  - **In review:** IO.6, deprecation notices (#124). `data:` and the main run's output pair
+  - **Released: v0.21.0** (#125, 2026-10-10): Track O and Phase 1b (#116–#124).
+  - **Merged:** IO.6, deprecation notices (#124). `data:` and the main run's output pair
     print one notice each (CLI, stderr; the library records them in `Deprecations()` and
     prints nothing), the pair's giving the exact `outputs:` line to paste; `--socket` already
     had one. Every shipped config, model twin and recipe migrated, each verified identical to
@@ -905,7 +906,7 @@ Inputs had two stragglers:
 | IO.3 | **DONE (#121)**, rewritten 2026-10-10: embedded runs are black boxes | The outer run records an embedded run's host row (inner final states, concatenated in order); inner steps are written nowhere by default. `inspect --io` lists each host's column layout. An embedded run's own `output_function` is a **debug log**, listed apart and ignored by provenance and caching; `--debug-embedded NAME=PATH` turns one on without an edit. (Replaces "nested runs write through top-level views with scoped records", which needed Q7.) | The layout splits every host row into its inner partitions' final states (checked against known values); a run with no declared inner output writes nothing; a debug log is opt-in, listed apart and has no provenance |
 | IO.4 | **DONE (#122)**: inline data is an input | An `{inline: {times: [...], partitions: {name: [[...], ...]}}}` input source. The inline `from_storage` form becomes shorthand for an inline input plus `from_input`. | `cfg/example_from_storage_config.yaml` is byte-identical through the inline input |
 | IO.5 | **DONE (#123)**: model files are inputs (Q8 decided: declared) | A file an iteration reads (an ONNX model, today) is declared once in `inputs:` (e.g. `{file: {path: model.onnx}}`) and the iteration names that input, so `inspect --io` and provenance (O.5) see it as an input. `model_path` becomes shorthand for an implicit input. | The manifest lists the model file; changing its contents changes the provenance hash |
-| IO.6 | **In review (#124)**: retire the shorthand forms | Once IO.1–IO.4 land, `data:`, the `simulation.output_*` pair and `--socket` print a deprecation notice. They are removed in a later v0.x minor (§4.1). | Each deprecated form prints its notice once and still gives identical results |
+| IO.6 | **DONE (#124)**: retire the shorthand forms | Once IO.1–IO.4 land, `data:`, the `simulation.output_*` pair and `--socket` print a deprecation notice. They are removed in a later v0.x minor (§4.1). | Each deprecated form prints its notice once and still gives identical results |
 
 **What this unlocks:** O.2's manifest becomes "`inputs:` and `outputs:` after
 desugaring", and its exhaustiveness test (the manifest's paths match what a run actually
