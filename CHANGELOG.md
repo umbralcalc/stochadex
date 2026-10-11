@@ -66,6 +66,12 @@ an exact version rather than assume stability across minors.
   `Step`, gives a `PartitionPanic` under inline execution too, as `Run` does: inline `Step`
   defers nothing, to stay at serial speed. The concurrent strategies' `Step` raises one
   without it.
+- **`{type: mcts_tree}`, `{type: mcts_rollout}` and `{type: mcts_apply}`**, the three
+  partitions `mcts_planning` wires, so a planner can be written out in the core language. Each
+  takes an `environment: {type: simulation, ...}` with `mcts_planning`'s decision-problem fields
+  (state it once with a YAML anchor) and only the settings its iteration reads. Hand-written
+  twins of the shipped planning example and of a configuration using every field and setting
+  reproduce the macro exactly. The registry coverage scan now includes `pkg/agents`.
 
 ### Changed
 

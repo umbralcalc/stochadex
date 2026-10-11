@@ -404,6 +404,17 @@ func TestExpressionNamesAreRefusedWhenAModelIsBuilt(t *testing.T) {
 `
 		assertRunRefused(t, config, `"soc" is both a field and a params key`)
 	})
+	t.Run("an mcts_* iteration's environment model, at load", func(t *testing.T) {
+		// The {type: simulation} environment is built as the config loads, so its
+		// model is checked there, with the action param it is given.
+		twin := readFile(t, "testdata/planning/chain_twin.yaml")
+		if _, err := LoadConfig(writeConfigPath(t, twin)); err != nil {
+			t.Fatalf("positive control: the twin as shipped: %v", err)
+		}
+		assertLoadRefused(t, strings.Replace(twin, "action_param: stride", "action_param: step", 1),
+			`environment simulation model expression partition "count"`, `params key "step"`,
+			"builtin step (the step number)")
+	})
 	t.Run("positive control: a free action param plans", func(t *testing.T) {
 		config, err := LoadConfig(writeConfigPath(t, planningRun("dispatch")))
 		if err != nil {

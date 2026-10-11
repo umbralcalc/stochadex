@@ -27,6 +27,33 @@ type mctsPlanningSpec struct {
 	Name string `yaml:"name"`
 	// Steps is the number of decisions to take.
 	Steps int `yaml:"steps"`
+	// The environment: the forward model and the decision problem over it.
+	simulationEnvironmentSpec `yaml:",inline"`
+	// PinnedNoise turns chance nodes OFF, reverting to a search that commits to
+	// the first successor drawn for each action.
+	//
+	// Chance nodes are the default because a plan's value is usually going to be
+	// believed, and without them the search plans as though it knew which way the
+	// dice would fall: on the shipped example its over-promise runs to tens of
+	// percent, and *grows* with the simulation budget, since more search means
+	// more exploitation of the one realisation it can see. Pinning is faster and
+	// costs nothing when the model is deterministic — which is the case worth
+	// setting this for.
+	PinnedNoise bool `yaml:"pinned_noise,omitempty"`
+	// Search hyperparameters; unset values fall back to the agents defaults.
+	SimsPerDecision int     `yaml:"sims_per_decision,omitempty"`
+	Exploration     float64 `yaml:"exploration,omitempty"`
+	MaxTreeDepth    int     `yaml:"max_tree_depth,omitempty"`
+	RolloutMaxSteps int     `yaml:"rollout_max_steps,omitempty"`
+	Seed            uint64  `yaml:"seed,omitempty"`
+	Timestep        float64 `yaml:"timestep,omitempty"`
+}
+
+// simulationEnvironmentSpec is a decision problem over a forward model: an
+// action is a params injection, a transition is one step of the model, and the
+// reward is a partition of it. It is mcts_planning's environment, and the
+// {type: simulation} environment of the mcts_* iterations.
+type simulationEnvironmentSpec struct {
 	// Horizon is how far each search looks ahead, in model steps.
 	Horizon int `yaml:"horizon"`
 	// Actions is the discrete action set: each entry is the params value written
@@ -55,30 +82,12 @@ type mctsPlanningSpec struct {
 	// ScenarioSeed pins which noise realisation Apply returns, and so which
 	// scenario a pinned-noise search plans against.
 	ScenarioSeed uint64 `yaml:"scenario_seed,omitempty"`
-	// PinnedNoise turns chance nodes OFF, reverting to a search that commits to
-	// the first successor drawn for each action.
-	//
-	// Chance nodes are the default because a plan's value is usually going to be
-	// believed, and without them the search plans as though it knew which way the
-	// dice would fall: on the shipped example its over-promise runs to tens of
-	// percent, and *grows* with the simulation budget, since more search means
-	// more exploitation of the one realisation it can see. Pinning is faster and
-	// costs nothing when the model is deterministic — which is the case worth
-	// setting this for.
-	PinnedNoise bool `yaml:"pinned_noise,omitempty"`
 	// Parameters turns the run into posterior-predictive planning: the search
 	// averages over draws of the model's uncertain parameters instead of
 	// committing to a point estimate.
 	Parameters *planningParametersSpec `yaml:"parameters,omitempty"`
 	// Model is the forward model being planned over.
 	Model planningModelSpec `yaml:"model"`
-	// Search hyperparameters; unset values fall back to the agents defaults.
-	SimsPerDecision int     `yaml:"sims_per_decision,omitempty"`
-	Exploration     float64 `yaml:"exploration,omitempty"`
-	MaxTreeDepth    int     `yaml:"max_tree_depth,omitempty"`
-	RolloutMaxSteps int     `yaml:"rollout_max_steps,omitempty"`
-	Seed            uint64  `yaml:"seed,omitempty"`
-	Timestep        float64 `yaml:"timestep,omitempty"`
 }
 
 // planningParametersSpec supplies the posterior the search plans over. Samples
@@ -274,154 +283,30 @@ func (s *mctsPlanningSpec) resolveLive(
 	if s.Steps <= 0 {
 		return nil, 0, 0, fmt.Errorf("mcts_planning needs steps: > 0 (the number of decisions to take)")
 	}
-	if s.Horizon <= 0 {
-		return nil, 0, 0, fmt.Errorf("mcts_planning needs horizon: > 0 (how far each search looks ahead)")
-	}
-	if len(s.Actions) == 0 {
-		return nil, 0, 0, fmt.Errorf("mcts_planning needs a non-empty actions: list")
-	}
-	if len(s.ReturnRange) != 2 {
-		return nil, 0, 0, fmt.Errorf(
-			"mcts_planning needs return_range: [min, max] to normalise returns onto " +
-				"the [0,1] scale UCB1 requires")
-	}
-	if len(s.Model.Partitions) == 0 {
-		return nil, 0, 0, fmt.Errorf("mcts_planning needs model.partitions")
-	}
-
-	// The planner writes the action, and any parameter draw, into the model's
-	// params, so those keys are the model partitions' names too.
-	injected := map[string][]string{s.ActionPartition: {s.ActionParam}}
-	if s.Parameters != nil {
-		for _, target := range s.Parameters.Targets {
-			injected[target.Partition] = append(injected[target.Partition], target.Param)
-		}
-	}
-	settings, implementations, err := s.Model.build(injected)
+	environment, err := s.simulationEnvironmentSpec.build(storage, "mcts_planning")
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	rewardPartition := s.RewardPartition
-	if rewardPartition == "" {
-		return nil, 0, 0, fmt.Errorf(
-			"mcts_planning needs reward_partition: naming the model partition whose " +
-				"state[0] is the per-step reward")
-	}
-	if err := requireModelPartition(settings, rewardPartition, "reward_partition"); err != nil {
-		return nil, 0, 0, err
-	}
-	if err := requireModelPartition(settings, s.ActionPartition, "action_partition"); err != nil {
-		return nil, 0, 0, err
-	}
-	var progress func(rows map[string][]float64) (float64, bool)
-	if s.ProgressPartition != "" {
-		if err := requireModelPartition(
-			settings, s.ProgressPartition, "progress_partition"); err != nil {
-			return nil, 0, 0, err
-		}
-		progressPartition := s.ProgressPartition
-		progress = func(rows map[string][]float64) (float64, bool) {
-			return rows[progressPartition][0], true
-		}
-	}
+	typed := environment.typed()
 
-	var samples [][]float64
-	var weights []float64
-	var targets []agents.SimulationParamTarget
-	var belief *agents.BeliefSpec
-	if s.Parameters != nil {
-		resolved, err := s.Parameters.resolve(storage)
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		samples = resolved
-		weights, err = s.Parameters.resolveWeights(storage, len(samples))
-		if err != nil {
-			return nil, 0, 0, err
-		}
-		for _, target := range s.Parameters.Targets {
-			if err := requireModelPartition(
-				settings, target.Partition, "parameters.targets"); err != nil {
-				return nil, 0, 0, err
-			}
-			targets = append(targets, agents.SimulationParamTarget{
-				Partition: target.Partition,
-				Param:     target.Param,
-				Indices:   target.Indices,
-			})
-		}
-		if s.Parameters.Belief != nil {
-			if err := requireModelPartition(settings,
-				s.Parameters.Belief.ObservationPartition,
-				"parameters.belief.observation_partition"); err != nil {
-				return nil, 0, 0, err
-			}
-			if s.Parameters.Belief.Variance <= 0 {
-				return nil, 0, 0, fmt.Errorf(
-					"mcts_planning parameters.belief needs variance: > 0 (the observation " +
-						"noise the belief update scores against)")
-			}
-			belief = &agents.BeliefSpec{
-				ObservationPartition: s.Parameters.Belief.ObservationPartition,
-				Variance:             s.Parameters.Belief.Variance,
-			}
-		}
-	}
-
-	environment := agents.NewSimulationEnvironment(
-		settings, implementations, agents.SimulationEnvironmentSpec{
-			Actions:         s.Actions,
-			ActionPartition: s.ActionPartition,
-			ActionParam:     s.ActionParam,
-			Horizon:         s.Horizon,
-			Reward: func(rows map[string][]float64) float64 {
-				return rows[rewardPartition][0]
-			},
-			Discount:         s.Discount,
-			MinReturn:        s.ReturnRange[0],
-			MaxReturn:        s.ReturnRange[1],
-			ScenarioSeed:     s.ScenarioSeed,
-			Progress:         progress,
-			ParameterSamples: samples,
-			ParameterWeights: weights,
-			ParameterTargets: targets,
-			Belief:           belief,
-		})
-
-	// The encoded state is already []float64, so the self-play topology's codec
-	// is the identity — copied, because the partitions retain what they are given.
 	selfPlay := macros.MCTSSelfPlaySpec[[]float64, int]{
-		Env: environment,
+		Env: typed.env,
 		Cfg: agents.MCTSConfig[[]float64, int]{
-			// A rollout that runs out of steps before the horizon is scored by
-			// the progress proxy rather than discarded, which is what keeps the
-			// search informed when the horizon exceeds rollout_max_steps.
-			Rollout: agents.FromProgress(
-				agents.UniformRandomRollout[[]float64, int](),
-				environment.Progress,
-			),
-			Progress: environment.Progress,
+			Rollout:  typed.rollout,
+			Progress: typed.progress,
 		},
-		InitState: environment.InitialState(),
-		Decoder: func(row []float64) ([]float64, error) {
-			return append([]float64(nil), row...), nil
-		},
-		Encoder: func(state []float64) []float64 {
-			return append([]float64(nil), state...)
-		},
-		MaxLegalActions: len(s.Actions),
-		StateWidth:      environment.StateWidth(),
-		Players:         1,
+		InitState:       typed.initState,
+		Decoder:         typed.decoder,
+		Encoder:         typed.encoder,
+		MaxLegalActions: typed.maxLegalActions,
+		StateWidth:      typed.stateWidth,
+		Players:         typed.players,
 		ChanceNodes:     !s.PinnedNoise,
-		// Looking further than the horizon cannot pay: the episode ends there.
-		SimsPerPly: s.SimsPerDecision,
+		SimsPerPly:      s.SimsPerDecision,
 	}
-	if selfPlay.Cfg.MaxTreeDepth == 0 {
-		selfPlay.Cfg.MaxTreeDepth = s.Horizon + 1
-	}
-	if selfPlay.Cfg.RolloutMaxSteps == 0 {
-		selfPlay.Cfg.RolloutMaxSteps = s.Horizon + 1
-	}
+	// Looking further than the horizon cannot pay: the episode ends there.
+	selfPlay.Cfg.MaxTreeDepth = typed.searchDepth
+	selfPlay.Cfg.RolloutMaxSteps = typed.searchDepth
 	macros.ApplyMCTSSearchSettings(&selfPlay, macros.MCTSSearchSettings{
 		Name:            s.Name,
 		SimsPerPly:      s.SimsPerDecision,
@@ -439,12 +324,175 @@ func (s *mctsPlanningSpec) resolveLive(
 	return macros.NewMCTSSelfPlayPartitions(selfPlay), s.Steps, timestep, nil
 }
 
+// build validates the decision problem and builds its environment. what names
+// the config element for error messages ("mcts_planning", or an mcts_*
+// iteration's environment), and storage is what parameters.samples_from and
+// weights_from read, when the caller has one.
+func (e *simulationEnvironmentSpec) build(
+	storage *simulator.StateTimeStorage,
+	what string,
+) (*simulationEnvironment, error) {
+	if e.Horizon <= 0 {
+		return nil, fmt.Errorf("%s needs horizon: > 0 (how far each search looks ahead)", what)
+	}
+	if len(e.Actions) == 0 {
+		return nil, fmt.Errorf("%s needs a non-empty actions: list", what)
+	}
+	if len(e.ReturnRange) != 2 {
+		return nil, fmt.Errorf(
+			"%s needs return_range: [min, max] to normalise returns onto "+
+				"the [0,1] scale UCB1 requires", what)
+	}
+	if len(e.Model.Partitions) == 0 {
+		return nil, fmt.Errorf("%s needs model.partitions", what)
+	}
+
+	// The planner writes the action, and any parameter draw, into the model's
+	// params, so those keys are the model partitions' names too.
+	injected := map[string][]string{e.ActionPartition: {e.ActionParam}}
+	if e.Parameters != nil {
+		for _, target := range e.Parameters.Targets {
+			injected[target.Partition] = append(injected[target.Partition], target.Param)
+		}
+	}
+	settings, implementations, err := e.Model.build(injected, what)
+	if err != nil {
+		return nil, err
+	}
+	rewardPartition := e.RewardPartition
+	if rewardPartition == "" {
+		return nil, fmt.Errorf(
+			"%s needs reward_partition: naming the model partition whose "+
+				"state[0] is the per-step reward", what)
+	}
+	if err := requireModelPartition(settings, rewardPartition, "reward_partition"); err != nil {
+		return nil, err
+	}
+	if err := requireModelPartition(settings, e.ActionPartition, "action_partition"); err != nil {
+		return nil, err
+	}
+	var progress func(rows map[string][]float64) (float64, bool)
+	if e.ProgressPartition != "" {
+		if err := requireModelPartition(
+			settings, e.ProgressPartition, "progress_partition"); err != nil {
+			return nil, err
+		}
+		progressPartition := e.ProgressPartition
+		progress = func(rows map[string][]float64) (float64, bool) {
+			return rows[progressPartition][0], true
+		}
+	}
+
+	var samples [][]float64
+	var weights []float64
+	var targets []agents.SimulationParamTarget
+	var belief *agents.BeliefSpec
+	if e.Parameters != nil {
+		resolved, err := e.Parameters.resolve(storage)
+		if err != nil {
+			return nil, err
+		}
+		samples = resolved
+		weights, err = e.Parameters.resolveWeights(storage, len(samples))
+		if err != nil {
+			return nil, err
+		}
+		for _, target := range e.Parameters.Targets {
+			if err := requireModelPartition(
+				settings, target.Partition, "parameters.targets"); err != nil {
+				return nil, err
+			}
+			targets = append(targets, agents.SimulationParamTarget{
+				Partition: target.Partition,
+				Param:     target.Param,
+				Indices:   target.Indices,
+			})
+		}
+		if e.Parameters.Belief != nil {
+			if err := requireModelPartition(settings,
+				e.Parameters.Belief.ObservationPartition,
+				"parameters.belief.observation_partition"); err != nil {
+				return nil, err
+			}
+			if e.Parameters.Belief.Variance <= 0 {
+				return nil, fmt.Errorf(
+					"%s parameters.belief needs variance: > 0 (the observation "+
+						"noise the belief update scores against)", what)
+			}
+			belief = &agents.BeliefSpec{
+				ObservationPartition: e.Parameters.Belief.ObservationPartition,
+				Variance:             e.Parameters.Belief.Variance,
+			}
+		}
+	}
+
+	return &simulationEnvironment{
+		SimulationEnvironment: agents.NewSimulationEnvironment(
+			settings, implementations, agents.SimulationEnvironmentSpec{
+				Actions:         e.Actions,
+				ActionPartition: e.ActionPartition,
+				ActionParam:     e.ActionParam,
+				Horizon:         e.Horizon,
+				Reward: func(rows map[string][]float64) float64 {
+					return rows[rewardPartition][0]
+				},
+				Discount:         e.Discount,
+				MinReturn:        e.ReturnRange[0],
+				MaxReturn:        e.ReturnRange[1],
+				ScenarioSeed:     e.ScenarioSeed,
+				Progress:         progress,
+				ParameterSamples: samples,
+				ParameterWeights: weights,
+				ParameterTargets: targets,
+				Belief:           belief,
+			}),
+		actions: len(e.Actions),
+		horizon: e.Horizon,
+	}, nil
+}
+
+// simulationEnvironment is a built decision problem over a forward model, with
+// what the search needs to know about it.
+type simulationEnvironment struct {
+	*agents.SimulationEnvironment
+	actions, horizon int
+}
+
+// typed is the environment as the MCTS iterations take it. Its state is the
+// model's rows, already []float64, so the codec is the identity — copied,
+// because the partitions retain what they are given.
+func (e *simulationEnvironment) typed() *typedMCTSEnvironment[[]float64, int] {
+	return &typedMCTSEnvironment[[]float64, int]{
+		env: e.SimulationEnvironment,
+		// A rollout that runs out of steps before the horizon is scored by the
+		// progress proxy rather than discarded, which is what keeps the search
+		// informed when the horizon exceeds rollout_max_steps.
+		rollout: agents.FromProgress(
+			agents.UniformRandomRollout[[]float64, int](),
+			e.Progress,
+		),
+		progress:  e.Progress,
+		initState: e.InitialState(),
+		decoder: func(row []float64) ([]float64, error) {
+			return append([]float64(nil), row...), nil
+		},
+		encoder: func(state []float64) []float64 {
+			return append([]float64(nil), state...)
+		},
+		maxLegalActions: e.actions,
+		stateWidth:      e.StateWidth(),
+		players:         1,
+		// Looking further than the horizon cannot pay: the episode ends there.
+		searchDepth: e.horizon + 1,
+	}
+}
+
 // build resolves the model's partitions and wraps them in the minimal simulation
 // config a re-entrant model needs — the planner supplies the run length, so the
 // model's own termination condition is never consulted. injected maps a partition
 // to the params keys the planner writes into it, which its expressions must not
 // confuse with any other name.
-func (m *planningModelSpec) build(injected map[string][]string) (
+func (m *planningModelSpec) build(injected map[string][]string, what string) (
 	*simulator.Settings, *simulator.Implementations, error,
 ) {
 	partitions := make([]simulator.PartitionConfig, len(m.Partitions))
@@ -453,7 +501,7 @@ func (m *planningModelSpec) build(injected map[string][]string) (
 		return nil, nil, fmt.Errorf("mcts_planning model: %w", err)
 	}
 	if err := checkExpressionNames(
-		RunConfig{Partitions: partitions}, nil, injected, "mcts_planning model"); err != nil {
+		RunConfig{Partitions: partitions}, nil, injected, what+" model"); err != nil {
 		return nil, nil, err
 	}
 	timestep := m.Timestep
