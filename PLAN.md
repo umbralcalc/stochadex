@@ -89,6 +89,10 @@ Status: **accepted** (2026-10-04).
       outputs allocate exactly as before. CI now runs the CLI module's tests.
   - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
     strategy (#132), so an iteration's runtime failure no longer crashes the process.
+  - **Released: v0.22.0** (#135, 2026-10-22): 1.7 and Phase 2's first building blocks
+    (#126–#134). All five downstream repos bumped to v0.22.0 and merged, tests and configs
+    verified. CI fixes on the way: runner's broken Microsoft apt source (#136, merged);
+    release matrix race to create the Release (#137).
   - **Merged:** expression names that the DSL would shadow or that clash are refused at load (#134).
   - **Merged:** 2.0b, `mcts_tree` / `mcts_rollout` / `mcts_apply` over an
     `environment: {type: simulation}` component (#133). `mcts_planning` builds through the
