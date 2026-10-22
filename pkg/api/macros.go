@@ -121,7 +121,7 @@ func (d *DataConfig) buildStorage() (*simulator.StateTimeStorage, error) {
 	if err := resolveIterations(run.Partitions); err != nil {
 		return nil, configError(err)
 	}
-	if err := checkExpressionNames(run, nil, nil, "sub-simulation"); err != nil {
+	if err := checkExpressionNames(run, nil, nil, "sub-simulation", nil); err != nil {
 		return nil, configError(err)
 	}
 	generator := run.GetConfigGenerator()

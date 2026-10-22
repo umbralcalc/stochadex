@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/agents"
@@ -98,6 +99,119 @@ func TestRegisterEnvironment(t *testing.T) {
 func init() {
 	RegisterEnvironment("eleven_sims_environment", func(simulator.ComponentSpec) (MCTSEnvironment, error) {
 		return tttEnvironment()
+	})
+}
+
+// countedBuilds counts how often counted_environment is built.
+var countedBuilds atomic.Int64
+
+func init() {
+	RegisterEnvironment("counted_environment", func(simulator.ComponentSpec) (MCTSEnvironment, error) {
+		countedBuilds.Add(1)
+		return tttEnvironment()
+	})
+}
+
+// TestEnvironmentsAreSharedWithinARun: partitions naming the same environment
+// spec search one environment, as mcts_self_play's do, since an environment
+// may keep state its partitions must agree on.
+func TestEnvironmentsAreSharedWithinARun(t *testing.T) {
+	twin := strings.ReplaceAll(readFile(t, "testdata/selfplay/ttt_twin.yaml"),
+		"{type: tictactoe, init_grid: [0, 0, 0, 0, 0, 0, 0, 0, 0], current_player: 0}", "{type: counted_environment}")
+	builds := func(yaml string) int64 {
+		t.Helper()
+		before := countedBuilds.Load()
+		if _, err := LoadConfig(writeConfigPath(t, yaml)); err != nil {
+			t.Fatal(err)
+		}
+		return countedBuilds.Load() - before
+	}
+
+	t.Run("the apply, and the tree and rollout of its nested search, share one", func(t *testing.T) {
+		if n := builds(twin); n != 1 {
+			t.Errorf("built %d environments for one spec in one run, want 1", n)
+		}
+	})
+
+	t.Run("so do an apply and a search stated as a top-level embedded: run", func(t *testing.T) {
+		yaml := `main:
+  partitions:
+  - {name: ttt_apply, iteration: {type: mcts_apply, environment: {type: counted_environment}}, params_as_partitions: {best_idx_partition: [ttt_search]}, init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], state_history_depth: 1, seed: 1}
+  - {name: ttt_search, params: {burn_in_steps: [0]}, init_state_values: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], state_history_depth: 1, seed: 1}
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 1}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+embedded:
+- name: ttt_search
+  partitions:
+  - {name: ttt_tree, iteration: {type: mcts_tree, environment: {type: counted_environment}}, params_as_partitions: {rollout_scores_partition: [ttt_rollout]}, init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], state_history_depth: 1, seed: 1}
+  - {name: ttt_rollout, iteration: {type: mcts_rollout, environment: {type: counted_environment}}, params_from_upstream: {leaf: {upstream: ttt_tree, indices: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]}}, init_state_values: [0, 0, 0], state_history_depth: 1, seed: 2}
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 5}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+`
+		if n := builds(yaml); n != 1 {
+			t.Errorf("built %d environments for one spec in one run, want 1", n)
+		}
+	})
+
+	t.Run("a different spec is a different environment", func(t *testing.T) {
+		yaml := strings.Replace(twin, "{type: mcts_rollout, environment: *env}",
+			"{type: mcts_rollout, environment: {type: counted_environment, variant: 2}}", 1)
+		if n := builds(yaml); n != 2 {
+			t.Errorf("built %d environments for two specs, want 2", n)
+		}
+	})
+
+	t.Run("each load is its own run, as each ensemble member is", func(t *testing.T) {
+		if n := builds(twin) + builds(twin); n != 2 {
+			t.Errorf("built %d environments over two loads, want 2", n)
+		}
+	})
+
+	t.Run("each replica of a replicated run has its own", func(t *testing.T) {
+		yaml := `main:
+  partitions:
+  - name: replicas
+    iteration:
+      type: replicated_simulation_run
+      replicas: 3
+      run:
+        partitions:
+        - {name: a, iteration: {type: mcts_apply, environment: {type: counted_environment}}, params_as_partitions: {best_idx_partition: [b]}, init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], state_history_depth: 1, seed: 1}
+        - {name: b, iteration: {type: constant_values}, params: {}, init_state_values: [-1], state_history_depth: 1, seed: 0}
+        simulation:
+          termination_condition: {type: number_of_steps, max_steps: 1}
+          timestep_function: {type: constant, stepsize: 1.0}
+          init_time_value: 0.0
+      output_partition: b
+    params: {}
+    init_state_values: [0, 0, 0]
+    state_history_depth: 1
+    seed: 0
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 1}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0
+`
+		if n := builds(yaml); n != 3 {
+			t.Errorf("built %d environments for three concurrent replicas, want 3", n)
+		}
+	})
+
+	t.Run("ResolveIteration resolves a run of its own", func(t *testing.T) {
+		before := countedBuilds.Load()
+		for range 2 {
+			if _, err := ResolveIteration(simulator.ComponentSpec{Type: "mcts_apply",
+				Fields: map[string]interface{}{"environment": map[interface{}]interface{}{"type": "counted_environment"}}}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if n := countedBuilds.Load() - before; n != 2 {
+			t.Errorf("two standalone resolutions built %d environments, want 2", n)
+		}
 	})
 }
 

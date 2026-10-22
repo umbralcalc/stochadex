@@ -15,7 +15,7 @@ import (
 // including the params a host forwards into its embedded runs, which the inner
 // partition's own Configure never sees.
 func validateExpressionNames(config *ApiRunConfig) error {
-	return checkExpressionNames(config.Main, config.Embedded, nil, "main")
+	return checkExpressionNames(config.Main, config.Embedded, nil, "main", config.scope)
 }
 
 // checkExpressionNames checks one run's expression partitions and those of the runs
@@ -27,6 +27,7 @@ func checkExpressionNames(
 	embedded []EmbeddedRunConfig,
 	extra map[string][]string,
 	where string,
+	scope *runScope,
 ) error {
 	expressions := map[string]*general.ExpressionIteration{}
 	for i := range run.Expressions {
@@ -45,10 +46,10 @@ func checkExpressionNames(
 				return fmt.Errorf("%s expression partition %q: %w", where, partition.Name, err)
 			}
 		}
-		if nested, ok := nestedRunOf(partition); ok {
+		if nested, ok := nestedRunOf(partition, scope); ok {
 			if err := checkExpressionNames(nested.Main, nested.Embedded,
 				forwardedParams(partition),
-				fmt.Sprintf("partition %q's nested run:", partition.Name)); err != nil {
+				fmt.Sprintf("partition %q's nested run:", partition.Name), scope); err != nil {
 				return err
 			}
 		}
@@ -59,7 +60,7 @@ func checkExpressionNames(
 			continue // an embedded run no partition hosts never runs
 		}
 		if err := checkExpressionNames(inner.Run, nil, forwardedParams(host),
-			fmt.Sprintf("embedded run %q:", inner.Name)); err != nil {
+			fmt.Sprintf("embedded run %q:", inner.Name), scope); err != nil {
 			return err
 		}
 	}

@@ -58,16 +58,27 @@ func resolveMCTSEnvironment(spec simulator.ComponentSpec) (MCTSEnvironment, erro
 	}
 }
 
-// environment reads an mcts_* spec's environment field.
-func (r *specReader) environment(key string) MCTSEnvironment {
+// environment reads an mcts_* spec's environment field. Within a run, every
+// partition naming the same environment spec searches one environment, built
+// once: an environment may keep state between calls (a codec that learns
+// encodings as it meets them), and the partitions of one search must agree on
+// it, as mcts_self_play's partitions, sharing one, always have.
+func (r *specReader) environment(key string, scope *runScope) MCTSEnvironment {
 	spec, ok := r.nestedSpec(key, true)
 	if !ok {
 		return nil
 	}
+	// Marshalling sorts mapping keys, so equal specs give equal text.
+	text, _ := yaml.Marshal(spec)
+	if environment, shared := scope.environments[string(text)]; shared {
+		return environment
+	}
 	environment, err := resolveMCTSEnvironment(spec)
 	if err != nil {
 		r.fail("field %q: %v", key, err)
+		return nil
 	}
+	scope.environments[string(text)] = environment
 	return environment
 }
 
@@ -86,9 +97,9 @@ func optional[T any](r *specReader, key, kind string) T {
 }
 
 func init() {
-	iterationBuilders["mcts_tree"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+	scopedIterationBuilders["mcts_tree"] = func(f map[string]interface{}, scope *runScope) (simulator.Iteration, error) {
 		r := newSpecReader("mcts_tree", f)
-		environment := r.environment("environment")
+		environment := r.environment("environment", scope)
 		settings := mctsTreeSettings{
 			exploration:  optionalFloat(r, "exploration"),
 			maxTreeDepth: optional[int](r, "max_tree_depth", "an integer"),
@@ -99,18 +110,18 @@ func init() {
 		}
 		return environment.tree(settings), nil
 	}
-	iterationBuilders["mcts_rollout"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+	scopedIterationBuilders["mcts_rollout"] = func(f map[string]interface{}, scope *runScope) (simulator.Iteration, error) {
 		r := newSpecReader("mcts_rollout", f)
-		environment := r.environment("environment")
+		environment := r.environment("environment", scope)
 		maxSteps := optional[int](r, "rollout_max_steps", "an integer")
 		if err := r.done(); err != nil {
 			return nil, err
 		}
 		return environment.rolloutIteration(maxSteps), nil
 	}
-	iterationBuilders["mcts_apply"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+	scopedIterationBuilders["mcts_apply"] = func(f map[string]interface{}, scope *runScope) (simulator.Iteration, error) {
 		r := newSpecReader("mcts_apply", f)
-		environment := r.environment("environment")
+		environment := r.environment("environment", scope)
 		slot := optional[int](r, "best_index_slot", "an integer")
 		if err := r.done(); err != nil {
 			return nil, err
