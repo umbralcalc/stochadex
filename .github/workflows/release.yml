@@ -108,7 +108,14 @@ jobs:
         if: matrix.goos == 'linux'
         # libopenblas-dev carries both the shared and the static (.a) archive; we prefer
         # the static one so the shipped binary has no runtime dependency.
-        run: sudo apt-get update && sudo apt-get install -y libopenblas-dev
+        run: |
+          # The runner image carries a Microsoft apt source we don't use. When it breaks
+          # (403 / "no longer signed", from 2026-10-22), apt-get update fails, and with
+          # `update && install` the install was skipped silently. Drop that source, and
+          # keep update and install separate so either failing fails the step.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
       - name: Build the accelerated CLI
         working-directory: cmd/stochadex
         run: |

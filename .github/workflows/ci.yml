@@ -86,7 +86,13 @@ jobs:
         run: cd cmd/stochadex && CGO_ENABLED=0 go build ./... && CGO_ENABLED=0 go test ./... -count=1
       - name: Build and test the CLI (accelerated, cgo + BLAS + DuckDB)
         run: |
-          sudo apt-get update && sudo apt-get install -y libopenblas-dev
+          # The runner image carries a Microsoft apt source we don't use. When it breaks
+          # (403 / "no longer signed", from 2026-10-22), apt-get update fails, and with
+          # `update && install` the install was skipped silently. Drop that source, and
+          # keep update and install separate so either failing fails the step.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*
+          sudo apt-get update
+          sudo apt-get install -y libopenblas-dev
           cd cmd/stochadex && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" \
             go build -tags "cblas duckdb_arrow" ./... && \
             CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" go test -tags "cblas duckdb_arrow" ./... -count=1
@@ -125,7 +131,14 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Install pandoc
-        run: sudo apt-get update && sudo apt-get install -y pandoc
+        run: |
+          # The runner image carries a Microsoft apt source we don't use. When it breaks
+          # (403 / "no longer signed", from 2026-10-22), apt-get update fails, and with
+          # `update && install` the install was skipped silently. Drop that source, and
+          # keep update and install separate so either failing fails the step.
+          sudo rm -f /etc/apt/sources.list.d/microsoft*
+          sudo apt-get update
+          sudo apt-get install -y pandoc
       - name: Install gomarkdoc
         run: |
           go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest
