@@ -238,6 +238,12 @@ func TestEmbeddedSimulationRunSpec(t *testing.T) {
 		if got := Manifest(config).Embedded; !reflect.DeepEqual(got, want) {
 			t.Errorf("layout %+v, want %+v", got, want)
 		}
+		// A config assembled in Go has no load scope; its nested run is read
+		// all the same.
+		assembled := &ApiRunConfig{Main: config.Main}
+		if got := Manifest(assembled).Embedded; !reflect.DeepEqual(got, want) {
+			t.Errorf("assembled config's layout %+v, want %+v", got, want)
+		}
 	})
 
 	deep := "              - {name: deep,"
