@@ -22,6 +22,34 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-10-22
+
+This release finishes Phase 1 of the config-runtime plan, with the keyboard as an ordinary
+stream input, and starts Phase 2 by giving the core config language the building blocks its
+macros are made of. SMC's particle evaluator (`replicated_simulation_run`), the mean-function
+fit's gradient step (`data_comparison_gradient`), MCTS planning's three partitions
+(`mcts_tree` / `mcts_rollout` / `mcts_apply`) and embedded runs at any depth
+(`embedded_simulation_run` stated in place) are now `{type: ...}` specs, and hand-written
+configs using them reproduce `smc_inference`, `likelihood_mean_function_fit`,
+`grouped_aggregation` and `mcts_planning` exactly. Every iteration in the engine's catalogue
+packages now has a data form, except the unwired MAST rollout strategy. Along the way, a panic
+in a partition comes back as an error instead of crashing the process, nested seed
+derivations no longer collide, and expression names the DSL would silently shadow are refused.
+
+**Upgrading from 0.21.** These are the changes most likely to need action; each is detailed
+below.
+- **Seeded results change** for `smc_inference` and `replicated_simulation_run`, embedded runs
+  using `SetReseedBase`, and MCTS planning: `simulator.DeriveSeed` no longer collides nested
+  streams. The results are distributionally equivalent, not the same numbers; pinned golden
+  values from these paths need regenerating.
+- **Expression names are checked at load.** A field, params key, upstream alias or binding
+  named `dt`, `t`, `step` or `pi`, or a name declared twice, is now an error naming the
+  rename. So is a YAML 1.1 boolean spelling (`y`, `n`, `yes`, `no`, `on`, `off`) used as a name;
+  quote it.
+- **Go API:** `macros.SMCParticleEvaluationIteration` is now
+  `general.ReplicatedSimulationRunIteration` (its param is `replica_params`). A run whose
+  partition panics now returns an `ErrRuntime` error from `RunWith` instead of panicking.
+
 ### Added
 
 - **Steer a run from the keyboard with a stream input:**
@@ -57,7 +85,6 @@ an exact version rather than assume stability across minors.
   naming the group; `other` adds one output after the declared groups' that aggregates every
   undeclared group together. A hand-written twin of a `grouped_aggregation` config, its groups
   declared, reproduces the macro exactly.
-
 - **`simulator.PartitionPanic`** is what a run now panics with when a partition's work
   panics: its `Iterate`, its output, or the update of its history. It names the partition
   and carries the panic value (`errors.Is` / `errors.As` see through to an error value) and
@@ -114,7 +141,6 @@ an exact version rather than assume stability across minors.
   replica 0's partition 1 had replica 1's partition 0's; with `SetReseedBase`, an embedded
   run's step s partition i had step i's partition s's. Results are distributionally equivalent but not the same numbers;
   unseeded and non-reseeded runs are unaffected.
-
 - **A panic in a partition no longer crashes the process.** Under every execution strategy
   the coordinator recovers it on the partition's worker goroutine and re-raises it on its own
   once the step's other workers have finished or stopped, as a `*simulator.PartitionPanic`.
@@ -2037,7 +2063,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.21.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.22.0...HEAD
+[0.22.0]: https://github.com/umbralcalc/stochadex/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/umbralcalc/stochadex/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/umbralcalc/stochadex/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/umbralcalc/stochadex/compare/v0.18.0...v0.19.0
