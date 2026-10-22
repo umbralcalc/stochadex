@@ -29,6 +29,12 @@ an exact version rather than assume stability across minors.
   twin of the tic-tac-toe self-play example over `environment: {type: tictactoe}` reproduces
   the macro exactly. Chance nodes are used only for an environment that can sample successors
   (the simulation environment); `pinned_noise: true` still turns them off.
+- **Partitions of one run that name the same environment search one environment,** built
+  once, as `mcts_self_play`'s partitions always have. An environment may keep state its
+  partitions must agree on (card-game-studio's codec learns encodings as it meets them), so
+  writing a search out partition by partition gives the same play as the macro. A run's
+  embedded runs, at any depth, share its environments; each replica of a
+  `replicated_simulation_run`, and each ensemble member, gets its own.
 
 ### Changed
 
