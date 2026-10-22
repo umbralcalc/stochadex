@@ -66,8 +66,12 @@ jobs:
           notes="$RUNNER_TEMP/release-notes.md"
           bash "$GITHUB_WORKSPACE/.github/scripts/changelog-section.sh" \
             "$TAG" "$GITHUB_WORKSPACE/CHANGELOG.md" > "$notes"
+          # The matrix jobs race to create it: one can find no Release, then lose the
+          # create to another (HTTP 422, as the arm64 job did for v0.22.0). A failed
+          # create is fine if the Release now exists.
           gh release view "$TAG" >/dev/null 2>&1 \
-            || gh release create "$TAG" --title "$TAG" --notes-file "$notes" --verify-tag
+            || gh release create "$TAG" --title "$TAG" --notes-file "$notes" --verify-tag \
+            || gh release view "$TAG" >/dev/null
           gh release upload "$TAG" dist/* --clobber
 
   # Tier 2 — the accelerated asset. cgo, so one native runner per target.
@@ -192,8 +196,12 @@ jobs:
           notes="$RUNNER_TEMP/release-notes.md"
           bash "$GITHUB_WORKSPACE/.github/scripts/changelog-section.sh" \
             "$TAG" "$GITHUB_WORKSPACE/CHANGELOG.md" > "$notes"
+          # The matrix jobs race to create it: one can find no Release, then lose the
+          # create to another (HTTP 422, as the arm64 job did for v0.22.0). A failed
+          # create is fine if the Release now exists.
           gh release view "$TAG" >/dev/null 2>&1 \
-            || gh release create "$TAG" --title "$TAG" --notes-file "$notes" --verify-tag
+            || gh release create "$TAG" --title "$TAG" --notes-file "$notes" --verify-tag \
+            || gh release view "$TAG" >/dev/null
           gh release upload "$TAG" dist/* --clobber
 
   # Tier 3 — the OCI image. This is the unit cloud-native pipelines compose: a
