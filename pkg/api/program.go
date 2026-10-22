@@ -83,13 +83,14 @@ type RunConfig struct {
 // resolve fills the run's data-spec components at load time: the simulation
 // components and each partition whose iteration: was given as a data spec.
 func (r *RunConfig) resolve() error {
-	return r.resolveWith(true)
+	return r.resolveIn(true, newRunScope())
 }
 
-// resolveWith is resolve, leaving the output pair unresolved when withOutputs is
-// false: the main run's pair is resolved as an outputs: view instead (see
-// ApiRunConfig.resolveOutputs), where a served {type: connection} is known.
-func (r *RunConfig) resolveWith(withOutputs bool) error {
+// resolveIn is resolve within a run's scope, leaving the output pair
+// unresolved when withOutputs is false: the main run's pair is resolved as an
+// outputs: view instead (see ApiRunConfig.resolveOutputs), where a served
+// {type: connection} is known.
+func (r *RunConfig) resolveIn(withOutputs bool, scope *runScope) error {
 	components := r.SimulationStrings
 	if !withOutputs {
 		components.OutputCondition = simulator.ComponentSpec{}
@@ -104,7 +105,7 @@ func (r *RunConfig) resolveWith(withOutputs bool) error {
 		if !r.Partitions[index].IterationSpec.IsData() {
 			continue
 		}
-		iteration, err := ResolveIteration(r.Partitions[index].IterationSpec)
+		iteration, err := resolveIterationIn(r.Partitions[index].IterationSpec, scope)
 		if err != nil {
 			return fmt.Errorf(
 				"partition %q: %w", r.Partitions[index].Name, err,
@@ -197,7 +198,10 @@ type ApiRunConfig struct {
 	// ensemble members and served connections are rebuilt fresh and isolated
 	// by reload. Both are empty for a config built in memory.
 	sourcePath string `yaml:"-"`
-	source     []byte `yaml:"-"`
+	// scope is the run scope the config was resolved in, holding the nested
+	// runs it decoded.
+	scope  *runScope
+	source []byte `yaml:"-"`
 	// overrides are the --set overrides LoadConfig applied, and variables the
 	// ${VAR} placeholders it filled, for the I/O manifest (inspect.go).
 	overrides []string
@@ -562,7 +566,7 @@ func validateRunShape(config *ApiRunConfig) error {
 // "<fed partition>->data_values" for each partition fed to it. Unfed, the
 // iteration has no history and the run panics mid-step.
 func validateMemoryFeeds(config *ApiRunConfig) error {
-	return checkMemoryFeeds(config.Main.Partitions, config.Embedded, nil)
+	return checkMemoryFeeds(config.Main.Partitions, config.Embedded, nil, config.scope)
 }
 
 // checkMemoryFeeds checks one run's partitions, fed by host (nil for the main
@@ -572,6 +576,7 @@ func checkMemoryFeeds(
 	partitions []simulator.PartitionConfig,
 	embedded []EmbeddedRunConfig,
 	host *simulator.PartitionConfig,
+	scope *runScope,
 ) error {
 	hosts := map[string]simulator.PartitionConfig{}
 	for _, partition := range partitions {
@@ -579,8 +584,8 @@ func checkMemoryFeeds(
 		if err := checkMemoryFed(partition, host); err != nil {
 			return err
 		}
-		if nested, ok := nestedRunOf(partition); ok {
-			if err := checkMemoryFeeds(nested.Main.Partitions, nested.Embedded, &partition); err != nil {
+		if nested, ok := nestedRunOf(partition, scope); ok {
+			if err := checkMemoryFeeds(nested.Main.Partitions, nested.Embedded, &partition, scope); err != nil {
 				return err
 			}
 		}
@@ -590,7 +595,7 @@ func checkMemoryFeeds(
 		if !hosted {
 			continue // an embedded run no partition hosts never runs
 		}
-		if err := checkMemoryFeeds(run.Run.Partitions, nil, &runHost); err != nil {
+		if err := checkMemoryFeeds(run.Run.Partitions, nil, &runHost, scope); err != nil {
 			return err
 		}
 	}
@@ -642,7 +647,7 @@ func validateEmbeddedForwarding(config *ApiRunConfig) error {
 		}
 	}
 	for _, host := range config.Main.Partitions {
-		if nested, ok := nestedRunOf(host); ok {
+		if nested, ok := nestedRunOf(host, config.scope); ok {
 			inner[host.Name] = map[string]bool{}
 			for _, partition := range nested.Main.Partitions {
 				inner[host.Name][partition.Name] = true
@@ -790,11 +795,14 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 	}
 	// Resolve the data-spec simulation components and data-spec iterations at load
 	// time, so the whole config runs in-process with no code generation.
-	if err := config.Main.resolveWith(false); err != nil {
+	// One run: the main run and its embedded runs share one scope.
+	scope := newRunScope()
+	config.scope = scope
+	if err := config.Main.resolveIn(false, scope); err != nil {
 		return nil, configError(err)
 	}
 	for index := range config.Embedded {
-		if err := config.Embedded[index].Run.resolve(); err != nil {
+		if err := config.Embedded[index].Run.resolveIn(true, scope); err != nil {
 			return nil, configError(err)
 		}
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/umbralcalc/stochadex/pkg/agents"
-	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -17,17 +16,13 @@ func init() {
 
 // buildTicTacToeEnvironment is the reference EnvironmentBuilder. It shows the
 // intended shape for a downstream one: parse your own fields out of the spec,
-// fill the typed half of the self-play spec, apply the config-stated search
-// settings over the top, and hand back the partitions.
+// and hand back NewMCTSEnvironment of the typed environment.
 //
 // Fields (all optional):
 //
 //	init_grid:      9 cell values, 0 empty / 1 X / 2 O (default: empty board)
 //	current_player: 0 for X to move, 1 for O (default: 0)
-func buildTicTacToeEnvironment(
-	spec simulator.ComponentSpec,
-	settings macros.MCTSSearchSettings,
-) ([]*simulator.PartitionConfig, error) {
+func buildTicTacToeEnvironment(spec simulator.ComponentSpec) (MCTSEnvironment, error) {
 	initState := agents.TTTState{}
 	var grid [9]int8
 	currentPlayer := 0
@@ -63,23 +58,15 @@ func buildTicTacToeEnvironment(
 		initState = agents.TTTFromGrid(grid, currentPlayer)
 	}
 
-	selfPlay := macros.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction]{
-		Env: &agents.TTTGame{},
-		Cfg: agents.MCTSConfig[agents.TTTState, agents.TTTAction]{
-			Rollout: agents.UniformRandomRollout[agents.TTTState, agents.TTTAction](),
-		},
-		InitState: initState,
-		Decoder:   agents.TTTDecode,
-		Encoder:   agents.TTTEncode,
-		// The environment's own shape — never config's to state, because a
-		// mismatch here is a silently misshapen row rather than a loud error.
+	return NewMCTSEnvironment(MCTSEnvironmentSpec[agents.TTTState, agents.TTTAction]{
+		Env:             &agents.TTTGame{},
+		InitState:       initState,
+		Decoder:         agents.TTTDecode,
+		Encoder:         agents.TTTEncode,
 		MaxLegalActions: 9,
 		StateWidth:      agents.TTTWidth,
 		Players:         2,
 		// A per-environment default the config may override.
 		SimsPerPly: 50,
-	}
-	macros.ApplyMCTSSearchSettings(&selfPlay, settings)
-
-	return macros.NewMCTSSelfPlayPartitions(selfPlay), nil
+	})
 }

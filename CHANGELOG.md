@@ -22,6 +22,31 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **A registered environment is a component**, usable as the `mcts_tree` / `mcts_rollout` /
+  `mcts_apply` iterations' `environment:` as well as `mcts_self_play`'s `env:`. A hand-written
+  twin of the tic-tac-toe self-play example over `environment: {type: tictactoe}` reproduces
+  the macro exactly. Chance nodes are used only for an environment that can sample successors
+  (the simulation environment); `pinned_noise: true` still turns them off.
+- **Partitions of one run that name the same environment search one environment,** built
+  once, as `mcts_self_play`'s partitions always have. An environment may keep state its
+  partitions must agree on (card-game-studio's codec learns encodings as it meets them), so
+  writing a search out partition by partition gives the same play as the macro. A run's
+  embedded runs, at any depth, share its environments; each replica of a
+  `replicated_simulation_run`, and each ensemble member, gets its own.
+
+### Changed
+
+- **`api.RegisterEnvironment`'s builder returns an `api.MCTSEnvironment`** instead of
+  partitions: `func(spec simulator.ComponentSpec) (api.MCTSEnvironment, error)`, built with
+  `api.NewMCTSEnvironment(api.MCTSEnvironmentSpec[S, A]{...})` from the same typed fields a
+  `macros.MCTSSelfPlaySpec` held (`Env`, `Rollout`, `InitState`, the codec, the row shapes,
+  and `SimsPerPly` as the default `sims_per_ply`). The builder no longer applies the search
+  settings or builds partitions; `mcts_self_play` does, with the same results.
+  `api.ResolveEnvironment` takes the spec alone and returns the component. **Breaking** for a
+  module that registers an environment.
+
 ## [0.22.0] — 2026-10-22
 
 This release finishes Phase 1 of the config-runtime plan, with the keyboard as an ordinary

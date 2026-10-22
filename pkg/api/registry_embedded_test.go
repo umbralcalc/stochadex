@@ -189,6 +189,32 @@ func TestEmbeddedSimulationRunSpec(t *testing.T) {
 		}
 	})
 
+	t.Run("two partitions stating the same nested run each run their own", func(t *testing.T) {
+		nested := `    iteration:
+      type: embedded_simulation_run
+      run:
+        partitions:
+        - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 9}
+        simulation:
+          termination_condition: {type: number_of_steps, max_steps: 3}
+          timestep_function: {type: constant, stepsize: 1.0}
+          init_time_value: 0.0
+    params: {burn_in_steps: [0]}
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 0
+`
+		result, err := RunToStorage(writeConfig(t, "main:\n  partitions:\n  - name: first\n"+nested+
+			"  - name: second\n"+nested+nestedClock))
+		if err != nil {
+			t.Fatal(err)
+		}
+		first, second := result.Storage.GetValues("first"), result.Storage.GetValues("second")
+		if !equalRows(first, second) || first[5][0] == first[6][0] {
+			t.Errorf("two identical nested runs should step alike and move, got %v and %v", first, second)
+		}
+	})
+
 	t.Run("a loaded config runs alike twice", func(t *testing.T) {
 		config := writeConfig(t, threeLevels)
 		first, err := RunToStorage(config)
@@ -211,6 +237,12 @@ func TestEmbeddedSimulationRunSpec(t *testing.T) {
 			{Partition: "gradient", Offset: 0, Width: 1}, {Partition: "walk", Offset: 1, Width: 1}}}}
 		if got := Manifest(config).Embedded; !reflect.DeepEqual(got, want) {
 			t.Errorf("layout %+v, want %+v", got, want)
+		}
+		// A config assembled in Go has no load scope; its nested run is read
+		// all the same.
+		assembled := &ApiRunConfig{Main: config.Main}
+		if got := Manifest(assembled).Embedded; !reflect.DeepEqual(got, want) {
+			t.Errorf("assembled config's layout %+v, want %+v", got, want)
 		}
 	})
 

@@ -2,8 +2,8 @@ package api
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/umbralcalc/stochadex/pkg/agents"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gopkg.in/yaml.v2"
 )
@@ -22,73 +22,15 @@ import (
 // partition builds its own environment from the same spec; a YAML anchor
 // states it once.
 //
-// The environment is a component: {type: simulation, ...} is a decision
-// problem over a forward model, with mcts_planning's fields (horizon, actions,
-// action_partition, action_param, reward_partition, model, ...).
+// The environment is a component (an MCTSEnvironment): {type: simulation, ...}
+// is a decision problem over a forward model, with mcts_planning's fields
+// (horizon, actions, action_partition, action_param, reward_partition, model,
+// ...), and any other type is an environment registered with
+// RegisterEnvironment, such as the tictactoe fixture.
 
-// typedMCTSEnvironment is an environment as the MCTS iterations take it, for
-// its own state and action types: the environment, its codec, the shapes the
-// iterations' rows are built from, and its rollout.
-type typedMCTSEnvironment[S any, A any] struct {
-	env       agents.Environment[S, A]
-	rollout   agents.MCTSRolloutFn[S, A]
-	progress  func(s S, player int) (float64, bool)
-	initState S
-	decoder   func([]float64) (S, error)
-	encoder   func(S) []float64
-
-	maxLegalActions, stateWidth, players int
-	// searchDepth is the default tree depth and rollout length, or zero for
-	// the agents defaults.
-	searchDepth int
-}
-
-// mctsTreeSettings are the search settings the tree iteration reads.
-type mctsTreeSettings struct {
-	exploration  float64
-	maxTreeDepth int
-	pinnedNoise  bool
-}
-
-func (t *typedMCTSEnvironment[S, A]) tree(settings mctsTreeSettings) simulator.Iteration {
-	config := agents.MCTSConfig[S, A]{Exploration: settings.exploration,
-		MaxTreeDepth: settings.maxTreeDepth, Progress: t.progress}
-	if config.MaxTreeDepth == 0 {
-		config.MaxTreeDepth = t.searchDepth
-	}
-	return &agents.MCTSTreeIteration[S, A]{
-		Env: t.env, Cfg: config, Decoder: t.decoder, Encoder: t.encoder,
-		MaxLegalActions: t.maxLegalActions, StateWidth: t.stateWidth,
-		Players: t.players, ChanceNodes: !settings.pinnedNoise,
-	}
-}
-
-func (t *typedMCTSEnvironment[S, A]) rolloutIteration(maxSteps int) simulator.Iteration {
-	if maxSteps == 0 {
-		maxSteps = t.searchDepth
-	}
-	return &agents.MCTSRolloutIteration[S, A]{
-		Env: t.env, Decoder: t.decoder, Players: t.players,
-		Cfg: agents.MCTSConfig[S, A]{Rollout: t.rollout, Progress: t.progress,
-			RolloutMaxSteps: maxSteps},
-	}
-}
-
-func (t *typedMCTSEnvironment[S, A]) apply(bestIndexSlot int) simulator.Iteration {
-	return &agents.ApplyIteration[S, A]{
-		Env: t.env, Decoder: t.decoder, Encoder: t.encoder, BestIdxSlot: bestIndexSlot}
-}
-
-// mctsEnvironment builds the MCTS iterations over one environment, whatever
-// its state and action types.
-type mctsEnvironment interface {
-	tree(mctsTreeSettings) simulator.Iteration
-	rolloutIteration(maxSteps int) simulator.Iteration
-	apply(bestIndexSlot int) simulator.Iteration
-}
-
-// resolveMCTSEnvironment builds the environment an mcts_* spec names.
-func resolveMCTSEnvironment(spec simulator.ComponentSpec) (mctsEnvironment, error) {
+// resolveMCTSEnvironment builds the environment an mcts_* spec names: the
+// engine's own {type: simulation}, or a registered one.
+func resolveMCTSEnvironment(spec simulator.ComponentSpec) (MCTSEnvironment, error) {
 	switch spec.Type {
 	case "simulation":
 		raw, _ := yaml.Marshal(spec.Fields)
@@ -108,20 +50,35 @@ func resolveMCTSEnvironment(spec simulator.ComponentSpec) (mctsEnvironment, erro
 		}
 		return environment.typed(), nil
 	default:
-		return nil, fmt.Errorf("unknown environment type %q (expected simulation)", spec.Type)
+		if _, registered := environmentBuilders[spec.Type]; !registered {
+			return nil, fmt.Errorf("unknown environment type %q (expected simulation, or a "+
+				"registered environment: %s)", spec.Type, strings.Join(RegisteredEnvironments(), ", "))
+		}
+		return ResolveEnvironment(spec)
 	}
 }
 
-// environment reads an mcts_* spec's environment field.
-func (r *specReader) environment(key string) mctsEnvironment {
+// environment reads an mcts_* spec's environment field. Within a run, every
+// partition naming the same environment spec searches one environment, built
+// once: an environment may keep state between calls (a codec that learns
+// encodings as it meets them), and the partitions of one search must agree on
+// it, as mcts_self_play's partitions, sharing one, always have.
+func (r *specReader) environment(key string, scope *runScope) MCTSEnvironment {
 	spec, ok := r.nestedSpec(key, true)
 	if !ok {
 		return nil
 	}
+	// Marshalling sorts mapping keys, so equal specs give equal text.
+	text, _ := yaml.Marshal(spec)
+	if environment, shared := scope.environments[string(text)]; shared {
+		return environment
+	}
 	environment, err := resolveMCTSEnvironment(spec)
 	if err != nil {
 		r.fail("field %q: %v", key, err)
+		return nil
 	}
+	scope.environments[string(text)] = environment
 	return environment
 }
 
@@ -140,9 +97,9 @@ func optional[T any](r *specReader, key, kind string) T {
 }
 
 func init() {
-	iterationBuilders["mcts_tree"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+	scopedIterationBuilders["mcts_tree"] = func(f map[string]interface{}, scope *runScope) (simulator.Iteration, error) {
 		r := newSpecReader("mcts_tree", f)
-		environment := r.environment("environment")
+		environment := r.environment("environment", scope)
 		settings := mctsTreeSettings{
 			exploration:  optionalFloat(r, "exploration"),
 			maxTreeDepth: optional[int](r, "max_tree_depth", "an integer"),
@@ -153,18 +110,18 @@ func init() {
 		}
 		return environment.tree(settings), nil
 	}
-	iterationBuilders["mcts_rollout"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+	scopedIterationBuilders["mcts_rollout"] = func(f map[string]interface{}, scope *runScope) (simulator.Iteration, error) {
 		r := newSpecReader("mcts_rollout", f)
-		environment := r.environment("environment")
+		environment := r.environment("environment", scope)
 		maxSteps := optional[int](r, "rollout_max_steps", "an integer")
 		if err := r.done(); err != nil {
 			return nil, err
 		}
 		return environment.rolloutIteration(maxSteps), nil
 	}
-	iterationBuilders["mcts_apply"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+	scopedIterationBuilders["mcts_apply"] = func(f map[string]interface{}, scope *runScope) (simulator.Iteration, error) {
 		r := newSpecReader("mcts_apply", f)
-		environment := r.environment("environment")
+		environment := r.environment("environment", scope)
 		slot := optional[int](r, "best_index_slot", "an integer")
 		if err := r.done(); err != nil {
 			return nil, err

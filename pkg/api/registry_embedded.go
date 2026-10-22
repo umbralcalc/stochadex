@@ -39,11 +39,16 @@ type embeddedRunSpec struct {
 }
 
 func init() {
-	iterationBuilders["embedded_simulation_run"] = buildEmbeddedSimulationRun
+	scopedIterationBuilders["embedded_simulation_run"] = buildEmbeddedSimulationRun
 }
 
-func buildEmbeddedSimulationRun(fields map[string]interface{}) (simulator.Iteration, error) {
-	config, err := decodeNestedRun(fields)
+// buildEmbeddedSimulationRun builds a nested run within its host's run scope:
+// the nested run steps inside its host's step, so it is part of the same run.
+func buildEmbeddedSimulationRun(
+	fields map[string]interface{},
+	scope *runScope,
+) (simulator.Iteration, error) {
+	config, err := decodeNestedRun(fields, scope)
 	if err == nil {
 		err = validateNestedRun(config)
 	}
@@ -59,7 +64,7 @@ func buildEmbeddedSimulationRun(fields map[string]interface{}) (simulator.Iterat
 
 // decodeNestedRun decodes and resolves an embedded_simulation_run's run, as a
 // config with no inputs or outputs of its own.
-func decodeNestedRun(fields map[string]interface{}) (*ApiRunConfig, error) {
+func decodeNestedRun(fields map[string]interface{}, scope *runScope) (*ApiRunConfig, error) {
 	// Fields decoded from YAML always marshal back (yaml.v2 panics, rather
 	// than erring, on a value that cannot).
 	if err := refuseNestedExpressionBooleans(fields); err != nil {
@@ -70,7 +75,7 @@ func decodeNestedRun(fields map[string]interface{}) (*ApiRunConfig, error) {
 	if err := yaml.UnmarshalStrict(raw, &spec); err != nil {
 		return nil, err
 	}
-	config := &ApiRunConfig{Main: spec.Run.RunConfig, Embedded: spec.Run.Embedded}
+	config := &ApiRunConfig{Main: spec.Run.RunConfig, Embedded: spec.Run.Embedded, scope: scope}
 	for index := range config.Main.Partitions {
 		config.Main.Partitions[index].Init()
 	}
@@ -78,11 +83,11 @@ func decodeNestedRun(fields map[string]interface{}) (*ApiRunConfig, error) {
 		for pIndex := range config.Embedded[index].Run.Partitions {
 			config.Embedded[index].Run.Partitions[pIndex].Init()
 		}
-		if err := config.Embedded[index].Run.resolve(); err != nil {
+		if err := config.Embedded[index].Run.resolveIn(true, scope); err != nil {
 			return nil, err
 		}
 	}
-	if err := config.Main.resolve(); err != nil {
+	if err := config.Main.resolveIn(true, scope); err != nil {
 		return nil, err
 	}
 	return config, nil
@@ -109,13 +114,19 @@ func refuseNestedExpressionBooleans(fields map[string]interface{}) error {
 	return nil
 }
 
-// nestedRunOf returns the run a partition's embedded_simulation_run states,
-// once loading has resolved (and so decoded and checked) it.
-func nestedRunOf(partition simulator.PartitionConfig) (*ApiRunConfig, bool) {
+// nestedRunOf decodes the run a partition's embedded_simulation_run states, for
+// reading, once loading has resolved (and so checked) it. Decoding in the
+// loaded config's scope reuses the environments it built, so a downstream's
+// environment is not built again to be read; a config assembled in Go has no
+// scope and decodes in a fresh one.
+func nestedRunOf(partition simulator.PartitionConfig, scope *runScope) (*ApiRunConfig, bool) {
 	if partition.IterationSpec.Type != "embedded_simulation_run" {
 		return nil, false
 	}
-	config, _ := decodeNestedRun(partition.IterationSpec.Fields)
+	if scope == nil {
+		scope = newRunScope()
+	}
+	config, _ := decodeNestedRun(partition.IterationSpec.Fields, scope)
 	return config, true
 }
 

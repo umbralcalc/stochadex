@@ -147,7 +147,16 @@ var mctsFixtureEnvironment = map[string]interface{}{
 // non-nil iteration of exactly the type it claims, and the type map and the
 // registry name-sets agree (neither has an entry the other lacks).
 func TestIterationRegistryConstructs(t *testing.T) {
+	builders := map[string]iterationBuilder{}
 	for name, build := range iterationBuilders {
+		builders[name] = build
+	}
+	for name := range scopedIterationBuilders {
+		builders[name] = func(fields map[string]interface{}) (simulator.Iteration, error) {
+			return ResolveIteration(simulator.ComponentSpec{Type: name, Fields: fields})
+		}
+	}
+	for name, build := range builders {
 		want, ok := wantIterationType[name]
 		if !ok {
 			t.Errorf("registered name %q has no expected-type entry in the test", name)
@@ -167,7 +176,7 @@ func TestIterationRegistryConstructs(t *testing.T) {
 		}
 	}
 	for name := range wantIterationType {
-		if _, ok := iterationBuilders[name]; !ok {
+		if _, ok := builders[name]; !ok {
 			t.Errorf("expected-type map has %q but the registry does not", name)
 		}
 	}

@@ -484,6 +484,9 @@ func (e *simulationEnvironment) typed() *typedMCTSEnvironment[[]float64, int] {
 		players:         1,
 		// Looking further than the horizon cannot pay: the episode ends there.
 		searchDepth: e.horizon + 1,
+		// A forward model can sample successors, so its search may use
+		// chance nodes.
+		stochastic: true,
 	}
 }
 
@@ -501,7 +504,7 @@ func (m *planningModelSpec) build(injected map[string][]string, what string) (
 		return nil, nil, fmt.Errorf("mcts_planning model: %w", err)
 	}
 	if err := checkExpressionNames(
-		RunConfig{Partitions: partitions}, nil, injected, what+" model"); err != nil {
+		RunConfig{Partitions: partitions}, nil, injected, what+" model", nil); err != nil {
 		return nil, nil, err
 	}
 	timestep := m.Timestep

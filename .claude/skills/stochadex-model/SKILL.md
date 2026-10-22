@@ -507,8 +507,9 @@ params) `partition_event` (reads `event_partition_index` / `event_state_value_in
 `scalar_regression_stats` `likelihood_comparison` `posterior_estimation`
 `likelihood_mean_function_fit` `evolution_strategy_optimisation` `smc_inference`
 `mcts_self_play` (needs a registered `env:`) `mcts_planning` (tree search over your own model).
-**Environments** (`mcts_self_play`'s `env:`): `tictactoe` only, unless the binary links a module
-that called `api.RegisterEnvironment`.
+**Environments** (`mcts_self_play`'s `env:`, and the `mcts_*` iterations' `environment:`):
+`tictactoe` only, unless the binary links a module that called `api.RegisterEnvironment`; the
+`mcts_*` iterations also take `{type: simulation, ...}`.
 **Output view components:** condition `nil|every_step|every_n_steps|only_given_partitions`;
 function `nil|stdout|json_log|websocket` (`websocket` pushes each output to field `url:` as a client).
 **Simulation components:** termination `number_of_steps|time_elapsed`;

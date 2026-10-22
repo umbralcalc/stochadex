@@ -46,6 +46,8 @@ func buildReplicatedSimulationRun(fields map[string]interface{}) (simulator.Iter
 		if err := yaml.UnmarshalStrict(raw, &spec); err != nil {
 			return nil, err
 		}
+		// A replica runs concurrently with the others, so it shares no
+		// environment with them: each resolves in a scope of its own.
 		if err := spec.Run.resolve(); err != nil {
 			return nil, err
 		}

@@ -9,8 +9,9 @@
 // from YAML and calls into this package. NewMCTSSelfPlayPartitions is reachable
 // too, but by a different route: its agents.Environment is arbitrary Go
 // decision rules with no data spelling, so a config names an environment that a
-// downstream module registered with api.RegisterEnvironment, and only the
-// env-independent half of the spec (MCTSSearchSettings) comes from the config.
+// downstream module registered with api.RegisterEnvironment (an environment
+// component, which builds the typed half), and only the env-independent half of
+// the spec (MCTSSearchSettings) comes from the config.
 // The package is named for the shape of what it produces — spec in, partitions
 // out — not for the YAML key alone.
 //

@@ -95,7 +95,8 @@ func RegisterIteration(
 	typeName string,
 	build func(simulator.ComponentSpec) (simulator.Iteration, error),
 ) {
-	if _, exists := iterationBuilders[typeName]; exists {
+	_, core := iterationBuilders[typeName]
+	if _, scoped := scopedIterationBuilders[typeName]; core || scoped {
 		panic("api: iteration name already claimed by the core registry: " + typeName)
 	}
 	if _, exists := extraIterationBuilders[typeName]; exists {
@@ -104,8 +105,36 @@ func RegisterIteration(
 	extraIterationBuilders[typeName] = build
 }
 
-// ResolveIteration builds a simulator.Iteration from a data-spec ComponentSpec.
+// runScope is what the partitions of one run share while it is resolved: the
+// environments its MCTS iterations search, so that partitions naming the same
+// environment spec search one environment, as mcts_self_play's partitions do.
+// A run's embedded runs share its scope, at any depth; each replica of a
+// replicated run, which runs concurrently with the others, has its own.
+type runScope struct {
+	environments map[string]MCTSEnvironment
+}
+
+func newRunScope() *runScope {
+	return &runScope{environments: map[string]MCTSEnvironment{}}
+}
+
+// scopedIterationBuilders are the builders that resolve within a run's scope:
+// those that build environments, or runs of their own.
+var scopedIterationBuilders = map[string]func(
+	fields map[string]interface{}, scope *runScope,
+) (simulator.Iteration, error){}
+
+// ResolveIteration builds a simulator.Iteration from a data-spec ComponentSpec,
+// as a run of its own.
 func ResolveIteration(spec simulator.ComponentSpec) (simulator.Iteration, error) {
+	return resolveIterationIn(spec, newRunScope())
+}
+
+// resolveIterationIn builds an iteration within a run's scope.
+func resolveIterationIn(spec simulator.ComponentSpec, scope *runScope) (simulator.Iteration, error) {
+	if build, ok := scopedIterationBuilders[spec.Type]; ok {
+		return build(spec.Fields, scope)
+	}
 	if build, ok := iterationBuilders[spec.Type]; ok {
 		return build(spec.Fields)
 	}

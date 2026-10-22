@@ -310,7 +310,7 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 		})
 	}
 	for _, partition := range config.Main.Partitions {
-		if nested, ok := nestedRunOf(partition); ok {
+		if nested, ok := nestedRunOf(partition, config.scope); ok {
 			manifest.Embedded = append(manifest.Embedded, embeddedLayout(
 				EmbeddedRunConfig{Name: partition.Name, Run: nested.Main}))
 		}
