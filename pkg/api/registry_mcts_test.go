@@ -157,7 +157,7 @@ func TestMCTSIterationSpecs(t *testing.T) {
 
 	cases := []struct{ name, from, to, want string }{
 		{"an unknown environment type", "        type: simulation\n", "        type: casino\n",
-			`mcts_apply: field "environment": unknown environment type "casino" (expected simulation)`},
+			`mcts_apply: field "environment": unknown environment type "casino" (expected simulation, or a registered environment: `},
 		{"an environment reading recorded samples", "samples: [[2.0], [8.0]]",
 			"samples_from: {partition_name: post}",
 			"parameters.samples_from and weights_from read recorded rows, which only mcts_planning has"},

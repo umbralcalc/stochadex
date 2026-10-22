@@ -42,9 +42,9 @@
 //     environment: {type: simulation, ...} (a SimulationEnvironment stated as
 //     data), which is what the mcts_planning macro expands to.
 //   - YAML / pkg/api use: register an environment with api.RegisterEnvironment
-//     and name it from the mcts_self_play macro's env: spec. The registered
-//     builder keeps the type parameters on the Go side — it fills the typed half
-//     of a macros.MCTSSelfPlaySpec and applies the config-stated half
-//     (macros.MCTSSearchSettings) over the top — so no generic type ever has to
-//     be spelled in YAML.
+//     and name it as the mcts_* iterations' environment: or the mcts_self_play
+//     macro's env:. The registered builder returns api.NewMCTSEnvironment of a
+//     typed api.MCTSEnvironmentSpec[S, A], a component that builds the
+//     iterations for its own S and A, so no generic type ever has to be spelled
+//     in YAML.
 package agents

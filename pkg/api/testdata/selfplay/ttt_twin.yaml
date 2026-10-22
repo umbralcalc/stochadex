@@ -1,0 +1,46 @@
+# Core-language twin of cfg/example_mcts_config.yaml (mcts_self_play): the
+# macro's apply partition and its search, an embedded run of the tree and
+# rollout partitions, each an mcts_* iteration over the registered tictactoe
+# environment, stated once with a YAML anchor. The two must agree exactly.
+main:
+  partitions:
+  - name: ttt_apply
+    iteration:
+      type: mcts_apply
+      environment: &env {type: tictactoe, init_grid: [0, 0, 0, 0, 0, 0, 0, 0, 0], current_player: 0}
+    params_as_partitions: {best_idx_partition: [ttt_search]}
+    init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    state_history_depth: 1
+    seed: 2024
+  - name: ttt_search
+    iteration:
+      type: embedded_simulation_run
+      run:
+        partitions:
+        - name: ttt_tree
+          iteration: {type: mcts_tree, environment: *env}
+          params_as_partitions: {rollout_scores_partition: [ttt_rollout]}
+          init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+          state_history_depth: 1
+          seed: 2024
+        - name: ttt_rollout
+          iteration: {type: mcts_rollout, environment: *env}
+          params_from_upstream:
+            leaf: {upstream: ttt_tree, indices: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]}
+          init_state_values: [0, 0, 0]
+          state_history_depth: 1
+          seed: 2025
+        simulation:
+          termination_condition: {type: number_of_steps, max_steps: 120}
+          timestep_function: {type: constant, stepsize: 1.0}
+          init_time_value: 0.0
+    params: {burn_in_steps: [0]}
+    params_from_upstream:
+      ttt_tree/root_state: {upstream: ttt_apply, indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+    init_state_values: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    state_history_depth: 1
+    seed: 2024
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 10}
+    timestep_function: {type: constant, stepsize: 1.0}
+    init_time_value: 0.0

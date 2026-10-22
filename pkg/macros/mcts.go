@@ -88,9 +88,10 @@ type MCTSSelfPlaySpec[S any, A any] struct {
 // derived from them — has no data spelling and can only come from Go.
 //
 // That split is what the pkg/api environment registry is built on. A config
-// states the search settings; a downstream-registered builder supplies the
-// environment half and calls ApplyMCTSSearchSettings to combine the two. The
-// engine therefore never has to know what the environment *is*.
+// states the search settings; a downstream-registered environment component
+// supplies the environment half, and pkg/api calls ApplyMCTSSearchSettings to
+// combine the two. The engine therefore never has to know what the environment
+// *is*.
 type MCTSSearchSettings struct {
 	// Name prefix for the generated partitions (see MCTSSelfPlaySpec.Name).
 	Name string

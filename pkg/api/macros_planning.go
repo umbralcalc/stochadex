@@ -484,6 +484,9 @@ func (e *simulationEnvironment) typed() *typedMCTSEnvironment[[]float64, int] {
 		players:         1,
 		// Looking further than the horizon cannot pay: the episode ends there.
 		searchDepth: e.horizon + 1,
+		// A forward model can sample successors, so its search may use
+		// chance nodes.
+		stochastic: true,
 	}
 }
 

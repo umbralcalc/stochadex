@@ -59,7 +59,11 @@ func (s *mctsSelfPlaySpec) resolveLive(
 		return nil, 0, 0, fmt.Errorf(
 			"mcts_self_play needs an env: {type: ...} naming a registered environment")
 	}
-	partitions, err := ResolveEnvironment(s.Env, macros.MCTSSearchSettings{
+	environment, err := ResolveEnvironment(s.Env)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	partitions := environment.selfPlay(macros.MCTSSearchSettings{
 		Name:            s.Name,
 		SimsPerPly:      s.SimsPerPly,
 		Simulations:     s.Simulations,
@@ -68,9 +72,6 @@ func (s *mctsSelfPlaySpec) resolveLive(
 		RolloutMaxSteps: s.RolloutMaxSteps,
 		Seed:            s.Seed,
 	})
-	if err != nil {
-		return nil, 0, 0, err
-	}
 	timestep := s.Timestep
 	if timestep == 0 {
 		timestep = 1.0

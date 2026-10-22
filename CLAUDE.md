@@ -127,8 +127,10 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      `smc_inference`, `mcts_self_play`, `mcts_planning`). Macro inputs are typed spec structs
      decoded straight from YAML.
    - **Environments** — `pkg/api/registry_environment.go`, the one registry the engine leaves
-     empty for downstreams to fill (`RegisterEnvironment`), backing the `mcts_self_play`
-     macro's `env:`. See the Invariant A note below for why this one is a hook, not a spec.
+     empty for downstreams to fill (`RegisterEnvironment`). A registered environment is a
+     component (`api.NewMCTSEnvironment`), named as the `mcts_*` iterations' `environment:` or
+     the `mcts_self_play` macro's `env:`. See the Invariant A note below for why this one is a
+     hook, not a spec.
 
 **Invariant A restated for this surface (repo boundary).** Inference-*as-forward-simulation* — a
 posterior being stepped as a partition — is in scope here; `posterior_estimation` and the other
@@ -139,7 +141,7 @@ inferential model; it does not own the dataset, the calibration loop, or the dec
 settings are data (a `macros:` entry like any other), but its `agents.Environment` is
 arbitrary decision rules — the decision layer — and stays Go. A config therefore *names* an
 environment that a downstream module contributed via `api.RegisterEnvironment`, and the
-engine passes the `env:` spec to that builder without interpreting it (see
+engine passes the environment spec to that builder without interpreting it (see
 `pkg/api/registry_environment.go`). The engine ships exactly one environment, the
 `tictactoe` fixture, to keep the path covered end-to-end in CI.
 
