@@ -22,6 +22,20 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-10-22
+
+This release completes the core-language building blocks of the config-runtime plan's
+Phase 2: a registered environment, such as a downstream card game's rules, is now a component
+the MCTS iterations take, so `mcts_self_play` over any registered environment can be written
+out partition by partition and plays exactly as the macro does. Partitions of one run that
+name the same environment share one instance, which is what makes that exact for
+environments that keep state.
+
+**Upgrading from 0.22.** A module that registers an environment must change its builder: it
+returns `api.NewMCTSEnvironment(api.MCTSEnvironmentSpec[S, A]{...})`, filled from the fields
+it used to put in a `macros.MCTSSelfPlaySpec`, instead of building partitions. Nothing else
+changes for configs, and `mcts_self_play` gives the same results.
+
 ### Added
 
 - **A registered environment is a component**, usable as the `mcts_tree` / `mcts_rollout` /
@@ -2088,7 +2102,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/umbralcalc/stochadex/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/umbralcalc/stochadex/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/umbralcalc/stochadex/compare/v0.20.0...v0.21.0
 [0.20.0]: https://github.com/umbralcalc/stochadex/compare/v0.19.0...v0.20.0
