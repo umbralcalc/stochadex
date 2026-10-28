@@ -8,6 +8,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/discrete"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/inference"
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -60,6 +61,10 @@ var iterationBuilders = map[string]iterationBuilder{
 	"posterior_log_normalisation": nullary(func() simulator.Iteration { return &inference.PosteriorLogNormalisationIteration{} }),
 	"ensemble_kalman_filter":      nullary(func() simulator.Iteration { return &inference.EnsembleKalmanFilterIteration{} }),
 	"smc_posterior":               buildSMCPosterior,
+
+	// scalar_regression_stats keeps running least-squares statistics; every
+	// setting is a param, as macros.NewScalarRegressionStatsPartition writes them.
+	"scalar_regression_stats": nullary(func() simulator.Iteration { return &macros.ScalarRegressionStatsIteration{} }),
 
 	// from_storage replays an inline series (its rows carried in the config as data)
 	// into a main: partition by step number. This is the config-level replay path

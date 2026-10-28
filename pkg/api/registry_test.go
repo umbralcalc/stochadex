@@ -67,6 +67,7 @@ var wantIterationType = map[string]string{
 	"replicated_simulation_run":         "*general.ReplicatedSimulationRunIteration",
 	"data_comparison_gradient":          "*inference.DataComparisonGradientIteration",
 	"embedded_simulation_run":           "*general.EmbeddedSimulationRunIteration",
+	"scalar_regression_stats":           "*macros.ScalarRegressionStatsIteration",
 	"mcts_tree":                         "*agents.MCTSTreeIteration[[]float64,int]",
 	"mcts_rollout":                      "*agents.MCTSRolloutIteration[[]float64,int]",
 	"mcts_apply":                        "*agents.ApplyIteration[[]float64,int]",

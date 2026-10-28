@@ -34,6 +34,14 @@ an exact version rather than assume stability across minors.
   A macro that does not expand yet, or two macros reading one partition over different
   windows, is an error saying so.
 
+- **`scalar_regression_stats`, `likelihood_comparison`, `posterior_estimation` and
+  `likelihood_mean_function_fit` expand into the core language** too, and their expansions run
+  exactly as the macro tier does, including the shipped examples and skill recipes. A
+  likelihood window is a nested run stated in place (`embedded_simulation_run`): the window's
+  own partitions, a `from_history` replay of each data partition, and the partition scoring
+  them, with the model's wiring to outer partitions (a posterior's sampler) forwarded in by
+  the host. `{type: scalar_regression_stats}` is now an iteration spec.
+
 ### Fixed
 
 - **`vector_covariance` over a subset of its data's values no longer crashes.** The

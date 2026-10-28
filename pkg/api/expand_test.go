@@ -13,15 +13,23 @@ import (
 // exactly the same times.
 func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 	t.Helper()
-	config, err := LoadConfig(writeConfigPath(t, yaml))
+	path := writeConfigPath(t, yaml)
+	// The expansion is made from a config of its own, loaded afresh and never
+	// run: running a macros: config can write resolved values back into it,
+	// which an expansion of the same object would then carry.
+	fresh, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expanded, err := Expand(fresh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := LoadConfig(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	macro, err := RunToStorage(config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expanded, err := Expand(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,6 +81,7 @@ func TestExpandAggregationMacros(t *testing.T) {
 	t.Run("mean, variance and covariance, with indices, defaults and the default kernel", func(t *testing.T) {
 		expandedAlike(t, aggregationConfig(`- {type: vector_mean, name: m, data: {partition_name: stream, value_indices: [1]}, default_value: 2.5, window: 7}
 - {type: vector_variance, name: v, mean: {partition_name: m}, data: {partition_name: stream, value_indices: [1]}, kernel: {type: exponential}, params: {exponential_weighting_timescale: [3.0]}, default_value: 1.5, window: 7}
+- {type: vector_covariance, name: c, mean: {partition_name: m}, data: {partition_name: stream, value_indices: [1]}, kernel: {type: exponential}, params: {exponential_weighting_timescale: [3.0]}, default_value: 1.5, window: 7}
 - {type: vector_mean, name: lm, data: {partition_name: level}, kernel: {type: exponential}, params: {exponential_weighting_timescale: [2.0]}, window: 4}
 - {type: vector_covariance, name: lc, mean: {partition_name: lm}, data: {partition_name: level}, kernel: {type: exponential}, params: {exponential_weighting_timescale: [2.0]}, default_value: 1.5, window: 4}
 `))
@@ -191,8 +200,8 @@ macros:
 
 	cases := []struct{ name, yaml, want string }{
 		{"a macro that does not expand yet",
-			strings.Replace(readFile(t, "../../cfg/example_posterior_macro_config.yaml"), "", "", 1),
-			`macro "posterior_estimation" does not expand yet`},
+			aggregationConfig("- {type: grouped_aggregation, name: g, aggregation: sum, group_by: [{partition_name: level}], precision: 1, data: {partition_name: stream}}\n"),
+			`macro "grouped_aggregation" does not expand yet`},
 		{"a macro reading a partition nothing makes",
 			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: missing}, window: 3}\n"),
 			`macro "vector_mean": no partition "missing" to read (the inputs and earlier macros have: [level stream])`},
