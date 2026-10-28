@@ -22,6 +22,18 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`api.Expand` and `api.ExpandToYAML` write a macros: config out in the core language**, as
+  one ordinary run: the config's inputs, a `{type: from_input}` replay of each input partition,
+  each macro's partitions (data specs, as a person would write them), clocked by the inputs'
+  timestamps, and the config's outputs. A later macro reads an earlier one's partitions live,
+  and a macro's window becomes the history depth of what it reads. This is the first step of
+  macros becoming config → config shortcuts; `vector_mean`, `vector_variance` and
+  `vector_covariance` expand so far, and their expansions run exactly as the macro tier does.
+  A macro that does not expand yet, or two macros reading one partition over different
+  windows, is an error saying so.
+
 ## [0.23.0] — 2026-10-22
 
 This release completes the core-language building blocks of the config-runtime plan's
