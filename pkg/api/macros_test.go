@@ -4,6 +4,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -304,5 +305,93 @@ macros:
 	if !scalar.EqualWithinRel(final[0], 2.5, 0.3) || !scalar.EqualWithinRel(final[3], 9.0, 0.3) {
 		t.Errorf("post burn-in covariance diagonal %v not near [2.5, 9.0]",
 			[]float64{final[0], final[3]})
+	}
+}
+
+// vectorCovarianceSubsetYAML runs the vector_covariance macro twice over one
+// correlated three-wide stream: once over all its values and once over the
+// value_indices subset given, each centred on the same full-width rolling mean
+// (subset through the mean reference's own value_indices).
+func vectorCovarianceSubsetYAML(indices string) string {
+	return `data:
+  steps: 300
+  timestep: 1.0
+  partitions:
+  - name: data_stream
+    iteration: {type: data_generation, likelihood: {type: normal}}
+    params:
+      mean: [1.8, 5.0, -2.0]
+      covariance_matrix: [2.5, 1.2, -0.7, 1.2, 9.0, 2.1, -0.7, 2.1, 4.0]
+    init_state_values: [1.3, 8.3, -1.5]
+    state_history_depth: 100
+    seed: 291
+macros:
+- type: vector_mean
+  name: rolling_mean
+  data: {partition_name: data_stream}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [50.0]}
+  window: 80
+- type: vector_covariance
+  name: full_cov
+  mean: {partition_name: rolling_mean}
+  data: {partition_name: data_stream}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [50.0]}
+  window: 80
+- type: vector_covariance
+  name: subset_cov
+  mean: {partition_name: rolling_mean, value_indices: ` + indices + `}
+  data: {partition_name: data_stream, value_indices: ` + indices + `}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [50.0]}
+  window: 80
+`
+}
+
+// TestVectorCovarianceValueIndicesSubset pins the vector_covariance macro over a
+// value_indices subset of its data partition: on every step its n×n output must
+// equal the corresponding sub-block of the same macro's full-width covariance,
+// an independent reference computed over all the values. The reversed subset
+// checks the pairs are reordered, not just truncated.
+func TestVectorCovarianceValueIndicesSubset(t *testing.T) {
+	for _, subset := range [][]int{{1}, {0, 2}, {2, 1}} {
+		indices := make([]string, len(subset))
+		for i, index := range subset {
+			indices[i] = strconv.Itoa(index)
+		}
+		yamlIndices := "[" + strings.Join(indices, ", ") + "]"
+		t.Run("value_indices "+yamlIndices, func(t *testing.T) {
+			result, err := RunToStorage(writeConfig(t, vectorCovarianceSubsetYAML(yamlIndices)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			full := result.Storage.GetValues("full_cov")
+			sub := result.Storage.GetValues("subset_cov")
+			if len(full) == 0 || len(sub) != len(full) {
+				t.Fatalf("got %d subset rows for %d full rows", len(sub), len(full))
+			}
+			n := len(subset)
+			nonZero := false
+			for step := range full {
+				want := make([]float64, n*n)
+				// the iteration fills only the upper triangle of its row-major
+				// n×n output, so read each pair from the full upper triangle
+				for i := range n {
+					for j := i; j < n; j++ {
+						a, b := min(subset[i], subset[j]), max(subset[i], subset[j])
+						want[i*n+j] = full[step][a*3+b]
+					}
+				}
+				if !floats.EqualApprox(sub[step], want, 1e-12) {
+					t.Fatalf("step %d: subset covariance %v, want full sub-block %v",
+						step, sub[step], want)
+				}
+				nonZero = nonZero || floats.Max(want) > 1.0
+			}
+			if !nonZero {
+				t.Error("reference sub-block never left burn-in; test is vacuous")
+			}
+		})
 	}
 }

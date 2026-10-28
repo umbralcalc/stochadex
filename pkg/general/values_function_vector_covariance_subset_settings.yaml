@@ -1,0 +1,49 @@
+iterations:
+- name: data
+  params: {}
+  init_state_values: [0.0, 2.0, 0.0]
+  seed: 0
+  state_width: 3
+  state_history_depth: 10
+- name: full_mean
+  params:
+    exponential_weighting_timescale: [4.0]
+    data_values_partition: [0]
+  params_from_upstream:
+    latest_data_values:
+      upstream: 0
+  init_state_values: [0.0, 0.0, 0.0]
+  seed: 0
+  state_width: 3
+  state_history_depth: 2
+- name: full_covariance
+  params:
+    exponential_weighting_timescale: [4.0]
+    data_values_partition: [0]
+  params_from_upstream:
+    latest_data_values:
+      upstream: 0
+    mean:
+      upstream: 1
+  init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  seed: 0
+  state_width: 9
+  state_history_depth: 2
+- name: subset_covariance
+  params:
+    exponential_weighting_timescale: [4.0]
+    data_values_partition: [0]
+    data_values_indices: [2, 0]
+  params_from_upstream:
+    latest_data_values:
+      upstream: 0
+      indices: [2, 0]
+    mean:
+      upstream: 1
+      indices: [2, 0]
+  init_state_values: [0.0, 0.0, 0.0, 0.0]
+  seed: 0
+  state_width: 4
+  state_history_depth: 2
+init_time_value: 0.0
+timesteps_history_depth: 10
