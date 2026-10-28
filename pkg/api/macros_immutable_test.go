@@ -176,6 +176,14 @@ func sameStorage(a, b *simulator.StateTimeStorage) bool {
 	return true
 }
 
+// shortenedShippedExamples shortens the slowest shipped examples for
+// TestMacroRunLeavesConfigUnmodified, whose leaks are made as a macro is set up
+// and by its first steps, not by how long it runs. The posterior still runs past
+// its 200-step covariance burn-in, so its sampler reads the streamed covariance.
+var shortenedShippedExamples = map[string][]LoadOption{
+	"cfg/example_posterior_macro_config.yaml": {WithSet("inputs.data.simulation.steps", "300")},
+}
+
 // TestMacroRunLeavesConfigUnmodified pins RunWith's and RunToStorage's "the
 // caller's config is not modified" for the macros: tier, for every macro type:
 // the data: and macros: tiers marshal byte-identically after a run, and running
@@ -198,7 +206,9 @@ func TestMacroRunLeavesConfigUnmodified(t *testing.T) {
 
 	paths := map[string]string{}
 	covered := map[string]bool{}
-	for _, pattern := range []string{"cfg/*.yaml", ".claude/skills/stochadex-model/recipes/*.yaml"} {
+	// The skill's recipes are byte-identical to cfg/ twins (TestSkillRecipesMatchExamples),
+	// so cfg/ alone covers them; running both would double the slowest configs.
+	for _, pattern := range []string{"cfg/*.yaml"} {
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
 			t.Fatal(err)
@@ -254,7 +264,10 @@ func TestMacroRunLeavesConfigUnmodified(t *testing.T) {
 		for runnerName, run := range runners {
 			t.Run(strings.TrimSuffix(filepath.Base(name), ".yaml")+"/"+runnerName, func(t *testing.T) {
 				t.Parallel()
-				config := LoadApiRunConfigFromYaml(path)
+				config, err := LoadConfig(path, shortenedShippedExamples[path]...)
+				if err != nil {
+					t.Fatal(err)
+				}
 				before := marshalledMacroTiers(t, config)
 				first, err := run(config)
 				if err != nil {
@@ -263,19 +276,20 @@ func TestMacroRunLeavesConfigUnmodified(t *testing.T) {
 				if after := marshalledMacroTiers(t, config); after != before {
 					t.Fatalf("running the macros modified the config:\nbefore:\n%s\nafter:\n%s", before, after)
 				}
+				// RunToStorage runs through RunWith, so rerunning under one runner is
+				// enough. The first run was of a freshly loaded config, so it is the
+				// reference a rerun must match. Together these keep the slowest config
+				// (a 2000-step posterior) to two runs rather than six: pkg/api runs
+				// close to go test's default timeout under -race in CI.
+				if runnerName != "RunToStorage" {
+					return
+				}
 				again, err := run(config)
 				if err != nil {
 					t.Fatal(err)
 				}
-				fresh, err := run(LoadApiRunConfigFromYaml(path))
-				if err != nil {
-					t.Fatal(err)
-				}
-				if !sameStorage(first.Storage, fresh.Storage) {
-					t.Error("first run of the loaded config differs from a freshly loaded one's")
-				}
-				if !sameStorage(again.Storage, fresh.Storage) {
-					t.Error("running the same loaded config again differs from a freshly loaded one's")
+				if !sameStorage(again.Storage, first.Storage) {
+					t.Error("running the same loaded config again differs from its first run")
 				}
 			})
 		}
