@@ -42,10 +42,11 @@ func inputsAsData(t *testing.T, contents string) string {
 
 // TestDataShorthandIsAnInput keeps the deprecated data: shorthand honest until
 // it is removed (PLAN.md 1.1, IO.6): every shipped config that analyses an
-// inputs: {data: ...} — the cfg/ examples and the agent skill's recipes,
-// covering csv sources, sub-simulations, against-storage and live macros —
-// gives byte-identical results written in the data: form, which carries its
-// deprecation notice.
+// inputs: {data: ...} — the cfg/ examples, covering csv sources,
+// sub-simulations, against-storage and live macros — gives byte-identical
+// results written in the data: form, which carries its deprecation notice. The
+// agent skill's recipes are byte-identical twins of cfg/ examples
+// (TestSkillRecipesMatchExamples), so they are covered without running them.
 func TestDataShorthandIsAnInput(t *testing.T) {
 	wd, _ := os.Getwd()
 	if err := os.Chdir("../.."); err != nil { // configs carry repo-relative paths
@@ -55,7 +56,7 @@ func TestDataShorthandIsAnInput(t *testing.T) {
 	scratch := t.TempDir()
 
 	paths := []string{}
-	for _, pattern := range []string{"cfg/*.yaml", ".claude/skills/stochadex-model/recipes/*.yaml"} {
+	for _, pattern := range []string{"cfg/*.yaml"} {
 		matches, _ := filepath.Glob(pattern)
 		for _, path := range matches {
 			if strings.Contains(readFile(t, path), "\ninputs:\n  data:\n") &&
@@ -64,8 +65,8 @@ func TestDataShorthandIsAnInput(t *testing.T) {
 			}
 		}
 	}
-	if len(paths) < 9 {
-		t.Fatalf("expected the 6 cfg examples and 3 recipes that analyse inputs: {data: ...}, found %v", paths)
+	if len(paths) < 6 {
+		t.Fatalf("expected the 6 cfg examples that analyse inputs: {data: ...}, found %v", paths)
 	}
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
