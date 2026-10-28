@@ -166,7 +166,7 @@ func (m *smcModelSpec) builder(
 }
 
 // instantiateModelPartition builds one particle's copy of a model partition, with
-// a fresh iteration instance and deep-copied params and wiring maps — so that
+// a fresh iteration instance and its own params and wiring (isolateWiring) — so that
 // nothing is shared between particles, which would couple their evaluations.
 //
 // Seeds are deliberately not touched here: the evaluation iteration reseeds every
@@ -185,27 +185,6 @@ func instantiateModelPartition(
 		partition.Iteration = iteration
 	}
 
-	params := make(map[string][]float64, len(partition.Params.Map))
-	for key, values := range partition.Params.Map {
-		copied := make([]float64, len(values))
-		copy(copied, values)
-		params[key] = copied
-	}
-	partition.Params = simulator.NewParams(params)
-
-	fromUpstream := make(map[string]simulator.NamedUpstreamConfig, len(partition.ParamsFromUpstream))
-	for key, upstream := range partition.ParamsFromUpstream {
-		fromUpstream[key] = upstream
-	}
-	partition.ParamsFromUpstream = fromUpstream
-
-	asPartitions := make(map[string][]string, len(partition.ParamsAsPartitions))
-	for key, refs := range partition.ParamsAsPartitions {
-		copied := make([]string, len(refs))
-		copy(copied, refs)
-		asPartitions[key] = copied
-	}
-	partition.ParamsAsPartitions = asPartitions
-
+	isolateWiring(&partition)
 	return &partition, nil
 }

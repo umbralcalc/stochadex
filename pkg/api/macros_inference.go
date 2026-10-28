@@ -49,9 +49,9 @@ func (s parameterisedModelSpec) resolve() (macros.ParameterisedModel, error) {
 	}
 	return macros.ParameterisedModel{
 		Likelihood:         likelihood,
-		Params:             simulator.NewParams(s.Params),
-		ParamsAsPartitions: s.ParamsAsPartitions,
-		ParamsFromUpstream: s.ParamsFromUpstream,
+		Params:             simulator.NewParams(copyParamsMap(s.Params)),
+		ParamsAsPartitions: copyAsPartitions(s.ParamsAsPartitions),
+		ParamsFromUpstream: copyUpstreams(s.ParamsFromUpstream),
 	}, nil
 }
 
@@ -74,6 +74,7 @@ func (s windowedPartitionsSpec) resolve() (macros.WindowedPartitions, error) {
 	for i := range s.Partitions {
 		partition := s.Partitions[i].Partition
 		partition.Init()
+		isolateWiring(&partition)
 		if partition.IterationSpec.IsData() {
 			iteration, err := ResolveIteration(partition.IterationSpec)
 			if err != nil {
@@ -216,9 +217,9 @@ func (s parameterisedModelWithGradientSpec) resolve() (macros.ParameterisedModel
 	}
 	return macros.ParameterisedModelWithGradient{
 		Likelihood:         withGradient,
-		Params:             simulator.NewParams(s.Params),
-		ParamsAsPartitions: s.ParamsAsPartitions,
-		ParamsFromUpstream: s.ParamsFromUpstream,
+		Params:             simulator.NewParams(copyParamsMap(s.Params)),
+		ParamsAsPartitions: copyAsPartitions(s.ParamsAsPartitions),
+		ParamsFromUpstream: copyUpstreams(s.ParamsFromUpstream),
 	}, nil
 }
 

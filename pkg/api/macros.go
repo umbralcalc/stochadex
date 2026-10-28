@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -301,6 +302,45 @@ func expanding(macroType string, expand func() error) (err error) {
 		return configError(fmt.Errorf("macro %q: %w", macroType, err))
 	}
 	return nil
+}
+
+// isolateWiring gives a partition its own copies of its params and wiring maps.
+// A partition built from a config shares those maps with it, and a run writes
+// into them — resolved params_as_partitions indices, params_from_upstream values
+// — so without the copies running a macro rewrites the caller's config.
+func isolateWiring(partition *simulator.PartitionConfig) {
+	partition.Params = simulator.NewParams(copyParamsMap(partition.Params.Map))
+	partition.ParamsFromUpstream = copyUpstreams(partition.ParamsFromUpstream)
+	partition.ParamsAsPartitions = copyAsPartitions(partition.ParamsAsPartitions)
+}
+
+// copyParamsMap copies a params map and its value slices.
+func copyParamsMap(params map[string][]float64) map[string][]float64 {
+	copied := make(map[string][]float64, len(params))
+	for key, values := range params {
+		copied[key] = slices.Clone(values)
+	}
+	return copied
+}
+
+// copyUpstreams copies a params_from_upstream map.
+func copyUpstreams(
+	upstreams map[string]simulator.NamedUpstreamConfig,
+) map[string]simulator.NamedUpstreamConfig {
+	copied := make(map[string]simulator.NamedUpstreamConfig, len(upstreams))
+	for key, upstream := range upstreams {
+		copied[key] = upstream
+	}
+	return copied
+}
+
+// copyAsPartitions copies a params_as_partitions map and its name slices.
+func copyAsPartitions(asPartitions map[string][]string) map[string][]string {
+	copied := make(map[string][]string, len(asPartitions))
+	for key, names := range asPartitions {
+		copied[key] = slices.Clone(names)
+	}
+	return copied
 }
 
 // applyParams merges a macro's params: into a generated partition's Params — how

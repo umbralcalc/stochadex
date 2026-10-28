@@ -500,6 +500,9 @@ func (m *planningModelSpec) build(injected map[string][]string, what string) (
 ) {
 	partitions := make([]simulator.PartitionConfig, len(m.Partitions))
 	copy(partitions, m.Partitions)
+	for index := range partitions {
+		isolateWiring(&partitions[index])
+	}
 	if err := resolveIterations(partitions); err != nil {
 		return nil, nil, fmt.Errorf("mcts_planning model: %w", err)
 	}
