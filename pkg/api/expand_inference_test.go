@@ -140,6 +140,18 @@ func TestExpandInferenceMacros(t *testing.T) {
 		expandedAlike(t, inferenceInputs+posteriorMacro)
 	})
 
+	t.Run("a two-wide posterior with variances only, its sampler declaring a covariance upstream", func(t *testing.T) {
+		// The macro drops the sampler's covariance_matrix wiring for the
+		// variance partition, and two-wide variances are no covariance matrix.
+		yaml := strings.Replace(readFile(t, "../../cfg/example_posterior_macro_config.yaml"),
+			"covariance: {name: test_post_cov, default: [9.0, 0.0, 0.0, 9.0]}",
+			"covariance: {name: test_post_cov, default: [9.0, 9.0], just_variance: true}", 1)
+		if !strings.Contains(yaml, "just_variance") {
+			t.Fatal("the example changed; this case no longer sets just_variance")
+		}
+		expandedAlike(t, yaml)
+	})
+
 	t.Run("a windowed regression without an intercept over a two-wide input", func(t *testing.T) {
 		expandedAlike(t, inferenceInputs+regressionMacro)
 	})

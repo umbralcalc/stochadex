@@ -13,15 +13,23 @@ import (
 // exactly the same times.
 func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 	t.Helper()
-	config, err := LoadConfig(writeConfigPath(t, yaml))
+	path := writeConfigPath(t, yaml)
+	// The expansion is made from a config of its own, loaded afresh and never
+	// run: running a macros: config can write resolved values back into it,
+	// which an expansion of the same object would then carry.
+	fresh, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expanded, err := Expand(fresh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := LoadConfig(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	macro, err := RunToStorage(config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expanded, err := Expand(config)
 	if err != nil {
 		t.Fatal(err)
 	}
