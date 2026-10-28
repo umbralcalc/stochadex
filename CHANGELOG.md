@@ -71,6 +71,12 @@ an exact version rather than assume stability across minors.
 
 ### Fixed
 
+- **A grouped aggregation now sets its kernel's params.** `values_grouped_aggregation`
+  (and so the `grouped_aggregation` macro) never called its kernel's `SetParams`, so a
+  kernel that reads params, such as `{type: exponential}` with
+  `exponential_weighting_timescale`, ran unconfigured and gave NaN. It now sets them each
+  step, as the ungrouped aggregations do.
+
 - **Running a macros: config no longer rewrites the config.** `api.RunToStorage`, `api.RunWith`
   and `api.RunMacros` promise to leave the caller's config unmodified, but the
   `posterior_estimation`, `likelihood_comparison`, `likelihood_mean_function_fit` and

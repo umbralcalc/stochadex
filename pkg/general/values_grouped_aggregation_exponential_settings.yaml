@@ -1,0 +1,33 @@
+iterations:
+- name: groups
+  params: {}
+  init_state_values: [1.0, 2.0, 1.0]
+  seed: 0
+  state_width: 3
+  state_history_depth: 3
+- name: values
+  params: {}
+  init_state_values: [0.0, 0.0, 0.0]
+  seed: 0
+  state_width: 3
+  state_history_depth: 3
+- name: aggregation
+  params:
+    accepted_value_group_tupindex_0: [1.0, 2.0]
+    grouping_partition_tupindex_0: [0]
+    grouping_value_indices_tupindex_0: [0, 1, 2]
+    state_partition: [1]
+    state_value_indices: [0, 1, 2]
+    float_precision: [1]
+    exponential_weighting_timescale: [2.0]
+  params_from_upstream:
+    latest_groupings_tupindex_0:
+      upstream: 0
+    latest_states:
+      upstream: 1
+  init_state_values: [0.0, 0.0]
+  seed: 0
+  state_width: 2
+  state_history_depth: 1
+init_time_value: 0.0
+timesteps_history_depth: 3

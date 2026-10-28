@@ -2,6 +2,7 @@ package general
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 
@@ -227,6 +228,81 @@ func TestUndeclaredGroupsPolicies(t *testing.T) {
 		settings.Iterations[2].Params.Set("accepted_value_group_tupindex_0", []float64{0, 1, 2})
 		if got, want := iterateOnce(t, UndeclaredGroupsError, settings), []float64{8, 11, 925}; !floats.Equal(got, want) {
 			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+}
+
+func TestValuesGroupedAggregationExponentialKernel(t *testing.T) {
+	// The values partition outputs [t, 10t, t^2] at time t, grouped as
+	// [1, 2, 1], so group 1 holds t + t^2 and group 2 holds 10t.
+	iterations := func() []simulator.Iteration {
+		return []simulator.Iteration{
+			&ConstantValuesIteration{},
+			&ValuesFunctionIteration{Function: func(
+				params *simulator.Params,
+				partitionIndex int,
+				stateHistories []*simulator.StateHistory,
+				timestepsHistory *simulator.CumulativeTimestepsHistory,
+			) []float64 {
+				time := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
+				return []float64{time, 10 * time, time * time}
+			}},
+			&ValuesGroupedAggregationIteration{
+				Aggregation: SumAggregation,
+				Kernel:      &kernels.ExponentialIntegrationKernel{},
+			},
+		}
+	}
+	implementations := func(store *simulator.StateTimeStorage) *simulator.Implementations {
+		return &simulator.Implementations{
+			Iterations:           iterations(),
+			OutputCondition:      &simulator.EveryStepOutputCondition{},
+			OutputFunction:       &simulator.StateTimeStorageOutputFunction{Store: store},
+			TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 10},
+			TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
+		}
+	}
+
+	t.Run("weights the window by the exponential kernel's timescale", func(t *testing.T) {
+		settings := simulator.LoadSettingsFromYaml(
+			"./values_grouped_aggregation_exponential_settings.yaml")
+		store := simulator.NewStateTimeStorage()
+		impl := implementations(store)
+		for index, iteration := range impl.Iterations {
+			iteration.Configure(index, settings)
+		}
+		simulator.NewPartitionCoordinator(settings, impl).Run()
+		// At time T the window is the latest row and the three before it, at
+		// T-d for d = 0..3, each weighted exp(-d/2) with timescale 2.
+		times, rows := store.GetTimes(), store.GetValues("aggregation")
+		checked := 0
+		for step, time := range times {
+			if time < 3 {
+				continue
+			}
+			var group1, group2 float64
+			for d := 0.0; d <= 3; d++ {
+				past := time - d
+				weight := math.Exp(-d / 2)
+				group1 += weight * (past + past*past)
+				group2 += weight * 10 * past
+			}
+			if want := []float64{group1, group2}; !floats.EqualApprox(rows[step], want, 1e-9) {
+				t.Errorf("time %v: got %v, want %v", time, rows[step], want)
+			}
+			checked++
+		}
+		if checked == 0 {
+			t.Fatal("no steps with a full window were checked")
+		}
+	})
+
+	t.Run("weights the window by the exponential kernel with harnesses", func(t *testing.T) {
+		settings := simulator.LoadSettingsFromYaml(
+			"./values_grouped_aggregation_exponential_settings.yaml")
+		if err := simulator.RunWithHarnesses(
+			settings, implementations(simulator.NewStateTimeStorage())); err != nil {
+			t.Errorf("test harness failed: %v", err)
 		}
 	})
 }
