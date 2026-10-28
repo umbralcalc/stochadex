@@ -42,6 +42,19 @@ an exact version rather than assume stability across minors.
   them, with the model's wiring to outer partitions (a posterior's sampler) forwarded in by
   the host. `{type: scalar_regression_stats}` is now an iteration spec.
 
+### Changed
+
+- **`likelihood_comparison`, `posterior_estimation` and `likelihood_mean_function_fit` run
+  about 3× faster.** Each of these re-runs its comparison window's inner steps at every
+  step, and that window ran on the default execution strategy, which starts goroutines for
+  every partition at every inner step. The window now runs inline whenever its partitions
+  allow it (every within-step `params_from_upstream` reads an earlier partition), which is
+  always true for the data replays and the comparison the macro adds. A window whose own
+  partitions are listed out of that order keeps the default strategy. Results are
+  identical. A 20-step window over 200 steps takes 4.7ms instead of 14.5ms and makes 26%
+  fewer allocations, and the shipped posterior example runs in 0.4s instead of 1.3s. The
+  config written out by `api.Expand` still runs its windows on the default strategy.
+
 ### Fixed
 
 - **Running a macros: config no longer rewrites the config.** `api.RunToStorage`, `api.RunWith`

@@ -7,6 +7,7 @@ import (
 	"gonum.org/v1/gonum/floats"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
+	"github.com/umbralcalc/stochadex/pkg/continuous"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -526,4 +527,87 @@ func TestLikelihoodMeanFunctionFit(t *testing.T) {
 			}
 		},
 	)
+}
+
+// TestWindowOrderDoesNotChangeTheScore checks the comparison's window runs the
+// same whichever order its partitions are listed in. A window whose partitions
+// read each other within a step in list order runs inline (no goroutines), and
+// one listed out of that order falls back to the default concurrent execution,
+// which is the reference here: both must score every step identically.
+func TestWindowOrderDoesNotChangeTheScore(t *testing.T) {
+	const steps, windowDepth = 60, 8
+	level := func() WindowedPartition {
+		return WindowedPartition{Partition: &simulator.PartitionConfig{
+			Name:              "level",
+			Iteration:         &continuous.WienerProcessIteration{},
+			Params:            simulator.NewParams(map[string][]float64{"variances": {0.05, 0.05}}),
+			InitStateValues:   []float64{1.5, 4.5},
+			StateHistoryDepth: 1,
+			Seed:              11,
+		}}
+	}
+	sim := func() WindowedPartition {
+		return WindowedPartition{Partition: &simulator.PartitionConfig{
+			Name:      "sim",
+			Iteration: &continuous.OrnsteinUhlenbeckIteration{},
+			Params: simulator.NewParams(map[string][]float64{
+				"thetas": {0.6, 0.6}, "sigmas": {0.2, 0.2},
+			}),
+			ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+				"mus": {Upstream: "level"}, // within-step: sim needs level's output first
+			},
+			InitStateValues:   []float64{1.3, 8.3},
+			StateHistoryDepth: 1,
+			Seed:              7,
+		}}
+	}
+	loglikes := func(t *testing.T, window []WindowedPartition) []float64 {
+		t.Helper()
+		storage := likelihoodTestStorage(t, steps)
+		var partition *simulator.PartitionConfig
+		wantNoPanic(t, func() {
+			partition = NewLikelihoodComparisonPartition(
+				AppliedLikelihoodComparison{
+					Name: "test_likelihood",
+					Model: ParameterisedModel{
+						Likelihood: &inference.NormalLikelihoodDistribution{},
+						Params: simulator.NewParams(map[string][]float64{
+							"covariance_matrix": {2.5, 0.0, 0.0, 9.0},
+						}),
+						ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+							"mean": {Upstream: "sim"},
+						},
+					},
+					Data: analysis.DataRef{PartitionName: "test_data"},
+					Window: WindowedPartitions{
+						Partitions: window,
+						Data:       []analysis.DataRef{{PartitionName: "test_data"}},
+						Depth:      windowDepth,
+					},
+				},
+				storage,
+			)
+			storage = analysis.AddPartitionsToStateTimeStorage(
+				storage,
+				[]*simulator.PartitionConfig{partition},
+				map[string]int{"test_data": windowDepth},
+			)
+		})
+		// The comparison partition is appended last, so the loglike is each row's
+		// final element whatever order the window lists its partitions in.
+		var scores []float64
+		for _, row := range storage.GetValues("test_likelihood") {
+			scores = append(scores, row[len(row)-1])
+		}
+		return scores
+	}
+	inOrder := loglikes(t, []WindowedPartition{level(), sim()})
+	outOfOrder := loglikes(t, []WindowedPartition{sim(), level()})
+	if len(inOrder) != steps+1 || !floats.Equal(inOrder, outOfOrder) {
+		t.Errorf("window order changed the score:\nin order:     %v\nout of order: %v",
+			inOrder, outOfOrder)
+	}
+	if floats.Max(inOrder) == floats.Min(inOrder) {
+		t.Errorf("the score never moved, so the comparison proves nothing: %v", inOrder)
+	}
 }

@@ -212,7 +212,7 @@ func NewLikelihoodComparisonPartition(
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(
-			generator.GenerateConfigs(),
+			withInlineExecution(generator.GenerateConfigs()),
 		),
 		Params:             simParams,
 		ParamsAsPartitions: simParamsAsPartitions,
@@ -402,7 +402,7 @@ func NewLikelihoodMeanFunctionFitPartition(
 	return &simulator.PartitionConfig{
 		Name: applied.Name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(
-			generator.GenerateConfigs(),
+			withInlineExecution(generator.GenerateConfigs()),
 		),
 		Params:             simParams,
 		ParamsAsPartitions: simParamsAsPartitions,
@@ -411,4 +411,29 @@ func NewLikelihoodMeanFunctionFitPartition(
 		StateHistoryDepth:  applied.Window.Depth,
 		Seed:               0,
 	}
+}
+
+// withInlineExecution runs a window's embedded simulation inline when its
+// partitions allow: every within-step upstream earlier in partition order, which
+// the constructors guarantee for the partitions they add (data replays first,
+// then the comparison or gradient reading them) but not for the window's own
+// partitions, listed as the config lists them. The window re-runs Depth inner
+// steps every outer step, so the default strategy's goroutine spawn and channel
+// round-trip per partition per inner step dominated its cost. Output is
+// identical under every strategy (see simulator.ExecutionStrategy); a window
+// listed out of order keeps the default rather than tripping InlineExecution's
+// ordering panic.
+func withInlineExecution(
+	settings *simulator.Settings,
+	implementations *simulator.Implementations,
+) (*simulator.Settings, *simulator.Implementations) {
+	for index, iteration := range settings.Iterations {
+		for _, upstream := range iteration.ParamsFromUpstream {
+			if upstream.Upstream >= index {
+				return settings, implementations
+			}
+		}
+	}
+	implementations.ExecutionStrategy = &simulator.InlineExecution{}
+	return settings, implementations
 }
