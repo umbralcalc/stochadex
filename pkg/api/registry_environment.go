@@ -34,6 +34,11 @@ type MCTSEnvironment interface {
 	rolloutIteration(maxSteps int) simulator.Iteration
 	apply(bestIndexSlot int) simulator.Iteration
 	selfPlay(settings macros.MCTSSearchSettings) []*simulator.PartitionConfig
+	// selfPlayLayout is the layout selfPlay wires its partitions with.
+	selfPlayLayout(settings macros.MCTSSearchSettings) macros.MCTSSelfPlayLayout
+	// samplesSuccessors reports that the environment can sample successors,
+	// so an mcts_tree over it searches chance nodes unless pinned_noise is set.
+	samplesSuccessors() bool
 }
 
 // MCTSEnvironmentSpec is an environment for its own state and action types,
@@ -205,11 +210,28 @@ func (t *typedMCTSEnvironment[S, A]) apply(bestIndexSlot int) simulator.Iteratio
 		Env: t.env, Decoder: t.decoder, Encoder: t.encoder, BestIdxSlot: bestIndexSlot}
 }
 
-// selfPlay builds mcts_self_play's partitions, the config's settings applied
-// over the environment's defaults.
+// selfPlay builds mcts_self_play's partitions.
 func (t *typedMCTSEnvironment[S, A]) selfPlay(
 	settings macros.MCTSSearchSettings,
 ) []*simulator.PartitionConfig {
+	return macros.NewMCTSSelfPlayPartitions(t.selfPlaySpec(settings))
+}
+
+func (t *typedMCTSEnvironment[S, A]) selfPlayLayout(
+	settings macros.MCTSSearchSettings,
+) macros.MCTSSelfPlayLayout {
+	return macros.NewMCTSSelfPlayLayout(t.selfPlaySpec(settings))
+}
+
+func (t *typedMCTSEnvironment[S, A]) samplesSuccessors() bool {
+	return t.stochastic
+}
+
+// selfPlaySpec is mcts_self_play's search, the config's settings applied over
+// the environment's defaults.
+func (t *typedMCTSEnvironment[S, A]) selfPlaySpec(
+	settings macros.MCTSSearchSettings,
+) macros.MCTSSelfPlaySpec[S, A] {
 	spec := macros.MCTSSelfPlaySpec[S, A]{
 		Env: t.env,
 		Cfg: agents.MCTSConfig[S, A]{Rollout: t.rollout, Progress: t.progress,
@@ -219,5 +241,5 @@ func (t *typedMCTSEnvironment[S, A]) selfPlay(
 		Players: t.players, SimsPerPly: t.simsPerPly,
 	}
 	macros.ApplyMCTSSearchSettings(&spec, settings)
-	return macros.NewMCTSSelfPlayPartitions(spec)
+	return spec
 }

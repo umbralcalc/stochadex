@@ -56,6 +56,18 @@ an exact version rather than assume stability across minors.
   groups. `analysis.NewDeclaredGroupedStateTimeStorage` builds a grouped storage over
   declared groups.
 
+- **`evolution_strategy_optimisation`, `mcts_self_play` and `mcts_planning` expand into the
+  core language**, and their expansions run exactly as the macro tier does, including the
+  shipped examples. A macro that runs its own clock gives the expanded run its clock (its
+  `steps` of its `timestep`, from time zero), and a later analysis macro reads its partitions
+  live. A search writes out as `mcts_apply`, `mcts_tree` and `mcts_rollout` partitions over
+  the environment spec: the registered environment `mcts_self_play` names, or for
+  `mcts_planning` a `{type: simulation}` environment holding the macro's own decision-problem
+  fields as written. Three cases do not expand yet, each an error saying so: a macro with its
+  own clock beside inputs (calibrate, then plan), two macros with their own clocks, and
+  `mcts_planning` reading `samples_from` or `weights_from`. `macros.NewMCTSSelfPlayLayout`
+  gives the values `NewMCTSSelfPlayPartitions` wires its partitions with.
+
 ### Changed
 
 - **`likelihood_comparison`, `posterior_estimation` and `likelihood_mean_function_fit` run

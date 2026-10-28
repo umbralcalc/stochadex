@@ -36,6 +36,8 @@ type expansionContext struct {
 	// grouped_aggregation's groups when the config declares none.
 	inputs map[string]bool
 	stored func() (*simulator.StateTimeStorage, error)
+	// source is the macro being expanded, as the config writes it.
+	source *yaml3.Node
 }
 
 // firstRow is a visible partition's first row.
@@ -90,6 +92,8 @@ type expansion struct {
 	// depths is the history each partition the macro reads over needs: its
 	// window.
 	depths map[string]int
+	// clock is the run's clock, for a macro that runs its own.
+	clock *expandedClock
 }
 
 // expandingMacro is a macro that expands into core-language config.
@@ -241,6 +245,35 @@ func sameInputTimes(inputs map[string]InputConfig, names []string) error {
 	return nil
 }
 
+// oneClock checks the config's macros and inputs give its run one clock: the
+// inputs', or a first macro's own. A macro with its own clock replaces what ran
+// before it, in the macro tier; one run cannot, so that does not expand yet.
+func oneClock(config *ApiRunConfig, hasInputs bool) error {
+	var clocked []int
+	for index, macro := range config.Macros {
+		if _, live := macro.Spec.(liveMacroSpec); live {
+			clocked = append(clocked, index)
+		}
+	}
+	which := func(index int) string {
+		return fmt.Sprintf("macros[%d] (%s)", index, config.Macros[index].Type)
+	}
+	switch {
+	case len(clocked) > 0 && hasInputs:
+		return configError(fmt.Errorf("api: %s runs its own clock beside the config's "+
+			"inputs, which run another; one run has one clock, and a macro with its own "+
+			"beside inputs (calibrate, then plan) does not expand yet", which(clocked[0])))
+	case len(clocked) > 1:
+		return configError(fmt.Errorf("api: %s and %s each run their own clock; one run has "+
+			"one clock, so a second macro with its own does not expand",
+			which(clocked[0]), which(clocked[1])))
+	case !hasInputs && (len(clocked) == 0 || clocked[0] != 0):
+		return configError(fmt.Errorf("api: expanding needs the inputs the macros read, or " +
+			"a first macro that runs its own clock"))
+	}
+	return nil
+}
+
 // ExpandToYAML writes a macros: config out in the core language: one run, as
 // YAML a person could have written. Every macro must expand; one that does
 // not yet is an error naming it.
@@ -248,10 +281,18 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 	if len(config.Macros) == 0 {
 		return nil, configError(fmt.Errorf("api: the config has no macros: to expand"))
 	}
+	for _, macro := range config.Macros {
+		if _, ok := macro.Spec.(expandingMacro); !ok {
+			return nil, configError(fmt.Errorf("api: macro %q does not expand yet", macro.Type))
+		}
+	}
 	inputs := macroInputs(config)
-	if len(inputs) == 0 {
-		return nil, configError(fmt.Errorf("api: expanding needs the inputs the macros read; " +
-			"macros that run their own clock do not expand yet"))
+	if err := oneClock(config, len(inputs) > 0); err != nil {
+		return nil, err
+	}
+	source, err := sourceNodes(config)
+	if err != nil {
+		return nil, err
 	}
 	names := sortedKeys(inputs)
 	context := &expansionContext{widths: map[string]int{}, firstRows: map[string][]float64{},
@@ -288,14 +329,13 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 	}
 
 	var partitions []expandedPartition
+	var clock *expandedClock
 	depths := map[string]int{}
 	depthFrom := map[string]string{}
 	for index, macro := range config.Macros {
 		which := fmt.Sprintf("macros[%d] (%s)", index, macro.Type)
-		expander, ok := macro.Spec.(expandingMacro)
-		if !ok {
-			return nil, configError(fmt.Errorf("api: macro %q does not expand yet", macro.Type))
-		}
+		expander := macro.Spec.(expandingMacro)
+		context.source = source.macros[index]
 		var expanded *expansion
 		err := expanding(macro.Type, func() (err error) {
 			expanded, err = expander.expand(context)
@@ -303,6 +343,9 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		})
 		if err != nil {
 			return nil, err
+		}
+		if expanded.clock != nil {
+			clock = expanded.clock
 		}
 		for _, name := range sortedKeys(expanded.depths) {
 			depth := expanded.depths[name]
@@ -339,19 +382,18 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		}
 	}
 
-	document := expandedDocument{
-		Main: expandedMain{
-			Partitions: append(replays, partitions...),
-			Simulation: expandedSimulation{
-				TerminationCondition: component("input_exhausted", map[string]interface{}{"input": names[0]}),
-				TimestepFunction:     component("from_input", map[string]interface{}{"input": names[0]}),
-				InitTimeValue:        initTime,
-			},
-		},
-	}
-	source, err := sourceNodes(config)
-	if err != nil {
-		return nil, err
+	document := expandedDocument{Main: expandedMain{Partitions: append(replays, partitions...)}}
+	if clock != nil {
+		document.Main.Simulation = expandedSimulation{
+			TerminationCondition: component("number_of_steps", map[string]interface{}{"max_steps": clock.steps}),
+			TimestepFunction:     component("constant", map[string]interface{}{"stepsize": clock.timestep}),
+		}
+	} else {
+		document.Main.Simulation = expandedSimulation{
+			TerminationCondition: component("input_exhausted", map[string]interface{}{"input": names[0]}),
+			TimestepFunction:     component("from_input", map[string]interface{}{"input": names[0]}),
+			InitTimeValue:        initTime,
+		}
 	}
 	document.Inputs, document.Outputs = source.inputs, source.outputs
 	var written bytes.Buffer
@@ -380,6 +422,7 @@ func Expand(config *ApiRunConfig) (*ApiRunConfig, error) {
 // expandedSource is what an expansion keeps of the config as written.
 type expandedSource struct {
 	inputs, outputs *yaml3.Node
+	macros          []*yaml3.Node
 }
 
 // sourceNodes takes the config's inputs (a data: block becoming the input
@@ -403,6 +446,8 @@ func sourceNodes(config *ApiRunConfig) (expandedSource, error) {
 			kept.inputs = value
 		case "outputs":
 			kept.outputs = value
+		case "macros":
+			kept.macros = value.Content
 		case "data":
 			kind := "simulation"
 			for j := 0; j+1 < len(value.Content); j += 2 {

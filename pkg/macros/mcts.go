@@ -175,28 +175,12 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 	if spec.Players <= 0 {
 		panic("macros.NewMCTSSelfPlayPartitions: Players must be > 0")
 	}
-	if spec.SimsPerPly <= 0 {
-		spec.SimsPerPly = 50
-	}
+	layout := NewMCTSSelfPlayLayout(spec)
 
 	applyName := spec.Name + "_apply"
 	searchName := spec.Name + "_search"
 	treeName := spec.Name + "_tree"
 	rolloutName := spec.Name + "_rollout"
-
-	// Inner partitions for the embedded search.
-	treeRowWidth := agents.MCTSTreeRowWidth(spec.StateWidth, spec.MaxLegalActions)
-	rolloutRowWidth := agents.MCTSRolloutRowWidth(spec.Players)
-	encodedRoot := spec.Encoder(spec.InitState)
-
-	treeInit := make([]float64, treeRowWidth)
-	// Initial best_root_idx slot stays zero (will be overwritten on first
-	// Iterate; the standalone MCTSTreeIteration convention is that 0 here is
-	// safe because no consumer reads best_root_idx until the tree has
-	// recorded at least one visit).
-	copy(treeInit[agents.MCTSTreeRowLeafStateOffset:], encodedRoot)
-
-	rolloutInit := make([]float64, rolloutRowWidth)
 
 	innerTree := &simulator.PartitionConfig{
 		Name: treeName,
@@ -220,19 +204,10 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 		ParamsAsPartitions: map[string][]string{
 			agents.MCTSTreeParamRolloutScoresPartition: {rolloutName},
 		},
-		InitStateValues:   treeInit,
+		InitStateValues:   layout.TreeInit,
 		StateHistoryDepth: 1,
-		Seed:              spec.Seed,
+		Seed:              layout.Seed,
 	}
-
-	// Build the indices to slice tree's [leaf_state(W), has_leaf(1)]
-	// section out of its full row — the rollout partition expects exactly
-	// (W + 1) floats in that order.
-	leafIndices := make([]int, 0, spec.StateWidth+1)
-	for i := 0; i < spec.StateWidth; i++ {
-		leafIndices = append(leafIndices, agents.MCTSTreeRowLeafStateOffset+i)
-	}
-	leafIndices = append(leafIndices, agents.MCTSTreeRowHasLeafOffset(spec.StateWidth))
 
 	innerRollout := &simulator.PartitionConfig{
 		Name: rolloutName,
@@ -243,18 +218,18 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 			Players: spec.Players,
 		},
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			agents.MCTSRolloutParamLeaf: {Upstream: treeName, Indices: leafIndices},
+			agents.MCTSRolloutParamLeaf: {Upstream: treeName, Indices: layout.LeafIndices},
 		},
-		InitStateValues:   rolloutInit,
+		InitStateValues:   layout.RolloutInit,
 		StateHistoryDepth: 1,
-		Seed:              spec.Seed ^ 0x1,
+		Seed:              layout.RolloutSeed,
 	}
 
 	innerGen := simulator.NewConfigGenerator()
 	innerGen.SetSimulation(&simulator.SimulationConfig{
 		OutputCondition:      &simulator.NilOutputCondition{},
 		OutputFunction:       &simulator.NilOutputFunction{},
-		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: spec.SimsPerPly},
+		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: layout.SimsPerPly},
 		TimestepFunction:     &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 		InitTimeValue:        0,
 	})
@@ -262,24 +237,6 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 	innerGen.SetPartition(innerRollout)
 	innerSettings, innerImpls := innerGen.GenerateConfigs()
 	embedded := general.NewEmbeddedSimulationRunIteration(innerSettings, innerImpls)
-
-	// Compute the offset of MCTSTreeRowBestRootIdx within the search row
-	// (which is the concatenation of inner partitions' final states in
-	// order). tree is innerGen partition #0, so its row starts at offset
-	// 0 of the concat — best_root_idx slot is at concat index 0.
-	bestIdxOffset := agents.MCTSTreeRowBestRootIdx
-
-	searchInit := make([]float64, treeRowWidth+rolloutRowWidth)
-	copy(searchInit[:treeRowWidth], treeInit)
-	copy(searchInit[treeRowWidth:], rolloutInit)
-	// Initial best_root_idx slot = -1 (sentinel: search hasn't computed
-	// anything yet → apply will skip this step).
-	searchInit[agents.MCTSTreeRowBestRootIdx] = -1
-
-	rootStateIndices := make([]int, spec.StateWidth)
-	for i := 0; i < spec.StateWidth; i++ {
-		rootStateIndices[i] = i
-	}
 
 	// Apply ↔ search dependency: search reads apply WITHIN-STEP via
 	// params_from_upstream (so search's tree is always seeded with apply's
@@ -304,11 +261,11 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 		// recognises). Each outer step the tree sees this fresh value and
 		// resets its tree if it differs from its cached root.
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			treeName + "/" + agents.MCTSTreeParamRootState: {Upstream: applyName, Indices: rootStateIndices},
+			treeName + "/" + agents.MCTSTreeParamRootState: {Upstream: applyName, Indices: layout.RootStateIndices},
 		},
-		InitStateValues:   searchInit,
+		InitStateValues:   layout.SearchInit,
 		StateHistoryDepth: 1,
-		Seed:              spec.Seed,
+		Seed:              layout.Seed,
 	}
 
 	// Apply uses state-history mode (BestIdxSlot + ParamsAsPartitions) to
@@ -319,15 +276,76 @@ func NewMCTSSelfPlayPartitions[S any, A any](spec MCTSSelfPlaySpec[S, A]) []*sim
 			Env:         spec.Env,
 			Decoder:     spec.Decoder,
 			Encoder:     spec.Encoder,
-			BestIdxSlot: bestIdxOffset,
+			BestIdxSlot: layout.BestIdxSlot,
 		},
 		ParamsAsPartitions: map[string][]string{
 			agents.ApplyParamBestIdxPartition: {searchName},
 		},
-		InitStateValues:   encodedRoot,
+		InitStateValues:   layout.ApplyInit,
 		StateHistoryDepth: 1,
-		Seed:              spec.Seed,
+		Seed:              layout.Seed,
 	}
 
 	return []*simulator.PartitionConfig{apply, search}
+}
+
+// MCTSSelfPlayLayout is the data NewMCTSSelfPlayPartitions wires its
+// partitions with: everything about them but their iterations, which hold the
+// typed environment. A config stating the same search as data (mcts_apply,
+// mcts_tree and mcts_rollout partitions) is wired with these values.
+type MCTSSelfPlayLayout struct {
+	// SimsPerPly is the search run's step count (50 when the spec sets none).
+	SimsPerPly int
+	// ApplyInit, TreeInit, RolloutInit and SearchInit are the apply, tree,
+	// rollout and search partitions' initial states. The search's is the tree's
+	// and rollout's concatenated, with best_root_idx at -1: nothing searched yet.
+	ApplyInit, TreeInit, RolloutInit, SearchInit []float64
+	// LeafIndices slice the tree row's leaf state and has-leaf flag out for the
+	// rollout; RootStateIndices are the apply row's state, forwarded to the tree
+	// as its root.
+	LeafIndices, RootStateIndices []int
+	// BestIdxSlot is where the apply partition finds best_root_idx in the
+	// search's row.
+	BestIdxSlot int
+	// Seed seeds the apply, search and tree partitions; RolloutSeed the rollout.
+	Seed, RolloutSeed uint64
+}
+
+// NewMCTSSelfPlayLayout is the layout NewMCTSSelfPlayPartitions wires spec's
+// partitions with.
+func NewMCTSSelfPlayLayout[S any, A any](spec MCTSSelfPlaySpec[S, A]) MCTSSelfPlayLayout {
+	layout := MCTSSelfPlayLayout{SimsPerPly: spec.SimsPerPly, Seed: spec.Seed,
+		RolloutSeed: spec.Seed ^ 0x1, BestIdxSlot: agents.MCTSTreeRowBestRootIdx}
+	if layout.SimsPerPly <= 0 {
+		layout.SimsPerPly = 50
+	}
+	treeRowWidth := agents.MCTSTreeRowWidth(spec.StateWidth, spec.MaxLegalActions)
+	rolloutRowWidth := agents.MCTSRolloutRowWidth(spec.Players)
+	layout.ApplyInit = spec.Encoder(spec.InitState)
+
+	// The tree's best_root_idx slot starts at zero: no consumer reads it until
+	// the tree has recorded a visit.
+	layout.TreeInit = make([]float64, treeRowWidth)
+	copy(layout.TreeInit[agents.MCTSTreeRowLeafStateOffset:], layout.ApplyInit)
+	layout.RolloutInit = make([]float64, rolloutRowWidth)
+
+	layout.LeafIndices = make([]int, 0, spec.StateWidth+1)
+	for i := 0; i < spec.StateWidth; i++ {
+		layout.LeafIndices = append(layout.LeafIndices, agents.MCTSTreeRowLeafStateOffset+i)
+	}
+	layout.LeafIndices = append(layout.LeafIndices, agents.MCTSTreeRowHasLeafOffset(spec.StateWidth))
+
+	// The search row is the inner partitions' final states in order, tree
+	// first, so best_root_idx sits at the tree row's own offset; -1 there
+	// tells apply the search has computed nothing yet, and to skip the step.
+	layout.SearchInit = make([]float64, treeRowWidth+rolloutRowWidth)
+	copy(layout.SearchInit[:treeRowWidth], layout.TreeInit)
+	copy(layout.SearchInit[treeRowWidth:], layout.RolloutInit)
+	layout.SearchInit[layout.BestIdxSlot] = -1
+
+	layout.RootStateIndices = make([]int, spec.StateWidth)
+	for i := range layout.RootStateIndices {
+		layout.RootStateIndices[i] = i
+	}
+	return layout
 }
