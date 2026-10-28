@@ -34,6 +34,17 @@ an exact version rather than assume stability across minors.
   A macro that does not expand yet, or two macros reading one partition over different
   windows, is an error saying so.
 
+### Fixed
+
+- **`vector_covariance` over a subset of its data's values no longer crashes.** The
+  `vector_covariance` macro with `data: {partition_name: X, value_indices: [1]}` on a
+  wider `X`, or the `{type: values_function_vector_covariance}` iteration with
+  `data_values_indices` shorter than its data partition, panicked with "mat: row index out
+  of range". `general.ValuesFunctionVectorCovarianceIteration` sized its matrices by the
+  data partition's width instead of by the number of values it takes the covariance over.
+  A subset's covariance now equals the matching sub-block of the full covariance, and
+  full-width runs are unchanged, with no slowdown.
+
 ## [0.23.0] — 2026-10-22
 
 This release completes the core-language building blocks of the config-runtime plan's

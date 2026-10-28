@@ -14,7 +14,8 @@ import (
 //
 // Usage hints:
 //   - Provide Function that accepts a history index (-1 for latest) and returns
-//     a vector matching the partition state width.
+//     a vector of the values to take the covariance over (all or a subset of
+//     the data partition's values); the output is that count squared wide.
 //   - Set Kernel and related params (e.g., bandwidth, discounting).
 //   - Requires a "mean" param vector for centring.
 //   - The upper-triangular covariance is returned flattened.
@@ -50,8 +51,12 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 	// convention is to use -1 here as the state history depth index of the
 	// very latest function value
 	latestFunctionValues := v.Function(params, partitionIndex, stateHistories, -1)
+	// the covariance is over the function values, which may be a subset of
+	// the data partition's values (e.g. "data_values_indices"), so everything
+	// below is sized by their count rather than the data partition's width
+	numValues := len(latestFunctionValues)
 	functionValuesTrans := mat.NewDense(
-		len(latestFunctionValues),
+		numValues,
 		stateHistory.StateHistoryDepth,
 		nil,
 	)
@@ -60,14 +65,14 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 			params, partitionIndex, stateHistories, i))
 	}
 	mean := params.Get("mean")
-	mostRecentDiffVec := mat.NewVecDense(stateHistory.StateWidth, nil)
+	mostRecentDiffVec := mat.NewVecDense(numValues, nil)
 	latestTime := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
-	for j := range stateHistory.StateWidth {
+	for j := range numValues {
 		f := functionValuesTrans.RawRowView(j)
 		floats.AddConst(-mean[j], f)
 		mostRecentDiffVec.SetVec(j, latestFunctionValues[j]-mean[j])
 	}
-	covMat := mat.NewSymDense(stateHistory.StateWidth, nil)
+	covMat := mat.NewSymDense(numValues, nil)
 	sqrtWeights := make([]float64, 0)
 	cumulativeWeightSum := v.Kernel.Evaluate(
 		latestStateValues,
@@ -90,7 +95,7 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 		sqrtWeights = append(sqrtWeights, math.Sqrt(weight))
 		cumulativeWeightSum += weight
 	}
-	for j := range stateHistory.StateWidth {
+	for j := range numValues {
 		f := functionValuesTrans.RawRowView(j)
 		floats.Mul(f, sqrtWeights)
 	}
