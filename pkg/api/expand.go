@@ -25,9 +25,20 @@ import (
 // depth of the partition it reads.
 
 // expansionContext is what an expansion may know: the partitions visible to
-// it — the inputs', then those of the macros before it — and their widths.
+// it — the inputs', then those of the macros before it — their widths, and
+// their first rows (the state each starts in, which a window replaying it
+// starts from too).
 type expansionContext struct {
-	widths map[string]int
+	widths    map[string]int
+	firstRows map[string][]float64
+}
+
+// firstRow is a visible partition's first row.
+func (c *expansionContext) firstRow(partition string) ([]float64, error) {
+	if _, err := c.width(partition); err != nil {
+		return nil, err
+	}
+	return c.firstRows[partition], nil
 }
 
 // width is a visible partition's state width.
@@ -169,8 +180,9 @@ type expandedSimulation struct {
 // inputShape is what an expansion knows of an input: its partitions' widths,
 // and the time its first row is at.
 type inputShape struct {
-	widths   map[string]int
-	initTime float64
+	widths    map[string]int
+	firstRows map[string][]float64
+	initTime  float64
 }
 
 // inputShapeOf finds an input's shape: from its declaration when it is a
@@ -178,9 +190,11 @@ type inputShape struct {
 // loading it.
 func inputShapeOf(input InputConfig) (inputShape, error) {
 	if input.Simulation != nil && input.Simulation.Source == nil {
-		shape := inputShape{widths: map[string]int{}, initTime: input.Simulation.InitTime}
+		shape := inputShape{widths: map[string]int{}, firstRows: map[string][]float64{},
+			initTime: input.Simulation.InitTime}
 		for _, partition := range input.Simulation.Partitions {
 			shape.widths[partition.Name] = len(partition.InitStateValues)
+			shape.firstRows[partition.Name] = partition.InitStateValues
 		}
 		return shape, nil
 	}
@@ -188,9 +202,11 @@ func inputShapeOf(input InputConfig) (inputShape, error) {
 	if err != nil {
 		return inputShape{}, err
 	}
-	shape := inputShape{widths: map[string]int{}, initTime: storage.GetTimes()[0]}
+	shape := inputShape{widths: map[string]int{}, firstRows: map[string][]float64{},
+		initTime: storage.GetTimes()[0]}
 	for _, name := range storage.GetNames() {
-		shape.widths[name] = len(storage.GetValues(name)[0])
+		first := storage.GetValues(name)[0]
+		shape.widths[name], shape.firstRows[name] = len(first), first
 	}
 	return shape, nil
 }
@@ -233,7 +249,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 			"macros that run their own clock do not expand yet"))
 	}
 	names := sortedKeys(inputs)
-	context := &expansionContext{widths: map[string]int{}}
+	context := &expansionContext{widths: map[string]int{}, firstRows: map[string][]float64{}}
 	owners := map[string]string{}
 	var initTime float64
 	if err := sameInputTimes(inputs, names); err != nil {
@@ -248,6 +264,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		initTime = shape.initTime
 		for partition, width := range shape.widths {
 			context.widths[partition] = width
+			context.firstRows[partition] = shape.firstRows[partition]
 			owners[partition] = name
 		}
 	}
@@ -285,6 +302,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 					"the inputs or an earlier macro already have", which, partition.Name))
 			}
 			context.widths[partition.Name] = len(partition.InitStateValues)
+			context.firstRows[partition.Name] = partition.InitStateValues
 			partitions = append(partitions, partition)
 		}
 	}

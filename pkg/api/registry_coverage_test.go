@@ -39,7 +39,7 @@ var excludedIterations = map[string]string{
 // candidates for the data-only registry. pkg/agents is among them: its MCTS
 // iterations have data specs over a {type: ...} environment.
 var candidatePackages = []string{
-	"../continuous", "../discrete", "../general", "../inference", "../agents",
+	"../continuous", "../discrete", "../general", "../inference", "../agents", "../macros",
 }
 
 // TestIterationCoverage is drift test 2: it scans the candidate packages for every
