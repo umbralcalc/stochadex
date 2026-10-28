@@ -50,8 +50,9 @@ an exact version rather than assume stability across minors.
   `mcts_planning` macros handed their specs' params and wiring maps to the partitions they
   built, and the run wrote into them. After a run, a posterior's sampler spec held
   `variance_partition: [<index>]` and the last `mean`, its comparison model held
-  `latest_data_values` and more, and window and planning-model partitions held their last
-  injected params — so expanding the config (`api.Expand`) or writing it out afterwards
+  `latest_data_values` and more, a mean-function fit's model with any `params_as_partitions`
+  held `mean_partition: [gradient_descent]`, and window and planning-model partitions held
+  their last injected params — so expanding the config (`api.Expand`) or writing it out afterwards
   carried these as if the author had written them. Each macro partition now gets its own
   copies. Run results are unchanged, and the copies are made once at setup, so there is no
   per-step cost.

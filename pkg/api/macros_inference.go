@@ -50,7 +50,7 @@ func (s parameterisedModelSpec) resolve() (macros.ParameterisedModel, error) {
 	return macros.ParameterisedModel{
 		Likelihood:         likelihood,
 		Params:             simulator.NewParams(copyParamsMap(s.Params)),
-		ParamsAsPartitions: s.ParamsAsPartitions,
+		ParamsAsPartitions: copyAsPartitions(s.ParamsAsPartitions),
 		ParamsFromUpstream: copyUpstreams(s.ParamsFromUpstream),
 	}, nil
 }
@@ -218,7 +218,7 @@ func (s parameterisedModelWithGradientSpec) resolve() (macros.ParameterisedModel
 	return macros.ParameterisedModelWithGradient{
 		Likelihood:         withGradient,
 		Params:             simulator.NewParams(copyParamsMap(s.Params)),
-		ParamsAsPartitions: s.ParamsAsPartitions,
+		ParamsAsPartitions: copyAsPartitions(s.ParamsAsPartitions),
 		ParamsFromUpstream: copyUpstreams(s.ParamsFromUpstream),
 	}, nil
 }
