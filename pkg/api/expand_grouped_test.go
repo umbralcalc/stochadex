@@ -63,9 +63,6 @@ func TestExpandGroupedAggregation(t *testing.T) {
 		}
 	})
 
-	// grouped_aggregation never sets its kernel's params, so a kernel that
-	// needs them (exponential) gives NaN in the macro tier and its expansion
-	// alike; the constant kernel needs none.
 	t.Run("grouping by two partitions, part of the data, a default, a kernel and params", func(t *testing.T) {
 		expandedAlike(t, groupedInputs+`- type: grouped_aggregation
   name: g
@@ -74,8 +71,8 @@ func TestExpandGroupedAggregation(t *testing.T) {
   precision: 0
   data: {partition_name: vals, value_indices: [0, 1]}
   default_value: -1.0
-  kernel: {type: constant}
-  params: {extra: [4.0]}
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [2.0]}
   window: 5
 `)
 	})
