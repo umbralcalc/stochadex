@@ -51,9 +51,10 @@ an exact version rather than assume stability across minors.
   built, and the run wrote into them. After a run, a posterior's sampler spec held
   `variance_partition: [<index>]` and the last `mean`, its comparison model held
   `latest_data_values` and more, and window and planning-model partitions held their last
-  injected params — so running the same config again, or expanding or writing it out, read
-  these as if the author had written them. Each macro partition now gets its own copies.
-  Results are unchanged, and the copies are made once at setup, so there is no per-step cost.
+  injected params — so expanding the config (`api.Expand`) or writing it out afterwards
+  carried these as if the author had written them. Each macro partition now gets its own
+  copies. Run results are unchanged, and the copies are made once at setup, so there is no
+  per-step cost.
 
 - **`vector_covariance` over a subset of its data's values no longer crashes.** The
   `vector_covariance` macro with `data: {partition_name: X, value_indices: [1]}` on a
