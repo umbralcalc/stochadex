@@ -103,3 +103,76 @@ func (s *vectorCovarianceSpec) resolve(
 	windows[s.Mean.PartitionName] = s.window()
 	return []*simulator.PartitionConfig{partition}, windows, nil
 }
+
+// expandAggregation is an aggregation macro's partition as data, over the
+// iteration and value function the pkg/macros constructor uses, with the
+// params: pass-through applied over the top as applyParams does.
+func (f aggregationFields) expandAggregation(
+	ctx *expansionContext,
+	iteration, function string,
+	mean *dataRefSpec,
+	params map[string][]float64,
+	initStateValues func(width int) []float64,
+) (*expansion, error) {
+	indices, err := ctx.indices(f.Data)
+	if err != nil {
+		return nil, err
+	}
+	params["data_values_indices"] = indexParams(indices)
+	for name, values := range f.Params {
+		params[name] = values
+	}
+	upstream := map[string]expandedUpstream{
+		"latest_data_values": {Upstream: f.Data.PartitionName, Indices: indices}}
+	depths := map[string]int{f.Data.PartitionName: f.window()}
+	if mean != nil {
+		meanIndices, err := ctx.indices(*mean)
+		if err != nil {
+			return nil, err
+		}
+		// The mean is read as it stands this step, never over its history, so
+		// it asks no window of its partition.
+		upstream["mean"] = expandedUpstream{Upstream: mean.PartitionName, Indices: meanIndices}
+	}
+	return &expansion{
+		partitions: []expandedPartition{{
+			Name: f.Name,
+			Iteration: component(iteration, map[string]interface{}{
+				"function": function,
+				"kernel":   componentOf(f.Kernel, "instantaneous"),
+			}),
+			Params:             params,
+			ParamsAsPartitions: map[string][]string{"data_values_partition": {f.Data.PartitionName}},
+			ParamsFromUpstream: upstream,
+			InitStateValues:    initStateValues(len(indices)),
+			StateHistoryDepth:  1,
+		}},
+		depths: depths,
+	}, nil
+}
+
+func (f aggregationFields) defaults(width int) []float64 {
+	return repeated(f.DefaultValue, width)
+}
+
+func (s *vectorMeanSpec) expand(ctx *expansionContext) (*expansion, error) {
+	return s.expandAggregation(ctx, "values_function_vector_mean", "data_values", nil,
+		map[string][]float64{}, s.defaults)
+}
+
+func (s *vectorVarianceSpec) expand(ctx *expansionContext) (*expansion, error) {
+	return s.expandAggregation(ctx, "values_function_vector_mean", "data_values_variance", &s.Mean,
+		map[string][]float64{"subtract_from_normalisation": {1}}, s.defaults)
+}
+
+func (s *vectorCovarianceSpec) expand(ctx *expansionContext) (*expansion, error) {
+	return s.expandAggregation(ctx, "values_function_vector_covariance", "data_values", &s.Mean,
+		map[string][]float64{}, func(width int) []float64 {
+			// row-major width × width, the default on the diagonal
+			values := make([]float64, width*width)
+			for i := range width {
+				values[i*width+i] = s.DefaultValue
+			}
+			return values
+		})
+}
