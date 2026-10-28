@@ -89,10 +89,14 @@ Status: **accepted** (2026-10-04).
       outputs allocate exactly as before. CI now runs the CLI module's tests.
   - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
     strategy (#132), so an iteration's runtime failure no longer crashes the process.
-  - **In review:** 2.1 part 2, inference/stats macros (#142): scalar_regression_stats,
-    likelihood_comparison, posterior_estimation, likelihood_mean_function_fit expand exactly
-    (windows as in-place nested runs). Found: just_variance posterior variances seem never to
-    reach the sampler (pre-existing; proposed separately).
+  - **In review:** 2.1 part 3, grouped_aggregation (#145): expands exactly; groups discovered
+    from the inputs at expansion (lazily, only when undeclared — still a build-time data read,
+    removed by 2.5), declared `groups:` required for grouping by a macro output. New macro
+    fields `groups:` / `undeclared_groups:` on both tiers. Found: ValuesGroupedAggregationIteration
+    never calls Kernel.SetParams (exponential kernel → NaN); proposed separately.
+  - **Merged:** 2.1 part 2, inference/stats macros (#142) and inline likelihood windows (#144),
+    macro runs no longer mutate config (#143). (The suspected just_variance issue was the
+    config mutation, not a real bug.)
   - **Merged:** #141 (vector_covariance over an index subset).
   - **Merged:** 2.1 part 1, the expander core + aggregation macros (#140). `api.Expand` /
     `ExpandToYAML`; expansionContext = visible partitions + widths; window → depth (2.2);
@@ -985,7 +989,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 
 | # | Item | Detail | Acceptance |
 |---|---|---|---|
-| 2.1 | **Part 1 done (#140); part 2 in review (#142)**: expander interface (config → config) | Replace `macroSpec.resolve(storage)` / `liveMacroSpec.resolveLive(storage)` with `expand(ctx) (Expansion, error)`. `ctx` exposes **only config**: input *names* and their declared partition names and widths, plus the host partitions' names and widths. It never exposes storage contents. `Expansion = {partitions []PartitionConfig (data specs only), minHistoryDepth map[name]int, simulation SimulationConfigStrings (optional fields)}`. | All 12 macros implement it; each expansion round-trips through YAML marshal → load unchanged |
+| 2.1 | **Parts 1–2 done (#140, #142); part 3 in review (#145)**: expander interface (config → config) | Replace `macroSpec.resolve(storage)` / `liveMacroSpec.resolveLive(storage)` with `expand(ctx) (Expansion, error)`. `ctx` exposes **only config**: input *names* and their declared partition names and widths, plus the host partitions' names and widths. It never exposes storage contents. `Expansion = {partitions []PartitionConfig (data specs only), minHistoryDepth map[name]int, simulation SimulationConfigStrings (optional fields)}`. | All 12 macros implement it; each expansion round-trips through YAML marshal → load unchanged |
 | 2.2 | Depth requirements | Translate today's `windows` map into `max(existing, required)` `state_history_depth` on the referenced partitions, whether they are input replays or main partitions | Covered by the oracle (2.6) |
 | 2.3 | Data-ref resolution | A `DataRef.partition_name` resolves to a main partition, an earlier expander's partition, or an input replay. An input partition that is referenced but not yet replayed gets an auto-created `from_input` partition. | Unit tests per case |
 | 2.4 | Clock as ordinary config | Macros that need a clock (ES, SMC, MCTS) emit `simulation:` fields in their expansion. Merging follows ordinary duplicate-definition rules (§2.2 rule 2). With no clock at all and one fixed input, the default is `{type: from_input}` on that input. | Conflict tests with error messages that name both definitions |
