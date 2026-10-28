@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"gonum.org/v1/gonum/floats"
 )
 
 func runMacroConfig(t *testing.T, yamlText string) map[string][][]float64 {
@@ -127,5 +129,56 @@ macros:
 	}
 	if w := len(out["agg"][len(out["agg"])-1]); w != 2 {
 		t.Errorf("expected 2 groups, got width %d", w)
+	}
+}
+
+// TestGroupedAggregationMacroExponentialKernel checks the grouped aggregation
+// macro sets its kernel's params: with an exponential kernel, each group's sum
+// weighs the window's rows by exp(-age/timescale).
+func TestGroupedAggregationMacroExponentialKernel(t *testing.T) {
+	const cfg = `data:
+  steps: 8
+  timestep: 1.0
+  partitions:
+  - {name: vals, init_state_values: [0.0, 0.0, 0.0], state_history_depth: 2, seed: 0}
+  - {name: grp, init_state_values: [1.0, 2.0, 1.0], state_history_depth: 2, seed: 0}
+  expressions:
+  - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "10 * t", "t * t"]}
+  - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["1", "2", "1"]}
+macros:
+- type: grouped_aggregation
+  name: agg
+  aggregation: sum
+  group_by: [{partition_name: grp}]
+  precision: 1
+  data: {partition_name: vals}
+  window: 2
+  kernel: {type: exponential}
+  params: {exponential_weighting_timescale: [2.0]}
+`
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	storage, err := runMacros(LoadApiRunConfigFromYaml(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	times, vals, agg := storage.GetTimes(), storage.GetValues("vals"), storage.GetValues("agg")
+	if len(agg) < 3 {
+		t.Fatalf("expected at least 3 rows of output, got %d", len(agg))
+	}
+	// The window at row r is rows r-2..r of vals. Columns 0 and 2 are in
+	// group 1, column 1 in group 2; each row weighs exp(-(t_r - t_row)/2).
+	for r := 2; r < len(agg); r++ {
+		want := make([]float64, 2)
+		for row := r - 2; row <= r; row++ {
+			weight := math.Exp(-(times[r] - times[row]) / 2)
+			want[0] += weight * (vals[row][0] + vals[row][2])
+			want[1] += weight * vals[row][1]
+		}
+		if !floats.EqualApprox(agg[r], want, 1e-9) {
+			t.Errorf("row %d: got %v, want %v", r, agg[r], want)
+		}
 	}
 }

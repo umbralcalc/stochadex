@@ -213,6 +213,7 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	stateHistories []*simulator.StateHistory,
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
+	v.Kernel.SetParams(params)
 	aggValues := make([]float64, stateHistories[partitionIndex].StateWidth)
 	if defaultValues, ok := params.GetOk("default_values"); ok {
 		copy(aggValues, defaultValues)
