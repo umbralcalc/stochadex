@@ -27,6 +27,15 @@ type PosteriorMean struct {
 // When JustVariance is true, Default has length N (per-dimension variance)
 // and NewPosteriorEstimationPartitions wires the sampler to use
 // variance_partition for the posterior output (not a dense covariance).
+//
+// The posterior variance (or covariance) is the loglike-weighted spread of the
+// sampler's own last MemoryDepth samples, and after the sampler's
+// cov_burn_in_steps it is the sampler's proposal width. The two feed each
+// other, so the burn-in proposal (default_covariance) still shapes the spread
+// long after burn-in: a wider burn-in leaves a wider posterior variance, which
+// the sampler then draws with. After burn-in, default_covariance is used only
+// as the fallback when the posterior's is not positive-definite (e.g. it has
+// collapsed to zero) and the likelihood sets AllowDefaultCovarianceFallback.
 type PosteriorCovariance struct {
 	Name         string
 	Default      []float64

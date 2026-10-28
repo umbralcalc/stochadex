@@ -374,6 +374,11 @@ macro *names* only, so change the numbers and the objective/model, but keep the 
   zero-filled tail of the replay buffer instead of your data, freezing the posterior at its prior.
   **Levers:** proposal covariance wide enough to explore prior→truth (diag ≈9); `past_discount`
   near 1 (0.999) so evidence accumulates instead of being forgotten; enough `steps` to concentrate.
+  After `cov_burn_in_steps` the sampler draws with the posterior's own covariance (or, with
+  `covariance: {just_variance: true}`, its per-dimension variances), which is the weighted spread
+  of the sampler's recent draws — so the burn-in `default_covariance` keeps shaping the spread
+  well after burn-in, and is reused afterwards only as the fallback when the posterior's is not
+  positive-definite.
 - **`recipes/smc_inference.yaml`** — particle-filter inference; write the model once under
   `model.partitions` and it is run once per particle (each with its own random streams), routing
   each particle's parameters in via `param_forwarding`. Recovers the observed stream's mean.
