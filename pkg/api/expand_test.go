@@ -200,8 +200,8 @@ macros:
 
 	cases := []struct{ name, yaml, want string }{
 		{"a macro that does not expand yet",
-			aggregationConfig("- {type: grouped_aggregation, name: g, aggregation: sum, group_by: [{partition_name: level}], precision: 1, data: {partition_name: stream}}\n"),
-			`macro "grouped_aggregation" does not expand yet`},
+			aggregationConfig("- {type: mcts_self_play, name: ttt, steps: 2, sims_per_ply: 4, seed: 1, env: {type: tictactoe}}\n"),
+			`macro "mcts_self_play" does not expand yet`},
 		{"a macro reading a partition nothing makes",
 			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: missing}, window: 3}\n"),
 			`macro "vector_mean": no partition "missing" to read (the inputs and earlier macros have: [level stream])`},

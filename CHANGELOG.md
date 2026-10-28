@@ -42,6 +42,20 @@ an exact version rather than assume stability across minors.
   them, with the model's wiring to outer partitions (a posterior's sampler) forwarded in by
   the host. `{type: scalar_regression_stats}` is now an iteration spec.
 
+- **`grouped_aggregation` expands into the core language**, and its expansion runs exactly as
+  the macro tier does: one `values_grouped_aggregation` partition over the accepted groups.
+  The macro finds its groups in the recorded data before it runs, so the expansion does the
+  same, reading the inputs once; a grouping by another macro's output has no recorded data,
+  and needs its groups declared.
+
+- **`grouped_aggregation` takes `groups:` and `undeclared_groups:`.** `groups:` declares the
+  accepted groups, each a tuple with one value per `group_by` reference, in output order,
+  in place of discovering them. `undeclared_groups:` says what happens to a group the
+  accepted groups leave out: `drop` (the default, as before), `error`, which stops the run
+  naming the group, or `other`, which gathers them in one more output after the declared
+  groups. `analysis.NewDeclaredGroupedStateTimeStorage` builds a grouped storage over
+  declared groups.
+
 ### Changed
 
 - **`likelihood_comparison`, `posterior_estimation` and `likelihood_mean_function_fit` run

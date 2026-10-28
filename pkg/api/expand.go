@@ -31,6 +31,11 @@ import (
 type expansionContext struct {
 	widths    map[string]int
 	firstRows map[string][]float64
+	// inputs are the visible partitions an input supplies, and stored loads
+	// the inputs' rows, for the one expansion that reads them: discovering a
+	// grouped_aggregation's groups when the config declares none.
+	inputs map[string]bool
+	stored func() (*simulator.StateTimeStorage, error)
 }
 
 // firstRow is a visible partition's first row.
@@ -249,7 +254,19 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 			"macros that run their own clock do not expand yet"))
 	}
 	names := sortedKeys(inputs)
-	context := &expansionContext{widths: map[string]int{}, firstRows: map[string][]float64{}}
+	context := &expansionContext{widths: map[string]int{}, firstRows: map[string][]float64{},
+		inputs: map[string]bool{}}
+	var storage *simulator.StateTimeStorage
+	context.stored = func() (*simulator.StateTimeStorage, error) {
+		if storage == nil {
+			loaded, err := loadMacroStorage(inputs)
+			if err != nil {
+				return nil, err
+			}
+			storage = loaded
+		}
+		return storage, nil
+	}
 	owners := map[string]string{}
 	var initTime float64
 	if err := sameInputTimes(inputs, names); err != nil {
@@ -265,6 +282,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		for partition, width := range shape.widths {
 			context.widths[partition] = width
 			context.firstRows[partition] = shape.firstRows[partition]
+			context.inputs[partition] = true
 			owners[partition] = name
 		}
 	}
