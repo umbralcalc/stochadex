@@ -106,3 +106,23 @@ func NewGroupedStateTimeStorage(
 		groupLabels:    groupLabels,
 	}
 }
+
+// NewDeclaredGroupedStateTimeStorage is NewGroupedStateTimeStorage with the
+// accepted groups given rather than found in the data: each a tuple with one
+// value per GroupBy reference, in the order the aggregation outputs them.
+func NewDeclaredGroupedStateTimeStorage(
+	applied AppliedGrouping,
+	storage *simulator.StateTimeStorage,
+	groups [][]float64,
+) *GroupedStateTimeStorage {
+	labels := make([]string, len(groups))
+	for i, group := range groups {
+		labels[i] = general.FloatTupleToKey(group, applied.Precision)
+	}
+	return &GroupedStateTimeStorage{
+		Storage:        storage,
+		applied:        applied,
+		acceptedGroups: groups,
+		groupLabels:    labels,
+	}
+}

@@ -136,3 +136,32 @@ func TestGroupedStateTimeStorage(t *testing.T) {
 		},
 	)
 }
+
+func TestDeclaredGroupedStateTimeStorage(t *testing.T) {
+	storage := simulator.NewStateTimeStorage()
+	storage.SetValues("a", [][]float64{{1, 2}, {3, 4}})
+	storage.SetValues("b", [][]float64{{5, 6}, {7, 8}})
+	storage.SetTimes([]float64{0, 1})
+	applied := AppliedGrouping{
+		GroupBy:   []DataRef{{PartitionName: "a"}, {PartitionName: "b", ValueIndices: []int{1}}},
+		Precision: 1,
+	}
+	// Declared groups need not occur in the data, and keep the order given.
+	grouped := NewDeclaredGroupedStateTimeStorage(applied, storage, [][]float64{{9, 0.25}, {1, 5}})
+	if n := grouped.GetAcceptedValueGroupsLength(); n != 2 {
+		t.Fatalf("%d groups, want the 2 declared", n)
+	}
+	if got := grouped.GetAcceptedValueGroups(0); !floats.Equal(got, []float64{9, 1}) {
+		t.Errorf("first tuple values %v, want [9 1]", got)
+	}
+	if got := grouped.GetAcceptedValueGroups(1); !floats.Equal(got, []float64{0.25, 5}) {
+		t.Errorf("second tuple values %v, want [0.25 5]", got)
+	}
+	if got := strings.Join(grouped.GetAcceptedValueGroupLabels(), " "); got != "9.0,0.2, 1.0,5.0," {
+		t.Errorf("labels %q, want the declared tuples formatted at precision 1", got)
+	}
+	if grouped.GetGroupTupleLength() != 2 || grouped.GetPrecision() != 1 ||
+		grouped.GetGroupingPartition(1) != "b" || !floats.Equal(grouped.GetGroupingValueIndices(1), []float64{1}) {
+		t.Error("the grouping itself should be the applied one")
+	}
+}
