@@ -30,7 +30,9 @@ import (
 
 // resolveMCTSEnvironment builds the environment an mcts_* spec names: the
 // engine's own {type: simulation}, or a registered one.
-func resolveMCTSEnvironment(spec simulator.ComponentSpec) (MCTSEnvironment, error) {
+// An environment whose parameters are read from inputs is recorded in scope,
+// to be bound when the run starts.
+func resolveMCTSEnvironment(spec simulator.ComponentSpec, scope *runScope) (MCTSEnvironment, error) {
 	switch spec.Type {
 	case "simulation":
 		raw, _ := yaml.Marshal(spec.Fields)
@@ -38,15 +40,20 @@ func resolveMCTSEnvironment(spec simulator.ComponentSpec) (MCTSEnvironment, erro
 		if err := yaml.UnmarshalStrict(raw, &problem); err != nil {
 			return nil, fmt.Errorf("environment simulation: %w", err)
 		}
-		if problem.Parameters != nil &&
-			(problem.Parameters.SamplesFrom != nil || problem.Parameters.WeightsFrom != nil) {
+		if parameters := problem.Parameters; parameters != nil &&
+			((parameters.SamplesFrom != nil && parameters.SamplesFrom.Input == "") ||
+				(parameters.WeightsFrom != nil && parameters.WeightsFrom.Input == "")) {
 			return nil, fmt.Errorf("environment simulation: parameters.samples_from and " +
-				"weights_from read recorded rows, which only mcts_planning has; list the " +
-				"samples and weights inline")
+				"weights_from read an input's recorded rows when the run starts, so name it: " +
+				"samples_from: {input: <name>, partition_name: ...}; or list the samples and " +
+				"weights inline")
 		}
 		environment, err := problem.build(nil, "environment simulation")
 		if err != nil {
 			return nil, err
+		}
+		if environment.deferred != nil {
+			scope.readers.environments = append(scope.readers.environments, environment)
 		}
 		return environment.typed(), nil
 	default:
@@ -73,7 +80,7 @@ func (r *specReader) environment(key string, scope *runScope) MCTSEnvironment {
 	if environment, shared := scope.environments[string(text)]; shared {
 		return environment
 	}
-	environment, err := resolveMCTSEnvironment(spec)
+	environment, err := resolveMCTSEnvironment(spec, scope)
 	if err != nil {
 		r.fail("field %q: %v", key, err)
 		return nil

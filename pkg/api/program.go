@@ -779,6 +779,9 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 	if err := yaml.Unmarshal(yamlFile, &config); err != nil {
 		return nil, configError(err)
 	}
+	if err := loadRunInputs(&config, yamlFile, path); err != nil {
+		return nil, err
+	}
 	if err := desugarFromStorage(&config); err != nil {
 		return nil, configError(err)
 	}
