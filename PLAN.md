@@ -4,271 +4,23 @@ Status: **accepted** (2026-10-04).
 - **Where this lives:** the long-lived working branch `claude/config-runtime-plan`. It is
   deliberately **never merged to `main`**; implementation PRs branch from `main` and
   link here. Update this file on this branch as items land.
-- **Progress:**
-  - **Merged:**
-    - 0.3 `RunToStorage` (#95);
-    - sinks open when a run starts (#96, rule 12);
-    - 0.6 websocket push output (#97);
-    - O.3 structured exit codes (#99);
-    - fix: the CSV loader rejects non-numeric time values (#100, found while doing O.3);
-    - 0.4a `outputs:` views (#101).
-    - 0.4b, macro results through views (#102). It also rejects `outputs:` with an
-      ensemble, which 0.4a had left silently ignored.
-    - 0.4c `RunWith` / `CaptureView` / `WithConfigOutputs` (#103). Suppression now
-      covers nested sinks, fixing the #96 finding for `RunToStorage`.
-    - 0.4d, per-member ensemble views with `{member}` / `{seed}` (#104).
-      **Phase 0 is complete.**
-    - Phase 1 items 1.1 `inputs:` and 1.2 `from_input` for the `main:` path (#105).
-      Acceptance test: solar-fleet driven from a CSV input reproduces exactly.
-    - The rest of 1.1 (#106): macros read `inputs:`, and `data:` is shorthand for a
-      single input. All 9 shipped `data:` configs give byte-identical results.
-    - 1.3 `run: {mode: serve}` (#107). Each connection gets its own fresh run;
-      `outputs:` views are written per connection with `{connection}`; `--socket` is a
-      deprecated alias.
-  - **Decided (2026-10-07): one place in, one place out (rule 14).** A review of the
-    work so far against this rule found that outputs are still declared in five places,
-    and that #107's served stream is one of them: it lives in `run:` and takes its
-    filter from the shorthand `output_condition`. The new **Phase 1b** (IO.1–IO.6)
-    closes these gaps. It also settles the open follow-up about the shorthand
-    `output_function` going unwritten under ensemble and serve. The answer is not to
-    reject it but to desugar it, with a `stdout` sink that knows which run instance it
-    belongs to (IO.2).
-    - IO.1, the served stream as an `outputs:` view `{type: connection}` (#108).
-  - **Merged:** IO.2, every output an `outputs:` view in every mode (#109).
-    - The shorthand pair is one view named `output`; no output declared means a
-      default stdout view, which fixes a CLI crash on batch configs with no output.
-    - `stdout` is prefixed per member or connection.
-    - **Acceptance, restated:** "byte-identical stdout" was not achievable, and
-      shouldn't be the bar. Batch configs with several partitions already print in a
-      different order on every run, because partitions output concurrently. Macros
-      now print in time order (as Phase 2 will anyway), and ensemble members
-      interleave. All 20 shipped configs print the **same lines** as the previous
-      binary.
-  - **Merged:** 1.4, `PartitionCoordinator.InjectParams` (#110).
-    - Guards: unknown partition, undeclared key, wrong width, and an upstream-fed key
-      are errors.
-    - Writes in place (decided 2026-10-07): 72 ns and one allocation, the copy of
-      the values. A partition's params map is the `Settings`' own map, so, like
-      `params_from_upstream`, an injection lands in the `Settings`. Copying the
-      map per call to avoid that cost about as much as an inline step, and
-      guarded a case nothing in the engine hits; build from the config again to
-      start fresh.
-  - **Decided (2026-10-07): engine performance is protected.** The plan's changes
-    must not slow the step loop; measure every per-step change against v0.19.0
-    with interleaved `benchstat` runs. An audit found the output refactor
-    (#101, #109) had cost 2–3 ns per output, up to 21% on small inline runs.
-    **Merged (#111):** that cost is removed (level with v0.19.0), and
-    `json_log` is buffered, which makes log-writing runs 70–85% faster. A
-    `Stepper`'s `Close` now finalizes output. The PR adds committed benchmarks
-    (`BenchmarkConfigRun*`) and allocation guards. It also fixes per-run
-    allocations: since #95, a run generated its configs twice, once to check
-    and once to run, which cost 76 allocations for 16 partitions. A config run
-    now allocates exactly what v0.19.0 did.
-  - **Merged:** 1.5a and 1.6, stream inputs and `params_from_input` (#112).
-    - **Q2 decided:** `hold_last` only, for now.
-    - **Backpressure:** one "latest wins" slot per stream partition, so there's no
-      queue to bound.
-    - **Performance:** `params_from_input` from stored data is 60% faster than a
-      `from_input` partition read through `params_from_upstream`, with 84% fewer
-      allocations, via a new `simulator.ParamsInjector` that copies in place.
-  - **Merged:** 1.5b, two-way serving (#113).
-  - **Clarified (2026-10-08):** rules 15 (embedded runs are model, not inputs) and 16
-    (`main:` and `macros:` compose in one runtime, with unambiguous names).
-  - **Merged:** #114, embedded runs.
-  - **Merged:** v0.20.0 release (#115), then dexetera onto the engine's primitives
-    (umbralcalc/dexetera#1). All five downstream dashboards (AMR, business-survival,
-    energy-balancer, floodrisk, trywizard) are on v0.20.0 and the new dexetera, each with
-    a `TestDashboardStarts` check; none of them has CI, so their tests ran locally.
-  - **Merged:** O.4, all-or-nothing outputs (#118).
-    - `simulator.StagedOutputFunction` (opt-in); `pkg/api` stages every sink of a run
-      (views, embedded sinks, stream records, ensemble members, served connections, macro
-      replay) and commits once the top-level run ends cleanly; a client leaving ends a
-      session cleanly. arrow/duckdb/s3 publish at commit, and their write failures now fail
-      the run. Streaming sinks (stdout, websocket, connection, postgres) say so.
-    - Cost: one atomic rename per file output per run (~90µs on APFS); runs without file
-      outputs allocate exactly as before. CI now runs the CLI module's tests.
-  - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
-    strategy (#132), so an iteration's runtime failure no longer crashes the process.
-  - **Merged:** 2.6 exact oracle (#151): `TestExpansionOracle` — every shipped macros:
-    config (9 examples + 4 recipes) bit-identical expanded vs macro tier, plus per-GOARCH golden
-    digests (pkg/api/testdata/golden) that outlive 2.9. amd64 goldens come from the PR's first
-    CI run. Downstream (AMR 1, cryptobook 5) checked locally: all exact; no oracle step-down.
-    **Default switch deferred to after 2.12:** expanded likelihood windows are ~3.5× slower
-    (not inline as #144 made the macro tier). Order now: 2.12 parity → switch → 2.9 → 2.7/2.8.
-  - **Merged:** 2.5 part 2 (#150): the expander writes calibrate→plan and calibrate→infer —
-    earlier macros + inputs become a `run:` input `calibration`; the planner/SMC run reads it on
-    its own clock. Planner over input rows reads that input. Belief over recorded samples, and
-    weights_from beside inline samples, refused. **2.5 done once merged.** Next: 2.6 exact oracle
-    (desugar old data:+macros: to the expanded path at load; byte-identical goldens).
-  - **Merged:** 2.5 part 1 (#149): `run:` inputs (a whole config run first; its rows are the
-    input's) and `{type: simulation}` environments reading `samples_from`/`weights_from` from an
-    input at run start (agents `DeferredParameters` + `BindParameters`; belief needs inline
-    samples). Calibrate→plan as one core config plans exactly as the macro chain. Next, part 2:
-    the expander writes calibrate→plan (earlier macros → a `run:` input).
-  - **Decided (2026-10-29): rule 5 is "shape only".** An expansion may read an input's shape
-    (widths, first row, start time) but nothing whose size grows with the data. Group discovery
-    counts as a shape read (the groups are the output's width). Fully data-free expansion
-    (init states filled at bind, incl. nested hosts' rows) is not planned unless a need appears.
-  - **Merged:** 2.1 part 5, smc_inference (#148) — **every macro now expands** (`expand` is
-    part of `macroSpec`). Particles replay observed data via nested `from_input` on the input's
-    clock (no data in the expansion). New core capability: from_input / input clocks inside
-    embedded_simulation_run, replicated_simulation_run and embedded: runs (readers recorded in the
-    run scope at load, bound in place at run start). A clock macro that reads inputs only inside
-    its own runs may sit beside them (no outer replays). Next: part 6 (calibrate→plan 2.5,
-    default switch, oracle 2.6, tooling 2.7, run modes 2.8, delete old path 2.9).
-  - **Merged:** 2.1 part 4, clock-bearing macros (#147): ES, mcts_self_play, mcts_planning
-    (inline parameters) expand exactly; the macro gives the run its clock (steps × timestep from
-    0); a later analysis macro reads it live. Refused for now: clock macro beside inputs
-    (calibrate→plan, part 6), two clocks, samples_from/weights_from. Environments stated in full
-    per iteration (anchors don't survive eager node encoding; readable output is 2.11's job).
-    Noticed: self-play's `simulations:` and the covariance update's `mean` upstream are inert.
-  - **Merged:** #146 (grouped aggregation now sets its kernel params each step; expansion test on the exponential kernel).
-  - **Merged:** 2.1 part 3, grouped_aggregation (#145): expands exactly; groups discovered
-    from the inputs at expansion (lazily, only when undeclared — still a build-time data read,
-    removed by 2.5), declared `groups:` required for grouping by a macro output. New macro
-    fields `groups:` / `undeclared_groups:` on both tiers. Found: ValuesGroupedAggregationIteration
-    never called Kernel.SetParams (fixed, #146).
-  - **Merged:** 2.1 part 2, inference/stats macros (#142) and inline likelihood windows (#144),
-    macro runs no longer mutate config (#143). (The suspected just_variance issue was the
-    config mutation, not a real bug.)
-  - **Merged:** #141 (vector_covariance over an index subset).
-  - **Merged:** 2.1 part 1, the expander core + aggregation macros (#140). `api.Expand` /
-    `ExpandToYAML`; expansionContext = visible partitions + widths; window → depth (2.2);
-    input references → `from_input` replays (2.3); oracle vs macro tier exact. Refuses (for now)
-    two macros reading one partition over different windows, and inputs on different time
-    axes. File sources are still loaded for shape (gap for 2.5). **Phase 2 PR sequence
-    (2026-10-28):** (1) core + aggregation; (2) inference/stats; (3) grouped_aggregation;
-    (4) clock-bearing (ES, mcts_planning, mcts_self_play); (5) smc_inference; (6) calibrate→plan,
-    default switch, oracle 2.6, tooling 2.7, run modes 2.8, delete old path 2.9; (7) 2.10–2.13.
-  - **Released: v0.23.0** (#139): 2.0d. card-game-studio on v0.23.0 (CreatorsInTheLoop#2).
-  - **Merged:** 2.0d, environments as components (#138), with card-game-studio's
-    migration (CreatorsInTheLoop/card-game-studio#1; bump to stochadex v0.13.0 → v0.22.0 plus
-    the component API). **Decided (2026-10-22): partitions of one run that name the same
-    environment share one instance** (a run scope; replicas and ensemble members get their
-    own). Found because card-game-studio's codec learns meta codes in encounter order, so
-    spike finding 7 ("no shared instance needed") does not hold for every environment.
-    **This completes the spike's new building blocks (2.0, 2.0b, 2.0c, 2.0d).**
-  - **Released: v0.22.0** (#135, 2026-10-22): 1.7 and Phase 2's first building blocks
-    (#126–#134). All five downstream repos bumped to v0.22.0 and merged, tests and configs
-    verified. CI fixes on the way: runner's broken Microsoft apt source (#136, merged);
-    release matrix race to create the Release (#137).
-  - **Merged:** expression names that the DSL would shadow or that clash are refused at load (#134).
-  - **Merged:** 2.0b, `mcts_tree` / `mcts_rollout` / `mcts_apply` over an
-    `environment: {type: simulation}` component (#133). `mcts_planning` builds through the
-    same environment spec (byte-identical to main); twins of the example (optimum 160), an
-    all-fields variant and a long-horizon chain are exact; coverage scan includes pkg/agents.
-    Groundwork for 2.0d: `typedMCTSEnvironment[S, A]`.
-  - **2.0c DONE.** Merged: part 3 (#131), part 2 (#130). Next: 2.0b, then 2.0d.
-  - **Merged:** 2.0c part 2, recursive `embedded_simulation_run` spec (#130): a run
-    stated in place, hosting runs to any depth; equivalent to top-level `embedded:` (tested),
-    load checks recurse, registry exclusions now empty. Desugaring top-level `embedded:`
-    into it is left for 2.1. Part 3 in review (#131): `undeclared_groups: drop | error | other`
-    on `values_grouped_aggregation`, drop the default (decided 2026-10-11: declared groups
-    are an accept-list; error/other opt-in); the spike's grouped twin is a regression test.
-  - **Merged:** 2.0c part 1, `data_comparison_gradient` spec (#129). Plus a load-time
-    check that every memory iteration (`from_history`, the gradient) is fed by its host;
-    the spike's fit twin is a regression test. Parts 2 and 3 (recursive embedded spec,
-    undeclared-group policy) follow.
-  - **Merged:** `DeriveSeed` nonlinear (#128), fixing the finding below.
-  - **Merged:** 2.0, `replicated_simulation_run` (#127). The SMC particle evaluator moves
-    to `pkg/general` as `ReplicatedSimulationRunIteration` with a `{type: ...}` spec whose
-    model is an ordinary `run:` block; `smc_inference` builds on it, byte-identical to main
-    (checked with a stochastic particle model). The spike's SMC twin is a regression test.
-    **Found:** `simulator.DeriveSeed` is XOR-linear, so nested derivations commute: (step k,
-    replica r) shares a seed with (step r+1, replica k-1), and within a step replica 0's
-    partition 1 shares a stream with replica 1's partition 0; `embedded_simulation_run`'s
-    reseed mode likewise across (step, partition). Pre-existing; #127 preserves behaviour.
-    A nonlinear `DeriveSeed` changes derived seeds engine-wide — proposed separately.
-  - **Merged:** 1.7, the keyboard as a stream transport (#126). `api.RegisterStreamTransport`
-    (checked at load, opened at run start, refused under serve); `pkg/keyboard` registers
-    `keyboard` and the CLI imports it, so `pkg/api` gains no terminal dependency. `run:
-    {pace_ms}` now paces a batch CLI run. `UserInputIteration` kept, deprecated. **Phase 1 is
-    complete.**
-  - **Phase 2 order (2026-10-11):** the spike's new core specs first, each with its spike
-    twin as a regression test — 2.0 (#127), then 2.0c, 2.0b, 2.0d — then the expander
-    interface 2.1 with 2.2–2.4, then 2.5, the exact oracle 2.6, and the rest.
-  - **Downstream (2026-10-11):** all five repos bumped to v0.21.0 and merged, their configs
-    migrated to `inputs:`/`outputs:` (each verified identical to its old form); their
-    `CLAUDE.md` files had taught the YAML code-generation form removed in v0.9.0, now fixed.
-  - **Released: v0.21.0** (#125, 2026-10-10): Track O and Phase 1b (#116–#124).
-  - **Merged:** IO.6, deprecation notices (#124). `data:` and the main run's output pair
-    print one notice each (CLI, stderr; the library records them in `Deprecations()` and
-    prints nothing), the pair's giving the exact `outputs:` line to paste; `--socket` already
-    had one. Every shipped config, model twin and recipe migrated, each verified identical to
-    its old form; the quickstart and the agent skill teach `inputs:` / `outputs:`. An embedded
-    run's own pair is its debug log, not deprecated. **Phase 1b is complete with this.**
-  - **Merged:** IO.5, model files are inputs (#123). `inputs: {x: {file: {path}}}`; any
-    iteration field `{input: NAME}` gets the file's path at load (generic, no change to
-    pkg/onnx); a plain `model_path` is shorthand for an implicit file input. Manifest and
-    provenance treat them as inputs (replacing O.5's discovery); `--check` stands in for
-    file-reading partitions so it still reads no inputs.
-  - **Merged:** #121 (embedded runs are black boxes, IO.3 as rewritten).
-  - **Merged:** IO.4, inline data is an input (#122). `source: {inline: {times,
-    partitions}}`, checked at load; `from_storage` (partition and clock) desugars to an
-    implicit inline input read by `from_input`, which binds to the same replay, so the
-    manifest and provenance see it. The shipped example equals its explicit twin and the
-    series' own values; solar-fleet's exact twin still passes.
-  - **Decided (2026-10-10): Q8, model files are declared in `inputs:`** (IO.5).
-  - **Decided (2026-10-10): embedded runs are black boxes by default.** The outer run
-    records only an embedded run's result: its host partition's row each outer step, the
-    inner partitions' final states concatenated in order. Inner steps are written nowhere
-    unless asked, so the default is neither verbose nor slow; full inner output is a
-    **debug** facility. This rewrites IO.3 and closes Q7 (below).
-    - **In review:** IO.3 as rewritten (#121). It also fixes the quiet default, which
-      crashed (an embedded run with no declared output dereferenced a nil sink); a run
-      with no output function now outputs nothing and makes no per-step output call.
-      `inspect --io` lists each host's column layout and lists embedded logs under
-      `debug`; provenance and `--skip-if-unchanged` ignore them. `--debug-embedded
-      NAME=PATH` turns a debug log on without editing the config.
-  - **Merged:** O.6, `--seed-range FROM:TO` (#120), completing Track O: an override of `run.seeds`, so checks,
-    manifest and provenance key see the shard's seeds; shards together equal the single
-    run, member for member. A shard warns on outputs named by `{member}` alone (it
-    restarts at 0 per shard).
-  - **Merged:** O.5, provenance sidecars and `--skip-if-unchanged` (#119).
-    - Opt-in (`--provenance`). Key = canonical config digest + input content fingerprints
-      (S3 by version) + `model_path` files (stopgap until IO.5) + build.
-    - Uncacheable (no key, reason recorded): Postgres or stream inputs, serve, and builds
-      not deliberately stamped. Go's own VCS stamp is not trusted: in a nested git worktree
-      it names the main checkout's commit (found while smoke-testing).
-  - **Merged:** O.2, `--check` and `inspect --io` (#117).
-    - `--check` reads no inputs and writes nothing, so it works before an earlier pipeline
-      step has produced the inputs; only checks needing input contents wait for the run.
-      `macros:` configs are checked as far as their context until Phase 2.
-    - The manifest lists every write wherever declared (views, embedded sinks, stream
-      `record:` files); its rule-14 test runs each shipped config in a sandbox holding only
-      the manifest's inputs and requires the files written to equal its outputs exactly.
-    - Found: a `state_history_depth` below 1 panicked at run start; now a config error.
-    - ONNX `model_path` stays outside the manifest until IO.5 (Q8).
-  - **Merged:** O.1, per-invocation overrides (#116): `--set path=value` and `${VAR}`.
-    - **Q6 decided (2026-10-10): placeholders may stand for any value**, not only
-      strings. Evidence: cryptobook's 40 `cfgrun` substitutions replace numbers, param
-      lists, paths and a `{type: ...}` name.
-    - Unquoted, a placeholder's text reads as YAML as if written there; quoted, it is text.
-    - `--set` paths must already exist and keep their shape (cryptobook's own guard).
-    - Ensemble members and served connections are rebuilt from the loaded document,
-      not the file, so a server keeps the config it validated at startup.
-    - The dexetera change uses `ActionState`, `ParamsInjector` and inline stepping, which
-      runs 12–15× faster per step in WebAssembly.
-    - Not serve: dexetera runs in the browser, and all 5 downstream dashboards use its
-      in-browser driver.
-    - energy-balancer needs a one-line action-width fix when it upgrades.
-  - **Previously in review:** #114, embedded runs.
-    - Parses the host's forwarding keys once: 32% faster per outer step, 67% less
-      memory.
-    - Checks inner partition names at load.
-    - Tests `params_from_input` reaching an inner run through its host (rule 15).
-    - Still open: building the inner run's coordinator every outer step (~39
-      allocations per step).
-    - `stream: {connection: {}}` reads the served client's own messages.
-    - `decode: protobuf_action_state` reads dexetera-compatible `ActionState` (a new
-      `cmd/messages/action_state.proto`).
-    - Serve runs `params_from_input` and stream inputs per connection; batch runs and
-      served connections share one stepping loop.
-  - **Next:** a choice. 1.7 (keyboard as a stream transport, which needs a
-    `RegisterStream` hook), or the dexetera migration onto two-way serve (it can drop
-    `simio`'s own stepping), or the parallel tracks: IO.4, IO.5, O.1, O.4. IO.3 still
-    waits on Q7. IO.3 needs Q7 decided
-    first; IO.4 and IO.5 can go any time. O.1 and O.4 can run alongside.
+- **Status (2026-10-30):** Phases 0, 1, 1b and Track O are done. Phase 2 has proven its core
+  claim: all 12 macros expand into the core language (2.1), expansion reads data only for shape
+  (2.5), and every shipped macro config, every skill recipe, AMR's inference config and five of
+  cryptobook's run bit-identically expanded and through the macro tier (2.6), pinned by
+  per-architecture goldens. 2.2–2.4 were delivered inside 2.1.
+- **Remaining, in order:**
+  1. **2.12 performance parity** — the blocker. Expanded likelihood windows ran ~3.5× slower
+     than the macro tier, which runs them inline (#144).
+  2. **2.14 default switch and `main:` + `macros:` composition** (rule 16): macro configs run
+     through their expansion at load; 2.7 and 2.8 then follow almost for free.
+  3. **2.9** retire the macro tier's replay path; the 2.6 goldens become the guard.
+  4. **2.11 / 2.13** readable `stochadex expand` output (anchors, block style, CLI), the core
+     semantics reference and schema; **2.10** docs and skill.
+  5. A release and downstream bumps before 2.9: nothing is tagged since v0.23.0, and
+     cryptobook is still on v0.14.0.
+- **History:** every merged item, decision and finding, newest Phase 2 work first, is in
+  [Appendix A](#appendix-a-progress-log).
 
 ## 0. Summary
 
@@ -329,7 +81,7 @@ plan fixes the *semantics*.
 | A proper DSL, each construct with one meaning | **Supported** | 11/11 macro and structural twins exact (§4.2); macros become library, not semantics. Still to do: a written core semantics reference (execution order, within-step vs lag-1, nesting, clock) and a machine-readable schema. The meaning of each `{type: ...}` is still defined by its Go implementation and its docs. |
 | New behaviours by composition, without new macros | **Supported in principle, shown structurally** | Recursive nesting, replicated runs, and MCTS over any data-defined model compose freely: an ES over a posterior, a planner inside particles, a posterior per scenario. Composition also allows expensive or meaningless combinations, so validation (deadlock, widths, clock conflicts) and cost visibility matter more. |
 | More integrable and flexible | **Supported** | Declared inputs and outputs, one runtime per config, a lossless file chain (§4.2 finding 15), Track O, and environments as registered components. |
-| No performance cost | **Plausible, not yet measured** | Likely neutral or faster: one coordinator replaces a data run plus one replay pass per macro, and no storage replay copies. Possible costs: three environment instances instead of one for MCTS; one larger step loop instead of several small ones under spawn-per-step execution; and composition makes multiplicative nesting cost easy to write. **Gate: benchmark (item 2.12) before retiring the old path.** |
+| No performance cost | **Measured in part: one regression, being closed** | Most configs run level or faster expanded (2.6 survey). Likelihood windows ran ~3.5× slower expanded, because the macro tier runs them inline (#144) and the expansion did not; 2.12 closes it. MCTS's three environment instances became one per run scope (2.0d). Composition still makes multiplicative nesting cost easy to write. **Gate: benchmark (item 2.12) before retiring the old path.** |
 
 ---
 
@@ -1024,11 +776,12 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | # | Item | Detail | Acceptance |
 |---|---|---|---|
 | 2.1 | **DONE (#140, #142, #145, #147, #148): all 12 macros expand**: expander interface (config → config) | Replace `macroSpec.resolve(storage)` / `liveMacroSpec.resolveLive(storage)` with `expand(ctx) (Expansion, error)`. `ctx` exposes **only config**: input *names* and their declared partition names and widths, plus the host partitions' names and widths. It never exposes storage contents. `Expansion = {partitions []PartitionConfig (data specs only), minHistoryDepth map[name]int, simulation SimulationConfigStrings (optional fields)}`. | All 12 macros implement it; each expansion round-trips through YAML marshal → load unchanged |
-| 2.2 | Depth requirements | Translate today's `windows` map into `max(existing, required)` `state_history_depth` on the referenced partitions, whether they are input replays or main partitions | Covered by the oracle (2.6) |
-| 2.3 | Data-ref resolution | A `DataRef.partition_name` resolves to a main partition, an earlier expander's partition, or an input replay. An input partition that is referenced but not yet replayed gets an auto-created `from_input` partition. | Unit tests per case |
-| 2.4 | Clock as ordinary config | Macros that need a clock (ES, SMC, MCTS) emit `simulation:` fields in their expansion. Merging follows ordinary duplicate-definition rules (§2.2 rule 2). With no clock at all and one fixed input, the default is `{type: from_input}` on that input. | Conflict tests with error messages that name both definitions |
+| 2.2 | **DONE (in 2.1, #140)**: depth requirements | Translate today's `windows` map into `max(existing, required)` `state_history_depth` on the referenced partitions, whether they are input replays or main partitions | Covered by the oracle (2.6) |
+| 2.3 | **DONE (in 2.1, #140)**: data-ref resolution | A `DataRef.partition_name` resolves to a main partition, an earlier expander's partition, or an input replay. An input partition that is referenced but not yet replayed gets an auto-created `from_input` partition. | Unit tests per case |
+| 2.4 | **DONE (in 2.1, #147, #148)**: clock as ordinary config | Macros that need a clock (ES, SMC, MCTS) emit `simulation:` fields in their expansion. Merging follows ordinary duplicate-definition rules (§2.2 rule 2). With no clock at all and one fixed input, the default is `{type: from_input}` on that input. | Conflict tests with error messages that name both definitions |
 | 2.5 | **DONE (#149, #150)**: remove build-time data reads (shape-only bar) | `grouped_aggregation` takes declared `groups:`; old configs desugar with a one-off group discovery run as a computed input. `smc_inference` emits embedded particle runs whose observed-data partition is `from_input` instead of a copied series. `mcts_planning`'s `samples_from` / `weights_from` read a named input at run time instead of being baked into params. The old calibrate → plan configs desugar to a nested-run input. | The calibrate → plan tests in `test/` and `pkg/api` pass unchanged; expansion succeeds with the input files absent (proving it reads none) |
 | 2.6 | **Exact oracle — DONE (#151); all 19 configs exact; default switch deferred to after 2.12** | Desugar old `data:` + `macros:` to the new shape at load time. For every `cfg/example_*.yaml`, every skill recipe, and AMR's and cryptobook's macro configs, the new path must produce **byte-identical storage** to the Phase-0 path, with the same seeds. If it doesn't, apply CONVENTIONS' oracle ladder, step down explicitly (exact → claim-level → distributional), and record which level was used. Never widen a tolerance to make it pass. | Golden-output test kept permanently as a regression guard |
+| 2.14 | Default switch, and `main:` + `macros:` in one runtime (rule 16) | Load a macros config as its expansion, so every run of one is the single runtime; lift #92's guard so hand-written `main:` partitions and macros share that runtime, with names unambiguous across both. Gated on 2.12. | The 2.6 oracle and goldens unchanged; a config mixing `main:` and a macro reading a main partition live runs as its hand-expanded twin |
 | 2.7 | Tooling coverage | The deadlock pre-flight and `cmd/stochadex-graph` operate on the single expanded generator, so macro configs are covered | Graph render test for `example_macro_config` shows the `rolling_mean → rolling_var` edge |
 | 2.8 | `run:` everywhere | `ensemble` and `serve` work for macro configs | Ensemble posterior test: per-seed results differ, and the ensemble mean is near the truth |
 | 2.9 | Retire the replay coordinator path | `runMacros`' sequential storage-threading loop is deleted; `AddPartitionsToStateTimeStorage` stays in `pkg/analysis` for Go users and notebooks | — |
@@ -1036,7 +789,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | 2.0c | **DONE (#129, #130, #131)**: remaining core specs from the spike | `data_comparison_gradient` (finding 12; fix the coverage exclusion reason); recursive `embedded_simulation_run` with `run: {main, embedded}` (finding 14), making top-level `embedded:` a special case of it; an undeclared-group policy for `values_grouped_aggregation` (finding 13) | The spike's exact fit, grouped and 3-level nested twins, kept as regression tests |
 | 2.0d | **DONE (#138)**: environments as components | Change `RegisterEnvironment` from a partition builder to a component builder (typed wrapper building the apply, tree and rollout iterations); the component spec carries only environment-defining fields (finding 11); migrate card-game-studio's `cardgame_rulesvm` | The spike's exact `tictactoe` self-play twin; card-game-studio's tests pass after migration |
 | 2.0 | **DONE (#127)**: promote `replicated_simulation_run` | Move `SMCParticleEvaluationIteration` from `pkg/macros` to `pkg/general` under the generic name, with a `{type: ...}` spec (§4.2 finding 3); `smc_inference` expands to it | The spike's exact SMC twin, kept as a regression test |
-| 2.11 | `stochadex expand` and the twin oracle | A CLI subcommand and an `api.Expand(config)` function emit the core-language config. For every shipped macro config, the expanded config runs byte-identically to the macro form. Sub-specs shared by several partitions are emitted once as YAML anchors (§4.2 finding 8). **Known core-language gaps to close by adding `{type: ...}` specs** (from `registry_coverage_test.go` and the macro constructors): (a) `DataComparisonGradientIteration` (`likelihood_mean_function_fit`), excluded today as "live-object built by macros:"; (b) an embedded simulation *inside a partition* (likelihood windows, SMC particles, the planning model), where `embedded:` is top-level only, so nesting needs a recursive spec; (c) the `pkg/agents` MCTS iterations, now item 2.0b; the spike proved their data-path specs give an exact twin. Each gap is either closed or recorded as a known gap; a tolerance is never widened. | The golden twin test passes for every `cfg/` macro config and skill recipe; the coverage test gains the agents package |
+| 2.11 | **Half done**: `api.Expand` / `ExpandToYAML` exist (#140) and the twin oracle is 2.6 (#151); gaps (a)–(c) below were closed by 2.0b and 2.0c. **Left:** the CLI subcommand, YAML anchors (they do not survive the expander's eager node encoding, #147), and readable block-style output. `stochadex expand` and the twin oracle | A CLI subcommand and an `api.Expand(config)` function emit the core-language config. For every shipped macro config, the expanded config runs byte-identically to the macro form. Sub-specs shared by several partitions are emitted once as YAML anchors (§4.2 finding 8). **Known core-language gaps to close by adding `{type: ...}` specs** (from `registry_coverage_test.go` and the macro constructors): (a) `DataComparisonGradientIteration` (`likelihood_mean_function_fit`), excluded today as "live-object built by macros:"; (b) an embedded simulation *inside a partition* (likelihood windows, SMC particles, the planning model), where `embedded:` is top-level only, so nesting needs a recursive spec; (c) the `pkg/agents` MCTS iterations, now item 2.0b; the spike proved their data-path specs give an exact twin. Each gap is either closed or recorded as a known gap; a tolerance is never widened. | The golden twin test passes for every `cfg/` macro config and skill recipe; the coverage test gains the agents package |
 | 2.12 | Performance gate | Benchmark each shipped macro config, macro path versus expanded single-runtime path: wall-clock, allocations and peak memory, under the default and `inline` / `persistent_worker` execution strategies | No regression beyond noise on any config before 2.9 retires the old path; results recorded in `docs/performance.md` |
 | 2.13 | Core semantics reference and schema | A written reference for the core language (execution order, within-step vs lag-1 reads, embedded-run semantics, clock resolution, input binding, origin annotations), plus a JSON Schema generated from the registries for editor and agent tooling | Schema drift test: every registered `{type: ...}` appears in it; the reference is linked from the skill |
 | 2.10 | Docs | Rewrite the CLAUDE.md config section; `pkg/api/doc.go`; `pkg/macros/doc.go` ("macros are config → config shortcuts over the core language"); the `stochadex-model` skill and recipes, keeping `TestSkillRecipesMatchExamples` green; `docs/how_it_works.md`; CHANGELOG | Skill falsifier: a fresh agent given only the skill authors an input-driven config and a chained-macro config correctly |
@@ -1229,3 +982,275 @@ reference, and `expand` to inspect. Measure it rather than assume it (item A.1).
 |---|---|---|---|
 | A.1 | Agent falsifier, before vs after | Reuse the skill-validation method: fresh agents, given only the skill, author a fixed task set (a forward model from data, a calibration, a calibrate → plan pipeline, a bespoke composition such as ES over a posterior). Run it on today's skill and again after Phase 2 plus the skill rewrite (2.10). | Same or better task success, fewer iterations to a converging config, and no new failure class. Results recorded in PLAN.md |
 
+---
+
+## Appendix A. Progress log
+
+Moved here from the header on 2026-10-30. Earlier phases read in order; Phase 2 entries
+are newest first.
+
+- **Progress:**
+  - **Merged:**
+    - 0.3 `RunToStorage` (#95);
+    - sinks open when a run starts (#96, rule 12);
+    - 0.6 websocket push output (#97);
+    - O.3 structured exit codes (#99);
+    - fix: the CSV loader rejects non-numeric time values (#100, found while doing O.3);
+    - 0.4a `outputs:` views (#101).
+    - 0.4b, macro results through views (#102). It also rejects `outputs:` with an
+      ensemble, which 0.4a had left silently ignored.
+    - 0.4c `RunWith` / `CaptureView` / `WithConfigOutputs` (#103). Suppression now
+      covers nested sinks, fixing the #96 finding for `RunToStorage`.
+    - 0.4d, per-member ensemble views with `{member}` / `{seed}` (#104).
+      **Phase 0 is complete.**
+    - Phase 1 items 1.1 `inputs:` and 1.2 `from_input` for the `main:` path (#105).
+      Acceptance test: solar-fleet driven from a CSV input reproduces exactly.
+    - The rest of 1.1 (#106): macros read `inputs:`, and `data:` is shorthand for a
+      single input. All 9 shipped `data:` configs give byte-identical results.
+    - 1.3 `run: {mode: serve}` (#107). Each connection gets its own fresh run;
+      `outputs:` views are written per connection with `{connection}`; `--socket` is a
+      deprecated alias.
+  - **Decided (2026-10-07): one place in, one place out (rule 14).** A review of the
+    work so far against this rule found that outputs are still declared in five places,
+    and that #107's served stream is one of them: it lives in `run:` and takes its
+    filter from the shorthand `output_condition`. The new **Phase 1b** (IO.1–IO.6)
+    closes these gaps. It also settles the open follow-up about the shorthand
+    `output_function` going unwritten under ensemble and serve. The answer is not to
+    reject it but to desugar it, with a `stdout` sink that knows which run instance it
+    belongs to (IO.2).
+    - IO.1, the served stream as an `outputs:` view `{type: connection}` (#108).
+  - **Merged:** IO.2, every output an `outputs:` view in every mode (#109).
+    - The shorthand pair is one view named `output`; no output declared means a
+      default stdout view, which fixes a CLI crash on batch configs with no output.
+    - `stdout` is prefixed per member or connection.
+    - **Acceptance, restated:** "byte-identical stdout" was not achievable, and
+      shouldn't be the bar. Batch configs with several partitions already print in a
+      different order on every run, because partitions output concurrently. Macros
+      now print in time order (as Phase 2 will anyway), and ensemble members
+      interleave. All 20 shipped configs print the **same lines** as the previous
+      binary.
+  - **Merged:** 1.4, `PartitionCoordinator.InjectParams` (#110).
+    - Guards: unknown partition, undeclared key, wrong width, and an upstream-fed key
+      are errors.
+    - Writes in place (decided 2026-10-07): 72 ns and one allocation, the copy of
+      the values. A partition's params map is the `Settings`' own map, so, like
+      `params_from_upstream`, an injection lands in the `Settings`. Copying the
+      map per call to avoid that cost about as much as an inline step, and
+      guarded a case nothing in the engine hits; build from the config again to
+      start fresh.
+  - **Decided (2026-10-07): engine performance is protected.** The plan's changes
+    must not slow the step loop; measure every per-step change against v0.19.0
+    with interleaved `benchstat` runs. An audit found the output refactor
+    (#101, #109) had cost 2–3 ns per output, up to 21% on small inline runs.
+    **Merged (#111):** that cost is removed (level with v0.19.0), and
+    `json_log` is buffered, which makes log-writing runs 70–85% faster. A
+    `Stepper`'s `Close` now finalizes output. The PR adds committed benchmarks
+    (`BenchmarkConfigRun*`) and allocation guards. It also fixes per-run
+    allocations: since #95, a run generated its configs twice, once to check
+    and once to run, which cost 76 allocations for 16 partitions. A config run
+    now allocates exactly what v0.19.0 did.
+  - **Merged:** 1.5a and 1.6, stream inputs and `params_from_input` (#112).
+    - **Q2 decided:** `hold_last` only, for now.
+    - **Backpressure:** one "latest wins" slot per stream partition, so there's no
+      queue to bound.
+    - **Performance:** `params_from_input` from stored data is 60% faster than a
+      `from_input` partition read through `params_from_upstream`, with 84% fewer
+      allocations, via a new `simulator.ParamsInjector` that copies in place.
+  - **Merged:** 1.5b, two-way serving (#113).
+  - **Clarified (2026-10-08):** rules 15 (embedded runs are model, not inputs) and 16
+    (`main:` and `macros:` compose in one runtime, with unambiguous names).
+  - **Merged:** #114, embedded runs.
+  - **Merged:** v0.20.0 release (#115), then dexetera onto the engine's primitives
+    (umbralcalc/dexetera#1). All five downstream dashboards (AMR, business-survival,
+    energy-balancer, floodrisk, trywizard) are on v0.20.0 and the new dexetera, each with
+    a `TestDashboardStarts` check; none of them has CI, so their tests ran locally.
+  - **Merged:** O.4, all-or-nothing outputs (#118).
+    - `simulator.StagedOutputFunction` (opt-in); `pkg/api` stages every sink of a run
+      (views, embedded sinks, stream records, ensemble members, served connections, macro
+      replay) and commits once the top-level run ends cleanly; a client leaving ends a
+      session cleanly. arrow/duckdb/s3 publish at commit, and their write failures now fail
+      the run. Streaming sinks (stdout, websocket, connection, postgres) say so.
+    - Cost: one atomic rename per file output per run (~90µs on APFS); runs without file
+      outputs allocate exactly as before. CI now runs the CLI module's tests.
+  - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
+    strategy (#132), so an iteration's runtime failure no longer crashes the process.
+  - **Merged:** 2.6 exact oracle (#151): `TestExpansionOracle` — every shipped macros:
+    config (9 examples + 4 recipes) bit-identical expanded vs macro tier, plus per-GOARCH golden
+    digests (pkg/api/testdata/golden) that outlive 2.9. amd64 goldens come from the PR's first
+    CI run. Downstream (AMR 1, cryptobook 5) checked locally: all exact; no oracle step-down.
+    **Default switch deferred to after 2.12:** expanded likelihood windows are ~3.5× slower
+    (not inline as #144 made the macro tier). Order now: 2.12 parity → switch → 2.9 → 2.7/2.8.
+  - **Merged:** 2.5 part 2 (#150): the expander writes calibrate→plan and calibrate→infer —
+    earlier macros + inputs become a `run:` input `calibration`; the planner/SMC run reads it on
+    its own clock. Planner over input rows reads that input. Belief over recorded samples, and
+    weights_from beside inline samples, refused. **2.5 done once merged.** Next: 2.6 exact oracle
+    (desugar old data:+macros: to the expanded path at load; byte-identical goldens).
+  - **Merged:** 2.5 part 1 (#149): `run:` inputs (a whole config run first; its rows are the
+    input's) and `{type: simulation}` environments reading `samples_from`/`weights_from` from an
+    input at run start (agents `DeferredParameters` + `BindParameters`; belief needs inline
+    samples). Calibrate→plan as one core config plans exactly as the macro chain. Next, part 2:
+    the expander writes calibrate→plan (earlier macros → a `run:` input).
+  - **Decided (2026-10-29): rule 5 is "shape only".** An expansion may read an input's shape
+    (widths, first row, start time) but nothing whose size grows with the data. Group discovery
+    counts as a shape read (the groups are the output's width). Fully data-free expansion
+    (init states filled at bind, incl. nested hosts' rows) is not planned unless a need appears.
+  - **Merged:** 2.1 part 5, smc_inference (#148) — **every macro now expands** (`expand` is
+    part of `macroSpec`). Particles replay observed data via nested `from_input` on the input's
+    clock (no data in the expansion). New core capability: from_input / input clocks inside
+    embedded_simulation_run, replicated_simulation_run and embedded: runs (readers recorded in the
+    run scope at load, bound in place at run start). A clock macro that reads inputs only inside
+    its own runs may sit beside them (no outer replays). Next: part 6 (calibrate→plan 2.5,
+    default switch, oracle 2.6, tooling 2.7, run modes 2.8, delete old path 2.9).
+  - **Merged:** 2.1 part 4, clock-bearing macros (#147): ES, mcts_self_play, mcts_planning
+    (inline parameters) expand exactly; the macro gives the run its clock (steps × timestep from
+    0); a later analysis macro reads it live. Refused for now: clock macro beside inputs
+    (calibrate→plan, part 6), two clocks, samples_from/weights_from. Environments stated in full
+    per iteration (anchors don't survive eager node encoding; readable output is 2.11's job).
+    Noticed: self-play's `simulations:` and the covariance update's `mean` upstream are inert.
+  - **Merged:** #146 (grouped aggregation now sets its kernel params each step; expansion test on the exponential kernel).
+  - **Merged:** 2.1 part 3, grouped_aggregation (#145): expands exactly; groups discovered
+    from the inputs at expansion (lazily, only when undeclared — still a build-time data read,
+    removed by 2.5), declared `groups:` required for grouping by a macro output. New macro
+    fields `groups:` / `undeclared_groups:` on both tiers. Found: ValuesGroupedAggregationIteration
+    never called Kernel.SetParams (fixed, #146).
+  - **Merged:** 2.1 part 2, inference/stats macros (#142) and inline likelihood windows (#144),
+    macro runs no longer mutate config (#143). (The suspected just_variance issue was the
+    config mutation, not a real bug.)
+  - **Merged:** #141 (vector_covariance over an index subset).
+  - **Merged:** 2.1 part 1, the expander core + aggregation macros (#140). `api.Expand` /
+    `ExpandToYAML`; expansionContext = visible partitions + widths; window → depth (2.2);
+    input references → `from_input` replays (2.3); oracle vs macro tier exact. Refuses (for now)
+    two macros reading one partition over different windows, and inputs on different time
+    axes. File sources are still loaded for shape (gap for 2.5). **Phase 2 PR sequence
+    (2026-10-28):** (1) core + aggregation; (2) inference/stats; (3) grouped_aggregation;
+    (4) clock-bearing (ES, mcts_planning, mcts_self_play); (5) smc_inference; (6) calibrate→plan,
+    default switch, oracle 2.6, tooling 2.7, run modes 2.8, delete old path 2.9; (7) 2.10–2.13.
+  - **Released: v0.23.0** (#139): 2.0d. card-game-studio on v0.23.0 (CreatorsInTheLoop#2).
+  - **Merged:** 2.0d, environments as components (#138), with card-game-studio's
+    migration (CreatorsInTheLoop/card-game-studio#1; bump to stochadex v0.13.0 → v0.22.0 plus
+    the component API). **Decided (2026-10-22): partitions of one run that name the same
+    environment share one instance** (a run scope; replicas and ensemble members get their
+    own). Found because card-game-studio's codec learns meta codes in encounter order, so
+    spike finding 7 ("no shared instance needed") does not hold for every environment.
+    **This completes the spike's new building blocks (2.0, 2.0b, 2.0c, 2.0d).**
+  - **Released: v0.22.0** (#135, 2026-10-22): 1.7 and Phase 2's first building blocks
+    (#126–#134). All five downstream repos bumped to v0.22.0 and merged, tests and configs
+    verified. CI fixes on the way: runner's broken Microsoft apt source (#136, merged);
+    release matrix race to create the Release (#137).
+  - **Merged:** expression names that the DSL would shadow or that clash are refused at load (#134).
+  - **Merged:** 2.0b, `mcts_tree` / `mcts_rollout` / `mcts_apply` over an
+    `environment: {type: simulation}` component (#133). `mcts_planning` builds through the
+    same environment spec (byte-identical to main); twins of the example (optimum 160), an
+    all-fields variant and a long-horizon chain are exact; coverage scan includes pkg/agents.
+    Groundwork for 2.0d: `typedMCTSEnvironment[S, A]`.
+  - **2.0c DONE.** Merged: part 3 (#131), part 2 (#130). Next: 2.0b, then 2.0d.
+  - **Merged:** 2.0c part 2, recursive `embedded_simulation_run` spec (#130): a run
+    stated in place, hosting runs to any depth; equivalent to top-level `embedded:` (tested),
+    load checks recurse, registry exclusions now empty. Desugaring top-level `embedded:`
+    into it is left for 2.1. Part 3 in review (#131): `undeclared_groups: drop | error | other`
+    on `values_grouped_aggregation`, drop the default (decided 2026-10-11: declared groups
+    are an accept-list; error/other opt-in); the spike's grouped twin is a regression test.
+  - **Merged:** 2.0c part 1, `data_comparison_gradient` spec (#129). Plus a load-time
+    check that every memory iteration (`from_history`, the gradient) is fed by its host;
+    the spike's fit twin is a regression test. Parts 2 and 3 (recursive embedded spec,
+    undeclared-group policy) follow.
+  - **Merged:** `DeriveSeed` nonlinear (#128), fixing the finding below.
+  - **Merged:** 2.0, `replicated_simulation_run` (#127). The SMC particle evaluator moves
+    to `pkg/general` as `ReplicatedSimulationRunIteration` with a `{type: ...}` spec whose
+    model is an ordinary `run:` block; `smc_inference` builds on it, byte-identical to main
+    (checked with a stochastic particle model). The spike's SMC twin is a regression test.
+    **Found:** `simulator.DeriveSeed` is XOR-linear, so nested derivations commute: (step k,
+    replica r) shares a seed with (step r+1, replica k-1), and within a step replica 0's
+    partition 1 shares a stream with replica 1's partition 0; `embedded_simulation_run`'s
+    reseed mode likewise across (step, partition). Pre-existing; #127 preserves behaviour.
+    A nonlinear `DeriveSeed` changes derived seeds engine-wide — proposed separately.
+  - **Merged:** 1.7, the keyboard as a stream transport (#126). `api.RegisterStreamTransport`
+    (checked at load, opened at run start, refused under serve); `pkg/keyboard` registers
+    `keyboard` and the CLI imports it, so `pkg/api` gains no terminal dependency. `run:
+    {pace_ms}` now paces a batch CLI run. `UserInputIteration` kept, deprecated. **Phase 1 is
+    complete.**
+  - **Phase 2 order (2026-10-11):** the spike's new core specs first, each with its spike
+    twin as a regression test — 2.0 (#127), then 2.0c, 2.0b, 2.0d — then the expander
+    interface 2.1 with 2.2–2.4, then 2.5, the exact oracle 2.6, and the rest.
+  - **Downstream (2026-10-11):** all five repos bumped to v0.21.0 and merged, their configs
+    migrated to `inputs:`/`outputs:` (each verified identical to its old form); their
+    `CLAUDE.md` files had taught the YAML code-generation form removed in v0.9.0, now fixed.
+  - **Released: v0.21.0** (#125, 2026-10-10): Track O and Phase 1b (#116–#124).
+  - **Merged:** IO.6, deprecation notices (#124). `data:` and the main run's output pair
+    print one notice each (CLI, stderr; the library records them in `Deprecations()` and
+    prints nothing), the pair's giving the exact `outputs:` line to paste; `--socket` already
+    had one. Every shipped config, model twin and recipe migrated, each verified identical to
+    its old form; the quickstart and the agent skill teach `inputs:` / `outputs:`. An embedded
+    run's own pair is its debug log, not deprecated. **Phase 1b is complete with this.**
+  - **Merged:** IO.5, model files are inputs (#123). `inputs: {x: {file: {path}}}`; any
+    iteration field `{input: NAME}` gets the file's path at load (generic, no change to
+    pkg/onnx); a plain `model_path` is shorthand for an implicit file input. Manifest and
+    provenance treat them as inputs (replacing O.5's discovery); `--check` stands in for
+    file-reading partitions so it still reads no inputs.
+  - **Merged:** #121 (embedded runs are black boxes, IO.3 as rewritten).
+  - **Merged:** IO.4, inline data is an input (#122). `source: {inline: {times,
+    partitions}}`, checked at load; `from_storage` (partition and clock) desugars to an
+    implicit inline input read by `from_input`, which binds to the same replay, so the
+    manifest and provenance see it. The shipped example equals its explicit twin and the
+    series' own values; solar-fleet's exact twin still passes.
+  - **Decided (2026-10-10): Q8, model files are declared in `inputs:`** (IO.5).
+  - **Decided (2026-10-10): embedded runs are black boxes by default.** The outer run
+    records only an embedded run's result: its host partition's row each outer step, the
+    inner partitions' final states concatenated in order. Inner steps are written nowhere
+    unless asked, so the default is neither verbose nor slow; full inner output is a
+    **debug** facility. This rewrites IO.3 and closes Q7 (below).
+    - **In review:** IO.3 as rewritten (#121). It also fixes the quiet default, which
+      crashed (an embedded run with no declared output dereferenced a nil sink); a run
+      with no output function now outputs nothing and makes no per-step output call.
+      `inspect --io` lists each host's column layout and lists embedded logs under
+      `debug`; provenance and `--skip-if-unchanged` ignore them. `--debug-embedded
+      NAME=PATH` turns a debug log on without editing the config.
+  - **Merged:** O.6, `--seed-range FROM:TO` (#120), completing Track O: an override of `run.seeds`, so checks,
+    manifest and provenance key see the shard's seeds; shards together equal the single
+    run, member for member. A shard warns on outputs named by `{member}` alone (it
+    restarts at 0 per shard).
+  - **Merged:** O.5, provenance sidecars and `--skip-if-unchanged` (#119).
+    - Opt-in (`--provenance`). Key = canonical config digest + input content fingerprints
+      (S3 by version) + `model_path` files (stopgap until IO.5) + build.
+    - Uncacheable (no key, reason recorded): Postgres or stream inputs, serve, and builds
+      not deliberately stamped. Go's own VCS stamp is not trusted: in a nested git worktree
+      it names the main checkout's commit (found while smoke-testing).
+  - **Merged:** O.2, `--check` and `inspect --io` (#117).
+    - `--check` reads no inputs and writes nothing, so it works before an earlier pipeline
+      step has produced the inputs; only checks needing input contents wait for the run.
+      `macros:` configs are checked as far as their context until Phase 2.
+    - The manifest lists every write wherever declared (views, embedded sinks, stream
+      `record:` files); its rule-14 test runs each shipped config in a sandbox holding only
+      the manifest's inputs and requires the files written to equal its outputs exactly.
+    - Found: a `state_history_depth` below 1 panicked at run start; now a config error.
+    - ONNX `model_path` stays outside the manifest until IO.5 (Q8).
+  - **Merged:** O.1, per-invocation overrides (#116): `--set path=value` and `${VAR}`.
+    - **Q6 decided (2026-10-10): placeholders may stand for any value**, not only
+      strings. Evidence: cryptobook's 40 `cfgrun` substitutions replace numbers, param
+      lists, paths and a `{type: ...}` name.
+    - Unquoted, a placeholder's text reads as YAML as if written there; quoted, it is text.
+    - `--set` paths must already exist and keep their shape (cryptobook's own guard).
+    - Ensemble members and served connections are rebuilt from the loaded document,
+      not the file, so a server keeps the config it validated at startup.
+    - The dexetera change uses `ActionState`, `ParamsInjector` and inline stepping, which
+      runs 12–15× faster per step in WebAssembly.
+    - Not serve: dexetera runs in the browser, and all 5 downstream dashboards use its
+      in-browser driver.
+    - energy-balancer needs a one-line action-width fix when it upgrades.
+  - **Previously in review:** #114, embedded runs.
+    - Parses the host's forwarding keys once: 32% faster per outer step, 67% less
+      memory.
+    - Checks inner partition names at load.
+    - Tests `params_from_input` reaching an inner run through its host (rule 15).
+    - Still open: building the inner run's coordinator every outer step (~39
+      allocations per step).
+    - `stream: {connection: {}}` reads the served client's own messages.
+    - `decode: protobuf_action_state` reads dexetera-compatible `ActionState` (a new
+      `cmd/messages/action_state.proto`).
+    - Serve runs `params_from_input` and stream inputs per connection; batch runs and
+      served connections share one stepping loop.
+  - **Next:** a choice. 1.7 (keyboard as a stream transport, which needs a
+    `RegisterStream` hook), or the dexetera migration onto two-way serve (it can drop
+    `simio`'s own stepping), or the parallel tracks: IO.4, IO.5, O.1, O.4. IO.3 still
+    waits on Q7. IO.3 needs Q7 decided
+    first; IO.4 and IO.5 can go any time. O.1 and O.4 can run alongside.
