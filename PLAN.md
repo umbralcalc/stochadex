@@ -89,6 +89,15 @@ Status: **accepted** (2026-10-04).
       outputs allocate exactly as before. CI now runs the CLI module's tests.
   - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
     strategy (#132), so an iteration's runtime failure no longer crashes the process.
+  - **In review:** 2.5 part 1 (#149): `run:` inputs (a whole config run first; its rows are the
+    input's) and `{type: simulation}` environments reading `samples_from`/`weights_from` from an
+    input at run start (agents `DeferredParameters` + `BindParameters`; belief needs inline
+    samples). Calibrate→plan as one core config plans exactly as the macro chain. Next, part 2:
+    the expander writes calibrate→plan (earlier macros → a `run:` input).
+  - **Decided (2026-10-29): rule 5 is "shape only".** An expansion may read an input's shape
+    (widths, first row, start time) but nothing whose size grows with the data. Group discovery
+    counts as a shape read (the groups are the output's width). Fully data-free expansion
+    (init states filled at bind, incl. nested hosts' rows) is not planned unless a need appears.
   - **Merged:** 2.1 part 5, smc_inference (#148) — **every macro now expands** (`expand` is
     part of `macroSpec`). Particles replay observed data via nested `from_input` on the input's
     clock (no data in the expansion). New core capability: from_input / input clocks inside
