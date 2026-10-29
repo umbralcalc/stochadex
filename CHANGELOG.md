@@ -99,6 +99,16 @@ an exact version rather than assume stability across minors.
   partition name. `agents.SimulationEnvironmentSpec.DeferredParameters` and
   `SimulationEnvironment.BindParameters` build an environment whose samples arrive later.
 
+- **Calibrate, then plan expands into the core language.** A config whose macros run an
+  analysis and then a macro with its own clock that reads recorded rows (`mcts_planning` over
+  `samples_from` / `weights_from`, or `smc_inference` observing an earlier macro's output)
+  expands to two runs: the inputs and the earlier macros become a `run:` input named
+  `calibration`, and the planner's or SMC's run reads it on its own clock. A planner over
+  samples or weights read straight from an input expands the same way, reading that input.
+  Both run exactly as the macro tier does. A belief over recorded samples, and weights read from
+  recorded rows beside inline samples, do not expand, each saying why; a macro with its own
+  clock beside inputs it does not read is refused as before, with a clearer message.
+
 ### Changed
 
 - **`likelihood_comparison`, `posterior_estimation` and `likelihood_mean_function_fit` run
