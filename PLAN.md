@@ -89,7 +89,12 @@ Status: **accepted** (2026-10-04).
       outputs allocate exactly as before. CI now runs the CLI module's tests.
   - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
     strategy (#132), so an iteration's runtime failure no longer crashes the process.
-  - **In review:** 2.5 part 1 (#149): `run:` inputs (a whole config run first; its rows are the
+  - **In review:** 2.5 part 2 (#150): the expander writes calibrate→plan and calibrate→infer —
+    earlier macros + inputs become a `run:` input `calibration`; the planner/SMC run reads it on
+    its own clock. Planner over input rows reads that input. Belief over recorded samples, and
+    weights_from beside inline samples, refused. **2.5 done once merged.** Next: 2.6 exact oracle
+    (desugar old data:+macros: to the expanded path at load; byte-identical goldens).
+  - **Merged:** 2.5 part 1 (#149): `run:` inputs (a whole config run first; its rows are the
     input's) and `{type: simulation}` environments reading `samples_from`/`weights_from` from an
     input at run start (agents `DeferredParameters` + `BindParameters`; belief needs inline
     samples). Calibrate→plan as one core config plans exactly as the macro chain. Next, part 2:
@@ -1016,7 +1021,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | 2.2 | Depth requirements | Translate today's `windows` map into `max(existing, required)` `state_history_depth` on the referenced partitions, whether they are input replays or main partitions | Covered by the oracle (2.6) |
 | 2.3 | Data-ref resolution | A `DataRef.partition_name` resolves to a main partition, an earlier expander's partition, or an input replay. An input partition that is referenced but not yet replayed gets an auto-created `from_input` partition. | Unit tests per case |
 | 2.4 | Clock as ordinary config | Macros that need a clock (ES, SMC, MCTS) emit `simulation:` fields in their expansion. Merging follows ordinary duplicate-definition rules (§2.2 rule 2). With no clock at all and one fixed input, the default is `{type: from_input}` on that input. | Conflict tests with error messages that name both definitions |
-| 2.5 | Remove build-time data reads | `grouped_aggregation` takes declared `groups:`; old configs desugar with a one-off group discovery run as a computed input. `smc_inference` emits embedded particle runs whose observed-data partition is `from_input` instead of a copied series. `mcts_planning`'s `samples_from` / `weights_from` read a named input at run time instead of being baked into params. The old calibrate → plan configs desugar to a nested-run input. | The calibrate → plan tests in `test/` and `pkg/api` pass unchanged; expansion succeeds with the input files absent (proving it reads none) |
+| 2.5 | **In review (#149 merged, #150)**: remove build-time data reads (shape-only bar) | `grouped_aggregation` takes declared `groups:`; old configs desugar with a one-off group discovery run as a computed input. `smc_inference` emits embedded particle runs whose observed-data partition is `from_input` instead of a copied series. `mcts_planning`'s `samples_from` / `weights_from` read a named input at run time instead of being baked into params. The old calibrate → plan configs desugar to a nested-run input. | The calibrate → plan tests in `test/` and `pkg/api` pass unchanged; expansion succeeds with the input files absent (proving it reads none) |
 | 2.6 | **Exact oracle** | Desugar old `data:` + `macros:` to the new shape at load time. For every `cfg/example_*.yaml`, every skill recipe, and AMR's and cryptobook's macro configs, the new path must produce **byte-identical storage** to the Phase-0 path, with the same seeds. If it doesn't, apply CONVENTIONS' oracle ladder, step down explicitly (exact → claim-level → distributional), and record which level was used. Never widen a tolerance to make it pass. | Golden-output test kept permanently as a regression guard |
 | 2.7 | Tooling coverage | The deadlock pre-flight and `cmd/stochadex-graph` operate on the single expanded generator, so macro configs are covered | Graph render test for `example_macro_config` shows the `rolling_mean → rolling_var` edge |
 | 2.8 | `run:` everywhere | `ensemble` and `serve` work for macro configs | Ensemble posterior test: per-seed results differ, and the ensemble mean is near the truth |
