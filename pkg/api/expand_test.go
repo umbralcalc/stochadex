@@ -200,8 +200,8 @@ macros:
 
 	cases := []struct{ name, yaml, want string }{
 		{"a macro that does not expand yet",
-			aggregationConfig("- {type: mcts_self_play, name: ttt, steps: 2, sims_per_ply: 4, seed: 1, env: {type: tictactoe}}\n"),
-			`macro "mcts_self_play" does not expand yet`},
+			readFile(t, "../../cfg/example_smc_config.yaml"),
+			`macro "smc_inference" does not expand yet`},
 		{"a macro reading a partition nothing makes",
 			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: missing}, window: 3}\n"),
 			`macro "vector_mean": no partition "missing" to read (the inputs and earlier macros have: [level stream])`},
@@ -223,9 +223,9 @@ macros:
 			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: stream}, window: 3}\n" +
 				"- {type: vector_mean, name: m, data: {partition_name: level}, window: 2}\n"),
 			`macros[1] (vector_mean) names its partition "m"`},
-		{"macros with no inputs, which run their own clock",
-			readFile(t, "../../cfg/example_evolution_strategy_config.yaml"),
-			"expanding needs the inputs the macros read"},
+		{"a macro with nothing to read: no inputs, and no clock of its own",
+			"macros:\n- {type: vector_mean, name: m, data: {partition_name: x}, window: 2}\n",
+			"expanding needs the inputs the macros read, or a first macro that runs its own clock"},
 	}
 	for _, c := range cases {
 		t.Run(c.name+" does not expand, saying why", func(t *testing.T) {

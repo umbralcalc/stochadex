@@ -9,12 +9,14 @@ package macros_test
 // time.
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/agents"
 	"github.com/umbralcalc/stochadex/pkg/macros"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/floats"
 )
 
 func ttSpec(initState agents.TTTState, simsPerPly int, seed uint64) macros.MCTSSelfPlaySpec[agents.TTTState, agents.TTTAction] {
@@ -139,4 +141,49 @@ func TestNewMCTSSelfPlayPartitionsPanicsOnMissingCodec(t *testing.T) {
 			Players:         2,
 		},
 	)
+}
+
+// TestMCTSSelfPlayLayout checks the layout against the row format stated by
+// hand: a tree row is [best_root_idx, leaf state (10), has_leaf, visits (9),
+// wins (9)], a rollout row one score per player and a flag, and the search row
+// the two concatenated.
+func TestMCTSSelfPlayLayout(t *testing.T) {
+	root := agents.TTTState{Current: 1}
+	root.Cells[4] = 1
+	encoded := []float64{0, 0, 0, 0, 1, 0, 0, 0, 0, 1}
+	tree := append(append([]float64{0}, encoded...), make([]float64, 19)...)
+	search := append(append(append([]float64{-1}, encoded...), make([]float64, 19)...), 0, 0, 0)
+
+	t.Run("an unset search budget takes 50 simulations per ply", func(t *testing.T) {
+		layout := macros.NewMCTSSelfPlayLayout(ttSpec(root, 0, 6))
+		if layout.SimsPerPly != 50 {
+			t.Errorf("SimsPerPly = %d, want 50", layout.SimsPerPly)
+		}
+		for name, pair := range map[string][2][]float64{
+			"ApplyInit":   {layout.ApplyInit, encoded},
+			"TreeInit":    {layout.TreeInit, tree},
+			"RolloutInit": {layout.RolloutInit, {0, 0, 0}},
+			"SearchInit":  {layout.SearchInit, search},
+		} {
+			if !floats.Equal(pair[0], pair[1]) {
+				t.Errorf("%s = %v, want %v", name, pair[0], pair[1])
+			}
+		}
+		if got := fmt.Sprint(layout.LeafIndices); got != "[1 2 3 4 5 6 7 8 9 10 11]" {
+			t.Errorf("LeafIndices = %s", got)
+		}
+		if got := fmt.Sprint(layout.RootStateIndices); got != "[0 1 2 3 4 5 6 7 8 9]" {
+			t.Errorf("RootStateIndices = %s", got)
+		}
+		if layout.BestIdxSlot != 0 || layout.Seed != 6 || layout.RolloutSeed != 7 {
+			t.Errorf("BestIdxSlot, Seed, RolloutSeed = %d, %d, %d; want 0, 6, 7",
+				layout.BestIdxSlot, layout.Seed, layout.RolloutSeed)
+		}
+	})
+
+	t.Run("a set search budget stands", func(t *testing.T) {
+		if got := macros.NewMCTSSelfPlayLayout(ttSpec(root, 12, 6)).SimsPerPly; got != 12 {
+			t.Errorf("SimsPerPly = %d, want 12", got)
+		}
+	})
 }

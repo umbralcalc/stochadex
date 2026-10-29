@@ -49,21 +49,35 @@ func (s *mctsSelfPlaySpec) resolve(
 func (s *mctsSelfPlaySpec) resolveLive(
 	*simulator.StateTimeStorage,
 ) ([]*simulator.PartitionConfig, int, float64, error) {
-	if s.Name == "" {
-		return nil, 0, 0, fmt.Errorf("mcts_self_play needs a name: (it prefixes the partition names)")
-	}
-	if s.Steps <= 0 {
-		return nil, 0, 0, fmt.Errorf("mcts_self_play needs steps: > 0 (the number of plies to play)")
-	}
-	if s.Env.IsZero() {
-		return nil, 0, 0, fmt.Errorf(
-			"mcts_self_play needs an env: {type: ...} naming a registered environment")
-	}
-	environment, err := ResolveEnvironment(s.Env)
+	environment, err := s.environment()
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	partitions := environment.selfPlay(macros.MCTSSearchSettings{
+	timestep := s.Timestep
+	if timestep == 0 {
+		timestep = 1.0
+	}
+	return environment.selfPlay(s.settings()), s.Steps, timestep, nil
+}
+
+// environment checks the spec and builds the environment it names.
+func (s *mctsSelfPlaySpec) environment() (MCTSEnvironment, error) {
+	if s.Name == "" {
+		return nil, fmt.Errorf("mcts_self_play needs a name: (it prefixes the partition names)")
+	}
+	if s.Steps <= 0 {
+		return nil, fmt.Errorf("mcts_self_play needs steps: > 0 (the number of plies to play)")
+	}
+	if s.Env.IsZero() {
+		return nil, fmt.Errorf(
+			"mcts_self_play needs an env: {type: ...} naming a registered environment")
+	}
+	return ResolveEnvironment(s.Env)
+}
+
+// settings are the search settings the config states.
+func (s *mctsSelfPlaySpec) settings() macros.MCTSSearchSettings {
+	return macros.MCTSSearchSettings{
 		Name:            s.Name,
 		SimsPerPly:      s.SimsPerPly,
 		Simulations:     s.Simulations,
@@ -71,10 +85,5 @@ func (s *mctsSelfPlaySpec) resolveLive(
 		MaxTreeDepth:    s.MaxTreeDepth,
 		RolloutMaxSteps: s.RolloutMaxSteps,
 		Seed:            s.Seed,
-	})
-	timestep := s.Timestep
-	if timestep == 0 {
-		timestep = 1.0
 	}
-	return partitions, s.Steps, timestep, nil
 }

@@ -277,16 +277,36 @@ func (s *mctsPlanningSpec) resolve(
 func (s *mctsPlanningSpec) resolveLive(
 	storage *simulator.StateTimeStorage,
 ) ([]*simulator.PartitionConfig, int, float64, error) {
-	if s.Name == "" {
-		return nil, 0, 0, fmt.Errorf("mcts_planning needs a name: (it prefixes the partition names)")
-	}
-	if s.Steps <= 0 {
-		return nil, 0, 0, fmt.Errorf("mcts_planning needs steps: > 0 (the number of decisions to take)")
-	}
-	environment, err := s.simulationEnvironmentSpec.build(storage, "mcts_planning")
+	environment, err := s.environment(storage)
 	if err != nil {
 		return nil, 0, 0, err
 	}
+	timestep := s.Timestep
+	if timestep == 0 {
+		timestep = 1.0
+	}
+	return macros.NewMCTSSelfPlayPartitions(s.search(environment)), s.Steps, timestep, nil
+}
+
+// environment checks the spec and builds its decision problem; storage is what
+// parameters.samples_from and weights_from read.
+func (s *mctsPlanningSpec) environment(
+	storage *simulator.StateTimeStorage,
+) (*simulationEnvironment, error) {
+	if s.Name == "" {
+		return nil, fmt.Errorf("mcts_planning needs a name: (it prefixes the partition names)")
+	}
+	if s.Steps <= 0 {
+		return nil, fmt.Errorf("mcts_planning needs steps: > 0 (the number of decisions to take)")
+	}
+	return s.simulationEnvironmentSpec.build(storage, "mcts_planning")
+}
+
+// search is the planner's search over its environment, the config's settings
+// applied over the environment's defaults.
+func (s *mctsPlanningSpec) search(
+	environment *simulationEnvironment,
+) macros.MCTSSelfPlaySpec[[]float64, int] {
 	typed := environment.typed()
 
 	selfPlay := macros.MCTSSelfPlaySpec[[]float64, int]{
@@ -316,12 +336,7 @@ func (s *mctsPlanningSpec) resolveLive(
 		RolloutMaxSteps: s.RolloutMaxSteps,
 		Seed:            s.Seed,
 	})
-
-	timestep := s.Timestep
-	if timestep == 0 {
-		timestep = 1.0
-	}
-	return macros.NewMCTSSelfPlayPartitions(selfPlay), s.Steps, timestep, nil
+	return selfPlay
 }
 
 // build validates the decision problem and builds its environment. what names
