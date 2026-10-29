@@ -1,0 +1,116 @@
+{
+  "go": "go1.25.2",
+  "configs": {
+    ".claude/skills/stochadex-model/recipes/evolution_strategy_optimisation.yaml": {
+      "times": "5e0924ec4ae801801cc5f532c4439777a9a810c1883ec4e8cd38848d8d43f2dc",
+      "partitions": {
+        "es_covariance": "1001x4 d5db0e0dc8b8bc7611703922769730d3d619a1be296c34468d4717c748132517",
+        "es_mean": "1001x2 a2162a9744fe27ea074b20c05c8c5740b48c2101830300ce3a5e702f102059c0",
+        "es_sampler": "1001x2 c1acc06596653d52e2400491daf0bdd1080916082fdf7f1feb6714cf95609db6",
+        "es_sampler_simulation": "1001x2 e987b4299dc55df05ea1a9bb11ba40995543a17ef1427320055ff0938d55163c",
+        "es_sorting": "1001x30 b89f200f8a8f655aa8e5cff92e89b1b595c7d512071721a613867c7cfa34190e"
+      }
+    },
+    ".claude/skills/stochadex-model/recipes/posterior_estimation.yaml": {
+      "times": "b833a6113b55b2396ffd0f69f47cc232e8cf5cb3d6e601caff363c17ea75afcf",
+      "partitions": {
+        "test_data": "2001x2 ff3abc3957a9185ad0d4ac40cd50f82ee389100e985ea696bd212494bf3c048f",
+        "test_likelihood": "2001x3 14351e7c0ff4cbfe141c3e17a4b567edd94b2a5cdeb322ac49a2079c9245fd4c",
+        "test_post_cov": "2001x4 4ad359ca5df73b49c69590c1c21071540724526b2037186211e482ed7ba5d374",
+        "test_post_log_norm": "2001x1 7e81a95af30ae18fffe92be6bd3621926b0ca62c82b29613408188dc725bc856",
+        "test_post_mean": "2001x2 7fd80553b541c11cafc0e72b47a477eca1e458f1650ecce351c66af50dcb65f9",
+        "test_post_sampler": "2001x2 f2e3440ddadb1f834f4e7a8091f5f6bdb71bdd222e537c81f6380fd857c8b426"
+      }
+    },
+    ".claude/skills/stochadex-model/recipes/scalar_regression_stats.yaml": {
+      "times": "358350098173667478f9c5664d6568c0051b2e2c5bda905004e40c3519dc5ca5",
+      "partitions": {
+        "ols": "401x9 99193838777f865e0c3ed864fab470125cc4f84114a351d9625a896e062ebfb0",
+        "x": "401x1 8539a0d24dad67de343816efb15be278419203d51d15157173b3d069ce3871de",
+        "y": "401x1 153eef2fa023cfd4a48073c5466fa7fc5660280b007eec579638055ea2c31fe6"
+      }
+    },
+    ".claude/skills/stochadex-model/recipes/smc_inference.yaml": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "smc_posterior": "4x3 f7ee86cb87921161f5ef826b8dd08d041b7914794010e3013e7d23e11b688a98",
+        "smc_proposals": "4x100 61fb889d4baee2de275801ac7007ecf27cff3dd90bd433f658b9c883f188d3ec",
+        "smc_sim": "4x100 6628bd645438527e422ab6f4053f7df169e25663c12163c60f455805bc7554c7"
+      }
+    },
+    "cfg/example_data_source_config.yaml": {
+      "times": "be776b78659ed8e3c8128994c57e6200be051ab49ec6ee7b21fb026d50325e94",
+      "partitions": {
+        "rolling_mean": "301x2 8766d183df8a59fac21b0d50791d82b690e9e815edba413677334d349cf04ef5",
+        "stream": "301x2 49dfc976d0f80d3dd0ece7509f8546cd34cdfa10eda7ed638dd93b7acf4aee0e"
+      }
+    },
+    "cfg/example_evolution_strategy_config.yaml": {
+      "times": "5e0924ec4ae801801cc5f532c4439777a9a810c1883ec4e8cd38848d8d43f2dc",
+      "partitions": {
+        "es_covariance": "1001x4 d5db0e0dc8b8bc7611703922769730d3d619a1be296c34468d4717c748132517",
+        "es_mean": "1001x2 a2162a9744fe27ea074b20c05c8c5740b48c2101830300ce3a5e702f102059c0",
+        "es_sampler": "1001x2 c1acc06596653d52e2400491daf0bdd1080916082fdf7f1feb6714cf95609db6",
+        "es_sampler_simulation": "1001x2 e987b4299dc55df05ea1a9bb11ba40995543a17ef1427320055ff0938d55163c",
+        "es_sorting": "1001x30 b89f200f8a8f655aa8e5cff92e89b1b595c7d512071721a613867c7cfa34190e"
+      }
+    },
+    "cfg/example_macro_config.yaml": {
+      "times": "145a872587ccca6a0ffeaee5abcea097514f12a247a39c2c9fd46c46a81850c2",
+      "partitions": {
+        "data_stream": "501x2 2de25795e2d2c527b699917a71cdf8067f62a70366e873028977bf8ab53ef45e",
+        "rolling_mean": "501x2 be9493213a85b6aec2703f29565714329c273fc6ec032d629579c70dd4d39b94",
+        "rolling_var": "501x2 bbf6c437027d47deba7cfd8de5a5db611b17114cd4dd6a08e48f7675cc75b784"
+      }
+    },
+    "cfg/example_mcts_config.yaml": {
+      "times": "3dbc2fdc66220c3b107b457314da5528f1a0814ec381aee2ae06d112766e415c",
+      "partitions": {
+        "ttt_apply": "11x10 a089cd82d2603985be8ba98e08e53ad14d5f2339094dd8cda41b82f499af23e8",
+        "ttt_search": "11x33 b774b46e50f6799b3a774bb5a93429f8fc51a77b6c683b142dc400d44c9e69fc"
+      }
+    },
+    "cfg/example_planning_config.yaml": {
+      "times": "13a22b00aae835fa4eb3b20bb56a5c6fddd903cb629afeb30112fc4719b05950",
+      "partitions": {
+        "plan_apply": "9x7 43da0023f393a2b342dd68603bbc3b8f10936cb391e0949efb3f000887f23fce",
+        "plan_search": "9x17 a2cc8e671a202a2c955cf8b8e000dbd57819fe68076e582529d1681647d35b6a"
+      }
+    },
+    "cfg/example_posterior_macro_config.yaml": {
+      "times": "b833a6113b55b2396ffd0f69f47cc232e8cf5cb3d6e601caff363c17ea75afcf",
+      "partitions": {
+        "test_data": "2001x2 ff3abc3957a9185ad0d4ac40cd50f82ee389100e985ea696bd212494bf3c048f",
+        "test_likelihood": "2001x3 14351e7c0ff4cbfe141c3e17a4b567edd94b2a5cdeb322ac49a2079c9245fd4c",
+        "test_post_cov": "2001x4 4ad359ca5df73b49c69590c1c21071540724526b2037186211e482ed7ba5d374",
+        "test_post_log_norm": "2001x1 7e81a95af30ae18fffe92be6bd3621926b0ca62c82b29613408188dc725bc856",
+        "test_post_mean": "2001x2 7fd80553b541c11cafc0e72b47a477eca1e458f1650ecce351c66af50dcb65f9",
+        "test_post_sampler": "2001x2 f2e3440ddadb1f834f4e7a8091f5f6bdb71bdd222e537c81f6380fd857c8b426"
+      }
+    },
+    "cfg/example_regression_config.yaml": {
+      "times": "358350098173667478f9c5664d6568c0051b2e2c5bda905004e40c3519dc5ca5",
+      "partitions": {
+        "ols": "401x9 99193838777f865e0c3ed864fab470125cc4f84114a351d9625a896e062ebfb0",
+        "x": "401x1 8539a0d24dad67de343816efb15be278419203d51d15157173b3d069ce3871de",
+        "y": "401x1 153eef2fa023cfd4a48073c5466fa7fc5660280b007eec579638055ea2c31fe6"
+      }
+    },
+    "cfg/example_smc_config.yaml": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "smc_posterior": "4x3 f7ee86cb87921161f5ef826b8dd08d041b7914794010e3013e7d23e11b688a98",
+        "smc_proposals": "4x100 61fb889d4baee2de275801ac7007ecf27cff3dd90bd433f658b9c883f188d3ec",
+        "smc_sim": "4x100 6628bd645438527e422ab6f4053f7df169e25663c12163c60f455805bc7554c7"
+      }
+    },
+    "cfg/example_state_space_count_config.yaml": {
+      "times": "84a6e8b7afdd286a48ab0aab2c72227fff91a935b0489e633018914bd01693cd",
+      "partitions": {
+        "smc_posterior": "6x7 71fb09d083c90743a55286f64f64932d604fb186c571fcc5c4299dfa9dfda68a",
+        "smc_proposals": "6x400 45524b95b04311d7e4d4d86413e0135fbc398c17e8d08424e4b5b970310aa815",
+        "smc_sim": "6x200 ed49175e4fc95a825344339b2f773706b8b535fdbb4730ad6be0cde4e3d1a70f"
+      }
+    }
+  }
+}
