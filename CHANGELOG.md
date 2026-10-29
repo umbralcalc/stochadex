@@ -111,6 +111,26 @@ an exact version rather than assume stability across minors.
 
 ### Changed
 
+- **A window data partition replayed with more history than the window is now a config
+  error, on both paths.** It used to log a warning and run on. The window replays its data
+  from the bottom of that history, so the extra rows anchor it in rows that are still zero
+  and lag the data from then on. The likelihood comes out near-constant and carries no
+  information, the posterior freezes at its prior, and a planner sampling that posterior
+  plans on it. The macro tier and its expansion produced the same meaningless rows, and
+  the expansion said nothing at all. Now `window_data_history_depth` above `window.depth`
+  fails `RunToStorage` (and `RunWith`) and `Expand` with `ErrConfig`. The error names the
+  partition and says to set its history depth equal to the window's depth. The public
+  `macros.ValidateWindowDataHistoryDepth`, and the `macros.New*Partition(s)` constructors
+  given a `WindowDataHistoryDepth`, panic in the same case.
+
+  No legitimate config needs the deeper history. Each macro replays its own copy of the
+  data at its own depth, and the expansion already refuses two macros that read the same
+  partition over different windows, so nothing else shares the replay. Every shipped config,
+  skill recipe and test fixture already sets the two depths equal, and so do the downstream
+  configs that set one (antimicrobial-resistance, cryptobook). A window that reads its data
+  live, such as a `likelihood_mean_function_fit` whose window lists no `data`, replays
+  nothing and is not checked.
+
 - **`likelihood_comparison`, `posterior_estimation` and `likelihood_mean_function_fit` run
   about 3× faster.** Each of these re-runs its comparison window's inner steps at every
   step, and that window ran on the default execution strategy, which starts goroutines for

@@ -61,7 +61,7 @@ type PosteriorSampler struct {
 // PosteriorLogNormalisationIteration until history rolls). Override with
 // Comparison.EmbeddedBurnInSteps. Optional Comparison.WindowDataHistoryDepth
 // opts into a setup-time check that each Window.Data source partition’s
-// StateHistoryDepth is at least Window.Depth.
+// StateHistoryDepth equals Window.Depth.
 type AppliedPosteriorEstimation struct {
 	LogNorm      PosteriorLogNorm
 	Mean         PosteriorMean

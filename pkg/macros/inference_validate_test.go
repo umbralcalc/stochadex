@@ -110,13 +110,20 @@ func TestAssertWindowDataSourcesDeepEnough(t *testing.T) {
 			})
 		})
 	})
-	t.Run("a partition deeper than the window is warned about", func(t *testing.T) {
-		// Too deep cannot underflow, so it runs — and silently replays zeros.
-		// The warning is the only signal the user gets, so it must fire.
-		wantLog(t, "StateHistoryDepth 50 > Window.Depth 5", func() {
-			wantNoPanic(t, func() {
-				assertWindowDataSourcesDeepEnough(5, refs, map[string]int{"obs": 50})
-			})
+	t.Run("a partition deeper than the window is rejected, naming the fix", func(t *testing.T) {
+		// Too deep cannot underflow, so it would run — and silently replay
+		// zeros. It has to stop the run instead, and say what to set.
+		wantPanic(t, `"obs" has StateHistoryDepth 50 > Window.Depth 5; the window would replay `+
+			`zero-filled rows for the first 48 steps and lag the data by 45 steps thereafter, so the `+
+			`likelihood would be near-constant and carry no information — set its history depth `+
+			`equal to Window.Depth (5)`, func() {
+			assertWindowDataSourcesDeepEnough(5, refs, map[string]int{"obs": 50})
+		})
+	})
+	t.Run("one past the window is already too deep", func(t *testing.T) {
+		// Boundary: depth == window + 1 lags the data by a step.
+		wantPanic(t, "StateHistoryDepth 6 > Window.Depth 5", func() {
+			assertWindowDataSourcesDeepEnough(5, refs, map[string]int{"obs": 6})
 		})
 	})
 }
@@ -153,11 +160,9 @@ func TestValidateWindowDataHistoryDepth(t *testing.T) {
 			})
 		})
 	})
-	t.Run("a partition deeper than the window is warned about", func(t *testing.T) {
-		wantLog(t, "carry no information", func() {
-			wantNoPanic(t, func() {
-				ValidateWindowDataHistoryDepth(4, map[string]int{"obs": 2000}, refs)
-			})
+	t.Run("a partition deeper than the window is rejected, naming the fix", func(t *testing.T) {
+		wantPanic(t, "set its history depth equal to Window.Depth (4)", func() {
+			ValidateWindowDataHistoryDepth(4, map[string]int{"obs": 2000}, refs)
 		})
 	})
 }
