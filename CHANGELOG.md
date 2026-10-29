@@ -68,6 +68,22 @@ an exact version rather than assume stability across minors.
   `mcts_planning` reading `samples_from` or `weights_from`. `macros.NewMCTSSelfPlayLayout`
   gives the values `NewMCTSSelfPlayPartitions` wires its partitions with.
 
+- **`smc_inference` expands into the core language, so every macro now does.** Its expansion
+  runs exactly as the macro tier does: the proposals, the particles (a
+  `replicated_simulation_run` of the model) and the posterior, on the macro's own clock. Each
+  particle replays the observed data from its input with `{type: from_input}`, on that input's
+  clock, instead of a copy of the series, so the expansion carries no data. The expanded run
+  replays no input itself, and a later macro cannot read one, as in the macro tier, where SMC's
+  output replaces the inputs'. Expanding is now part of every macro spec, so a new macro
+  cannot be added without one.
+
+- **A nested run can read an input.** `{type: from_input}`, and a `from_input` clock with
+  `input_exhausted`, now work inside an `embedded_simulation_run`'s or a
+  `replicated_simulation_run`'s `run:` and in `embedded:` runs, at any depth, replaying the whole
+  input at every outer step. Such a run states its replay's `init_state_values`, since it is
+  built before the input is read; a width that does not match the input's rows fails the run
+  as `ErrData`. Each ensemble member binds its own.
+
 ### Changed
 
 - **`likelihood_comparison`, `posterior_estimation` and `likelihood_mean_function_fit` run

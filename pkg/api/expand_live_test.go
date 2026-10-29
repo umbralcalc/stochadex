@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -71,6 +73,12 @@ func esConfig(t *testing.T, replacements ...string) string {
 		readFile(t, "../../cfg/example_evolution_strategy_config.yaml"))
 }
 
+// smcConfig is cfg/example_smc_config.yaml with the given replacements.
+func smcConfig(t *testing.T, replacements ...string) string {
+	t.Helper()
+	return strings.NewReplacer(replacements...).Replace(readFile(t, "../../cfg/example_smc_config.yaml"))
+}
+
 // planningMacro is testdata/planning/planning_macro.yaml's macro entry alone,
 // to follow another.
 func planningMacro(t *testing.T) string {
@@ -85,6 +93,8 @@ func TestExpandLiveMacros(t *testing.T) {
 		"../../cfg/example_mcts_config.yaml",
 		"../../cfg/example_planning_config.yaml",
 		"testdata/planning/planning_macro.yaml",
+		"../../cfg/example_smc_config.yaml",
+		"testdata/replicated/smc_macro.yaml",
 	} {
 		t.Run(path+" expands exactly", func(t *testing.T) {
 			expandedAlike(t, readFile(t, path))
@@ -185,6 +195,92 @@ func TestExpandLiveMacros(t *testing.T) {
 			"  sims_per_decision: 60\n", "  sims_per_decision: 60\n  pinned_noise: true\n  timestep: 0.5\n", 1))
 	})
 
+	t.Run("SMC runs as its hand-written twin does", func(t *testing.T) {
+		written, err := RunToStorage(writeConfig(t, readFile(t, "testdata/replicated/smc_twin.yaml")))
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertStoragesEqual(t, "twin", expandedRun(t, readFile(t, "testdata/replicated/smc_macro.yaml")).Storage,
+			written.Storage)
+	})
+
+	t.Run("the expanded SMC recovers the observed stream's mean", func(t *testing.T) {
+		// The observed stream is drawn around a mean of 2.
+		posterior := expandedRun(t, readFile(t, "../../cfg/example_smc_config.yaml")).
+			Storage.GetValues("smc_posterior")
+		if got := posterior[len(posterior)-1][0]; math.Abs(got-2.0) > 0.5 {
+			t.Errorf("posterior mean %v, want ~2", got)
+		}
+	})
+
+	t.Run("SMC over a file input on its own clock", func(t *testing.T) {
+		csv := filepath.Join(t.TempDir(), "obs.csv")
+		rows := []string{}
+		for i := 0; i < 30; i++ {
+			rows = append(rows, fmt.Sprintf("%g,%g", 5+0.5*float64(i), 2+math.Sin(float64(i))))
+		}
+		if err := os.WriteFile(csv, []byte(strings.Join(rows, "\n")+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		// The prediction drifts with time, so the particles' clock must start
+		// where the input does.
+		config := smcConfig(t, `      iteration: {type: param_values}
+      params: {param_values: [0.0]}`, `      iteration: {type: expression, fields: [{name: p}], outputs: ["param_values[0] + 0.1 * (t + dt - 5)"]}
+      params: {param_values: [0.0]}`)
+		expandedAlike(t, fmt.Sprintf("inputs:\n  data:\n    source: {csv: {path: %q, time_column: 0, state_columns: {obs: [1]}}}\n", csv)+
+			config[strings.Index(config, "macros:"):])
+	})
+
+	t.Run("SMC observing a partition whose name YAML 1.1 reads as a boolean", func(t *testing.T) {
+		// The name is written into the replay's fields, which load untyped, so
+		// it must be written quoted to load back as the name y.
+		expandedAlike(t, smcConfig(t, "      - name: obs\n", "      - name: \"y\"\n",
+			"ref: {partition_name: obs}", "ref: {partition_name: \"y\"}"))
+	})
+
+	t.Run("SMC over two parameters, then an analysis of its posterior", func(t *testing.T) {
+		expandedAlike(t, smcConfig(t,
+			"priors: [{type: uniform, lo: -5.0, hi: 10.0}]", "priors: [{type: uniform, lo: -5.0, hi: 10.0}, {type: uniform, lo: 0.1, hi: 2.0}]",
+			"param_names: [mean]", "param_names: [mean, variance]",
+			"num_particles: 100", "num_particles: 20",
+			`"pred/param_values": [0]`, `"pred/param_values": [0]`+"\n      \"loglike/variance\": [1]",
+		)+"- {type: vector_mean, name: m, data: {partition_name: smc_posterior}, window: 2}\n")
+	})
+
+	t.Run("SMC over a model stating its own simulation, with no inputs, verbosely", func(t *testing.T) {
+		expandedAlike(t, `macros:
+- type: smc_inference
+  proposal_name: p
+  sim_name: s
+  posterior_name: q
+  num_particles: 4
+  num_rounds: 2
+  seed: 3
+  verbose: true
+  timestep: 0.5
+  priors: [{type: uniform, lo: 0.0, hi: 4.0}]
+  param_names: [mean]
+  model:
+    simulation:
+      output_condition: {type: nil}
+      output_function: {type: nil}
+      termination_condition: {type: number_of_steps, max_steps: 6}
+      timestep_function: {type: constant, stepsize: 1.0}
+      init_time_value: 1.0
+    partitions:
+    - {name: target, iteration: {type: expression, fields: [{name: level}], outputs: ["2 + 0.1 * t"]}, init_state_values: [2.0], state_history_depth: 2}
+    - {name: pred, iteration: {type: param_values}, params: {param_values: [0.0]}, init_state_values: [0.0], state_history_depth: 2}
+    - name: loglike
+      iteration: {type: data_comparison, likelihood: {type: normal}}
+      params: {mean: [0.0], variance: [0.5], latest_data_values: [2.0], cumulative: [1], burn_in_steps: [0]}
+      params_from_upstream: {mean: {upstream: pred}, latest_data_values: {upstream: target}}
+      init_state_values: [0.0]
+      state_history_depth: 2
+    loglike_partition: loglike
+    param_forwarding: {"pred/param_values": [0]}
+`)
+	})
+
 	cases := []struct{ name, yaml, want string }{
 		{"an evolution strategy whose window reads data",
 			esConfig(t, "    partitions:\n", "    data: [{partition_name: x}]\n    partitions:\n"),
@@ -225,6 +321,33 @@ func TestExpandLiveMacros(t *testing.T) {
 				"- {type: mcts_self_play, name: b, steps: 2, env: {type: tictactoe}}\n",
 			"macros[0] (mcts_self_play) and macros[1] (mcts_self_play) each run their own clock; " +
 				"one run has one clock, so a second macro with its own does not expand"},
+		{"SMC observing data, with no inputs",
+			"macros:\n" + smcConfig(t)[strings.Index(smcConfig(t), "- type: smc_inference"):],
+			`smc_inference model.observed_data reads "obs", which no input supplies`},
+		{"SMC over a model stating its own simulation, beside inputs it does not read",
+			strings.Replace(smcConfig(t), "    observed_data: {name: observed_data, ref: {partition_name: obs}}\n",
+				"    simulation: {output_condition: {type: nil}, output_function: {type: nil}, "+
+					"termination_condition: {type: number_of_steps, max_steps: 3}, timestep_function: {type: constant, stepsize: 1.0}}\n", 1),
+			"macros[0] (smc_inference) runs its own clock beside the config's inputs"},
+		{"an analysis before SMC (calibrate, then infer)",
+			strings.Replace(smcConfig(t), "macros:\n", "macros:\n- {type: vector_mean, name: m, data: {partition_name: obs}, window: 2}\n", 1),
+			"macros[1] (smc_inference) runs its own clock beside the config's inputs"},
+		{"an analysis after SMC of an input it does not replay",
+			smcConfig(t) + "- {type: vector_mean, name: m, data: {partition_name: obs}, window: 2}\n",
+			`no partition "obs" to read`},
+		{"SMC with an unknown prior",
+			smcConfig(t, "{type: uniform, lo: -5.0, hi: 10.0}", "{type: cauchy}"),
+			"smc_inference prior 0:"},
+		{"SMC over a model whose simulation is not all data",
+			"macros:\n- {type: smc_inference, proposal_name: p, sim_name: s, posterior_name: q, num_particles: 2, num_rounds: 1, " +
+				"priors: [{type: uniform, lo: 0.0, hi: 1.0}], param_names: [m], model: {partitions: [], loglike_partition: l}}\n",
+			"smc_inference model.simulation must be fully data specs (or set observed_data)"},
+		{"SMC over a model partition with no iteration",
+			smcConfig(t, `    - name: "pred"
+      iteration: {type: param_values}
+`, `    - name: "pred"
+`),
+			`partition "pred" needs an iteration: {type: ...}`},
 		{"an analysis before the macro with the clock",
 			"macros:\n- {type: vector_mean, name: m, data: {partition_name: ttt_apply}, window: 2}\n" +
 				"- {type: mcts_self_play, name: ttt, steps: 2, env: {type: tictactoe}}\n",

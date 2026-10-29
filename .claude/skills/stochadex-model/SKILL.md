@@ -265,8 +265,10 @@ main:
 ```
 
 `from_input` replays the input partition of the same name; `partition:` renames it, and
-`init_state_values` default to its first row. Every declared input must be used on the `main:`
-path.
+`init_state_values` default to its first row. A nested run (an `embedded_simulation_run`'s or
+`replicated_simulation_run`'s `run:`, or an `embedded:` run) can replay an input too, and run on
+its clock, replaying the whole input at every outer step; there, state `init_state_values`, since
+the run is built before the input is read. Every declared input must be used.
 
 To set a **param** from an input instead (no extra partition; cheaper), declare it and bind it:
 `params: {variances: [1.0]}, params_from_input: {variances: {input: obs}}` (step *k* gets row

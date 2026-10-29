@@ -30,10 +30,12 @@ import (
 
 // macroSpec is a typed macro configuration that resolves, against storage, into
 // the partitions the macro contributes and the window sizes those partitions need
-// when replayed against storage.
+// when replayed against storage; and that expands into core-language config
+// (see expand.go).
 type macroSpec interface {
 	resolve(storage *simulator.StateTimeStorage) (
 		partitions []*simulator.PartitionConfig, windows map[string]int, err error)
+	expand(ctx *expansionContext) (*expansion, error)
 }
 
 // macroSpecFactories maps a macro type to a factory for its empty typed spec.

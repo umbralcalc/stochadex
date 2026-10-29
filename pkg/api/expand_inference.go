@@ -19,7 +19,7 @@ import (
 // config states) written back out as data.
 func partitionAsData(partition simulator.PartitionConfig) (expandedPartition, error) {
 	if !partition.IterationSpec.IsData() {
-		return expandedPartition{}, fmt.Errorf("window partition %q needs an iteration: {type: ...}",
+		return expandedPartition{}, fmt.Errorf("partition %q needs an iteration: {type: ...}",
 			partition.Name)
 	}
 	return expandedPartition{

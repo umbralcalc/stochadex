@@ -362,29 +362,6 @@ func TestInputSpecsAndGuards(t *testing.T) {
 		{"an input with neither source nor simulation", inputsConfig("  src: {}", replay), "exactly one of"},
 		{"a simulation input that also sets a source", inputsConfig(simulationInput+
 			"\n      source: {json_log: {path: x.log}}", replay), "cannot also set source:"},
-		{"from_input inside an embedded run", `inputs:
-` + simulationInput + `
-main:
-  partitions:
-  - {name: inner_run, params: {burn_in_steps: [0]}, init_state_values: [0.0, 0.0], state_history_depth: 1, seed: 0}
-  - {name: replay, iteration: {type: from_input, input: src, partition: source}, state_history_depth: 1, seed: 0}
-  simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
-    termination_condition: {type: number_of_steps, max_steps: 2}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
-embedded:
-- name: inner_run
-  partitions:
-  - {name: p, iteration: {type: from_input, input: src, partition: source}, state_history_depth: 1, seed: 0}
-  simulation:
-    output_condition: {type: nil}
-    output_function: {type: nil}
-    termination_condition: {type: number_of_steps, max_steps: 2}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
-`, "not yet supported inside embedded runs"},
 	}
 	for _, c := range loadErrors {
 		t.Run(c.name+" is a config error at load", func(t *testing.T) {

@@ -18,6 +18,11 @@ import (
 //	         macro's partitions, in order, clocked by the inputs' timestamps
 //	outputs: the config's outputs, unchanged
 //
+// A first macro with a clock of its own (evolution strategy, MCTS, SMC) clocks
+// the run instead, its steps of its timestep from time zero; the run then
+// replays no input, which only such a macro's own runs may read (SMC's
+// particles replay their observed data from an input, on its clock).
+//
 // An expansion sees only config: the partitions it may read and their widths
 // (an expansionContext), never stored values. A later macro reads an earlier
 // one's partitions live, in the same run, instead of a replay of its recorded
@@ -38,6 +43,10 @@ type expansionContext struct {
 	stored func() (*simulator.StateTimeStorage, error)
 	// source is the macro being expanded, as the config writes it.
 	source *yaml3.Node
+	// owners names the input each input partition comes from, and initTime
+	// is the time the inputs start at.
+	owners   map[string]string
+	initTime float64
 }
 
 // firstRow is a visible partition's first row.
@@ -94,11 +103,6 @@ type expansion struct {
 	depths map[string]int
 	// clock is the run's clock, for a macro that runs its own.
 	clock *expandedClock
-}
-
-// expandingMacro is a macro that expands into core-language config.
-type expandingMacro interface {
-	expand(ctx *expansionContext) (*expansion, error)
 }
 
 // expandedPartition is one partition of an expansion, as data.
@@ -259,6 +263,8 @@ func oneClock(config *ApiRunConfig, hasInputs bool) error {
 		return fmt.Sprintf("macros[%d] (%s)", index, config.Macros[index].Type)
 	}
 	switch {
+	case len(clocked) == 1 && hasInputs && readsInputsInside(config.Macros[0]):
+		return nil
 	case len(clocked) > 0 && hasInputs:
 		return configError(fmt.Errorf("api: %s runs its own clock beside the config's "+
 			"inputs, which run another; one run has one clock, and a macro with its own "+
@@ -274,17 +280,25 @@ func oneClock(config *ApiRunConfig, hasInputs bool) error {
 	return nil
 }
 
+// insideReader is a macro with its own clock that reads the inputs only inside
+// runs of its own, so the run it expands into needs no replay of them.
+type insideReader interface {
+	readsInputsInside() bool
+}
+
+// readsInputsInside reports that a macro reads the inputs only inside runs of
+// its own.
+func readsInputsInside(macro MacroConfig) bool {
+	reader, ok := macro.Spec.(insideReader)
+	return ok && reader.readsInputsInside()
+}
+
 // ExpandToYAML writes a macros: config out in the core language: one run, as
-// YAML a person could have written. Every macro must expand; one that does
-// not yet is an error naming it.
+// YAML a person could have written. Every macro expands; a config whose macros
+// cannot run as one run with one clock (see oneClock) is an error saying why.
 func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 	if len(config.Macros) == 0 {
 		return nil, configError(fmt.Errorf("api: the config has no macros: to expand"))
-	}
-	for _, macro := range config.Macros {
-		if _, ok := macro.Spec.(expandingMacro); !ok {
-			return nil, configError(fmt.Errorf("api: macro %q does not expand yet", macro.Type))
-		}
 	}
 	inputs := macroInputs(config)
 	if err := oneClock(config, len(inputs) > 0); err != nil {
@@ -309,7 +323,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		return storage, nil
 	}
 	owners := map[string]string{}
-	var initTime float64
+	context.owners = owners
 	if err := sameInputTimes(inputs, names); err != nil {
 		return nil, err
 	}
@@ -319,7 +333,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 			return nil, fmt.Errorf("api: reading input %q's shape: %w", name, err)
 		}
 		// Every input shares one time axis, so any gives the clock's start.
-		initTime = shape.initTime
+		context.initTime = shape.initTime
 		for partition, width := range shape.widths {
 			context.widths[partition] = width
 			context.firstRows[partition] = shape.firstRows[partition]
@@ -334,11 +348,10 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 	depthFrom := map[string]string{}
 	for index, macro := range config.Macros {
 		which := fmt.Sprintf("macros[%d] (%s)", index, macro.Type)
-		expander := macro.Spec.(expandingMacro)
 		context.source = source.macros[index]
 		var expanded *expansion
 		err := expanding(macro.Type, func() (err error) {
-			expanded, err = expander.expand(context)
+			expanded, err = macro.Spec.expand(context)
 			return err
 		})
 		if err != nil {
@@ -346,6 +359,13 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		}
 		if expanded.clock != nil {
 			clock = expanded.clock
+			// The run steps on this macro's clock, which only its own runs
+			// read the inputs on, so nothing after it can read them.
+			for partition := range owners {
+				delete(context.widths, partition)
+				delete(context.firstRows, partition)
+				delete(context.inputs, partition)
+			}
 		}
 		for _, name := range sortedKeys(expanded.depths) {
 			depth := expanded.depths[name]
@@ -370,6 +390,9 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 
 	replays := make([]expandedPartition, 0, len(owners))
 	for _, name := range sortedKeys(owners) {
+		if clock != nil {
+			break
+		}
 		replays = append(replays, expandedPartition{
 			Name:              name,
 			Iteration:         component("from_input", map[string]interface{}{"input": owners[name]}),
@@ -392,7 +415,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		document.Main.Simulation = expandedSimulation{
 			TerminationCondition: component("input_exhausted", map[string]interface{}{"input": names[0]}),
 			TimestepFunction:     component("from_input", map[string]interface{}{"input": names[0]}),
-			InitTimeValue:        initTime,
+			InitTimeValue:        context.initTime,
 		}
 	}
 	document.Inputs, document.Outputs = source.inputs, source.outputs
@@ -400,6 +423,8 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 	encoder := yaml3.NewEncoder(&written)
 	encoder.SetIndent(2)
 	// The document is built from YAML-decoded values, so it always encodes.
+	// yaml.v3 quotes the text YAML 1.1, which configs load with, reads as a
+	// boolean (a partition named y), so it loads back as written.
 	_ = encoder.Encode(document)
 	_ = encoder.Close()
 	return written.Bytes(), nil
