@@ -316,11 +316,8 @@ func (s *mctsPlanningSpec) resolveLive(
 func (s *mctsPlanningSpec) environment(
 	storage *simulator.StateTimeStorage,
 ) (*simulationEnvironment, error) {
-	if s.Name == "" {
-		return nil, fmt.Errorf("mcts_planning needs a name: (it prefixes the partition names)")
-	}
-	if s.Steps <= 0 {
-		return nil, fmt.Errorf("mcts_planning needs steps: > 0 (the number of decisions to take)")
+	if err := s.checkSearch(); err != nil {
+		return nil, err
 	}
 	if s.Parameters != nil && ((s.Parameters.SamplesFrom != nil && s.Parameters.SamplesFrom.Input != "") ||
 		(s.Parameters.WeightsFrom != nil && s.Parameters.WeightsFrom.Input != "")) {
@@ -329,6 +326,17 @@ func (s *mctsPlanningSpec) environment(
 			"environment, which reads them when its run starts")
 	}
 	return s.simulationEnvironmentSpec.build(storage, "mcts_planning")
+}
+
+// checkSearch checks the spec names the search and how long it runs.
+func (s *mctsPlanningSpec) checkSearch() error {
+	if s.Name == "" {
+		return fmt.Errorf("mcts_planning needs a name: (it prefixes the partition names)")
+	}
+	if s.Steps <= 0 {
+		return fmt.Errorf("mcts_planning needs steps: > 0 (the number of decisions to take)")
+	}
+	return nil
 }
 
 // search is the planner's search over its environment, the config's settings

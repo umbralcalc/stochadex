@@ -249,10 +249,12 @@ func sameInputTimes(inputs map[string]InputConfig, names []string) error {
 	return nil
 }
 
-// oneClock checks the config's macros and inputs give its run one clock: the
-// inputs', or a first macro's own. A macro with its own clock replaces what ran
-// before it, in the macro tier; one run cannot, so that does not expand yet.
-func oneClock(config *ApiRunConfig, hasInputs bool) error {
+// calibrationSplit checks the config's macros and inputs give its run one
+// clock, and returns where the run starts: at 0, the inputs' clock or a first
+// macro's own; or at the one macro with a clock of its own that reads the
+// inputs inside its own runs, when other macros come before it (calibrate,
+// then plan), which then run first, as an input of their own.
+func calibrationSplit(config *ApiRunConfig, hasInputs bool) (int, error) {
 	var clocked []int
 	for index, macro := range config.Macros {
 		if _, live := macro.Spec.(liveMacroSpec); live {
@@ -263,21 +265,21 @@ func oneClock(config *ApiRunConfig, hasInputs bool) error {
 		return fmt.Sprintf("macros[%d] (%s)", index, config.Macros[index].Type)
 	}
 	switch {
-	case len(clocked) == 1 && hasInputs && readsInputsInside(config.Macros[0]):
-		return nil
-	case len(clocked) > 0 && hasInputs:
-		return configError(fmt.Errorf("api: %s runs its own clock beside the config's "+
-			"inputs, which run another; one run has one clock, and a macro with its own "+
-			"beside inputs (calibrate, then plan) does not expand yet", which(clocked[0])))
 	case len(clocked) > 1:
-		return configError(fmt.Errorf("api: %s and %s each run their own clock; one run has "+
+		return 0, configError(fmt.Errorf("api: %s and %s each run their own clock; one run has "+
 			"one clock, so a second macro with its own does not expand",
 			which(clocked[0]), which(clocked[1])))
+	case hasInputs && len(clocked) == 1 && !readsInputsInside(config.Macros[clocked[0]]):
+		return 0, configError(fmt.Errorf("api: %s runs its own clock beside the config's "+
+			"inputs, but reads none of them; one run has one clock, so it does not expand",
+			which(clocked[0])))
+	case hasInputs && len(clocked) == 1:
+		return clocked[0], nil
 	case !hasInputs && (len(clocked) == 0 || clocked[0] != 0):
-		return configError(fmt.Errorf("api: expanding needs the inputs the macros read, or " +
+		return 0, configError(fmt.Errorf("api: expanding needs the inputs the macros read, or " +
 			"a first macro that runs its own clock"))
 	}
-	return nil
+	return 0, nil
 }
 
 // insideReader is a macro with its own clock that reads the inputs only inside
@@ -295,22 +297,64 @@ func readsInputsInside(macro MacroConfig) bool {
 
 // ExpandToYAML writes a macros: config out in the core language: one run, as
 // YAML a person could have written. Every macro expands; a config whose macros
-// cannot run as one run with one clock (see oneClock) is an error saying why.
+// cannot run as one run with one clock (see calibrationSplit) is an error
+// saying why. Calibrate, then plan becomes a run: input, named calibration,
+// holding the inputs and the macros before the planner, which the planner's
+// run reads.
 func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 	if len(config.Macros) == 0 {
 		return nil, configError(fmt.Errorf("api: the config has no macros: to expand"))
 	}
 	inputs := macroInputs(config)
-	if err := oneClock(config, len(inputs) > 0); err != nil {
+	split, err := calibrationSplit(config, len(inputs) > 0)
+	if err != nil {
 		return nil, err
 	}
 	source, err := sourceNodes(config)
 	if err != nil {
 		return nil, err
 	}
-	names := sortedKeys(inputs)
+	context, err := inputsContext(inputs)
+	if err != nil {
+		return nil, err
+	}
+	document := expandedDocument{Inputs: source.inputs, Outputs: source.outputs}
+	if split > 0 {
+		calibration := expandedDocument{Inputs: source.inputs}
+		if calibration.Main, err = expandRun(config.Macros, source.macros, 0, split, context); err != nil {
+			return nil, err
+		}
+		// The planner's run reads every partition the calibration recorded.
+		for partition := range context.widths {
+			context.owners[partition] = calibrationInput
+		}
+		document.Inputs = &yaml3.Node{}
+		// The document is built from YAML-decoded values, so it always encodes.
+		_ = document.Inputs.Encode(map[string]interface{}{
+			calibrationInput: map[string]interface{}{"run": calibration}})
+	}
+	if document.Main, err = expandRun(config.Macros, source.macros, split, len(config.Macros), context); err != nil {
+		return nil, err
+	}
+	var written bytes.Buffer
+	encoder := yaml3.NewEncoder(&written)
+	encoder.SetIndent(2)
+	// yaml.v3 quotes the text YAML 1.1, which configs load with, reads as a
+	// boolean (a partition named y), so it loads back as written.
+	_ = encoder.Encode(document)
+	_ = encoder.Close()
+	return written.Bytes(), nil
+}
+
+// calibrationInput names the run: input calibrate, then plan expands its
+// calibration into.
+const calibrationInput = "calibration"
+
+// inputsContext is what an expansion knows of the inputs before any macro:
+// their partitions' shapes, the input each comes from, and the time they start.
+func inputsContext(inputs map[string]InputConfig) (*expansionContext, error) {
 	context := &expansionContext{widths: map[string]int{}, firstRows: map[string][]float64{},
-		inputs: map[string]bool{}}
+		inputs: map[string]bool{}, owners: map[string]string{}}
 	var storage *simulator.StateTimeStorage
 	context.stored = func() (*simulator.StateTimeStorage, error) {
 		if storage == nil {
@@ -322,8 +366,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		}
 		return storage, nil
 	}
-	owners := map[string]string{}
-	context.owners = owners
+	names := sortedKeys(inputs)
 	if err := sameInputTimes(inputs, names); err != nil {
 		return nil, err
 	}
@@ -338,24 +381,37 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 			context.widths[partition] = width
 			context.firstRows[partition] = shape.firstRows[partition]
 			context.inputs[partition] = true
-			owners[partition] = name
+			context.owners[partition] = name
 		}
 	}
+	return context, nil
+}
 
+// expandRun expands macros[from:to] into one run: a replay of each input
+// partition the context's owners name, then the macros' partitions, clocked by
+// the first input or by a macro's own clock, in which case nothing is replayed.
+func expandRun(
+	macros []MacroConfig,
+	sources []*yaml3.Node,
+	from, to int,
+	context *expansionContext,
+) (expandedMain, error) {
 	var partitions []expandedPartition
 	var clock *expandedClock
 	depths := map[string]int{}
 	depthFrom := map[string]string{}
-	for index, macro := range config.Macros {
+	owners := context.owners
+	for index := from; index < to; index++ {
+		macro := macros[index]
 		which := fmt.Sprintf("macros[%d] (%s)", index, macro.Type)
-		context.source = source.macros[index]
+		context.source = sources[index]
 		var expanded *expansion
 		err := expanding(macro.Type, func() (err error) {
 			expanded, err = macro.Spec.expand(context)
 			return err
 		})
 		if err != nil {
-			return nil, err
+			return expandedMain{}, err
 		}
 		if expanded.clock != nil {
 			clock = expanded.clock
@@ -370,7 +426,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		for _, name := range sortedKeys(expanded.depths) {
 			depth := expanded.depths[name]
 			if previous, set := depths[name]; set && previous != depth {
-				return nil, configError(fmt.Errorf("api: %s reads %q over a window of %d, "+
+				return expandedMain{}, configError(fmt.Errorf("api: %s reads %q over a window of %d, "+
 					"but %s reads it over %d; one run keeps one history per partition, so "+
 					"macros reading the same partition over different windows do not "+
 					"expand yet", which, name, depth, depthFrom[name], previous))
@@ -379,7 +435,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		}
 		for _, partition := range expanded.partitions {
 			if _, taken := context.widths[partition.Name]; taken {
-				return nil, configError(fmt.Errorf("api: %s names its partition %q, which "+
+				return expandedMain{}, configError(fmt.Errorf("api: %s names its partition %q, which "+
 					"the inputs or an earlier macro already have", which, partition.Name))
 			}
 			context.widths[partition.Name] = len(partition.InitStateValues)
@@ -387,47 +443,31 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 			partitions = append(partitions, partition)
 		}
 	}
-
+	for index := range partitions {
+		if depth, set := depths[partitions[index].Name]; set {
+			partitions[index].StateHistoryDepth = max(partitions[index].StateHistoryDepth, depth)
+		}
+	}
+	if clock != nil {
+		return expandedMain{Partitions: partitions, Simulation: expandedSimulation{
+			TerminationCondition: component("number_of_steps", map[string]interface{}{"max_steps": clock.steps}),
+			TimestepFunction:     component("constant", map[string]interface{}{"stepsize": clock.timestep}),
+		}}, nil
+	}
 	replays := make([]expandedPartition, 0, len(owners))
 	for _, name := range sortedKeys(owners) {
-		if clock != nil {
-			break
-		}
 		replays = append(replays, expandedPartition{
 			Name:              name,
 			Iteration:         component("from_input", map[string]interface{}{"input": owners[name]}),
 			StateHistoryDepth: max(depths[name], 1),
 		})
 	}
-	for index := range partitions {
-		if depth, set := depths[partitions[index].Name]; set {
-			partitions[index].StateHistoryDepth = max(partitions[index].StateHistoryDepth, depth)
-		}
-	}
-
-	document := expandedDocument{Main: expandedMain{Partitions: append(replays, partitions...)}}
-	if clock != nil {
-		document.Main.Simulation = expandedSimulation{
-			TerminationCondition: component("number_of_steps", map[string]interface{}{"max_steps": clock.steps}),
-			TimestepFunction:     component("constant", map[string]interface{}{"stepsize": clock.timestep}),
-		}
-	} else {
-		document.Main.Simulation = expandedSimulation{
-			TerminationCondition: component("input_exhausted", map[string]interface{}{"input": names[0]}),
-			TimestepFunction:     component("from_input", map[string]interface{}{"input": names[0]}),
-			InitTimeValue:        context.initTime,
-		}
-	}
-	document.Inputs, document.Outputs = source.inputs, source.outputs
-	var written bytes.Buffer
-	encoder := yaml3.NewEncoder(&written)
-	encoder.SetIndent(2)
-	// The document is built from YAML-decoded values, so it always encodes.
-	// yaml.v3 quotes the text YAML 1.1, which configs load with, reads as a
-	// boolean (a partition named y), so it loads back as written.
-	_ = encoder.Encode(document)
-	_ = encoder.Close()
-	return written.Bytes(), nil
+	first := owners[sortedKeys(owners)[0]]
+	return expandedMain{Partitions: append(replays, partitions...), Simulation: expandedSimulation{
+		TerminationCondition: component("input_exhausted", map[string]interface{}{"input": first}),
+		TimestepFunction:     component("from_input", map[string]interface{}{"input": first}),
+		InitTimeValue:        context.initTime,
+	}}, nil
 }
 
 // Expand writes a macros: config out in the core language (ExpandToYAML) and

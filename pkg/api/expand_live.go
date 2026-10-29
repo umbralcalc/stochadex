@@ -180,13 +180,18 @@ func (s *mctsSelfPlaySpec) expand(*expansionContext) (*expansion, error) {
 // wires, over a {type: simulation} environment holding the macro's own
 // decision-problem fields, as written.
 func (s *mctsPlanningSpec) expand(ctx *expansionContext) (*expansion, error) {
-	if parameters := s.Parameters; parameters != nil &&
-		(parameters.SamplesFrom != nil || parameters.WeightsFrom != nil) {
-		return nil, fmt.Errorf("mcts_planning's parameters.samples_from and weights_from " +
-			"read recorded rows before the run; planning over them (calibrate, then plan) " +
-			"does not expand yet")
+	if err := s.checkSearch(); err != nil {
+		return nil, err
 	}
-	environment, err := s.environment(nil)
+	stated := planningEnvironment(ctx.source)
+	planner := s
+	if s.readsInputsInside() {
+		var err error
+		if planner, err = s.readingInputs(ctx, stated); err != nil {
+			return nil, err
+		}
+	}
+	environment, err := planner.simulationEnvironmentSpec.build(nil, "mcts_planning")
 	if err != nil {
 		return nil, err
 	}
@@ -195,10 +200,63 @@ func (s *mctsPlanningSpec) expand(ctx *expansionContext) (*expansion, error) {
 		tree["pinned_noise"] = true
 	}
 	return &expansion{
-		partitions: expandSearch(s.Name, planningEnvironment(ctx.source), tree,
+		partitions: expandSearch(s.Name, stated, tree,
 			rolloutFields(s.RolloutMaxSteps), macros.NewMCTSSelfPlayLayout(s.search(environment))),
 		clock: ownClock(s.Steps, s.Timestep),
 	}, nil
+}
+
+// readsInputsInside reports that the planner's parameters are read from
+// recorded rows, which its environment reads when the run starts.
+func (s *mctsPlanningSpec) readsInputsInside() bool {
+	return s.Parameters != nil && (s.Parameters.SamplesFrom != nil || s.Parameters.WeightsFrom != nil)
+}
+
+// readingInputs states the planner's samples and weights as read from the
+// inputs that hold them, and returns the planner with its samples read so,
+// which is what its search's layout depends on: deferred, not their values.
+func (s *mctsPlanningSpec) readingInputs(
+	ctx *expansionContext,
+	stated *yaml3.Node,
+) (*mctsPlanningSpec, error) {
+	parameters := *s.Parameters
+	if parameters.SamplesFrom == nil {
+		return nil, fmt.Errorf("mcts_planning's parameters.weights_from beside inline samples " +
+			"does not expand: a run reads weights from recorded rows only with samples read " +
+			"from them too; list the weights inline, or read the samples with samples_from")
+	}
+	if parameters.Belief != nil {
+		return nil, fmt.Errorf("mcts_planning's parameters.belief over recorded samples does " +
+			"not expand: its weights are part of the search state, so the samples must be " +
+			"known when the config loads, but they are read when the run starts; list them inline")
+	}
+	owner := func(field, partition string) (string, error) {
+		input, supplied := ctx.owners[partition]
+		if !supplied {
+			return "", fmt.Errorf("mcts_planning's parameters.%s reads %q, which no input or "+
+				"earlier macro supplies", field, partition)
+		}
+		ref := mappingValue(mappingValue(stated, "parameters"), field)
+		ref.Content = append(ref.Content, &yaml3.Node{Kind: yaml3.ScalarNode, Value: "input"},
+			&yaml3.Node{Kind: yaml3.ScalarNode, Value: input})
+		return input, nil
+	}
+	if parameters.SamplesFrom != nil {
+		samples := *parameters.SamplesFrom
+		input, err := owner("samples_from", samples.PartitionName)
+		if err != nil {
+			return nil, err
+		}
+		samples.Input, parameters.SamplesFrom = input, &samples
+	}
+	if parameters.WeightsFrom != nil {
+		if _, err := owner("weights_from", parameters.WeightsFrom.PartitionName); err != nil {
+			return nil, err
+		}
+	}
+	planner := *s
+	planner.Parameters = &parameters
+	return &planner, nil
 }
 
 // plannerOnly are mcts_planning's fields that shape its search, not its

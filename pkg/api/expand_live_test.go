@@ -281,21 +281,107 @@ func TestExpandLiveMacros(t *testing.T) {
 `)
 	})
 
+	t.Run("the macro tier refuses a planner with no name, as the expansion does", func(t *testing.T) {
+		config, err := LoadConfig(writeConfigPath(t, "macros:\n"+strings.Replace(
+			strings.Replace(newsvendorPlan, "PARAMETERS", "samples: [[1.0]]", 1), "  name: plan\n", "", 1)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := RunToStorage(config); KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "mcts_planning needs a name") {
+			t.Errorf("got %v", err)
+		}
+	})
+
+	t.Run("calibrate, then plan expands exactly, as a run: input the planner reads", func(t *testing.T) {
+		config := calibration + strings.Replace(newsvendorPlan, "PARAMETERS",
+			"samples_from: {partition_name: post_sampler, burn_in: 100}", 1)
+		expanded := expandedAlike(t, config)
+		run, ok := expanded.Inputs[calibrationInput]
+		if !ok || run.Run == nil || len(expanded.Inputs) != 1 {
+			t.Fatalf("the expansion's inputs are %v, want one run: input, %s", expanded.Inputs, calibrationInput)
+		}
+		// The independent reference: the calibration run alone as a run: input,
+		// with a hand-stated planner reading it (TestPlanningParametersFromInputs).
+		written, err := RunToStorage(writeConfig(t, "inputs:\n  calibration:\n    run:\n"+indent(calibration, 6)+
+			corePlanner(t, "samples_from: {input: calibration, partition_name: post_sampler, burn_in: 100}")))
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := RunToStorage(expanded)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertStoragesEqual(t, "hand-stated", result.Storage, written.Storage)
+		rows := result.Storage.GetValues("plan_apply")
+		if ordered := rows[len(rows)-1][2]; ordered != 3 {
+			t.Errorf("ordered %v, want 3 for the inferred demand", ordered)
+		}
+	})
+
+	t.Run("two analyses, then a plan over the second's output, then an analysis of the plan", func(t *testing.T) {
+		expandedAlike(t, aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: stream}, window: 3}\n"+
+			"- {type: vector_mean, name: mm, data: {partition_name: m, value_indices: [0]}, window: 2}\n")+
+			strings.Replace(newsvendorPlan, "PARAMETERS", "samples_from: {partition_name: mm, burn_in: 10}", 1)+
+			"- {type: vector_mean, name: p, data: {partition_name: plan_apply}, window: 2}\n")
+	})
+
+	t.Run("a plan over samples and weights read straight from the inputs", func(t *testing.T) {
+		expandedAlike(t, `inputs:
+  data:
+    simulation:
+      steps: 11
+      timestep: 1.0
+      partitions:
+      - name: draws
+        iteration: {type: expression, fields: [{name: d}], outputs: ["where(step - 4 * floor(step / 4) < 3, 1, 9)"]}
+        init_state_values: [1.0]
+        state_history_depth: 1
+        seed: 0
+      - {name: credence, iteration: {type: constant_values}, init_state_values: [5.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], state_history_depth: 1, seed: 0}
+macros:
+`+strings.Replace(newsvendorPlan, "PARAMETERS", "samples_from: {partition_name: draws, burn_in: 2}, weights_from: {partition_name: credence}", 1))
+	})
+
+	t.Run("an analysis, then SMC observing its output (calibrate, then infer)", func(t *testing.T) {
+		expandedAlike(t, strings.NewReplacer(
+			"macros:\n", "macros:\n- {type: vector_mean, name: m, data: {partition_name: obs}, window: 2}\n",
+			"ref: {partition_name: obs}", "ref: {partition_name: m}",
+			"num_particles: 100", "num_particles: 20").Replace(smcConfig(t)))
+	})
+
+	t.Run("an analysis, then SMC observing an input", func(t *testing.T) {
+		expandedAlike(t, strings.NewReplacer(
+			"macros:\n", "macros:\n- {type: vector_mean, name: m, data: {partition_name: obs}, window: 2}\n",
+			"num_particles: 100", "num_particles: 20").Replace(smcConfig(t)))
+	})
+
 	cases := []struct{ name, yaml, want string }{
 		{"an evolution strategy whose window reads data",
 			esConfig(t, "    partitions:\n", "    data: [{partition_name: x}]\n    partitions:\n"),
 			"evolution_strategy_optimisation's window reads data:"},
-		{"a planner sampling an earlier macro's output (calibrate, then plan)",
+		{"a planner with a belief over an earlier macro's samples",
 			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: stream}, window: 3}\n") +
 				strings.Replace(planningMacro(t),
 					"    samples: [[2.0], [8.0]]\n    weights: [0.3, 0.7]\n",
 					"    samples_from: {partition_name: m}\n", 1),
-			"macros[1] (mcts_planning) runs its own clock beside the config's inputs"},
-		{"a planner sampling recorded parameters, with no inputs",
-			strings.Replace(readFile(t, "testdata/planning/planning_macro.yaml"),
-				"    samples: [[2.0], [8.0]]\n    weights: [0.3, 0.7]\n",
-				"    samples_from: {partition_name: post}\n", 1),
-			"parameters.samples_from and weights_from read recorded rows before the run"},
+			"mcts_planning's parameters.belief over recorded samples does not expand"},
+		{"a planner sampling a partition nothing supplies",
+			strings.NewReplacer("    samples: [[2.0], [8.0]]\n    weights: [0.3, 0.7]\n", "    samples_from: {partition_name: post}\n",
+				"    belief: {observation_partition: price, variance: 4.0}\n", "").Replace(
+				readFile(t, "testdata/planning/planning_macro.yaml")),
+			`mcts_planning's parameters.samples_from reads "post", which no input or earlier macro supplies`},
+		{"a planner weighting by a partition nothing supplies",
+			calibration + strings.Replace(newsvendorPlan, "PARAMETERS",
+				"samples_from: {partition_name: post_sampler}, weights_from: {partition_name: credence}", 1),
+			`mcts_planning's parameters.weights_from reads "credence", which no input or earlier macro supplies`},
+		{"a calibration whose analysis reads a partition nothing makes",
+			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: gone}, window: 3}\n") +
+				strings.Replace(newsvendorPlan, "PARAMETERS", "samples_from: {partition_name: m}", 1),
+			`no partition "gone" to read`},
+		{"a planner weighting by recorded rows beside inline samples",
+			calibration + strings.Replace(newsvendorPlan, "PARAMETERS",
+				"samples: [[1.0]], weights_from: {partition_name: post_sampler}", 1),
+			"mcts_planning's parameters.weights_from beside inline samples does not expand"},
 		{"a planner with no name",
 			strings.Replace(readFile(t, "testdata/planning/planning_macro.yaml"), "  name: plan\n", "", 1),
 			"mcts_planning needs a name"},
@@ -313,9 +399,12 @@ func TestExpandLiveMacros(t *testing.T) {
 			"mcts_self_play needs a name:"},
 		{"a macro with its own clock beside inputs",
 			aggregationConfig("- {type: mcts_self_play, name: ttt, steps: 2, env: {type: tictactoe}}\n"),
-			"macros[0] (mcts_self_play) runs its own clock beside the config's inputs, which run " +
-				"another; one run has one clock, and a macro with its own beside inputs (calibrate, " +
-				"then plan) does not expand yet"},
+			"macros[0] (mcts_self_play) runs its own clock beside the config's inputs, but reads " +
+				"none of them; one run has one clock, so it does not expand"},
+		{"a macro with its own clock after an analysis, reading nothing",
+			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: stream}, window: 3}\n" +
+				"- {type: mcts_self_play, name: ttt, steps: 2, env: {type: tictactoe}}\n"),
+			"macros[1] (mcts_self_play) runs its own clock beside the config's inputs, but reads none of them"},
 		{"two macros with their own clocks",
 			"macros:\n- {type: mcts_self_play, name: a, steps: 2, env: {type: tictactoe}}\n" +
 				"- {type: mcts_self_play, name: b, steps: 2, env: {type: tictactoe}}\n",
@@ -329,9 +418,6 @@ func TestExpandLiveMacros(t *testing.T) {
 				"    simulation: {output_condition: {type: nil}, output_function: {type: nil}, "+
 					"termination_condition: {type: number_of_steps, max_steps: 3}, timestep_function: {type: constant, stepsize: 1.0}}\n", 1),
 			"macros[0] (smc_inference) runs its own clock beside the config's inputs"},
-		{"an analysis before SMC (calibrate, then infer)",
-			strings.Replace(smcConfig(t), "macros:\n", "macros:\n- {type: vector_mean, name: m, data: {partition_name: obs}, window: 2}\n", 1),
-			"macros[1] (smc_inference) runs its own clock beside the config's inputs"},
 		{"an analysis after SMC of an input it does not replay",
 			smcConfig(t) + "- {type: vector_mean, name: m, data: {partition_name: obs}, window: 2}\n",
 			`no partition "obs" to read`},
