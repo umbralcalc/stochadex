@@ -1,43 +1,6 @@
 {
   "go": "go1.24.4",
   "configs": {
-    ".claude/skills/stochadex-model/recipes/evolution_strategy_optimisation.yaml": {
-      "times": "5e0924ec4ae801801cc5f532c4439777a9a810c1883ec4e8cd38848d8d43f2dc",
-      "partitions": {
-        "es_covariance": "1001x4 4833254b344c70e9f1d3ff8b09a69e21d9a1fe33737a0f40026da30f9f545d36",
-        "es_mean": "1001x2 91e51769309d93f6753f932b9621ebe899644f2201831116ac98ab02b3914040",
-        "es_sampler": "1001x2 2fe4f3bf0d5b59490179b02ebc7293fcea20446cb382348f69feabe7d0638668",
-        "es_sampler_simulation": "1001x2 1fbf393b6d2ee8243e7a21f7677257c55b841079116f62aa69dbf7bef52174a4",
-        "es_sorting": "1001x30 ae0bcd171c1a725070a59c1de425656a3be0f52f2d5b2407dd62285115cd0ef9"
-      }
-    },
-    ".claude/skills/stochadex-model/recipes/posterior_estimation.yaml": {
-      "times": "b833a6113b55b2396ffd0f69f47cc232e8cf5cb3d6e601caff363c17ea75afcf",
-      "partitions": {
-        "test_data": "2001x2 ff3abc3957a9185ad0d4ac40cd50f82ee389100e985ea696bd212494bf3c048f",
-        "test_likelihood": "2001x3 d26c10b356ffa6e610a7068b0adb076270ef9d1b338e29b3c38666b921a71435",
-        "test_post_cov": "2001x4 8613d16de752a66392b3820bd6f6d448baa9243f554d23748f7143d726479082",
-        "test_post_log_norm": "2001x1 1188c34a1510344ae69aea9eb244d780cda55b16383c1e86ff62fd8c1ca644d8",
-        "test_post_mean": "2001x2 c933eaf94299e33263e7480a1fd9839b7c679060b5e2b846528815be04afe9a2",
-        "test_post_sampler": "2001x2 77a2f8aff51a2c0cedca45fbbcbb147eaa71123b74fc6d9f6a8f3216cda8c469"
-      }
-    },
-    ".claude/skills/stochadex-model/recipes/scalar_regression_stats.yaml": {
-      "times": "358350098173667478f9c5664d6568c0051b2e2c5bda905004e40c3519dc5ca5",
-      "partitions": {
-        "ols": "401x9 e0993862774d476dff09e7450beb5ef89376e370c9b0c276888065044771a124",
-        "x": "401x1 8539a0d24dad67de343816efb15be278419203d51d15157173b3d069ce3871de",
-        "y": "401x1 153eef2fa023cfd4a48073c5466fa7fc5660280b007eec579638055ea2c31fe6"
-      }
-    },
-    ".claude/skills/stochadex-model/recipes/smc_inference.yaml": {
-      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
-      "partitions": {
-        "smc_posterior": "4x3 ac6fa3f7094202c4e012fd93a5dc5eef6a4a0c72b52b46486c6b6b9c881e291f",
-        "smc_proposals": "4x100 3eea7acc2bb08c1eacabac0a7aa1e5a81af769264bbc55cfa98e80c31c06e8c3",
-        "smc_sim": "4x100 f07267a89067ab9b91e2f21647bbbe66c32df1e3c7c812f7163544919761afb2"
-      }
-    },
     "cfg/example_data_source_config.yaml": {
       "times": "be776b78659ed8e3c8128994c57e6200be051ab49ec6ee7b21fb026d50325e94",
       "partitions": {

@@ -1,11 +1,11 @@
 name: Prepare release PR
 # The mechanical half of the release ritual, on demand. You pick the version; this opens
-# a "Release vX.Y.Z: stamp changelog" PR with the three bookkeeping edits already done:
-#
-#   - CHANGELOG.md: a new `## [X.Y.Z] — <today>` section inserted above the previous
-#     release, with a prose placeholder and empty `### Added`;
-#   - .claude-plugin/plugin.json and .claude-plugin/marketplace.json: version bumped to
-#     X.Y.Z (a single targeted substitution each, so the diff is one line per file).
+# a "Release vX.Y.Z: stamp changelog" PR with the bookkeeping already done in
+# CHANGELOG.md: a new `## [X.Y.Z] — <today>` section inserted above the previous release,
+# with a prose placeholder and empty `### Added`, and its compare link. (There are no
+# plugin manifests to bump: agent integration moved to robert,
+# https://github.com/umbralcalc/robert, and .claude-plugin/marketplace.json is a frozen
+# deprecation notice.)
 #
 # What it deliberately does NOT do is write the release prose — that is the reviewed,
 # human part, and the reason the changelog is hand-written rather than generated. You edit
@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Stamp the changelog and manifests, and open the PR
+      - name: Stamp the changelog and open the PR
         run: |
           set -euo pipefail
 
@@ -103,24 +103,17 @@ jobs:
             { print }
           ' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
 
-          # One targeted substitution per manifest (each has exactly one "version" key), so
-          # the diff is a single line and the file's formatting is untouched.
-          sed -i -E "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"${VERSION}\"/" \
-            .claude-plugin/plugin.json .claude-plugin/marketplace.json
-
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           branch="release-v${VERSION}"
           git checkout -b "$branch"
-          git add CHANGELOG.md .claude-plugin/plugin.json .claude-plugin/marketplace.json
+          git add CHANGELOG.md
           git commit -m "Release v${VERSION}: stamp changelog"
           git push -u origin "$branch"
 
           cat > /tmp/pr-body.md <<EOF
-          Prepared by the **Prepare release PR** workflow — the mechanical bumps are done:
-
-          - CHANGELOG.md: \`## [${VERSION}] — ${date}\` inserted (previous released: ${prev});
-          - plugin.json and marketplace.json: version → ${VERSION}.
+          Prepared by the **Prepare release PR** workflow — the mechanical stamp is done:
+          CHANGELOG.md has \`## [${VERSION}] — ${date}\` inserted (previous released: ${prev}).
 
           **Now write the release prose** in CHANGELOG.md — replace the placeholder comment
           and fill \`### Added\` / \`### Fixed\` — then merge.

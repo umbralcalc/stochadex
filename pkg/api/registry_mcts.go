@@ -34,7 +34,7 @@ import (
 // to be bound when the run starts.
 func resolveMCTSEnvironment(spec simulator.ComponentSpec, scope *runScope) (MCTSEnvironment, error) {
 	switch spec.Type {
-	case "simulation":
+	case simulationEnvironmentType:
 		raw, _ := yaml.Marshal(spec.Fields)
 		var problem simulationEnvironmentSpec
 		if err := yaml.UnmarshalStrict(raw, &problem); err != nil {

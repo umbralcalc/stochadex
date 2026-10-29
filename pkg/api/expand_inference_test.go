@@ -121,8 +121,6 @@ const regressionMacro = `- type: scalar_regression_stats
 `
 
 func TestExpandInferenceMacros(t *testing.T) {
-	// The skill's recipes are byte-identical to their cfg/ twins
-	// (TestSkillRecipesMatchExamples), so the cfg/ examples cover them.
 	for _, path := range []string{
 		"../../cfg/example_posterior_macro_config.yaml",
 		"../../cfg/example_regression_config.yaml",

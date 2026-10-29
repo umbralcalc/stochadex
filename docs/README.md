@@ -46,11 +46,10 @@ chmod +x stochadex
 docker pull ghcr.io/umbralcalc/stochadex:latest
 ```
 
-**As a Claude Code plugin** → installs an authoring skill next to your agent, so you can describe a system in plain language and get a running, validated simulation. It drives the same CLI.
+**With an agent** → [robert](https://github.com/umbralcalc/robert) drives stochadex projects from an agent, so you can describe a system in plain language and get a running, validated simulation. It installs this same CLI from the release assets, checked against their `SHA256SUMS`, and carries the authoring skill that used to ship here as a Claude Code plugin. The engine itself stays deterministic and agent-free.
 
 ```bash
-claude plugin marketplace add umbralcalc/stochadex
-claude plugin install stochadex@stochadex
+pip install robert-ai
 ```
 
 **As a Go library** → implement the `Iteration` interface to add a primitive the catalogue doesn't have, or embed the engine in your own service. Start with the [quickstart](https://stochadex.github.io/pkg/quickstart.html).

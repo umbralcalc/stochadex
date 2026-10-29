@@ -109,6 +109,29 @@ an exact version rather than assume stability across minors.
   recorded rows beside inline samples, do not expand, each saying why; a macro with its own
   clock beside inputs it does not read is refused as before, with a clearer message.
 
+- **`stochadex graph -c CONFIG [--format mermaid|dot] [--set path=value ...]`** prints the
+  main run's partition dependency graph without running it, as the `stochadex-graph` binary
+  did, and exits 78 (`ErrConfig`) after printing it if the within-step wiring has a deadlock
+  cycle, naming the cycle on stderr. It is parsed like `inspect`, and a bad command line
+  exits 64.
+
+- **`stochadex catalogue`** prints stable, sorted JSON describing what this build can run:
+  `catalogue_version` (1), `version`, `features`, and the registered names of its iterations,
+  data sources, stream transports, output functions and conditions, termination and timestep
+  functions, execution strategies, macros, kernels, likelihoods, priors, jump distributions
+  and environments, each as `{"name": ...}`. It is read from the registries a config resolves
+  through, so downstream registrations (`api.RegisterIteration`, `RegisterDataSource`,
+  `RegisterEnvironment`, `RegisterStreamTransport`, `simulator.RegisterComponent`) appear in
+  the build that links them, e.g. `onnx_inference` with `-tags onnx`. A drift test fails if a
+  registry in `pkg/api` is not read. From Go, `api.BuildCatalogue()`; and
+  `simulator.ComponentTypes(family)` lists a simulation-component family's types, with
+  `simulator.ComponentFamilies` naming the families.
+
+- **Each release carries a `SHA256SUMS` file** covering every binary asset, portable and
+  accelerated, in the format `sha256sum --check` reads. One job computes it after every
+  binary job has finished, from the assets the Release actually holds, so the matrix jobs
+  cannot race over it.
+
 ### Changed
 
 - **A window data partition replayed with more history than the window is now a config
@@ -146,7 +169,45 @@ an exact version rather than assume stability across minors.
   every shipped macro config runs expanded as fast as macro by macro or faster
   (`BenchmarkMacroConfigs`; results in `docs/performance.md`).
 
+- **The built-in output conditions and functions, termination conditions, timestep
+  functions and execution strategies, and the kernel, likelihood, prior and jump specs, are
+  registries (maps) rather than `switch` statements,** so they can be listed. Resolution and
+  error messages are unchanged.
+
+- **`simulator.StateIterator.Iterate` no longer outputs the new state.** The coordinator
+  outputs every partition's state once the step's iteration phase is done, through the new
+  `StateIterator.Output` (see Fixed). A caller driving a `StateIterator` by hand, rather than
+  through a coordinator, calls `Output` itself.
+
+### Deprecated
+
+- **`cmd/stochadex-graph`** is now a thin alias for `stochadex graph`, printing a
+  deprecation notice. It takes the same flags and exits 1 on a deadlock cycle, as before.
+
+### Removed
+
+- **The Claude Code plugin and the `stochadex-model` skill.** Agent integration now lives in
+  [robert](https://github.com/umbralcalc/robert) (PyPI `robert-ai`), which drives stochadex
+  through its CLI (`--check`, `inspect`, `graph`, `catalogue`) and carries the skill. The
+  engine is a deterministic engine and CLI with no agent code. `.claude-plugin/plugin.json`
+  and `.claude/skills/stochadex-model/` (with its recipes, which were byte-identical copies
+  of `cfg/example_evolution_strategy_config.yaml`, `example_smc_config.yaml`,
+  `example_posterior_macro_config.yaml` and `example_regression_config.yaml`, still tested
+  there) are gone. `.claude-plugin/marketplace.json` stays, so existing installs resolve,
+  with its plugin's description replaced by a notice pointing to robert. The
+  prepare-release workflow no longer bumps plugin manifests.
+- **No `stochadex-graph` binary is released** (none ever was, and the release workflow now
+  says so); use `stochadex graph`.
+
 ### Fixed
+
+- **Two runs of one config now write their rows in the same order.** Partitions run
+  concurrently, and each output its new state from its own goroutine as it finished, so two
+  identical runs wrote the same rows to a `json_log` (or stdout, or any other sink) in a
+  different order within a step. The coordinator now outputs every partition's state for a
+  step, in partition (config) order, once the step's iteration phase is done, under every
+  execution strategy, so identical runs write byte-identical files. A panic in a sink still
+  names its partition and commits nothing for that step. Step benchmarks are unchanged.
 
 - **A grouped aggregation now sets its kernel's params.** `values_grouped_aggregation`
   (and so the `grouped_aggregation` macro) never called its kernel's `SetParams`, so a

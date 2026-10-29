@@ -220,29 +220,38 @@ type StateIterator struct {
 	OutputFunction  OutputFunction
 }
 
-// Iterate runs the Iteration and optionally triggers output if the condition
-// is met for the new state/time.
+// Iterate runs the Iteration and returns the partition's next state. It does
+// not output it: the coordinator outputs every partition's new state once the
+// step's iteration phase has finished, in partition order (see Output), so a
+// sink receives a step's rows in the same order on every run.
 func (s *StateIterator) Iterate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
 ) []float64 {
-	newState := s.Iteration.Iterate(
+	return s.Iteration.Iterate(
 		&s.Params,
 		s.Partition.Index,
 		stateHistories,
 		timestepsHistory,
 	)
+}
+
+// Output sends the partition's pending state for the step (its NextValues in
+// inputMessage) to the output function, if the step requires it. It runs after
+// the iteration phase and before the update phase.
+func (s *StateIterator) Output(inputMessage *IteratorInputMessage) {
+	timestepsHistory := inputMessage.TimestepsHistory
+	newState := inputMessage.StateHistories[s.Partition.Index].NextValues
 	// get the new time for output
 	time := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
-	// also apply the output function if this step requires it. This is
-	// emitOutput written out by hand: it runs once per partition per step, and
-	// emitOutput is too big to inline, so calling it cost ~1ns per output.
+	// This is emitOutput written out by hand: it runs once per partition per
+	// step, and emitOutput is too big to inline, so calling it cost ~1ns per
+	// output. IteratePendingInline repeats it; keep the two in step.
 	if views, ok := s.OutputFunction.(*OutputViews); ok {
 		views.OutputStep(s.Partition.Name, newState, timestepsHistory, time)
 	} else if s.OutputCondition.IsOutputStep(s.Partition.Name, newState, timestepsHistory) {
 		s.OutputFunction.Output(s.Partition.Name, newState, time)
 	}
-	return newState
 }
 
 // ReceiveAndIteratePending listens for an IteratorInputMessage, updates
@@ -274,16 +283,31 @@ func (s *StateIterator) IteratePending(inputMessage *IteratorInputMessage) {
 // upstream-driven params directly from producers' staged NextValues (no
 // channels) and does not broadcast downstream. Callers must process partitions
 // in an order where every upstream precedes its downstream consumers, which
-// InlineExecution validates before running.
+// InlineExecution validates before running. It also outputs the new state:
+// inline execution runs partitions in partition order, so outputting each as
+// it finishes gives the order the concurrent strategies output in once their
+// iteration phase is done.
 func (s *StateIterator) IteratePendingInline(inputMessage *IteratorInputMessage) {
 	s.ValueChannels.UpdateUpstreamParamsInline(
 		&s.Params,
 		inputMessage.StateHistories,
 	)
-	inputMessage.StateHistories[s.Partition.Index].NextValues = s.Iterate(
+	timestepsHistory := inputMessage.TimestepsHistory
+	newState := s.Iteration.Iterate(
+		&s.Params,
+		s.Partition.Index,
 		inputMessage.StateHistories,
-		inputMessage.TimestepsHistory,
+		timestepsHistory,
 	)
+	inputMessage.StateHistories[s.Partition.Index].NextValues = newState
+	// Output written out by hand, as on the per-step path a call costs ~1ns;
+	// keep the two in step.
+	time := timestepsHistory.Values.AtVec(0) + timestepsHistory.NextIncrement
+	if views, ok := s.OutputFunction.(*OutputViews); ok {
+		views.OutputStep(s.Partition.Name, newState, timestepsHistory, time)
+	} else if s.OutputCondition.IsOutputStep(s.Partition.Name, newState, timestepsHistory) {
+		s.OutputFunction.Output(s.Partition.Name, newState, time)
+	}
 }
 
 // UpdateHistory applies the pending state update to the partition history.

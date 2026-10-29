@@ -178,12 +178,11 @@ func TestDeprecationNotices(t *testing.T) {
 		root := repoRootPath(t)
 		t.Chdir(root)
 		paths := []string{}
-		for _, pattern := range []string{"cfg/example_*.yaml", "models/*/declarative.yaml",
-			".claude/skills/stochadex-model/recipes/*.yaml"} {
+		for _, pattern := range []string{"cfg/example_*.yaml", "models/*/declarative.yaml"} {
 			matches, _ := filepath.Glob(pattern)
 			paths = append(paths, matches...)
 		}
-		if len(paths) < 30 {
+		if len(paths) < 25 {
 			t.Fatalf("found only %d configs", len(paths))
 		}
 		quiet := []string{}

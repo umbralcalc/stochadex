@@ -104,6 +104,10 @@ type EnvironmentBuilder func(spec simulator.ComponentSpec) (MCTSEnvironment, err
 // point, and "simulation", the data-defined environment it builds itself.
 var environmentBuilders = map[string]EnvironmentBuilder{}
 
+// simulationEnvironmentType is the engine's own environment spelling: a decision
+// problem over a forward model, built by resolveMCTSEnvironment.
+const simulationEnvironmentType = "simulation"
+
 // RegisterEnvironment adds an environment spelling, usable as the mcts_*
 // iterations' environment: type and as the mcts_self_play macro's env: type.
 // Call it from an init function in the module that owns the environment; the
@@ -113,7 +117,7 @@ var environmentBuilders = map[string]EnvironmentBuilder{}
 // Panics on a duplicate name, so two modules cannot silently claim one
 // spelling, and on "simulation", which is the engine's own.
 func RegisterEnvironment(typeName string, build EnvironmentBuilder) {
-	if _, exists := environmentBuilders[typeName]; exists || typeName == "simulation" {
+	if _, exists := environmentBuilders[typeName]; exists || typeName == simulationEnvironmentType {
 		panic("api: duplicate environment registration " + typeName)
 	}
 	environmentBuilders[typeName] = build

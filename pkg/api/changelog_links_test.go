@@ -19,7 +19,7 @@ import (
 // Every released heading is checked: the historical gaps (0.8.0–0.11.0) were backfilled, so
 // the file is fully linked and stays that way.
 func TestChangelogReleaseLinksResolve(t *testing.T) {
-	body, err := os.ReadFile(filepath.Join(repoRoot, "CHANGELOG.md"))
+	body, err := os.ReadFile(filepath.Join(repoDir, "CHANGELOG.md"))
 	if err != nil {
 		t.Fatalf("reading CHANGELOG: %v", err)
 	}

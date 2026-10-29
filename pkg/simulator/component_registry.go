@@ -1,6 +1,9 @@
 package simulator
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 // ComponentSpec is the value for a framework component in a config: a data spec
 // ({type: every_step, ...}) resolved at load time by the registry below, needing
@@ -189,82 +192,143 @@ func (r *fieldReader) done() error {
 	return nil
 }
 
-// ResolveOutputCondition builds an OutputCondition from a data spec.
-func ResolveOutputCondition(spec ComponentSpec) (OutputCondition, error) {
-	reader := newFieldReader(spec.Type, spec.Fields)
-	var result OutputCondition
-	switch spec.Type {
-	case "nil":
-		result = &NilOutputCondition{}
-	case "every_step":
-		result = &EveryStepOutputCondition{}
-	case "every_n_steps":
-		result = &EveryNStepsOutputCondition{N: reader.int("n")}
-	case "only_given_partitions":
-		names := reader.stringSlice("partitions")
+// componentBuilder constructs a built-in component of one family from its data
+// spec's fields, consuming them through reader so unknown keys are rejected.
+type componentBuilder[T any] func(reader *fieldReader) T
+
+// outputConditionBuilders are the built-in output_condition types.
+var outputConditionBuilders = map[string]componentBuilder[OutputCondition]{
+	"nil":           func(*fieldReader) OutputCondition { return &NilOutputCondition{} },
+	"every_step":    func(*fieldReader) OutputCondition { return &EveryStepOutputCondition{} },
+	"every_n_steps": func(r *fieldReader) OutputCondition { return &EveryNStepsOutputCondition{N: r.int("n")} },
+	"only_given_partitions": func(r *fieldReader) OutputCondition {
+		names := r.stringSlice("partitions")
 		partitions := make(map[string]bool, len(names))
 		for _, name := range names {
 			partitions[name] = true
 		}
-		result = &OnlyGivenPartitionsOutputCondition{Partitions: partitions}
-	default:
-		if value, ok, err := resolveExtra("output_condition", spec); ok {
-			if err != nil {
-				return nil, err
-			}
-			return value.(OutputCondition), nil
-		}
-		return nil, unknownType("output_condition", spec.Type)
-	}
-	return result, reader.done()
+		return &OnlyGivenPartitionsOutputCondition{Partitions: partitions}
+	},
 }
 
-// ResolveOutputFunction builds an OutputFunction from a data spec. Live-object
+// outputFunctionBuilders are the built-in output_function types. Live-object
 // sinks (state storage, channel, a server-side websocket connection) have no
 // data form and are absent; a websocket the run pushes to as a client does.
-func ResolveOutputFunction(spec ComponentSpec) (OutputFunction, error) {
-	reader := newFieldReader(spec.Type, spec.Fields)
-	var result OutputFunction
-	switch spec.Type {
-	case "nil":
-		result = &NilOutputFunction{}
-	case "stdout":
-		result = &StdoutOutputFunction{}
-	case "json_log":
-		result = NewJsonLogOutputFunction(reader.str("path"))
-	case "websocket":
-		result = NewWebsocketPushOutputFunction(reader.str("url"))
-	default:
-		if value, ok, err := resolveExtra("output_function", spec); ok {
-			if err != nil {
-				return nil, err
-			}
-			return value.(OutputFunction), nil
+var outputFunctionBuilders = map[string]componentBuilder[OutputFunction]{
+	"nil":       func(*fieldReader) OutputFunction { return &NilOutputFunction{} },
+	"stdout":    func(*fieldReader) OutputFunction { return &StdoutOutputFunction{} },
+	"json_log":  func(r *fieldReader) OutputFunction { return NewJsonLogOutputFunction(r.str("path")) },
+	"websocket": func(r *fieldReader) OutputFunction { return NewWebsocketPushOutputFunction(r.str("url")) },
+}
+
+// terminationConditionBuilders are the built-in termination_condition types.
+var terminationConditionBuilders = map[string]componentBuilder[TerminationCondition]{
+	"number_of_steps": func(r *fieldReader) TerminationCondition {
+		return &NumberOfStepsTerminationCondition{MaxNumberOfSteps: r.int("max_steps")}
+	},
+	"time_elapsed": func(r *fieldReader) TerminationCondition {
+		return &TimeElapsedTerminationCondition{MaxTimeElapsed: r.float("max_time_elapsed")}
+	},
+}
+
+// timestepFunctionBuilders are the built-in timestep_function types.
+var timestepFunctionBuilders = map[string]componentBuilder[TimestepFunction]{
+	"constant": func(r *fieldReader) TimestepFunction {
+		return &ConstantTimestepFunction{Stepsize: r.float("stepsize")}
+	},
+	"exponential_distribution": func(r *fieldReader) TimestepFunction {
+		return &ExponentialDistributionTimestepFunction{
+			Mean: r.float("mean"),
+			Seed: r.uint64("seed"),
 		}
-		return nil, unknownType("output_function", spec.Type)
+	},
+}
+
+// executionStrategyBuilders are the built-in execution_strategy types: three
+// zero-field structs, so each is a nullary construction.
+var executionStrategyBuilders = map[string]componentBuilder[ExecutionStrategy]{
+	"spawn_per_step":    func(*fieldReader) ExecutionStrategy { return &SpawnPerStepExecution{} },
+	"persistent_worker": func(*fieldReader) ExecutionStrategy { return &PersistentWorkerExecution{} },
+	"inline":            func(*fieldReader) ExecutionStrategy { return &InlineExecution{} },
+}
+
+// resolveComponent builds a component of family from its data spec: a built-in
+// type from builders, else one registered downstream (RegisterComponent).
+func resolveComponent[T any](
+	family string, builders map[string]componentBuilder[T], spec ComponentSpec,
+) (T, error) {
+	if build, ok := builders[spec.Type]; ok {
+		reader := newFieldReader(spec.Type, spec.Fields)
+		result := build(reader)
+		return result, reader.done()
 	}
-	return result, reader.done()
+	var zero T
+	if value, ok, err := resolveExtra(family, spec); ok {
+		if err != nil {
+			return zero, err
+		}
+		return value.(T), nil
+	}
+	return zero, unknownType(family, spec.Type)
+}
+
+// ComponentFamilies are the families of simulation component a config names by
+// type, as RegisterComponent and ComponentTypes take them.
+var ComponentFamilies = []string{
+	"execution_strategy",
+	"output_condition",
+	"output_function",
+	"termination_condition",
+	"timestep_function",
+}
+
+// ComponentTypes returns the sorted type names a family resolves: its built-in
+// types and those registered downstream with RegisterComponent. It returns nil
+// for a family not in ComponentFamilies.
+func ComponentTypes(family string) []string {
+	var builtin []string
+	switch family {
+	case "execution_strategy":
+		builtin = keysOf(executionStrategyBuilders)
+	case "output_condition":
+		builtin = keysOf(outputConditionBuilders)
+	case "output_function":
+		builtin = keysOf(outputFunctionBuilders)
+	case "termination_condition":
+		builtin = keysOf(terminationConditionBuilders)
+	case "timestep_function":
+		builtin = keysOf(timestepFunctionBuilders)
+	default:
+		return nil
+	}
+	for name := range extraComponentBuilders[family] {
+		builtin = append(builtin, name)
+	}
+	sort.Strings(builtin)
+	return builtin
+}
+
+func keysOf[T any](builders map[string]componentBuilder[T]) []string {
+	names := make([]string, 0, len(builders))
+	for name := range builders {
+		names = append(names, name)
+	}
+	return names
+}
+
+// ResolveOutputCondition builds an OutputCondition from a data spec.
+func ResolveOutputCondition(spec ComponentSpec) (OutputCondition, error) {
+	return resolveComponent("output_condition", outputConditionBuilders, spec)
+}
+
+// ResolveOutputFunction builds an OutputFunction from a data spec.
+func ResolveOutputFunction(spec ComponentSpec) (OutputFunction, error) {
+	return resolveComponent("output_function", outputFunctionBuilders, spec)
 }
 
 // ResolveTerminationCondition builds a TerminationCondition from a data spec.
 func ResolveTerminationCondition(spec ComponentSpec) (TerminationCondition, error) {
-	reader := newFieldReader(spec.Type, spec.Fields)
-	var result TerminationCondition
-	switch spec.Type {
-	case "number_of_steps":
-		result = &NumberOfStepsTerminationCondition{MaxNumberOfSteps: reader.int("max_steps")}
-	case "time_elapsed":
-		result = &TimeElapsedTerminationCondition{MaxTimeElapsed: reader.float("max_time_elapsed")}
-	default:
-		if value, ok, err := resolveExtra("termination_condition", spec); ok {
-			if err != nil {
-				return nil, err
-			}
-			return value.(TerminationCondition), nil
-		}
-		return nil, unknownType("termination_condition", spec.Type)
-	}
-	return result, reader.done()
+	return resolveComponent("termination_condition", terminationConditionBuilders, spec)
 }
 
 // extraComponentBuilders holds data-spec builders for framework components that
@@ -275,8 +339,7 @@ func ResolveTerminationCondition(spec ComponentSpec) (TerminationCondition, erro
 var extraComponentBuilders = map[string]map[string]func(ComponentSpec) (interface{}, error){}
 
 // RegisterComponent registers a data-spec builder for a component that lives
-// downstream of simulator. family is one of "output_condition", "output_function",
-// "termination_condition", "timestep_function". Call it from an init(); it panics
+// downstream of simulator. family is one of ComponentFamilies. Call it from an init(); it panics
 // on a duplicate so two packages cannot silently claim one name.
 func RegisterComponent(family, typeName string, build func(ComponentSpec) (interface{}, error)) {
 	if extraComponentBuilders[family] == nil {
@@ -301,54 +364,17 @@ func resolveExtra(family string, spec ComponentSpec) (interface{}, bool, error) 
 
 // ResolveTimestepFunction builds a TimestepFunction from a data spec.
 func ResolveTimestepFunction(spec ComponentSpec) (TimestepFunction, error) {
-	reader := newFieldReader(spec.Type, spec.Fields)
-	var result TimestepFunction
-	switch spec.Type {
-	case "constant":
-		result = &ConstantTimestepFunction{Stepsize: reader.float("stepsize")}
-	case "exponential_distribution":
-		result = &ExponentialDistributionTimestepFunction{
-			Mean: reader.float("mean"),
-			Seed: reader.uint64("seed"),
-		}
-	default:
-		if value, ok, err := resolveExtra("timestep_function", spec); ok {
-			if err != nil {
-				return nil, err
-			}
-			return value.(TimestepFunction), nil
-		}
-		return nil, unknownType("timestep_function", spec.Type)
-	}
-	return result, reader.done()
+	return resolveComponent("timestep_function", timestepFunctionBuilders, spec)
 }
 
-// ResolveExecutionStrategy builds an ExecutionStrategy from a data spec. The three
-// strategies are zero-field structs, so each is a nullary construction. An empty
-// (omitted) spec resolves to nil, which selects the default spawn-per-step policy.
+// ResolveExecutionStrategy builds an ExecutionStrategy from a data spec. An
+// empty (omitted) spec resolves to nil, which selects the default
+// spawn-per-step policy.
 func ResolveExecutionStrategy(spec ComponentSpec) (ExecutionStrategy, error) {
 	if spec.IsZero() {
 		return nil, nil
 	}
-	reader := newFieldReader(spec.Type, spec.Fields)
-	var result ExecutionStrategy
-	switch spec.Type {
-	case "spawn_per_step":
-		result = &SpawnPerStepExecution{}
-	case "persistent_worker":
-		result = &PersistentWorkerExecution{}
-	case "inline":
-		result = &InlineExecution{}
-	default:
-		if value, ok, err := resolveExtra("execution_strategy", spec); ok {
-			if err != nil {
-				return nil, err
-			}
-			return value.(ExecutionStrategy), nil
-		}
-		return nil, unknownType("execution_strategy", spec.Type)
-	}
-	return result, reader.done()
+	return resolveComponent("execution_strategy", executionStrategyBuilders, spec)
 }
 
 func unknownType(family, kind string) error {

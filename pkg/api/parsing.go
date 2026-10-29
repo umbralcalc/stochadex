@@ -34,6 +34,15 @@ type ParsedArgs struct {
 	// its key, and implies Provenance (--skip-if-unchanged).
 	Provenance      bool
 	SkipIfUnchanged bool
+	// Graph prints the main run's partition dependency graph instead of running
+	// it, in GraphFormat (mermaid or dot), and fails on a within-step deadlock
+	// cycle (stochadex graph).
+	Graph       bool
+	GraphFormat string
+	// Catalogue prints, as JSON, what this build can run: its version, features
+	// and every registered component name (stochadex catalogue). It needs no
+	// config.
+	Catalogue bool
 }
 
 // ArgParse parses CLI flags into a ParsedArgs.
@@ -51,14 +60,22 @@ func ArgParse() ParsedArgs {
 // parseArgs parses CLI arguments (os.Args form), returning an ErrUsage error
 // carrying the usage text when they are invalid. `stochadex inspect ...` is told
 // apart before parsing: argparse would require a subcommand on every run once
-// one is declared.
+// one is declared. The same holds for `stochadex graph` and `stochadex catalogue`.
 func parseArgs(args []string) (ParsedArgs, error) {
-	if len(args) > 1 && args[1] == "inspect" {
-		return parseInspectArgs(append([]string{args[0] + " inspect"}, args[2:]...))
+	if len(args) > 1 {
+		switch args[1] {
+		case "inspect":
+			return parseInspectArgs(append([]string{args[0] + " inspect"}, args[2:]...))
+		case "graph":
+			return parseGraphArgs(append([]string{args[0] + " graph"}, args[2:]...))
+		case "catalogue":
+			return parseCatalogueArgs(append([]string{args[0] + " catalogue"}, args[2:]...))
+		}
 	}
 	parser := argparse.NewParser(
 		"stochadex",
-		"A generalised simulation engine",
+		"A generalised simulation engine. Other commands: stochadex inspect, "+
+			"stochadex graph and stochadex catalogue (each takes --help)",
 	)
 	configFile, sets, seedRange, debugEmbedded := configArgs(parser)
 	socketFile := parser.String(
@@ -142,28 +159,48 @@ func parseInspectArgs(args []string) (ParsedArgs, error) {
 		DebugEmbedded: *debugEmbedded, InspectIO: *io, InspectProvenance: *provenance}, nil
 }
 
-// configArgs declares the arguments every command takes: the config and its
-// overrides.
+// parseGraphArgs parses `stochadex graph`'s arguments.
+func parseGraphArgs(args []string) (ParsedArgs, error) {
+	parser := argparse.NewParser(
+		"stochadex graph",
+		"Print the main run's partition dependency graph without running it; "+
+			"exits non-zero on a within-step deadlock cycle",
+	)
+	configFile, sets := configFileArgs(parser)
+	format := parser.Selector(
+		"",
+		"format",
+		[]string{"mermaid", "dot"},
+		&argparse.Options{
+			Default: "mermaid",
+			Help:    "output format: mermaid or dot",
+		},
+	)
+	if err := parser.Parse(args); err != nil {
+		return ParsedArgs{}, &Error{Kind: ErrUsage, Err: errors.New(parser.Usage(err))}
+	}
+	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, Graph: true,
+		GraphFormat: *format}, nil
+}
+
+// parseCatalogueArgs parses `stochadex catalogue`'s arguments: there are none.
+func parseCatalogueArgs(args []string) (ParsedArgs, error) {
+	parser := argparse.NewParser(
+		"stochadex catalogue",
+		"Print, as JSON, this build's version, features and registered component names",
+	)
+	if err := parser.Parse(args); err != nil {
+		return ParsedArgs{}, &Error{Kind: ErrUsage, Err: errors.New(parser.Usage(err))}
+	}
+	return ParsedArgs{Catalogue: true}, nil
+}
+
+// configArgs declares the arguments every run-shaped command takes: the config,
+// its overrides, a seed shard and embedded-run debugging.
 func configArgs(parser *argparse.Parser) (
 	configFile *string, sets *[]string, seedRange *string, debugEmbedded *[]string,
 ) {
-	configFile = parser.String(
-		"c",
-		"config",
-		&argparse.Options{
-			Required: true,
-			Help:     "yaml config path",
-		},
-	)
-	sets = parser.StringList(
-		"",
-		"set",
-		&argparse.Options{
-			Required: false,
-			Help: "override a config value for this run, as path=value (repeatable); " +
-				"e.g. main.partitions[name=w].seed=7",
-		},
-	)
+	configFile, sets = configFileArgs(parser)
 	seedRange = parser.String(
 		"",
 		"seed-range",
@@ -183,4 +220,27 @@ func configArgs(parser *argparse.Parser) (
 		},
 	)
 	return configFile, sets, seedRange, debugEmbedded
+}
+
+// configFileArgs declares the arguments every command that reads a config takes:
+// the config and its overrides.
+func configFileArgs(parser *argparse.Parser) (configFile *string, sets *[]string) {
+	configFile = parser.String(
+		"c",
+		"config",
+		&argparse.Options{
+			Required: true,
+			Help:     "yaml config path",
+		},
+	)
+	sets = parser.StringList(
+		"",
+		"set",
+		&argparse.Options{
+			Required: false,
+			Help: "override a config value for this run, as path=value (repeatable); " +
+				"e.g. main.partitions[name=w].seed=7",
+		},
+	)
+	return configFile, sets
 }
