@@ -168,6 +168,13 @@ type SimulationEnvironmentSpec struct {
 	// Nil plans on a fixed draw instead: still posterior-predictive across
 	// trajectories, but blind to information — see the type docs.
 	Belief *BeliefSpec
+	// DeferredParameters says the samples, and any weights, arrive after the
+	// environment is built, through BindParameters, before it is first used:
+	// a planner whose samples are read when its run starts. ParameterSamples
+	// and ParameterWeights are then left empty here. A belief cannot be
+	// deferred: its weights are part of the state, so the state's width is the
+	// sample count.
+	DeferredParameters bool
 }
 
 // BeliefSpec configures in-tree belief updating.
@@ -255,33 +262,17 @@ func NewSimulationEnvironment(
 	if spec.Discount == 0 {
 		spec.Discount = 1.0
 	}
+	if spec.DeferredParameters && (len(spec.ParameterSamples) > 0 || len(spec.ParameterWeights) > 0) {
+		panic("agents.NewSimulationEnvironment: DeferredParameters leaves ParameterSamples " +
+			"and ParameterWeights to BindParameters, so set neither here")
+	}
 	paramSlot := -1
 	var targets []resolvedParamTarget
-	var priorWeights []float64
-	if len(spec.ParameterWeights) > 0 {
-		if len(spec.ParameterWeights) != len(spec.ParameterSamples) {
-			panic(fmt.Sprintf(
-				"agents.NewSimulationEnvironment: %d parameter weights for %d samples — "+
-					"there must be one weight per sample",
-				len(spec.ParameterWeights), len(spec.ParameterSamples)))
-		}
-		total := 0.0
-		for _, weight := range spec.ParameterWeights {
-			if weight < 0 {
-				panic("agents.NewSimulationEnvironment: parameter weights must be non-negative")
-			}
-			total += weight
-		}
-		if total <= 0 {
-			panic("agents.NewSimulationEnvironment: parameter weights sum to zero, so no " +
-				"sample carries any credence")
-		}
-		priorWeights = make([]float64, len(spec.ParameterWeights))
-		for i, weight := range spec.ParameterWeights {
-			priorWeights[i] = weight / total
-		}
+	priorWeights, err := normalisedWeights(spec.ParameterWeights, spec.ParameterSamples)
+	if err != nil {
+		panic("agents.NewSimulationEnvironment: " + err.Error())
 	}
-	if len(spec.ParameterSamples) > 0 {
+	if len(spec.ParameterSamples) > 0 || spec.DeferredParameters {
 		if len(spec.ParameterTargets) == 0 {
 			panic("agents.NewSimulationEnvironment: ParameterSamples needs ParameterTargets " +
 				"saying where each sample's values go")
@@ -298,17 +289,12 @@ func NewSimulationEnvironment(
 					"agents.NewSimulationEnvironment: parameter target names partition %q, "+
 						"which is not in the model", target.Partition))
 			}
-			for _, i := range target.Indices {
-				if i < 0 || i >= len(spec.ParameterSamples[0]) {
-					panic(fmt.Sprintf(
-						"agents.NewSimulationEnvironment: parameter target %q/%q reads sample "+
-							"index %d, outside the %d-wide samples",
-						target.Partition, target.Param, i, len(spec.ParameterSamples[0])))
-				}
-			}
 			targets = append(targets, resolvedParamTarget{
 				partition: index, param: target.Param, indices: target.Indices,
 			})
+		}
+		if err := checkSampleWidth(spec.ParameterTargets, spec.ParameterSamples); err != nil {
+			panic("agents.NewSimulationEnvironment: " + err.Error())
 		}
 		// One extra slot carries which sample this trajectory drew.
 		paramSlot = 2 + total
@@ -317,6 +303,11 @@ func NewSimulationEnvironment(
 	beliefSlot := -1
 	observationPartition := -1
 	if spec.Belief != nil {
+		if spec.DeferredParameters {
+			panic("agents.NewSimulationEnvironment: Belief needs its ParameterSamples when " +
+				"the environment is built, since its weights are part of the state; it " +
+				"cannot be deferred")
+		}
 		if len(spec.ParameterSamples) == 0 {
 			panic("agents.NewSimulationEnvironment: Belief needs ParameterSamples to be a " +
 				"belief over")
@@ -355,6 +346,72 @@ func NewSimulationEnvironment(
 		observationPartition: observationPartition,
 		priorWeights:         priorWeights,
 	}
+}
+
+// BindParameters gives an environment built with DeferredParameters its
+// samples and weights (nil for equal credence), checking them as building
+// would. Bind before the environment is first used; binding again replaces
+// them.
+func (e *SimulationEnvironment) BindParameters(samples [][]float64, weights []float64) error {
+	if !e.spec.DeferredParameters {
+		return fmt.Errorf("agents: BindParameters needs an environment built with " +
+			"DeferredParameters; this one has its samples")
+	}
+	if len(samples) == 0 {
+		return fmt.Errorf("agents: BindParameters needs at least one sample")
+	}
+	priorWeights, err := normalisedWeights(weights, samples)
+	if err != nil {
+		return fmt.Errorf("agents: %w", err)
+	}
+	if err := checkSampleWidth(e.spec.ParameterTargets, samples); err != nil {
+		return fmt.Errorf("agents: %w", err)
+	}
+	e.spec.ParameterSamples, e.spec.ParameterWeights, e.priorWeights = samples, weights, priorWeights
+	return nil
+}
+
+// normalisedWeights checks weights give one non-negative credence per sample
+// and normalises them, or is nil for equal credence.
+func normalisedWeights(weights []float64, samples [][]float64) ([]float64, error) {
+	if len(weights) == 0 {
+		return nil, nil
+	}
+	if len(weights) != len(samples) {
+		return nil, fmt.Errorf("%d parameter weights for %d samples — there must be one "+
+			"weight per sample", len(weights), len(samples))
+	}
+	total := 0.0
+	for _, weight := range weights {
+		if weight < 0 {
+			return nil, fmt.Errorf("parameter weights must be non-negative")
+		}
+		total += weight
+	}
+	if total <= 0 {
+		return nil, fmt.Errorf("parameter weights sum to zero, so no sample carries any credence")
+	}
+	normalised := make([]float64, len(weights))
+	for i, weight := range weights {
+		normalised[i] = weight / total
+	}
+	return normalised, nil
+}
+
+// checkSampleWidth checks every index a target reads lies within the samples.
+func checkSampleWidth(targets []SimulationParamTarget, samples [][]float64) error {
+	if len(samples) == 0 {
+		return nil
+	}
+	for _, target := range targets {
+		for _, i := range target.Indices {
+			if i < 0 || i >= len(samples[0]) {
+				return fmt.Errorf("parameter target %q/%q reads sample index %d, outside "+
+					"the %d-wide samples", target.Partition, target.Param, i, len(samples[0]))
+			}
+		}
+	}
+	return nil
 }
 
 // StateWidth is the encoded state width: the step index, the accumulated

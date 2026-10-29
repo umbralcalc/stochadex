@@ -115,12 +115,25 @@ type planningParametersSpec struct {
 	Weights []float64 `yaml:"weights,omitempty"`
 	// WeightsFrom reads those weights from a recorded partition's final row,
 	// so a calibration's own output can be handed straight over.
-	WeightsFrom *dataRefSpec `yaml:"weights_from,omitempty"`
+	WeightsFrom *planningRowsRef `yaml:"weights_from,omitempty"`
 	// Belief turns on in-tree belief updating, so the planner can value an action
 	// for what it reveals and not only for what it pays. It costs a model step
 	// per sample on every transition, so keep the sample set small — a run with
 	// hundreds of draws should plan on a fixed draw instead.
 	Belief *planningBeliefSpec `yaml:"belief,omitempty"`
+}
+
+// readsInputs reports that the parameters are read from inputs when the run
+// starts. Recorded rows are read either all from inputs, in a {type: simulation}
+// environment, which refuses rows named any other way, or all by partition
+// name, in mcts_planning, which refuses input:; so weights read from an input
+// need samples read from one too.
+func (p *planningParametersSpec) readsInputs() (bool, error) {
+	if p.WeightsFrom != nil && p.WeightsFrom.Input != "" && p.SamplesFrom == nil {
+		return false, fmt.Errorf("parameters.weights_from reads input %q when the run "+
+			"starts, so its samples must too: name the input in samples_from", p.WeightsFrom.Input)
+	}
+	return p.SamplesFrom != nil && p.SamplesFrom.Input != "", nil
 }
 
 // resolveWeights produces the initial credence over the samples, or nil for
@@ -178,8 +191,18 @@ func (p *planningParametersSpec) resolveWeights(
 	return append([]float64(nil), weights...), nil
 }
 
+// planningRowsRef reads a recorded partition: in mcts_planning, by name from
+// its inputs and earlier macros; in a {type: simulation} environment, from the
+// input named, when its run starts.
+type planningRowsRef struct {
+	Input         string `yaml:"input,omitempty"`
+	PartitionName string `yaml:"partition_name"`
+	ValueIndices  []int  `yaml:"value_indices,omitempty"`
+}
+
 // planningSamplesRef reads draws from recorded rows, discarding a burn-in.
 type planningSamplesRef struct {
+	Input         string `yaml:"input,omitempty"`
 	PartitionName string `yaml:"partition_name"`
 	ValueIndices  []int  `yaml:"value_indices,omitempty"`
 	// BurnIn drops this many leading rows, which is how the transient of a
@@ -299,6 +322,12 @@ func (s *mctsPlanningSpec) environment(
 	if s.Steps <= 0 {
 		return nil, fmt.Errorf("mcts_planning needs steps: > 0 (the number of decisions to take)")
 	}
+	if s.Parameters != nil && ((s.Parameters.SamplesFrom != nil && s.Parameters.SamplesFrom.Input != "") ||
+		(s.Parameters.WeightsFrom != nil && s.Parameters.WeightsFrom.Input != "")) {
+		return nil, fmt.Errorf("mcts_planning reads samples_from and weights_from by partition " +
+			"name, from its inputs and earlier macros; input: is for a {type: simulation} " +
+			"environment, which reads them when its run starts")
+	}
 	return s.simulationEnvironmentSpec.build(storage, "mcts_planning")
 }
 
@@ -402,15 +431,30 @@ func (e *simulationEnvironmentSpec) build(
 	var weights []float64
 	var targets []agents.SimulationParamTarget
 	var belief *agents.BeliefSpec
+	deferred := false
 	if e.Parameters != nil {
-		resolved, err := e.Parameters.resolve(storage)
-		if err != nil {
+		var err error
+		if deferred, err = e.Parameters.readsInputs(); err != nil {
 			return nil, err
 		}
-		samples = resolved
-		weights, err = e.Parameters.resolveWeights(storage, len(samples))
-		if err != nil {
-			return nil, err
+		switch {
+		case deferred && len(e.Parameters.Targets) == 0:
+			return nil, fmt.Errorf(
+				"mcts_planning parameters needs targets: saying where each sample's values go")
+		case deferred && e.Parameters.Belief != nil:
+			return nil, fmt.Errorf("%s parameters.belief needs its samples when the config "+
+				"loads, since its weights are part of the state, but samples_from reads "+
+				"input %q when the run starts; list the samples inline", what, e.Parameters.SamplesFrom.Input)
+		case !deferred:
+			resolved, err := e.Parameters.resolve(storage)
+			if err != nil {
+				return nil, err
+			}
+			samples = resolved
+			weights, err = e.Parameters.resolveWeights(storage, len(samples))
+			if err != nil {
+				return nil, err
+			}
 		}
 		for _, target := range e.Parameters.Targets {
 			if err := requireModelPartition(
@@ -441,6 +485,10 @@ func (e *simulationEnvironmentSpec) build(
 		}
 	}
 
+	var readLater *planningParametersSpec
+	if deferred {
+		readLater = e.Parameters
+	}
 	return &simulationEnvironment{
 		SimulationEnvironment: agents.NewSimulationEnvironment(
 			settings, implementations, agents.SimulationEnvironmentSpec{
@@ -451,18 +499,20 @@ func (e *simulationEnvironmentSpec) build(
 				Reward: func(rows map[string][]float64) float64 {
 					return rows[rewardPartition][0]
 				},
-				Discount:         e.Discount,
-				MinReturn:        e.ReturnRange[0],
-				MaxReturn:        e.ReturnRange[1],
-				ScenarioSeed:     e.ScenarioSeed,
-				Progress:         progress,
-				ParameterSamples: samples,
-				ParameterWeights: weights,
-				ParameterTargets: targets,
-				Belief:           belief,
+				Discount:           e.Discount,
+				MinReturn:          e.ReturnRange[0],
+				MaxReturn:          e.ReturnRange[1],
+				ScenarioSeed:       e.ScenarioSeed,
+				Progress:           progress,
+				ParameterSamples:   samples,
+				ParameterWeights:   weights,
+				ParameterTargets:   targets,
+				Belief:             belief,
+				DeferredParameters: deferred,
 			}),
-		actions: len(e.Actions),
-		horizon: e.Horizon,
+		actions:  len(e.Actions),
+		horizon:  e.Horizon,
+		deferred: readLater,
 	}, nil
 }
 
@@ -471,6 +521,42 @@ func (e *simulationEnvironmentSpec) build(
 type simulationEnvironment struct {
 	*agents.SimulationEnvironment
 	actions, horizon int
+	// deferred are the parameters read from inputs when the run starts, if any.
+	deferred *planningParametersSpec
+}
+
+// bindParameters reads the environment's deferred parameters from its inputs.
+func (e *simulationEnvironment) bindParameters(
+	storageOf func(name string) (*simulator.StateTimeStorage, error),
+) error {
+	parameters := e.deferred
+	storage, err := storageOf(parameters.SamplesFrom.Input)
+	if err != nil {
+		return err
+	}
+	if _, err := inputRows(storage, parameters.SamplesFrom.Input, parameters.SamplesFrom.PartitionName); err != nil {
+		return err
+	}
+	samples, err := parameters.resolve(storage)
+	if err != nil {
+		return withKind(ErrData, fmt.Errorf("api: input %q: %w", parameters.SamplesFrom.Input, err))
+	}
+	if parameters.WeightsFrom != nil {
+		if storage, err = storageOf(parameters.WeightsFrom.Input); err != nil {
+			return err
+		}
+		if _, err := inputRows(storage, parameters.WeightsFrom.Input, parameters.WeightsFrom.PartitionName); err != nil {
+			return err
+		}
+	}
+	weights, err := parameters.resolveWeights(storage, len(samples))
+	if err == nil {
+		err = e.BindParameters(samples, weights)
+	}
+	if err != nil {
+		return withKind(ErrData, fmt.Errorf("api: binding a planning environment's parameters: %w", err))
+	}
+	return nil
 }
 
 // typed is the environment as the MCTS iterations take it. Its state is the

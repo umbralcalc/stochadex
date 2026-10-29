@@ -10,13 +10,16 @@ package agents_test
 // having bought earlier, at a price that looked bad at the time.
 
 import (
+	"fmt"
 	"math"
 	"math/rand/v2"
+	"strings"
 	"testing"
 
 	"github.com/umbralcalc/stochadex/pkg/agents"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gonum.org/v1/gonum/floats"
 )
 
 // priceCycle is the repeating price path: two cheap steps, then two dear ones.
@@ -883,6 +886,23 @@ func newNewsvendorEnvironment(
 	meanDemand float64,
 ) *agents.SimulationEnvironment {
 	t.Helper()
+	return newNewsvendorEnvironmentWith(t, meanDemand, func(spec *agents.SimulationEnvironmentSpec) {
+		if samples != nil {
+			spec.ParameterSamples = samples
+			spec.ParameterTargets = []agents.SimulationParamTarget{
+				{Partition: "profit", Param: "demand", Indices: []int{0}},
+			}
+		}
+	})
+}
+
+// newNewsvendorEnvironmentWith builds the decision with its spec adjusted.
+func newNewsvendorEnvironmentWith(
+	t *testing.T,
+	meanDemand float64,
+	adjust func(*agents.SimulationEnvironmentSpec),
+) *agents.SimulationEnvironment {
+	t.Helper()
 	gen := simulator.NewConfigGenerator()
 	gen.SetSimulation(&simulator.SimulationConfig{
 		OutputCondition:      &simulator.NilOutputCondition{},
@@ -927,13 +947,115 @@ func newNewsvendorEnvironment(
 		MaxReturn:       300,
 		ScenarioSeed:    3,
 	}
-	if samples != nil {
-		spec.ParameterSamples = samples
-		spec.ParameterTargets = []agents.SimulationParamTarget{
-			{Partition: "profit", Param: "demand", Indices: []int{0}},
-		}
-	}
+	adjust(&spec)
 	return agents.NewSimulationEnvironment(settings, impl, spec)
+}
+
+// TestDeferredParameters: an environment built with DeferredParameters and
+// then bound behaves as one built with the same samples and weights.
+func TestDeferredParameters(t *testing.T) {
+	demandTarget := []agents.SimulationParamTarget{{Partition: "profit", Param: "demand", Indices: []int{0}}}
+	weights := []float64{1, 1, 1, 1, 1, 15}
+	deferred := func(t *testing.T) *agents.SimulationEnvironment {
+		return newNewsvendorEnvironmentWith(t, 25, func(spec *agents.SimulationEnvironmentSpec) {
+			spec.ParameterTargets, spec.DeferredParameters = demandTarget, true
+		})
+	}
+
+	t.Run("bound, it steps as one built with its samples and weights", func(t *testing.T) {
+		built := newNewsvendorEnvironmentWith(t, 25, func(spec *agents.SimulationEnvironmentSpec) {
+			spec.ParameterSamples, spec.ParameterWeights, spec.ParameterTargets =
+				demandPosterior, weights, demandTarget
+		})
+		bound := deferred(t)
+		if err := bound.BindParameters(demandPosterior, weights); err != nil {
+			t.Fatal(err)
+		}
+		if !floats.Equal(bound.InitialState(), built.InitialState()) {
+			t.Fatalf("initial states differ: %v vs %v", bound.InitialState(), built.InitialState())
+		}
+		for action := range orderQuantities {
+			want, err := built.Apply(built.InitialState(), action)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := bound.Apply(bound.InitialState(), action)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !floats.Equal(got, want) {
+				t.Errorf("action %d: %v, want %v", action, got, want)
+			}
+		}
+		builtPlan, builtReturn := planActions(t, built, 300)
+		boundPlan, boundReturn := planActions(t, bound, 300)
+		if fmt.Sprint(boundPlan) != fmt.Sprint(builtPlan) || boundReturn != builtReturn {
+			t.Errorf("plans differ: %v (%v) vs %v (%v)", boundPlan, boundReturn, builtPlan, builtReturn)
+		}
+	})
+
+	for _, c := range []struct {
+		name    string
+		env     func(*testing.T) *agents.SimulationEnvironment
+		samples [][]float64
+		weights []float64
+		want    string
+	}{
+		{"an environment built with its samples", func(t *testing.T) *agents.SimulationEnvironment {
+			return newNewsvendorEnvironment(t, demandPosterior, 25)
+		}, demandPosterior, nil, "needs an environment built with DeferredParameters"},
+		{"no samples", deferred, nil, nil, "needs at least one sample"},
+		{"a weight per sample but one", deferred, demandPosterior, []float64{1}, "1 parameter weights for 6 samples"},
+		{"negative weights", deferred, demandPosterior, []float64{1, 1, 1, 1, 1, -1}, "must be non-negative"},
+		{"weights summing to zero", deferred, demandPosterior, make([]float64, 6), "sum to zero"},
+		{"samples narrower than the targets read", func(t *testing.T) *agents.SimulationEnvironment {
+			return newNewsvendorEnvironmentWith(t, 25, func(spec *agents.SimulationEnvironmentSpec) {
+				spec.ParameterTargets = []agents.SimulationParamTarget{
+					{Partition: "profit", Param: "demand", Indices: []int{1}}}
+				spec.DeferredParameters = true
+			})
+		}, demandPosterior, nil, `parameter target "profit"/"demand" reads sample index 1, outside the 1-wide samples`},
+	} {
+		t.Run("binding "+c.name+" is an error", func(t *testing.T) {
+			err := c.env(t).BindParameters(c.samples, c.weights)
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("expected an error containing %q, got %v", c.want, err)
+			}
+		})
+	}
+
+	for _, c := range []struct {
+		name   string
+		adjust func(*agents.SimulationEnvironmentSpec)
+		want   string
+	}{
+		{"deferring samples it also states", func(spec *agents.SimulationEnvironmentSpec) {
+			spec.ParameterTargets, spec.DeferredParameters, spec.ParameterSamples = demandTarget, true, demandPosterior
+		}, "set neither here"},
+		{"weights that do not match its samples", func(spec *agents.SimulationEnvironmentSpec) {
+			spec.ParameterSamples, spec.ParameterWeights, spec.ParameterTargets = demandPosterior, []float64{1}, demandTarget
+		}, "1 parameter weights for 6 samples"},
+		{"samples narrower than its targets read", func(spec *agents.SimulationEnvironmentSpec) {
+			spec.ParameterSamples = demandPosterior
+			spec.ParameterTargets = []agents.SimulationParamTarget{{Partition: "profit", Param: "demand", Indices: []int{2}}}
+		}, "reads sample index 2, outside the 1-wide samples"},
+		{"deferring with no targets", func(spec *agents.SimulationEnvironmentSpec) {
+			spec.DeferredParameters = true
+		}, "needs ParameterTargets"},
+		{"deferring a belief's samples", func(spec *agents.SimulationEnvironmentSpec) {
+			spec.ParameterTargets, spec.DeferredParameters = demandTarget, true
+			spec.Belief = &agents.BeliefSpec{ObservationPartition: "profit", Variance: 1}
+		}, "cannot be deferred"},
+	} {
+		t.Run("building "+c.name+" panics", func(t *testing.T) {
+			defer func() {
+				if recovered := recover(); recovered == nil || !strings.Contains(fmt.Sprint(recovered), c.want) {
+					t.Errorf("expected a panic containing %q, got %v", c.want, recovered)
+				}
+			}()
+			newNewsvendorEnvironmentWith(t, 25, c.adjust)
+		})
+	}
 }
 
 // TestPosteriorPredictivePlanningBeatsPointEstimate is the payoff of planning

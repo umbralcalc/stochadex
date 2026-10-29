@@ -7,6 +7,7 @@ import (
 
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	yaml3 "gopkg.in/yaml.v3"
 )
 
 // The inputs: tier (PLAN.md Phase 1). An input is a named, read-only storage
@@ -22,13 +23,18 @@ import (
 // immediately before the run's generator is built. A missing input is therefore
 // ErrUnavailable and a partition the input lacks is ErrData, both at run time.
 
-// InputConfig is one entry of inputs:. Exactly one of Source, Simulation and
-// Stream is set.
+// InputConfig is one entry of inputs:. Exactly one of Source, Simulation,
+// Run, Stream and File is set.
 type InputConfig struct {
 	// Source loads the input from a file or database (the data.source spellings).
 	Source *DataSource `yaml:"source,omitempty"`
 	// Simulation produces the input by running a sub-simulation first.
 	Simulation *DataConfig `yaml:"simulation,omitempty"`
+	// Run produces the input by running a config of its own first: one with
+	// inputs:, main: and embedded:, or macros:, which runs once (batch). Its
+	// recorded rows are the input's, as RunToStorage returns them; its own
+	// outputs are not written.
+	Run *ApiRunConfig `yaml:"run,omitempty"`
 	// Stream reads the input live, from outside the run, while it runs (see
 	// streams.go). Only params_from_input reads a stream input.
 	Stream *StreamConfig `yaml:"stream,omitempty"`
@@ -81,8 +87,14 @@ func (i *InputConfig) load() (*simulator.StateTimeStorage, error) {
 		return storage, inputError(err)
 	case i.Simulation != nil:
 		return i.Simulation.buildStorage()
+	case i.Run != nil:
+		result, err := RunToStorage(i.Run)
+		if err != nil {
+			return nil, err
+		}
+		return result.Storage, nil
 	}
-	return nil, fmt.Errorf("api: only a source: or simulation: input has stored rows to load")
+	return nil, fmt.Errorf("api: only a source:, simulation: or run: input has stored rows to load")
 }
 
 // unboundInputIteration is what {type: from_input} resolves to at load: a
@@ -156,13 +168,15 @@ func (u *unboundInputExhausted) Terminate(
 	return u.steps.Terminate(stateHistories, history)
 }
 
-// nestedReaders are the input readers a run's nested runs hold: built into
-// their hosts' iterations when the config loads, before any input is read, so
-// binding a run binds them in place.
-type nestedReaders struct {
-	partitions []nestedInputPartition
-	timesteps  []*unboundInputTimesteps
-	exhausted  []*unboundInputExhausted
+// builtReaders are the input readers a config's loading builds into
+// iterations, before any input is read: its nested runs' replays and clocks,
+// and the planning environments whose parameters are read from inputs.
+// Binding a run binds them in place.
+type builtReaders struct {
+	partitions   []nestedInputPartition
+	timesteps    []*unboundInputTimesteps
+	exhausted    []*unboundInputExhausted
+	environments []*simulationEnvironment
 }
 
 // nestedInputPartition is a nested run's from_input partition.
@@ -187,6 +201,42 @@ func (r *RunConfig) recordInputReaders(scope *runScope) {
 	if exhausted, ok := r.Simulation.TerminationCondition.(*unboundInputExhausted); ok {
 		scope.readers.exhausted = append(scope.readers.exhausted, exhausted)
 	}
+}
+
+// loadRunInputs loads each run: input's config, as written in the config's
+// text, as a config of its own from the same path.
+func loadRunInputs(config *ApiRunConfig, text []byte, path string) error {
+	if !hasRunInputs(config) {
+		return nil
+	}
+	// The config decoded from text, so it parses.
+	var root yaml3.Node
+	_ = yaml3.Unmarshal(text, &root)
+	inputs := mappingValue(root.Content[0], "inputs")
+	for _, name := range sortedKeys(config.Inputs) {
+		input := config.Inputs[name]
+		if input.Run == nil {
+			continue
+		}
+		run, _ := yaml3.Marshal(mappingValue(mappingValue(inputs, name), "run"))
+		loaded, err := loadConfigData(run, path)
+		if err != nil {
+			return fmt.Errorf("api: input %q's run: %w", name, err)
+		}
+		input.Run = loaded
+		config.Inputs[name] = input
+	}
+	return nil
+}
+
+// hasRunInputs reports that a config has a run: input.
+func hasRunInputs(config *ApiRunConfig) bool {
+	for _, input := range config.Inputs {
+		if input.Run != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // fromStoragePrefix names the inputs that inline from_storage data becomes.
@@ -311,14 +361,17 @@ func validateInputs(config *ApiRunConfig) error {
 	for name, input := range config.Inputs {
 		set := 0
 		for _, present := range []bool{input.Source != nil, input.Simulation != nil,
-			input.Stream != nil, input.File != nil} {
+			input.Run != nil, input.Stream != nil, input.File != nil} {
 			if present {
 				set++
 			}
 		}
 		switch {
 		case set != 1:
-			return fmt.Errorf("api: input %q needs exactly one of source:, simulation:, stream: or file:", name)
+			return fmt.Errorf("api: input %q needs exactly one of source:, simulation:, run:, stream: or file:", name)
+		case input.Run != nil && input.Run.Run.Mode != "" && input.Run.Run.Mode != "batch":
+			return fmt.Errorf("api: input %q: a run: input runs once, so its run: mode must be "+
+				"batch, not %q", name, input.Run.Run.Mode)
 		case input.File != nil && input.File.Path == "":
 			return fmt.Errorf("api: input %q: file: needs a path", name)
 		case input.Simulation != nil && input.Simulation.Source != nil:
@@ -431,6 +484,19 @@ func validateInputs(config *ApiRunConfig) error {
 		for _, exhausted := range readers.exhausted {
 			if err := storedOnly("a nested run's termination_condition input_exhausted", exhausted.input); err != nil {
 				return err
+			}
+		}
+		for _, environment := range readers.environments {
+			parameters := environment.deferred
+			if err := storedOnly("a planning environment's parameters.samples_from",
+				parameters.SamplesFrom.Input); err != nil {
+				return err
+			}
+			if parameters.WeightsFrom != nil {
+				if err := storedOnly("a planning environment's parameters.weights_from",
+					parameters.WeightsFrom.Input); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -667,7 +733,7 @@ func bindPlaceholders(
 
 // bindNestedReaders binds nested runs' input readers in place.
 func bindNestedReaders(
-	readers *nestedReaders,
+	readers *builtReaders,
 	storageOf func(name string) (*simulator.StateTimeStorage, error),
 ) error {
 	for _, partition := range readers.partitions {
@@ -705,6 +771,11 @@ func bindNestedReaders(
 		}
 		exhausted.steps = &simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: len(storage.GetTimes()) - 1}
+	}
+	for _, environment := range readers.environments {
+		if err := environment.bindParameters(storageOf); err != nil {
+			return err
+		}
 	}
 	return nil
 }

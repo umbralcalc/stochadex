@@ -43,7 +43,7 @@ func init() {
 			return nil, err
 		}
 		delete(fields, "type")
-		return resolveMCTSEnvironment(simulator.ComponentSpec{Type: "simulation", Fields: fields})
+		return resolveMCTSEnvironment(simulator.ComponentSpec{Type: "simulation", Fields: fields}, newRunScope())
 	})
 }
 

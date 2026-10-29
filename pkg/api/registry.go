@@ -119,11 +119,11 @@ func RegisterIteration(
 // the run's, bound with the rest.
 type runScope struct {
 	environments map[string]MCTSEnvironment
-	readers      *nestedReaders
+	readers      *builtReaders
 }
 
 func newRunScope() *runScope {
-	return &runScope{environments: map[string]MCTSEnvironment{}, readers: &nestedReaders{}}
+	return &runScope{environments: map[string]MCTSEnvironment{}, readers: &builtReaders{}}
 }
 
 // forReplica is the scope a replica of a replicated run resolves in.

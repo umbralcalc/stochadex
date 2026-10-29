@@ -158,9 +158,9 @@ func TestMCTSIterationSpecs(t *testing.T) {
 	cases := []struct{ name, from, to, want string }{
 		{"an unknown environment type", "        type: simulation\n", "        type: casino\n",
 			`mcts_apply: field "environment": unknown environment type "casino" (expected simulation, or a registered environment: `},
-		{"an environment reading recorded samples", "samples: [[2.0], [8.0]]",
+		{"an environment reading recorded samples without naming the input", "samples: [[2.0], [8.0]]",
 			"samples_from: {partition_name: post}",
-			"parameters.samples_from and weights_from read recorded rows, which only mcts_planning has"},
+			"parameters.samples_from and weights_from read an input's recorded rows when the run starts, so name it"},
 		{"an environment field it does not know", "        horizon: 8\n", "        horizon: 8\n        steps: 8\n",
 			"environment simulation: yaml: unmarshal errors"},
 		{"an environment with no horizon", "        horizon: 8\n", "        horizon: 0\n",

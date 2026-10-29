@@ -84,6 +84,21 @@ an exact version rather than assume stability across minors.
   built before the input is read; a width that does not match the input's rows fails the run
   as `ErrData`. Each ensemble member binds its own.
 
+- **An input can be computed by a config of its own.** `inputs: {post: {run: {...}}}` runs a
+  whole config first (its own `inputs:`, `main:` and `embedded:`, or `macros:`, once, in batch),
+  and its recorded rows, as `api.RunToStorage` returns them, are the input's. It is loaded with
+  the config, as written, so its own errors are config errors at load; its own outputs are not
+  written.
+
+- **A `{type: simulation}` planning environment reads its parameter samples from an input when
+  the run starts.** `parameters.samples_from` and `weights_from` take `input:`, naming the
+  input whose recorded partition they read, with the same `burn_in` and `value_indices` as
+  `mcts_planning`'s; with a `run:` input, a calibration and the plan over its posterior are
+  one core config. Weights from an input need samples from one; a belief, whose weights are part
+  of the search state, needs its samples inline. `mcts_planning` itself still reads them by
+  partition name. `agents.SimulationEnvironmentSpec.DeferredParameters` and
+  `SimulationEnvironment.BindParameters` build an environment whose samples arrive later.
+
 ### Changed
 
 - **`likelihood_comparison`, `posterior_estimation` and `likelihood_mean_function_fit` run

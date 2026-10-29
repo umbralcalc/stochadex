@@ -318,7 +318,7 @@ func TestChanceNodesFollowTheEnvironment(t *testing.T) {
 			fields[key] = value
 		}
 	}
-	stochastic, err := resolveMCTSEnvironment(simulator.ComponentSpec{Type: "simulation", Fields: fields})
+	stochastic, err := resolveMCTSEnvironment(simulator.ComponentSpec{Type: "simulation", Fields: fields}, newRunScope())
 	if err != nil {
 		t.Fatal(err)
 	}

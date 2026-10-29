@@ -255,7 +255,7 @@ macro's output partition by name (they run in order).
 
 ```yaml
 inputs:
-  obs: {source: {csv: {path: obs.csv, time_column: 0, state_columns: {flow: [1]}}}}  # or {simulation: {...}}
+  obs: {source: {csv: {path: obs.csv, time_column: 0, state_columns: {flow: [1]}}}}  # or {simulation: {...}}, or {run: {...}}
 main:
   partitions:
   - {name: flow, iteration: {type: from_input, input: obs}, state_history_depth: 1, seed: 0}
@@ -516,7 +516,11 @@ params) `partition_event` (reads `event_partition_index` / `event_state_value_in
 `mcts_self_play` (needs a registered `env:`) `mcts_planning` (tree search over your own model).
 **Environments** (`mcts_self_play`'s `env:`, and the `mcts_*` iterations' `environment:`):
 `tictactoe` only, unless the binary links a module that called `api.RegisterEnvironment`; the
-`mcts_*` iterations also take `{type: simulation, ...}`.
+`mcts_*` iterations also take `{type: simulation, ...}`, whose `parameters.samples_from` /
+`weights_from` name the input they read when the run starts (`{input: post, partition_name:
+post_sampler, burn_in: 2000}`); a belief needs inline samples. **A `run:` input** is a whole
+config run first (its own `inputs:`, `main:` or `macros:`, batch only), its recorded rows the
+input's: e.g. a calibration whose posterior draws a planner reads.
 **Output view components:** condition `nil|every_step|every_n_steps|only_given_partitions`;
 function `nil|stdout|json_log|websocket` (`websocket` pushes each output to field `url:` as a client).
 **Simulation components:** termination `number_of_steps|time_elapsed`;
