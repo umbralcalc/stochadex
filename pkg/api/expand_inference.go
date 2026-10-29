@@ -51,6 +51,34 @@ func nestedRunComponent(partitions []expandedPartition, simulation map[string]in
 		"run": map[string]interface{}{"partitions": partitions, "simulation": simulation}})
 }
 
+// windowRun is a likelihood window's nested run, as the macro tier runs it:
+// inline when its partitions allow (see macros.withInlineExecution), since the
+// window re-runs its inner steps every outer step and the default strategy's
+// goroutine per partition per inner step would dominate its cost.
+func windowRun(partitions []expandedPartition, simulation map[string]interface{}) *yaml3.Node {
+	if inlineOrdered(partitions) {
+		simulation["execution_strategy"] = component("inline", nil)
+	}
+	return nestedRunComponent(partitions, simulation)
+}
+
+// inlineOrdered reports that every within-step upstream of a run's partitions
+// comes earlier in partition order, which inline execution requires.
+func inlineOrdered(partitions []expandedPartition) bool {
+	order := make(map[string]int, len(partitions))
+	for index, partition := range partitions {
+		order[partition.Name] = index
+	}
+	for index, partition := range partitions {
+		for _, upstream := range partition.ParamsFromUpstream {
+			if earlier, inner := order[upstream.Upstream]; !inner || earlier >= index {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // windowHost is what a likelihood window's host partition and its run hold
 // before the scoring partitions are added.
 type windowHost struct {
@@ -196,7 +224,7 @@ func (s likelihoodComparisonSpec) expandComparison(ctx *expansionContext) (expan
 	})
 	return expandedPartition{
 		Name: s.Name,
-		Iteration: nestedRunComponent(host.partitions, map[string]interface{}{
+		Iteration: windowRun(host.partitions, map[string]interface{}{
 			"termination_condition": component("number_of_steps",
 				map[string]interface{}{"max_steps": s.Window.Depth}),
 			"timestep_function": component("from_history", nil),
@@ -388,7 +416,7 @@ func (s *likelihoodMeanFunctionFitSpec) expand(ctx *expansionContext) (*expansio
 	return &expansion{
 		partitions: []expandedPartition{{
 			Name: s.Name,
-			Iteration: nestedRunComponent(host.partitions, map[string]interface{}{
+			Iteration: windowRun(host.partitions, map[string]interface{}{
 				"termination_condition": component("number_of_steps",
 					map[string]interface{}{"max_steps": s.DescentIterations}),
 				"timestep_function": component("constant", map[string]interface{}{"stepsize": 1.0}),
