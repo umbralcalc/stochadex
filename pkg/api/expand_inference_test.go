@@ -229,7 +229,7 @@ func TestExpandInferenceMacros(t *testing.T) {
 		{"a model with no likelihood", comparisonMacro, "    likelihood: {type: normal}\n    params: {covariance_matrix: [0.8]}",
 			"    params: {covariance_matrix: [0.8]}", "model needs a likelihood"},
 		{"a window partition with no iteration", comparisonMacro, "        iteration: {type: ornstein_uhlenbeck}\n", "",
-			`window partition "sim" needs an iteration: {type: ...}`},
+			`partition "sim" needs an iteration: {type: ...}`},
 		{"a posterior with no mean", posteriorMacro, "mean: {name: post_mean, default: [0.0]}",
 			"mean: {name: post_mean, default: []}", "posterior mean.default must be non-empty"},
 		{"a sampler of the wrong width", posteriorMacro, "    default: [0.0]\n    distribution:",

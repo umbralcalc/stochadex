@@ -86,10 +86,12 @@ func decodeNestedRun(fields map[string]interface{}, scope *runScope) (*ApiRunCon
 		if err := config.Embedded[index].Run.resolveIn(true, scope); err != nil {
 			return nil, err
 		}
+		config.Embedded[index].Run.recordInputReaders(scope)
 	}
 	if err := config.Main.resolveIn(true, scope); err != nil {
 		return nil, err
 	}
+	config.Main.recordInputReaders(scope)
 	return config, nil
 }
 
@@ -134,8 +136,8 @@ func nestedRunOf(partition simulator.PartitionConfig, scope *runScope) (*ApiRunC
 // memory its partitions are fed, which the outermost config checks with their
 // hosts in view (validateMemoryFeeds). It also refuses what a nested run cannot
 // have: an output of its own, which the outer run's black-box rule leaves to
-// top-level embedded: runs as a debug log, and inputs, which are bound only
-// for the main run.
+// top-level embedded: runs as a debug log, and params_from_input, which feeds
+// only the main run.
 func validateNestedRun(config *ApiRunConfig) error {
 	if err := validateRunShape(config); err != nil {
 		return err
@@ -152,16 +154,7 @@ func validateNestedRun(config *ApiRunConfig) error {
 				"its host's row is its partitions' final states; to see inside it, run it as a "+
 				"top-level embedded: run, whose own output is a debug log", where[index], function)
 		}
-		if run.SimulationStrings.TimestepFunction.Type == "from_input" ||
-			run.SimulationStrings.TerminationCondition.Type == "input_exhausted" {
-			return fmt.Errorf("%s's simulation reads an input, which is not yet supported "+
-				"inside a nested run", where[index])
-		}
 		for _, partition := range run.Partitions {
-			if _, ok := partition.Iteration.(*unboundInputIteration); ok {
-				return fmt.Errorf("from_input is not yet supported inside a nested run "+
-					"(partition %q)", partition.Name)
-			}
 			if len(partition.ParamsFromInput) > 0 {
 				return fmt.Errorf("params_from_input is not yet supported inside a nested "+
 					"run (partition %q)", partition.Name)

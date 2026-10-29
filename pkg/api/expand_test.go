@@ -199,9 +199,6 @@ macros:
 	})
 
 	cases := []struct{ name, yaml, want string }{
-		{"a macro that does not expand yet",
-			readFile(t, "../../cfg/example_smc_config.yaml"),
-			`macro "smc_inference" does not expand yet`},
 		{"a macro reading a partition nothing makes",
 			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: missing}, window: 3}\n"),
 			`macro "vector_mean": no partition "missing" to read (the inputs and earlier macros have: [level stream])`},

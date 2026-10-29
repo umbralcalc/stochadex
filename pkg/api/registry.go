@@ -112,15 +112,23 @@ func RegisterIteration(
 
 // runScope is what the partitions of one run share while it is resolved: the
 // environments its MCTS iterations search, so that partitions naming the same
-// environment spec search one environment, as mcts_self_play's partitions do.
-// A run's embedded runs share its scope, at any depth; each replica of a
-// replicated run, which runs concurrently with the others, has its own.
+// environment spec search one environment, as mcts_self_play's partitions do,
+// and the input readers its nested runs hold. A run's embedded runs share its
+// scope, at any depth; each replica of a replicated run, which runs
+// concurrently with the others, has its own environments, but its readers are
+// the run's, bound with the rest.
 type runScope struct {
 	environments map[string]MCTSEnvironment
+	readers      *nestedReaders
 }
 
 func newRunScope() *runScope {
-	return &runScope{environments: map[string]MCTSEnvironment{}}
+	return &runScope{environments: map[string]MCTSEnvironment{}, readers: &nestedReaders{}}
+}
+
+// forReplica is the scope a replica of a replicated run resolves in.
+func (s *runScope) forReplica() *runScope {
+	return &runScope{environments: map[string]MCTSEnvironment{}, readers: s.readers}
 }
 
 // scopedIterationBuilders are the builders that resolve within a run's scope:

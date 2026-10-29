@@ -33,10 +33,13 @@ type replicatedRunSpec struct {
 }
 
 func init() {
-	iterationBuilders["replicated_simulation_run"] = buildReplicatedSimulationRun
+	scopedIterationBuilders["replicated_simulation_run"] = buildReplicatedSimulationRun
 }
 
-func buildReplicatedSimulationRun(fields map[string]interface{}) (simulator.Iteration, error) {
+func buildReplicatedSimulationRun(
+	fields map[string]interface{},
+	scope *runScope,
+) (simulator.Iteration, error) {
 	// Fields decoded from YAML always marshal back (yaml.v2 panics, rather
 	// than erring, on a value that cannot).
 	raw, _ := yaml.Marshal(fields)
@@ -47,10 +50,13 @@ func buildReplicatedSimulationRun(fields map[string]interface{}) (simulator.Iter
 			return nil, err
 		}
 		// A replica runs concurrently with the others, so it shares no
-		// environment with them: each resolves in a scope of its own.
-		if err := spec.Run.resolve(); err != nil {
+		// environment with them: each resolves in a scope of its own, whose
+		// input readers are bound with the run's.
+		replicaScope := scope.forReplica()
+		if err := spec.Run.resolveIn(true, replicaScope); err != nil {
 			return nil, err
 		}
+		spec.Run.recordInputReaders(replicaScope)
 		return &spec, nil
 	}
 	spec, err := decode()
@@ -90,9 +96,10 @@ func buildReplicatedSimulationRun(fields map[string]interface{}) (simulator.Iter
 	return iteration, nil
 }
 
-// validate checks what a replica's run may not do: read an input, which no
-// replica is bound to, or write its own output, which every replica would
-// write at once; and that each forwarded param is one its partition declares.
+// validate checks what a replica's run may not do: write its own output,
+// which every replica would write at once, or read a history its host feeds,
+// which no replica has; and that each forwarded param is one its partition
+// declares.
 func (s *replicatedRunSpec) validate() error {
 	if s.OutputPartition == "" {
 		return fmt.Errorf("needs output_partition: the partition whose final row each replica outputs")
@@ -104,10 +111,6 @@ func (s *replicatedRunSpec) validate() error {
 	}
 	declared := map[string]map[string][]float64{}
 	for _, partition := range s.Run.Partitions {
-		if _, ok := partition.Iteration.(*unboundInputIteration); ok {
-			return fmt.Errorf("from_input is not yet supported inside a replicated run "+
-				"(partition %q)", partition.Name)
-		}
 		if _, ok := partition.Iteration.(general.StateMemoryIteration); ok {
 			return fmt.Errorf("partition %q reads a history an embedded run's host feeds "+
 				"it, which no replica has", partition.Name)

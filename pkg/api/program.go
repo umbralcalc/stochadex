@@ -805,6 +805,7 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 		if err := config.Embedded[index].Run.resolveIn(true, scope); err != nil {
 			return nil, configError(err)
 		}
+		config.Embedded[index].Run.recordInputReaders(scope)
 	}
 	findDeprecations(&config)
 	if err := config.resolveOutputs(); err != nil {

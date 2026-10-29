@@ -86,39 +86,107 @@ func (i *InputConfig) load() (*simulator.StateTimeStorage, error) {
 }
 
 // unboundInputIteration is what {type: from_input} resolves to at load: a
-// placeholder bindInputs replaces with the input's rows when a run starts.
+// placeholder for the input's rows, which are read when a run starts. A main
+// partition's placeholder is replaced by a replay of them. A nested run's is
+// built into its host's iteration at load, which configures it there, before
+// any input is read; binding gives it its replay in place, and its host
+// configures it again when the run starts.
 type unboundInputIteration struct {
 	input     string
 	partition string
+	nested    bool
+	replay    *general.FromStorageIteration
 }
 
-func (u *unboundInputIteration) Configure(int, *simulator.Settings) {
+func (u *unboundInputIteration) Configure(partitionIndex int, settings *simulator.Settings) {
+	switch {
+	case u.replay != nil:
+		u.replay.Configure(partitionIndex, settings)
+	case !u.nested:
+		u.unbound()
+	}
+}
+
+// unbound fails a run that reads an input it was never bound to.
+func (u *unboundInputIteration) unbound() {
 	panic(fmt.Sprintf("api: a from_input partition (input %q) was run unbound; "+
 		"run the config through api.Run, RunWith or RunToStorage, which bind "+
 		"inputs when the run starts", u.input))
 }
 
 func (u *unboundInputIteration) Iterate(
-	*simulator.Params, int, []*simulator.StateHistory, *simulator.CumulativeTimestepsHistory,
+	params *simulator.Params,
+	partitionIndex int,
+	stateHistories []*simulator.StateHistory,
+	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) []float64 {
-	panic("api: unbound from_input partition")
+	if u.replay == nil {
+		u.unbound()
+	}
+	return u.replay.Iterate(params, partitionIndex, stateHistories, timestepsHistory)
 }
 
-// unboundInputTimesteps is timestep_function {type: from_input} before binding.
-type unboundInputTimesteps struct{ input string }
-
-func (u *unboundInputTimesteps) NextIncrement(*simulator.CumulativeTimestepsHistory) float64 {
-	panic(fmt.Sprintf("api: timestep_function from_input (input %q) was run unbound", u.input))
+// unboundInputTimesteps is timestep_function {type: from_input}: the input's
+// times, once bound.
+type unboundInputTimesteps struct {
+	input string
+	times *general.FromStorageTimestepFunction
 }
 
-// unboundInputExhausted is termination_condition {type: input_exhausted} before
-// binding.
-type unboundInputExhausted struct{ input string }
+func (u *unboundInputTimesteps) NextIncrement(history *simulator.CumulativeTimestepsHistory) float64 {
+	if u.times == nil {
+		panic(fmt.Sprintf("api: timestep_function from_input (input %q) was run unbound", u.input))
+	}
+	return u.times.NextIncrement(history)
+}
+
+// unboundInputExhausted is termination_condition {type: input_exhausted}: a
+// step per row after the input's first, once bound.
+type unboundInputExhausted struct {
+	input string
+	steps *simulator.NumberOfStepsTerminationCondition
+}
 
 func (u *unboundInputExhausted) Terminate(
-	[]*simulator.StateHistory, *simulator.CumulativeTimestepsHistory,
+	stateHistories []*simulator.StateHistory, history *simulator.CumulativeTimestepsHistory,
 ) bool {
-	panic(fmt.Sprintf("api: termination_condition input_exhausted (input %q) was run unbound", u.input))
+	if u.steps == nil {
+		panic(fmt.Sprintf("api: termination_condition input_exhausted (input %q) was run unbound", u.input))
+	}
+	return u.steps.Terminate(stateHistories, history)
+}
+
+// nestedReaders are the input readers a run's nested runs hold: built into
+// their hosts' iterations when the config loads, before any input is read, so
+// binding a run binds them in place.
+type nestedReaders struct {
+	partitions []nestedInputPartition
+	timesteps  []*unboundInputTimesteps
+	exhausted  []*unboundInputExhausted
+}
+
+// nestedInputPartition is a nested run's from_input partition.
+type nestedInputPartition struct {
+	name      string
+	width     int
+	iteration *unboundInputIteration
+}
+
+// recordInputReaders records a nested run's input readers in its scope.
+func (r *RunConfig) recordInputReaders(scope *runScope) {
+	for _, partition := range r.Partitions {
+		if unbound, ok := partition.Iteration.(*unboundInputIteration); ok {
+			unbound.nested = true
+			scope.readers.partitions = append(scope.readers.partitions, nestedInputPartition{
+				name: partition.Name, width: len(partition.InitStateValues), iteration: unbound})
+		}
+	}
+	if timesteps, ok := r.Simulation.TimestepFunction.(*unboundInputTimesteps); ok {
+		scope.readers.timesteps = append(scope.readers.timesteps, timesteps)
+	}
+	if exhausted, ok := r.Simulation.TerminationCondition.(*unboundInputExhausted); ok {
+		scope.readers.exhausted = append(scope.readers.exhausted, exhausted)
+	}
 }
 
 // fromStoragePrefix names the inputs that inline from_storage data becomes.
@@ -347,12 +415,27 @@ func validateInputs(config *ApiRunConfig) error {
 	if err := validateParamsFromInput(config, reference); err != nil {
 		return err
 	}
+	if config.scope != nil {
+		readers := config.scope.readers
+		for _, partition := range readers.partitions {
+			if err := storedOnly(fmt.Sprintf("nested partition %q", partition.name),
+				partition.iteration.input); err != nil {
+				return err
+			}
+		}
+		for _, timesteps := range readers.timesteps {
+			if err := storedOnly("a nested run's timestep_function from_input", timesteps.input); err != nil {
+				return err
+			}
+		}
+		for _, exhausted := range readers.exhausted {
+			if err := storedOnly("a nested run's termination_condition input_exhausted", exhausted.input); err != nil {
+				return err
+			}
+		}
+	}
 	for _, embedded := range config.Embedded {
 		for _, partition := range embedded.Run.Partitions {
-			if _, ok := partition.Iteration.(*unboundInputIteration); ok {
-				return fmt.Errorf("api: from_input is not yet supported inside embedded "+
-					"runs (partition %q of %q)", partition.Name, embedded.Name)
-			}
 			if len(partition.ParamsFromInput) > 0 {
 				return fmt.Errorf("api: params_from_input is not yet supported inside "+
 					"embedded runs (partition %q of %q)", partition.Name, embedded.Name)
@@ -574,6 +657,53 @@ func bindPlaceholders(
 			return err
 		}
 		config.Main.Simulation.TerminationCondition = &simulator.NumberOfStepsTerminationCondition{
+			MaxNumberOfSteps: len(storage.GetTimes()) - 1}
+	}
+	if config.scope != nil {
+		return bindNestedReaders(config.scope.readers, storageOf)
+	}
+	return nil
+}
+
+// bindNestedReaders binds nested runs' input readers in place.
+func bindNestedReaders(
+	readers *nestedReaders,
+	storageOf func(name string) (*simulator.StateTimeStorage, error),
+) error {
+	for _, partition := range readers.partitions {
+		unbound := partition.iteration
+		storage, err := storageOf(unbound.input)
+		if err != nil {
+			return err
+		}
+		source := unbound.partition
+		if source == "" {
+			source = partition.name
+		}
+		rows, err := inputRows(storage, unbound.input, source)
+		if err != nil {
+			return err
+		}
+		if partition.width != len(rows[0]) {
+			return withKind(ErrData, fmt.Errorf(
+				"api: nested partition %q has %d init_state_values but input %q's %q rows have %d",
+				partition.name, partition.width, unbound.input, source, len(rows[0])))
+		}
+		unbound.replay = &general.FromStorageIteration{Data: rows}
+	}
+	for _, timesteps := range readers.timesteps {
+		storage, err := storageOf(timesteps.input)
+		if err != nil {
+			return err
+		}
+		timesteps.times = &general.FromStorageTimestepFunction{Data: storage.GetTimes()}
+	}
+	for _, exhausted := range readers.exhausted {
+		storage, err := storageOf(exhausted.input)
+		if err != nil {
+			return err
+		}
+		exhausted.steps = &simulator.NumberOfStepsTerminationCondition{
 			MaxNumberOfSteps: len(storage.GetTimes()) - 1}
 	}
 	return nil
