@@ -89,7 +89,7 @@ Status: **accepted** (2026-10-04).
       outputs allocate exactly as before. CI now runs the CLI module's tests.
   - **Merged:** coordinator recovers partition panics as `ErrRuntime` under every execution
     strategy (#132), so an iteration's runtime failure no longer crashes the process.
-  - **In review:** 2.1 part 4, clock-bearing macros (#147): ES, mcts_self_play, mcts_planning
+  - **Merged:** 2.1 part 4, clock-bearing macros (#147): ES, mcts_self_play, mcts_planning
     (inline parameters) expand exactly; the macro gives the run its clock (steps × timestep from
     0); a later analysis macro reads it live. Refused for now: clock macro beside inputs
     (calibrate→plan, part 6), two clocks, samples_from/weights_from. Environments stated in full
@@ -996,7 +996,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 
 | # | Item | Detail | Acceptance |
 |---|---|---|---|
-| 2.1 | **Parts 1–2 done (#140, #142); part 3 done (#145); part 4 in review (#147)**: expander interface (config → config) | Replace `macroSpec.resolve(storage)` / `liveMacroSpec.resolveLive(storage)` with `expand(ctx) (Expansion, error)`. `ctx` exposes **only config**: input *names* and their declared partition names and widths, plus the host partitions' names and widths. It never exposes storage contents. `Expansion = {partitions []PartitionConfig (data specs only), minHistoryDepth map[name]int, simulation SimulationConfigStrings (optional fields)}`. | All 12 macros implement it; each expansion round-trips through YAML marshal → load unchanged |
+| 2.1 | **Parts 1–2 done (#140, #142); part 3 done (#145); part 4 done (#147); part 5 (smc_inference) next**: expander interface (config → config) | Replace `macroSpec.resolve(storage)` / `liveMacroSpec.resolveLive(storage)` with `expand(ctx) (Expansion, error)`. `ctx` exposes **only config**: input *names* and their declared partition names and widths, plus the host partitions' names and widths. It never exposes storage contents. `Expansion = {partitions []PartitionConfig (data specs only), minHistoryDepth map[name]int, simulation SimulationConfigStrings (optional fields)}`. | All 12 macros implement it; each expansion round-trips through YAML marshal → load unchanged |
 | 2.2 | Depth requirements | Translate today's `windows` map into `max(existing, required)` `state_history_depth` on the referenced partitions, whether they are input replays or main partitions | Covered by the oracle (2.6) |
 | 2.3 | Data-ref resolution | A `DataRef.partition_name` resolves to a main partition, an earlier expander's partition, or an input replay. An input partition that is referenced but not yet replayed gets an auto-created `from_input` partition. | Unit tests per case |
 | 2.4 | Clock as ordinary config | Macros that need a clock (ES, SMC, MCTS) emit `simulation:` fields in their expansion. Merging follows ordinary duplicate-definition rules (§2.2 rule 2). With no clock at all and one fixed input, the default is `{type: from_input}` on that input. | Conflict tests with error messages that name both definitions |
