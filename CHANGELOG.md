@@ -22,6 +22,28 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-10-30
+
+This release makes stochadex a deterministic engine with a machine-readable CLI
+contract, and finishes turning macros into config shortcuts: every macro, including
+calibrate-then-plan, now expands into the core config language and runs exactly as the
+macro tier does. Identical runs now write byte-identical output, since rows within a step
+come out in partition order whatever the execution strategy. The new `stochadex graph` and
+`stochadex catalogue` commands, and a `SHA256SUMS` file on every release, give tools such as
+[robert](https://github.com/umbralcalc/robert) a stable surface to build on. Agent integration
+moves there: the Claude Code plugin and the `stochadex-model` skill are removed.
+
+**Upgrading from 0.23.**
+
+- If you use the Claude Code plugin, switch to robert (`claude plugin marketplace add
+  umbralcalc/robert`, or its one-line installer), which carries the same skill.
+- Replace `stochadex-graph` with `stochadex graph`. The old binary still works as an alias
+  but is deprecated, and no release ships it.
+- A config whose `window_data_history_depth` exceeds its window's `depth` now fails as a
+  config error. Set the two equal. Every shipped config already does.
+- Go code that drives a `simulator.StateIterator` by hand, rather than through a
+  coordinator, must now call `Output` after `Iterate`.
+
 ### Added
 
 - **`api.Expand` and `api.ExpandToYAML` write a macros: config out in the core language**, as
@@ -236,16 +258,6 @@ an exact version rather than assume stability across minors.
   data partition's width instead of by the number of values it takes the covariance over.
   A subset's covariance now equals the matching sub-block of the full covariance, and
   full-width runs are unchanged, with no slowdown.
-
-## [0.24.0] — 2026-10-30
-
-<!-- Release prose goes here: what this release is about and why this
-     bump. patch = fixes only; minor = new features or, in v0.x, a
-     breaking change. Delete this comment before merging. -->
-
-### Added
-
-- 
 
 ## [0.23.0] — 2026-10-22
 
