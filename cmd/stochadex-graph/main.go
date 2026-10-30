@@ -1,26 +1,21 @@
-// Command stochadex-graph renders the partition dependency graph of a
-// simulation from its YAML configuration, and reports any within-step
-// params_from_upstream cycle that would deadlock the run.
+// Command stochadex-graph is a deprecated alias for `stochadex graph`, kept so
+// existing scripts and CI guards keep working; use the subcommand instead:
 //
-// Usage:
+//	stochadex graph -c cfg/example_inference_config.yaml            # Mermaid
+//	stochadex graph -c cfg/example_config.yaml --format dot | dot -Tsvg > graph.svg
 //
-//	stochadex-graph --config cfg/example_inference_config.yaml            # Mermaid
-//	stochadex-graph --config cfg/example_config.yaml --format dot | dot -Tsvg > graph.svg
-//
-// It reads only the partition wiring (params_from_upstream and
-// params_as_partitions), so the iteration expressions in the config need not be
-// resolvable. It exits non-zero if a deadlock cycle is found, which makes it
-// usable as a CI guard.
+// It takes the same flags it always did and renders the same graph, through
+// the subcommand. It exits 1 if a within-step params_from_upstream deadlock
+// cycle is found (or the config cannot be loaded) and 2 on a usage error, as
+// before.
 package main
 
 import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/api"
-	"github.com/umbralcalc/stochadex/pkg/graph"
 )
 
 func main() {
@@ -28,39 +23,19 @@ func main() {
 	format := flag.String("format", "mermaid", "output format: mermaid | dot")
 	flag.Parse()
 
+	fmt.Fprintln(os.Stderr, "stochadex-graph is deprecated: use `stochadex graph -c CONFIG [--format mermaid|dot]`")
 	if *configFile == "" {
 		fmt.Fprintln(os.Stderr, "error: --config is required")
 		flag.Usage()
 		os.Exit(2)
 	}
-
-	// Build the graph from the main run's wiring. GetConfigGenerator on the
-	// concrete RunConfig preserves params_as_partitions and params_from_upstream
-	// without needing the iteration implementations.
-	gen := api.LoadApiRunConfigFromYaml(*configFile).Main.GetConfigGenerator()
-	g := graph.Build(gen)
-
-	switch *format {
-	case "mermaid":
-		fmt.Print(g.Mermaid())
-	case "dot":
-		fmt.Print(g.DOT())
-	default:
-		fmt.Fprintf(os.Stderr, "error: unknown format %q (want mermaid or dot)\n", *format)
-		os.Exit(2)
-	}
-
-	cycles := g.InjectCycles()
-	if len(cycles) == 0 {
+	err := api.Execute([]string{"stochadex", "graph", "--config", *configFile, "--format", *format})
+	if err == nil {
 		return
 	}
-	fmt.Fprintln(os.Stderr, "\nDEADLOCK: within-step params_from_upstream cycle(s) detected:")
-	for _, comp := range cycles {
-		names := make([]string, len(comp))
-		for i, v := range comp {
-			names[i] = g.Names[v]
-		}
-		fmt.Fprintf(os.Stderr, "  - {%s}\n", strings.Join(names, ", "))
+	fmt.Fprintln(os.Stderr, "stochadex-graph:", err)
+	if api.KindOf(err) == api.ErrUsage {
+		os.Exit(2)
 	}
 	os.Exit(1)
 }

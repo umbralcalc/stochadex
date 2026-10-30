@@ -278,34 +278,63 @@ func toComponentSpec(value interface{}) (simulator.ComponentSpec, error) {
 
 // ---- interface sub-registries -------------------------------------------------
 
+// specBuilder constructs one type of a sub-registry from its data spec's fields,
+// consuming them through reader so unknown keys are rejected.
+type specBuilder[T any] func(reader *specReader) T
+
+// resolveSpec builds a sub-registry component of family from its data spec.
+func resolveSpec[T any](
+	family string, builders map[string]specBuilder[T], spec simulator.ComponentSpec,
+) (T, error) {
+	build, ok := builders[spec.Type]
+	if !ok {
+		var zero T
+		return zero, fmt.Errorf("%s: unknown type %q", family, spec.Type)
+	}
+	reader := newSpecReader(family+" "+spec.Type, spec.Fields)
+	result := build(reader)
+	return result, reader.done()
+}
+
+// kernelBuilders are the kernel: types. It is filled at init, because the
+// product kernel resolves its factors through it.
+var kernelBuilders map[string]specBuilder[kernels.IntegrationKernel]
+
+func init() {
+	kernelBuilders = map[string]specBuilder[kernels.IntegrationKernel]{
+		"exponential": func(*specReader) kernels.IntegrationKernel {
+			return &kernels.ExponentialIntegrationKernel{}
+		},
+		"periodic": func(*specReader) kernels.IntegrationKernel {
+			return &kernels.PeriodicIntegrationKernel{}
+		},
+		"gaussian_state": func(*specReader) kernels.IntegrationKernel {
+			return &kernels.GaussianStateIntegrationKernel{}
+		},
+		"t_distribution_state": func(*specReader) kernels.IntegrationKernel {
+			return &kernels.TDistributionStateIntegrationKernel{}
+		},
+		"binned": func(*specReader) kernels.IntegrationKernel {
+			return &kernels.BinnedIntegrationKernel{}
+		},
+		"instantaneous": func(*specReader) kernels.IntegrationKernel {
+			return &kernels.InstantaneousIntegrationKernel{}
+		},
+		"constant": func(*specReader) kernels.IntegrationKernel {
+			return &kernels.ConstantIntegrationKernel{}
+		},
+		"product": func(r *specReader) kernels.IntegrationKernel {
+			return &kernels.ProductIntegrationKernel{
+				KernelA: r.kernel("kernel_a"),
+				KernelB: r.kernel("kernel_b"),
+			}
+		},
+	}
+}
+
 // resolveKernel builds an IntegrationKernel, recursively for the product kernel.
 func resolveKernel(spec simulator.ComponentSpec) (kernels.IntegrationKernel, error) {
-	reader := newSpecReader("kernel "+spec.Type, spec.Fields)
-	var result kernels.IntegrationKernel
-	switch spec.Type {
-	case "exponential":
-		result = &kernels.ExponentialIntegrationKernel{}
-	case "periodic":
-		result = &kernels.PeriodicIntegrationKernel{}
-	case "gaussian_state":
-		result = &kernels.GaussianStateIntegrationKernel{}
-	case "t_distribution_state":
-		result = &kernels.TDistributionStateIntegrationKernel{}
-	case "binned":
-		result = &kernels.BinnedIntegrationKernel{}
-	case "instantaneous":
-		result = &kernels.InstantaneousIntegrationKernel{}
-	case "constant":
-		result = &kernels.ConstantIntegrationKernel{}
-	case "product":
-		result = &kernels.ProductIntegrationKernel{
-			KernelA: reader.kernel("kernel_a"),
-			KernelB: reader.kernel("kernel_b"),
-		}
-	default:
-		return nil, fmt.Errorf("kernel: unknown type %q", spec.Type)
-	}
-	return result, reader.done()
+	return resolveSpec("kernel", kernelBuilders, spec)
 }
 
 // resolveLikelihood builds a LikelihoodDistribution. Only normal carries a data
@@ -334,65 +363,72 @@ func gradientLikelihood(
 	return withGradient, nil
 }
 
-func resolveLikelihood(spec simulator.ComponentSpec) (inference.LikelihoodDistribution, error) {
-	reader := newSpecReader("likelihood "+spec.Type, spec.Fields)
-	var result inference.LikelihoodDistribution
-	switch spec.Type {
-	case "normal":
-		result = &inference.NormalLikelihoodDistribution{
-			AllowDefaultCovarianceFallback: reader.optBool("allow_default_covariance_fallback"),
+// likelihoodBuilders are the likelihood: types. Only normal carries a data
+// field; the rest configure from params.
+var likelihoodBuilders = map[string]specBuilder[inference.LikelihoodDistribution]{
+	"normal": func(r *specReader) inference.LikelihoodDistribution {
+		return &inference.NormalLikelihoodDistribution{
+			AllowDefaultCovarianceFallback: r.optBool("allow_default_covariance_fallback"),
 		}
-	case "t_distribution":
-		result = &inference.TLikelihoodDistribution{}
-	case "wishart":
-		result = &inference.WishartLikelihoodDistribution{}
-	case "beta":
-		result = &inference.BetaLikelihoodDistribution{}
-	case "poisson":
-		result = &inference.PoissonLikelihoodDistribution{}
-	case "gamma":
-		result = &inference.GammaLikelihoodDistribution{}
-	case "negative_binomial":
-		result = &inference.NegativeBinomialLikelihoodDistribution{}
-	default:
-		return nil, fmt.Errorf("likelihood: unknown type %q", spec.Type)
-	}
-	return result, reader.done()
+	},
+	"t_distribution": func(*specReader) inference.LikelihoodDistribution {
+		return &inference.TLikelihoodDistribution{}
+	},
+	"wishart": func(*specReader) inference.LikelihoodDistribution {
+		return &inference.WishartLikelihoodDistribution{}
+	},
+	"beta": func(*specReader) inference.LikelihoodDistribution {
+		return &inference.BetaLikelihoodDistribution{}
+	},
+	"poisson": func(*specReader) inference.LikelihoodDistribution {
+		return &inference.PoissonLikelihoodDistribution{}
+	},
+	"gamma": func(*specReader) inference.LikelihoodDistribution {
+		return &inference.GammaLikelihoodDistribution{}
+	},
+	"negative_binomial": func(*specReader) inference.LikelihoodDistribution {
+		return &inference.NegativeBinomialLikelihoodDistribution{}
+	},
+}
+
+func resolveLikelihood(spec simulator.ComponentSpec) (inference.LikelihoodDistribution, error) {
+	return resolveSpec("likelihood", likelihoodBuilders, spec)
+}
+
+// jumpBuilders are the jump distribution types (defined in pkg/continuous).
+var jumpBuilders = map[string]specBuilder[continuous.JumpDistribution]{
+	"gamma_jump": func(*specReader) continuous.JumpDistribution {
+		return &continuous.GammaJumpDistribution{}
+	},
 }
 
 // resolveJump builds a JumpDistribution (defined in pkg/continuous).
 func resolveJump(spec simulator.ComponentSpec) (continuous.JumpDistribution, error) {
-	reader := newSpecReader("jump "+spec.Type, spec.Fields)
-	var result continuous.JumpDistribution
-	switch spec.Type {
-	case "gamma_jump":
-		result = &continuous.GammaJumpDistribution{}
-	default:
-		return nil, fmt.Errorf("jump: unknown type %q", spec.Type)
-	}
-	return result, reader.done()
+	return resolveSpec("jump", jumpBuilders, spec)
+}
+
+// priorBuilders are the prior types for the SMC proposal.
+var priorBuilders = map[string]specBuilder[inference.Prior]{
+	"uniform": func(r *specReader) inference.Prior {
+		return &inference.UniformPrior{Lo: r.floatField("lo"), Hi: r.floatField("hi")}
+	},
+	"truncated_normal": func(r *specReader) inference.Prior {
+		return &inference.TruncatedNormalPrior{
+			Mu: r.floatField("mu"), Sigma: r.floatField("sigma"),
+			Lo: r.floatField("lo"), Hi: r.floatField("hi"),
+		}
+	},
+	"half_normal": func(r *specReader) inference.Prior {
+		return &inference.HalfNormalPrior{Sigma: r.floatField("sigma")}
+	},
+	"log_normal": func(r *specReader) inference.Prior {
+		return &inference.LogNormalPrior{Mu: r.floatField("mu"), Sigma: r.floatField("sigma")}
+	},
 }
 
 // resolvePrior builds a Prior for the SMC proposal.
 func resolvePrior(spec simulator.ComponentSpec) (inference.Prior, error) {
-	reader := newSpecReader("prior "+spec.Type, spec.Fields)
-	var result inference.Prior
-	switch spec.Type {
-	case "uniform":
-		result = &inference.UniformPrior{Lo: reader.floatField("lo"), Hi: reader.floatField("hi")}
-	case "truncated_normal":
-		result = &inference.TruncatedNormalPrior{
-			Mu: reader.floatField("mu"), Sigma: reader.floatField("sigma"),
-			Lo: reader.floatField("lo"), Hi: reader.floatField("hi"),
-		}
-	case "half_normal":
-		result = &inference.HalfNormalPrior{Sigma: reader.floatField("sigma")}
-	case "log_normal":
-		result = &inference.LogNormalPrior{Mu: reader.floatField("mu"), Sigma: reader.floatField("sigma")}
-	default:
-		return nil, fmt.Errorf("prior: unknown type %q", spec.Type)
-	}
-	return result, reader.done()
+	return resolveSpec("prior", priorBuilders, spec)
 }
 
 func (r *specReader) floatField(key string) float64 {

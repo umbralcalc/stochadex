@@ -305,6 +305,9 @@ func Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	if parsed.Catalogue {
+		return printJSON(BuildCatalogue())
+	}
 	LogRunProvenance(os.Stderr)
 	options, err := setOptions(parsed.Sets)
 	if err != nil {
@@ -336,6 +339,9 @@ func Execute(args []string) error {
 	}
 	if parsed.InspectIO {
 		return printJSON(Manifest(config))
+	}
+	if parsed.Graph {
+		return printGraph(config, parsed.GraphFormat, os.Stdout)
 	}
 	if parsed.InspectProvenance {
 		provenance, err := ComputeProvenance(config)

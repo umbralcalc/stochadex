@@ -206,8 +206,6 @@ func TestMacroRunLeavesConfigUnmodified(t *testing.T) {
 
 	paths := map[string]string{}
 	covered := map[string]bool{}
-	// The skill's recipes are byte-identical to cfg/ twins (TestSkillRecipesMatchExamples),
-	// so cfg/ alone covers them; running both would double the slowest configs.
 	for _, pattern := range []string{"cfg/*.yaml"} {
 		matches, err := filepath.Glob(pattern)
 		if err != nil {

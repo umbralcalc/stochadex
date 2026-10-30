@@ -33,9 +33,10 @@ import (
 //  1. Compute next timestep increment using TimestepFunction
 //  2. Request iterations from all partitions (parallel execution)
 //  3. Wait for all iterations to complete
-//  4. Update state and time histories (parallel execution)
-//  5. Check termination condition
-//  6. Repeat until termination
+//  4. Output each partition's new state, in partition order
+//  5. Update state and time histories (parallel execution)
+//  6. Check termination condition
+//  7. Repeat until termination
 //
 // Fields:
 //   - Iterators: List of StateIterators, one per partition
@@ -75,7 +76,8 @@ type PartitionCoordinator struct {
 	TerminationCondition TerminationCondition
 	RunStrategy          ExecutionStrategy
 	// OutputFunction is retained solely so Run can Finalize a sink that implements
-	// FinalizingOutputFunction; per-step output goes through the iterators.
+	// FinalizingOutputFunction; per-step output goes through the iterators, in
+	// partition order (see outputStep).
 	OutputFunction  OutputFunction
 	newWorkChannels [](chan *IteratorInputMessage)
 	// failure holds a panic recovered from a partition's work on a worker
@@ -139,6 +141,27 @@ func (c *PartitionCoordinator) UpdateHistory(wg *sync.WaitGroup) {
 	c.advanceTimestepsHistory()
 }
 
+// outputStepRecovered sends every partition's pending state for the step to
+// the output, in partition (config) order. It runs on the coordinator's
+// goroutine between the iteration and update phases of the concurrent
+// strategies (the inline stepper loops the same way itself), rather than on
+// each partition's worker as it finishes, so a sink receives a step's rows in
+// the same order on every run, whatever order the partitions' work finished
+// in. A panic in a partition's output is recorded as the step's failure,
+// naming the partition, for the caller to raise.
+func (c *PartitionCoordinator) outputStepRecovered() {
+	index := 0
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			c.failure.record(c.Iterators[index], recovered)
+		}
+	}()
+	for i, iterator := range c.Iterators {
+		index = i
+		iterator.Output(c.Shared)
+	}
+}
+
 // beginStep opens a simulation tick: it advances the step counter and computes
 // the next timestep increment. It is the shared prologue of every strategy's
 // Stepper (and of Step), so the "how do we start a step" logic lives in one
@@ -181,6 +204,10 @@ func (c *PartitionCoordinator) Step(wg *sync.WaitGroup) {
 	// begin by requesting iterations for the next step and waiting
 	c.RequestMoreIterations(wg)
 	wg.Wait()
+	c.failure.raise()
+
+	// output the step, in partition order
+	c.outputStepRecovered()
 	c.failure.raise()
 
 	// then implement the pending state and time updates to the histories

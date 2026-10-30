@@ -44,9 +44,7 @@ func inputsAsData(t *testing.T, contents string) string {
 // it is removed (PLAN.md 1.1, IO.6): every shipped config that analyses an
 // inputs: {data: ...} — the cfg/ examples, covering csv sources,
 // sub-simulations, against-storage and live macros — gives byte-identical
-// results written in the data: form, which carries its deprecation notice. The
-// agent skill's recipes are byte-identical twins of cfg/ examples
-// (TestSkillRecipesMatchExamples), so they are covered without running them.
+// results written in the data: form, which carries its deprecation notice.
 func TestDataShorthandIsAnInput(t *testing.T) {
 	wd, _ := os.Getwd()
 	if err := os.Chdir("../.."); err != nil { // configs carry repo-relative paths

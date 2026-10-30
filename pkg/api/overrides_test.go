@@ -438,15 +438,14 @@ func assertDecodesAlike(t *testing.T, label string, data []byte) {
 func TestOverridesKeepEveryConfigIntact(t *testing.T) {
 	t.Run("every shipped config decodes the same once re-encoded", func(t *testing.T) {
 		paths := []string{}
-		for _, pattern := range []string{"../../cfg/example_*.yaml", "../../models/*/declarative.yaml",
-			"../../.claude/skills/stochadex-model/recipes/*.yaml"} {
+		for _, pattern := range []string{"../../cfg/example_*.yaml", "../../models/*/declarative.yaml"} {
 			matches, err := filepath.Glob(pattern)
 			if err != nil {
 				t.Fatal(err)
 			}
 			paths = append(paths, matches...)
 		}
-		if len(paths) < 30 {
+		if len(paths) < 25 {
 			t.Fatalf("found only %d configs", len(paths))
 		}
 		for _, path := range paths {

@@ -65,12 +65,12 @@ func bitsDigest(rows [][]float64) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-// oracleConfigs are every shipped macros: config: the examples and the
-// stochadex-model skill's recipes, relative to the repository root.
+// oracleConfigs are every shipped macros: config, relative to the repository
+// root.
 func oracleConfigs(t testing.TB) []string {
 	t.Helper()
 	var configs []string
-	for _, pattern := range []string{"cfg/example_*.yaml", ".claude/skills/stochadex-model/recipes/*.yaml"} {
+	for _, pattern := range []string{"cfg/example_*.yaml"} {
 		paths, _ := filepath.Glob(pattern)
 		for _, path := range paths {
 			text, err := os.ReadFile(path)
@@ -105,8 +105,9 @@ func TestExpansionOracle(t *testing.T) {
 		}
 	}
 	configs := oracleConfigs(t)
-	if len(configs) < 13 {
-		t.Fatalf("found %d macros: configs, want every shipped one (13 when written): %v", len(configs), configs)
+	if len(configs) < 9 {
+		t.Fatalf("found %d macros: configs, want every shipped one (9 when the skill's "+
+			"recipes, copies of four of them, moved to robert): %v", len(configs), configs)
 	}
 	run := expansionGoldens{Go: runtime.Version(), Configs: map[string]storageDigest{}}
 	for _, path := range configs {

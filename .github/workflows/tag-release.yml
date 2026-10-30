@@ -2,7 +2,7 @@ name: Tag release on stamp merge
 # Closes the one manual, error-prone step in the release ritual: pushing the tag.
 #
 # The ritual is otherwise all reviewed-in-a-PR: a "Release vX.Y.Z: stamp changelog" PR
-# adds the `## [X.Y.Z] — DATE` heading and bumps the two plugin manifests. Historically a
+# adds the `## [X.Y.Z] — DATE` heading to CHANGELOG.md. Historically a
 # human then pushed `vX.Y.Z` by hand — which is where things went wrong: a squash-merge
 # rewrites the stamp commit's hash, so tagging the branch commit (or tagging early) leaves
 # the tag on an orphaned commit that is not on main. This workflow makes the tag a product

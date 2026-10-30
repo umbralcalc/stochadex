@@ -112,7 +112,14 @@ docker run --rm -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest --config my_
 | `stochadex-<os>-<arch>` | engine, **Postgres**, **Arrow**, **S3** | The default. Pure Go, runs anywhere with no system dependencies. |
 | `stochadex-accel-<os>-<arch>` | the above plus **system BLAS** and **DuckDB** output | For BLAS-heavy workloads (see [performance](performance.html)) or DuckDB output. macOS/Linux, amd64/arm64. |
 
-Swap `stochadex-` for `stochadex-accel-` in the download URL. Both run the same configs. The container carries the accelerated set already. Run `--version` to see what yours has.
+Swap `stochadex-` for `stochadex-accel-` in the download URL. Both run the same configs. The container carries the accelerated set already. Run `--version` to see what yours has, or `stochadex catalogue` for everything it can run (see "What a build can run").
+
+Each release also carries a `SHA256SUMS` file covering every binary asset. Check a download against it:
+
+```bash
+curl -LO "https://github.com/umbralcalc/stochadex/releases/latest/download/SHA256SUMS"
+sha256sum --check --ignore-missing SHA256SUMS   # macOS: shasum -a 256 --check --ignore-missing
+```
 
 ## Your first config
 
@@ -491,7 +498,7 @@ Partitions read each other two ways, differing in **timing**:
 1. **`upstreams`** (expressions block): the other partition's **previous**-step value (one-step lag).
 2. **`params_from_upstream`** (partitions block): another partition's value injected into a params key, read **within** the same step, imposing a computation order.
 
-`params_from_upstream` **deadlocks** if two partitions each depend on the other within a step. Break the cycle with a lag-1 `upstreams` read in at least one direction. For mutually-coupled models (predator-prey and friends), lag-1 both ways is the faithful explicit-Euler step. The run pre-flights this and names the cycle instead of hanging.
+`params_from_upstream` **deadlocks** if two partitions each depend on the other within a step. Break the cycle with a lag-1 `upstreams` read in at least one direction. For mutually-coupled models (predator-prey and friends), lag-1 both ways is the faithful explicit-Euler step. The run pre-flights this and names the cycle instead of hanging. `stochadex graph` draws the wiring and marks any such cycle (see "Drawing a config's wiring").
 
 ## Embedded runs are black boxes
 
@@ -647,6 +654,64 @@ The manifest never copies a sink's or source's fields. It gives a location, with
 credentials removed from URLs and connection strings, and names the `${VAR}`s it filled
 without their values. From Go, use `api.Check(config)` and `api.Manifest(config)`.
 
+### Drawing a config's wiring
+
+`stochadex graph` prints the main run's partition dependency graph without running it:
+one node per partition, a solid edge for each `params_from_upstream` read (exact
+within-step wiring), and a dashed edge from a past copy of the producer for each
+`params_as_partitions` reference (a hint that the partition may read the other's history,
+one step behind). It prints Mermaid by default, or Graphviz DOT with `--format dot`, and
+takes `--set` like a run does.
+
+```bash
+stochadex graph -c model.yaml                                # Mermaid, to stdout
+stochadex graph -c model.yaml --format dot | dot -Tsvg > model.svg
+```
+
+A within-step cycle, which would deadlock the run, is marked in the graph. The command
+still prints the graph, then names the cycle on stderr and exits 78, so it works as a CI
+guard. (`stochadex-graph --config ...`, the old separate binary, still works from a
+checkout but is deprecated, and releases no longer ship it.)
+
+### What a build can run
+
+`stochadex catalogue` prints, as JSON, what this binary can run: its version and compiled-in
+features, and the name of every component a config can name by type, read from the
+registries the config resolves through. A downstream registration, such as
+`onnx_inference` in a build with ONNX, appears in the build that links it.
+
+```bash
+stochadex catalogue | jq '.iterations[].name'
+```
+
+Every list is sorted, so the output is identical for identical builds:
+
+```json
+{
+  "catalogue_version": 1,
+  "version": "v0.24.0",
+  "features": ["arrow", "postgres", "s3"],
+  "iterations": [{"name": "bernoulli_process"}, ...],
+  "data_sources": [{"name": "arrow"}, {"name": "csv"}, ...],
+  "stream_transports": [{"name": "connection"}, {"name": "keyboard"}, {"name": "websocket"}],
+  "output_functions": [...],
+  "output_conditions": [...],
+  "termination_conditions": [...],
+  "timestep_functions": [...],
+  "execution_strategies": [...],
+  "macros": [...],
+  "kernels": [...],
+  "likelihoods": [...],
+  "priors": [...],
+  "jumps": [...],
+  "environments": [{"name": "simulation"}, {"name": "tictactoe"}]
+}
+```
+
+An entry may carry a `params` list of the fields its spec takes, where the registry knows
+them. `catalogue_version` changes only if a key is removed or changes meaning; new keys
+may appear within a version. From Go, use `api.BuildCatalogue()`.
+
 ### Skipping runs whose outputs are up to date
 
 `--provenance` writes `<output>.provenance.json` beside each `json_log` and `arrow` file a
@@ -762,14 +827,11 @@ Four macros *converge* or merely *run* depending on hyperparameters. Each ships 
 
 ## Authoring with an agent
 
-The repo ships a Claude Code plugin bundling the `stochadex-model` skill, a self-contained authoring guide with the four converging recipes above:
+Agent integration lives in [robert](https://github.com/umbralcalc/robert), not in this repo. It drives a stochadex project through the same CLI, with `--check`, `inspect`, `graph` and `catalogue` as its machine-readable contract, and carries the `stochadex-model` authoring skill that this repo used to ship as a Claude Code plugin. The four converging recipes above are the `cfg/` examples it links to.
 
 ```bash
-claude plugin marketplace add umbralcalc/stochadex
-claude plugin install stochadex@stochadex
+pip install robert-ai
 ```
-
-Then describe a system in plain language. The skill drives the same CLI.
 
 ## Example analysis notebooks
 

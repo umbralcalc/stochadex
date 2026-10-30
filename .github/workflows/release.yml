@@ -1,7 +1,8 @@
 name: Release binaries
 # On every version tag, build the stochadex CLI and attach it to that tag's GitHub
-# Release. This is what makes the "no Go toolchain" promise real: a user (or an agent
-# installing the plugin) downloads a prebuilt binary instead of needing `go`.
+# Release. This is what makes the "no Go toolchain" promise real: a user (or a tool
+# such as robert installing the engine) downloads a prebuilt binary instead of needing
+# `go`, and checks it against the release's SHA256SUMS (see the checksums job).
 #
 # Two tiers, both from cmd/stochadex (one main package, two builds):
 #
@@ -18,6 +19,8 @@ name: Release binaries
 # which ships with the OS, so that binary has no runtime dependency at all. On Linux we
 # try to link OpenBLAS *statically* for the same property, falling back to dynamic (and
 # saying so in the release notes) if the static archive is unavailable.
+#
+# There is no stochadex-graph asset: the dependency graph is `stochadex graph`.
 on:
   push:
     tags: ["v*"]
@@ -203,6 +206,42 @@ jobs:
             || gh release create "$TAG" --title "$TAG" --notes-file "$notes" --verify-tag \
             || gh release view "$TAG" >/dev/null
           gh release upload "$TAG" dist/* --clobber
+
+  # SHA256SUMS over every binary asset, portable and accelerated. It runs once,
+  # after every binary job has finished, and hashes what the Release actually
+  # holds (downloaded back), so the matrix jobs cannot race over the file and it
+  # cannot list a binary that never uploaded. An accelerated leg that failed is
+  # left out rather than withholding checksums for the rest; the portable tier
+  # must have uploaded.
+  checksums:
+    needs: [portable, accelerated]
+    if: ${{ !cancelled() && needs.portable.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Compute and attach SHA256SUMS
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/assets"
+          mkdir -p "$dir"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'stochadex-*' --dir "$dir"
+          cd "$dir"
+          ls -la
+          for want in stochadex-darwin-amd64 stochadex-darwin-arm64 stochadex-linux-amd64 \
+              stochadex-linux-arm64 stochadex-windows-amd64.exe; do
+            [ -f "$want" ] || { echo "portable asset $want is missing"; exit 1; }
+          done
+          if [ "${{ needs.accelerated.result }}" != "success" ]; then
+            echo "::warning::an accelerated build failed; SHA256SUMS covers only the assets that uploaded"
+          fi
+          # Sorted by name, in the format `sha256sum -c` reads.
+          LC_ALL=C ls stochadex-* | LC_ALL=C sort | xargs sha256sum > SHA256SUMS
+          cat SHA256SUMS
+          sha256sum -c SHA256SUMS
+          gh release upload "$TAG" SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
 
   # Tier 3 — the OCI image. This is the unit cloud-native pipelines compose: a
   # Kubernetes Job, Argo step or Cloud Run Job takes an image, not a binary, so

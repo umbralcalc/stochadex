@@ -189,9 +189,13 @@ func (s *persistentWorkerStepper) Step() {
 		channel <- c.Shared
 	}
 	s.iterateWaitGroup.Wait()
+	if c.failure.first.Load() == nil {
+		// output the step, in partition order, while the workers wait
+		c.outputStepRecovered()
+	}
 	if c.failure.first.Load() != nil {
-		// Release the workers parked on their update-phase wake-up (a failed
-		// worker has already returned; its buffered wake-up is never read).
+		// Release the workers parked on their update-phase wake-up (a worker
+		// that failed has already returned; its buffered wake-up is never read).
 		for _, channel := range c.newWorkChannels {
 			channel <- nil
 		}
@@ -294,6 +298,8 @@ func (s *inlineStepper) Step() {
 	// committed values. Upstream params are read directly from producers'
 	// staged output, which the ordering check guarantees is already set this
 	// step.
+	// IteratePendingInline also outputs each partition's new state, so the
+	// step's rows come out in partition order, as under every strategy.
 	for index, iterator := range c.Iterators {
 		c.inlineRunning = index + 1
 		iterator.IteratePendingInline(c.Shared)

@@ -1,6 +1,9 @@
 package simulator
 
 import (
+	"errors"
+	"slices"
+	"sort"
 	"strings"
 	"testing"
 
@@ -237,4 +240,76 @@ func TestRegisterComponentDuplicatePanics(t *testing.T) {
 	}()
 	RegisterComponent("output_function", "dup_test",
 		func(ComponentSpec) (interface{}, error) { return &NilOutputFunction{}, nil })
+}
+
+func TestComponentTypes(t *testing.T) {
+	resolvers := map[string]func(ComponentSpec) (interface{}, error){
+		"execution_strategy":    func(s ComponentSpec) (interface{}, error) { return ResolveExecutionStrategy(s) },
+		"output_condition":      func(s ComponentSpec) (interface{}, error) { return ResolveOutputCondition(s) },
+		"output_function":       func(s ComponentSpec) (interface{}, error) { return ResolveOutputFunction(s) },
+		"termination_condition": func(s ComponentSpec) (interface{}, error) { return ResolveTerminationCondition(s) },
+		"timestep_function":     func(s ComponentSpec) (interface{}, error) { return ResolveTimestepFunction(s) },
+	}
+	t.Run("every family has a resolver", func(t *testing.T) {
+		if len(ComponentFamilies) != len(resolvers) {
+			t.Fatalf("ComponentFamilies is %v; give each family a resolver here", ComponentFamilies)
+		}
+		for _, family := range ComponentFamilies {
+			if resolvers[family] == nil {
+				t.Errorf("no resolver for family %s", family)
+			}
+		}
+	})
+	t.Run("every listed type resolves, and an unknown one does not", func(t *testing.T) {
+		for family, resolve := range resolvers {
+			names := ComponentTypes(family)
+			if len(names) == 0 || !sort.StringsAreSorted(names) {
+				t.Fatalf("%s: want a sorted, non-empty list, got %v", family, names)
+			}
+			for _, name := range names {
+				// Fields may be missing, but the type must be known.
+				if _, err := resolve(ComponentSpec{Type: name}); err != nil &&
+					strings.Contains(err.Error(), "unknown data-spec type") {
+					t.Errorf("%s %s is listed but does not resolve: %v", family, name, err)
+				}
+			}
+			_, err := resolve(ComponentSpec{Type: "no_such_type"})
+			if err == nil || !strings.Contains(err.Error(), "unknown data-spec type") {
+				t.Errorf("%s: an unknown type gave %v", family, err)
+			}
+		}
+	})
+	t.Run("a downstream registration is listed", func(t *testing.T) {
+		RegisterComponent("termination_condition", "test_listed_downstream",
+			func(ComponentSpec) (interface{}, error) {
+				return &NumberOfStepsTerminationCondition{MaxNumberOfSteps: 1}, nil
+			})
+		defer delete(extraComponentBuilders["termination_condition"], "test_listed_downstream")
+		if !slices.Contains(ComponentTypes("termination_condition"), "test_listed_downstream") {
+			t.Error("a registered termination condition is not listed")
+		}
+	})
+	t.Run("a built-in with fields, and a failing downstream builder", func(t *testing.T) {
+		condition, err := ResolveOutputCondition(ComponentSpec{Type: "only_given_partitions",
+			Fields: map[string]interface{}{"partitions": []interface{}{"a", "b"}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := condition.(*OnlyGivenPartitionsOutputCondition).Partitions; len(got) != 2 ||
+			!got["a"] || !got["b"] {
+			t.Errorf("got %v", got)
+		}
+		RegisterComponent("output_condition", "test_failing_downstream",
+			func(ComponentSpec) (interface{}, error) { return nil, errors.New("bad spec") })
+		defer delete(extraComponentBuilders["output_condition"], "test_failing_downstream")
+		if _, err := ResolveOutputCondition(ComponentSpec{Type: "test_failing_downstream"}); err == nil ||
+			err.Error() != "bad spec" {
+			t.Errorf("want the builder's error, got %v", err)
+		}
+	})
+	t.Run("an unknown family lists nothing", func(t *testing.T) {
+		if names := ComponentTypes("no_such_family"); names != nil {
+			t.Errorf("got %v", names)
+		}
+	})
 }
