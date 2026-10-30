@@ -136,4 +136,26 @@ func TestGraphCommand(t *testing.T) {
 			t.Errorf("got %v", err)
 		}
 	})
+
+	t.Run("printGraph refuses an unknown format and reports a failed write", func(t *testing.T) {
+		loaded, err := LoadConfig(config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out strings.Builder
+		if err := printGraph(loaded, "svg", &out); KindOf(err) != ErrUsage || out.Len() != 0 {
+			t.Errorf("want a usage error and nothing written, got %v and %q", err, out.String())
+		}
+		if err := printGraph(loaded, "dot", failingWriter{}); !errors.Is(err, errWriteFailed) {
+			t.Errorf("want the write's error, got %v", err)
+		}
+	})
 }
+
+// errWriteFailed is what failingWriter fails with.
+var errWriteFailed = errors.New("write failed")
+
+// failingWriter is a writer whose every write fails.
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, errWriteFailed }

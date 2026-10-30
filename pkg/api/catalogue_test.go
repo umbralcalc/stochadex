@@ -69,6 +69,13 @@ func TestCatalogue(t *testing.T) {
 		}
 	})
 
+	t.Run("it takes no arguments", func(t *testing.T) {
+		err := Execute([]string{"stochadex", "catalogue", "--config", "x.yaml"})
+		if KindOf(err) != ErrUsage {
+			t.Errorf("want a usage error, got %v", err)
+		}
+	})
+
 	t.Run("it reports the build's version and features, sorted", func(t *testing.T) {
 		version, features := BuildVersion, BuildFeatures
 		defer func() { BuildVersion, BuildFeatures = version, features }()

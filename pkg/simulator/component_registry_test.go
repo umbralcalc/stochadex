@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"errors"
 	"slices"
 	"sort"
 	"strings"
@@ -286,6 +287,24 @@ func TestComponentTypes(t *testing.T) {
 		defer delete(extraComponentBuilders["termination_condition"], "test_listed_downstream")
 		if !slices.Contains(ComponentTypes("termination_condition"), "test_listed_downstream") {
 			t.Error("a registered termination condition is not listed")
+		}
+	})
+	t.Run("a built-in with fields, and a failing downstream builder", func(t *testing.T) {
+		condition, err := ResolveOutputCondition(ComponentSpec{Type: "only_given_partitions",
+			Fields: map[string]interface{}{"partitions": []interface{}{"a", "b"}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := condition.(*OnlyGivenPartitionsOutputCondition).Partitions; len(got) != 2 ||
+			!got["a"] || !got["b"] {
+			t.Errorf("got %v", got)
+		}
+		RegisterComponent("output_condition", "test_failing_downstream",
+			func(ComponentSpec) (interface{}, error) { return nil, errors.New("bad spec") })
+		defer delete(extraComponentBuilders["output_condition"], "test_failing_downstream")
+		if _, err := ResolveOutputCondition(ComponentSpec{Type: "test_failing_downstream"}); err == nil ||
+			err.Error() != "bad spec" {
+			t.Errorf("want the builder's error, got %v", err)
 		}
 	})
 	t.Run("an unknown family lists nothing", func(t *testing.T) {
