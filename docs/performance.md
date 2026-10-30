@@ -93,8 +93,7 @@ Medians of six interleaved runs on an Apple M4. Differences of a few percent on 
 within noise (benchstat, p > 0.05). Across all of them, the expanded run takes 15% less time,
 allocates 10% fewer bytes and 14% fewer objects, and its peak heap is 15% lower. The "fastest
 strategy" column sets the expanded run's `execution_strategy`, which the macro-by-macro path has
-no way to choose. `BenchmarkMacroConfigs` in `pkg/api` reproduces it, covering the skill recipes
-too.
+no way to choose. `BenchmarkMacroConfigs` in `pkg/api` reproduces it.
 
 ## Reproduce it
 
