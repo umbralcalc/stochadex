@@ -827,11 +827,9 @@ Four macros *converge* or merely *run* depending on hyperparameters. Each ships 
 
 ## Authoring with an agent
 
-Agent integration lives in [robert](https://github.com/umbralcalc/robert), not in this repo. It drives a stochadex project through the same CLI, with `--check`, `inspect`, `graph` and `catalogue` as its machine-readable contract, and carries the `stochadex-model` authoring skill that this repo used to ship as a Claude Code plugin. The four converging recipes above are the `cfg/` examples it links to.
-
-```bash
-pip install robert-ai
-```
+Using stochadex from an AI agent is [robert](https://github.com/umbralcalc/robert)'s job, not
+this repo's; see its documentation. It drives stochadex through the same CLI described above,
+with `--check`, `inspect --io`, `graph` and `catalogue` as its machine-readable contract.
 
 ## Example analysis notebooks
 

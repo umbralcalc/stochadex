@@ -125,8 +125,7 @@ func benchRow(w int) []float64 {
 }
 
 // BenchmarkAppend isolates the append HOT PATH — current jagged AppendByIndex (per-row
-// heap alloc) vs the Arrow builder append (no materialization). This is the apples-to-apples
-// the plan asks for. Run: go test -tags arrow -run=x -bench=Append -benchmem
+// heap alloc) vs the Arrow builder append (no materialization), like for like. Run: go test -tags arrow -run=x -bench=Append -benchmem
 func BenchmarkAppend(b *testing.B) {
 	for _, g := range benchGrid {
 		v := benchRow(g.w)

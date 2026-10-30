@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-// Stream transports registered from outside this package (PLAN.md 1.7). A
+// Stream transports registered from outside this package. A
 // stream input names a transport, e.g. stream: {keyboard: {...}}, and the run
 // reads that transport's messages exactly as it reads a websocket's: decoded
 // as json_log entries or ActionState protobufs (decode:), held between

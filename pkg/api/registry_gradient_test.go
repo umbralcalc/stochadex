@@ -81,7 +81,7 @@ func TestDataComparisonGradient(t *testing.T) {
 		}
 	})
 
-	t.Run("its spike twin reproduces likelihood_mean_function_fit exactly", func(t *testing.T) {
+	t.Run("its hand-written twin reproduces likelihood_mean_function_fit exactly", func(t *testing.T) {
 		macro, err := RunToStorage(LoadApiRunConfigFromYaml("testdata/gradient/fit_macro.yaml"))
 		if err != nil {
 			t.Fatal(err)

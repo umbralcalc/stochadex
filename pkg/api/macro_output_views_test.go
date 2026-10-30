@@ -13,8 +13,8 @@ import (
 )
 
 // macroTwinYAML is the core-language twin of macroConfigYAML (the rolling mean
-// and variance macros over a Normal stream), from the Phase 2 expansion spike
-// (PLAN.md §4.2), where it reproduces the macro path exactly. It runs as one live
+// and variance macros over a Normal stream), which reproduces the macro path
+// exactly. It runs as one live
 // simulation, so a view fed by it is what a live run of the same model outputs.
 const macroTwinYAML = `main:
   partitions:

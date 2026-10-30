@@ -86,11 +86,11 @@ func oracleConfigs(t testing.TB) []string {
 	return configs
 }
 
-// TestExpansionOracle is PLAN 2.6's exact oracle: every shipped macros: config
+// TestExpansionOracle is the expansion's exact oracle: every shipped macros: config
 // runs, expanded into the core language, to storage bit-for-bit identical to
 // the macro tier's, with the same seeds; and the expanded run matches the
-// golden digests recorded for this architecture, which keep that output pinned
-// once the macro tier is gone. Floating-point results differ between
+// golden digests recorded for this architecture, which pin that output
+// independently of the macro tier. Floating-point results differ between
 // architectures (arm64 fuses multiply-adds), so each has its own goldens; a
 // run on one with none prints the goldens it would record.
 func TestExpansionOracle(t *testing.T) {
@@ -106,8 +106,7 @@ func TestExpansionOracle(t *testing.T) {
 	}
 	configs := oracleConfigs(t)
 	if len(configs) < 9 {
-		t.Fatalf("found %d macros: configs, want every shipped one (9 when the skill's "+
-			"recipes, copies of four of them, moved to robert): %v", len(configs), configs)
+		t.Fatalf("found %d macros: configs, want every shipped one (9 when written): %v", len(configs), configs)
 	}
 	run := expansionGoldens{Go: runtime.Version(), Configs: map[string]storageDigest{}}
 	for _, path := range configs {

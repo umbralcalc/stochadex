@@ -136,7 +136,7 @@ func TestRunWith(t *testing.T) {
 				keyedEntries(t, filepath.Join(runDir, file)))
 		}
 		// Nested records repeat (time, partition) across inner runs — they carry
-		// no outer-step scope yet (PLAN.md §2.5, Q7) — so compare them in order:
+		// no outer-step scope — so compare them in order:
 		// one partition, written sequentially, so the order is deterministic.
 		tee, run := readLogEntries(t, filepath.Join(teeDir, "nested.log")),
 			readLogEntries(t, filepath.Join(runDir, "nested.log"))

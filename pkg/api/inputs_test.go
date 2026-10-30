@@ -33,7 +33,7 @@ func assertSameStorage(t *testing.T, label string, got, want *simulator.StateTim
 	}
 }
 
-// TestSolarFleetDrivenFromAnInput is PLAN.md item 1.2's acceptance test: the
+// TestSolarFleetDrivenFromAnInput: the
 // solar-fleet catalogue model drives its sites from a clear-sky series written
 // inline with {type: from_storage}. Moving that series into a CSV input and
 // replaying it with {type: from_input} — with the clock taken from the input's
@@ -186,8 +186,8 @@ func TestInputs(t *testing.T) {
 	})
 
 	t.Run("a json_log input replays exactly", func(t *testing.T) {
-		// A run's own json_log output becomes the next run's input — the
-		// file-chained pipeline the plan relies on.
+		// A run's own json_log output becomes the next run's input: a
+		// file-chained pipeline.
 		logPath := filepath.Join(t.TempDir(), "previous.log")
 		previous := writeConfig(t, fmt.Sprintf(batchConfigYAML, "{type: every_step}", logPath))
 		reference, err := RunToStorage(previous)

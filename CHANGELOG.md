@@ -239,8 +239,8 @@ an exact version rather than assume stability across minors.
 
 ## [0.23.0] — 2026-10-22
 
-This release completes the core-language building blocks of the config-runtime plan's
-Phase 2: a registered environment, such as a downstream card game's rules, is now a component
+This release completes the core-language building blocks that macros expand into: a
+registered environment, such as a downstream card game's rules, is now a component
 the MCTS iterations take, so `mcts_self_play` over any registered environment can be written
 out partition by partition and plays exactly as the macro does. Partitions of one run that
 name the same environment share one instance, which is what makes that exact for
@@ -278,9 +278,8 @@ changes for configs, and `mcts_self_play` gives the same results.
 
 ## [0.22.0] — 2026-10-22
 
-This release finishes Phase 1 of the config-runtime plan, with the keyboard as an ordinary
-stream input, and starts Phase 2 by giving the core config language the building blocks its
-macros are made of. SMC's particle evaluator (`replicated_simulation_run`), the mean-function
+This release finishes inputs and live I/O, with the keyboard as an ordinary stream input, and
+gives the core config language the building blocks its macros are made of. SMC's particle evaluator (`replicated_simulation_run`), the mean-function
 fit's gradient step (`data_comparison_gradient`), MCTS planning's three partitions
 (`mcts_tree` / `mcts_rollout` / `mcts_apply`) and embedded runs at any depth
 (`embedded_simulation_run` stated in place) are now `{type: ...}` specs, and hand-written
@@ -408,9 +407,8 @@ below.
 
 ## [0.21.0] — 2026-10-10
 
-This release makes a config a well-behaved step in a workflow engine (the config-runtime
-plan's Track O), and finishes making `inputs:` the one place data enters a run and
-`outputs:` the one place results leave it (Phase 1b). A run can now be parameterised from
+This release makes a config a well-behaved step in a workflow engine, and finishes making
+`inputs:` the one place data enters a run and `outputs:` the one place results leave it. A run can now be parameterised from
 outside the file (`--set`, `${VAR}`), checked and described without running (`--check`,
 `inspect --io`), cached by a provenance key (`--skip-if-unchanged`) and split across
 machines (`--seed-range`). Its file outputs appear only when it has finished cleanly.
@@ -461,9 +459,9 @@ below.
   partition).
 - **`--debug-embedded NAME=PATH`** writes an embedded run's every inner step to a json_log,
   with no edit to the config. It refuses a run that already declares its own output. An
-  embedded run's own output, declared or added this way, is a debug log rather than a result
-  (PLAN.md rule 14): the I/O manifest lists it under `debug`, provenance gives it no
-  sidecar, and `--skip-if-unchanged` ignores it.
+  embedded run's own output, declared or added this way, is a debug log rather than a result:
+  the I/O manifest lists it under `debug`, provenance gives it no sidecar, and
+  `--skip-if-unchanged` ignores it.
 
 - **`--seed-range FROM:TO`: run one shard of an ensemble.** It runs seeds FROM to TO
   inclusive, in place of `run.seeds`, exactly as `--set 'run.seeds=[...]'` would. Each
@@ -518,7 +516,7 @@ below.
     setup. It reads no inputs and writes nothing, so it works before an earlier pipeline
     step has produced this one's inputs. Only checks that need an input's contents are
     left to the run. A `macros:` config is checked as far as its context, since its
-    expansion needs its inputs until Phase 2.
+    expansion needs its inputs.
   - `stochadex inspect --io` (`api.Manifest`) prints, as JSON, what a run reads and writes:
     inputs with their kind, location and readers; every write (each `outputs:` view, an
     embedded run's own output, a stream input's `record:` file, one path per ensemble
@@ -528,9 +526,8 @@ below.
 
 ### Changed
 
-- **`data:` and the main run's `output_condition` / `output_function` pair are deprecated**
-  (PLAN.md IO.6), as `--socket` already was. A config that uses them still loads and runs
-  exactly as before, and the CLI prints one notice per form on stderr, naming its
+- **`data:` and the main run's `output_condition` / `output_function` pair are deprecated**,
+  as `--socket` already was. A config that uses them still loads and runs exactly as before, and the CLI prints one notice per form on stderr, naming its
   replacement: `inputs: {data: ...}`, and the exact `outputs:` line for the pair. They will
   be removed in a later v0.x minor. Library callers read the notices with
   `ApiRunConfig.Deprecations()` (the library prints nothing), and `inspect --io` lists them.
@@ -560,9 +557,9 @@ below.
 
 ## [0.20.0] — 2026-10-08
 
-This release makes a config **inputs → one runtime → outputs** (the config-runtime plan's
-Phases 0 and 1). Data enters through `inputs:`, including live streams, and results leave
-through `outputs:` views, in every run mode. It also adds serving from the config, two-way
+This release makes a config **inputs → one runtime → outputs**. Data enters through
+`inputs:`, including live streams, and results leave through `outputs:` views, in every run
+mode. It also adds serving from the config, two-way
 serving and injecting params between steps, and a performance audit that leaves the step
 loop as fast as v0.19.0 or faster.
 
@@ -2098,13 +2095,12 @@ wiring — was already built in `pkg/graph` and merely unwired.
   over 8 runs: timing within run-to-run noise, allocations flat — the one extra `Stepper`
   allocation is per-run, not per-step). `PartitionCoordinator.Step(wg)` is retained for the
   default single-step path.
-- **Quickstart rewritten to lead with a win (2.4).** The quickstart now opens with a complete,
+- **Quickstart rewritten to lead with a win.** The quickstart now opens with a complete,
   runnable ~25-line Go program (a recorded random walk that prints its output) before any
   partition/iteration/history vocabulary — then backfills that worldview, points at where
   results flow (CSV/DB/Arrow → pandas/DuckDB), and demotes the CLI/YAML/Docker path to a
-  secondary section. Directly targets the plan's "biggest bounce risk is the mental model —
-  lead with a win, explain second." The example is verified to run and produce the shown output.
-- **Clean `database/sql` write path (2.3.c).** `analysis.PostgresDb` now accepts a
+  secondary section, so the mental model follows a result rather than preceding it. The example is verified to run and produce the shown output.
+- **Clean `database/sql` write path.** `analysis.PostgresDb` now accepts a
   caller-provided `*sql.DB` (new exported `DB` field + `NewPostgresDb(db, table)` constructor);
   `OpenTableConnection` only opens a local Postgres from `User`/`Password`/`Dbname` when no
   handle is supplied. So output/read can target **any Postgres-wire database** — a remote
@@ -2155,7 +2151,7 @@ wiring — was already built in `pkg/graph` and merely unwired.
 The trust layer: every published card claim is now bound to an enforced test and
 every card number is generated from the code, across all nine catalogue models, made
 checkable by a generated cross-model index — on top of the CI, docs-automation, and
-versioning foundation. (Phase 1 of the improvement plan — the credibility spine.)
+versioning foundation.
 
 ### Added
 - **Generated card numbers (flagship: anglersim).** A model's card now shows an

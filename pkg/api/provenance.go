@@ -17,7 +17,7 @@ import (
 	yaml3 "gopkg.in/yaml.v3"
 )
 
-// Provenance and caching (PLAN.md O.5). A run's provenance says exactly what
+// Provenance and caching. A run's provenance says exactly what
 // produced its outputs: the config as resolved (after --set and ${VAR}), a
 // fingerprint of each input's contents (model files are inputs too), and
 // the build that ran it. Its Key hashes all of that, so two runs with the same

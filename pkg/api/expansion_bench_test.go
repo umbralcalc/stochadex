@@ -45,7 +45,7 @@ func peakHeap(run func()) uint64 {
 	return peak.Load()
 }
 
-// BenchmarkMacroConfigs is PLAN 2.12's performance gate: every shipped macros:
+// BenchmarkMacroConfigs compares the two ways a macros: config runs: every shipped macros:
 // config run through the macro tier, and through its expansion under each
 // execution strategy of its run. Expanding happens once, as loading would, so
 // both sides time running. Each reports its peak heap, the most of five

@@ -9,8 +9,8 @@ import (
 )
 
 // inputsAsData rewrites a config whose only input is inputs: {data: ...} in the
-// deprecated data: shorthand it stands for, as configs were written before
-// IO.6: a source input's block, or a simulation input's sub-simulation.
+// deprecated data: shorthand it stands for, as older configs were written: a
+// source input's block, or a simulation input's sub-simulation.
 func inputsAsData(t *testing.T, contents string) string {
 	t.Helper()
 	lines := strings.Split(contents, "\n")
@@ -41,7 +41,7 @@ func inputsAsData(t *testing.T, contents string) string {
 }
 
 // TestDataShorthandIsAnInput keeps the deprecated data: shorthand honest until
-// it is removed (PLAN.md 1.1, IO.6): every shipped config that analyses an
+// it is removed: every shipped config that analyses an
 // inputs: {data: ...} — the cfg/ examples, covering csv sources,
 // sub-simulations, against-storage and live macros — gives byte-identical
 // results written in the data: form, which carries its deprecation notice.

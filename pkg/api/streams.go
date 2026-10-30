@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// params_from_input and stream inputs (PLAN.md 1.5). A partition's params key
+// params_from_input and stream inputs. A partition's params key
 // can be set from an input between steps:
 //
 //	params_from_input: {price: {input: feed, partition: price}}
