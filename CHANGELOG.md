@@ -36,7 +36,7 @@ an exact version rather than assume stability across minors.
 
 - **`scalar_regression_stats`, `likelihood_comparison`, `posterior_estimation` and
   `likelihood_mean_function_fit` expand into the core language** too, and their expansions run
-  exactly as the macro tier does, including the shipped examples and skill recipes. A
+  exactly as the macro tier does, including the shipped examples. A
   likelihood window is a nested run stated in place (`embedded_simulation_run`): the window's
   own partitions, a `from_history` replay of each data partition, and the partition scoring
   them, with the model's wiring to outer partitions (a posterior's sampler) forwarded in by
@@ -148,8 +148,8 @@ an exact version rather than assume stability across minors.
 
   No legitimate config needs the deeper history. Each macro replays its own copy of the
   data at its own depth, and the expansion already refuses two macros that read the same
-  partition over different windows, so nothing else shares the replay. Every shipped config,
-  skill recipe and test fixture already sets the two depths equal, and so do the downstream
+  partition over different windows, so nothing else shares the replay. Every shipped config
+  and test fixture already sets the two depths equal, and so do the downstream
   configs that set one (antimicrobial-resistance, cryptobook). A window that reads its data
   live, such as a `likelihood_mean_function_fit` whose window lists no `data`, replays
   nothing and is not checked.
