@@ -80,9 +80,9 @@ type AppliedLikelihoodComparison struct {
 	EmbeddedBurnInSteps *int
 	// WindowDataHistoryDepth, if non-nil, must map every Window.Data
 	// PartitionName to that partition’s StateHistoryDepth in the outer
-	// simulation; each value should equal Window.Depth. Smaller panics;
-	// larger warns and silently voids the likelihood (see
-	// warnIfWindowDataHistoryTooDeep).
+	// simulation; each value must equal Window.Depth. Smaller panics, and
+	// so does larger, which would silently void the likelihood (see
+	// assertWindowDataHistoryNotTooDeep).
 	WindowDataHistoryDepth map[string]int
 }
 

@@ -372,8 +372,9 @@ macro *names* only, so change the numbers and the objective/model, but keep the 
   (`mean: {upstream: <sampler_name>}`) — the posterior is a loglike-weighted average of the
   *sampled* params, so if the loglike doesn't depend on the sample the mean just drifts. (The macro
   now panics if you forget, naming the fix.) **The second thing:** `window_data_history_depth` must
-  *equal* `comparison.window.depth` — too large only warns, and the window then scores the
-  zero-filled tail of the replay buffer instead of your data, freezing the posterior at its prior.
+  *equal* `comparison.window.depth` — too large is a config error too (the window would score
+  the zero-filled tail of the replay buffer instead of your data, freezing the posterior at its
+  prior), and the error says which depth to set.
   **Levers:** proposal covariance wide enough to explore prior→truth (diag ≈9); `past_discount`
   near 1 (0.999) so evidence accumulates instead of being forgotten; enough `steps` to concentrate.
   After `cov_burn_in_steps` the sampler draws with the posterior's own covariance (or, with

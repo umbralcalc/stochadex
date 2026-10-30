@@ -100,8 +100,10 @@ func TestWindowDataHistoryDepth(t *testing.T) {
 	// StateHistoryDepth-2 down to StateHistoryDepth-Depth-1, so the history depth
 	// has to *equal* the window depth. Larger cannot underflow — it quietly
 	// anchors the window in rows that are still zero-filled, and the likelihood
-	// stops depending on the data at all. This pins that failure so the warning
-	// in warnIfWindowDataHistoryTooDeep keeps describing something real.
+	// stops depending on the data at all. This pins that failure so the refusal
+	// in assertWindowDataHistoryNotTooDeep keeps describing something real; the
+	// oversized case reaches it only by opting out of the check (a nil
+	// WindowDataHistoryDepth).
 	const steps, windowDepth = 100, 10
 	trueMean := []float64{1.8, 5.0}
 
@@ -111,6 +113,10 @@ func TestWindowDataHistoryDepth(t *testing.T) {
 	meanLoglike := func(t *testing.T, historyDepth int, mean []float64) float64 {
 		t.Helper()
 		storage := likelihoodTestStorage(t, steps)
+		var checked map[string]int
+		if historyDepth == windowDepth {
+			checked = map[string]int{"test_data": historyDepth}
+		}
 		likePartition := NewLikelihoodComparisonPartition(
 			AppliedLikelihoodComparison{
 				Name: "test_likelihood",
@@ -126,7 +132,7 @@ func TestWindowDataHistoryDepth(t *testing.T) {
 					Data:  []analysis.DataRef{{PartitionName: "test_data"}},
 					Depth: windowDepth,
 				},
-				WindowDataHistoryDepth: map[string]int{"test_data": historyDepth},
+				WindowDataHistoryDepth: checked,
 			},
 			storage,
 		)
@@ -163,8 +169,8 @@ func TestWindowDataHistoryDepth(t *testing.T) {
 		atZero := meanLoglike(t, steps, []float64{0.0, 0.0})
 		if atZero <= atTruth {
 			t.Errorf("loglike at the true mean = %v, at zero = %v — this test pins the "+
-				"failure warnIfWindowDataHistoryTooDeep warns about; if the window now "+
-				"reads real data at this depth, fix the warning too", atTruth, atZero)
+				"failure assertWindowDataHistoryNotTooDeep refuses; if the window now "+
+				"reads real data at this depth, relax the refusal", atTruth, atZero)
 		}
 	})
 	t.Run("a model with no params does not panic", func(t *testing.T) {

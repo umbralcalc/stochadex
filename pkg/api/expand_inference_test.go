@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -294,4 +295,91 @@ func TestExpandInferenceMacros(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestWindowHistoryDeeperThanTheWindowIsRefused proves a window data partition
+// replayed with more history than the window is a config error on both paths,
+// naming the fix. The window replays its data from the bottom of that history,
+// so the extra rows anchor it in zeros and the likelihood stops reading the
+// data; before this was refused, a planner downstream planned on the
+// uninformative posterior that came out, and only a log line said so.
+func TestWindowHistoryDeeperThanTheWindowIsRefused(t *testing.T) {
+	// The fit's window states no data: it reads test_data live, and the
+	// history depth only sizes test_data's replay, which nothing walks. The
+	// refusal is for partitions a window replays, so the case adds one.
+	fit := readFile(t, "testdata/gradient/fit_macro.yaml")
+	if !strings.Contains(fit, "window: {depth: 10}") {
+		t.Fatal("the fit fixture changed; its window no longer reads as this test expects")
+	}
+	cases := []struct{ name, yaml, from, to, partition string }{
+		{"a likelihood comparison", inferenceInputs + comparisonMacro,
+			"window_data_history_depth: {stream: 10}", "window_data_history_depth: {stream: 30}", "stream"},
+		{"a one-row-too-deep likelihood comparison", inferenceInputs + comparisonMacro,
+			"window_data_history_depth: {stream: 10}", "window_data_history_depth: {stream: 11}", "stream"},
+		{"a posterior", inferenceInputs + posteriorMacro,
+			"window_data_history_depth: {stream: 12}", "window_data_history_depth: {stream: 40}", "stream"},
+		{"a mean-function fit replaying its data through the window", strings.Replace(fit,
+			"window: {depth: 10}", "window: {depth: 10, data: [{partition_name: test_data}]}", 1),
+			"window_data_history_depth: {test_data: 10}", "window_data_history_depth: {test_data: 60}", "test_data"},
+		{"a calibration a plan samples from", calibration + strings.Replace(newsvendorPlan, "PARAMETERS",
+			"samples_from: {partition_name: post_sampler, burn_in: 100}", 1),
+			"window_data_history_depth: {observations: 20}", "window_data_history_depth: {observations: 300}",
+			"observations"},
+	}
+	for _, c := range cases {
+		yaml := strings.Replace(c.yaml, c.from, c.to, 1)
+		if yaml == c.yaml {
+			t.Fatalf("%s: the case did not change the config: %q", c.name, c.from)
+		}
+		load := func(t *testing.T) *ApiRunConfig {
+			t.Helper()
+			config, err := LoadConfig(writeConfigPath(t, yaml))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return config
+		}
+		t.Run(c.name+" does not run, saying what to set", func(t *testing.T) {
+			_, err := RunToStorage(load(t))
+			want := fmt.Sprintf("window data partition %q has StateHistoryDepth", c.partition)
+			if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), want) ||
+				!strings.Contains(err.Error(), "set its history depth equal to Window.Depth") {
+				t.Errorf("expected ErrConfig naming %q and the fix, got %v", c.partition, err)
+			}
+		})
+		t.Run(c.name+" does not expand, saying what to set", func(t *testing.T) {
+			_, err := Expand(load(t))
+			want := fmt.Sprintf("set window_data_history_depth for %q equal to the window's depth", c.partition)
+			if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), want) {
+				t.Errorf("expected ErrConfig containing %q, got %v", want, err)
+			}
+		})
+	}
+	t.Run("the message gives the depths and the depth to set", func(t *testing.T) {
+		yaml := inferenceInputs + strings.Replace(comparisonMacro,
+			"window_data_history_depth: {stream: 10}", "window_data_history_depth: {stream: 30}", 1)
+		config, err := LoadConfig(writeConfigPath(t, yaml))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = RunToStorage(config)
+		if want := `macro "likelihood_comparison": macros: window data partition "stream" has ` +
+			`StateHistoryDepth 30 > Window.Depth 10; the window would replay zero-filled rows for ` +
+			`the first 28 steps and lag the data by 20 steps thereafter, so the likelihood would be ` +
+			`near-constant and carry no information — set its history depth equal to Window.Depth (10)`; err == nil ||
+			!strings.Contains(err.Error(), want) {
+			t.Errorf("run error = %v, want it to contain %q", err, want)
+		}
+		config, err = LoadConfig(writeConfigPath(t, yaml))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = Expand(config)
+		if want := `window data partition "stream" has history depth 30, above the window's depth 10, ` +
+			`so the window would replay zero-filled rows and the likelihood would carry no ` +
+			`information; set window_data_history_depth for "stream" equal to the window's depth (10)`; err == nil ||
+			!strings.Contains(err.Error(), want) {
+			t.Errorf("expand error = %v, want it to contain %q", err, want)
+		}
+	})
 }

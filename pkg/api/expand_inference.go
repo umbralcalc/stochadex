@@ -101,6 +101,16 @@ func expandWindow(
 				return nil, fmt.Errorf("window data partition %q has history depth %d, below "+
 					"the window's depth %d", ref.PartitionName, depth, window.Depth)
 			}
+			// The window replays its data from the bottom of the history, so
+			// any more history than the window anchors it in rows that are
+			// still zero, and the likelihood stops reading the data at all.
+			if depth > window.Depth {
+				return nil, fmt.Errorf("window data partition %q has history depth %d, above "+
+					"the window's depth %d, so the window would replay zero-filled rows and the "+
+					"likelihood would carry no information; set window_data_history_depth for %q "+
+					"equal to the window's depth (%d)",
+					ref.PartitionName, depth, window.Depth, ref.PartitionName, window.Depth)
+			}
 		}
 		first, err := ctx.firstRow(ref.PartitionName)
 		if err != nil {
