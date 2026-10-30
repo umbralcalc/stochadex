@@ -140,7 +140,11 @@ an exact version rather than assume stability across minors.
   partitions are listed out of that order keeps the default strategy. Results are
   identical. A 20-step window over 200 steps takes 4.7ms instead of 14.5ms and makes 26%
   fewer allocations, and the shipped posterior example runs in 0.4s instead of 1.3s. The
-  config written out by `api.Expand` still runs its windows on the default strategy.
+  config written out by `api.Expand` states the same: a window that runs inline in the macro
+  tier is written with `execution_strategy: {type: inline}` in its nested run's `simulation:`. The
+  expanded posterior example now runs in 0.36s instead of 1.3s, level with the macro tier, and
+  every shipped macro config runs expanded as fast as macro by macro or faster
+  (`BenchmarkMacroConfigs`; results in `docs/performance.md`).
 
 ### Fixed
 

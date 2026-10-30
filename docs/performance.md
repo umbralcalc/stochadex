@@ -70,6 +70,32 @@ At cache-resident sizes AXPY is at parity by default; DOT jumps from ~2.7 to ~10
 `-tags cblas`, matching NumPy — so you keep the pure-Go / WASM-clean binary by default and get
 NumPy-class BLAS when you opt in.
 
+## Macros cost nothing as a single run
+
+A `macros:` config is a shortcut: it expands into ordinary partitions that run as **one**
+simulation (`api.Expand`), with output bit-identical to running each macro in turn over the
+recorded data. Expanded, every shipped macro config runs as fast as the macro-by-macro path or
+faster, allocates less, and peaks lower:
+
+| Config (macros) | Macro by macro | One run, expanded | Fastest strategy |
+|---|---|---|---|
+| `example_macro_config` (two chained aggregations) | 14.8 ms | 13.0 ms | inline, 9.0 ms |
+| `example_regression_config` (`scalar_regression_stats`) | 2.9 ms | 1.1 ms | inline, 0.09 ms |
+| `example_posterior_macro_config` (`posterior_estimation`) | 378 ms | 363 ms | inline, 327 ms |
+| `example_state_space_count_config` (count filter + SMC) | 326 ms | 319 ms | persistent worker, 311 ms |
+| `example_planning_config` (`mcts_planning`) | 121 ms | 122 ms | level |
+| `example_evolution_strategy_config` | 38.1 ms | 38.1 ms | persistent worker, 34.3 ms |
+| `example_smc_config` (`smc_inference`) | 17.7 ms | 18.3 ms | level |
+| `example_mcts_config` (`mcts_self_play`) | 4.9 ms | 4.9 ms | level |
+| `example_data_source_config` (aggregation over a CSV) | 2.9 ms | 3.0 ms | inline, 1.9 ms |
+
+Medians of six interleaved runs on an Apple M4. Differences of a few percent on the level rows are
+within noise (benchstat, p > 0.05). Across all of them, the expanded run takes 15% less time,
+allocates 10% fewer bytes and 14% fewer objects, and its peak heap is 15% lower. The "fastest
+strategy" column sets the expanded run's `execution_strategy`, which the macro-by-macro path has
+no way to choose. `BenchmarkMacroConfigs` in `pkg/api` reproduces it, covering the skill recipes
+too.
+
 ## Reproduce it
 
 Every number here is committed and regenerable on your own hardware. See

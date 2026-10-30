@@ -67,7 +67,7 @@ func bitsDigest(rows [][]float64) string {
 
 // oracleConfigs are every shipped macros: config: the examples and the
 // stochadex-model skill's recipes, relative to the repository root.
-func oracleConfigs(t *testing.T) []string {
+func oracleConfigs(t testing.TB) []string {
 	t.Helper()
 	var configs []string
 	for _, pattern := range []string{"cfg/example_*.yaml", ".claude/skills/stochadex-model/recipes/*.yaml"} {
