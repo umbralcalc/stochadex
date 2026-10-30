@@ -237,6 +237,16 @@ an exact version rather than assume stability across minors.
   A subset's covariance now equals the matching sub-block of the full covariance, and
   full-width runs are unchanged, with no slowdown.
 
+## [0.24.0] — 2026-10-30
+
+<!-- Release prose goes here: what this release is about and why this
+     bump. patch = fixes only; minor = new features or, in v0.x, a
+     breaking change. Delete this comment before merging. -->
+
+### Added
+
+- 
+
 ## [0.23.0] — 2026-10-22
 
 This release completes the core-language building blocks that macros expand into: a
@@ -2313,7 +2323,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/umbralcalc/stochadex/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/umbralcalc/stochadex/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/umbralcalc/stochadex/compare/v0.20.0...v0.21.0
