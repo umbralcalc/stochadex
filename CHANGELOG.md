@@ -22,6 +22,28 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-10-30
+
+This release makes stochadex a deterministic engine with a machine-readable CLI
+contract, and finishes turning macros into config shortcuts: every macro, including
+calibrate-then-plan, now expands into the core config language and runs exactly as the
+macro tier does. Identical runs now write byte-identical output, since rows within a step
+come out in partition order whatever the execution strategy. The new `stochadex graph` and
+`stochadex catalogue` commands, and a `SHA256SUMS` file on every release, give tools such as
+[robert](https://github.com/umbralcalc/robert) a stable surface to build on. Agent integration
+moves there: the Claude Code plugin and the `stochadex-model` skill are removed.
+
+**Upgrading from 0.23.**
+
+- If you use the Claude Code plugin, switch to robert (`claude plugin marketplace add
+  umbralcalc/robert`, or its one-line installer), which carries the same skill.
+- Replace `stochadex-graph` with `stochadex graph`. The old binary still works as an alias
+  but is deprecated, and no release ships it.
+- A config whose `window_data_history_depth` exceeds its window's `depth` now fails as a
+  config error. Set the two equal. Every shipped config already does.
+- Go code that drives a `simulator.StateIterator` by hand, rather than through a
+  coordinator, must now call `Output` after `Iterate`.
+
 ### Added
 
 - **`api.Expand` and `api.ExpandToYAML` write a macros: config out in the core language**, as
@@ -2313,7 +2335,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/umbralcalc/stochadex/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/umbralcalc/stochadex/compare/v0.21.0...v0.22.0
 [0.21.0]: https://github.com/umbralcalc/stochadex/compare/v0.20.0...v0.21.0
