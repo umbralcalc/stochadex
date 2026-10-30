@@ -7,7 +7,7 @@ import "fmt"
 // values, and they stay until injected again. This is the engine's port for
 // input from outside a run — a user's action, a live feed — and it is the only
 // way such input reaches a partition: through its params, at a step boundary,
-// never inside Iterate (PLAN.md rule 6).
+// never inside Iterate.
 //
 // Call it only between steps: after Run, or a Stepper's Step, has returned and
 // before the next Step begins — never concurrently with one. Step's own

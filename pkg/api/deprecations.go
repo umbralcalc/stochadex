@@ -8,7 +8,7 @@ import (
 	yaml3 "gopkg.in/yaml.v3"
 )
 
-// Deprecated shorthand (PLAN.md IO.6). Rule 14 gives a config one place for
+// Deprecated shorthand. A config has one place for
 // data coming in, inputs:, and one for results going out, outputs:. The older
 // spellings still load, and mean exactly what their replacements do, but each
 // is deprecated and will be removed in a later v0.x minor:

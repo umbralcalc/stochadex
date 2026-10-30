@@ -6,7 +6,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// All-or-nothing outputs (PLAN.md O.4). Every sink a config run writes through
+// All-or-nothing outputs. Every sink a config run writes through
 // is staged, so what it writes is published only when the whole run has ended
 // cleanly: a file is written under a ".partial" name and renamed into place,
 // and an upload or database ingest waits until then. A run that fails, panics

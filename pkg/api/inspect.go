@@ -12,7 +12,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// Inspecting a config without running it (PLAN.md O.2): Check validates it, and
+// Inspecting a config without running it: Check validates it, and
 // Manifest describes what it reads and writes. Both are for an orchestrator, or
 // an agent, deciding about a run before spending one.
 //
@@ -26,8 +26,7 @@ import (
 // iteration's Configure. Only what needs an input's contents is left to the
 // run: that the input has the partitions the config reads, and their widths
 // where the config does not declare them. A macros: config's expansion also
-// needs its inputs' contents, so Check validates only its context, until
-// macros expand from the config alone (PLAN.md Phase 2).
+// needs its inputs' contents, so Check validates only its context.
 //
 // Check builds fresh instances to check, so config is left as it was.
 // Failures are ErrConfig.
@@ -163,7 +162,7 @@ type IOManifest struct {
 	Deprecations []string `json:"deprecations,omitempty"`
 	// Debug lists the logs a run writes only because its config asks for an
 	// embedded run's inner detail: every inner step of every outer step. They
-	// are for debugging, not results (rule 14), so provenance and
+	// are for debugging, not results, so provenance and
 	// --skip-if-unchanged ignore them.
 	Debug []ManifestOutput `json:"debug,omitempty"`
 }
@@ -187,7 +186,7 @@ type ManifestRun struct {
 	// Mode is batch, ensemble or serve.
 	Mode string `json:"mode"`
 	// Runtime is main, or macros for a macros: config, which runs its macros in
-	// turn against its inputs (until macros expand into the main runtime).
+	// turn against its inputs.
 	Runtime     string   `json:"runtime"`
 	Macros      []string `json:"macros,omitempty"`
 	Seeds       []uint64 `json:"seeds,omitempty"`

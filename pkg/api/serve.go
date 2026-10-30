@@ -60,7 +60,7 @@ func validateRunMode(config *ApiRunConfig) error {
 		return fmt.Errorf("api: run.websocket.address %q: %w", run.Websocket.Address, err)
 	}
 	// What a client receives is an output like any other, so it is declared in
-	// outputs: (PLAN.md rule 14), with its own condition.
+	// outputs:, with its own condition.
 	streams := 0
 	for _, view := range config.Outputs {
 		if view.Function.Type == connectionSink {

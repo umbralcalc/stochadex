@@ -7,7 +7,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// Files an iteration reads are inputs (PLAN.md IO.5, Q8): declared once in
+// Files an iteration reads are inputs: declared once in
 // inputs:, so the I/O manifest and provenance see them like any other input.
 //
 //	inputs:

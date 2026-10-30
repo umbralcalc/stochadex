@@ -14,7 +14,7 @@ import (
 	yaml3 "gopkg.in/yaml.v3"
 )
 
-// Per-invocation overrides (PLAN.md O.1): one config file runs as many
+// Per-invocation overrides: one config file runs as many
 // parameterised jobs, varied from outside the file.
 //
 //   - A --set path=value (WithSet) replaces the value at a path in the config

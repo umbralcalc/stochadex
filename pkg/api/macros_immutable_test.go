@@ -13,7 +13,7 @@ import (
 )
 
 // macroConfigsWithoutShippedExample are configs for the macro types no cfg/
-// example or skill recipe ships, so every type in macroSpecFactories is run by
+// example ships, so every type in macroSpecFactories is run by
 // TestMacroRunLeavesConfigUnmodified. Each exercises the maps its spec hands to
 // the partitions it builds: params, params_as_partitions, params_from_upstream
 // and, for the window, inner partitions with params of their own.

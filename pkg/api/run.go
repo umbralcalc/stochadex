@@ -852,8 +852,7 @@ func RunWithParsedArgs(args ParsedArgs) {
 // each row had been output by a live run, so every view's condition selects
 // exactly what it would have: row k carries step number k, and the history
 // holds the previous row's time with the increment to row k's. Partitions go
-// out in name order within a row. This is how a macros: run reaches outputs:
-// until macros expand into the one live runtime (PLAN.md Phase 2).
+// out in name order within a row. This is how a macros: run reaches outputs:.
 func replayThroughViews(storage *simulator.StateTimeStorage, views *simulator.OutputViews) {
 	names := sortedNames(storage)
 	settings := &simulator.Settings{Iterations: make([]simulator.IterationSettings, len(names))}

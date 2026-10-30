@@ -168,7 +168,7 @@ func TestUndeclaredGroups(t *testing.T) {
 		}
 	})
 
-	t.Run("the spike's grouped twin, groups declared, reproduces grouped_aggregation exactly", func(t *testing.T) {
+	t.Run("the hand-written grouped twin, groups declared, reproduces grouped_aggregation exactly", func(t *testing.T) {
 		macro, err := RunToStorage(LoadApiRunConfigFromYaml("testdata/grouped/grouped_macro.yaml"))
 		if err != nil {
 			t.Fatal(err)

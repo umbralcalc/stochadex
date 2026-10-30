@@ -10,7 +10,7 @@ import (
 	yaml3 "gopkg.in/yaml.v3"
 )
 
-// The inputs: tier (PLAN.md Phase 1). An input is a named, read-only storage
+// The inputs: tier. An input is a named, read-only storage
 // that exists before the runtime is built: loaded from a source (a file, a
 // database), or produced by a labelled pre-pass simulation. A main: partition
 // replays one of an input's partitions with {type: from_input}; the run's clock
@@ -242,7 +242,8 @@ func hasRunInputs(config *ApiRunConfig) bool {
 // fromStoragePrefix names the inputs that inline from_storage data becomes.
 const fromStoragePrefix = "from_storage/"
 
-// desugarFromStorage makes inline data an input (PLAN.md rule 14, IO.4): a main
+// desugarFromStorage makes inline data an input, so data comes in through
+// inputs: alone: a main
 // partition whose iteration is {type: from_storage, data: rows} becomes a
 // from_input partition reading an inline input of those rows, and a
 // timestep_function {type: from_storage, data: times} a from_input clock

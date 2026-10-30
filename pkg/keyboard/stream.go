@@ -13,7 +13,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// The keyboard as a stream input (PLAN.md 1.7). Each mapped key press is a
+// The keyboard as a stream input. Each mapped key press is a
 // message setting one stream partition's value, so the keyboard steers a run
 // through params_from_input like any other stream:
 //

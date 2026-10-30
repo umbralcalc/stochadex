@@ -217,3 +217,10 @@ cd docs && bash build.sh                         # build HTML docs (needs pandoc
 - Keep iteration implementations stateless between runs (see Core abstraction above).
 - Put non-obvious package architecture in that package's `doc.go`, and load-bearing
   invariants in a comment next to the code — keep this file a map, not an encyclopedia.
+- Comments and docs (including the CHANGELOG) describe the code in its own terms: what it
+  does and why. They never refer to planning documents (a `PLAN.md`, its items, phases or
+  rules), to PR numbers, or to how a change came about; that history belongs in commit
+  messages and PRs.
+- Agent integration (skills, plugins, agent-facing guides) is
+  [robert](https://github.com/umbralcalc/robert)'s, not this repo's: don't add it here, and
+  don't describe it in the docs beyond pointing there.

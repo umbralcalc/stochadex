@@ -254,11 +254,11 @@ func (v OutputViewConfig) label() string {
 // output_function pair, or the default when no output is declared, becomes.
 const shorthandView = "output"
 
-// resolveOutputs makes outputs: the one place a config's outputs are declared
-// (PLAN.md rule 14), then builds its views and installs them as the main
-// simulation's output, so every run path (batch, ensemble, serve, macros) uses
-// them and every path that replaces the output (RunToStorage, serving a
-// connection) suppresses them alike.
+// resolveOutputs makes outputs: the one place a config's outputs are declared,
+// then builds its views and installs them as the main simulation's output, so
+// every run path (batch, ensemble, serve, macros) uses them and every path that
+// replaces the output (RunToStorage, serving a connection) suppresses them
+// alike.
 //
 // main.simulation's output_condition / output_function pair is shorthand for
 // one view named "output", and a config declaring no output at all gets the

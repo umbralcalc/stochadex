@@ -9,7 +9,7 @@ import (
 	yaml3 "gopkg.in/yaml.v3"
 )
 
-// Macros as config → config shortcuts (PLAN 2.1–2.3). A macro expands into
+// Macros as config → config shortcuts. A macro expands into
 // core-language partitions — data specs only, as a hand-written config would
 // state them — so a macros: config becomes one ordinary run:
 //
