@@ -4,11 +4,20 @@ Status: **accepted** (2026-10-04).
 - **Where this lives:** the long-lived working branch `claude/config-runtime-plan`. It is
   deliberately **never merged to `main`**; implementation PRs branch from `main` and
   link here. Update this file on this branch as items land.
+- **Decided (2026-10-30): agent integration lives in [robert](https://github.com/umbralcalc/robert),
+  not here** (#154). stochadex is a deterministic engine and CLI with a machine-readable
+  contract: `--check`, `inspect --io`, `graph`, `catalogue`, `run`, and (2.11) `expand`.
+  robert, the method layer for an AI simulation scientist, locks a stochadex release by
+  SHA-256 and drives it through that contract. So this repo ships no skills, recipes or agent
+  plugin. Agent-facing guidance, and testing whether agents can author configs, are robert's.
+  What this plan owes robert instead is **a stable, versioned contract and regular releases**
+  (see §9).
 - **Status (2026-10-30):** Phases 0, 1, 1b and Track O are done. Phase 2 has proven its core
   claim: all 12 macros expand into the core language (2.1), expansion reads data only for shape
-  (2.5), and every shipped macro config, every skill recipe, AMR's inference config and five of
-  cryptobook's run bit-identically expanded and through the macro tier (2.6), pinned by
-  per-architecture goldens. 2.2–2.4 were delivered inside 2.1.
+  (2.5), and every shipped macro config, AMR's inference config and five of cryptobook's run
+  bit-identically expanded and through the macro tier (2.6), pinned by per-architecture
+  goldens. (The skill recipes were byte-identical copies of shipped examples, removed with
+  #154.) 2.2–2.4 were delivered inside 2.1.
 - **Remaining, in order:**
   1. **2.12 performance parity — in review (#153).** Expanded windows now run inline, as the
      macro tier's do; every shipped macro config runs expanded level or faster (geomean −15%
@@ -16,10 +25,12 @@ Status: **accepted** (2026-10-04).
   2. **2.14 default switch and `main:` + `macros:` composition** (rule 16): macro configs run
      through their expansion at load; 2.7 and 2.8 then follow almost for free.
   3. **2.9** retire the macro tier's replay path; the 2.6 goldens become the guard.
-  4. **2.11 / 2.13** readable `stochadex expand` output (anchors, block style, CLI), the core
-     semantics reference and schema; **2.10** docs and skill.
-  5. A release and downstream bumps before 2.9: nothing is tagged since v0.23.0, and
-     cryptobook is still on v0.14.0.
+  4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
+     block style), the core semantics reference, and per-type fields in `stochadex catalogue`
+     as the schema; **2.10** human-facing docs.
+  5. **Releases.** Nothing is tagged since v0.23.0, and robert locks a release, so cut one
+     soon after #154, and again around each contract-visible change (2.14, 2.11, 2.13).
+     Downstream bumps before 2.9: cryptobook is still on v0.14.0.
 - **History:** every merged item, decision and finding, newest Phase 2 work first, is in
   [Appendix A](#appendix-a-progress-log).
 
@@ -781,19 +792,19 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | 2.3 | **DONE (in 2.1, #140)**: data-ref resolution | A `DataRef.partition_name` resolves to a main partition, an earlier expander's partition, or an input replay. An input partition that is referenced but not yet replayed gets an auto-created `from_input` partition. | Unit tests per case |
 | 2.4 | **DONE (in 2.1, #147, #148)**: clock as ordinary config | Macros that need a clock (ES, SMC, MCTS) emit `simulation:` fields in their expansion. Merging follows ordinary duplicate-definition rules (§2.2 rule 2). With no clock at all and one fixed input, the default is `{type: from_input}` on that input. | Conflict tests with error messages that name both definitions |
 | 2.5 | **DONE (#149, #150)**: remove build-time data reads (shape-only bar) | `grouped_aggregation` takes declared `groups:`; old configs desugar with a one-off group discovery run as a computed input. `smc_inference` emits embedded particle runs whose observed-data partition is `from_input` instead of a copied series. `mcts_planning`'s `samples_from` / `weights_from` read a named input at run time instead of being baked into params. The old calibrate → plan configs desugar to a nested-run input. | The calibrate → plan tests in `test/` and `pkg/api` pass unchanged; expansion succeeds with the input files absent (proving it reads none) |
-| 2.6 | **Exact oracle — DONE (#151); all 19 configs exact; default switch deferred to after 2.12** | Desugar old `data:` + `macros:` to the new shape at load time. For every `cfg/example_*.yaml`, every skill recipe, and AMR's and cryptobook's macro configs, the new path must produce **byte-identical storage** to the Phase-0 path, with the same seeds. If it doesn't, apply CONVENTIONS' oracle ladder, step down explicitly (exact → claim-level → distributional), and record which level was used. Never widen a tolerance to make it pass. | Golden-output test kept permanently as a regression guard |
+| 2.6 | **Exact oracle — DONE (#151); all configs exact (9 shipped examples now, with the recipes gone in #154; AMR and cryptobook checked locally); default switch deferred to after 2.12** | Desugar old `data:` + `macros:` to the new shape at load time. For every `cfg/example_*.yaml`, every skill recipe, and AMR's and cryptobook's macro configs, the new path must produce **byte-identical storage** to the Phase-0 path, with the same seeds. If it doesn't, apply CONVENTIONS' oracle ladder, step down explicitly (exact → claim-level → distributional), and record which level was used. Never widen a tolerance to make it pass. | Golden-output test kept permanently as a regression guard |
 | 2.14 | Default switch, and `main:` + `macros:` in one runtime (rule 16) | Load a macros config as its expansion, so every run of one is the single runtime; lift #92's guard so hand-written `main:` partitions and macros share that runtime, with names unambiguous across both. Gated on 2.12. | The 2.6 oracle and goldens unchanged; a config mixing `main:` and a macro reading a main partition live runs as its hand-expanded twin |
-| 2.7 | Tooling coverage | The deadlock pre-flight and `cmd/stochadex-graph` operate on the single expanded generator, so macro configs are covered | Graph render test for `example_macro_config` shows the `rolling_mean → rolling_var` edge |
+| 2.7 | **Mostly done by #154**: `stochadex graph` (with its deadlock exit code) is a subcommand on the main run, so once 2.14 runs a macro config as its expansion, its graph is the expansion's; what is left is the acceptance test below. Tooling coverage | The deadlock pre-flight and `cmd/stochadex-graph` operate on the single expanded generator, so macro configs are covered | Graph render test for `example_macro_config` shows the `rolling_mean → rolling_var` edge |
 | 2.8 | `run:` everywhere | `ensemble` and `serve` work for macro configs | Ensemble posterior test: per-seed results differ, and the ensemble mean is near the truth |
 | 2.9 | Retire the replay coordinator path | `runMacros`' sequential storage-threading loop is deleted; `AddPartitionsToStateTimeStorage` stays in `pkg/analysis` for Go users and notebooks | — |
 | 2.0b | **DONE (#133)**: `pkg/agents` iteration specs | Register `mcts_apply`, `mcts_tree`, `mcts_rollout` with an `environment:` sub-spec (`{type: simulation, ...}` data-defined, or a registered name) plus search settings; add `pkg/agents` to the registry coverage scan (§4.2 findings 6 and 7) | The spike's exact planning twin, kept as a regression test |
 | 2.0c | **DONE (#129, #130, #131)**: remaining core specs from the spike | `data_comparison_gradient` (finding 12; fix the coverage exclusion reason); recursive `embedded_simulation_run` with `run: {main, embedded}` (finding 14), making top-level `embedded:` a special case of it; an undeclared-group policy for `values_grouped_aggregation` (finding 13) | The spike's exact fit, grouped and 3-level nested twins, kept as regression tests |
 | 2.0d | **DONE (#138)**: environments as components | Change `RegisterEnvironment` from a partition builder to a component builder (typed wrapper building the apply, tree and rollout iterations); the component spec carries only environment-defining fields (finding 11); migrate card-game-studio's `cardgame_rulesvm` | The spike's exact `tictactoe` self-play twin; card-game-studio's tests pass after migration |
 | 2.0 | **DONE (#127)**: promote `replicated_simulation_run` | Move `SMCParticleEvaluationIteration` from `pkg/macros` to `pkg/general` under the generic name, with a `{type: ...}` spec (§4.2 finding 3); `smc_inference` expands to it | The spike's exact SMC twin, kept as a regression test |
-| 2.11 | **Half done**: `api.Expand` / `ExpandToYAML` exist (#140) and the twin oracle is 2.6 (#151); gaps (a)–(c) below were closed by 2.0b and 2.0c. **Left:** the CLI subcommand, YAML anchors (they do not survive the expander's eager node encoding, #147), and readable block-style output. `stochadex expand` and the twin oracle | A CLI subcommand and an `api.Expand(config)` function emit the core-language config. For every shipped macro config, the expanded config runs byte-identically to the macro form. Sub-specs shared by several partitions are emitted once as YAML anchors (§4.2 finding 8). **Known core-language gaps to close by adding `{type: ...}` specs** (from `registry_coverage_test.go` and the macro constructors): (a) `DataComparisonGradientIteration` (`likelihood_mean_function_fit`), excluded today as "live-object built by macros:"; (b) an embedded simulation *inside a partition* (likelihood windows, SMC particles, the planning model), where `embedded:` is top-level only, so nesting needs a recursive spec; (c) the `pkg/agents` MCTS iterations, now item 2.0b; the spike proved their data-path specs give an exact twin. Each gap is either closed or recorded as a known gap; a tolerance is never widened. | The golden twin test passes for every `cfg/` macro config and skill recipe; the coverage test gains the agents package |
+| 2.11 | **Half done**: `api.Expand` / `ExpandToYAML` exist (#140) and the twin oracle is 2.6 (#151); gaps (a)–(c) below were closed by 2.0b and 2.0c. **Left:** the CLI subcommand, as part of #154's CLI contract (`stochadex expand -c CONFIG [--set ...]`, deterministic output on stdout, `graph`'s exit codes), YAML anchors (they do not survive the expander's eager node encoding, #147), and readable block-style output. `stochadex expand` and the twin oracle | A CLI subcommand and an `api.Expand(config)` function emit the core-language config. For every shipped macro config, the expanded config runs byte-identically to the macro form. Sub-specs shared by several partitions are emitted once as YAML anchors (§4.2 finding 8). **Known core-language gaps to close by adding `{type: ...}` specs** (from `registry_coverage_test.go` and the macro constructors): (a) `DataComparisonGradientIteration` (`likelihood_mean_function_fit`), excluded today as "live-object built by macros:"; (b) an embedded simulation *inside a partition* (likelihood windows, SMC particles, the planning model), where `embedded:` is top-level only, so nesting needs a recursive spec; (c) the `pkg/agents` MCTS iterations, now item 2.0b; the spike proved their data-path specs give an exact twin. Each gap is either closed or recorded as a known gap; a tolerance is never widened. | The golden twin test passes for every `cfg/` macro config and skill recipe; the coverage test gains the agents package |
 | 2.12 | **In review (#153): gate holds** — performance gate | Benchmark each shipped macro config, macro path versus expanded single-runtime path: wall-clock, allocations and peak memory, under the default and `inline` / `persistent_worker` execution strategies | No regression beyond noise on any config before 2.9 retires the old path; results recorded in `docs/performance.md` |
-| 2.13 | Core semantics reference and schema | A written reference for the core language (execution order, within-step vs lag-1 reads, embedded-run semantics, clock resolution, input binding, origin annotations), plus a JSON Schema generated from the registries for editor and agent tooling | Schema drift test: every registered `{type: ...}` appears in it; the reference is linked from the skill |
-| 2.10 | Docs | Rewrite the CLAUDE.md config section; `pkg/api/doc.go`; `pkg/macros/doc.go` ("macros are config → config shortcuts over the core language"); the `stochadex-model` skill and recipes, keeping `TestSkillRecipesMatchExamples` green; `docs/how_it_works.md`; CHANGELOG | Skill falsifier: a fresh agent given only the skill authors an input-driven config and a chained-macro config correctly |
+| 2.13 | **Re-scoped (2026-10-30)**: the schema is per-type fields added to `stochadex catalogue` (#154; bump `catalogue_version`), the contract robert reads, rather than a separate JSON Schema file; the reference is linked from the docs, not a skill. Core semantics reference and schema | A written reference for the core language (execution order, within-step vs lag-1 reads, embedded-run semantics, clock resolution, input binding, origin annotations), plus a JSON Schema generated from the registries for editor and agent tooling | Schema drift test: every registered `{type: ...}` appears in it; the reference is linked from the skill |
+| 2.10 | **Re-scoped (2026-10-30): human-facing docs only** | Rewrite the CLAUDE.md config section; `pkg/api/doc.go`; `pkg/macros/doc.go` ("macros are config → config shortcuts over the core language"); `docs/how_it_works.md` and `docs/quickstart.md`; CHANGELOG. The skill, its recipes and the skill falsifier are gone (#154); agent guidance and agent evaluation are robert's | The docs build; every config they show runs (an extracted-snippet test, as the quickstart's) |
 
 ### Track O — orchestration readiness (runs alongside Phases 1–2)
 
@@ -845,6 +856,8 @@ Every item meets the §4 test bar.
 
 - Flatten `main:` to the top level, and remove the deprecated `data:` / `main:` / `-s` /
   `RunMacros` spellings. This ships as a v0.x minor with a "Changed" entry (see §4.1).
+  It changes the config contract robert authors against (its `model/partitions.yaml`), so
+  coordinate it with a robert release rather than only a stochadex one.
 - Add `run: {mode: sweep}` over a params grid. It fits because `run:` now covers every
   runtime. Only worth doing if external orchestration proves clumsy for homark- and
   AMR-style scenario sweeps.
@@ -939,49 +952,36 @@ evidence to collect before then. None blocks the next PRs.
   `source:` input to reproduce the session exactly.
 - **Interactive game / dashboard (dexetera-style):** `run: {mode: serve}` with
   `protobuf_action_state` stream input; each client gets an isolated runtime.
-- **Self-contained demo / skill recipe:** `inputs: {synth: {simulation: ...}}` with one
+- **Self-contained demo / shipped example:** `inputs: {synth: {simulation: ...}}` with one
   macro. Still one file, and the draws are identical to today.
 
 ## 9. How agents will find this change
 
-**Net expectation: better, provided the skill teaches macros first, core as the
-reference, and `expand` to inspect. Measure it rather than assume it (item A.1).**
+**Rewritten 2026-10-30.** Agents reach stochadex through
+[robert](https://github.com/umbralcalc/robert), which locks a stochadex release and calls
+its CLI; this repo no longer teaches agents directly (#154). So the question this section
+asked, whether the target state is easier for an agent to author, is now robert's to measure
+(its own gates and logs). The original item A.1, an agent falsifier run against this repo's
+skill, is withdrawn with the skill.
 
-**What should help:**
-- **One fixed vocabulary.** No keys that are silently ignored (#92), no
-  macro-versus-main runtime split to reason about, and one meaning per construct.
-  Agents fail most on hidden semantics, and this removes the main source.
-- **Fast checking without running.** `--check`, `inspect --io` and `expand` (Track O,
-  2.11) let an agent validate its wiring, see what a macro produces, and confirm its
-  inputs and outputs before spending a run. Errors name the macro that produced a
-  partition (rule 11).
-- **Twins as worked examples.** Every macro has a readable expansion, so an agent that
-  needs to go beyond a macro can start from its expansion instead of from scratch.
-- **Overrides (`--set`, by name).** Variations such as seeds, paths and parameters are
-  one flag, not a YAML rewrite. That is fewer edits and fewer chances to corrupt a
-  config.
-- **A schema (2.13).** Lets agent tooling validate or constrain generation directly.
+What this plan owes robert is the contract it drives:
 
-**What could hurt, and the mitigations:**
-- **Core-language configs are wiring-heavy.** Correct widths, flattened initial vectors,
-  index params such as `grouping_partition_tupindex_0`, and slot offsets such as
-  `best_idx`. The spike's own twins needed one correction caught by the oracle (the fit
-  window), and some were generated programmatically for this reason. *Mitigation:* the
-  skill says to use a macro whenever one fits and to drop to core only for bespoke
-  parts. Widths should be derived wherever possible, so expansion and validation
-  compute them rather than authors.
-- **More catalogue to learn** (six new specs, components). *Mitigation:* the schema plus
-  generic naming (rule 10) keeps them guessable.
-- **Transition confusion.** Old shapes (`data:` / `macros:` chains, `-s`) will live in
-  downstream repos and in model training data for a while. *Mitigation:* desugaring
-  keeps them working through the v0.x minors, and deprecation warnings point to the new
-  spelling.
-- **Composition invites over-engineering.** Deep nesting is easy to write and expensive
-  to run. *Mitigation:* `inspect` reports nesting depth and estimated inner-step counts.
-
-| # | Item | Detail | Acceptance |
-|---|---|---|---|
-| A.1 | Agent falsifier, before vs after | Reuse the skill-validation method: fresh agents, given only the skill, author a fixed task set (a forward model from data, a calibration, a calibrate → plan pipeline, a bespoke composition such as ES over a posterior). Run it on today's skill and again after Phase 2 plus the skill rewrite (2.10). | Same or better task success, fewer iterations to a converging config, and no new failure class. Results recorded in PLAN.md |
+- **One fixed vocabulary, and a way to read it.** No silently ignored keys (#92), one runtime
+  per config, one meaning per construct, and `stochadex catalogue` (#154) listing every
+  registered `{type: ...}` name, with per-type fields to come (2.13).
+- **Checking without running.** `--check`, `inspect --io`, `graph` (exit 78 on a deadlock), and
+  `expand` (2.11) let robert validate wiring, see what a macro produces and confirm inputs and
+  outputs before a run. Errors name the macro that produced a partition (rule 11).
+- **Determinism.** Seeded runs, deterministic output order (#154), and the 2.6 goldens, so a
+  run robert repeats gives the same bytes.
+- **Stability across releases.** Every contract-visible change (a subcommand's output, an
+  exit code, a config spelling, `catalogue_version`) gets a CHANGELOG entry, and the breaking
+  ones (Phase 3's flattening) are coordinated with a robert release. Desugaring keeps old
+  spellings working through the v0.x minors, with deprecation warnings pointing to the new
+  ones.
+- **Cost visibility.** Composition makes deep nesting easy to write and expensive to run;
+  `inspect` reporting nesting depth and estimated inner-step counts is still worth doing,
+  for robert as for people.
 
 ---
 
