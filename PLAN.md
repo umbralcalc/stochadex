@@ -51,8 +51,17 @@ Status: **accepted** (2026-10-04).
        cryptobook#1 (v0.14.0 → v0.25.0; cfgrun on RunToStorage, ensemble as a run: block;
        all 66 claims byte-identical), card-game-studio#3 (test helper off RunMacros), AMR#4
        (no changes; every cfg's rows identical to v0.22.0, only within-step order now fixed).
-       Next: 2.9 (nothing downstream calls RunMacros now).
-  3. **2.9** retire the macro tier's replay path; the 2.6 goldens become the guard.
+       Every other ~/Code repo on stochadex also bumped to v0.25.0 and merged (11 PRs;
+       openaction2outcome needed the SMC per-particle API; its marks re-mint byte-identical).
+     - **2.9 in progress.** First #165: each expansion test (expandedAlike, 56 runs) pinned to
+       per-arch golden digests (alike_<arch>.json) while still checked against RunMacros; amd64
+       from CI's log. Then, built locally on top (opened after #165 merges): RunMacros, the
+       macro-by-macro path, the Go-assembled fallback (now ErrConfig), each spec's resolve and
+       replayThroughViews deleted; clockedMacroSpec.clock() replaces liveMacroSpec; tests and
+       oracle golden-only. Found: an incomplete main.simulation / empty embedded run panics
+       instead of ErrConfig (pre-existing, also without macros) — proposed as its own session.
+  3. **2.9** retire the macro tier's replay path; the 2.6 goldens (and #165's per-test
+     goldens) become the guard.
   4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
      block style), the core semantics reference, and per-type fields in `stochadex catalogue`
      as the schema; **2.10** human-facing docs.
