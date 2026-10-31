@@ -201,6 +201,17 @@ var outputConditionBuilders = map[string]componentBuilder[OutputCondition]{
 	"nil":           func(*fieldReader) OutputCondition { return &NilOutputCondition{} },
 	"every_step":    func(*fieldReader) OutputCondition { return &EveryStepOutputCondition{} },
 	"every_n_steps": func(r *fieldReader) OutputCondition { return &EveryNStepsOutputCondition{N: r.int("n")} },
+	"final_step": func(r *fieldReader) OutputCondition {
+		condition := &FinalStepOutputCondition{}
+		if _, set := r.fields["partitions"]; set {
+			names := r.stringSlice("partitions")
+			condition.Partitions = make(map[string]bool, len(names))
+			for _, name := range names {
+				condition.Partitions[name] = true
+			}
+		}
+		return condition
+	},
 	"only_given_partitions": func(r *fieldReader) OutputCondition {
 		names := r.stringSlice("partitions")
 		partitions := make(map[string]bool, len(names))

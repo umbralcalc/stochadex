@@ -469,6 +469,10 @@ func (s *scalarRegressionStatsSpec) expand(ctx *expansionContext) (*expansion, e
 	if minDenominator <= 0 {
 		minDenominator = 1e-12
 	}
+	// The statistics start from the first rows' pair, so the data's initial
+	// row, which the run never steps to, counts too. index has checked both
+	// partitions are visible.
+	yFirst, xFirst := ctx.firstRows[s.Y.PartitionName], ctx.firstRows[s.X.PartitionName]
 	return &expansion{partitions: []expandedPartition{{
 		Name:      s.Name,
 		Iteration: component("scalar_regression_stats", nil),
@@ -482,7 +486,8 @@ func (s *scalarRegressionStatsSpec) expand(ctx *expansionContext) (*expansion, e
 			macros.ScalarRegressionParamY: {Upstream: s.Y.PartitionName, Indices: []int{y}},
 			macros.ScalarRegressionParamX: {Upstream: s.X.PartitionName, Indices: []int{x}},
 		},
-		InitStateValues:   make([]float64, macros.ScalarRegressionStateWidth(s.Intercept, mode, s.WindowLength)),
+		InitStateValues: macros.ScalarRegressionInitState(s.Intercept, mode, s.WindowLength,
+			minDenominator, xFirst[x], yFirst[y]),
 		StateHistoryDepth: max(s.StateHistoryDepth, 1),
 	}}}, nil
 }

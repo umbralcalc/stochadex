@@ -29,11 +29,51 @@ an exact version rather than assume stability across minors.
   `run: {mode: serve}` streams the expansion's run to each client.
 - `stochadex graph` on a `macros:` config draws its expansion's graph, the partitions it runs
   as. It reads the config's inputs, as the run does.
+- **`cumulative: true` on `vector_mean`**: the running mean over every row of its data, each
+  weighted equally, at the same cost per step however long the data. It is the mean an
+  estimation run wants (a windowed mean reads its whole window every step). It takes no
+  `window:`, `kernel:`, `params:` or `default_value:`, starts from the data's first row, and asks
+  no window of its data, so it runs beside windowed macros reading the same partition.
+  It expands to the new `values_function_cumulative_mean` iteration
+  (`general.ValuesFunctionCumulativeMeanIteration`; `macros.NewVectorCumulativeMeanPartition`).
+- **The `final_step` output condition** writes each partition once, as it stands when the run
+  ends, whatever ends it: `condition: {type: final_step}`, or
+  `{type: final_step, partitions: [a, b]}` for only those partitions
+  (`simulator.FinalStepOutputCondition`). An estimation run over a long input writes its
+  final estimate, not a row per step.
+- **`init_state_from_upstream`** on a partition names one of its `params_from_upstream` keys:
+  the partition starts from that upstream's initial state, at the key's indices, in place of its
+  `init_state_values`' values (which still give its width). A running sum or mean written as an
+  expression then counts an input's first row, which the run never steps to, without copying it
+  into the config. It is resolved when the run's configs are generated, so it sees an input's
+  rows as the run starts, and `--check` passes it without reading them
+  (`simulator.PartitionConfig.InitStateFromUpstream`).
+- `cfg/example_poisson_rate_config.yaml`: closed-form Poisson rates per group from a CSV of
+  counts and exposures, as a cumulative mean and a `final_step` output, pinned to the CSV's
+  closed-form sums.
 
 ### Changed
 
 - A `macros:` config's `run:` block is validated when it is loaded, as any config's is.
   `api.RunMacros`, which runs macro by macro, still refuses one.
+- **`scalar_regression_stats` counts its data's first row.** An input's first row is its
+  replay's initial state, which the run never steps to, so the macro used to start from zero
+  and miss it: over a CSV of N rows it counted N - 1. Its statistics now start from the first
+  rows' (x, y) pair, in both modes and both tiers. A sub-simulation input whose
+  `init_state_values` are placeholders, not data, now has them counted too: make them data, as
+  `cfg/example_regression_config.yaml` now does.
+
+### Fixed
+
+- `grouped_aggregation` no longer counts history rows the run has not yet reached. Its window
+  read every row of its data's history from the first step, and the unfilled rows are zeros,
+  so until the window filled they counted as data in group 0 (or towards `other`): a count
+  for group 0 could read 5 after one of its rows. Once the window has filled its values are unchanged.
+- A `vector_mean`, `vector_variance` or `vector_covariance` whose `window:` is longer than the
+  input it reads now fails when the run starts, naming the fix, instead of returning `default_value`
+  (typically 0) every step: a windowed aggregation outputs `default_value` until its window has
+  filled, which such a window never does. For `vector_mean` the error points to
+  `cumulative: true`.
 
 ### Fixed
 

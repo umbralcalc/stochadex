@@ -286,6 +286,46 @@ func NewVectorMeanPartition(
 	}
 }
 
+// NewVectorCumulativeMeanPartition constructs a PartitionConfig whose state is
+// the running mean of the referenced data values over every row the run sees:
+// the data partition's initial row, which is the partition's own initial
+// state, and each step's row after it, weighted equally. Unlike
+// NewVectorMeanPartition it reads no history, so a step costs O(d) however
+// long the data; applied.Kernel and applied.DefaultValue are not used. It
+// starts from the data partition's initial state (InitStateFromUpstream).
+func NewVectorCumulativeMeanPartition(
+	applied AppliedAggregation,
+	storage *simulator.StateTimeStorage,
+) *simulator.PartitionConfig {
+	appliedValueIndices := applied.Data.GetValueIndices(storage)
+	dataValuesIndices := make([]float64, len(appliedValueIndices))
+	for i, index := range appliedValueIndices {
+		dataValuesIndices[i] = float64(index)
+	}
+	return &simulator.PartitionConfig{
+		Name: applied.Name,
+		Iteration: &general.ValuesFunctionCumulativeMeanIteration{
+			Function: general.DataValuesFunction,
+		},
+		Params: simulator.NewParams(map[string][]float64{
+			"data_values_indices": dataValuesIndices,
+		}),
+		ParamsAsPartitions: map[string][]string{
+			"data_values_partition": {applied.Data.PartitionName},
+		},
+		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+			"latest_data_values": {
+				Upstream: applied.Data.PartitionName,
+				Indices:  appliedValueIndices,
+			},
+		},
+		InitStateValues:       make([]float64, len(appliedValueIndices)),
+		InitStateFromUpstream: "latest_data_values",
+		StateHistoryDepth:     1,
+		Seed:                  0,
+	}
+}
+
 // NewVectorVariancePartition constructs a PartitionConfig that computes the
 // rolling windowed weighted variance per-index of the referenced data
 // values. Provide the corresponding rolling mean via the mean analysis.DataRef.

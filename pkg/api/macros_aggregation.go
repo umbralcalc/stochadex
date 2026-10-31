@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -42,6 +44,26 @@ func (f aggregationFields) window() int {
 	return f.Window
 }
 
+// checkWindowFills fails when the run is too short for the macro's window to
+// fill. A windowed aggregation returns default_value until its data has a
+// window of history, so a window longer than the run never gives anything
+// else: a silent constant, typically 0. steps is the run's length, 0 when it
+// is not known.
+func (f aggregationFields) checkWindowFills(macro string, steps int, cumulative bool) error {
+	if steps == 0 || f.window() <= steps {
+		return nil
+	}
+	fix := fmt.Sprintf("set window: to at most %d", steps)
+	if cumulative {
+		fix = "for the mean over every row, set cumulative: true and drop window: and kernel:; " +
+			"for a rolling mean, " + fix
+	}
+	return configError(fmt.Errorf("api: %s %q has window: %d, but the run replays its "+
+		"input for only %d steps; it returns default_value (%v) until its window has filled, "+
+		"so it would return that every step. Fix: %s",
+		macro, f.Name, f.window(), steps, f.DefaultValue, fix))
+}
+
 // windowsFor pairs the macro partition (window 1) with its data source.
 func (f aggregationFields) windows() map[string]int {
 	return map[string]int{f.Name: 1, f.Data.PartitionName: f.window()}
@@ -50,6 +72,30 @@ func (f aggregationFields) windows() map[string]int {
 type vectorMeanSpec struct {
 	macroTypeField    `yaml:",inline"`
 	aggregationFields `yaml:",inline"`
+	// Cumulative makes the macro the running mean over every row of its data,
+	// each weighted equally, with no window or kernel (see
+	// macros.NewVectorCumulativeMeanPartition).
+	Cumulative bool `yaml:"cumulative,omitempty"`
+}
+
+// checkCumulative rejects the windowed-mean fields beside cumulative: true,
+// which weights every row equally and keeps no window.
+func (s *vectorMeanSpec) checkCumulative() error {
+	switch {
+	case s.Kernel.IsData():
+		return fmt.Errorf("vector_mean %q: cumulative: true weights every row equally, so it "+
+			"takes no kernel:; remove it", s.Name)
+	case s.Window != 0:
+		return fmt.Errorf("vector_mean %q: cumulative: true reads every row, so it takes no "+
+			"window:; remove it", s.Name)
+	case len(s.Params) != 0:
+		return fmt.Errorf("vector_mean %q: cumulative: true has no kernel to give params: to; "+
+			"remove them", s.Name)
+	case s.DefaultValue != 0:
+		return fmt.Errorf("vector_mean %q: cumulative: true starts at the data's first row, "+
+			"so it takes no default_value:; remove it", s.Name)
+	}
+	return nil
 }
 
 func (s *vectorMeanSpec) resolve(
@@ -57,6 +103,17 @@ func (s *vectorMeanSpec) resolve(
 ) ([]*simulator.PartitionConfig, map[string]int, error) {
 	applied, err := s.applied()
 	if err != nil {
+		return nil, nil, err
+	}
+	if s.Cumulative {
+		if err := s.checkCumulative(); err != nil {
+			return nil, nil, err
+		}
+		// It reads only the data's latest value, so it asks no window of it.
+		partition := macros.NewVectorCumulativeMeanPartition(applied, storage)
+		return []*simulator.PartitionConfig{partition}, map[string]int{s.Name: 1}, nil
+	}
+	if err := s.checkWindowFills("vector_mean", len(storage.GetTimes())-1, true); err != nil {
 		return nil, nil, err
 	}
 	partition := macros.NewVectorMeanPartition(applied, storage)
@@ -75,6 +132,9 @@ func (s *vectorVarianceSpec) resolve(
 ) ([]*simulator.PartitionConfig, map[string]int, error) {
 	applied, err := s.applied()
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := s.checkWindowFills("vector_variance", len(storage.GetTimes())-1, false); err != nil {
 		return nil, nil, err
 	}
 	partition := macros.NewVectorVariancePartition(s.Mean.resolve(), applied, storage)
@@ -97,6 +157,9 @@ func (s *vectorCovarianceSpec) resolve(
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := s.checkWindowFills("vector_covariance", len(storage.GetTimes())-1, false); err != nil {
+		return nil, nil, err
+	}
 	partition := macros.NewVectorCovariancePartition(s.Mean.resolve(), applied, storage)
 	applyParams(partition, s.Params)
 	windows := s.windows()
@@ -109,7 +172,7 @@ func (s *vectorCovarianceSpec) resolve(
 // params: pass-through applied over the top as applyParams does.
 func (f aggregationFields) expandAggregation(
 	ctx *expansionContext,
-	iteration, function string,
+	macro, iteration, function string,
 	mean *dataRefSpec,
 	params map[string][]float64,
 	initStateValues func(width int) []float64,
@@ -117,6 +180,11 @@ func (f aggregationFields) expandAggregation(
 	indices, err := ctx.indices(f.Data)
 	if err != nil {
 		return nil, err
+	}
+	if ctx.inputs[f.Data.PartitionName] {
+		if err := f.checkWindowFills(macro, ctx.inputSteps, macro == "vector_mean"); err != nil {
+			return nil, err
+		}
 	}
 	params["data_values_indices"] = indexParams(indices)
 	for name, values := range f.Params {
@@ -156,17 +224,20 @@ func (f aggregationFields) defaults(width int) []float64 {
 }
 
 func (s *vectorMeanSpec) expand(ctx *expansionContext) (*expansion, error) {
-	return s.expandAggregation(ctx, "values_function_vector_mean", "data_values", nil,
+	if s.Cumulative {
+		return s.expandCumulative(ctx)
+	}
+	return s.expandAggregation(ctx, "vector_mean", "values_function_vector_mean", "data_values", nil,
 		map[string][]float64{}, s.defaults)
 }
 
 func (s *vectorVarianceSpec) expand(ctx *expansionContext) (*expansion, error) {
-	return s.expandAggregation(ctx, "values_function_vector_mean", "data_values_variance", &s.Mean,
+	return s.expandAggregation(ctx, "vector_variance", "values_function_vector_mean", "data_values_variance", &s.Mean,
 		map[string][]float64{"subtract_from_normalisation": {1}}, s.defaults)
 }
 
 func (s *vectorCovarianceSpec) expand(ctx *expansionContext) (*expansion, error) {
-	return s.expandAggregation(ctx, "values_function_vector_covariance", "data_values", &s.Mean,
+	return s.expandAggregation(ctx, "vector_covariance", "values_function_vector_covariance", "data_values", &s.Mean,
 		map[string][]float64{}, func(width int) []float64 {
 			// row-major width × width, the default on the diagonal
 			values := make([]float64, width*width)
@@ -175,4 +246,35 @@ func (s *vectorCovarianceSpec) expand(ctx *expansionContext) (*expansion, error)
 			}
 			return values
 		})
+}
+
+// expandCumulative is a cumulative vector_mean's partition as data, as
+// macros.NewVectorCumulativeMeanPartition builds it.
+func (s *vectorMeanSpec) expandCumulative(ctx *expansionContext) (*expansion, error) {
+	if err := s.checkCumulative(); err != nil {
+		return nil, err
+	}
+	indices, err := ctx.indices(s.Data)
+	if err != nil {
+		return nil, err
+	}
+	return &expansion{
+		partitions: []expandedPartition{{
+			Name: s.Name,
+			Iteration: component("values_function_cumulative_mean", map[string]interface{}{
+				"function": "data_values",
+			}),
+			Params:             map[string][]float64{"data_values_indices": indexParams(indices)},
+			ParamsAsPartitions: map[string][]string{"data_values_partition": {s.Data.PartitionName}},
+			ParamsFromUpstream: map[string]expandedUpstream{
+				"latest_data_values": {Upstream: s.Data.PartitionName, Indices: indices}},
+			// The mean of the one row before the first step: the data's own
+			// initial state.
+			InitStateValues:   make([]float64, len(indices)),
+			InitStateFromUp:   "latest_data_values",
+			StateHistoryDepth: 1,
+		}},
+		// It reads only the data's latest value, so it asks no window of it.
+		depths: map[string]int{},
+	}, nil
 }

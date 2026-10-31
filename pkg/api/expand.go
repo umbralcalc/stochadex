@@ -48,6 +48,9 @@ type expansionContext struct {
 	// is the time the inputs start at.
 	owners   map[string]string
 	initTime float64
+	// inputSteps is the number of steps a replay of the inputs runs for, when
+	// the run is clocked by them and that is known (0 otherwise).
+	inputSteps int
 }
 
 // firstRow is a visible partition's first row.
@@ -56,6 +59,22 @@ func (c *expansionContext) firstRow(partition string) ([]float64, error) {
 		return nil, err
 	}
 	return c.firstRows[partition], nil
+}
+
+// initialState is the state an expanded partition starts the run from: its
+// init_state_values, or the part of its upstream's initial state that
+// init_state_from_upstream names.
+func (c *expansionContext) initialState(partition expandedPartition) []float64 {
+	if partition.InitStateFromUp == "" {
+		return partition.InitStateValues
+	}
+	upstream := partition.ParamsFromUpstream[partition.InitStateFromUp]
+	first := c.firstRows[upstream.Upstream]
+	state := make([]float64, len(upstream.Indices))
+	for i, index := range upstream.Indices {
+		state[i] = first[index]
+	}
+	return state
 }
 
 // width is a visible partition's state width.
@@ -114,6 +133,7 @@ type expandedPartition struct {
 	ParamsAsPartitions map[string][]string         `yaml:"params_as_partitions,omitempty,flow"`
 	ParamsFromUpstream map[string]expandedUpstream `yaml:"params_from_upstream,omitempty"`
 	InitStateValues    []float64                   `yaml:"init_state_values,omitempty,flow"`
+	InitStateFromUp    string                      `yaml:"init_state_from_upstream,omitempty"`
 	StateHistoryDepth  int                         `yaml:"state_history_depth"`
 	Seed               uint64                      `yaml:"seed"`
 }
@@ -202,6 +222,10 @@ type inputShape struct {
 	widths    map[string]int
 	firstRows map[string][]float64
 	initTime  float64
+	// steps is how many steps a replay of the input runs for: one per row
+	// after the first. It is 0 for a sub-simulation, whose rows are unknown
+	// until it runs.
+	steps int
 }
 
 // inputShapeOf finds an input's shape: from its declaration when it is a
@@ -222,7 +246,7 @@ func inputShapeOf(input InputConfig) (inputShape, error) {
 		return inputShape{}, err
 	}
 	shape := inputShape{widths: map[string]int{}, firstRows: map[string][]float64{},
-		initTime: storage.GetTimes()[0]}
+		initTime: storage.GetTimes()[0], steps: len(storage.GetTimes()) - 1}
 	for _, name := range storage.GetNames() {
 		first := storage.GetValues(name)[0]
 		shape.widths[name], shape.firstRows[name] = len(first), first
@@ -333,6 +357,10 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if mainClock {
+		// main:'s own clock, not the inputs', says how long the run is.
+		context.inputSteps = 0
+	}
 	// main:'s partitions run beside the macros', which may read them.
 	for _, partition := range config.Main.Partitions {
 		if input, replayed := context.owners[partition.Name]; replayed {
@@ -405,6 +433,7 @@ func inputsContext(inputs map[string]InputConfig) (*expansionContext, error) {
 		}
 		// Every input shares one time axis, so any gives the clock's start.
 		context.initTime = shape.initTime
+		context.inputSteps = shape.steps
 		for partition, width := range shape.widths {
 			if owner, taken := context.owners[partition]; taken {
 				return nil, withKind(ErrData, fmt.Errorf(
@@ -474,7 +503,7 @@ func expandRun(
 					"main:, the inputs or an earlier macro already have", which, partition.Name))
 			}
 			context.widths[partition.Name] = len(partition.InitStateValues)
-			context.firstRows[partition.Name] = partition.InitStateValues
+			context.firstRows[partition.Name] = context.initialState(partition)
 			partitions = append(partitions, partition)
 		}
 	}

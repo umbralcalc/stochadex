@@ -393,14 +393,25 @@ func NewPartitionCoordinator(
 	if implementations.OutputCondition == nil {
 		implementations.OutputCondition = &EveryStepOutputCondition{}
 	}
-	implementations.OutputFunction.Configure(settings)
+	// A final_step condition is applied by OutputViews, which hold each
+	// partition's state until the run's output is finalized; as the
+	// simulation's own condition it is made a view of its sink.
+	runOutput := implementations.OutputFunction
+	if final, ok := implementations.OutputCondition.(*FinalStepOutputCondition); ok {
+		if _, isViews := runOutput.(*OutputViews); !isViews {
+			runOutput = &OutputViews{Views: []OutputView{{Condition: final, Function: runOutput}}}
+		}
+	}
+	runOutput.Configure(settings)
 	// A single view is a sink and its condition: hand those to the iterators
 	// directly rather than through OutputViews, which costs a few ns per
-	// output. The coordinator keeps the views for Finalize.
-	outputCondition, outputFunction := implementations.OutputCondition,
-		implementations.OutputFunction
+	// output. The coordinator keeps the views for Finalize. A final_step view
+	// stays a view, which holds its states.
+	outputCondition, outputFunction := implementations.OutputCondition, runOutput
 	if views, ok := outputFunction.(*OutputViews); ok && len(views.Views) == 1 {
-		outputCondition, outputFunction = views.Views[0].Condition, views.Views[0].Function
+		if _, final := views.Views[0].Condition.(*FinalStepOutputCondition); !final {
+			outputCondition, outputFunction = views.Views[0].Condition, views.Views[0].Function
+		}
 	}
 	for index, iteration := range settings.Iterations {
 		stateHistoryValues := mat.NewDense(
@@ -461,7 +472,7 @@ func NewPartitionCoordinator(
 		TimestepFunction:     implementations.TimestepFunction,
 		TerminationCondition: implementations.TerminationCondition,
 		RunStrategy:          implementations.ExecutionStrategy,
-		OutputFunction:       implementations.OutputFunction,
+		OutputFunction:       runOutput,
 		newWorkChannels:      newWorkChannels,
 	}
 }

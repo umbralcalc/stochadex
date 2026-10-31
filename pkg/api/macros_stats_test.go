@@ -35,7 +35,7 @@ func TestScalarRegressionMacro(t *testing.T) {
   timestep: 1.0
   partitions:
   - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: y, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+  - {name: y, init_state_values: [1.0], state_history_depth: 1, seed: 0}
   expressions:
   - {partition: x, fields: [{name: v}], outputs: ["t"]}
   - {partition: y, fields: [{name: v}], outputs: ["2.5 * t + 1.0"]}

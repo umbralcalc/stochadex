@@ -99,10 +99,19 @@ type PartitionConfig struct {
 	// ParamsFromInput sets params keys from a named input of the config, between
 	// steps. It is resolved by pkg/api, which owns inputs; the simulator itself
 	// never reads it.
-	ParamsFromInput   map[string]InputParamConfig `yaml:"params_from_input,omitempty"`
-	InitStateValues   []float64                   `yaml:"init_state_values"`
-	StateHistoryDepth int                         `yaml:"state_history_depth"`
-	Seed              uint64                      `yaml:"seed"`
+	ParamsFromInput map[string]InputParamConfig `yaml:"params_from_input,omitempty"`
+	InitStateValues []float64                   `yaml:"init_state_values"`
+	// InitStateFromUpstream names one of ParamsFromUpstream's keys: the
+	// partition then starts from that upstream's initial state, at the key's
+	// indices, in place of InitStateValues' values (which still give the
+	// width). A partition that folds in its upstream's value each step, such
+	// as a running sum, otherwise misses the upstream's initial row, which the
+	// run never steps to: an input's first row, say. It is resolved when the
+	// configs are generated, so it sees an upstream's initial state however
+	// it was set, including from an input's rows when the run starts.
+	InitStateFromUpstream string `yaml:"init_state_from_upstream,omitempty"`
+	StateHistoryDepth     int    `yaml:"state_history_depth"`
+	Seed                  uint64 `yaml:"seed"`
 }
 
 // InputParamConfig names where a params key's values come from: a partition of
@@ -290,6 +299,7 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 		Iterations:    make([]IterationSettings, 0),
 		InitTimeValue: c.simulationConfig.InitTimeValue,
 	}
+	initStates := c.initStates()
 	maxHistoryDepth := 0
 	for _, name := range c.partitionConfigOrdering.Names {
 		config := c.partitionConfigOrdering.ConfigByName[name]
@@ -338,9 +348,9 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 			Name:               name,
 			Params:             params,
 			ParamsFromUpstream: paramsFromUpstream,
-			InitStateValues:    config.InitStateValues,
+			InitStateValues:    initStates[name],
 			Seed:               config.Seed,
-			StateWidth:         len(config.InitStateValues),
+			StateWidth:         len(initStates[name]),
 			StateHistoryDepth:  config.StateHistoryDepth,
 		}
 		settings.Iterations = append(settings.Iterations, iterationSettings)
@@ -355,6 +365,71 @@ func (c *ConfigGenerator) GenerateConfigs() (*Settings, *Implementations) {
 		iteration.Configure(index, &settings)
 	}
 	return &settings, &implementations
+}
+
+// initStates is each partition's initial state: its InitStateValues, or for
+// one with InitStateFromUpstream, its upstream's initial state at the named
+// key's indices, resolved upstream first.
+func (c *ConfigGenerator) initStates() map[string][]float64 {
+	states := make(map[string][]float64, len(c.partitionConfigOrdering.Names))
+	resolving := map[string]bool{}
+	var resolve func(name string) []float64
+	resolve = func(name string) []float64 {
+		if state, done := states[name]; done {
+			return state
+		}
+		config := c.partitionConfigOrdering.ConfigByName[name]
+		state := config.InitStateValues
+		if key := config.InitStateFromUpstream; key != "" {
+			if resolving[name] {
+				panic(fmt.Sprintf("partition %q: init_state_from_upstream reads its own "+
+					"initial state back through its upstreams", name))
+			}
+			resolving[name] = true
+			upstream, ok := config.ParamsFromUpstream[key]
+			if !ok {
+				panic(fmt.Sprintf("partition %q: init_state_from_upstream %q names no "+
+					"params_from_upstream key", name, key))
+			}
+			if _, ok := c.partitionConfigOrdering.ConfigByName[upstream.Upstream]; !ok {
+				panic("error converting upstream name: " + upstream.Upstream +
+					" into partition index - no partition by that name")
+			}
+			state = fromUpstream(name, key, resolve(upstream.Upstream), upstream.Indices,
+				len(config.InitStateValues))
+			delete(resolving, name)
+		}
+		states[name] = state
+		return state
+	}
+	for _, name := range c.partitionConfigOrdering.Names {
+		resolve(name)
+	}
+	return states
+}
+
+// fromUpstream is the part of an upstream's initial state a partition of the
+// given width starts from: the values at indices, or all of them.
+func fromUpstream(name, key string, upstream []float64, indices []int, width int) []float64 {
+	if len(indices) == 0 {
+		indices = make([]int, len(upstream))
+		for i := range indices {
+			indices[i] = i
+		}
+	}
+	state := make([]float64, len(indices))
+	for i, index := range indices {
+		if index < 0 || index >= len(upstream) {
+			panic(fmt.Sprintf("params_from_upstream %q of partition %q: index %d out of "+
+				"range (state width %d)", key, name, index, len(upstream)))
+		}
+		state[i] = upstream[index]
+	}
+	if len(state) != width {
+		panic(fmt.Sprintf("partition %q: init_state_from_upstream %q gives %d values, but "+
+			"its init_state_values give it a width of %d", name, key, len(state), width))
+	}
+	return state
 }
 
 // NewConfigGenerator creates a new ConfigGenerator with empty ordering.

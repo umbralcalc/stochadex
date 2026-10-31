@@ -582,3 +582,68 @@ func (o *OnlyGivenPartitionsOutputCondition) IsOutputStep(
 ) bool {
 	return o.Partitions[partitionName]
 }
+
+// FinalStepOutputCondition writes each partition's state once, as it stands
+// when the run ends: the run's final step, or its initial state for a run of no
+// steps. It suits estimation runs, which want only the last estimate. When
+// Partitions is set, only those partitions are written.
+//
+// It cannot decide from one step whether that step is the last, since a run
+// ends when its termination condition says so. So it is not a per-step filter:
+// the OutputViews it is a view of (NewPartitionCoordinator makes one for it
+// when it is the simulation's own condition) hold each partition's latest
+// state and write them, in the order the partitions output, when the run's
+// output is finalized. IsOutputStep is therefore always false.
+type FinalStepOutputCondition struct {
+	Partitions map[string]bool
+	// held is each partition's latest state, in the order they first output.
+	held  []heldOutput
+	index map[string]int
+}
+
+// heldOutput is a partition's state, held until the run's output is finalized.
+type heldOutput struct {
+	partitionName string
+	state         []float64
+	time          float64
+}
+
+func (c *FinalStepOutputCondition) IsOutputStep(
+	partitionName string,
+	state []float64,
+	timestepsHistory *CumulativeTimestepsHistory,
+) bool {
+	return false
+}
+
+// reset drops any held states, for a fresh run.
+func (c *FinalStepOutputCondition) reset() {
+	c.held = c.held[:0]
+	c.index = nil
+}
+
+// hold keeps a copy of the partition's latest state, replacing the one before.
+func (c *FinalStepOutputCondition) hold(partitionName string, state []float64, time float64) {
+	if c.Partitions != nil && !c.Partitions[partitionName] {
+		return
+	}
+	if c.index == nil {
+		c.index = map[string]int{}
+	}
+	if i, ok := c.index[partitionName]; ok {
+		c.held[i].state = append(c.held[i].state[:0], state...)
+		c.held[i].time = time
+		return
+	}
+	c.index[partitionName] = len(c.held)
+	c.held = append(c.held, heldOutput{partitionName: partitionName,
+		state: append([]float64(nil), state...), time: time})
+}
+
+// flush writes the held states to function and drops them.
+func (c *FinalStepOutputCondition) flush(function OutputFunction) {
+	for _, held := range c.held {
+		function.Output(held.partitionName, held.state, held.time)
+	}
+	c.reset()
+}

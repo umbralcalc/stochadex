@@ -286,16 +286,17 @@ func TestScalarRegressionStatsStorage(t *testing.T) {
 
 	t.Run("cumulative intercept vs batch", func(t *testing.T) {
 		const nStep = 30
-		xs := make([]float64, nStep)
-		ys := make([]float64, nStep)
+		// Every row counts, the initial (t = 0) row included.
+		xs := make([]float64, nStep+1)
+		ys := make([]float64, nStep+1)
 		for i := range xs {
-			tv := float64(i + 1)
+			tv := float64(i)
 			xs[i] = tv
 			ys[i] = 1.0 + 0.25*tv
 		}
 		aWant, bWant, s2Want := batchIntercept(xs, ys)
 
-		storage := xySeriesToStorage(nStep, 0, 0,
+		storage := xySeriesToStorage(nStep, 0, 1.0,
 			&general.ValuesFunctionIteration{
 				Function: func(
 					_ *simulator.Params,
@@ -327,6 +328,10 @@ func TestScalarRegressionStatsStorage(t *testing.T) {
 		}, storage)
 		storage = analysis.AddPartitionsToStateTimeStorage(storage, []*simulator.PartitionConfig{reg}, nil)
 		last := storage.GetValues("ols")[len(storage.GetValues("ols"))-1]
+		if last[0] != nStep+1 || !closeEnough(last[2], floats.Sum(ys), 1e-9) {
+			t.Errorf("n, Sy got %v, %v want %v, %v: every row, the initial one included",
+				last[0], last[2], nStep+1, floats.Sum(ys))
+		}
 		if !closeEnough(last[6], aWant, 1e-9) {
 			t.Errorf("alpha got %v want %v", last[6], aWant)
 		}

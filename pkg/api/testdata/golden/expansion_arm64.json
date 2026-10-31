@@ -40,6 +40,14 @@
         "plan_search": "9x17 a2cc8e671a202a2c955cf8b8e000dbd57819fe68076e582529d1681647d35b6a"
       }
     },
+    "cfg/example_poisson_rate_config.yaml": {
+      "times": "c3c79610cae2e25f81193c8e02420fd4ed903c3340d07d31c5e5acbb2e30ddbe",
+      "partitions": {
+        "events": "900x4 a77fd90777b0cab18f6a9a9d4086f03fd3a1d9d0366e95033c42b5c89719d83a",
+        "means": "900x4 19eb7ac51b236543960fbf59df59c4e23007c888199841171fbc399c11172564",
+        "rates": "900x3 e72ed51c772ee11ca5e3ea1f9276e69689f46e094519faf43a97b9f435b0f181"
+      }
+    },
     "cfg/example_posterior_macro_config.yaml": {
       "times": "b833a6113b55b2396ffd0f69f47cc232e8cf5cb3d6e601caff363c17ea75afcf",
       "partitions": {
@@ -54,9 +62,9 @@
     "cfg/example_regression_config.yaml": {
       "times": "358350098173667478f9c5664d6568c0051b2e2c5bda905004e40c3519dc5ca5",
       "partitions": {
-        "ols": "401x9 99193838777f865e0c3ed864fab470125cc4f84114a351d9625a896e062ebfb0",
+        "ols": "401x9 8a24d41fdad65b0ec733c6aa920c5feb232264ea9f850464dbbebbd3ca2cb3fd",
         "x": "401x1 8539a0d24dad67de343816efb15be278419203d51d15157173b3d069ce3871de",
-        "y": "401x1 153eef2fa023cfd4a48073c5466fa7fc5660280b007eec579638055ea2c31fe6"
+        "y": "401x1 775a6362662752c6af0f92c5688d79faea4977e5a6ba07adbf202cd8a72bb8f5"
       }
     },
     "cfg/example_smc_config.yaml": {
