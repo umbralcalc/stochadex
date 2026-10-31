@@ -142,6 +142,9 @@ func validateNestedRun(config *ApiRunConfig) error {
 	if err := validateRunShape(config); err != nil {
 		return err
 	}
+	if err := config.Main.checkClock("run.simulation"); err != nil {
+		return err
+	}
 	runs := []RunConfig{config.Main}
 	where := []string{"its run"}
 	for _, embedded := range config.Embedded {
@@ -161,5 +164,5 @@ func validateNestedRun(config *ApiRunConfig) error {
 			}
 		}
 	}
-	return nil
+	return validateEmbeddedRuns(config)
 }

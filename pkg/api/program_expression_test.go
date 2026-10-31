@@ -126,7 +126,7 @@ func TestExpressionOnlyConfigRunsFromYaml(t *testing.T) {
 					config.Main.Partitions[0].Iteration)
 			}
 
-			// Simulation is not YAML-loaded on RunConfig, so supply it here.
+			// Record the run to a storage to read back.
 			store := simulator.NewStateTimeStorage()
 			config.Main.Simulation = simulator.SimulationConfig{
 				OutputCondition: &simulator.EveryStepOutputCondition{},

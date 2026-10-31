@@ -126,6 +126,9 @@ func (s *replicatedRunSpec) validate() error {
 			"write it at once), so remove its output_function %q; the partition's row "+
 			"is each replica's final %s row", function, s.OutputPartition)
 	}
+	if err := s.Run.checkClock("run.simulation"); err != nil {
+		return err
+	}
 	declared := map[string]map[string][]float64{}
 	for _, partition := range s.Run.Partitions {
 		if _, ok := partition.Iteration.(general.StateMemoryIteration); ok {

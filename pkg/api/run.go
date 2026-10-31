@@ -749,13 +749,16 @@ func unknownRunModeError(mode string) error {
 
 // validateMainContext rejects a data: block on a config with no macros:. Only the
 // macros: tier reads data: — the main simulation never does — so on its own it
-// looks load-bearing and does nothing.
+// looks load-bearing and does nothing. It also checks the main run has its
+// clock, which a config loaded with no main.simulation block leaves for its
+// caller to supply.
 func validateMainContext(config *ApiRunConfig) error {
 	if config.Data != nil {
 		return fmt.Errorf("api: a config sets data: but no macros:; data: is only " +
 			"read by the macros: tier and the main simulation ignores it")
 	}
-	return nil
+	return clockError("main.simulation", config.Main.Simulation.TerminationCondition == nil,
+		config.Main.Simulation.TimestepFunction == nil)
 }
 
 // RunEnsembleToStorage runs the config's ensemble and returns each member's

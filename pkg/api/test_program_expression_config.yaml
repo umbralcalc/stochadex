@@ -14,5 +14,8 @@ main:
     - name: x
     outputs:
     - "x + drift * dt"
-  # No simulation block: the test that loads this fixture supplies the
-  # SimulationConfig programmatically after loading.
+  # The test that loads this fixture replaces the output with a storage it
+  # reads back.
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 4}
+    timestep_function: {type: constant, stepsize: 1.0}
