@@ -61,6 +61,22 @@ func (c *expansionContext) firstRow(partition string) ([]float64, error) {
 	return c.firstRows[partition], nil
 }
 
+// initialState is the state an expanded partition starts the run from: its
+// init_state_values, or the part of its upstream's initial state that
+// init_state_from_upstream names.
+func (c *expansionContext) initialState(partition expandedPartition) []float64 {
+	if partition.InitStateFromUp == "" {
+		return partition.InitStateValues
+	}
+	upstream := partition.ParamsFromUpstream[partition.InitStateFromUp]
+	first := c.firstRows[upstream.Upstream]
+	state := make([]float64, len(upstream.Indices))
+	for i, index := range upstream.Indices {
+		state[i] = first[index]
+	}
+	return state
+}
+
 // width is a visible partition's state width.
 func (c *expansionContext) width(partition string) (int, error) {
 	width, ok := c.widths[partition]
@@ -117,6 +133,7 @@ type expandedPartition struct {
 	ParamsAsPartitions map[string][]string         `yaml:"params_as_partitions,omitempty,flow"`
 	ParamsFromUpstream map[string]expandedUpstream `yaml:"params_from_upstream,omitempty"`
 	InitStateValues    []float64                   `yaml:"init_state_values,omitempty,flow"`
+	InitStateFromUp    string                      `yaml:"init_state_from_upstream,omitempty"`
 	StateHistoryDepth  int                         `yaml:"state_history_depth"`
 	Seed               uint64                      `yaml:"seed"`
 }
@@ -486,7 +503,7 @@ func expandRun(
 					"main:, the inputs or an earlier macro already have", which, partition.Name))
 			}
 			context.widths[partition.Name] = len(partition.InitStateValues)
-			context.firstRows[partition.Name] = partition.InitStateValues
+			context.firstRows[partition.Name] = context.initialState(partition)
 			partitions = append(partitions, partition)
 		}
 	}

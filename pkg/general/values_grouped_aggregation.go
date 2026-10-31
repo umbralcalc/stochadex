@@ -146,9 +146,10 @@ const otherGroup = "other"
 // Usage hints:
 //   - Configure accepted group tuples via params: "accepted_value_group_tupindex_k".
 //     They are an accept-list: a group not among them is dropped, unless
-//     Undeclared says otherwise. Every row in the window counts, so with
-//     UndeclaredGroupsOther the window's initial rows (the grouping partition's
-//     init_state_values) count towards "other" if their group is undeclared;
+//     Undeclared says otherwise. Every row in the window counts, the data's
+//     initial row included, so with UndeclaredGroupsOther that row counts
+//     towards "other" if its group is undeclared; history rows the run has not
+//     yet filled count towards nothing;
 //     UndeclaredGroupsError checks only each step's latest values, so it sees
 //     every real row exactly once.
 //   - Provide grouping source partitions/indices via
@@ -229,6 +230,9 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 	// Hoist the latest_states slice out of the loop (params.GetIndex is a per-call map
 	// lookup); indexing it gives identical values.
 	latestStates := params.Get("latest_states")
+	// At step k the history holds the k rows before this one; any deeper rows
+	// are not yet filled, and their zeros are no group's data.
+	filled := min(stateHistory.StateHistoryDepth, timestepsHistory.CurrentStepNumber)
 	for i, stateValueIndex := range params.Get("state_value_indices") {
 		latestStateValueSlice := []float64{
 			latestStates[int(stateValueIndex)]}
@@ -257,7 +261,7 @@ func (v *ValuesGroupedAggregationIteration) Iterate(
 			groupings[groupKey] = latestStateValueSlice
 			weightings[groupKey] = []float64{weight}
 		}
-		for j := range stateHistory.StateHistoryDepth {
+		for j := range filled {
 			groupKey = ""
 			for k := range v.tupleLength {
 				groupingHistory := stateHistories[int(params.GetIndex(

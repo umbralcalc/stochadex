@@ -1,6 +1,7 @@
 package simulator
 
 import (
+	"strings"
 	"testing"
 
 	"gonum.org/v1/gonum/floats"
@@ -112,6 +113,45 @@ func TestFinalStepOutputCondition(t *testing.T) {
 		runGenerator(viewsGenerator(&FinalStepOutputCondition{}, sink, nil))
 		if sink.outputs != 3 || sink.finalizeCalls != 1 {
 			t.Errorf("outputs %d, finalize calls %d; want 3 and 1", sink.outputs, sink.finalizeCalls)
+		}
+	})
+}
+
+func TestFinalStepOutputConditionFromData(t *testing.T) {
+	t.Run("it writes every partition when partitions is not given", func(t *testing.T) {
+		condition, err := ResolveOutputCondition(ComponentSpec{Type: "final_step"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		final, ok := condition.(*FinalStepOutputCondition)
+		if !ok || final.Partitions != nil {
+			t.Fatalf("got %#v, want a final_step condition over every partition", condition)
+		}
+	})
+	t.Run("partitions names the only ones it writes", func(t *testing.T) {
+		condition, err := ResolveOutputCondition(ComponentSpec{Type: "final_step",
+			Fields: map[string]interface{}{"partitions": []interface{}{"walk_1", "walk_2"}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		full, final := NewStateTimeStorage(), NewStateTimeStorage()
+		runGenerator(viewsGenerator(&EveryStepOutputCondition{},
+			&StateTimeStorageOutputFunction{Store: full}, nil))
+		runGenerator(viewsGenerator(condition, &StateTimeStorageOutputFunction{Store: final}, nil))
+		assertFinalStep(t, final, full, []string{"walk_1", "walk_2"})
+	})
+	t.Run("it refuses partitions that are not a list of names", func(t *testing.T) {
+		_, err := ResolveOutputCondition(ComponentSpec{Type: "final_step",
+			Fields: map[string]interface{}{"partitions": "walk_1"}})
+		if err == nil || !strings.Contains(err.Error(), `field "partitions" must be a list`) {
+			t.Fatalf("got %v, want an error that partitions must be a list", err)
+		}
+	})
+	t.Run("as a per-step filter it selects no step", func(t *testing.T) {
+		// Its output is written when the run's output is finalized, never by a
+		// step: a sink gated by IsOutputStep alone would write nothing.
+		if (&FinalStepOutputCondition{}).IsOutputStep("walk_0", []float64{1}, nil) {
+			t.Fatal("IsOutputStep selected a step")
 		}
 	})
 }

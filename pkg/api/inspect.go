@@ -81,15 +81,19 @@ func checkWiring(config *ApiRunConfig) (err error) {
 // standInInputs replaces each from_input partition, which binding would fill
 // from its input's rows, with a stand-in that is never stepped. A partition
 // that does not declare its width gets one wide enough for every index read
-// from it, so only the run, reading the input, checks those indices.
+// from it, and as wide as a partition that starts from all of it with
+// init_state_from_upstream, so only the run, reading the input, checks those.
 func standInInputs(config *ApiRunConfig) {
 	needed := map[string]int{}
 	for _, partition := range config.Main.Partitions {
-		for _, upstream := range partition.ParamsFromUpstream {
+		for key, upstream := range partition.ParamsFromUpstream {
 			for _, index := range upstream.Indices {
 				if index+1 > needed[upstream.Upstream] {
 					needed[upstream.Upstream] = index + 1
 				}
+			}
+			if key == partition.InitStateFromUpstream && len(upstream.Indices) == 0 {
+				needed[upstream.Upstream] = max(needed[upstream.Upstream], len(partition.InitStateValues))
 			}
 		}
 	}

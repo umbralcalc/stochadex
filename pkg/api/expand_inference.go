@@ -470,15 +470,9 @@ func (s *scalarRegressionStatsSpec) expand(ctx *expansionContext) (*expansion, e
 		minDenominator = 1e-12
 	}
 	// The statistics start from the first rows' pair, so the data's initial
-	// row, which the run never steps to, counts too.
-	yFirst, err := ctx.firstRow(s.Y.PartitionName)
-	if err != nil {
-		return nil, err
-	}
-	xFirst, err := ctx.firstRow(s.X.PartitionName)
-	if err != nil {
-		return nil, err
-	}
+	// row, which the run never steps to, counts too. index has checked both
+	// partitions are visible.
+	yFirst, xFirst := ctx.firstRows[s.Y.PartitionName], ctx.firstRows[s.X.PartitionName]
 	return &expansion{partitions: []expandedPartition{{
 		Name:      s.Name,
 		Iteration: component("scalar_regression_stats", nil),

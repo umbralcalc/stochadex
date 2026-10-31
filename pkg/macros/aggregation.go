@@ -291,18 +291,15 @@ func NewVectorMeanPartition(
 // the data partition's initial row, which is the partition's own initial
 // state, and each step's row after it, weighted equally. Unlike
 // NewVectorMeanPartition it reads no history, so a step costs O(d) however
-// long the data; applied.Kernel and applied.DefaultValue are not used. The
-// storage's first row of the data partition is its initial row.
+// long the data; applied.Kernel and applied.DefaultValue are not used. It
+// starts from the data partition's initial state (InitStateFromUpstream).
 func NewVectorCumulativeMeanPartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
 	appliedValueIndices := applied.Data.GetValueIndices(storage)
-	firstRow := storage.GetValues(applied.Data.PartitionName)[0]
-	initStateValues := make([]float64, len(appliedValueIndices))
 	dataValuesIndices := make([]float64, len(appliedValueIndices))
 	for i, index := range appliedValueIndices {
-		initStateValues[i] = firstRow[index]
 		dataValuesIndices[i] = float64(index)
 	}
 	return &simulator.PartitionConfig{
@@ -322,9 +319,10 @@ func NewVectorCumulativeMeanPartition(
 				Indices:  appliedValueIndices,
 			},
 		},
-		InitStateValues:   initStateValues,
-		StateHistoryDepth: 1,
-		Seed:              0,
+		InitStateValues:       make([]float64, len(appliedValueIndices)),
+		InitStateFromUpstream: "latest_data_values",
+		StateHistoryDepth:     1,
+		Seed:                  0,
 	}
 }
 

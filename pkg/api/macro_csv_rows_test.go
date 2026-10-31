@@ -160,16 +160,48 @@ func TestMacrosCountEveryCSVRow(t *testing.T) {
 		}
 	})
 
-	t.Run("cumulative: true rejects the windowed mean's fields", func(t *testing.T) {
+	t.Run("cumulative: true rejects the windowed mean's fields, in both tiers", func(t *testing.T) {
 		for field, line := range map[string]string{
 			"kernel:":        "  kernel: {type: constant}\n",
 			"window:":        "  window: 3\n",
+			"params:":        "  params: {exponential_weighting_timescale: [10.0]}\n",
 			"default_value:": "  default_value: 1.0\n",
 		} {
-			config := csvMacroConfig(t, "- type: vector_mean\n  name: mean\n  data: {partition_name: both}\n"+
-				"  cumulative: true\n"+line, "")
-			if _, err := RunToStorage(config); err == nil || !strings.Contains(err.Error(), field) {
-				t.Errorf("with %s: got %v, want an error naming it", field, err)
+			macro := "- type: vector_mean\n  name: mean\n  data: {partition_name: both}\n" +
+				"  cumulative: true\n" + line
+			if _, err := RunToStorage(csvMacroConfig(t, macro, "")); err == nil || !strings.Contains(err.Error(), field) {
+				t.Errorf("run as its expansion, with %s: got %v, want an error naming it", field, err)
+			}
+			if _, err := runMacros(csvMacroConfig(t, macro, "")); err == nil || !strings.Contains(err.Error(), field) {
+				t.Errorf("run macro by macro, with %s: got %v, want an error naming it", field, err)
+			}
+		}
+	})
+
+	t.Run("a cumulative vector_mean of a partition nothing supplies fails, naming it", func(t *testing.T) {
+		config := csvMacroConfig(t, "- {type: vector_mean, name: mean, data: {partition_name: nope}, cumulative: true}\n", "")
+		if _, err := RunToStorage(config); err == nil || !strings.Contains(err.Error(), `"nope"`) {
+			t.Fatalf("got %v, want an error naming the partition nope", err)
+		}
+	})
+
+	t.Run("a variance or covariance window longer than the input fails, in both tiers", func(t *testing.T) {
+		for _, macro := range []string{"vector_variance", "vector_covariance"} {
+			config := func() *ApiRunConfig {
+				return csvMacroConfig(t, "- {type: vector_mean, name: m, data: {partition_name: both}, cumulative: true}\n"+
+					"- {type: "+macro+", name: spread, data: {partition_name: both}, mean: {partition_name: m}, "+
+					"kernel: {type: constant}, window: 10}\n", "")
+			}
+			want := macro + ` "spread" has window: 10, but the run replays its input for only 4 steps`
+			if _, err := RunToStorage(config()); err == nil || !strings.Contains(err.Error(), want) {
+				t.Errorf("run as its expansion: got %v, want %q", err, want)
+			}
+			if _, err := runMacros(config()); err == nil || !strings.Contains(err.Error(), want) {
+				t.Errorf("run macro by macro: got %v, want %q", err, want)
+			}
+			// Only vector_mean has a cumulative form to point to.
+			if _, err := RunToStorage(config()); err != nil && strings.Contains(err.Error(), "cumulative: true") {
+				t.Errorf("%s's error points to cumulative: true, which it does not take: %v", macro, err)
 			}
 		}
 	})

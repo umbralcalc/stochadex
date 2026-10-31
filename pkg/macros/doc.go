@@ -56,4 +56,12 @@
 // larger one cannot underflow, but it is the worse failure — the window replays
 // the buffer's zero-filled tail and the likelihood comes out constant and
 // uninformative — so it panics too.
+//
+// Every row of a macro's data counts exactly once, its initial row included.
+// That row is the data partition's initial state, which a run never steps to,
+// so a partition that folds in only each step's latest value starts from it
+// (simulator.PartitionConfig.InitStateFromUpstream, or an initial state made
+// from it as ScalarRegressionInitState makes one), and one reading history
+// reads only the rows the run has reached. pkg/api's TestMacrosCountEveryRowOnce
+// holds every registered macro to this, or excludes it with a reason.
 package macros

@@ -109,8 +109,9 @@ func (s *vectorMeanSpec) resolve(
 		if err := s.checkCumulative(); err != nil {
 			return nil, nil, err
 		}
+		// It reads only the data's latest value, so it asks no window of it.
 		partition := macros.NewVectorCumulativeMeanPartition(applied, storage)
-		return []*simulator.PartitionConfig{partition}, s.windows(), nil
+		return []*simulator.PartitionConfig{partition}, map[string]int{s.Name: 1}, nil
 	}
 	if err := s.checkWindowFills("vector_mean", len(storage.GetTimes())-1, true); err != nil {
 		return nil, nil, err
@@ -257,14 +258,6 @@ func (s *vectorMeanSpec) expandCumulative(ctx *expansionContext) (*expansion, er
 	if err != nil {
 		return nil, err
 	}
-	firstRow, err := ctx.firstRow(s.Data.PartitionName)
-	if err != nil {
-		return nil, err
-	}
-	initStateValues := make([]float64, len(indices))
-	for i, index := range indices {
-		initStateValues[i] = firstRow[index]
-	}
 	return &expansion{
 		partitions: []expandedPartition{{
 			Name: s.Name,
@@ -275,9 +268,13 @@ func (s *vectorMeanSpec) expandCumulative(ctx *expansionContext) (*expansion, er
 			ParamsAsPartitions: map[string][]string{"data_values_partition": {s.Data.PartitionName}},
 			ParamsFromUpstream: map[string]expandedUpstream{
 				"latest_data_values": {Upstream: s.Data.PartitionName, Indices: indices}},
-			InitStateValues:   initStateValues,
+			// The mean of the one row before the first step: the data's own
+			// initial state.
+			InitStateValues:   make([]float64, len(indices)),
+			InitStateFromUp:   "latest_data_values",
 			StateHistoryDepth: 1,
 		}},
-		depths: map[string]int{s.Data.PartitionName: 1},
+		// It reads only the data's latest value, so it asks no window of it.
+		depths: map[string]int{},
 	}, nil
 }

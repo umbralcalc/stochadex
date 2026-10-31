@@ -32,7 +32,8 @@ an exact version rather than assume stability across minors.
 - **`cumulative: true` on `vector_mean`**: the running mean over every row of its data, each
   weighted equally, at the same cost per step however long the data. It is the mean an
   estimation run wants (a windowed mean reads its whole window every step). It takes no
-  `window:`, `kernel:`, `params:` or `default_value:`, and starts from the data's first row.
+  `window:`, `kernel:`, `params:` or `default_value:`, starts from the data's first row, and asks
+  no window of its data, so it runs beside windowed macros reading the same partition.
   It expands to the new `values_function_cumulative_mean` iteration
   (`general.ValuesFunctionCumulativeMeanIteration`; `macros.NewVectorCumulativeMeanPartition`).
 - **The `final_step` output condition** writes each partition once, as it stands when the run
@@ -40,6 +41,13 @@ an exact version rather than assume stability across minors.
   `{type: final_step, partitions: [a, b]}` for only those partitions
   (`simulator.FinalStepOutputCondition`). An estimation run over a long input writes its
   final estimate, not a row per step.
+- **`init_state_from_upstream`** on a partition names one of its `params_from_upstream` keys:
+  the partition starts from that upstream's initial state, at the key's indices, in place of its
+  `init_state_values`' values (which still give its width). A running sum or mean written as an
+  expression then counts an input's first row, which the run never steps to, without copying it
+  into the config. It is resolved when the run's configs are generated, so it sees an input's
+  rows as the run starts, and `--check` passes it without reading them
+  (`simulator.PartitionConfig.InitStateFromUpstream`).
 - `cfg/example_poisson_rate_config.yaml`: closed-form Poisson rates per group from a CSV of
   counts and exposures, as a cumulative mean and a `final_step` output, pinned to the CSV's
   closed-form sums.
@@ -57,6 +65,10 @@ an exact version rather than assume stability across minors.
 
 ### Fixed
 
+- `grouped_aggregation` no longer counts history rows the run has not yet reached. Its window
+  read every row of its data's history from the first step, and the unfilled rows are zeros,
+  so until the window filled they counted as data in group 0 (or towards `other`): a count
+  for group 0 could read 5 after one of its rows. Once the window has filled its values are unchanged.
 - A `vector_mean`, `vector_variance` or `vector_covariance` whose `window:` is longer than the
   input it reads now fails when the run starts, naming the fix, instead of returning `default_value`
   (typically 0) every step: a windowed aggregation outputs `default_value` until its window has

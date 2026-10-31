@@ -287,9 +287,27 @@ main:
 An input's first row is the replaying partition's initial state, so a run over an input of N
 rows takes N - 1 steps: one per row after the first. The run never steps *to* the first row, but
 it is data like any other, and the macros count it (see
-[Estimating from every row](#estimating-from-every-row)); a `main:` partition that accumulates
-from `params_from_upstream` alone sees only the rows after it, so start its
-`init_state_values` from the first row too.
+[Estimating from every row](#estimating-from-every-row)). A `main:` partition that folds in
+its upstream's value each step (a running sum or mean) sees only the rows after the first, so
+start it from its upstream's initial state with `init_state_from_upstream`, naming one of its
+`params_from_upstream` keys:
+
+```yaml
+  - name: mean                      # the running mean of every row of flow
+    iteration:
+      type: expression
+      fields: [{name: m}]
+      outputs: ["m + (v[0] - m) / (step + 1)"]
+    params: {v: [0.0]}
+    params_from_upstream: {v: {upstream: flow}}
+    init_state_values: [0.0]        # the width; the values come from flow's first row
+    init_state_from_upstream: v
+    state_history_depth: 1
+    seed: 0
+```
+
+The partition starts from the upstream's initial state at that key's indices, however that state
+was set, here from the input when the run starts.
 
 An input is any `source:` (`csv`, `json_log`, `postgres`, plus `arrow` and `s3` in the
 distributed CLI), or a pre-pass simulation (`{simulation: {steps, timestep, partitions: ...}}`).
@@ -829,9 +847,11 @@ Macros: the aggregations (`vector_mean` / `vector_variance` / `vector_covariance
 
 ### Estimating from every row
 
-Every row of a macro's data counts, the first included: an input's first row is its replay's
-initial state, which the windowed aggregations read from history and `scalar_regression_stats`
-starts its sums from. Two things decide whether you get an estimate:
+Every row of a macro's data counts, exactly once, the first included: an input's first row is
+its replay's initial state, which the windowed aggregations read from history and
+`scalar_regression_stats` and a cumulative `vector_mean` start from. (A grouped aggregation's
+window counts only the rows the run has reached, so early steps are not padded with zeros.)
+Two things decide whether you get an estimate:
 
 - **A windowed aggregation returns `default_value` until its window has filled.**
   `vector_mean`, `vector_variance` and `vector_covariance` read `window:` rows of history
