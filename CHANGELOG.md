@@ -22,6 +22,18 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`main:` partitions run beside `macros:`, in one run.** A config can state its own model
+  under `main:` (partitions, `expressions:`, `embedded:` runs and a `simulation:` clock) and
+  analyse it with macros: a macro reads a `main:` partition live, exactly as it reads the same
+  partition recorded as an input, and deepens its history to the macro's window; a `main:`
+  partition reads a macro's output. Names are unambiguous across `main:`, the inputs and the
+  macros' outputs, and the run has one clock: `main.simulation`, else a macro's own, else the
+  inputs'. `main.simulation` beside a macro with its own clock, a `main:` partition named as an
+  input's, and `main:` partitions beside calibrate-then-plan are refused, each saying why.
+  `api.RunMacros` (deprecated) still refuses `main:` beside macros.
+
 ### Changed
 
 - **A `macros:` config runs as its expansion.** `api.RunToStorage`, `api.RunWith` and the CLI

@@ -176,11 +176,12 @@ func RunMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 	return runMacros(config)
 }
 
-// validateMacroContext rejects config that the macros: run context would
-// otherwise silently ignore. Macros run in their own context — build the data:
-// storage, expand the macros against it, emit the result — so nothing under
+// validateMacroContext rejects config that running macro by macro (RunMacros)
+// would otherwise silently ignore. That runs in its own context — build the
+// data: storage, run each macro against it, emit the result — so nothing under
 // main:, embedded: or run: is read; a key set there looks load-bearing and does
-// nothing, which is the failure validateNoDeadKeys exists to prevent.
+// nothing, which is the failure validateNoDeadKeys exists to prevent. A
+// macros: config run as its expansion reads main: and embedded: too.
 func validateMacroContext(config *ApiRunConfig) error {
 	if len(config.Main.Partitions) > 0 {
 		return fmt.Errorf("api: a config sets both main.partitions and macros:; " +
@@ -202,6 +203,11 @@ func validateMacroContext(config *ApiRunConfig) error {
 		return fmt.Errorf("api: a config sets both embedded: and macros:; " +
 			"macros run in their own context and ignore embedded runs")
 	}
+	return validateMacroRunMode(config)
+}
+
+// validateMacroRunMode rejects a run: block beside macros:, which run once.
+func validateMacroRunMode(config *ApiRunConfig) error {
 	if (config.Run.Mode != "" && config.Run.Mode != "batch") ||
 		len(config.Run.Seeds) > 0 || config.Run.Concurrency != 0 ||
 		config.Run.Websocket != nil || config.Run.PaceMs != 0 {

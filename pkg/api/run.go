@@ -579,7 +579,7 @@ func runExpanded(config *ApiRunConfig, options []RunOption) (*RunResult, error) 
 // shapes; a later run whose input changed shape fails its wiring checks. A
 // failed expansion is not kept, so an input that was missing is read again.
 func expandToRun(config *ApiRunConfig) (*ApiRunConfig, error) {
-	if err := validateMacroContext(config); err != nil {
+	if err := validateMacroRunMode(config); err != nil {
 		return nil, configError(err)
 	}
 	// Loading gives every macros: config with source text, which only a
