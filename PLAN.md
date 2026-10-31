@@ -53,13 +53,13 @@ Status: **accepted** (2026-10-04).
        (no changes; every cfg's rows identical to v0.22.0, only within-step order now fixed).
        Every other ~/Code repo on stochadex also bumped to v0.25.0 and merged (11 PRs;
        openaction2outcome needed the SMC per-particle API; its marks re-mint byte-identical).
-     - **2.9 in progress.** First #165: each expansion test (expandedAlike, 56 runs) pinned to
+     - **2.9 in review (#167), after #165 merged.** #165: each expansion test (expandedAlike, 56 runs) pinned to
        per-arch golden digests (alike_<arch>.json) while still checked against RunMacros; amd64
        from CI's log. Then, built locally on top (opened after #165 merges): RunMacros, the
        macro-by-macro path, the Go-assembled fallback (now ErrConfig), each spec's resolve and
        replayThroughViews deleted; clockedMacroSpec.clock() replaces liveMacroSpec; tests and
-       oracle golden-only. Found: an incomplete main.simulation / empty embedded run panics
-       instead of ErrConfig (pre-existing, also without macros) — proposed as its own session.
+       oracle golden-only (−1105 lines). The incomplete-clock / empty-embedded panic found on
+       the way is fixed in #166 (merged). Next: 2.11 `stochadex expand`, 2.13, 2.10.
   3. **2.9** retire the macro tier's replay path; the 2.6 goldens (and #165's per-test
      goldens) become the guard.
   4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
@@ -834,7 +834,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | 2.14 | **DONE (#158, #160, #161)**: default switch, and `main:` + `macros:` in one runtime (rule 16) | Load a macros config as its expansion, so every run of one is the single runtime; lift #92's guard so hand-written `main:` partitions and macros share that runtime, with names unambiguous across both. Gated on 2.12. | The 2.6 oracle and goldens unchanged; a config mixing `main:` and a macro reading a main partition live runs as its hand-expanded twin |
 | 2.7 | **Done (#163).** **Mostly done by #154**: `stochadex graph` (with its deadlock exit code) is a subcommand on the main run, so once 2.14 runs a macro config as its expansion, its graph is the expansion's; what is left is the acceptance test below. Tooling coverage | The deadlock pre-flight and `cmd/stochadex-graph` operate on the single expanded generator, so macro configs are covered | Graph render test for `example_macro_config` shows the `rolling_mean → rolling_var` edge |
 | 2.8 | **Done (#163).** `run:` everywhere | `ensemble` and `serve` work for macro configs | Ensemble posterior test: per-seed results differ, and the ensemble mean is near the truth |
-| 2.9 | Retire the replay coordinator path | `runMacros`' sequential storage-threading loop is deleted; `AddPartitionsToStateTimeStorage` stays in `pkg/analysis` for Go users and notebooks | — |
+| 2.9 | **Done (#167).** Retire the replay coordinator path | `runMacros`' sequential storage-threading loop is deleted; `AddPartitionsToStateTimeStorage` stays in `pkg/analysis` for Go users and notebooks | — |
 | 2.0b | **DONE (#133)**: `pkg/agents` iteration specs | Register `mcts_apply`, `mcts_tree`, `mcts_rollout` with an `environment:` sub-spec (`{type: simulation, ...}` data-defined, or a registered name) plus search settings; add `pkg/agents` to the registry coverage scan (§4.2 findings 6 and 7) | The spike's exact planning twin, kept as a regression test |
 | 2.0c | **DONE (#129, #130, #131)**: remaining core specs from the spike | `data_comparison_gradient` (finding 12; fix the coverage exclusion reason); recursive `embedded_simulation_run` with `run: {main, embedded}` (finding 14), making top-level `embedded:` a special case of it; an undeclared-group policy for `values_grouped_aggregation` (finding 13) | The spike's exact fit, grouped and 3-level nested twins, kept as regression tests |
 | 2.0d | **DONE (#138)**: environments as components | Change `RegisterEnvironment` from a partition builder to a component builder (typed wrapper building the apply, tree and rollout iterations); the component spec carries only environment-defining fields (finding 11); migrate card-game-studio's `cardgame_rulesvm` | The spike's exact `tictactoe` self-play twin; card-game-studio's tests pass after migration |
