@@ -5,7 +5,9 @@ Status: **accepted** (2026-10-04).
   deliberately **never merged to `main`**; implementation PRs branch from `main` and
   link here. Update this file on this branch as items land.
 - **Decided (2026-10-30): agent integration lives in [robert](https://github.com/umbralcalc/robert),
-  not here** (#154). stochadex is a deterministic engine and CLI with a machine-readable
+  not here** (#154, merged; #156 then removed every reference to this plan from code comments,
+  test names, docs and the CHANGELOG, and `CLAUDE.md` now forbids them: the plan stays on this
+  branch only). stochadex is a deterministic engine and CLI with a machine-readable
   contract: `--check`, `inspect --io`, `graph`, `catalogue`, `run`, and (2.11) `expand`.
   robert, the method layer for an AI simulation scientist, locks a stochadex release by
   SHA-256 and drives it through that contract. So this repo ships no skills, recipes or agent
