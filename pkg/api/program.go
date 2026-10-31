@@ -198,6 +198,8 @@ type ApiRunConfig struct {
 	// ensemble members and served connections are rebuilt fresh and isolated
 	// by reload. Both are empty for a config built in memory.
 	sourcePath string `yaml:"-"`
+	// expansion holds a macros: config's expansion once a run has made it.
+	expansion *expansionCache `yaml:"-"`
 	// scope is the run scope the config was resolved in, holding the nested
 	// runs it decoded.
 	scope  *runScope
@@ -825,5 +827,8 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 	}
 	config.sourcePath = path
 	config.source = yamlFile
+	if len(config.Macros) > 0 {
+		config.expansion = &expansionCache{}
+	}
 	return &config, nil
 }

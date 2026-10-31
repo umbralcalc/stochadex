@@ -574,12 +574,35 @@ func runExpanded(config *ApiRunConfig, options []RunOption) (*RunResult, error) 
 }
 
 // expandToRun checks a macros: config can run, as a macros: run checks it, then
-// expands it.
+// expands it: on its first run, for a loaded config, whose later runs reuse
+// that expansion. Expanding depends only on the config and its inputs'
+// shapes; a later run whose input changed shape fails its wiring checks. A
+// failed expansion is not kept, so an input that was missing is read again.
 func expandToRun(config *ApiRunConfig) (*ApiRunConfig, error) {
 	if err := validateMacroContext(config); err != nil {
 		return nil, configError(err)
 	}
-	return Expand(config)
+	cache := config.expansion
+	if cache == nil {
+		return Expand(config)
+	}
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+	if cache.config == nil {
+		expanded, err := Expand(config)
+		if err != nil {
+			return nil, err
+		}
+		cache.config = expanded
+	}
+	return cache.config, nil
+}
+
+// expansionCache holds a loaded macros: config's expansion, made by its first
+// run.
+type expansionCache struct {
+	mu     sync.Mutex
+	config *ApiRunConfig
 }
 
 // captureViews builds one in-memory view per capture, registering each storage
