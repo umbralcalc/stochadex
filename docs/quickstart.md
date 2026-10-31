@@ -538,7 +538,8 @@ run:
   # concurrency: 4         # optional; defaults to GOMAXPROCS
 ```
 
-Omit `run` for a single batch run. `run: {pace_ms: 200}` paces a batch run from the CLI in
+Omit `run` for a single batch run. Every mode applies to a `macros:` config too: an ensemble
+of a posterior estimate, say, gives one estimate per seed. `run: {pace_ms: 200}` paces a batch run from the CLI in
 real time, a step every 200ms, for watching it or steering it from the keyboard. Results
 taken from Go with `RunWith` or `RunToStorage` are not paced.
 
@@ -565,7 +566,7 @@ one such view.
 Each connection also writes its own copy of the other views. Put `{connection}` (the
 connection's index, from 0) in each view's fields, just as ensembles use `{member}`.
 
-Serve mode does not apply to `macros:` configs yet. The old `--socket socket.yaml` flag still
+The old `--socket socket.yaml` flag still
 works as an alias for a batch config with the shorthand pair: it streams the run filtered by
 `output_condition`, and doesn't write `output_function`. It is deprecated.
 
@@ -656,12 +657,13 @@ without their values. From Go, use `api.Check(config)` and `api.Manifest(config)
 
 ### Drawing a config's wiring
 
-`stochadex graph` prints the main run's partition dependency graph without running it:
+`stochadex graph` prints the run's partition dependency graph without running it:
 one node per partition, a solid edge for each `params_from_upstream` read (exact
 within-step wiring), and a dashed edge from a past copy of the producer for each
 `params_as_partitions` reference (a hint that the partition may read the other's history,
 one step behind). It prints Mermaid by default, or Graphviz DOT with `--format dot`, and
-takes `--set` like a run does.
+takes `--set` like a run does. A `macros:` config's graph is its expansion's, the
+partitions it runs as; it reads the config's inputs, as the run would.
 
 ```bash
 stochadex graph -c model.yaml                                # Mermaid, to stdout

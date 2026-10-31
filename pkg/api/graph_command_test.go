@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -159,3 +160,48 @@ var errWriteFailed = errors.New("write failed")
 type failingWriter struct{}
 
 func (failingWriter) Write([]byte) (int, error) { return 0, errWriteFailed }
+
+func TestGraphCommandOnAMacrosConfig(t *testing.T) {
+	config := filepath.Join(repoDir, "cfg", "example_macro_config.yaml")
+	out, err := runGraph(t, "-c", config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Reference: the graph of the config's expansion, rendered through the
+	// library.
+	loaded, err := LoadConfig(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expanded, err := Expand(loaded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := new(strings.Builder)
+	if err := printGraph(expanded, "mermaid", want); err != nil {
+		t.Fatal(err)
+	}
+	if out != want.String() {
+		t.Errorf("printed\n%s\nwant the expansion's graph\n%s", out, want)
+	}
+	// The variance reads the mean it is centred on within the step.
+	id := func(name string) string {
+		t.Helper()
+		match := regexp.MustCompile(`(n\d+)\["` + name + `"\]`).FindStringSubmatch(out)
+		if match == nil {
+			t.Fatalf("no node %q in\n%s", name, out)
+		}
+		return match[1]
+	}
+	if edge := id("rolling_mean") + " -->|mean| " + id("rolling_var"); !strings.Contains(out, edge) {
+		t.Errorf("no rolling_mean → rolling_var edge (%s) in\n%s", edge, out)
+	}
+
+	t.Run("a macros config whose input cannot be read fails, as its run would", func(t *testing.T) {
+		missing := writeConfigPath(t, strings.Replace(readFile(t, "../../cfg/example_data_source_config.yaml"),
+			"cfg/example_data.csv", "cfg/absent.csv", 1))
+		if _, err := runGraph(t, "-c", missing); KindOf(err) != ErrUnavailable {
+			t.Errorf("expected ErrUnavailable, got %v", err)
+		}
+	})
+}

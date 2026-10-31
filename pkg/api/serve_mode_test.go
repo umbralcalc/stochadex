@@ -473,20 +473,25 @@ func TestServeModeValidation(t *testing.T) {
 			}
 		})
 	}
-	// A macros config's run: block is checked with its macro context, when it runs.
-	for name, run := range map[string]string{
-		"serve mode":             serveRun(":2112"),
-		"pace_ms with no mode":   "run: {pace_ms: 5}\n",
-		"websocket with no mode": "run: {websocket: {address: \":2112\"}}\n",
+	// A macros config's run: block is checked as any config's is, when it loads.
+	for name, c := range map[string]struct{ run, want string }{
+		"serve mode with no connection view": {serveRun(":2112"),
+			"needs exactly one outputs: view with function {type: connection}"},
+		"websocket with no mode": {"run: {websocket: {address: \":2112\"}}\n",
+			"run.websocket only applies to run: {mode: serve}"},
 	} {
-		t.Run(name+" on a macros config fails the run", func(t *testing.T) {
-			_, err := RunToStorage(writeConfig(t, macroConfigYAML+run))
-			if KindOf(err) != ErrConfig ||
-				!strings.Contains(err.Error(), "do not yet support run modes (ensemble, serve") {
-				t.Errorf("expected ErrConfig rejecting the run: block, got %v", err)
+		t.Run(name+" on a macros config is a config error at load", func(t *testing.T) {
+			_, err := LoadConfig(writeConfigPath(t, macroConfigYAML+c.run))
+			if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("expected ErrConfig containing %q, got %v", c.want, err)
 			}
 		})
 	}
+	t.Run("pace_ms is allowed on a macros config", func(t *testing.T) {
+		if _, err := RunToStorage(writeConfig(t, macroConfigYAML+"run: {pace_ms: 5}\n")); err != nil {
+			t.Error(err)
+		}
+	})
 	t.Run("nil and connection views need no placeholder, and handle defaults to /", func(t *testing.T) {
 		config, err := LoadConfig(writeConfigPath(t, noShorthand+
 			"run: {mode: serve, websocket: {address: \":2112\"}}\n"+

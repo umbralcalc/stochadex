@@ -247,9 +247,15 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 	if err != nil {
 		return err
 	}
+	if len(config.Macros) > 0 && len(config.source) > 0 {
+		// A macros: config runs as its expansion, in any run mode.
+		if config, err = expandToRun(config); err != nil {
+			return err
+		}
+	}
 	if len(config.Macros) > 0 || config.Run.Mode == "ensemble" {
-		// RunWith runs a macros: config as its expansion; each ensemble member
-		// writes its own outputs.
+		// One assembled in Go runs macro by macro; each ensemble member writes
+		// its own outputs.
 		_, err := RunWith(config, WithConfigOutputs())
 		return err
 	}
@@ -562,6 +568,10 @@ func runExpanded(config *ApiRunConfig, options []RunOption) (*RunResult, error) 
 	if err != nil {
 		return nil, err
 	}
+	if expanded.Run.Mode == "ensemble" {
+		// Each member's storage comes back in RunResult.Members.
+		return RunWith(expanded, options...)
+	}
 	const everyRow = "\x00macros"
 	result, err := RunWith(expanded, append(slices.Clone(options),
 		CaptureView(everyRow, &simulator.EveryStepOutputCondition{}))...)
@@ -573,15 +583,11 @@ func runExpanded(config *ApiRunConfig, options []RunOption) (*RunResult, error) 
 	return result, nil
 }
 
-// expandToRun checks a macros: config can run, as a macros: run checks it, then
-// expands it: on its first run, for a loaded config, whose later runs reuse
-// that expansion. Expanding depends only on the config and its inputs'
-// shapes; a later run whose input changed shape fails its wiring checks. A
+// expandToRun expands a macros: config: on its first run, for a loaded config,
+// whose later runs reuse that expansion. Expanding depends only on the config
+// and its inputs' shapes; a later run whose input changed shape fails its wiring checks. A
 // failed expansion is not kept, so an input that was missing is read again.
 func expandToRun(config *ApiRunConfig) (*ApiRunConfig, error) {
-	if err := validateMacroRunMode(config); err != nil {
-		return nil, configError(err)
-	}
 	// Loading gives every macros: config with source text, which only a
 	// loaded config has, its cache.
 	cache := config.expansion

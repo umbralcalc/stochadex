@@ -26,16 +26,13 @@ import (
 // iteration's Configure. Only what needs an input's contents is left to the
 // run: that the input has the partitions the config reads, and their widths
 // where the config does not declare them. A macros: config's expansion also
-// needs its inputs' shapes, so Check validates what it can without them: its
-// run: block, and its main: run as loading resolved it.
+// needs its inputs' shapes, so for one Check adds nothing to what loading
+// checked.
 //
 // Check builds fresh instances to check, so config is left as it was.
 // Failures are ErrConfig.
 func Check(config *ApiRunConfig) error {
 	if len(config.Macros) > 0 {
-		if err := validateMacroRunMode(config); err != nil {
-			return configError(err)
-		}
 		return nil
 	}
 	if err := validateMainContext(config); err != nil {
