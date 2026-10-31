@@ -51,9 +51,8 @@ func nestedRunComponent(partitions []expandedPartition, simulation map[string]in
 		"run": map[string]interface{}{"partitions": partitions, "simulation": simulation}})
 }
 
-// windowRun is a likelihood window's nested run, as the macro tier runs it:
-// inline when its partitions allow (see macros.withInlineExecution), since the
-// window re-runs its inner steps every outer step and the default strategy's
+// windowRun is a likelihood window's nested run: inline when its partitions
+// allow (see macros.withInlineExecution), since the window re-runs its inner steps every outer step and the default strategy's
 // goroutine per partition per inner step would dominate its cost.
 func windowRun(partitions []expandedPartition, simulation map[string]interface{}) *yaml3.Node {
 	if inlineOrdered(partitions) {

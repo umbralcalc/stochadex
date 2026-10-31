@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/floats/scalar"
 	"gopkg.in/yaml.v2"
@@ -55,7 +54,7 @@ func TestMacroTierRunsInProcess(t *testing.T) {
 	if len(config.Macros) != 2 || config.Data == nil {
 		t.Fatalf("data: and macros: not loaded (%d macros, data=%v)", len(config.Macros), config.Data != nil)
 	}
-	storage, err := runMacros(config)
+	storage, err := runToStorage(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,94 +90,34 @@ func TestMacroErrors(t *testing.T) {
 		); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := runMacros(&config); err == nil {
+		if _, err := runToStorage(&config); err == nil {
 			t.Error("expected an error when macros have no data: block")
 		}
 	})
 }
 
-// TestRunMacrosGuards covers the macro-path validation: main+macros is a mistake,
-// and a cyclic data: sub-simulation is caught before it can hang.
-func TestRunMacrosGuards(t *testing.T) {
-	t.Run("main partitions and macros together is rejected", func(t *testing.T) {
-		config := &ApiRunConfig{
-			Main:   RunConfig{Partitions: []simulator.PartitionConfig{{Name: "p"}}},
-			Macros: []MacroConfig{{Type: "vector_mean", Spec: &vectorMeanSpec{}}},
-		}
-		if _, err := runMacros(config); err == nil {
-			t.Error("expected an error when both main.partitions and macros: are set")
-		}
-	})
-
-	t.Run("a cyclic data: sub-simulation is caught, not hung", func(t *testing.T) {
-		config := &ApiRunConfig{
-			Data: &DataConfig{
-				Steps: 5,
-				Partitions: []simulator.PartitionConfig{
-					{
-						Name:               "a",
-						IterationSpec:      simulator.ComponentSpec{Type: "constant_values"},
-						InitStateValues:    []float64{0.0},
-						StateHistoryDepth:  1,
-						ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{"in": {Upstream: "b"}},
-					},
-					{
-						Name:               "b",
-						IterationSpec:      simulator.ComponentSpec{Type: "constant_values"},
-						InitStateValues:    []float64{0.0},
-						StateHistoryDepth:  1,
-						ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{"in": {Upstream: "a"}},
-					},
-				},
-			},
-			Macros: []MacroConfig{{Type: "vector_mean", Spec: &vectorMeanSpec{}}},
-		}
-		_, err := runMacros(config)
+// TestMacrosConfigGuards checks a cyclic input sub-simulation is caught before
+// it can hang, and that a plain macros config, or one with the default run
+// mode, still runs end to end.
+func TestMacrosConfigGuards(t *testing.T) {
+	t.Run("a cyclic input sub-simulation is caught, not hung", func(t *testing.T) {
+		config := writeConfig(t, `inputs:
+  data:
+    simulation:
+      steps: 5
+      timestep: 1.0
+      partitions:
+      - {name: a, iteration: {type: constant_values}, params_from_upstream: {in: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+      - {name: b, iteration: {type: constant_values}, params_from_upstream: {in: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+macros:
+- {type: vector_mean, name: m, data: {partition_name: a}, window: 2}
+`)
+		_, err := runToStorage(config)
 		if err == nil || !strings.Contains(err.Error(), "deadlock") {
-			t.Errorf("expected a deadlock error from the cyclic data: block, got: %v", err)
+			t.Errorf("expected a deadlock error from the cyclic input, got: %v", err)
 		}
 	})
 
-	// Every key below is one the macros: context never reads, so each must be
-	// rejected rather than silently ignored — and the error must name the key, so
-	// the author knows what to move. Each case goes through the public path a real
-	// config takes: a YAML file, LoadApiRunConfigFromYaml, then RunMacros.
-	ignored := []struct {
-		name, extra, key string
-	}{
-		{"main expressions",
-			"main:\n  expressions:\n  - {partition: p, outputs: [\"1\"]}\n",
-			"main.expressions"},
-		{"ensemble mode",
-			"run: {mode: ensemble, seeds: [1, 2]}\n",
-			"run:"},
-		{"ensemble mode without seeds",
-			"run: {mode: ensemble}\n",
-			"run:"},
-		{"seeds alone",
-			"run: {seeds: [1]}\n",
-			"run:"},
-		{"concurrency alone",
-			"run: {concurrency: 4}\n",
-			"run:"},
-	}
-	for _, c := range ignored {
-		t.Run(c.name+" alongside macros is rejected, naming the key", func(t *testing.T) {
-			config := writeConfig(t, macroConfigYAML+c.extra)
-			_, err := RunMacros(config)
-			if err == nil {
-				t.Fatalf("expected an error for %s alongside macros:", c.name)
-			}
-			if !strings.Contains(err.Error(), c.key) {
-				t.Errorf("error should name %q so the author knows what to move: %v",
-					c.key, err)
-			}
-		})
-	}
-
-	// Positive controls: the guard must not over-reject. The same config with no
-	// extra keys, or with the explicit default run mode, still runs end to end
-	// and produces both macros' output.
 	accepted := map[string]string{
 		"no extra keys":      "",
 		"explicit run batch": "run: {mode: batch}\n",
@@ -186,7 +125,7 @@ func TestRunMacrosGuards(t *testing.T) {
 	for name, extra := range accepted {
 		t.Run(name+" alongside macros still runs", func(t *testing.T) {
 			config := writeConfig(t, macroConfigYAML+extra)
-			storage, err := RunMacros(config)
+			storage, err := runToStorage(config)
 			if err != nil {
 				t.Fatalf("expected the config to run: %v", err)
 			}
@@ -280,7 +219,7 @@ macros:
   window: 150
   default_value: 3.0
 `)
-	storage, err := RunMacros(config)
+	storage, err := runToStorage(config)
 	if err != nil {
 		t.Fatal(err)
 	}

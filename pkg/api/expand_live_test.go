@@ -281,17 +281,6 @@ func TestExpandLiveMacros(t *testing.T) {
 `)
 	})
 
-	t.Run("the macro tier refuses a planner with no name, as the expansion does", func(t *testing.T) {
-		config, err := LoadConfig(writeConfigPath(t, "macros:\n"+strings.Replace(
-			strings.Replace(newsvendorPlan, "PARAMETERS", "samples: [[1.0]]", 1), "  name: plan\n", "", 1)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := RunToStorage(config); KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "mcts_planning needs a name") {
-			t.Errorf("got %v", err)
-		}
-	})
-
 	t.Run("calibrate, then plan expands exactly, as a run: input the planner reads", func(t *testing.T) {
 		config := calibration + strings.Replace(newsvendorPlan, "PARAMETERS",
 			"samples_from: {partition_name: post_sampler, burn_in: 100}", 1)

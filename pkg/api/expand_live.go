@@ -13,7 +13,7 @@ import (
 
 // The macros that run their own clock as core-language config: each expands to
 // ordinary partitions, and gives the run its clock (its steps of its timestep,
-// from time zero), as the macro tier runs it.
+// from time zero).
 
 // expandedClock is a macro's own clock: steps of timestep, from time zero.
 type expandedClock struct {
@@ -152,7 +152,7 @@ func (s *evolutionStrategySpec) expand(*expansionContext) (*expansion, error) {
 				},
 				"values_sorted_collection_covariance"),
 		},
-		clock: ownClock(s.Steps, s.Timestep),
+		clock: s.clock(),
 	}, nil
 }
 
@@ -172,7 +172,7 @@ func (s *mctsSelfPlaySpec) expand(*expansionContext) (*expansion, error) {
 	return &expansion{
 		partitions: expandSearch(s.Name, componentOf(s.Env, ""), tree,
 			rolloutFields(s.RolloutMaxSteps), environment.selfPlayLayout(s.settings())),
-		clock: ownClock(s.Steps, s.Timestep),
+		clock: s.clock(),
 	}, nil
 }
 
@@ -205,7 +205,7 @@ func (s *mctsPlanningSpec) expand(ctx *expansionContext) (*expansion, error) {
 	return &expansion{
 		partitions: expandSearch(s.Name, stated, tree,
 			rolloutFields(s.RolloutMaxSteps), macros.NewMCTSSelfPlayLayout(s.search(environment))),
-		clock: ownClock(s.Steps, s.Timestep),
+		clock: s.clock(),
 	}, nil
 }
 
@@ -491,6 +491,6 @@ func (s *smcInferenceSpec) expand(ctx *expansionContext) (*expansion, error) {
 				StateHistoryDepth: 2,
 			},
 		},
-		clock: ownClock(s.NumRounds, s.Timestep),
+		clock: s.clock(),
 	}, nil
 }

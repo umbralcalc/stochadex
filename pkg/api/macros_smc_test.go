@@ -57,16 +57,6 @@ func TestModelPartitionInstantiation(t *testing.T) {
 	}
 }
 
-// TestLiveMacroRejectsAgainstStorage checks the live macros error clearly if run
-// through the against-storage path, rather than misbehaving.
-func TestLiveMacroRejectsAgainstStorage(t *testing.T) {
-	for _, spec := range []macroSpec{&evolutionStrategySpec{}, &smcInferenceSpec{}} {
-		if _, _, err := spec.resolve(nil); err == nil {
-			t.Errorf("%T.resolve should error (it is a live macro)", spec)
-		}
-	}
-}
-
 // TestSMCParticlesGetDistinctNoise pins per-particle seeding. The model here is
 // stochastic and reads no proposal parameters, so any variation between particles
 // can only come from their random streams. Particles sharing one realisation is

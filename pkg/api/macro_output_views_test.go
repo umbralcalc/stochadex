@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/gorilla/websocket"
-	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/floats"
 )
 
@@ -179,54 +178,4 @@ func readFile(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(contents)
-}
-
-// recordingSink records the order of the calls it receives.
-type recordingSink struct {
-	calls          []string
-	configuredWith []string
-}
-
-func (r *recordingSink) Configure(settings *simulator.Settings) {
-	r.calls = append(r.calls, "configure")
-	for _, iteration := range settings.Iterations {
-		r.configuredWith = append(r.configuredWith, iteration.Name)
-	}
-}
-
-func (r *recordingSink) Output(name string, _ []float64, _ float64) {
-	r.calls = append(r.calls, "output:"+name)
-}
-
-type finalizingRecordingSink struct{ recordingSink }
-
-func (f *finalizingRecordingSink) Finalize() { f.calls = append(f.calls, "finalize") }
-
-func TestReplayThroughViewsLifecycle(t *testing.T) {
-	storage := simulator.NewStateTimeStorage()
-	storage.SetValues("b", [][]float64{{1}, {2}, {3}})
-	storage.SetValues("a", [][]float64{{10}, {20}, {30}})
-	storage.SetTimes([]float64{0, 1, 2})
-
-	finalizing := &finalizingRecordingSink{}
-	plain := &recordingSink{}
-	replayThroughViews(storage, &simulator.OutputViews{Views: []simulator.OutputView{
-		{Name: "f", Condition: &simulator.EveryStepOutputCondition{}, Function: finalizing},
-		{Name: "p", Condition: &simulator.EveryNStepsOutputCondition{N: 2}, Function: plain},
-	}})
-
-	wantFinalizing := []string{"configure",
-		"output:a", "output:b", "output:a", "output:b", "output:a", "output:b", "finalize"}
-	if strings.Join(finalizing.calls, ",") != strings.Join(wantFinalizing, ",") {
-		t.Errorf("finalizing sink calls %v, want %v (configure first, rows in name order, finalize last)",
-			finalizing.calls, wantFinalizing)
-	}
-	// every_n_steps(2) selects steps 0 and 2; the plain sink is never finalized.
-	wantPlain := []string{"configure", "output:a", "output:b", "output:a", "output:b"}
-	if strings.Join(plain.calls, ",") != strings.Join(wantPlain, ",") {
-		t.Errorf("plain sink calls %v, want %v", plain.calls, wantPlain)
-	}
-	if strings.Join(finalizing.configuredWith, ",") != "a,b" {
-		t.Errorf("Configure should name every partition, got %v", finalizing.configuredWith)
-	}
 }

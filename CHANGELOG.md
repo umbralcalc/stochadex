@@ -55,13 +55,15 @@ an exact version rather than assume stability across minors.
 ### Changed
 
 - A `macros:` config's `run:` block is validated when it is loaded, as any config's is.
-  `api.RunMacros`, which runs macro by macro, still refuses one.
 - **`scalar_regression_stats` counts its data's first row.** An input's first row is its
   replay's initial state, which the run never steps to, so the macro used to start from zero
   and miss it: over a CSV of N rows it counted N - 1. Its statistics now start from the first
-  rows' (x, y) pair, in both modes and both tiers. A sub-simulation input whose
+  rows' (x, y) pair, in both modes. A sub-simulation input whose
   `init_state_values` are placeholders, not data, now has them counted too: make them data, as
   `cfg/example_regression_config.yaml` now does.
+- A `macros:` config that was not loaded from text (an `ApiRunConfig` built in Go) no longer
+  runs macro by macro: it is a config error, saying to load it with `api.LoadConfig`. Its
+  expansion is made from the config's text.
 
 ### Fixed
 
@@ -74,6 +76,14 @@ an exact version rather than assume stability across minors.
   (typically 0) every step: a windowed aggregation outputs `default_value` until its window has
   filled, which such a window never does. For `vector_mean` the error points to
   `cumulative: true`.
+
+### Removed
+
+- `api.RunMacros`, deprecated since v0.25.0, which ran a `macros:` config macro by macro.
+  Use `api.RunToStorage`: it runs the config as its expansion, with bit-identical results,
+  and returns the storage in `RunResult.Storage`. The `pkg/macros` constructors, and
+  `analysis.AddPartitionsToStateTimeStorage`, still build a macro's partitions against a
+  `StateTimeStorage` from Go.
 
 ### Fixed
 

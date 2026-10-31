@@ -8,19 +8,13 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// The macro tier. A macro is a named partition-set-producing function over a
-// config namespace (the constructors in pkg/analysis). Unlike an iteration, which
-// adds one partition, a macro expands to a *set* of partitions. Analysis macros
-// run against pre-recorded storage, so a config that uses them is a three-tier
-// program:
-//
-//	data:    a sub-simulation, run once to produce a *StateTimeStorage
-//	macros:  each expands (applied-config, storage) -> partitions, appended and
-//	         run against that storage
-//
-// This is a distinct run context from the live coordinator: build storage, expand
-// macros, run the expanded partitions against the storage, emit the result. The
-// whole thing is data, so it runs in-process with no Go toolchain.
+// The macros: tier. A macro is a config -> config shortcut: unlike an
+// iteration, which adds one partition, a macro expands to a *set* of
+// partitions in the core config language (see expand.go). A config with
+// macros runs as its expansion, one ordinary run: its inputs replayed, any
+// main: partitions, then each macro's partitions, which read the inputs, main:
+// and earlier macros live. The whole thing is data, so it runs in-process with
+// no Go toolchain.
 //
 // Each macro is a typed, YAML-decodable spec implementing macroSpec. Decoding
 // straight into the typed spec (rather than an untyped map) is load-bearing: a
@@ -28,20 +22,31 @@ import (
 // decoded into interface{}, but preserved as the string "y" when decoded into a
 // string field.
 
-// macroSpec is a typed macro configuration that resolves, against storage, into
-// the partitions the macro contributes and the window sizes those partitions need
-// when replayed against storage; and that expands into core-language config
-// (see expand.go).
+// macroSpec is a typed macro configuration that expands into core-language
+// config (see expand.go).
 type macroSpec interface {
-	resolve(storage *simulator.StateTimeStorage) (
-		partitions []*simulator.PartitionConfig, windows map[string]int, err error)
 	expand(ctx *expansionContext) (*expansion, error)
 }
+
+// clockedMacroSpec is implemented by the macros that run on a clock of their
+// own, steps of a timestep, rather than on the inputs': each is a live loop
+// (an optimisation, an SMC run, a search) that a run steps as a simulation.
+type clockedMacroSpec interface {
+	macroSpec
+	clock() *expandedClock
+}
+
+func (s *evolutionStrategySpec) clock() *expandedClock { return ownClock(s.Steps, s.Timestep) }
+func (s *mctsSelfPlaySpec) clock() *expandedClock      { return ownClock(s.Steps, s.Timestep) }
+func (s *mctsPlanningSpec) clock() *expandedClock      { return ownClock(s.Steps, s.Timestep) }
+
+// An SMC run's clock is its rounds.
+func (s *smcInferenceSpec) clock() *expandedClock { return ownClock(s.NumRounds, s.Timestep) }
 
 // macroSpecFactories maps a macro type to a factory for its empty typed spec.
 // Aggregation and inference/stats macros are against-storage analyses;
 // evolution-strategy optimisation, SMC inference and MCTS self-play are live
-// runs (see liveMacroSpec). mcts_self_play is the odd one out in how its central
+// runs (see clockedMacroSpec). mcts_self_play is the odd one out in how its central
 // component resolves: its environment is arbitrary decision rules with no data
 // spelling, so it comes from the environment registry rather than a data
 // registry — see registry_environment.go.
@@ -165,136 +170,11 @@ func resolveIterations(partitions []simulator.PartitionConfig) error {
 	return nil
 }
 
-// RunMacros runs a config's macros: tier macro by macro, each against the
-// storage of the inputs and the macros before it, and returns the resulting
-// storage.
-//
-// Deprecated: use RunToStorage, which runs a macros: config as its expansion
-// (Expand), one run with bit-identical results, and returns its storage in
-// RunResult.Storage.
-func RunMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
-	return runMacros(config)
-}
-
-// validateMacroContext rejects config that running macro by macro (RunMacros)
-// would otherwise silently ignore. That runs in its own context — build the
-// data: storage, run each macro against it, emit the result — so nothing under
-// main:, embedded: or run: is read; a key set there looks load-bearing and does
-// nothing, which is the failure validateNoDeadKeys exists to prevent. A
-// macros: config run as its expansion reads main: and embedded: too.
-func validateMacroContext(config *ApiRunConfig) error {
-	if len(config.Main.Partitions) > 0 {
-		return fmt.Errorf("api: a config sets both main.partitions and macros:; " +
-			"macros run in their own context and ignore main — put data-generating " +
-			"partitions under data:, not main")
-	}
-	if len(config.Main.Expressions) > 0 {
-		return fmt.Errorf("api: a config sets both main.expressions and macros:; " +
-			"macros run in their own context and ignore main — put data-generating " +
-			"expressions under data:, not main")
-	}
-	if !simulationStringsZero(&config.Main.SimulationStrings) {
-		return fmt.Errorf("api: a config sets both main.simulation and macros:; " +
-			"macros run in their own context and ignore main.simulation — set the " +
-			"data: sub-simulation's steps/timestep/init_time, or a live macro's " +
-			"steps/timestep, instead")
-	}
-	if len(config.Embedded) > 0 {
-		return fmt.Errorf("api: a config sets both embedded: and macros:; " +
-			"macros run in their own context and ignore embedded runs")
-	}
-	return validateMacroRunMode(config)
-}
-
-// validateMacroRunMode rejects a run: block beside macros:, which run once.
-func validateMacroRunMode(config *ApiRunConfig) error {
-	if (config.Run.Mode != "" && config.Run.Mode != "batch") ||
-		len(config.Run.Seeds) > 0 || config.Run.Concurrency != 0 ||
-		config.Run.Websocket != nil || config.Run.PaceMs != 0 {
-		return fmt.Errorf("api: a config sets run: alongside macros:; macros " +
-			"always run once and do not yet support run modes (ensemble, serve, " +
-			"seeds, concurrency, websocket, pace_ms)")
-	}
-	return nil
-}
-
 // simulationStringsZero reports whether no simulation: field was set.
 func simulationStringsZero(s *simulator.SimulationConfigStrings) bool {
 	return s.OutputCondition.IsZero() && s.OutputFunction.IsZero() &&
 		s.TerminationCondition.IsZero() && s.TimestepFunction.IsZero() &&
 		s.ExecutionStrategy.IsZero() && s.InitTimeValue == 0
-}
-
-// runMacros expands and runs each macro in turn, returning the resulting storage.
-// A live macro (evolution_strategy_optimisation) runs its partitions as a fresh
-// simulation; an against-storage macro runs against the data: storage, which is
-// built lazily on first use — so a live-only config needs no data: block. Running
-// in turn lets a later against-storage macro reference an earlier one's output.
-func runMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
-	if err := validateMacroContext(config); err != nil {
-		return nil, configError(err)
-	}
-	var storage *simulator.StateTimeStorage
-	inputs := macroInputs(config)
-	ensureStorage := func() error {
-		if storage != nil {
-			return nil
-		}
-		if len(inputs) == 0 {
-			return configError(fmt.Errorf(
-				"api: against-storage macros require inputs: (or a data: block) to analyse"))
-		}
-		built, err := loadMacroStorage(inputs)
-		storage = built
-		return err
-	}
-	for i := range config.Macros {
-		macro := &config.Macros[i]
-		if live, ok := macro.Spec.(liveMacroSpec); ok {
-			// A live macro may still need observed data (smc_inference): build the
-			// data: storage when one is configured, but tolerate its absence for
-			// live macros that need none (evolution_strategy_optimisation).
-			if storage == nil && len(inputs) > 0 {
-				if err := ensureStorage(); err != nil {
-					return nil, err
-				}
-			}
-			var partitions []*simulator.PartitionConfig
-			var steps int
-			var timestep float64
-			err := expanding(macro.Type, func() (err error) {
-				partitions, steps, timestep, err = live.resolveLive(storage)
-				return err
-			})
-			if err != nil {
-				return nil, err
-			}
-			storage = analysis.NewStateTimeStorageFromPartitions(
-				partitions,
-				&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: steps},
-				&simulator.ConstantTimestepFunction{Stepsize: timestep},
-				0.0,
-			)
-			continue
-		}
-		if err := ensureStorage(); err != nil {
-			return nil, err
-		}
-		var partitions []*simulator.PartitionConfig
-		var windows map[string]int
-		err := expanding(macro.Type, func() (err error) {
-			partitions, windows, err = macro.Spec.resolve(storage)
-			return err
-		})
-		if err != nil {
-			return nil, err
-		}
-		storage = analysis.AddPartitionsToStateTimeStorage(storage, partitions, windows)
-	}
-	if storage == nil {
-		return nil, configError(fmt.Errorf("api: no macros produced any output"))
-	}
-	return storage, nil
 }
 
 // expanding runs one macro's expansion, classifying any failure — returned or
@@ -351,12 +231,4 @@ func copyAsPartitions(asPartitions map[string][]string) map[string][]string {
 		copied[key] = slices.Clone(names)
 	}
 	return copied
-}
-
-// applyParams merges a macro's params: into a generated partition's Params — how
-// kernel parameters such as exponential_weighting_timescale reach the iteration.
-func applyParams(partition *simulator.PartitionConfig, params map[string][]float64) {
-	for name, values := range params {
-		partition.Params.Set(name, values)
-	}
 }

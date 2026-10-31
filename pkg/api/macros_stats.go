@@ -31,29 +31,6 @@ var regressionModes = map[string]macros.RegressionStatsMode{
 	"window":     macros.RegressionStatsWindow,
 }
 
-func (s *scalarRegressionStatsSpec) resolve(
-	storage *simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	mode, ok := regressionModes[s.Mode]
-	if !ok {
-		return nil, nil, fmt.Errorf("scalar_regression_stats: unknown mode %q", s.Mode)
-	}
-	partition := macros.NewScalarRegressionStatsPartition(
-		macros.AppliedScalarRegressionStats{
-			Name:              s.Name,
-			Y:                 s.Y.resolve(),
-			X:                 s.X.resolve(),
-			Intercept:         s.Intercept,
-			Mode:              mode,
-			WindowLength:      s.WindowLength,
-			MinDenominator:    s.MinDenominator,
-			StateHistoryDepth: s.StateHistoryDepth,
-		},
-		storage,
-	)
-	return []*simulator.PartitionConfig{partition}, nil, nil
-}
-
 // groupedAggregationSpec is the data form of a grouped aggregation: an
 // AppliedGrouping (group-by references + precision) that transforms the storage,
 // plus a named aggregation function and the AppliedAggregation fields.
@@ -99,58 +76,6 @@ func (s *groupedAggregationSpec) declaredGroups() ([][]float64, error) {
 		}
 	}
 	return s.Groups, nil
-}
-
-func (s *groupedAggregationSpec) resolve(
-	storage *simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	aggregation, ok := aggregationFunctions[s.Aggregation]
-	if !ok {
-		return nil, nil, fmt.Errorf("grouped_aggregation: unknown aggregation %q", s.Aggregation)
-	}
-	policy, err := s.policy()
-	if err != nil {
-		return nil, nil, err
-	}
-	declared, err := s.declaredGroups()
-	if err != nil {
-		return nil, nil, err
-	}
-	grouping := analysis.AppliedGrouping{GroupBy: resolveDataRefs(s.GroupBy), Precision: s.Precision}
-	grouped := analysis.NewGroupedStateTimeStorage(grouping, storage)
-	if declared != nil {
-		grouped = analysis.NewDeclaredGroupedStateTimeStorage(grouping, storage, declared)
-	}
-	applied := macros.AppliedAggregation{
-		Name:         s.Name,
-		Data:         s.Data.resolve(),
-		DefaultValue: s.DefaultValue,
-	}
-	if s.Kernel.IsData() {
-		kernel, err := resolveKernel(s.Kernel)
-		if err != nil {
-			return nil, nil, err
-		}
-		applied.Kernel = kernel
-	}
-	partition := macros.NewGroupedAggregationPartition(aggregation, applied, grouped)
-	partition.Iteration.(*general.ValuesGroupedAggregationIteration).Undeclared = policy
-	if policy == general.UndeclaredGroupsOther {
-		// The undeclared groups gather in one more output, after the declared.
-		partition.InitStateValues = append(partition.InitStateValues, s.DefaultValue)
-		partition.Params.Set("default_values", slices.Clone(partition.InitStateValues))
-	}
-	applyParams(partition, s.Params)
-	window := s.Window
-	if window == 0 {
-		window = 1
-	}
-	windows := map[string]int{s.Name: 1, s.Data.PartitionName: window}
-	// The group-by partitions are read alongside the data, so they need the window too.
-	for _, ref := range s.GroupBy {
-		windows[ref.PartitionName] = window
-	}
-	return []*simulator.PartitionConfig{partition}, windows, nil
 }
 
 // expand states a grouped aggregation as data, as

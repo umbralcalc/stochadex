@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
-	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
@@ -52,53 +51,6 @@ type smcModelSpec struct {
 type smcObservedData struct {
 	Name string      `yaml:"name"`
 	Ref  dataRefSpec `yaml:"ref"`
-}
-
-// resolve reports that smc_inference is a live macro.
-func (s *smcInferenceSpec) resolve(
-	*simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	return nil, nil, fmt.Errorf("smc_inference is a live macro (it runs its own rounds)")
-}
-
-func (s *smcInferenceSpec) resolveLive(
-	storage *simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, int, float64, error) {
-	priors := make([]inference.Prior, len(s.Priors))
-	for i, spec := range s.Priors {
-		prior, err := resolvePrior(spec)
-		if err != nil {
-			return nil, 0, 0, fmt.Errorf("smc_inference prior %d: %w", i, err)
-		}
-		priors[i] = prior
-	}
-	if s.Model.ObservedData != nil && storage == nil {
-		return nil, 0, 0, fmt.Errorf(
-			"smc_inference model.observed_data needs a data: block to read %q from",
-			s.Model.ObservedData.Ref.PartitionName)
-	}
-	build, err := s.Model.builder(storage)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	partitions := macros.NewSMCInferencePartitions(macros.AppliedSMCInference{
-		ProposalName:  s.ProposalName,
-		SimName:       s.SimName,
-		PosteriorName: s.PosteriorName,
-		NumParticles:  s.NumParticles,
-		NumRounds:     s.NumRounds,
-		Priors:        priors,
-		ParamNames:    s.ParamNames,
-		Model:         macros.SMCParticleModel{Build: build},
-		Seed:          s.Seed,
-		Verbose:       s.Verbose,
-	})
-	timestep := s.Timestep
-	if timestep == 0 {
-		timestep = 1.0
-	}
-	// SMC's own inner run length is NumRounds; the outer run steps once per round.
-	return partitions, s.NumRounds, timestep, nil
 }
 
 // builder returns the SMCParticleModel.Build closure that instantiates one

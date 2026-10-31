@@ -37,29 +37,6 @@ type mctsSelfPlaySpec struct {
 	Timestep        float64 `yaml:"timestep,omitempty"`
 }
 
-// resolve reports that this is a live macro (it does not run against storage).
-func (s *mctsSelfPlaySpec) resolve(
-	*simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	return nil, nil, fmt.Errorf(
-		"mcts_self_play is a live macro; it runs its own simulation and must " +
-			"not be combined with against-storage macros")
-}
-
-func (s *mctsSelfPlaySpec) resolveLive(
-	*simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, int, float64, error) {
-	environment, err := s.environment()
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	timestep := s.Timestep
-	if timestep == 0 {
-		timestep = 1.0
-	}
-	return environment.selfPlay(s.settings()), s.Steps, timestep, nil
-}
-
 // environment checks the spec and builds the environment it names.
 func (s *mctsSelfPlaySpec) environment() (MCTSEnvironment, error) {
 	if s.Name == "" {

@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/umbralcalc/stochadex/pkg/graph"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
-	"gonum.org/v1/gonum/mat"
 )
 
 // StepAndServeWebsocket steps a simulation and streams state updates over a
@@ -247,15 +245,14 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 	if err != nil {
 		return err
 	}
-	if len(config.Macros) > 0 && len(config.source) > 0 {
+	if len(config.Macros) > 0 {
 		// A macros: config runs as its expansion, in any run mode.
 		if config, err = expandToRun(config); err != nil {
 			return err
 		}
 	}
-	if len(config.Macros) > 0 || config.Run.Mode == "ensemble" {
-		// One assembled in Go runs macro by macro; each ensemble member writes
-		// its own outputs.
+	if config.Run.Mode == "ensemble" {
+		// Each ensemble member writes its own outputs.
 		_, err := RunWith(config, WithConfigOutputs())
 		return err
 	}
@@ -454,11 +451,8 @@ func WithConfigOutputs() RunOption {
 // ErrRuntime naming it.
 //
 // A macros: config runs as its expansion (Expand): one ordinary run, whose
-// every row is also returned as RunResult.Storage. One assembled in Go, with
-// no source text to expand, runs macro by macro, as RunMacros runs it, and each
-// captured view receives its result replayed as a live run would output it. An
-// ensemble
-// returns RunResult.Members; with WithConfigOutputs each member also writes its
+// every row is also returned as RunResult.Storage. An ensemble returns
+// RunResult.Members; with WithConfigOutputs each member also writes its
 // own outputs: views ({member} / {seed} substituted). Captured views do not yet
 // apply to ensembles and are rejected.
 func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
@@ -481,30 +475,8 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 			requested = append(requested, capture)
 		}
 	}
-	if len(config.Macros) > 0 && len(config.source) > 0 {
-		return runExpanded(config, options)
-	}
 	if len(config.Macros) > 0 {
-		storage, err := runMacros(config)
-		if err != nil {
-			return nil, err
-		}
-		// The macro result is already the full storage, so a mirror view is not
-		// replayed; only requested views are.
-		result := &RunResult{Storage: storage, Views: map[string]*simulator.StateTimeStorage{}}
-		if len(requested) > 0 {
-			replayThroughViews(storage, captureViews(requested, nil, result.Views))
-		}
-		if opts.teeConfigOutputs && config.outputViews != nil {
-			var outputs stagedOutputs
-			outputs.stage(config.outputViews)
-			defer outputs.discard()
-			replayThroughViews(storage, config.outputViews)
-			if err := outputs.finish(nil); err != nil {
-				return nil, err
-			}
-		}
-		return result, nil
+		return runExpanded(config, options)
 	}
 	if config.Run.Mode == "serve" {
 		return nil, &Error{Kind: ErrUsage, Err: fmt.Errorf(
@@ -588,9 +560,13 @@ func runExpanded(config *ApiRunConfig, options []RunOption) (*RunResult, error) 
 // and its inputs' shapes; a later run whose input changed shape fails its wiring checks. A
 // failed expansion is not kept, so an input that was missing is read again.
 func expandToRun(config *ApiRunConfig) (*ApiRunConfig, error) {
-	// Loading gives every macros: config with source text, which only a
-	// loaded config has, its cache.
+	// Loading gives every macros: config its cache; one that was not loaded
+	// has no text to expand.
 	cache := config.expansion
+	if cache == nil {
+		return nil, configError(fmt.Errorf("api: a macros: config runs as the " +
+			"expansion of its text; load it with LoadConfig"))
+	}
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
 	if cache.config == nil {
@@ -886,15 +862,6 @@ func assertDataOnly(config *ApiRunConfig) error {
 	return nil
 }
 
-// sortedNames returns a storage's partition names in a fixed order. GetNames
-// reads a map, so printing in its order would make the CLI's output order differ
-// from run to run.
-func sortedNames(storage *simulator.StateTimeStorage) []string {
-	names := storage.GetNames()
-	sort.Strings(names)
-	return names
-}
-
 // RunWithParsedArgs runs the configured simulation. The whole config is data
 // (data-spec partitions and simulation, or expressions:, plus optional data:/macros:
 // tiers), so it is resolved and run in-process with no Go toolchain.
@@ -923,39 +890,4 @@ func RunWithParsedArgs(args ParsedArgs) {
 		config,
 		LoadSocketConfigFromYaml(args.SocketFile),
 	)
-}
-
-// replayThroughViews sends a finished storage through output views as though
-// each row had been output by a live run, so every view's condition selects
-// exactly what it would have: row k carries step number k, and the history
-// holds the previous row's time with the increment to row k's. Partitions go
-// out in name order within a row. This is how a macros: config run macro by
-// macro, one with no source text to expand, reaches outputs:.
-func replayThroughViews(storage *simulator.StateTimeStorage, views *simulator.OutputViews) {
-	names := sortedNames(storage)
-	settings := &simulator.Settings{Iterations: make([]simulator.IterationSettings, len(names))}
-	for i, name := range names {
-		settings.Iterations[i].Name = name
-	}
-	views.Configure(settings)
-	times := storage.GetTimes()
-	for step, time := range times {
-		previous := time
-		if step > 0 {
-			previous = times[step-1]
-		}
-		history := &simulator.CumulativeTimestepsHistory{
-			Values:            mat.NewVecDense(1, []float64{previous}),
-			NextIncrement:     time - previous,
-			CurrentStepNumber: step,
-			StateHistoryDepth: 1,
-		}
-		for _, name := range names {
-			rows := storage.GetValues(name)
-			if step < len(rows) {
-				views.OutputStep(name, rows[step], history, time)
-			}
-		}
-	}
-	views.Finalize()
 }

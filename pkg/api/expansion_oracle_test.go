@@ -86,12 +86,10 @@ func oracleConfigs(t testing.TB) []string {
 	return configs
 }
 
-// TestExpansionOracle is the expansion's exact oracle: every shipped macros: config
-// runs, expanded into the core language, to storage bit-for-bit identical to
-// the macro tier's (RunMacros), with the same seeds, and so does the config run
-// by default, which runs its expansion; and the expanded run matches the
-// golden digests recorded for this architecture, which pin that output
-// independently of the macro tier. Floating-point results differ between
+// TestExpansionOracle pins every shipped macros: config's run: expanded into
+// the core language, it runs to storage matching, bit for bit, the golden
+// digests recorded for this architecture, and so does the config run by
+// default, which runs its expansion. Floating-point results differ between
 // architectures (arm64 fuses multiply-adds), so each has its own goldens; a
 // run on one with none prints the goldens it would record.
 func TestExpansionOracle(t *testing.T) {
@@ -112,19 +110,6 @@ func TestExpansionOracle(t *testing.T) {
 	run := expansionGoldens{Go: runtime.Version(), Configs: map[string]storageDigest{}}
 	for _, path := range configs {
 		t.Run(path, func(t *testing.T) {
-			config, err := LoadConfig(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			// RunMacros runs macro by macro: the reference. It runs no main:
-			// partitions beside the macros, so a config with some is pinned by
-			// its goldens and its run by default alone.
-			var macro *simulator.StateTimeStorage
-			if len(config.Main.Partitions) == 0 {
-				if macro, err = RunMacros(config); err != nil {
-					t.Fatal(err)
-				}
-			}
 			fresh, err := LoadConfig(path)
 			if err != nil {
 				t.Fatal(err)
@@ -139,11 +124,6 @@ func TestExpansionOracle(t *testing.T) {
 			}
 			digest := digestOf(single.Storage)
 			run.Configs[path] = digest
-			if macro != nil {
-				if want := digestOf(macro); fmt.Sprint(digest) != fmt.Sprint(want) {
-					t.Errorf("the expanded run differs from the macro tier:\n%s", digestDiff(digest, want))
-				}
-			}
 			// Run as it is by default, the config runs as its expansion.
 			byDefault, err := LoadConfig(path)
 			if err != nil {

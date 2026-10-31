@@ -45,9 +45,12 @@
 //	                     "expression" builder here makes the whole expressions DSL usable
 //	                     as an inline iteration spec, so maths can appear anywhere an
 //	                     iteration is expected — inside a macro's window, or an embedded run.
-//	macros*.go           the macro tier: decodes typed spec structs straight from YAML and
-//	                     calls the matching pkg/macros constructor. One file per family
-//	                     (aggregation, inference, smc, optimisation, stats, data, mcts).
+//	macros*.go           the macros: tier: decodes typed spec structs straight from YAML,
+//	                     one file per family (aggregation, inference, smc, optimisation,
+//	                     stats, data, mcts, planning).
+//	expand*.go           expands each macro into core-language config, which runs as one
+//	                     ordinary run (Expand); the run's partitions mirror the matching
+//	                     pkg/macros constructors.
 //	registry_environment.go
 //	                     agents.Environment implementations for the mcts_self_play macro.
 //	                     Unlike the registries above this one is empty by default and filled

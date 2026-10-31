@@ -173,21 +173,6 @@ macros:
 		})
 	}
 
-	t.Run("the macro tier refuses what the expansion refuses of the new fields", func(t *testing.T) {
-		for macro, want := range map[string]string{
-			"{type: grouped_aggregation, name: g, aggregation: sum, group_by: [{partition_name: grp}], precision: 1, data: {partition_name: vals}, undeclared_groups: ignore}": `undeclared_groups must be drop, error or other, got "ignore"`,
-			"{type: grouped_aggregation, name: g, aggregation: sum, group_by: [{partition_name: grp}], precision: 1, data: {partition_name: vals}, groups: [[0, 1]]}":          "groups[0] has 2 values",
-		} {
-			config, err := LoadConfig(writeConfigPath(t, groupedInputs+"- "+macro+"\n"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := RunToStorage(config); KindOf(err) != ErrConfig || !strings.Contains(err.Error(), want) {
-				t.Errorf("expected ErrConfig containing %q, got %v", want, err)
-			}
-		}
-	})
-
 	t.Run("an input that cannot be built stops discovery, saying why", func(t *testing.T) {
 		config, err := LoadConfig(writeConfigPath(t, `inputs:
   data:
