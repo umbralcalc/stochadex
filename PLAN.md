@@ -58,8 +58,8 @@ Status: **accepted** (2026-10-04).
      as the schema; **2.10** human-facing docs.
   5. **Releases.** v0.25.0 released (2026-10-31, #162): macros run as their expansion, `main:` beside macros, inputs read every run. v0.24.0 released (2026-10-30, #157): every macro expands, the CLI contract
      (`graph`, `catalogue`, `SHA256SUMS`), deterministic output order. Cut one again around
-     each contract-visible change (2.14, 2.11, 2.13). Downstream bumps before 2.9: AMR is on
-     v0.22.0, cryptobook still on v0.14.0.
+     each contract-visible change (2.14, 2.11, 2.13). cryptobook, card-game-studio and AMR are
+     all on v0.25.0.
 - **History:** every merged item, decision and finding, newest Phase 2 work first, is in
   [Appendix A](#appendix-a-progress-log).
 
