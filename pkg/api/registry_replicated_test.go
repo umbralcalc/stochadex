@@ -193,3 +193,31 @@ func TestReplicatedSimulationRun(t *testing.T) {
 		})
 	}
 }
+
+// TestReplicasOfAnExpressionModelAreIndependent: replicas are copies of one
+// decoded run, and each must still be its own model, expression iterations
+// included: each sums its own forwarded value over three steps.
+func TestReplicasOfAnExpressionModelAreIndependent(t *testing.T) {
+	// Each replica's row is one wide, so the host is three wide.
+	result, err := RunToStorage(writeConfig(t, strings.Replace(replicatedYAML(`      params_per_replica: 1
+      run:
+        partitions:
+        - {name: acc, params: {m: [0.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+        expressions:
+        - {partition: acc, fields: [{name: a}], outputs: ["a + m[0]"]}
+        simulation:
+          termination_condition: {type: number_of_steps, max_steps: 3}
+          timestep_function: {type: constant, stepsize: 1.0}
+          init_time_value: 0.0
+      output_partition: acc
+      param_forwarding: {"acc/m": [0]}
+`), "init_state_values: [0, 0, 0, 0, 0, 0]", "init_state_values: [0, 0, 0]", 1)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := result.Storage.GetValues("replicas")
+	// The centres are 1, -2 and 5, so three steps sum to 3, -6 and 15.
+	if got := fmt.Sprint(rows[len(rows)-1]); got != "[3 -6 15]" {
+		t.Errorf("replicas ended at %s, want [3 -6 15]", got)
+	}
+}

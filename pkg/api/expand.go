@@ -378,6 +378,10 @@ func inputsContext(inputs map[string]InputConfig) (*expansionContext, error) {
 		// Every input shares one time axis, so any gives the clock's start.
 		context.initTime = shape.initTime
 		for partition, width := range shape.widths {
+			if owner, taken := context.owners[partition]; taken {
+				return nil, withKind(ErrData, fmt.Errorf(
+					"api: partition %q is in both input %q and input %q", partition, owner, name))
+			}
 			context.widths[partition] = width
 			context.firstRows[partition] = shape.firstRows[partition]
 			context.inputs[partition] = true

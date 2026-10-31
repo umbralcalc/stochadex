@@ -29,7 +29,8 @@ func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 	if err != nil {
 		t.Fatal(err)
 	}
-	macro, err := RunToStorage(config)
+	// RunMacros runs macro by macro, the reference the expansion must match.
+	macro, err := RunMacros(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,8 +41,8 @@ func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertStoragesEqual(t, "expanded vs macro tier", single.Storage, macro.Storage)
-	if got, want := fmt.Sprint(single.Storage.GetTimes()), fmt.Sprint(macro.Storage.GetTimes()); got != want {
+	assertStoragesEqual(t, "expanded vs macro tier", single.Storage, macro)
+	if got, want := fmt.Sprint(single.Storage.GetTimes()), fmt.Sprint(macro.GetTimes()); got != want {
 		t.Errorf("times differ")
 	}
 	return expanded
