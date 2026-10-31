@@ -179,6 +179,7 @@ type expandedDocument struct {
 	Main     expandedMain `yaml:"main"`
 	Embedded *yaml3.Node  `yaml:"embedded,omitempty"`
 	Outputs  *yaml3.Node  `yaml:"outputs,omitempty"`
+	Run      *yaml3.Node  `yaml:"run,omitempty"`
 }
 
 // expandedMain is the expanded run: its partitions, each an expandedPartition
@@ -343,7 +344,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		context.firstRows[partition.Name] = partition.InitStateValues
 	}
 	document := expandedDocument{Inputs: source.inputs, Outputs: source.outputs,
-		Embedded: source.embedded}
+		Embedded: source.embedded, Run: source.run}
 	if split > 0 {
 		calibration := expandedDocument{Inputs: source.inputs}
 		if calibration.Main, err = expandRun(config.Macros, source.macros, 0, split, context, nil); err != nil {
@@ -548,8 +549,8 @@ func Expand(config *ApiRunConfig) (*ApiRunConfig, error) {
 
 // expandedSource is what an expansion keeps of the config as written.
 type expandedSource struct {
-	inputs, outputs, embedded *yaml3.Node
-	macros                    []*yaml3.Node
+	inputs, outputs, embedded, run *yaml3.Node
+	macros                         []*yaml3.Node
 	// mainPartitions, mainExpressions and mainSimulation are main:'s, as
 	// written.
 	mainPartitions                  []*yaml3.Node
@@ -581,6 +582,8 @@ func sourceNodes(config *ApiRunConfig) (expandedSource, error) {
 			kept.macros = value.Content
 		case "embedded":
 			kept.embedded = value
+		case "run":
+			kept.run = value
 		case "main":
 			if partitions := mappingValue(value, "partitions"); partitions != nil {
 				kept.mainPartitions = partitions.Content

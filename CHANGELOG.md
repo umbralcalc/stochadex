@@ -22,6 +22,19 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- A `macros:` config runs in any run mode. `run: {mode: ensemble}` gives one member per seed,
+  each the expansion's run under that seed, and each writes its own `outputs:` views;
+  `run: {mode: serve}` streams the expansion's run to each client.
+- `stochadex graph` on a `macros:` config draws its expansion's graph, the partitions it runs
+  as. It reads the config's inputs, as the run does.
+
+### Changed
+
+- A `macros:` config's `run:` block is validated when it is loaded, as any config's is.
+  `api.RunMacros`, which runs macro by macro, still refuses one.
+
 ## [0.25.0] — 2026-10-31
 
 This release makes a `macros:` config one ordinary run. A config with macros now runs as its

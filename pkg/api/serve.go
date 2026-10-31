@@ -31,12 +31,8 @@ func (w *WebsocketServeConfig) handle() string {
 }
 
 // validateRunMode rejects run: fields that the config's mode would ignore, and
-// a serve mode with nowhere to listen. A macros: config's run: block is
-// validated with the rest of its macro context instead.
+// a serve mode with nowhere to listen.
 func validateRunMode(config *ApiRunConfig) error {
-	if len(config.Macros) > 0 {
-		return nil
-	}
 	run := &config.Run
 	if run.Mode != "serve" {
 		if run.Websocket != nil {
@@ -153,6 +149,14 @@ func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 	if config.sourcePath == "" {
 		return nil, fmt.Errorf("api: serving a websocket requires a config " +
 			"loaded from a file (each connection is rebuilt by re-loading it)")
+	}
+	if len(config.Macros) > 0 {
+		// Serve its expansion, which each connection re-loads.
+		expanded, err := expandToRun(config)
+		if err != nil {
+			return nil, err
+		}
+		config = expanded
 	}
 	var connections atomic.Int64
 	build := func(stream simulator.OutputFunction) (servedRun, error) {
