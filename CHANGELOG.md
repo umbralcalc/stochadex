@@ -31,8 +31,16 @@ an exact version rather than assume stability across minors.
   as the run steps, so its rows within a step come out in partition order, as any config's do,
   rather than in partition name order; the lines are the same. A config assembled in Go, with
   no source text to expand, still runs macro by macro, as `api.RunMacros` (deprecated) does.
+  A loaded config expands on its first run and reuses that expansion, still reading its inputs
+  afresh each run; expanding is a fixed cost when it first runs, 0.3 ms to 2 ms for the
+  shipped examples (`docs/performance.md`).
 
 ### Fixed
+
+- **A `replicated_simulation_run` builds its replicas faster.** It decodes its run once and
+  gives each replica a copy, instead of decoding its YAML once per replica, so loading a
+  config with one is several times quicker: the SMC example's 100 particles load in about a
+  quarter of the time.
 
 - **Every run of a loaded config reads its inputs afresh.** Running one loaded config again
   (`api.RunToStorage` twice, or in a loop) reused the rows its first run had read, from
