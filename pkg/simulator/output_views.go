@@ -21,9 +21,13 @@ type OutputViews struct {
 	Views []OutputView
 }
 
-// Configure configures every view's sink.
+// Configure configures every view's sink, and drops what a final_step view
+// held from an earlier run.
 func (o *OutputViews) Configure(settings *Settings) {
 	for _, view := range o.Views {
+		if final, ok := view.Condition.(*FinalStepOutputCondition); ok {
+			final.reset()
+		}
 		view.Function.Configure(settings)
 	}
 }
@@ -45,15 +49,21 @@ func (o *OutputViews) OutputStep(
 	cumulativeTimesteps float64,
 ) {
 	for _, view := range o.Views {
-		if view.Condition.IsOutputStep(partitionName, state, timestepsHistory) {
+		if final, ok := view.Condition.(*FinalStepOutputCondition); ok {
+			final.hold(partitionName, state, cumulativeTimesteps)
+		} else if view.Condition.IsOutputStep(partitionName, state, timestepsHistory) {
 			view.Function.Output(partitionName, state, cumulativeTimesteps)
 		}
 	}
 }
 
-// Finalize finalizes every view's sink that holds resources.
+// Finalize writes what each final_step view held, then finalizes every view's
+// sink that holds resources.
 func (o *OutputViews) Finalize() {
 	for _, view := range o.Views {
+		if final, ok := view.Condition.(*FinalStepOutputCondition); ok {
+			final.flush(view.Function)
+		}
 		if finalizing, ok := view.Function.(FinalizingOutputFunction); ok {
 			finalizing.Finalize()
 		}

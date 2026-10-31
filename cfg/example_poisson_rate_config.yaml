@@ -1,0 +1,55 @@
+# Closed-form Poisson rates from a CSV of counts and exposures: the event rate
+# per minute of play for goals, cards and penalties, from one row per match.
+#
+# Each group is a column pair: its count, and the exposure the count was seen
+# over (here every group shares one exposure, the minutes played). The maximum
+# likelihood rate of a Poisson count with exposure is
+#
+#     rate = (sum of counts) / (sum of exposures)
+#
+# which is the ratio of their means over every row. So the estimate is two
+# steps, both O(width) per row however long the data:
+#
+#   means  a vector_mean with cumulative: true: the running mean of every row,
+#          the CSV's first row included (it is the replay's initial state);
+#   rates  a main: partition dividing each mean count by the mean exposure.
+#
+# Only the final estimate is wanted, so the one output is a final_step view:
+# it writes each named partition once, as it stands when the input runs out,
+# rather than a row per match. For long data (a row per match and minute, a
+# column for the group) pivot to one count column per group first; for a rate
+# per group with its own exposure, give each group its own exposure column and
+# divide by that.
+#
+# The run prints `rates` as [goals, cards, penalties] per minute, ~[0.0291,
+# 0.0415, 0.0032]; pkg/api/poisson_rate_config_test.go pins it to the
+# closed-form sums of the CSV.
+inputs:
+  matches:
+    source:
+      csv:
+        path: cfg/example_poisson_rate_data.csv
+        time_column: 0
+        state_columns: {events: [1, 2, 3, 4]}   # goals, cards, penalties, minutes
+        skip_header: true
+macros:
+- type: vector_mean
+  name: means
+  data: {partition_name: events}
+  cumulative: true
+main:
+  partitions:
+  - name: rates
+    iteration:
+      type: expression
+      fields: [{name: goals}, {name: cards}, {name: penalties}]
+      outputs: ["m[0] / m[3]", "m[1] / m[3]", "m[2] / m[3]"]
+    params: {m: [0.0, 0.0, 0.0, 1.0]}
+    params_from_upstream: {m: {upstream: means}}
+    init_state_values: [0.0, 0.0, 0.0]
+    state_history_depth: 1
+    seed: 0
+outputs:
+- name: estimate
+  condition: {type: final_step, partitions: [rates]}
+  function: {type: stdout}

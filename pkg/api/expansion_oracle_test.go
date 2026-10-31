@@ -116,10 +116,14 @@ func TestExpansionOracle(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// RunMacros runs macro by macro: the reference.
-			macro, err := RunMacros(config)
-			if err != nil {
-				t.Fatal(err)
+			// RunMacros runs macro by macro: the reference. It runs no main:
+			// partitions beside the macros, so a config with some is pinned by
+			// its goldens and its run by default alone.
+			var macro *simulator.StateTimeStorage
+			if len(config.Main.Partitions) == 0 {
+				if macro, err = RunMacros(config); err != nil {
+					t.Fatal(err)
+				}
 			}
 			fresh, err := LoadConfig(path)
 			if err != nil {
@@ -135,8 +139,10 @@ func TestExpansionOracle(t *testing.T) {
 			}
 			digest := digestOf(single.Storage)
 			run.Configs[path] = digest
-			if want := digestOf(macro); fmt.Sprint(digest) != fmt.Sprint(want) {
-				t.Errorf("the expanded run differs from the macro tier:\n%s", digestDiff(digest, want))
+			if macro != nil {
+				if want := digestOf(macro); fmt.Sprint(digest) != fmt.Sprint(want) {
+					t.Errorf("the expanded run differs from the macro tier:\n%s", digestDiff(digest, want))
+				}
 			}
 			// Run as it is by default, the config runs as its expansion.
 			byDefault, err := LoadConfig(path)

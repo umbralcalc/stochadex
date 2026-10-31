@@ -322,9 +322,41 @@ func oneScalarValueIndex(ref analysis.DataRef, storage *simulator.StateTimeStora
 	return indices[0]
 }
 
+// ScalarRegressionInitState is the statistics of the one pair (x, y), in the
+// layout ScalarRegressionStatsIteration uses for these options: the state after
+// a step from no pairs. A partition starting from it counts its data's
+// initial row, which a run never steps to, as well as each step's row after.
+func ScalarRegressionInitState(
+	intercept bool,
+	mode RegressionStatsMode,
+	windowLength int,
+	minDenominator float64,
+	x, y float64,
+) []float64 {
+	if minDenominator <= 0 {
+		minDenominator = 1e-12
+	}
+	iteration := &ScalarRegressionStatsIteration{intercept: intercept, mode: mode,
+		windowLength: windowLength, minDenom: minDenominator}
+	state := make([]float64, ScalarRegressionStateWidth(intercept, mode, windowLength))
+	switch {
+	case mode == RegressionStatsCumulative && intercept:
+		iteration.iterateCumulativeIntercept(state, x, y)
+	case mode == RegressionStatsCumulative:
+		iteration.iterateCumulativeOrigin(state, x, y)
+	case intercept:
+		iteration.iterateWindowIntercept(state, x, y)
+	default:
+		iteration.iterateWindowOrigin(state, x, y)
+	}
+	return state
+}
+
 // NewScalarRegressionStatsPartition builds a PartitionConfig for
 // ScalarRegressionStatsIteration. storage is used to resolve analysis.DataRef indices;
-// it must already contain the series partitions referenced by Y and X.
+// it must already contain the series partitions referenced by Y and X. The
+// statistics start from the pair in Y's and X's first rows, so every row of
+// the data counts, its initial row included.
 func NewScalarRegressionStatsPartition(
 	applied AppliedScalarRegressionStats,
 	storage *simulator.StateTimeStorage,
@@ -335,7 +367,6 @@ func NewScalarRegressionStatsPartition(
 	if applied.Mode == RegressionStatsWindow && w < 1 {
 		panic("scalar regression: WindowLength must be >= 1 when Mode is RegressionStatsWindow")
 	}
-	width := ScalarRegressionStateWidth(applied.Intercept, applied.Mode, w)
 	interceptFlag := 0.0
 	if applied.Intercept {
 		interceptFlag = 1.0
@@ -371,7 +402,9 @@ func NewScalarRegressionStatsPartition(
 				Indices:  []int{xIdx},
 			},
 		},
-		InitStateValues:   make([]float64, width),
+		InitStateValues: ScalarRegressionInitState(applied.Intercept, applied.Mode, w, minD,
+			storage.GetValues(applied.X.PartitionName)[0][xIdx],
+			storage.GetValues(applied.Y.PartitionName)[0][yIdx]),
 		StateHistoryDepth: depth,
 		Seed:              0,
 	}

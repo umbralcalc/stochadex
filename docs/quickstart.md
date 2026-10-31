@@ -192,7 +192,11 @@ outputs:
   - {name: sparse, condition: {type: every_n_steps, n: 10}, function: {type: stdout}}
 ```
 
-Conditions are `every_step`, `every_n_steps`, `only_given_partitions` and `nil`. Functions are
+Conditions are `every_step`, `every_n_steps`, `only_given_partitions`, `final_step` and `nil`.
+`final_step` writes each partition once, as it stands when the run ends (its last step, whatever
+the termination condition), and `{type: final_step, partitions: [a, b]}` writes only those
+partitions; it is the one to use for an estimation run, which wants the final estimate and not
+a row per step. Functions are
 `stdout`, `json_log`, `websocket`, `arrow`, `duckdb`, `postgres`, `s3` and `nil`. A config with
 no `outputs:` prints every step to stdout. (The older `simulation.output_condition` /
 `output_function` pair is deprecated shorthand for one view named `output`; a config that
@@ -279,6 +283,13 @@ main:
     timestep_function:     {type: from_input, input: obs}       # the clock follows the input
     termination_condition: {type: input_exhausted, input: obs}  # and stops when it runs out
 ```
+
+An input's first row is the replaying partition's initial state, so a run over an input of N
+rows takes N - 1 steps: one per row after the first. The run never steps *to* the first row, but
+it is data like any other, and the macros count it (see
+[Estimating from every row](#estimating-from-every-row)); a `main:` partition that accumulates
+from `params_from_upstream` alone sees only the rows after it, so start its
+`init_state_values` from the first row too.
 
 An input is any `source:` (`csv`, `json_log`, `postgres`, plus `arrow` and `s3` in the
 distributed CLI), or a pre-pass simulation (`{simulation: {steps, timestep, partitions: ...}}`).
@@ -815,6 +826,41 @@ macros:
 ```
 
 Macros: the aggregations (`vector_mean` / `vector_variance` / `vector_covariance`, `grouped_aggregation`), `scalar_regression_stats`, `likelihood_comparison`, `likelihood_mean_function_fit`, `posterior_estimation`, and the two live ones, `evolution_strategy_optimisation` and `smc_inference`, which need no `data` block.
+
+### Estimating from every row
+
+Every row of a macro's data counts, the first included: an input's first row is its replay's
+initial state, which the windowed aggregations read from history and `scalar_regression_stats`
+starts its sums from. Two things decide whether you get an estimate:
+
+- **A windowed aggregation returns `default_value` until its window has filled.**
+  `vector_mean`, `vector_variance` and `vector_covariance` read `window:` rows of history
+  (default 1) and output `default_value` (default 0) for the
+  first `window` steps. A window longer than the run would output that every step, so a run of a
+  file input fails when the run starts (as it reads its inputs; `--check` reads none), naming
+  the fix, instead.
+- **For the mean over every row, use `cumulative: true`.** A `vector_mean` with
+  `cumulative: true` (and no `window:`, `kernel:`, `params:` or `default_value:`) is the running
+  mean of all rows so far, each weighted equally. A step costs the same however long the data,
+  where a window as long as the data would cost a pass over it every step.
+
+So a closed-form rate estimate from a CSV of counts and exposures — the Poisson maximum
+likelihood rate is total count over total exposure, which is the ratio of their means — is a
+cumulative mean written once, at the end:
+
+```yaml
+macros:
+- type: vector_mean
+  name: means                    # [mean count, mean exposure] over every row
+  data: {partition_name: obs}
+  cumulative: true
+outputs:
+- {name: estimate, condition: {type: final_step, partitions: [means]},
+   function: {type: json_log, path: estimate.log}}
+```
+
+[`cfg/example_poisson_rate_config.yaml`](https://github.com/umbralcalc/stochadex/blob/main/cfg/example_poisson_rate_config.yaml)
+does this per group, with the rates themselves as a `main:` partition.
 
 ### The learning macros have levers
 

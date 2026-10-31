@@ -29,11 +29,39 @@ an exact version rather than assume stability across minors.
   `run: {mode: serve}` streams the expansion's run to each client.
 - `stochadex graph` on a `macros:` config draws its expansion's graph, the partitions it runs
   as. It reads the config's inputs, as the run does.
+- **`cumulative: true` on `vector_mean`**: the running mean over every row of its data, each
+  weighted equally, at the same cost per step however long the data. It is the mean an
+  estimation run wants (a windowed mean reads its whole window every step). It takes no
+  `window:`, `kernel:`, `params:` or `default_value:`, and starts from the data's first row.
+  It expands to the new `values_function_cumulative_mean` iteration
+  (`general.ValuesFunctionCumulativeMeanIteration`; `macros.NewVectorCumulativeMeanPartition`).
+- **The `final_step` output condition** writes each partition once, as it stands when the run
+  ends, whatever ends it: `condition: {type: final_step}`, or
+  `{type: final_step, partitions: [a, b]}` for only those partitions
+  (`simulator.FinalStepOutputCondition`). An estimation run over a long input writes its
+  final estimate, not a row per step.
+- `cfg/example_poisson_rate_config.yaml`: closed-form Poisson rates per group from a CSV of
+  counts and exposures, as a cumulative mean and a `final_step` output, pinned to the CSV's
+  closed-form sums.
 
 ### Changed
 
 - A `macros:` config's `run:` block is validated when it is loaded, as any config's is.
   `api.RunMacros`, which runs macro by macro, still refuses one.
+- **`scalar_regression_stats` counts its data's first row.** An input's first row is its
+  replay's initial state, which the run never steps to, so the macro used to start from zero
+  and miss it: over a CSV of N rows it counted N - 1. Its statistics now start from the first
+  rows' (x, y) pair, in both modes and both tiers. A sub-simulation input whose
+  `init_state_values` are placeholders, not data, now has them counted too: make them data, as
+  `cfg/example_regression_config.yaml` now does.
+
+### Fixed
+
+- A `vector_mean`, `vector_variance` or `vector_covariance` whose `window:` is longer than the
+  input it reads now fails when the run starts, naming the fix, instead of returning `default_value`
+  (typically 0) every step: a windowed aggregation outputs `default_value` until its window has
+  filled, which such a window never does. For `vector_mean` the error points to
+  `cumulative: true`.
 
 ### Fixed
 

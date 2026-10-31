@@ -1,0 +1,32 @@
+{
+  "config": "cfg/example_poisson_rate_config.yaml",
+  "run": {
+    "mode": "batch",
+    "runtime": "macros",
+    "macros": [
+      "vector_mean"
+    ]
+  },
+  "inputs": [
+    {
+      "name": "matches",
+      "kind": "csv",
+      "location": "cfg/example_poisson_rate_data.csv",
+      "partitions": [
+        "events"
+      ],
+      "read_by": [
+        "macros"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "estimate",
+      "declared_in": "outputs",
+      "condition": "final_step",
+      "sink": "stdout",
+      "location": "stdout"
+    }
+  ]
+}

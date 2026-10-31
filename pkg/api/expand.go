@@ -48,6 +48,9 @@ type expansionContext struct {
 	// is the time the inputs start at.
 	owners   map[string]string
 	initTime float64
+	// inputSteps is the number of steps a replay of the inputs runs for, when
+	// the run is clocked by them and that is known (0 otherwise).
+	inputSteps int
 }
 
 // firstRow is a visible partition's first row.
@@ -202,6 +205,10 @@ type inputShape struct {
 	widths    map[string]int
 	firstRows map[string][]float64
 	initTime  float64
+	// steps is how many steps a replay of the input runs for: one per row
+	// after the first. It is 0 for a sub-simulation, whose rows are unknown
+	// until it runs.
+	steps int
 }
 
 // inputShapeOf finds an input's shape: from its declaration when it is a
@@ -222,7 +229,7 @@ func inputShapeOf(input InputConfig) (inputShape, error) {
 		return inputShape{}, err
 	}
 	shape := inputShape{widths: map[string]int{}, firstRows: map[string][]float64{},
-		initTime: storage.GetTimes()[0]}
+		initTime: storage.GetTimes()[0], steps: len(storage.GetTimes()) - 1}
 	for _, name := range storage.GetNames() {
 		first := storage.GetValues(name)[0]
 		shape.widths[name], shape.firstRows[name] = len(first), first
@@ -333,6 +340,10 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if mainClock {
+		// main:'s own clock, not the inputs', says how long the run is.
+		context.inputSteps = 0
+	}
 	// main:'s partitions run beside the macros', which may read them.
 	for _, partition := range config.Main.Partitions {
 		if input, replayed := context.owners[partition.Name]; replayed {
@@ -405,6 +416,7 @@ func inputsContext(inputs map[string]InputConfig) (*expansionContext, error) {
 		}
 		// Every input shares one time axis, so any gives the clock's start.
 		context.initTime = shape.initTime
+		context.inputSteps = shape.steps
 		for partition, width := range shape.widths {
 			if owner, taken := context.owners[partition]; taken {
 				return nil, withKind(ErrData, fmt.Errorf(

@@ -519,6 +519,13 @@ func registerComposableIterations() {
 		}
 		return it, r.done()
 	}
+	iterationBuilders["values_function_cumulative_mean"] = func(f map[string]interface{}) (simulator.Iteration, error) {
+		r := newSpecReader("values_function_cumulative_mean", f)
+		it := &general.ValuesFunctionCumulativeMeanIteration{
+			Function: namedFunc(r, "function", valueFunctions),
+		}
+		return it, r.done()
+	}
 	iterationBuilders["values_function_vector_covariance"] = func(f map[string]interface{}) (simulator.Iteration, error) {
 		r := newSpecReader("values_function_vector_covariance", f)
 		it := &general.ValuesFunctionVectorCovarianceIteration{
