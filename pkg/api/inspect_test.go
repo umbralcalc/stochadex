@@ -404,9 +404,9 @@ func TestCheck(t *testing.T) {
 		{"data: without macros",
 			checkYAML(walkPartition("a", ""), "data: {steps: 3, timestep: 1.0, partitions: []}\n"),
 			"sets data: but no macros:"},
-		{"macros alongside main partitions",
-			string(macroConfig) + "main:\n  partitions:\n" + walkPartition("a", ""),
-			"sets both main.partitions and macros:"},
+		{"macros alongside an ensemble",
+			string(macroConfig) + "run: {mode: ensemble, seeds: [1, 2]}\n",
+			"sets run: alongside macros:"},
 	}
 	for _, c := range cases {
 		t.Run(c.name+" fails --check as the run fails", func(t *testing.T) {

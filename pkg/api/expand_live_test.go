@@ -437,7 +437,7 @@ macros:
 		{"an analysis before the macro with the clock",
 			"macros:\n- {type: vector_mean, name: m, data: {partition_name: ttt_apply}, window: 2}\n" +
 				"- {type: mcts_self_play, name: ttt, steps: 2, env: {type: tictactoe}}\n",
-			"expanding needs the inputs the macros read, or a first macro that runs its own clock"},
+			"expanding needs a clock: the inputs the macros read, main.simulation, or a first macro that runs its own"},
 	}
 	for _, c := range cases {
 		t.Run(c.name+" does not expand, saying why", func(t *testing.T) {

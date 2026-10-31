@@ -126,7 +126,8 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      `scalar_regression_stats`, `evolution_strategy_optimisation`, `smc_inference`,
      `mcts_self_play`, `mcts_planning`) — and runs that as one ordinary run.
      `TestExpansionOracle` pins it bit-for-bit to the macro-by-macro tier (`RunMacros`, which
-     builds each `pkg/macros` constructor against a `StateTimeStorage`). Macro inputs are typed
+     builds each `pkg/macros` constructor against a `StateTimeStorage`). Hand-written `main:`
+     partitions run in the same run, and macros may read them live. Macro inputs are typed
      spec structs decoded straight from YAML.
    - **Environments** — `pkg/api/registry_environment.go`, the one registry the engine leaves
      empty for downstreams to fill (`RegisterEnvironment`). A registered environment is a
