@@ -87,7 +87,7 @@ func BenchmarkMacroConfigs(b *testing.B) {
 				b.Fatal(err)
 			}
 			measure(b, func() error {
-				_, err := RunToStorage(config)
+				_, err := RunMacros(config)
 				return err
 			})
 		})

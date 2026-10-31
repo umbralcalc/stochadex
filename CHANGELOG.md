@@ -22,6 +22,16 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Changed
+
+- **A `macros:` config runs as its expansion.** `api.RunToStorage`, `api.RunWith` and the CLI
+  expand the config (`api.Expand`) and run the result as one ordinary run, instead of running
+  each macro in turn against the recorded storage. Results are bit-identical: every shipped
+  macro config is pinned to the macro-by-macro run. A macro config's outputs are now written
+  as the run steps, so its rows within a step come out in partition order, as any config's do,
+  rather than in partition name order; the lines are the same. A config assembled in Go, with
+  no source text to expand, still runs macro by macro, as `api.RunMacros` (deprecated) does.
+
 ### Fixed
 
 - **Every run of a loaded config reads its inputs afresh.** Running one loaded config again

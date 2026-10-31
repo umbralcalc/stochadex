@@ -185,8 +185,8 @@ type ManifestColumns struct {
 type ManifestRun struct {
 	// Mode is batch, ensemble or serve.
 	Mode string `json:"mode"`
-	// Runtime is main, or macros for a macros: config, which runs its macros in
-	// turn against its inputs.
+	// Runtime is main, or macros for a macros: config, which runs as its
+	// expansion (Expand): one run of the partitions its macros expand into.
 	Runtime     string   `json:"runtime"`
 	Macros      []string `json:"macros,omitempty"`
 	Seeds       []uint64 `json:"seeds,omitempty"`
