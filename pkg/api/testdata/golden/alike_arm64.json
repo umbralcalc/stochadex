@@ -1,0 +1,509 @@
+{
+  "go": "go1.25.2",
+  "tests": {
+    "TestExpandAggregationMacros/a_data:_block_expands_to_the_input_named_data": {
+      "times": "145a872587ccca6a0ffeaee5abcea097514f12a247a39c2c9fd46c46a81850c2",
+      "partitions": {
+        "data_stream": "501x2 2de25795e2d2c527b699917a71cdf8067f62a70366e873028977bf8ab53ef45e",
+        "rolling_mean": "501x2 be9493213a85b6aec2703f29565714329c273fc6ec032d629579c70dd4d39b94",
+        "rolling_var": "501x2 bbf6c437027d47deba7cfd8de5a5db611b17114cd4dd6a08e48f7675cc75b784"
+      }
+    },
+    "TestExpandAggregationMacros/a_file_source's_shape_is_read_from_the_file": {
+      "times": "3f49eb678a767de6ea1aa5715121ea6dbc17d72ced1fd2849584684cb1190326",
+      "partitions": {
+        "m": "30x2 00be5ed7518a681feb56f63f937105e4176ad2ccaf0e302d8965a50cb08ddef3",
+        "obs": "30x2 8377968468a612cfba914e1c9f6ba7e9769c0da258253c20ce738047c2bba1de"
+      }
+    },
+    "TestExpandAggregationMacros/a_macro_reading_an_earlier_macro's_output_over_a_window,_and_part_of_a_wider_mean": {
+      "times": "3e29f75db992bfad05e390b246b8d5c639e0604a8ca5890d1319dcf3708d7ee5",
+      "partitions": {
+        "level": "61x1 b94dd630432e702dbe1bee6e293207d8c6a0fcc40d1b973fcb071510f227e108",
+        "m": "61x2 7070bf8b18b9e358e637ffe48cd4e259c4b8b0303836787ad5398caf5732ba64",
+        "mm": "61x2 a1ab2e25ea3b76d76831a5f6f3ffd494749fcc2e1202ca8deaa8e27e797ae322",
+        "stream": "61x2 41d5c6b65e8f97d954d8903ef09e03c96fac193900ebfbf8d0a997b118666104",
+        "v": "61x1 ad1cce7154aa204534cfeab9ed64cc469b66e377f112ec84ba768ddb9ab9b1db"
+      }
+    },
+    "TestExpandAggregationMacros/a_two-wide_covariance_puts_its_default_on_the_diagonal": {
+      "times": "3e29f75db992bfad05e390b246b8d5c639e0604a8ca5890d1319dcf3708d7ee5",
+      "partitions": {
+        "c": "61x4 ea33e1e70d7d5cd9cc97f67a15e763e32c645d55e7279ec2d41aea01757df5e1",
+        "level": "61x1 b94dd630432e702dbe1bee6e293207d8c6a0fcc40d1b973fcb071510f227e108",
+        "m": "61x2 94da521608d67fd647fc177d68b9a6b48db7de641d4b1cd9ccd84dab279420e4",
+        "stream": "61x2 41d5c6b65e8f97d954d8903ef09e03c96fac193900ebfbf8d0a997b118666104"
+      }
+    },
+    "TestExpandAggregationMacros/mean,_variance_and_covariance,_with_indices,_defaults_and_the_default_kernel": {
+      "times": "3e29f75db992bfad05e390b246b8d5c639e0604a8ca5890d1319dcf3708d7ee5",
+      "partitions": {
+        "c": "61x1 be2dddd688c06e6d17ad8acd4a8db77a42a840099a6576d4275000bb3be0cf99",
+        "lc": "61x1 6c4e72e4fa91561e4e8de5cd4e22c659d12123b9e7e55a605bbffde485b3916d",
+        "level": "61x1 b94dd630432e702dbe1bee6e293207d8c6a0fcc40d1b973fcb071510f227e108",
+        "lm": "61x1 46a8c21993200c45db90cce97d9f5495ad9f6d16afabef1432c58d8875335956",
+        "m": "61x1 08e3fad4ced72d11a6dce5f67010706744921903d1d5b13781a9e85b0534de6c",
+        "stream": "61x2 41d5c6b65e8f97d954d8903ef09e03c96fac193900ebfbf8d0a997b118666104",
+        "v": "61x1 0387a4fae4fa6b189f255a2b678a98e6011042348cddedae78c857a3a504954a"
+      }
+    },
+    "TestExpandAggregationMacros/several_inputs:_each_partition_replays_from_its_own,_clocked_by_the_first": {
+      "times": "3f49eb678a767de6ea1aa5715121ea6dbc17d72ced1fd2849584684cb1190326",
+      "partitions": {
+        "m": "30x1 b4ad42f86762c903dcf777e11babd1b8d346a1d06024866f133a16b69d7111b6",
+        "n": "30x1 41127b005c33153e676141f5852093d386839db4e5889e918ade58b9dd274533",
+        "obs": "30x2 8377968468a612cfba914e1c9f6ba7e9769c0da258253c20ce738047c2bba1de",
+        "other": "30x1 1fe47c009dbd6045d9dd92e22fb7354470f71dd0c7e9118df7e5cbd8c4f590f5"
+      }
+    },
+    "TestExpandAggregationMacros/the_shipped_aggregation_example_runs_alike_expanded": {
+      "times": "145a872587ccca6a0ffeaee5abcea097514f12a247a39c2c9fd46c46a81850c2",
+      "partitions": {
+        "data_stream": "501x2 2de25795e2d2c527b699917a71cdf8067f62a70366e873028977bf8ab53ef45e",
+        "rolling_mean": "501x2 be9493213a85b6aec2703f29565714329c273fc6ec032d629579c70dd4d39b94",
+        "rolling_var": "501x2 bbf6c437027d47deba7cfd8de5a5db611b17114cd4dd6a08e48f7675cc75b784"
+      }
+    },
+    "TestExpandGroupedAggregation/declared_groups_are_used_in_the_order_given": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
+        "g": "41x4 2cd9eb69ed41d3ee3371e99c137a1b099daf15bdde8fabe4e9b3188304b0a78c",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandGroupedAggregation/declared_groups_are_used_in_the_order_given#2": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
+        "g": "41x4 3443f4d4728daec50221eeab7516dfef271063e2147620ff84e170b6f4ece4b7",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandGroupedAggregation/grouping_by_an_earlier_macro's_output,_with_its_groups_declared": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
+        "g": "41x2 74ffe481bb5b75eb8c8a82848db05714894d42c0d09433df468d4ae376308343",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "m": "41x3 ae9aee770803853555c143b2bc8f241536b1f0a18dbdf3db3ca69bffc7b85843",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandGroupedAggregation/grouping_by_two_partitions,_part_of_the_data,_a_default,_a_kernel_and_params": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
+        "g": "41x8 66df9e555facf33c3cf401b76b9bc78280c9568c76947772909c4f8baa13b420",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandGroupedAggregation/groups_appearing_over_time,_discovered_as_the_macro_discovers_them": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "agg": "41x4 2cd9eb69ed41d3ee3371e99c137a1b099daf15bdde8fabe4e9b3188304b0a78c",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandGroupedAggregation/groups_discovered_in_a_file_input": {
+      "times": "a16baffd799c068f77b6ca9229994700c5cec207e6703150739e8cf7b504a97b",
+      "partitions": {
+        "g": "20x3 66a574249d38174ee94e7289cf1b66be93081c28113a7952f2fef9d83786a2e8",
+        "kind": "20x1 0fa6c3a71ca62fe9726d94796763f2d74cc66ea39479c5203cb99276dd289bce",
+        "level": "20x1 8f9adfec6085923f076003aec1d1123329b54a9f64e21faca1caf3c1d8ba3790"
+      }
+    },
+    "TestExpandGroupedAggregation/no_window_reads_one_step_back,_as_a_window_of_1_does": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
+        "g": "41x4 2cd9eb69ed41d3ee3371e99c137a1b099daf15bdde8fabe4e9b3188304b0a78c",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "m": "41x3 855d399aa475fb2158810971c56d59385845cc4e5dafad2e9b839778b9799066",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandGroupedAggregation/other_gathers_the_undeclared_groups_into_the_sum_of_their_own_columns": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
+        "g": "41x4 2cd9eb69ed41d3ee3371e99c137a1b099daf15bdde8fabe4e9b3188304b0a78c",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandGroupedAggregation/other_gathers_the_undeclared_groups_into_the_sum_of_their_own_columns#2": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
+        "g": "41x3 1332c3291dcf0d3301735fb67f922ca9cd387b538f5bc805724eb1e6466ceac0",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandGroupedAggregation/params_override_what_the_macro_sets": {
+      "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
+      "partitions": {
+        "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
+        "g": "41x4 e134e42f18aa1b9fb90851809123f765a268d3fcbe4fd4927226dc9552c624a6",
+        "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
+        "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
+      }
+    },
+    "TestExpandInferenceMacros/../../cfg/example_posterior_macro_config.yaml_runs_alike_expanded": {
+      "times": "b833a6113b55b2396ffd0f69f47cc232e8cf5cb3d6e601caff363c17ea75afcf",
+      "partitions": {
+        "test_data": "2001x2 ff3abc3957a9185ad0d4ac40cd50f82ee389100e985ea696bd212494bf3c048f",
+        "test_likelihood": "2001x3 14351e7c0ff4cbfe141c3e17a4b567edd94b2a5cdeb322ac49a2079c9245fd4c",
+        "test_post_cov": "2001x4 4ad359ca5df73b49c69590c1c21071540724526b2037186211e482ed7ba5d374",
+        "test_post_log_norm": "2001x1 7e81a95af30ae18fffe92be6bd3621926b0ca62c82b29613408188dc725bc856",
+        "test_post_mean": "2001x2 7fd80553b541c11cafc0e72b47a477eca1e458f1650ecce351c66af50dcb65f9",
+        "test_post_sampler": "2001x2 f2e3440ddadb1f834f4e7a8091f5f6bdb71bdd222e537c81f6380fd857c8b426"
+      }
+    },
+    "TestExpandInferenceMacros/../../cfg/example_regression_config.yaml_runs_alike_expanded": {
+      "times": "358350098173667478f9c5664d6568c0051b2e2c5bda905004e40c3519dc5ca5",
+      "partitions": {
+        "ols": "401x9 99193838777f865e0c3ed864fab470125cc4f84114a351d9625a896e062ebfb0",
+        "x": "401x1 8539a0d24dad67de343816efb15be278419203d51d15157173b3d069ce3871de",
+        "y": "401x1 153eef2fa023cfd4a48073c5466fa7fc5660280b007eec579638055ea2c31fe6"
+      }
+    },
+    "TestExpandInferenceMacros/a_fit_whose_model_takes_its_covariance_from_a_window_partition": {
+      "times": "3d05535c2238124966abc8438c7560ea103f61888ef2d905a2a88c859e501405",
+      "partitions": {
+        "mean_fit": "101x8 9b81b3f98573d5c6a53b028b18c5e092a3d3e2679818498d172a73b41da193fb",
+        "test_data": "101x2 86ae867a5af9da3f5386ce6ce837f0c3f67b0931b52313e1f5b1c2f8a87fcaa1"
+      }
+    },
+    "TestExpandInferenceMacros/a_later_macro_reads_a_posterior's_mean": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "post_like": "121x3 82a866ee604d3a4fd237d41b67f0f7f64f2a619218f216958c0eaf696bffd75e",
+        "post_log_norm": "121x1 8fb721c8d70cf936a6b78ae330b7cf75657e917c6a5396883a77c9e460924164",
+        "post_mean": "121x1 ab57f7fc73bb58d877ea2bbf7a93c4f74231e899e4cbb10d4478759d9f4076fa",
+        "post_sampler": "121x1 56b03085933d6a1124d07fa21c6c60c2f9e47bd91b9ac731d70bf2b5d2bda1ce",
+        "post_var": "121x1 ab67df6fae9991c754f0d0b56e59625d00d67a7ae0503b4715b36e6fa8425bb9",
+        "smoothed": "121x1 8cc202f340090a1eb6933dfd220fc210c102e779b0f2ff06995d608a90e56bc9",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/a_likelihood_comparison_over_a_window_stepping_its_own_model,_with_a_burn-in": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "fit": "121x3 73c4cc9407d13de9be8af912ede4246e171e1e95b1e435004139ebf634f42ace",
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/a_mean-function_fit_warm-started_from_its_last_answer": {
+      "times": "3d05535c2238124966abc8438c7560ea103f61888ef2d905a2a88c859e501405",
+      "partitions": {
+        "mean_fit": "101x4 1087bf6bcef126aadb9900971584f959ed0b254dfc2bb703a2036ea8240861d5",
+        "test_data": "101x2 86ae867a5af9da3f5386ce6ce837f0c3f67b0931b52313e1f5b1c2f8a87fcaa1"
+      }
+    },
+    "TestExpandInferenceMacros/a_posterior_whose_sampler_drives_a_window_partition,_with_variances_only": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "post_like": "121x3 82a866ee604d3a4fd237d41b67f0f7f64f2a619218f216958c0eaf696bffd75e",
+        "post_log_norm": "121x1 8fb721c8d70cf936a6b78ae330b7cf75657e917c6a5396883a77c9e460924164",
+        "post_mean": "121x1 ab57f7fc73bb58d877ea2bbf7a93c4f74231e899e4cbb10d4478759d9f4076fa",
+        "post_sampler": "121x1 56b03085933d6a1124d07fa21c6c60c2f9e47bd91b9ac731d70bf2b5d2bda1ce",
+        "post_var": "121x1 ab67df6fae9991c754f0d0b56e59625d00d67a7ae0503b4715b36e6fa8425bb9",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/a_posterior_with_a_full_covariance_and_a_sampler_wired_entirely_from_upstream": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "post_like": "121x3 cda14701ca55f5142d476a90cdb4151bd54427fd88c629e974edac8e2dfd5828",
+        "post_log_norm": "121x1 ba7ee846b33cf7cb66a19c285426950d8868a72839e8f81a05bae0be65bafa01",
+        "post_mean": "121x1 9fa78bef486ee9409bdcdccf1da1cb343053b8f7cfdd1236fc68d2632f7bd0b4",
+        "post_sampler": "121x1 4a4ce819619f26a9e1accfe583220d70ae47e59a7d905c8facffa18721d5e3c8",
+        "post_var": "121x1 b341f6c58efcc8fa66b3ea5b11a7caf1c8a1f9d72d66317e234152230a726e52",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/a_regression_on_a_constant_regressor_falls_back_to_its_minimum_denominator": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "ols": "121x19 b7828d3be4a4366d5a3817bfc0abe5ea26ee3da91beb3430c0c5130b1486876d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/a_two-wide_posterior_with_variances_only,_its_sampler_declaring_a_covariance_upstream": {
+      "times": "b833a6113b55b2396ffd0f69f47cc232e8cf5cb3d6e601caff363c17ea75afcf",
+      "partitions": {
+        "test_data": "2001x2 ff3abc3957a9185ad0d4ac40cd50f82ee389100e985ea696bd212494bf3c048f",
+        "test_likelihood": "2001x3 6a80d2fce87b34acb9ba00b73e89207bfb8cdf7211d6b40ff81e93d5f6b6427b",
+        "test_post_cov": "2001x2 d152bf7b0a30df06bc7fc99e6a30d20f678eb50bc0c47e0a6e642dacc10c7732",
+        "test_post_log_norm": "2001x1 fad1c5bc274f116dd2ae553c2d91da8459606f31ad191d37eefbd5b402a3eadf",
+        "test_post_mean": "2001x2 e0a81397a39cb80769a9b80006bac58b870a97b04df08bfebc659501a1743b64",
+        "test_post_sampler": "2001x2 46047facf3e890e6382101e1edf0e5c1a7a4a96613f8877439f68b97a7b210e3"
+      }
+    },
+    "TestExpandInferenceMacros/a_window_model_reading_the_data's_previous_row_starts_from_the_window's_first": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "fit": "121x4 dcd3ae93ea27e8bac27d3bb01783150c1407887dbf48615a4e45bf961dfe6c60",
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/a_windowed_regression_without_an_intercept_over_a_two-wide_input": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "ols": "121x19 6cc87004680c07bbcda68698f2d522d3d9d7916c36c1c18d4825a4f6a3cd10a8",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/comparison_models_stated_only_in_params,_or_only_by_wiring": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "fit": "121x3 f14d0cad23d3ad51d3935a6d00b2f0564a5ab1e2816fe6f7b6b4366fff03bbd5",
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/comparison_models_stated_only_in_params,_or_only_by_wiring#2": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "fit": "121x4 e9ec72638c305c62f0899e48ecb37f9e9c9a78777b64459fd0ffd3d11dbefc94",
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandInferenceMacros/testdata/gradient/fit_macro.yaml_runs_alike_expanded": {
+      "times": "3d05535c2238124966abc8438c7560ea103f61888ef2d905a2a88c859e501405",
+      "partitions": {
+        "mean_fit": "101x4 2ef59af2739494b6e704f2e76086261872d84ef9eb951086b2804cad3696f145",
+        "test_data": "101x2 86ae867a5af9da3f5386ce6ce837f0c3f67b0931b52313e1f5b1c2f8a87fcaa1"
+      }
+    },
+    "TestExpandLiveMacros/../../cfg/example_evolution_strategy_config.yaml_expands_exactly": {
+      "times": "5e0924ec4ae801801cc5f532c4439777a9a810c1883ec4e8cd38848d8d43f2dc",
+      "partitions": {
+        "es_covariance": "1001x4 d5db0e0dc8b8bc7611703922769730d3d619a1be296c34468d4717c748132517",
+        "es_mean": "1001x2 a2162a9744fe27ea074b20c05c8c5740b48c2101830300ce3a5e702f102059c0",
+        "es_sampler": "1001x2 c1acc06596653d52e2400491daf0bdd1080916082fdf7f1feb6714cf95609db6",
+        "es_sampler_simulation": "1001x2 e987b4299dc55df05ea1a9bb11ba40995543a17ef1427320055ff0938d55163c",
+        "es_sorting": "1001x30 b89f200f8a8f655aa8e5cff92e89b1b595c7d512071721a613867c7cfa34190e"
+      }
+    },
+    "TestExpandLiveMacros/../../cfg/example_mcts_config.yaml_expands_exactly": {
+      "times": "3dbc2fdc66220c3b107b457314da5528f1a0814ec381aee2ae06d112766e415c",
+      "partitions": {
+        "ttt_apply": "11x10 a089cd82d2603985be8ba98e08e53ad14d5f2339094dd8cda41b82f499af23e8",
+        "ttt_search": "11x33 b774b46e50f6799b3a774bb5a93429f8fc51a77b6c683b142dc400d44c9e69fc"
+      }
+    },
+    "TestExpandLiveMacros/../../cfg/example_planning_config.yaml_expands_exactly": {
+      "times": "13a22b00aae835fa4eb3b20bb56a5c6fddd903cb629afeb30112fc4719b05950",
+      "partitions": {
+        "plan_apply": "9x7 43da0023f393a2b342dd68603bbc3b8f10936cb391e0949efb3f000887f23fce",
+        "plan_search": "9x17 a2cc8e671a202a2c955cf8b8e000dbd57819fe68076e582529d1681647d35b6a"
+      }
+    },
+    "TestExpandLiveMacros/../../cfg/example_smc_config.yaml_expands_exactly": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "smc_posterior": "4x3 f7ee86cb87921161f5ef826b8dd08d041b7914794010e3013e7d23e11b688a98",
+        "smc_proposals": "4x100 61fb889d4baee2de275801ac7007ecf27cff3dd90bd433f658b9c883f188d3ec",
+        "smc_sim": "4x100 6628bd645438527e422ab6f4053f7df169e25663c12163c60f455805bc7554c7"
+      }
+    },
+    "TestExpandLiveMacros/SMC_observing_a_partition_whose_name_YAML_1.1_reads_as_a_boolean": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "smc_posterior": "4x3 f7ee86cb87921161f5ef826b8dd08d041b7914794010e3013e7d23e11b688a98",
+        "smc_proposals": "4x100 61fb889d4baee2de275801ac7007ecf27cff3dd90bd433f658b9c883f188d3ec",
+        "smc_sim": "4x100 6628bd645438527e422ab6f4053f7df169e25663c12163c60f455805bc7554c7"
+      }
+    },
+    "TestExpandLiveMacros/SMC_over_a_file_input_on_its_own_clock": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "smc_posterior": "4x3 815c5d94765f40fe76d7cec0772b6e33edf6e3cdd88b28c40ad7acc9d7f5bfee",
+        "smc_proposals": "4x100 df592c82bbd4377e266bec871952b4ddfa193e07e38eb1c974c04dc09164055b",
+        "smc_sim": "4x100 f31a1df82727615a8b80d75ffabfc9c1b356d91c1e6f4fdb3f27a4bfe12b9ea6"
+      }
+    },
+    "TestExpandLiveMacros/SMC_over_a_model_stating_its_own_simulation,_with_no_inputs,_verbosely": {
+      "times": "9536689a4941c84ded438e9002674c39b2d5d1024a7b34232ee82e4cd4664931",
+      "partitions": {
+        "p": "3x4 09753f882c72eb919521ade6093206a5aa6a0a096cf2358b56787960452b6079",
+        "q": "3x3 28f9ac9360fa6ecade977a8f3732ae5448a5f3682a6297834c411ff237e0ec4e",
+        "s": "3x4 4269b06414bdd6947ad87037077cf8136db1801774908ecde4024b2a9382330e"
+      }
+    },
+    "TestExpandLiveMacros/SMC_over_two_parameters,_then_an_analysis_of_its_posterior": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "m": "4x7 e7b2b2a3b9dc6787117e0afb0c95b2afcccdc021c57a00b7196c17597ad98166",
+        "smc_posterior": "4x7 f1c2ffbb0ef8efb528032cd7d38946880f6880abdb0a1c64d671c478dac98a9d",
+        "smc_proposals": "4x40 ee3b4c4cc36661ef847fdc9ed8482d742a233f76f90a5295dc2daa8156227933",
+        "smc_sim": "4x20 b50cc483cd0da79ef35ad124e7aed2222271fc25e9d5c4974507a4fee5e30f91"
+      }
+    },
+    "TestExpandLiveMacros/a_plan_over_samples_and_weights_read_straight_from_the_inputs": {
+      "times": "b0c45303f7f11848cb5e6e5b2af2fb2aecd0b72c28748b88b583ab6bb76df174",
+      "partitions": {
+        "plan_apply": "3x5 b1b930d46817fbaadf006c4d11a0fc93c4b8b56aac8bd678f9f2b7314c9c8d18",
+        "plan_search": "3x15 72263df33ae5baa74f00002ab19e2137355e6c38992a54bfaf23cbc67b3b7b12"
+      }
+    },
+    "TestExpandLiveMacros/a_planner_with_pinned_noise_and_a_timestep": {
+      "times": "89bd0f5c14d1cf1cc9f61a23cc4f3c7fa5b9accdeca715b551677762905ca793",
+      "partitions": {
+        "plan_apply": "9x10 db92344633bea8a98a2a78b8fc592c24b18c4957e2a39e9e089cb48c062adb45",
+        "plan_search": "9x20 a29094a6f8c2c64357b8b7db036c377464abdfb755e0284ac52688bc51699b0e"
+      }
+    },
+    "TestExpandLiveMacros/an_analysis,_then_SMC_observing_an_input": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "smc_posterior": "4x3 4e809eff9eb595ed3904f72b0d0708dff9fd5c8ffa4ff12dd5d135e471576734",
+        "smc_proposals": "4x20 53788d9fcb705bdd70181cca6255cf2c7d3d1d33f86e9ec9d4ee4fedc940e8a5",
+        "smc_sim": "4x20 f84a991738a4d94183d7ea2d250998ea9279a8aabfc75d88ec33a6644a30655a"
+      }
+    },
+    "TestExpandLiveMacros/an_analysis,_then_SMC_observing_its_output_(calibrate,_then_infer)": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "smc_posterior": "4x3 54194fe25f27f9391f8b8bd5fad0227eb378bf7b574751a4d1425b05617c6035",
+        "smc_proposals": "4x20 278a4a5a31d4a819f1108048fc026ed1d8d3049226625692d7b0e1f159c58ad2",
+        "smc_sim": "4x20 afe461fcfb5205f34a6eae6a4575c81a3d7bc5bde7c3b43fe2ab3c766f0be1a6"
+      }
+    },
+    "TestExpandLiveMacros/an_evolution_strategy,_then_an_analysis_of_its_output": {
+      "times": "dd22fbacd39157d5459168cc3eaa31d3648bd6a034be8d7b668886ea426f72b8",
+      "partitions": {
+        "es_covariance": "31x4 dc675b94821cccf4f5627ab6e0bcebc42dc476336a9fa4cb36d491a0ad7557bd",
+        "es_mean": "31x2 d6bc6847f65abc338f57ba89871e65e0ea8d81b8bcdda04ff9d78612ff1ece54",
+        "es_sampler": "31x2 e5d17abb13d2616a74aa1cfcedbe498e65ae19e35ea6b46ee925be6921b625ad",
+        "es_sampler_simulation": "31x2 7b6dfe77f9445cb6c704e57d542c837d1a37acce6d2c9bee107c2d9dadebca20",
+        "es_sorting": "31x30 fd43d6808594c9b84437c0f98f780754098716409cb4faf7c2dae058cfa10ee5",
+        "m": "31x2 d162c0f53c247da9c158812c545b163540da55896a66a85da98a89a3e14e9dd4"
+      }
+    },
+    "TestExpandLiveMacros/an_evolution_strategy_whose_covariance_collapses_falls_back_to_its_default": {
+      "times": "576b531337d3197c5410a9d1bf8e7354eebd2c0a382544d1d61427b26c2fc685",
+      "partitions": {
+        "es_covariance": "21x4 4532791c4a5d4f3a0dbfaf066df0624d14620979479a9918b2798d240cafa2cb",
+        "es_mean": "21x2 6647e6dab5681b55cb2260819bdbedccc9a8ff5c68485bea2fc1d67e2d4b2bfd",
+        "es_sampler": "21x2 dde0915347f28e55ff7ad4776e8e0e9852f771780433048e77b17700ca259058",
+        "es_sampler_simulation": "21x2 5d104a4697d9e7d24d5435e875609e7fdfaa5dc0a6e737816ee2729fdda19113",
+        "es_sorting": "21x30 80a3582eb15d3ed83bbf09b58439a1abe366848661519985c1f4101aec66e368"
+      }
+    },
+    "TestExpandLiveMacros/an_evolution_strategy_with_every_field_and_wiring_set": {
+      "times": "8f515d27d3e9ed071442c37e47e4e2101bfabc784e7a1ec63faec2cabcd1c48c",
+      "partitions": {
+        "es_covariance": "41x4 0ebf755d70a97c461dc650a2a2c5de1480b42d66a3056912efbfc507251ec224",
+        "es_mean": "41x2 074d54d1b21e7d2f6d9c4ed2b313a2b437647a9e6ecdca8b2c9bdb468eeffe93",
+        "es_sampler": "41x2 12cae894bce89f49e84e942151291a7a182770a0ce74d1f8b2ecc6daf513bda4",
+        "es_sampler_simulation": "41x2 ebcf086e9501444c56e72c6380ec528093922ec1d97ac91f5fda5b187645065e",
+        "es_sorting": "41x30 17a5ddbce34368f88e6b7ecb01aacf1850a8bd415649b626dac99b378cec4332"
+      }
+    },
+    "TestExpandLiveMacros/calibrate,_then_plan_expands_exactly,_as_a_run:_input_the_planner_reads": {
+      "times": "b0c45303f7f11848cb5e6e5b2af2fb2aecd0b72c28748b88b583ab6bb76df174",
+      "partitions": {
+        "plan_apply": "3x5 e799ea6bb1f33995a4e64b94cfa498c1d81f4405557a06655da20158480e2b3f",
+        "plan_search": "3x15 46aec9172e40893f01db27a99ea47def3001823336536aace2545c81300945ec"
+      }
+    },
+    "TestExpandLiveMacros/self-play_on_the_environment's_defaults": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "ttt_apply": "4x10 854dfe27ef1f914bef0e2f0aedbb9bd47747c31cb219abe3d24d1d7d6fb507e6",
+        "ttt_search": "4x33 ab05b2bfee84f541fe7dd06c4c8b1c72e181c2f082cac8de72ce6b4a80a7ff80"
+      }
+    },
+    "TestExpandLiveMacros/self-play_over_an_environment_that_samples_successors_searches_no_chance_nodes": {
+      "times": "84a6e8b7afdd286a48ab0aab2c72227fff91a935b0489e633018914bd01693cd",
+      "partitions": {
+        "w_apply": "6x3 c82b00f4d445d4dfd6202f4e90cd9ee1d53f9b3f95afcfbc1f4435d9fc8054f0",
+        "w_search": "6x11 b04ef748abc5109a67cb3309c76899984b9a480a0aa1f571c29d5d188e470681"
+      }
+    },
+    "TestExpandLiveMacros/self-play_with_every_search_setting": {
+      "times": "afa52a85cfed7b2f82dd0eedebf6635f6f6553df7d19310b098ba7ed660159fe",
+      "partitions": {
+        "ttt_apply": "7x10 7ac47e7ebf4ef82d29486bf2377740828f1348b7552fa16ff49b83437d0a4f61",
+        "ttt_search": "7x33 725c4c5692de75853d5c643499dba0a08a21aa38c94d473675d0e3a96e24b8a5"
+      }
+    },
+    "TestExpandLiveMacros/testdata/planning/planning_macro.yaml_expands_exactly": {
+      "times": "13a22b00aae835fa4eb3b20bb56a5c6fddd903cb629afeb30112fc4719b05950",
+      "partitions": {
+        "plan_apply": "9x10 a6b8b9644a9862906c9ada80fe512719493bc0baefd93f242cc89381d521512f",
+        "plan_search": "9x20 4f905637a668840fde21ec0765a4e4c03f577de3a6b18e33b490c41dbfa28e72"
+      }
+    },
+    "TestExpandLiveMacros/testdata/replicated/smc_macro.yaml_expands_exactly": {
+      "times": "9392b85eaba90b4aa6f39e1f269927b4bd6bec47cd2e34a80cf3ed914c26dc7e",
+      "partitions": {
+        "smc_posterior": "4x3 5a2f918afb3939f86d1ac117c405e2d7c766b6ef9aacf50990006028c493d345",
+        "smc_proposals": "4x100 c0a2c6206020feee224d0745eb85c5ef8c591868141d7197c39344dbd41fd464",
+        "smc_sim": "4x100 1b04aa3bd24e00b65c367bc94b86274a5164ffed576de359de8701966545ec2b"
+      }
+    },
+    "TestExpandLiveMacros/two_analyses,_then_a_plan_over_the_second's_output,_then_an_analysis_of_the_plan": {
+      "times": "b0c45303f7f11848cb5e6e5b2af2fb2aecd0b72c28748b88b583ab6bb76df174",
+      "partitions": {
+        "p": "3x5 7e053b1b8b229c63ddb4531b1e99892d977651778f2c8c15f3a0d2f4f437a8b9",
+        "plan_apply": "3x5 254d035a0444a18322cc16e935a84e15ea6f5f81d17a62c2edbe5df537106036",
+        "plan_search": "3x15 0beb283550dabce9503c1ef1196731fe877af042ddf90dbabde2a864b2013643"
+      }
+    },
+    "TestExpandedWindowsRunAsTheMacroTierRunsThem/a_window_listed_out_of_order_keeps_the_default,_and_scores_as_in_order": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "fit": "121x4 1766d98a077d56f86b0a21a77d8ed2f4e0b3b9dc16c7dbb13de9421d388a0d55",
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    },
+    "TestExpandedWindowsRunAsTheMacroTierRunsThem/a_window_listed_out_of_order_keeps_the_default,_and_scores_as_in_order#2": {
+      "times": "7ce1ee16dcd7e225bc4de1238cf2d40c0666ebab4cb283fdcc3894d8035abfcd",
+      "partitions": {
+        "fit": "121x4 5f2b3e39cf03394b7fc5bff797e24cb740eafce01d946f9869f4b2a1c55b66e2",
+        "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
+        "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
+        "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
+        "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
+      }
+    }
+  }
+}
