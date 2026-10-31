@@ -96,7 +96,7 @@
       "times": "5bf27192606b33fd1dea2ecae71113f90141de712e4745f4a19b855206506f82",
       "partitions": {
         "band": "41x3 8ccee36be17b51444f6dfd5467145526d073bdc2190f491f8f018e2fc0980450",
-        "g": "41x8 66df9e555facf33c3cf401b76b9bc78280c9568c76947772909c4f8baa13b420",
+        "g": "41x8 78a002795c3fda3d3f7cef1bce09b548be4ad0704706a09a0f272ef9ce1d3916",
         "grp": "41x3 4992873dc3dcb259c860d9107609c09285995d91e97044bbe660f44cd8d3778f",
         "vals": "41x3 b2f8c7593ec15749e30e0636002c2390c01c7b7f177c75c0f88fae04c56c26f6"
       }
@@ -168,9 +168,9 @@
     "TestExpandInferenceMacros/../../cfg/example_regression_config.yaml_runs_alike_expanded": {
       "times": "358350098173667478f9c5664d6568c0051b2e2c5bda905004e40c3519dc5ca5",
       "partitions": {
-        "ols": "401x9 99193838777f865e0c3ed864fab470125cc4f84114a351d9625a896e062ebfb0",
+        "ols": "401x9 8a24d41fdad65b0ec733c6aa920c5feb232264ea9f850464dbbebbd3ca2cb3fd",
         "x": "401x1 8539a0d24dad67de343816efb15be278419203d51d15157173b3d069ce3871de",
-        "y": "401x1 153eef2fa023cfd4a48073c5466fa7fc5660280b007eec579638055ea2c31fe6"
+        "y": "401x1 775a6362662752c6af0f92c5688d79faea4977e5a6ba07adbf202cd8a72bb8f5"
       }
     },
     "TestExpandInferenceMacros/a_fit_whose_model_takes_its_covariance_from_a_window_partition": {
@@ -245,7 +245,7 @@
       "partitions": {
         "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
         "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
-        "ols": "121x19 b7828d3be4a4366d5a3817bfc0abe5ea26ee3da91beb3430c0c5130b1486876d",
+        "ols": "121x19 bcbe94464643ce00c5f5192c4db41235eb5432d424d2119be12071d8da2b9632",
         "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
         "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
       }
@@ -276,7 +276,7 @@
       "partitions": {
         "flat": "121x1 d78853309193f03b8f539060af6d582a726c5ed0c3f58e1279a6c02fb162bf9e",
         "level": "121x1 4e220a9867a03db0a8f6a73a855c0d6d187ff0897e19be0c3175ba65519ab21d",
-        "ols": "121x19 6cc87004680c07bbcda68698f2d522d3d9d7916c36c1c18d4825a4f6a3cd10a8",
+        "ols": "121x19 4f19088b1817506ecdd21b070e39fa48c720e3ab58dc928aa3a0d1481d3c6c01",
         "pair": "121x2 05fb88c2dda3aa0df0b2534575ca12033123b5de08c60f7bb2c65506f9698782",
         "stream": "121x1 1760d0cd19ada27f6bb5251fc890b92ab67b51536d2a6c1081887c6fc1c05ebd"
       }
