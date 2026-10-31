@@ -22,6 +22,25 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-10-31
+
+This release makes a `macros:` config one ordinary run. A config with macros now runs as its
+expansion into the core config language, with results bit-identical to running each macro in
+turn, and it can sit beside a hand-written `main:` model that its macros analyse live and that
+reads their outputs. It also fixes a loaded config reusing its first run's inputs, and corrects
+0.24.0's note on how fast expanded macro configs run: measured fairly, they are level with
+running macro by macro.
+
+**Upgrading from 0.24.**
+
+- A macro config's outputs now come out as the run steps: within each step, rows are in
+  partition order rather than name order. The lines are the same, so only order-sensitive
+  consumers of its output see a difference.
+- Running one loaded config again re-reads its inputs, so a changed file is seen and a removed
+  one is unavailable. A Go caller looping over one config reads its inputs each time.
+- `main:` partitions, `expressions:`, `embedded:` runs and `main.simulation` beside `macros:`
+  now run instead of being refused (except through the deprecated `api.RunMacros`).
+
 ### Added
 
 - **`main:` partitions run beside `macros:`, in one run.** A config can state its own model
@@ -47,12 +66,12 @@ an exact version rather than assume stability across minors.
   afresh each run; expanding is a fixed cost when it first runs, 0.3 ms to 2 ms for the
   shipped examples (`docs/performance.md`).
 
-### Fixed
-
 - **A `replicated_simulation_run` builds its replicas faster.** It decodes its run once and
   gives each replica a copy, instead of decoding its YAML once per replica, so loading a
   config with one is several times quicker: the SMC example's 100 particles load in about a
   quarter of the time.
+
+### Fixed
 
 - **Every run of a loaded config reads its inputs afresh.** Running one loaded config again
   (`api.RunToStorage` twice, or in a loop) reused the rows its first run had read, from
@@ -2379,7 +2398,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.24.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.25.0...HEAD
+[0.25.0]: https://github.com/umbralcalc/stochadex/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/umbralcalc/stochadex/compare/v0.22.0...v0.23.0
 [0.22.0]: https://github.com/umbralcalc/stochadex/compare/v0.21.0...v0.22.0
