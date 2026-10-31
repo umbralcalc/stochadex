@@ -582,10 +582,9 @@ func expandToRun(config *ApiRunConfig) (*ApiRunConfig, error) {
 	if err := validateMacroContext(config); err != nil {
 		return nil, configError(err)
 	}
+	// Loading gives every macros: config with source text, which only a
+	// loaded config has, its cache.
 	cache := config.expansion
-	if cache == nil {
-		return Expand(config)
-	}
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
 	if cache.config == nil {
