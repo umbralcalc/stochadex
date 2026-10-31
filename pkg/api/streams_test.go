@@ -295,22 +295,20 @@ func TestParamsFromStoredInput(t *testing.T) {
 		}
 	})
 
-	t.Run("a config reads its stored rows once, as from_input does", func(t *testing.T) {
+	t.Run("every run reads its stored rows afresh, as from_input does", func(t *testing.T) {
 		copied := filepath.Join(t.TempDir(), "vol.csv")
 		writeFile(t, copied, readFile(t, csv))
 		config := writeConfig(t, storedParamsYAML(copied, 5, "params_from_input: {variances: {input: vol}}"))
-		first, err := RunToStorage(config)
-		if err != nil {
+		if _, err := RunToStorage(config); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.Remove(copied); err != nil {
 			t.Fatal(err)
 		}
-		second, err := RunToStorage(config)
-		if err != nil {
-			t.Fatalf("a second run of the same config should reuse the rows it read: %v", err)
+		// The second run reads the input again, so the removed file is missing.
+		if _, err := RunToStorage(config); KindOf(err) != ErrUnavailable || !strings.Contains(err.Error(), `input "vol"`) {
+			t.Errorf("expected the second run to read the removed file and be unavailable, got %v", err)
 		}
-		assertSameStorage(t, "second run", second.Storage, first.Storage)
 	})
 
 	t.Run("a stored input that cannot be read is unavailable", func(t *testing.T) {
