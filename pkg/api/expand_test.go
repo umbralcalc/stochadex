@@ -9,8 +9,8 @@ import (
 )
 
 // expandedAlike runs a macros: config through the macro tier and its expansion
-// through the single runtime, and checks they record exactly the same rows at
-// exactly the same times.
+// through the single runtime, checks they record exactly the same rows at
+// exactly the same times, and checks the expanded run against its golden.
 func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 	t.Helper()
 	path := writeConfigPath(t, yaml)
@@ -42,6 +42,7 @@ func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 		t.Fatal(err)
 	}
 	assertStoragesEqual(t, "expanded vs macro tier", single.Storage, macro)
+	checkAlikeGolden(t, single.Storage)
 	if got, want := fmt.Sprint(single.Storage.GetTimes()), fmt.Sprint(macro.GetTimes()); got != want {
 		t.Errorf("times differ")
 	}
