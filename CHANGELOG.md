@@ -22,6 +22,20 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Every run of a loaded config reads its inputs afresh.** Running one loaded config again
+  (`api.RunToStorage` twice, or in a loop) reused the rows its first run had read, from
+  `from_input` replays, `params_from_input` and an input clock, even after the file changed
+  or was removed, because binding them wrote into the caller's config. Each run now binds a
+  copy, so it reads its inputs as it starts and leaves the config as loaded, as `macros:`
+  configs always did.
+
+  This also corrects 0.24.0's note that expanded macro configs run faster than macro by
+  macro: the benchmark reran one loaded expansion, which skipped re-reading its inputs.
+  Measured with every run reading its inputs, the expanded run is level with macro by macro;
+  the corrected table is in `docs/performance.md`.
+
 ## [0.24.0] — 2026-10-30
 
 This release makes stochadex a deterministic engine with a machine-readable CLI

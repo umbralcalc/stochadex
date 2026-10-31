@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -636,6 +637,14 @@ func preparedMainGenerator(config *ApiRunConfig) (preparedRun, error) {
 	return preparedMainGeneratorWith(config, false)
 }
 
+// forOneRun is the config with its main run's partitions and simulation its
+// own, for one run to bind its inputs into.
+func (c *ApiRunConfig) forOneRun() *ApiRunConfig {
+	run := *c
+	run.Main.Partitions = slices.Clone(c.Main.Partitions)
+	return &run
+}
+
 // preparedMainGeneratorWith is preparedMainGenerator, optionally building nested
 // runs with their own sinks silenced (see ApiRunConfig.configGenerator).
 func preparedMainGeneratorWith(
@@ -645,6 +654,10 @@ func preparedMainGeneratorWith(
 	if err := validateMainContext(config); err != nil {
 		return preparedRun{}, configError(err)
 	}
+	// Binding puts the rows a run reads in place of its input placeholders, so
+	// bind a copy of the main run: the caller's config keeps its placeholders,
+	// and its next run reads its inputs afresh.
+	config = config.forOneRun()
 	loader := inputLoader{config: config}
 	if err := bindInputsWith(config, &loader); err != nil {
 		return preparedRun{}, err
