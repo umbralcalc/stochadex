@@ -30,9 +30,10 @@ Status: **accepted** (2026-10-04).
   4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
      block style), the core semantics reference, and per-type fields in `stochadex catalogue`
      as the schema; **2.10** human-facing docs.
-  5. **Releases.** Nothing is tagged since v0.23.0, and robert locks a release, so cut one
-     soon after #154, and again around each contract-visible change (2.14, 2.11, 2.13).
-     Downstream bumps before 2.9: cryptobook is still on v0.14.0.
+  5. **Releases.** v0.24.0 released (2026-10-30, #157): every macro expands, the CLI contract
+     (`graph`, `catalogue`, `SHA256SUMS`), deterministic output order. Cut one again around
+     each contract-visible change (2.14, 2.11, 2.13). Downstream bumps before 2.9: AMR is on
+     v0.22.0, cryptobook still on v0.14.0.
 - **History:** every merged item, decision and finding, newest Phase 2 work first, is in
   [Appendix A](#appendix-a-progress-log).
 
