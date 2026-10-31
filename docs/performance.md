@@ -97,6 +97,13 @@ data-source and posterior examples are 8% and 3% slower (p = 0.04), and the plan
 strategy" column sets the expanded run's `execution_strategy`, which the macro-by-macro path
 has no way to choose. `BenchmarkMacroConfigs` in `pkg/api` reproduces it.
 
+Run as `api.RunToStorage` and the CLI run it, a `macros:` config expands first, once per
+loaded config, so repeated runs of one config cost what the table shows. A single load and run,
+as each CLI invocation is, pays for expanding once: 0.3 ms for the regression example, 0.5 ms
+for the CSV one, 0.9 ms for self-play and 2 ms for SMC, which is 8% of these short examples'
+run time (geometric mean) and within 3% for the long ones. It is a fixed cost when the config
+loads, not per step. `BenchmarkMacroConfigsFirstRun` reproduces it.
+
 ## Reproduce it
 
 Every number here is committed and regenerable on your own hardware. See

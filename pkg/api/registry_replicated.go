@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
@@ -43,12 +44,15 @@ func buildReplicatedSimulationRun(
 	// Fields decoded from YAML always marshal back (yaml.v2 panics, rather
 	// than erring, on a value that cannot).
 	raw, _ := yaml.Marshal(fields)
-	// Each replica decodes the run afresh, so no two share an iteration.
+	var template replicatedRunSpec
+	templateErr := yaml.UnmarshalStrict(raw, &template)
+	// Each replica resolves its own copy of the run, decoded once, so no two
+	// share an iteration or a params map.
 	decode := func() (*replicatedRunSpec, error) {
-		var spec replicatedRunSpec
-		if err := yaml.UnmarshalStrict(raw, &spec); err != nil {
-			return nil, err
+		if templateErr != nil {
+			return nil, templateErr
 		}
+		spec := template.forReplica()
 		// A replica runs concurrently with the others, so it shares no
 		// environment with them: each resolves in a scope of its own, whose
 		// input readers are bound with the run's.
@@ -94,6 +98,19 @@ func buildReplicatedSimulationRun(
 		return nil, fmt.Errorf("replicated_simulation_run: %w", err)
 	}
 	return iteration, nil
+}
+
+// forReplica is a copy of a decoded, unresolved run spec for one replica to
+// resolve: its partitions' params and wiring, and its expression iterations,
+// its own.
+func (s replicatedRunSpec) forReplica() replicatedRunSpec {
+	replica := s
+	replica.Run.Partitions = slices.Clone(s.Run.Partitions)
+	for index := range replica.Run.Partitions {
+		isolateWiring(&replica.Run.Partitions[index])
+	}
+	replica.Run.Expressions = slices.Clone(s.Run.Expressions)
+	return replica
 }
 
 // validate checks what a replica's run may not do: write its own output,

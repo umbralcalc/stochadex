@@ -248,8 +248,8 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 		return err
 	}
 	if len(config.Macros) > 0 || config.Run.Mode == "ensemble" {
-		// A macros run's result is replayed through its views; each ensemble
-		// member writes its own.
+		// RunWith runs a macros: config as its expansion; each ensemble member
+		// writes its own outputs.
 		_, err := RunWith(config, WithConfigOutputs())
 		return err
 	}
@@ -447,8 +447,11 @@ func WithConfigOutputs() RunOption {
 // partition that panics, under any execution strategy, fails the run with an
 // ErrRuntime naming it.
 //
-// A macros: config's result is also returned as RunResult.Storage, and each
-// captured view receives it replayed as a live run would output it. An ensemble
+// A macros: config runs as its expansion (Expand): one ordinary run, whose
+// every row is also returned as RunResult.Storage. One assembled in Go, with
+// no source text to expand, runs macro by macro, as RunMacros runs it, and each
+// captured view receives its result replayed as a live run would output it. An
+// ensemble
 // returns RunResult.Members; with WithConfigOutputs each member also writes its
 // own outputs: views ({member} / {seed} substituted). Captured views do not yet
 // apply to ensembles and are rejected.
@@ -471,6 +474,9 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 		if !capture.mirror {
 			requested = append(requested, capture)
 		}
+	}
+	if len(config.Macros) > 0 && len(config.source) > 0 {
+		return runExpanded(config, options)
 	}
 	if len(config.Macros) > 0 {
 		storage, err := runMacros(config)
@@ -547,6 +553,55 @@ func RunWith(config *ApiRunConfig, options ...RunOption) (*RunResult, error) {
 	default:
 		return nil, configError(unknownRunModeError(config.Run.Mode))
 	}
+}
+
+// runExpanded runs a macros: config as its expansion, returning every row of
+// the run as RunResult.Storage, as a macros: run always has.
+func runExpanded(config *ApiRunConfig, options []RunOption) (*RunResult, error) {
+	expanded, err := expandToRun(config)
+	if err != nil {
+		return nil, err
+	}
+	const everyRow = "\x00macros"
+	result, err := RunWith(expanded, append(slices.Clone(options),
+		CaptureView(everyRow, &simulator.EveryStepOutputCondition{}))...)
+	if err != nil {
+		return nil, err
+	}
+	result.Storage = result.Views[everyRow]
+	delete(result.Views, everyRow)
+	return result, nil
+}
+
+// expandToRun checks a macros: config can run, as a macros: run checks it, then
+// expands it: on its first run, for a loaded config, whose later runs reuse
+// that expansion. Expanding depends only on the config and its inputs'
+// shapes; a later run whose input changed shape fails its wiring checks. A
+// failed expansion is not kept, so an input that was missing is read again.
+func expandToRun(config *ApiRunConfig) (*ApiRunConfig, error) {
+	if err := validateMacroContext(config); err != nil {
+		return nil, configError(err)
+	}
+	// Loading gives every macros: config with source text, which only a
+	// loaded config has, its cache.
+	cache := config.expansion
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+	if cache.config == nil {
+		expanded, err := Expand(config)
+		if err != nil {
+			return nil, err
+		}
+		cache.config = expanded
+	}
+	return cache.config, nil
+}
+
+// expansionCache holds a loaded macros: config's expansion, made by its first
+// run.
+type expansionCache struct {
+	mu     sync.Mutex
+	config *ApiRunConfig
 }
 
 // captureViews builds one in-memory view per capture, registering each storage
@@ -865,7 +920,8 @@ func RunWithParsedArgs(args ParsedArgs) {
 // each row had been output by a live run, so every view's condition selects
 // exactly what it would have: row k carries step number k, and the history
 // holds the previous row's time with the increment to row k's. Partitions go
-// out in name order within a row. This is how a macros: run reaches outputs:.
+// out in name order within a row. This is how a macros: config run macro by
+// macro, one with no source text to expand, reaches outputs:.
 func replayThroughViews(storage *simulator.StateTimeStorage, views *simulator.OutputViews) {
 	names := sortedNames(storage)
 	settings := &simulator.Settings{Iterations: make([]simulator.IterationSettings, len(names))}

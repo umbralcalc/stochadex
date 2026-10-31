@@ -319,13 +319,22 @@ func (s *mctsPlanningSpec) environment(
 	if err := s.checkSearch(); err != nil {
 		return nil, err
 	}
+	if err := s.refuseInputRefs(); err != nil {
+		return nil, err
+	}
+	return s.simulationEnvironmentSpec.build(storage, "mcts_planning")
+}
+
+// refuseInputRefs refuses samples or weights read from a named input, which a
+// {type: simulation} environment does but mcts_planning does not.
+func (s *mctsPlanningSpec) refuseInputRefs() error {
 	if s.Parameters != nil && ((s.Parameters.SamplesFrom != nil && s.Parameters.SamplesFrom.Input != "") ||
 		(s.Parameters.WeightsFrom != nil && s.Parameters.WeightsFrom.Input != "")) {
-		return nil, fmt.Errorf("mcts_planning reads samples_from and weights_from by partition " +
+		return fmt.Errorf("mcts_planning reads samples_from and weights_from by partition " +
 			"name, from its inputs and earlier macros; input: is for a {type: simulation} " +
 			"environment, which reads them when its run starts")
 	}
-	return s.simulationEnvironmentSpec.build(storage, "mcts_planning")
+	return nil
 }
 
 // checkSearch checks the spec names the search and how long it runs.
