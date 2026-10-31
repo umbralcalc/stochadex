@@ -119,13 +119,15 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      registered name constructs the type it claims, and a `go/ast` scan requires every `Iterate`
      type to be registered or excluded-with-reason.
    - **`run:`** — `{mode: batch | ensemble, seeds, concurrency}` (`RunModeConfig`).
-   - **`data:` + `macros:`** (`pkg/api/macros*.go` decoding into `pkg/macros`) — the analysis
-     tier. `data:` (a sub-simulation or a `csv`/`json_log`/`postgres` source) produces a
-     `StateTimeStorage` via `pkg/analysis`; each macro expands one
-     of the `pkg/macros` constructors against it (`posterior_estimation`, `likelihood_comparison`,
-     the aggregations, `scalar_regression_stats`) or runs live (`evolution_strategy_optimisation`,
-     `smc_inference`, `mcts_self_play`, `mcts_planning`). Macro inputs are typed spec structs
-     decoded straight from YAML.
+   - **`inputs:` + `macros:`** (`pkg/api/macros*.go` decoding into `pkg/macros`, and
+     `pkg/api/expand*.go`) — the analysis tier. A macro is a config → config shortcut: a run
+     expands the config (`api.Expand`) into core-language partitions — input replays, then each
+     macro's partitions (`posterior_estimation`, `likelihood_comparison`, the aggregations,
+     `scalar_regression_stats`, `evolution_strategy_optimisation`, `smc_inference`,
+     `mcts_self_play`, `mcts_planning`) — and runs that as one ordinary run.
+     `TestExpansionOracle` pins it bit-for-bit to the macro-by-macro tier (`RunMacros`, which
+     builds each `pkg/macros` constructor against a `StateTimeStorage`). Macro inputs are typed
+     spec structs decoded straight from YAML.
    - **Environments** — `pkg/api/registry_environment.go`, the one registry the engine leaves
      empty for downstreams to fill (`RegisterEnvironment`). A registered environment is a
      component (`api.NewMCTSEnvironment`), named as the `mcts_*` iterations' `environment:` or

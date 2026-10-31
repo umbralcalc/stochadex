@@ -400,4 +400,16 @@ func TestPlanningParametersFromInputs(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("an mcts_planning macro naming an input is refused macro by macro too", func(t *testing.T) {
+		config, err := LoadConfig(writeConfigPath(t, draws+"macros:\n"+strings.Replace(newsvendorPlan,
+			"PARAMETERS", "samples_from: {input: data, partition_name: draws}", 1)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := RunMacros(config); KindOf(err) != ErrConfig ||
+			!strings.Contains(err.Error(), "input: is for a {type: simulation} environment") {
+			t.Errorf("expected ErrConfig refusing input:, got %v", err)
+		}
+	})
 }

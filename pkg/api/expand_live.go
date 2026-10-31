@@ -183,6 +183,9 @@ func (s *mctsPlanningSpec) expand(ctx *expansionContext) (*expansion, error) {
 	if err := s.checkSearch(); err != nil {
 		return nil, err
 	}
+	if err := s.refuseInputRefs(); err != nil {
+		return nil, err
+	}
 	stated := planningEnvironment(ctx.source)
 	planner := s
 	if s.readsInputsInside() {

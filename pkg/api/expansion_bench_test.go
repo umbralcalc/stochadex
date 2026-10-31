@@ -46,8 +46,8 @@ func peakHeap(run func()) uint64 {
 }
 
 // BenchmarkMacroConfigs compares the two ways a macros: config runs: every shipped macros:
-// config run through the macro tier, and through its expansion under each
-// execution strategy of its run. Expanding happens once, as loading would, so
+// config run through the macro tier, by default (expanding it as it runs), and
+// through its expansion under each execution strategy of its run. Expanding happens once, as loading would, so
 // both sides time running. Each reports its peak heap, the most of five
 // sampled runs, as peak-B. Results are recorded in docs/performance.md.
 func BenchmarkMacroConfigs(b *testing.B) {
@@ -87,6 +87,16 @@ func BenchmarkMacroConfigs(b *testing.B) {
 				b.Fatal(err)
 			}
 			measure(b, func() error {
+				_, err := RunMacros(config)
+				return err
+			})
+		})
+		b.Run(name+"/default", func(b *testing.B) {
+			config, err := LoadConfig(path)
+			if err != nil {
+				b.Fatal(err)
+			}
+			measure(b, func() error {
 				_, err := RunToStorage(config)
 				return err
 			})
@@ -110,5 +120,39 @@ func BenchmarkMacroConfigs(b *testing.B) {
 				})
 			})
 		}
+	}
+}
+
+// BenchmarkMacroConfigsFirstRun loads and runs each shipped macros: config
+// once per iteration, as a CLI invocation does: macro by macro, and by
+// default, which expands the config before its first run.
+func BenchmarkMacroConfigsFirstRun(b *testing.B) {
+	b.Chdir("../..")
+	for _, path := range oracleConfigs(b) {
+		name := strings.TrimSuffix(filepath.Base(path), ".yaml")
+		b.Run(name+"/macro", func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				config, err := LoadConfig(path)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if _, err := RunMacros(config); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+		b.Run(name+"/default", func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				config, err := LoadConfig(path)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if _, err := RunToStorage(config); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }

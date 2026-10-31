@@ -165,11 +165,13 @@ func resolveIterations(partitions []simulator.PartitionConfig) error {
 	return nil
 }
 
-// RunMacros expands and runs a config's macros: tier and returns the resulting
+// RunMacros runs a config's macros: tier macro by macro, each against the
+// storage of the inputs and the macros before it, and returns the resulting
 // storage.
 //
-// Deprecated: use RunToStorage, which runs a macros: config the same way and
-// returns its storage in RunResult.Storage.
+// Deprecated: use RunToStorage, which runs a macros: config as its expansion
+// (Expand), one run with bit-identical results, and returns its storage in
+// RunResult.Storage.
 func RunMacros(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
 	return runMacros(config)
 }

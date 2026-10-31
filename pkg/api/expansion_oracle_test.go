@@ -88,7 +88,8 @@ func oracleConfigs(t testing.TB) []string {
 
 // TestExpansionOracle is the expansion's exact oracle: every shipped macros: config
 // runs, expanded into the core language, to storage bit-for-bit identical to
-// the macro tier's, with the same seeds; and the expanded run matches the
+// the macro tier's (RunMacros), with the same seeds, and so does the config run
+// by default, which runs its expansion; and the expanded run matches the
 // golden digests recorded for this architecture, which pin that output
 // independently of the macro tier. Floating-point results differ between
 // architectures (arm64 fuses multiply-adds), so each has its own goldens; a
@@ -115,7 +116,8 @@ func TestExpansionOracle(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			macro, err := RunToStorage(config)
+			// RunMacros runs macro by macro: the reference.
+			macro, err := RunMacros(config)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -133,8 +135,20 @@ func TestExpansionOracle(t *testing.T) {
 			}
 			digest := digestOf(single.Storage)
 			run.Configs[path] = digest
-			if want := digestOf(macro.Storage); fmt.Sprint(digest) != fmt.Sprint(want) {
+			if want := digestOf(macro); fmt.Sprint(digest) != fmt.Sprint(want) {
 				t.Errorf("the expanded run differs from the macro tier:\n%s", digestDiff(digest, want))
+			}
+			// Run as it is by default, the config runs as its expansion.
+			byDefault, err := LoadConfig(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := RunToStorage(byDefault)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := digestOf(result.Storage); fmt.Sprint(got) != fmt.Sprint(digest) {
+				t.Errorf("run by default, the config differs from its expansion:\n%s", digestDiff(got, digest))
 			}
 			if want, pinned := goldens.Configs[path]; recorded && !*updateGoldens {
 				if !pinned {
