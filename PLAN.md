@@ -37,7 +37,7 @@ Status: **accepted** (2026-10-04).
        showed #153's gate overstated the expanded path (it reran one loaded expansion, skipping
        input reads the macro tier redid): fairly measured it is **level**, not 15% faster;
        docs and CHANGELOG corrected.
-     - **Part 2 built (branch `claude/main-beside-macros-2`), PR opens once #160 merges:**
+     - **Part 2 merged (#161).** **2.14 DONE.**
        `main:` partitions, expressions, `embedded:` and `main.simulation` run beside macros in
        one run. Clock: main.simulation, else a macro's own (duplicate refused), else inputs'.
        Macros read main partitions live (exactly as recorded; depth raised); main reads macro
@@ -47,7 +47,7 @@ Status: **accepted** (2026-10-04).
   4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
      block style), the core semantics reference, and per-type fields in `stochadex catalogue`
      as the schema; **2.10** human-facing docs.
-  5. **Releases.** v0.24.0 released (2026-10-30, #157): every macro expands, the CLI contract
+  5. **Releases.** v0.25.0 released (2026-10-31, #162): macros run as their expansion, `main:` beside macros, inputs read every run. v0.24.0 released (2026-10-30, #157): every macro expands, the CLI contract
      (`graph`, `catalogue`, `SHA256SUMS`), deterministic output order. Cut one again around
      each contract-visible change (2.14, 2.11, 2.13). Downstream bumps before 2.9: AMR is on
      v0.22.0, cryptobook still on v0.14.0.
@@ -813,7 +813,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | 2.4 | **DONE (in 2.1, #147, #148)**: clock as ordinary config | Macros that need a clock (ES, SMC, MCTS) emit `simulation:` fields in their expansion. Merging follows ordinary duplicate-definition rules (§2.2 rule 2). With no clock at all and one fixed input, the default is `{type: from_input}` on that input. | Conflict tests with error messages that name both definitions |
 | 2.5 | **DONE (#149, #150)**: remove build-time data reads (shape-only bar) | `grouped_aggregation` takes declared `groups:`; old configs desugar with a one-off group discovery run as a computed input. `smc_inference` emits embedded particle runs whose observed-data partition is `from_input` instead of a copied series. `mcts_planning`'s `samples_from` / `weights_from` read a named input at run time instead of being baked into params. The old calibrate → plan configs desugar to a nested-run input. | The calibrate → plan tests in `test/` and `pkg/api` pass unchanged; expansion succeeds with the input files absent (proving it reads none) |
 | 2.6 | **Exact oracle — DONE (#151); all configs exact (9 shipped examples now, with the recipes gone in #154; AMR and cryptobook checked locally); default switch deferred to after 2.12** | Desugar old `data:` + `macros:` to the new shape at load time. For every `cfg/example_*.yaml`, every skill recipe, and AMR's and cryptobook's macro configs, the new path must produce **byte-identical storage** to the Phase-0 path, with the same seeds. If it doesn't, apply CONVENTIONS' oracle ladder, step down explicitly (exact → claim-level → distributional), and record which level was used. Never widen a tolerance to make it pass. | Golden-output test kept permanently as a regression guard |
-| 2.14 | **Part 1 (switch) in review (#159)**: default switch, and `main:` + `macros:` in one runtime (rule 16) | Load a macros config as its expansion, so every run of one is the single runtime; lift #92's guard so hand-written `main:` partitions and macros share that runtime, with names unambiguous across both. Gated on 2.12. | The 2.6 oracle and goldens unchanged; a config mixing `main:` and a macro reading a main partition live runs as its hand-expanded twin |
+| 2.14 | **DONE (#158, #160, #161)**: default switch, and `main:` + `macros:` in one runtime (rule 16) | Load a macros config as its expansion, so every run of one is the single runtime; lift #92's guard so hand-written `main:` partitions and macros share that runtime, with names unambiguous across both. Gated on 2.12. | The 2.6 oracle and goldens unchanged; a config mixing `main:` and a macro reading a main partition live runs as its hand-expanded twin |
 | 2.7 | **Mostly done by #154**: `stochadex graph` (with its deadlock exit code) is a subcommand on the main run, so once 2.14 runs a macro config as its expansion, its graph is the expansion's; what is left is the acceptance test below. Tooling coverage | The deadlock pre-flight and `cmd/stochadex-graph` operate on the single expanded generator, so macro configs are covered | Graph render test for `example_macro_config` shows the `rolling_mean → rolling_var` edge |
 | 2.8 | `run:` everywhere | `ensemble` and `serve` work for macro configs | Ensemble posterior test: per-seed results differ, and the ensemble mean is near the truth |
 | 2.9 | Retire the replay coordinator path | `runMacros`' sequential storage-threading loop is deleted; `AddPartitionsToStateTimeStorage` stays in `pkg/analysis` for Go users and notebooks | — |
