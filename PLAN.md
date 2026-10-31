@@ -25,7 +25,9 @@ Status: **accepted** (2026-10-04).
      macro tier's do; every shipped macro config runs expanded level or faster (geomean −15%
      time, −10% bytes, −14% allocs, −15% peak heap), recorded in `docs/performance.md`.
   2. **2.14 default switch and `main:` + `macros:` composition** (rule 16).
-     - **Part 1, the switch: in review (#159, stacked on #158).** Runs expand at run start (not
+     - **Part 1, the switch: merged as #159 into #158's branch (stacking + squash stranded it),
+       landing on `main` via #160.** Lesson: don't stack PRs on a branch that will be
+       squash-merged; wait and rebase instead. Runs expand at run start (not
        load: loading and `--check` never read inputs), once per loaded config; the macro tier
        stays as `RunMacros` and for Go-assembled configs. Decided 2026-10-31: switch now, with
        the single-run setup cost recorded (+0.3–2 ms per load-and-run on the short examples,
@@ -35,8 +37,12 @@ Status: **accepted** (2026-10-04).
        showed #153's gate overstated the expanded path (it reran one loaded expansion, skipping
        input reads the macro tier redid): fairly measured it is **level**, not 15% faster;
        docs and CHANGELOG corrected.
-     - **Part 2 next:** `main:` partitions beside macros in one run. 2.7 and 2.8 then follow
-       almost for free.
+     - **Part 2 built (branch `claude/main-beside-macros-2`), PR opens once #160 merges:**
+       `main:` partitions, expressions, `embedded:` and `main.simulation` run beside macros in
+       one run. Clock: main.simulation, else a macro's own (duplicate refused), else inputs'.
+       Macros read main partitions live (exactly as recorded; depth raised); main reads macro
+       outputs. Refused: main partition named as an input's, main beside calibrate→plan.
+       `RunMacros` still refuses main. Next after 2.14: 2.9 (retire the old path), 2.7/2.8.
   3. **2.9** retire the macro tier's replay path; the 2.6 goldens become the guard.
   4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
      block style), the core semantics reference, and per-type fields in `stochadex catalogue`
