@@ -116,6 +116,49 @@ func (r *RunConfig) resolveIn(withOutputs bool, scope *runScope) error {
 	return nil
 }
 
+// checkClock checks the run states its clock: a termination_condition and a
+// timestep_function under the simulation block at where.
+func (r *RunConfig) checkClock(where string) error {
+	return clockError(where, r.SimulationStrings.TerminationCondition.IsZero(),
+		r.SimulationStrings.TimestepFunction.IsZero())
+}
+
+// clockError names what a run's simulation block at where is missing of its
+// clock, or is nil when it has both parts. Without either, the run steps with
+// a nil component and panics as it starts.
+func clockError(where string, noTermination, noTimestep bool) error {
+	var missing []string
+	if noTermination {
+		missing = append(missing, "termination_condition (e.g. {type: number_of_steps, max_steps: 100})")
+	}
+	if noTimestep {
+		missing = append(missing, "timestep_function (e.g. {type: constant, stepsize: 1.0})")
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	return fmt.Errorf("api: %s needs %s: a run steps until its termination_condition "+
+		"holds, by its timestep_function", where, strings.Join(missing, " and "))
+}
+
+// checkMainClock checks a main.simulation block, once it states any field,
+// states the run's clock whole. One stating no field loads: a library caller
+// may supply the simulation in Go after loading, a run checks it has one
+// (validateMainContext), and beside macros: the expansion supplies the clock
+// (the inputs', or a macro's own). Beside macros:, a main.simulation stating
+// any field is the run's clock, so an init_time_value or output pair alone
+// cannot stand in for one; an output goes under outputs:.
+func checkMainClock(config *ApiRunConfig) error {
+	if simulationStringsZero(&config.Main.SimulationStrings) {
+		return nil
+	}
+	where := "main.simulation"
+	if len(config.Macros) > 0 {
+		where = "main.simulation, which beside macros: is the run's clock (an output goes under outputs:),"
+	}
+	return config.Main.checkClock(where)
+}
+
 // GetConfigGenerator constructs a ConfigGenerator preloaded with the run's
 // SimulationConfig and Partitions, and gives any partition named by an Expressions entry a
 // declarative ExpressionIteration built from that entry.
@@ -509,8 +552,8 @@ func (a *ApiRunConfig) configGenerator(silenceNested bool) *simulator.ConfigGene
 }
 
 // validateApiRunConfig asserts the loaded config is coherent: its run's shape
-// (validateRunShape), and that every partition reading a history its host feeds
-// it is fed, at any depth of nesting.
+// (validateRunShape), that every partition reading a history its host feeds
+// it is fed, at any depth of nesting, and that its embedded runs can be built.
 func validateApiRunConfig(config *ApiRunConfig) error {
 	if err := validateRunShape(config); err != nil {
 		return err
@@ -518,7 +561,36 @@ func validateApiRunConfig(config *ApiRunConfig) error {
 	if err := validateExpressionNames(config); err != nil {
 		return err
 	}
-	return validateMemoryFeeds(config)
+	if err := validateMemoryFeeds(config); err != nil {
+		return err
+	}
+	return validateEmbeddedRuns(config)
+}
+
+// validateEmbeddedRuns checks every embedded run can be built: it has
+// partitions, a main partition of its name to host it, and its clock. Without
+// one of them the run panics as it starts.
+func validateEmbeddedRuns(config *ApiRunConfig) error {
+	hosts := make(map[string]bool)
+	for _, partition := range config.Main.Partitions {
+		hosts[partition.Name] = true
+	}
+	for index, embedded := range config.Embedded {
+		where := fmt.Sprintf("embedded[%d] (%q)", index, embedded.Name)
+		if len(embedded.Run.Partitions) == 0 {
+			return fmt.Errorf("api: %s has no partitions: an embedded run lists the "+
+				"partitions it runs under partitions:", where)
+		}
+		if !hosts[embedded.Name] {
+			return fmt.Errorf("api: %s has no host: an embedded run runs inside the main "+
+				"partition of its name, so add a partition named %q with no iteration "+
+				"under main.partitions", where, embedded.Name)
+		}
+		if err := embedded.Run.checkClock(where + "'s simulation"); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // validateRunShape checks one run and the embedded runs it hosts: any partition
@@ -788,6 +860,9 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 		return nil, configError(err)
 	}
 	if err := resolveFileInputs(&config); err != nil {
+		return nil, configError(err)
+	}
+	if err := checkMainClock(&config); err != nil {
 		return nil, configError(err)
 	}
 	for index := range config.Main.Partitions {

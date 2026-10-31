@@ -35,6 +35,19 @@ an exact version rather than assume stability across minors.
 - A `macros:` config's `run:` block is validated when it is loaded, as any config's is.
   `api.RunMacros`, which runs macro by macro, still refuses one.
 
+### Fixed
+
+- A run whose clock is incomplete is a config error at load, naming what is missing, rather
+  than a nil-pointer panic once it runs. A `main.simulation` block that states any field needs
+  both `termination_condition` and `timestep_function`; beside `macros:` it is the run's
+  clock, so an `init_time_value` or an output pair alone is refused there too (an output goes
+  under `outputs:`). The same holds for each `embedded:` run's `simulation:` and for the `run:`
+  of an `embedded_simulation_run` or `replicated_simulation_run`. A config with no
+  `main.simulation` at all still loads, for a Go caller to supply one, and running or
+  `--check`ing it without one is a config error.
+- An `embedded:` run with no partitions, or with no `main:` partition of its name to host it,
+  is a config error at load rather than a nil-pointer panic.
+
 ## [0.25.0] — 2026-10-31
 
 This release makes a `macros:` config one ordinary run. A config with macros now runs as its
