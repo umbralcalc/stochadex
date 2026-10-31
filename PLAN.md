@@ -43,11 +43,15 @@ Status: **accepted** (2026-10-04).
        Macros read main partitions live (exactly as recorded; depth raised); main reads macro
        outputs. Refused: main partition named as an input's, main beside calibrate→plan.
        `RunMacros` still refuses main. Next after 2.14: 2.9 (retire the old path), 2.7/2.8.
-     - **2.7 + 2.8 in review (#163).** `stochadex graph` draws a macros config's expansion;
+     - **2.7 + 2.8 merged (#163).** `stochadex graph` draws a macros config's expansion;
        ensemble and serve run its expansion (run: carried into the expanded document, validated
        at load). Ensemble posterior test: per-seed estimates differ, mean within 0.5 of truth,
-       each member bit-identical to the written expansion's ensemble. Next: downstream bumps
-       (cryptobook, card-game-studio, AMR), then 2.9.
+       each member bit-identical to the written expansion's ensemble.
+     - **Downstream bumps to v0.25.0 in review**, every repo now off `RunMacros`:
+       cryptobook#1 (v0.14.0 → v0.25.0; cfgrun on RunToStorage, ensemble as a run: block;
+       all 66 claims byte-identical), card-game-studio#3 (test helper off RunMacros), AMR#4
+       (no changes; every cfg's rows identical to v0.22.0, only within-step order now fixed).
+       Next: 2.9 (nothing downstream calls RunMacros once these merge).
   3. **2.9** retire the macro tier's replay path; the 2.6 goldens become the guard.
   4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
      block style), the core semantics reference, and per-type fields in `stochadex catalogue`
