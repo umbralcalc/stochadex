@@ -52,6 +52,16 @@ an exact version rather than assume stability across minors.
   can no longer refresh this marketplace: remove it (`claude plugin marketplace remove
   stochadex`) and install robert instead.
 
+## [0.27.0] — 2026-11-01
+
+<!-- Release prose goes here: what this release is about and why this
+     bump. patch = fixes only; minor = new features or, in v0.x, a
+     breaking change. Delete this comment before merging. -->
+
+### Added
+
+- 
+
 ## [0.26.0] — 2026-11-01
 
 This release makes estimation from data quick and exact, and makes the macro tier a
@@ -2535,7 +2545,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.26.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.27.0...HEAD
+[0.27.0]: https://github.com/umbralcalc/stochadex/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/umbralcalc/stochadex/compare/v0.25.0...v0.26.0
 [0.25.0]: https://github.com/umbralcalc/stochadex/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...v0.24.0
