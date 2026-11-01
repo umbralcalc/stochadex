@@ -22,6 +22,24 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-11-01
+
+This release makes the config language documented and machine-readable. `stochadex catalogue`
+now says what each component takes and reads, generated from the engine's source and checked
+against every config in use, and a new [config reference](docs/reference.md) sets out what a
+config means, from how a step runs to the run a macros config makes, with every example run by a
+test. The quickstart is now a short path to a first run.
+
+**Upgrading from 0.26.**
+
+- `stochadex catalogue` is `catalogue_version` 2. An entry's `params` is now a list of objects
+  (`{"name": ..., "optional": ...}`) rather than of strings, which version 1 never filled; read
+  `name` from each. Every other key is new.
+- `evolution_strategy_optimisation`'s covariance partition no longer takes its mean as a param.
+  Results are unchanged; a config that set it by hand, outside the macro, can drop it.
+- The Claude Code marketplace is gone from this repo; install
+  [robert](https://github.com/umbralcalc/robert) for agent use.
+
 ### Added
 
 - **A config reference** ([docs/reference.md](docs/reference.md)): what a config means,
@@ -51,16 +69,6 @@ an exact version rather than assume stability across minors.
   [robert](https://github.com/umbralcalc/robert)'s. An install of the old `stochadex` plugin
   can no longer refresh this marketplace: remove it (`claude plugin marketplace remove
   stochadex`) and install robert instead.
-
-## [0.27.0] — 2026-11-01
-
-<!-- Release prose goes here: what this release is about and why this
-     bump. patch = fixes only; minor = new features or, in v0.x, a
-     breaking change. Delete this comment before merging. -->
-
-### Added
-
-- 
 
 ## [0.26.0] — 2026-11-01
 
