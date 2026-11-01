@@ -398,7 +398,7 @@ func (t *MCTSTree[S, A]) AdvanceRoot(env Environment[S, A], legalIdx int) {
 		return
 	}
 	keep := root.children[legalIdx]
-	// BFS from `keep`, building a new node slice with remapped indices.
+	// BFS from keep, building a new node slice with remapped indices.
 	newIndex := make(map[int]int, len(t.nodes))
 	queue := []int{keep}
 	newIndex[keep] = 0
@@ -593,8 +593,9 @@ type MCTSTreeIteration[S any, A any] struct {
 	rootEncoded []float64
 }
 
-// Param key used by MCTSTreeIteration.Iterate to read rollout scores from an
-// upstream MCTSRolloutIteration via params_from_upstream (within-step). The
+// MCTSTreeParamRolloutScores is the param key used by MCTSTreeIteration.Iterate
+// to read rollout scores from an upstream MCTSRolloutIteration via
+// params_from_upstream (within-step). The
 // slice should be of length Players + 1 (P scores + ok flag) — the layout
 // produced by MCTSRolloutIteration.
 //
@@ -604,8 +605,9 @@ type MCTSTreeIteration[S any, A any] struct {
 // instead when wiring the tree + rollout pipeline.
 const MCTSTreeParamRolloutScores = "rollout_scores"
 
-// Param key used by MCTSTreeIteration.Iterate to read rollout scores from an
-// upstream MCTSRolloutIteration via params_as_partitions (state-history,
+// MCTSTreeParamRolloutScoresPartition is the param key used by
+// MCTSTreeIteration.Iterate to read rollout scores from an upstream
+// MCTSRolloutIteration via params_as_partitions (state-history,
 // lag-1). The value is a 1-element slice containing the rollout
 // partition's index; the tree reads stateHistories[idx].Values row 0
 // (= the previous step's rollout output) at runtime.
@@ -621,8 +623,8 @@ const MCTSTreeParamRolloutScores = "rollout_scores"
 // are present.
 const MCTSTreeParamRolloutScoresPartition = "rollout_scores_partition"
 
-// Param key used by MCTSTreeIteration.Iterate to read the current search
-// root state. Whenever this param's value differs from the cached root
+// MCTSTreeParamRootState is the param key used by MCTSTreeIteration.Iterate
+// to read the current search root state. Whenever this param's value differs from the cached root
 // encoding, the tree is reset to the decoded new root. The slice should
 // be of length StateWidth.
 //
@@ -635,11 +637,24 @@ const MCTSTreeParamRootState = "root_state"
 
 // Row layout slot accessors. Use these to compute params_from_upstream
 // indices when wiring downstream partitions to MCTSTreeIteration's row.
-const MCTSTreeRowBestRootIdx = 0
-const MCTSTreeRowLeafStateOffset = 1
+const (
+	// MCTSTreeRowBestRootIdx is the slot of the most-visited root
+	// legal-action index.
+	MCTSTreeRowBestRootIdx = 0
+	// MCTSTreeRowLeafStateOffset is the first slot of the encoded leaf state.
+	MCTSTreeRowLeafStateOffset = 1
+)
 
+// MCTSTreeRowHasLeafOffset returns the slot of the has_leaf flag for a state
+// of width stateWidth.
 func MCTSTreeRowHasLeafOffset(stateWidth int) int { return 1 + stateWidth }
-func MCTSTreeRowVisitsOffset(stateWidth int) int  { return 2 + stateWidth }
+
+// MCTSTreeRowVisitsOffset returns the first slot of the per-legal-action root
+// visit counts for a state of width stateWidth.
+func MCTSTreeRowVisitsOffset(stateWidth int) int { return 2 + stateWidth }
+
+// MCTSTreeRowWinsOffset returns the first slot of the per-legal-action root
+// win sums for a state of width stateWidth and maxLegalActions actions.
 func MCTSTreeRowWinsOffset(stateWidth, maxLegalActions int) int {
 	return 2 + stateWidth + maxLegalActions
 }

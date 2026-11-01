@@ -54,6 +54,7 @@ type WienerProcessIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (w *WienerProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -61,6 +62,7 @@ func (w *WienerProcessIteration) Configure(
 	w.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (w *WienerProcessIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

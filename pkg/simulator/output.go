@@ -24,7 +24,10 @@ type ResourceError struct {
 	Err      error
 }
 
+// Error returns the resource and the underlying error's message.
 func (e *ResourceError) Error() string { return e.Resource + ": " + e.Err.Error() }
+
+// Unwrap returns the underlying error.
 func (e *ResourceError) Unwrap() error { return e.Err }
 
 // OutputFunction writes state/time to an output sink when the OutputCondition
@@ -74,8 +77,10 @@ type StagedOutputFunction interface {
 // NilOutputFunction outputs nothing from the simulation.
 type NilOutputFunction struct{}
 
+// Configure implements OutputFunction.
 func (f *NilOutputFunction) Configure(*Settings) {}
 
+// Output implements OutputFunction.
 func (f *NilOutputFunction) Output(
 	partitionName string,
 	state []float64,
@@ -93,8 +98,10 @@ type StdoutOutputFunction struct {
 	Prefix string
 }
 
+// Configure implements OutputFunction.
 func (s *StdoutOutputFunction) Configure(*Settings) {}
 
+// Output implements OutputFunction.
 func (s *StdoutOutputFunction) Output(
 	partitionName string,
 	state []float64,
@@ -134,6 +141,7 @@ func (f *StateTimeStorageOutputFunction) Configure(settings *Settings) {
 	f.nameToIndex = nameToIndex
 }
 
+// Output implements OutputFunction.
 func (f *StateTimeStorageOutputFunction) Output(
 	partitionName string,
 	state []float64,
@@ -287,6 +295,7 @@ func (j *JsonLogOutputFunction) Finalize() {
 	}
 }
 
+// Output implements OutputFunction.
 func (j *JsonLogOutputFunction) Output(
 	partitionName string,
 	state []float64,
@@ -337,8 +346,10 @@ type JsonLogChannelOutputFunction struct {
 	done       chan struct{}
 }
 
+// Configure implements OutputFunction.
 func (j *JsonLogChannelOutputFunction) Configure(*Settings) {}
 
+// Output implements OutputFunction.
 func (j *JsonLogChannelOutputFunction) Output(
 	partitionName string,
 	state []float64,
@@ -403,8 +414,10 @@ type WebsocketOutputFunction struct {
 	mutex      *sync.Mutex
 }
 
+// Configure implements OutputFunction.
 func (w *WebsocketOutputFunction) Configure(*Settings) {}
 
+// Output implements OutputFunction.
 func (w *WebsocketOutputFunction) Output(
 	partitionName string,
 	state []float64,
@@ -498,6 +511,7 @@ func (w *WebsocketPushOutputFunction) connectLocked() {
 	w.inner = NewWebsocketOutputFunction(connection, &w.writeMutex)
 }
 
+// Output implements OutputFunction.
 func (w *WebsocketPushOutputFunction) Output(
 	partitionName string,
 	state []float64,
@@ -538,6 +552,7 @@ type OutputCondition interface {
 // NilOutputCondition never outputs.
 type NilOutputCondition struct{}
 
+// IsOutputStep implements OutputCondition.
 func (c *NilOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,
@@ -549,6 +564,7 @@ func (c *NilOutputCondition) IsOutputStep(
 // EveryStepOutputCondition calls the OutputFunction at every step.
 type EveryStepOutputCondition struct{}
 
+// IsOutputStep implements OutputCondition.
 func (c *EveryStepOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,
@@ -562,6 +578,7 @@ type EveryNStepsOutputCondition struct {
 	N int
 }
 
+// IsOutputStep implements OutputCondition.
 func (c *EveryNStepsOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,
@@ -575,6 +592,7 @@ type OnlyGivenPartitionsOutputCondition struct {
 	Partitions map[string]bool
 }
 
+// IsOutputStep implements OutputCondition.
 func (o *OnlyGivenPartitionsOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,
@@ -608,6 +626,7 @@ type heldOutput struct {
 	time          float64
 }
 
+// IsOutputStep implements OutputCondition.
 func (c *FinalStepOutputCondition) IsOutputStep(
 	partitionName string,
 	state []float64,

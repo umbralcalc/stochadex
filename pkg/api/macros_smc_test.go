@@ -32,7 +32,7 @@ func TestModelPartitionInstantiation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Names are no longer templated: each particle runs its own simulation, so
+	// Names are verbatim: each particle runs its own simulation, so
 	// two particles' partitions can share a name without colliding.
 	if p0.Name != "pred" || p1.Name != "pred" {
 		t.Errorf("names should be verbatim: %q, %q", p0.Name, p1.Name)

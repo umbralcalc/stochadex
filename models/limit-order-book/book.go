@@ -24,6 +24,7 @@ type BookIteration struct {
 	out              []float64
 }
 
+// Configure implements simulator.Iteration.
 func (b *BookIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -33,6 +34,7 @@ func (b *BookIteration) Configure(
 	b.out = make([]float64, 2*Levels+1)
 }
 
+// Iterate implements simulator.Iteration.
 func (b *BookIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

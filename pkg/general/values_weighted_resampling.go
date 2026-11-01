@@ -22,6 +22,7 @@ type ValuesWeightedResamplingIteration struct {
 	catDist distuv.Categorical
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesWeightedResamplingIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -41,6 +42,7 @@ func (v *ValuesWeightedResamplingIteration) Configure(
 	v.catDist = distuv.NewCategorical(nilWeights, v.src)
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesWeightedResamplingIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

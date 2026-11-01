@@ -54,12 +54,13 @@ type ApplyIteration[S any, A any] struct {
 	lastWritten []float64
 }
 
-// Param key for direct (within-step) best-action input. The value should
+// ApplyParamBestIdx is the param key for direct (within-step) best-action input. The value should
 // be a 1-element slice — the legal-action index. A negative value (e.g.
 // the -1 sentinel) leaves the state unchanged.
 const ApplyParamBestIdx = "best_legal_idx"
 
-// Param key for state-history (lag-1) best-action input. The value (set
+// ApplyParamBestIdxPartition is the param key for state-history (lag-1)
+// best-action input. The value (set
 // via ParamsAsPartitions) is a 1-element slice containing the partition
 // index of the upstream partition whose row[BestIdxSlot] holds the
 // best-action index.

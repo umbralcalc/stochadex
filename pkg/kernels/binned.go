@@ -15,12 +15,14 @@ type BinnedIntegrationKernel struct {
 	binStepsize float64
 }
 
+// Configure implements IntegrationKernel.
 func (b *BinnedIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// SetParams implements IntegrationKernel.
 func (b *BinnedIntegrationKernel) SetParams(
 	params *simulator.Params,
 ) {
@@ -28,6 +30,7 @@ func (b *BinnedIntegrationKernel) SetParams(
 	b.binStepsize = params.GetIndex("bin_stepsize", 0)
 }
 
+// Evaluate implements IntegrationKernel.
 func (b *BinnedIntegrationKernel) Evaluate(
 	currentState []float64,
 	pastState []float64,

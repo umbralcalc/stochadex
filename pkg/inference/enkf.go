@@ -159,6 +159,7 @@ type EnsembleKalmanFilterIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (e *EnsembleKalmanFilterIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -166,6 +167,7 @@ func (e *EnsembleKalmanFilterIteration) Configure(
 	e.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (e *EnsembleKalmanFilterIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

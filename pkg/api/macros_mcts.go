@@ -12,7 +12,7 @@ import (
 // rather than an analysis against pre-recorded storage.
 //
 // It is also the one macro whose central component is not resolved from the
-// data registries. Its `env:` spec goes to the environment registry instead
+// data registries. Its env: spec goes to the environment registry instead
 // (registry_environment.go), which explains why the engine can run this macro
 // over rules it has never heard of.
 type mctsSelfPlaySpec struct {

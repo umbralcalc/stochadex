@@ -18,6 +18,7 @@ type PoissonLikelihoodDistribution struct {
 	mean    *mat.VecDense
 }
 
+// SetSeed implements LikelihoodDistribution.
 func (p *PoissonLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -25,6 +26,7 @@ func (p *PoissonLikelihoodDistribution) SetSeed(
 	p.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// SetParams implements LikelihoodDistribution.
 func (p *PoissonLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -34,6 +36,7 @@ func (p *PoissonLikelihoodDistribution) SetParams(
 	p.mean = MeanFromParamsOrPartition(params, partitionIndex, stateHistories)
 }
 
+// EvaluateLogLike implements LikelihoodDistribution.
 func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
 	dist := &distuv.Poisson{Lambda: 1.0}
 	logLike := 0.0
@@ -44,6 +47,7 @@ func (p *PoissonLikelihoodDistribution) EvaluateLogLike(data []float64) float64 
 	return logLike
 }
 
+// GenerateNewSamples implements LikelihoodDistribution.
 func (p *PoissonLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
 	for i := range p.mean.Len() {
@@ -52,6 +56,7 @@ func (p *PoissonLikelihoodDistribution) GenerateNewSamples() []float64 {
 	return samples
 }
 
+// EvaluateLogLikeMeanGrad implements LikelihoodDistributionWithGradient.
 func (p *PoissonLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {

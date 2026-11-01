@@ -45,7 +45,7 @@ const configureCounterYAML = `main:
 // TestARunGeneratesItsConfigsOnce guards against generating a run twice — once
 // to validate its wiring and again to run it — which reconfigured every
 // iteration, re-creating each one's random source: 3 allocations per partition
-// per run, found by benchmarking against v0.19.0.
+// per run.
 func TestARunGeneratesItsConfigsOnce(t *testing.T) {
 	runs := map[string]func(config *ApiRunConfig) error{
 		"Run": func(config *ApiRunConfig) error {

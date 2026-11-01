@@ -29,6 +29,7 @@ type StochasticPipelineIteration struct {
 	binomialDist *distuv.Binomial
 }
 
+// Configure implements simulator.Iteration.
 func (s *StochasticPipelineIteration) Configure(partitionIndex int, settings *simulator.Settings) {
 	s.binomialDist = &distuv.Binomial{
 		N: 0,
@@ -40,6 +41,7 @@ func (s *StochasticPipelineIteration) Configure(partitionIndex int, settings *si
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (s *StochasticPipelineIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

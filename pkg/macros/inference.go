@@ -93,9 +93,9 @@ func NewPosteriorEstimationPartitions(
 	// (the classic silently-degenerate posterior_estimation config). The sample can
 	// reach the loglike two ways, both accepted here: directly, the comparison model
 	// reads the sampler via params_from_upstream (simple case — a normal model feeds
-	// the sample into `mean`); or indirectly, a window partition consumes it as an
+	// the sample into mean); or indirectly, a window partition consumes it as an
 	// OutsideUpstream and the comparison scores that partition's output (the embedded
-	// forward-simulation case — e.g. the sample drives an OU `mus`). The coupling is
+	// forward-simulation case — e.g. the sample drives an OU mus). The coupling is
 	// model-specific so it cannot be auto-wired; require one of the two and fail loud.
 	samplerRead := false
 	for _, upstream := range applied.Comparison.Model.ParamsFromUpstream {

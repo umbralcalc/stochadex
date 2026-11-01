@@ -21,6 +21,7 @@ type ObservablesIteration struct {
 	bookPartition int
 }
 
+// Configure implements simulator.Iteration.
 func (o *ObservablesIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -30,6 +31,7 @@ func (o *ObservablesIteration) Configure(
 	)
 }
 
+// Iterate implements simulator.Iteration.
 func (o *ObservablesIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

@@ -1,5 +1,4 @@
-# Replaying a precomputed external series into a live main: partition — the
-# config-level path that solar-fleet/STOCHADEX_GAPS.md recorded as missing.
+# Replaying a precomputed external series into a live main: partition, with no Go.
 #
 # `clear_sky_driver` is a `from_storage` iteration: its `data:` is a precomputed
 # series carried inline as config data (here a deterministic irradiance bump you

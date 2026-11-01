@@ -10,6 +10,7 @@ type CoxProcessIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (c *CoxProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -17,6 +18,7 @@ func (c *CoxProcessIteration) Configure(
 	c.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CoxProcessIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

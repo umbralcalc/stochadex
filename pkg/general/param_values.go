@@ -12,12 +12,14 @@ import (
 type ParamValuesIteration struct {
 }
 
+// Configure implements simulator.Iteration.
 func (p *ParamValuesIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (p *ParamValuesIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

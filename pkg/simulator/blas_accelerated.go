@@ -1,12 +1,12 @@
 //go:build cblas
 
-// This file is compiled only with the `cblas` build tag. It routes gonum's BLAS
+// This file is compiled only with the cblas build tag. It routes gonum's BLAS
 // (used across continuous/inference/analysis for dot, gemv, gemm, etc.) to a linked
 // system C BLAS — OpenBLAS, Apple Accelerate, or Intel MKL, the same optimized library
 // NumPy uses — for a large speedup on BLAS-heavy operations. The init runs once at
 // startup for any binary that uses the simulator, so enabling it is just a build flag.
 //
-// TRADEOFF (why it is opt-in): this pulls in cgo, so the binary is no longer pure-Go
+// TRADEOFF (why it is opt-in): this pulls in cgo, so the binary is not pure Go
 // and cannot target WASM. The default build (no tag) stays pure-Go and WASM-clean — the
 // engine's deployment property — so enable this only when you want NumPy-class BLAS
 // throughput and do not need WASM or a static single binary.

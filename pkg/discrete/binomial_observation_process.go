@@ -18,6 +18,7 @@ type BinomialObservationProcessIteration struct {
 	binomialDist *distuv.Binomial
 }
 
+// Configure implements simulator.Iteration.
 func (b *BinomialObservationProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -32,6 +33,7 @@ func (b *BinomialObservationProcessIteration) Configure(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (b *BinomialObservationProcessIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

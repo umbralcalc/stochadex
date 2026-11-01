@@ -7,19 +7,21 @@ import (
 // FromHistoryIteration streams data from an in-memory StateHistory.
 //
 // Usage hints:
-//   - Use with EmbeddedSimulationRun or analysis windows to replay data.
+//   - Use with EmbeddedSimulationRunIteration or analysis windows to replay data.
 //   - Set Data to the source history; supports initial offset via InitStepsTaken.
 type FromHistoryIteration struct {
 	Data           *simulator.StateHistory
 	InitStepsTaken int
 }
 
+// Configure implements simulator.Iteration.
 func (f *FromHistoryIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (f *FromHistoryIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
@@ -41,6 +43,7 @@ func (f *FromHistoryIteration) Iterate(
 	return data
 }
 
+// UpdateMemory implements StateMemoryIteration.
 func (f *FromHistoryIteration) UpdateMemory(
 	params *simulator.Params,
 	update StateMemoryUpdate,
@@ -58,6 +61,7 @@ type FromHistoryTimestepFunction struct {
 	InitStepsTaken int
 }
 
+// NextIncrement implements simulator.TimestepFunction.
 func (f *FromHistoryTimestepFunction) NextIncrement(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {

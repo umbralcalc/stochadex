@@ -11,8 +11,8 @@
 # reads stateHistories at that index, which is a lag-1 read of the previous step's committed
 # rainfall. upstreams is the same lag-1 state-history read, so it is the faithful
 # translation; params_from_upstream would be a within-step read and hence a different model.
-# The upstream_partition param disappears because it only ever carried the index that
-# upstreams now resolves by name.
+# The upstream_partition param has no counterpart here: it only carries the index that
+# upstreams resolves by name.
 main:
   partitions:
 

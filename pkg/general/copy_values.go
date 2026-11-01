@@ -12,12 +12,14 @@ import (
 type CopyValuesIteration struct {
 }
 
+// Configure implements simulator.Iteration.
 func (c *CopyValuesIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CopyValuesIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

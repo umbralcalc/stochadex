@@ -29,6 +29,7 @@ type ValuesFunctionVectorCovarianceIteration struct {
 	Kernel kernels.IntegrationKernel
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesFunctionVectorCovarianceIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -36,6 +37,7 @@ func (v *ValuesFunctionVectorCovarianceIteration) Configure(
 	v.Kernel.Configure(partitionIndex, settings)
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

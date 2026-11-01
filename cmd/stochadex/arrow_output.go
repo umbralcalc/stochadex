@@ -9,7 +9,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// Registers `output_function: {type: arrow, path: run.arrow}`, which writes the whole run
+// Registers output_function: {type: arrow, path: run.arrow}, which writes the whole run
 // as a single Arrow IPC file — the columnar interchange format Polars, pandas and DuckDB
 // read directly. Arrow-go is pure Go, so this sink ships in the ordinary cross-compiled
 // binary; only DuckDB and the BLAS acceleration need cgo.

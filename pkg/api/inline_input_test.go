@@ -15,7 +15,7 @@ import (
 
 // fromStorageTwinYAML is cfg/example_from_storage_config.yaml written with its
 // data as an explicit inline input, read by from_input: what the shipped
-// config's from_storage now means.
+// config's from_storage means.
 const fromStorageTwinYAML = `inputs:
   sun:
     source:

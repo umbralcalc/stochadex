@@ -35,12 +35,14 @@ import (
 //   - anomaly:            [z]      — shared regional anomaly, from the upstream OU partition
 type BathingConcentrationIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (b *BathingConcentrationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (b *BathingConcentrationIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

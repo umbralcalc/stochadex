@@ -35,6 +35,7 @@ type RickerIteration struct {
 	rng *rand.Rand
 }
 
+// Configure implements simulator.Iteration.
 func (r *RickerIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -45,6 +46,7 @@ func (r *RickerIteration) Configure(
 	))
 }
 
+// Iterate implements simulator.Iteration.
 func (r *RickerIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

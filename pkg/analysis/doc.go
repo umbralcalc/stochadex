@@ -24,7 +24,7 @@
 //   - postgres.go           — read a storage from PostgreSQL, write one back, and
 //     PostgresDbOutputFunction to stream a live run into a table.
 //   - partitions.go         — build a storage by running partitions, or append
-//     partitions to an existing one (this is what the `data:`
+//     partitions to an existing one (this is what the data:
 //     tier of a YAML config resolves to).
 //   - dataframe.go          — convert a partition to and from a gota DataFrame.
 //

@@ -135,7 +135,7 @@ func (*inputStandIn) Iterate(
 }
 
 // IOManifest describes what a run of a config reads and writes, without
-// running it. Its JSON form is what `stochadex inspect --io` prints.
+// running it. Its JSON form is what stochadex inspect --io prints.
 //
 // Locations are given as the config writes them: a relative path is relative
 // to the directory the run starts in. Nothing secret is reported: a sink's or

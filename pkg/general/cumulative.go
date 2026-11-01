@@ -13,6 +13,7 @@ type CumulativeIteration struct {
 	Iteration simulator.Iteration
 }
 
+// Configure implements simulator.Iteration.
 func (c *CumulativeIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -22,6 +23,7 @@ func (c *CumulativeIteration) Configure(
 	c.Iteration.Configure(partitionIndex, settings)
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CumulativeIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

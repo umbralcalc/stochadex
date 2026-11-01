@@ -21,12 +21,14 @@ import (
 type PosteriorLogNormalisationIteration struct {
 }
 
+// Configure implements simulator.Iteration.
 func (p *PosteriorLogNormalisationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (p *PosteriorLogNormalisationIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

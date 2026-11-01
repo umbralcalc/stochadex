@@ -19,6 +19,7 @@ type HawkesProcessIntensityIteration struct {
 	hawkesPartitionIndex int
 }
 
+// Configure implements simulator.Iteration.
 func (h *HawkesProcessIntensityIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -30,6 +31,7 @@ func (h *HawkesProcessIntensityIteration) Configure(
 	)
 }
 
+// Iterate implements simulator.Iteration.
 func (h *HawkesProcessIntensityIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
@@ -65,6 +67,7 @@ type HawkesProcessIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (h *HawkesProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -72,6 +75,7 @@ func (h *HawkesProcessIteration) Configure(
 	h.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (h *HawkesProcessIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

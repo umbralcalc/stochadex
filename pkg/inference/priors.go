@@ -18,10 +18,12 @@ type UniformPrior struct {
 	Lo, Hi float64
 }
 
+// Sample implements Prior.
 func (p *UniformPrior) Sample(rng *rand.Rand) float64 {
 	return p.Lo + rng.Float64()*(p.Hi-p.Lo)
 }
 
+// LogPDF implements Prior.
 func (p *UniformPrior) LogPDF(x float64) float64 {
 	if x < p.Lo || x > p.Hi {
 		return math.Inf(-1)
@@ -29,6 +31,7 @@ func (p *UniformPrior) LogPDF(x float64) float64 {
 	return -math.Log(p.Hi - p.Lo)
 }
 
+// InSupport implements Prior.
 func (p *UniformPrior) InSupport(x float64) bool {
 	return x >= p.Lo && x <= p.Hi
 }
@@ -39,6 +42,7 @@ type TruncatedNormalPrior struct {
 	Lo, Hi    float64
 }
 
+// Sample implements Prior.
 func (p *TruncatedNormalPrior) Sample(rng *rand.Rand) float64 {
 	for {
 		x := rng.NormFloat64()*p.Sigma + p.Mu
@@ -48,6 +52,7 @@ func (p *TruncatedNormalPrior) Sample(rng *rand.Rand) float64 {
 	}
 }
 
+// LogPDF implements Prior.
 func (p *TruncatedNormalPrior) LogPDF(x float64) float64 {
 	if x < p.Lo || x > p.Hi {
 		return math.Inf(-1)
@@ -57,6 +62,7 @@ func (p *TruncatedNormalPrior) LogPDF(x float64) float64 {
 	return -0.5*d*d - math.Log(p.Sigma) - 0.5*math.Log(2*math.Pi)
 }
 
+// InSupport implements Prior.
 func (p *TruncatedNormalPrior) InSupport(x float64) bool {
 	return x >= p.Lo && x <= p.Hi
 }
@@ -66,10 +72,12 @@ type HalfNormalPrior struct {
 	Sigma float64
 }
 
+// Sample implements Prior.
 func (p *HalfNormalPrior) Sample(rng *rand.Rand) float64 {
 	return math.Abs(rng.NormFloat64()) * p.Sigma
 }
 
+// LogPDF implements Prior.
 func (p *HalfNormalPrior) LogPDF(x float64) float64 {
 	if x < 0 {
 		return math.Inf(-1)
@@ -78,6 +86,7 @@ func (p *HalfNormalPrior) LogPDF(x float64) float64 {
 	return math.Log(2) - 0.5*d*d - math.Log(p.Sigma) - 0.5*math.Log(2*math.Pi)
 }
 
+// InSupport implements Prior.
 func (p *HalfNormalPrior) InSupport(x float64) bool {
 	return x >= 0
 }
@@ -87,10 +96,12 @@ type LogNormalPrior struct {
 	Mu, Sigma float64
 }
 
+// Sample implements Prior.
 func (p *LogNormalPrior) Sample(rng *rand.Rand) float64 {
 	return math.Exp(rng.NormFloat64()*p.Sigma + p.Mu)
 }
 
+// LogPDF implements Prior.
 func (p *LogNormalPrior) LogPDF(x float64) float64 {
 	if x <= 0 {
 		return math.Inf(-1)
@@ -100,6 +111,7 @@ func (p *LogNormalPrior) LogPDF(x float64) float64 {
 	return -0.5*d*d - logX - math.Log(p.Sigma) - 0.5*math.Log(2*math.Pi)
 }
 
+// InSupport implements Prior.
 func (p *LogNormalPrior) InSupport(x float64) bool {
 	return x > 0
 }
