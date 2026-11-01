@@ -183,12 +183,13 @@ type ManifestColumns struct {
 	Width     int    `json:"width"`
 }
 
-// ManifestRun is how many runtimes a config makes, and of what kind.
+// ManifestRun is how many times a config's simulation runs, and how.
 type ManifestRun struct {
 	// Mode is batch, ensemble or serve.
 	Mode string `json:"mode"`
 	// Runtime is main, or macros for a macros: config, which runs as its
-	// expansion (Expand): one run of the partitions its macros expand into.
+	// expansion (Expand): one simulation of the partitions its macros expand
+	// into.
 	Runtime     string   `json:"runtime"`
 	Macros      []string `json:"macros,omitempty"`
 	Seeds       []uint64 `json:"seeds,omitempty"`

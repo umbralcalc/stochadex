@@ -22,6 +22,14 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Changed
+
+- The docs and messages name what a config describes, and running it, one way each: a config
+  describes one **simulation** (its partitions, stepped together on one clock), and `run:` says
+  how many times it **runs** (once, once per seed, or once per client served). Errors about a
+  macros config's clock or windows now say "a simulation has one clock" and "a simulation keeps
+  one history per partition".
+
 ## [0.27.0] — 2026-11-01
 
 This release makes the config language documented and machine-readable. `stochadex catalogue`

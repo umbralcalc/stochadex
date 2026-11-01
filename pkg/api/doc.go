@@ -24,8 +24,8 @@
 //
 // # The config surface
 //
-// A config is one run: inputs → one runtime → outputs (docs/reference.md is the written
-// semantics).
+// A config describes one simulation, inputs → simulation → outputs, and how many times to
+// run it (docs/reference.md is the written semantics).
 //
 //	inputs:   named, read-only data the run reads when it starts: a source (csv, json_log,
 //	          postgres, inline, plus registered ones), a pre-pass simulation, a nested run,
@@ -36,9 +36,9 @@
 //	          partition whose name matches one is replaced by an embedded simulation
 //	          iteration wired to it, which is how a simulation nests inside a partition.
 //	macros:   shortcuts: a run expands each entry into core-language partitions in the
-//	          same run (Expand, expand*.go), which stochadex expand prints.
+//	          same simulation (Expand, expand*.go), which stochadex expand prints.
 //	outputs:  views of the run, each a condition and a destination (OutputViewConfig).
-//	run:      how many runtimes and how they are paced — batch, ensemble (seeds,
+//	run:      how many times the simulation runs, and how fast — batch, ensemble (seeds,
 //	          concurrency) or serve (websocket, pace_ms; see serve.go) (RunModeConfig).
 //
 // # Where the registries live

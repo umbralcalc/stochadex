@@ -122,17 +122,18 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      (description, spec fields, params) is generated from source into
      `pkg/api/catalogue_fields.json`; after changing a registered type, rerun
      `go test ./pkg/api -run TestCatalogueFieldsUpToDate -update-catalogue`.
-   - **`run:`** — `{mode: batch | ensemble | serve, seeds, concurrency, pace_ms}` (`RunModeConfig`).
+   - **`run:`** — how many times the simulation runs, and how fast:
+     `{mode: batch | ensemble | serve, seeds, concurrency, pace_ms}` (`RunModeConfig`).
    - **`outputs:`** — views of the run, each a condition and a destination (`OutputViewConfig`).
    - **`inputs:` + `macros:`** (`pkg/api/macros*.go` decoding into `pkg/macros`, and
      `pkg/api/expand*.go`) — the analysis tier. A macro is a config → config shortcut: a run
      expands the config (`api.Expand`) into core-language partitions — input replays, then each
      macro's partitions (`posterior_estimation`, `likelihood_comparison`, the aggregations,
      `scalar_regression_stats`, `evolution_strategy_optimisation`, `smc_inference`,
-     `mcts_self_play`, `mcts_planning`) — and runs that as one ordinary run.
+     `mcts_self_play`, `mcts_planning`) — and runs that as one ordinary simulation.
      Golden digests pin each expanded run bit for bit, per architecture
      (`pkg/api/testdata/golden`, rewritten with `-update-goldens`). Hand-written `main:`
-     partitions run in the same run, and macros may read them live. Macro inputs are typed
+     partitions run in the same simulation, and macros may read them live. Macro inputs are typed
      spec structs decoded straight from YAML.
    - **Environments** — `pkg/api/registry_environment.go`, the one registry the engine leaves
      empty for downstreams to fill (`RegisterEnvironment`). A registered environment is a

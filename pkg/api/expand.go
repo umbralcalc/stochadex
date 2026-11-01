@@ -298,14 +298,14 @@ func calibrationSplit(config *ApiRunConfig, hasInputs, mainClock bool) (int, err
 	switch {
 	case mainClock && len(clocked) > 0:
 		return 0, configError(fmt.Errorf("api: %s runs its own clock, and main.simulation "+
-			"states one too; one run has one clock, so set one of them", which(clocked[0])))
+			"states one too; a simulation has one clock, so set one of them", which(clocked[0])))
 	case len(clocked) > 1:
-		return 0, configError(fmt.Errorf("api: %s and %s each run their own clock; one run has "+
+		return 0, configError(fmt.Errorf("api: %s and %s each run their own clock; a simulation has "+
 			"one clock, so a second macro with its own does not expand",
 			which(clocked[0]), which(clocked[1])))
 	case hasInputs && len(clocked) == 1 && !readsInputsInside(config.Macros[clocked[0]]):
 		return 0, configError(fmt.Errorf("api: %s runs its own clock beside the config's "+
-			"inputs, but reads none of them; one run has one clock, so it does not expand",
+			"inputs, but reads none of them; a simulation has one clock, so it does not expand",
 			which(clocked[0])))
 	case hasInputs && len(clocked) == 1:
 		return clocked[0], nil
@@ -329,9 +329,9 @@ func readsInputsInside(macro MacroConfig) bool {
 	return ok && reader.readsInputsInside()
 }
 
-// ExpandToYAML writes a macros: config out in the core language: one run, as
+// ExpandToYAML writes a macros: config out in the core language: one simulation, as
 // YAML a person could have written. Every macro expands; a config whose macros
-// cannot run as one run with one clock (see calibrationSplit) is an error
+// cannot run as one simulation with one clock (see calibrationSplit) is an error
 // saying why. Calibrate, then plan becomes a run: input, named calibration,
 // holding the inputs and the macros before the planner, which the planner's
 // run reads.
@@ -469,7 +469,7 @@ func inputsContext(inputs map[string]InputConfig) (*expansionContext, error) {
 	return context, nil
 }
 
-// expandRun expands macros[from:to] into one run: a replay of each input
+// expandRun expands macros[from:to] into one simulation: a replay of each input
 // partition the context's owners name, then main:'s partitions as written
 // (when hand is given), then the macros' partitions, clocked by a macro's own
 // clock, in which case nothing is replayed, or by main:'s simulation, or by
@@ -512,7 +512,7 @@ func expandRun(
 			depth := expanded.depths[name]
 			if previous, set := depths[name]; set && previous != depth {
 				return expandedMain{}, configError(fmt.Errorf("api: %s reads %q over a window of %d, "+
-					"but %s reads it over %d; one run keeps one history per partition, so "+
+					"but %s reads it over %d; a simulation keeps one history per partition, so "+
 					"macros reading the same partition over different windows do not "+
 					"expand yet", which, name, depth, depthFrom[name], previous))
 			}
