@@ -28,12 +28,12 @@ Status: **accepted** (2026-10-04).
 | Phase 2: 2.0–2.9, 2.12, 2.14 | **Done** (2.9 retired the macro-by-macro tier, #167) |
 | 2.11 `stochadex expand`, readable layout, anchors | **Done (#168)** |
 | 2.13 per-type fields in `stochadex catalogue` | **Done (#170)**: catalogue v2, generated from source and checked against every config in use (which found a dead ES wire) |
-| Core semantics reference (with 2.13) | **In review (#171)**: `docs/reference.md`, every rule shown with a config and its exact output, run by `TestDocsExamples`; it also took over the quickstart's reference material, so the quickstart is now short (decided 2026-11-01) |
-| 2.10 human-facing docs | Mostly done by #171 (quickstart and reference); left: `pkg/api/doc.go`, `pkg/macros/doc.go`, `how_it_works.md` read against the reference |
+| Core semantics reference (with 2.13) | **Done (#171)**: `docs/reference.md`, every rule shown with a config and its exact output, run by `TestDocsExamples`; it also took over the quickstart's reference material, so the quickstart is now short (decided 2026-11-01) |
+| 2.10 human-facing docs | **In review (#172)**, after #171: `pkg/api/doc.go`, `pkg/macros/doc.go`, `CLAUDE.md`'s config section and `how_it_works.md` brought up to the config model; the docs build |
 | Releases | **v0.26.0 released** (#169; `expand`, run modes for macros, `RunMacros` removed). Next: v0.27.0 after #171 and 2.10 (catalogue v2 is a contract change for robert) |
 | Track R (authoring gaps robert surfaces) | Standing, from now; #164 is its first entry |
 
-- **To close the plan, in order:** merge #171 → the rest of 2.10 → release v0.27.0 → mark this plan **complete** and leave Track R running as its own short document.
+- **To close the plan, in order:** merge #172 → release v0.27.0 → mark this plan **complete** and leave Track R running as its own short document.
 - **History:** every merged item, decision and finding, newest Phase 2 work first, is in
   [Appendix A](#appendix-a-progress-log).
 
