@@ -707,9 +707,11 @@ checkout but is deprecated, and releases no longer ship it.)
 ### What a build can run
 
 `stochadex catalogue` prints, as JSON, what this binary can run: its version and compiled-in
-features, and the name of every component a config can name by type, read from the
-registries the config resolves through. A downstream registration, such as
-`onnx_inference` in a build with ONNX, appears in the build that links it.
+features, and every component a config can name by type, read from the registries the config
+resolves through. For each one the engine ships, it also says what the component is, the
+fields its `{type: ...}` spec takes, and the `params:` it reads from its partition. A
+downstream registration, such as `onnx_inference` in a build with ONNX, appears by name in
+the build that links it.
 
 ```bash
 stochadex catalogue | jq '.iterations[].name'
@@ -719,8 +721,8 @@ Every list is sorted, so the output is identical for identical builds:
 
 ```json
 {
-  "catalogue_version": 1,
-  "version": "v0.24.0",
+  "catalogue_version": 2,
+  "version": "v0.26.0",
   "features": ["arrow", "postgres", "s3"],
   "iterations": [{"name": "bernoulli_process"}, ...],
   "data_sources": [{"name": "arrow"}, {"name": "csv"}, ...],
@@ -739,9 +741,38 @@ Every list is sorted, so the output is identical for identical builds:
 }
 ```
 
-An entry may carry a `params` list of the fields its spec takes, where the registry knows
-them. `catalogue_version` changes only if a key is removed or changes meaning; new keys
-may appear within a version. From Go, use `api.BuildCatalogue()`.
+An entry the engine ships says what it takes:
+
+```json
+{
+  "name": "values_function_vector_mean",
+  "description": "ValuesFunctionVectorMeanIteration computes a kernel-weighted rolling mean of a function over historical values and times.",
+  "fields": [
+    {"name": "function", "required": true, "choices": [
+      {"name": "data_values", "description": "...",
+       "params": [{"name": "data_values_indices", "optional": true},
+                  {"name": "data_values_partition"}, {"name": "latest_data_values"}]},
+      ...]},
+    {"name": "kernel", "required": true}
+  ],
+  "params": [{"name": "subtract_from_normalisation", "optional": true}, ...]
+}
+```
+
+- **`fields`** are the keys of its spec; `required` marks those it cannot do without. A field
+  that names one of a set (`function: data_values`) lists its `choices`, each with the params
+  it reads. A macro's, a source's or an environment's fields nest as its YAML does.
+- **`params`** are the names it reads from its partition's `params:`, which
+  `params_from_upstream` and `params_as_partitions` also supply. A name ending in `*` is a
+  family (`transitions_from_*` is `transitions_from_0`, `_1`, ...); `optional` marks one it
+  reads only if present. A component a partition's iteration takes, its kernel or likelihood,
+  reads its own params from the same partition, so look in its entry too.
+  `params_incomplete` marks a type that also reads params whose names a config chooses, as an
+  `expression` reads the ones its formulas name.
+
+All of this is read from the engine's source, and checked against every shipped config.
+`catalogue_version` changes only if a key is removed or changes meaning; new keys may
+appear within a version. From Go, use `api.BuildCatalogue()`.
 
 ### Skipping runs whose outputs are up to date
 

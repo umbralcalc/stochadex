@@ -80,6 +80,16 @@ expansion, in any run mode, and `stochadex expand` prints that expansion.
 
 ### Changed
 
+- **`stochadex catalogue` says what each component takes (`catalogue_version` 2).** Each entry
+  the engine ships has its `description`, the `fields` its spec takes (with `required`, a
+  macro's or source's nested fields, and the `choices` of a field that names one of a set,
+  such as `function: data_values`), and the `params` it reads from its partition (with
+  `optional`, families such as `transitions_from_*`, and `params_incomplete` where a config
+  chooses the names). In version 1 an entry's `params` was a list of strings, never filled.
+  It is all read from the engine's source, so a type registered downstream lists its name.
+- `evolution_strategy_optimisation` no longer wires its mean into the covariance update,
+  which centres on its top samples' own mean and never read it. Results are unchanged.
+
 - **An expansion is laid out to be read.** A generated component that fits on a line stays on
   it, in flow style; a longer one, such as a likelihood window's nested run, is written field by
   field, and its fields are laid out the same way. `params`, `params_as_partitions` and

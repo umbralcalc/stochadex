@@ -284,7 +284,6 @@ func NewEvolutionStrategyOptimisationPartitions(
 		}),
 		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
 			"sorted_collection": {Upstream: applied.Sorting.Name},
-			"mean":              {Upstream: applied.Mean.Name},
 		},
 		InitStateValues:   applied.Covariance.Default,
 		StateHistoryDepth: 1,

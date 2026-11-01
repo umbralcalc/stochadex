@@ -69,6 +69,81 @@ func TestCatalogue(t *testing.T) {
 		}
 	})
 
+	t.Run("each entry says what it takes and reads", func(t *testing.T) {
+		var decoded Catalogue
+		out := captureStdout(t, func() { _ = Execute([]string{"stochadex", "catalogue"}) })
+		if err := json.Unmarshal([]byte(out), &decoded); err != nil {
+			t.Fatal(err)
+		}
+		find := func(family []CatalogueEntry, name string) CatalogueEntry {
+			t.Helper()
+			for _, entry := range family {
+				if entry.Name == name {
+					return entry
+				}
+			}
+			t.Fatalf("no entry %q", name)
+			return CatalogueEntry{}
+		}
+		names := func(fields []CatalogueField) string {
+			var listed []string
+			for _, field := range fields {
+				label := field.Name
+				if field.Required {
+					label += "!"
+				}
+				if field.Optional {
+					label += "?"
+				}
+				listed = append(listed, label)
+			}
+			return strings.Join(listed, ",")
+		}
+		// References: what each type's Go source and docs say it takes.
+		for _, c := range []struct {
+			entry          CatalogueEntry
+			fields, params string
+		}{
+			{find(decoded.Iterations, "wiener_process"), "", "variances"},
+			{find(decoded.Iterations, "data_generation"), "likelihood!", "correlation_with_previous?,steps_per_resample?"},
+			{find(decoded.Iterations, "categorical_state_transition"), "", "transition_rates,transitions_from_*"},
+			{find(decoded.Iterations, "from_input"), "input,partition", ""},
+			{find(decoded.Likelihoods, "poisson"), "", "mean,mean_partition"},
+			{find(decoded.Kernels, "exponential"), "", "exponential_weighting_timescale"},
+			{find(decoded.OutputConditions, "every_n_steps"), "n!", ""},
+			{find(decoded.TerminationConditions, "input_exhausted"), "input", ""},
+		} {
+			if got := names(c.entry.Fields); got != c.fields {
+				t.Errorf("%s: fields %q, want %q", c.entry.Name, got, c.fields)
+			}
+			if got := names(c.entry.Params); got != c.params {
+				t.Errorf("%s: params %q, want %q", c.entry.Name, got, c.params)
+			}
+		}
+		if wiener := find(decoded.Iterations, "wiener_process"); !strings.HasPrefix(wiener.Description,
+			"WienerProcessIteration implements a standard Wiener process") {
+			t.Errorf("wiener_process's description is %q", wiener.Description)
+		}
+		mean := find(decoded.Iterations, "values_function_vector_mean")
+		if function := mean.Fields[0]; function.Name != "function" || !function.Required ||
+			names(function.Choices[0].Params) != "data_values_indices?,data_values_partition,latest_data_values" ||
+			function.Choices[0].Name != "data_values" {
+			t.Errorf("values_function_vector_mean's function: %+v", function)
+		}
+		if expression := find(decoded.Iterations, "expression"); !expression.ParamsIncomplete {
+			t.Error("expression reads the params its formulas name, so its list is incomplete")
+		}
+		var data CatalogueField
+		for _, field := range find(decoded.Macros, "vector_mean").Fields {
+			if field.Name == "data" {
+				data = field
+			}
+		}
+		if names(data.Fields) != "partition_name,value_indices" {
+			t.Errorf("vector_mean's data: takes %q", names(data.Fields))
+		}
+	})
+
 	t.Run("it takes no arguments", func(t *testing.T) {
 		err := Execute([]string{"stochadex", "catalogue", "--config", "x.yaml"})
 		if KindOf(err) != ErrUsage {
