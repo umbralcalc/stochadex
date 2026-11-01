@@ -6,7 +6,7 @@
 //
 // It is the Go form of what a config's macros: key states as data. In a config,
 // a macro is a config → config shortcut over the core language: pkg/api expands
-// each entry into ordinary partitions in the same run (api.Expand, which
+// each entry into ordinary partitions in the same simulation (api.Expand, which
 // stochadex expand prints), the partitions these constructors build, with no
 // storage to run against. From Go, a constructor here builds the same topology
 // against a StateTimeStorage, to run with analysis.AddPartitionsToStateTimeStorage.
