@@ -1,6 +1,8 @@
 # Plan: config as inputs → one runtime → outputs
 
-Status: **accepted** (2026-10-04).
+Status: **complete** (2026-11-01). Accepted 2026-10-04; closed at the end of Phase 2 with the
+v0.27.0 release. Its successor, which takes over Track R, Phase 3 and the follow-ups below, is
+the building-blocks plan on the long-lived branch `claude/building-blocks-plan`.
 - **Where this lives:** the long-lived working branch `claude/config-runtime-plan`. It is
   deliberately **never merged to `main`**; implementation PRs branch from `main` and
   link here. Update this file on this branch as items land.
@@ -29,11 +31,11 @@ Status: **accepted** (2026-10-04).
 | 2.11 `stochadex expand`, readable layout, anchors | **Done (#168)** |
 | 2.13 per-type fields in `stochadex catalogue` | **Done (#170)**: catalogue v2, generated from source and checked against every config in use (which found a dead ES wire) |
 | Core semantics reference (with 2.13) | **Done (#171)**: `docs/reference.md`, every rule shown with a config and its exact output, run by `TestDocsExamples`; it also took over the quickstart's reference material, so the quickstart is now short (decided 2026-11-01) |
-| 2.10 human-facing docs | **In review (#172)**, after #171: `pkg/api/doc.go`, `pkg/macros/doc.go`, `CLAUDE.md`'s config section and `how_it_works.md` brought up to the config model; the docs build |
-| Releases | **v0.26.0 released** (#169; `expand`, run modes for macros, `RunMacros` removed). Next: v0.27.0 after #171 and 2.10 (catalogue v2 is a contract change for robert) |
-| Track R (authoring gaps robert surfaces) | Standing, from now; #164 is its first entry |
+| 2.10 human-facing docs | **Done (#172)**, after #171: `pkg/api/doc.go`, `pkg/macros/doc.go`, `CLAUDE.md`'s config section and `how_it_works.md` brought up to the config model; the docs build |
+| Releases | **v0.26.0** (#169; `expand`, run modes for macros, `RunMacros` removed) and **v0.27.0** (#174; catalogue v2, the config reference, the short quickstart), both verified (tag, `SHA256SUMS` against asset digests, the workflows, the multi-arch image). robert reads only catalogue entry names, so v2 needs nothing of it |
+| Track R (authoring gaps robert surfaces) | Moved to the building-blocks plan |
 
-- **To close the plan, in order:** merge #172 → release v0.27.0 → mark this plan **complete** and leave Track R running as its own short document.
+- **Closed (2026-11-01).** After v0.27.0, the user raised four follow-ups, all taken up by the building-blocks plan: a docs-standards sweep, the "one runtime" wording (fixed: a config is one simulation, run: says how many times it runs, #175), an assessment of how fully the config language covers the engine, and making robert prefer built-in iterations over expressions.
 - **History:** every merged item, decision and finding, newest Phase 2 work first, is in
   [Appendix A](#appendix-a-progress-log).
 
