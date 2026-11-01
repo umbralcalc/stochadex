@@ -146,10 +146,7 @@ func (s *evolutionStrategySpec) expand(*expansionContext) (*expansion, error) {
 				map[string]expandedUpstream{"sorted_collection": {Upstream: s.Sorting.Name}},
 				"values_sorted_collection_mean"),
 			update(s.Covariance.Name, s.Covariance.LearningRate, s.Covariance.Default,
-				map[string]expandedUpstream{
-					"sorted_collection": {Upstream: s.Sorting.Name},
-					"mean":              {Upstream: s.Mean.Name},
-				},
+				map[string]expandedUpstream{"sorted_collection": {Upstream: s.Sorting.Name}},
 				"values_sorted_collection_covariance"),
 		},
 		clock: s.clock(),

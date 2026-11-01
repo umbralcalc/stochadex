@@ -1,0 +1,3212 @@
+{
+  "data_sources": {
+    "csv": {
+      "name": "csv",
+      "fields": [
+        {
+          "name": "path"
+        },
+        {
+          "name": "skip_header"
+        },
+        {
+          "name": "state_columns"
+        },
+        {
+          "name": "time_column"
+        }
+      ]
+    },
+    "inline": {
+      "name": "inline",
+      "fields": [
+        {
+          "name": "partitions"
+        },
+        {
+          "name": "times"
+        }
+      ]
+    },
+    "json_log": {
+      "name": "json_log",
+      "fields": [
+        {
+          "name": "path"
+        }
+      ]
+    },
+    "postgres": {
+      "name": "postgres",
+      "fields": [
+        {
+          "name": "dbname"
+        },
+        {
+          "name": "end_time"
+        },
+        {
+          "name": "partition_names"
+        },
+        {
+          "name": "password"
+        },
+        {
+          "name": "start_time"
+        },
+        {
+          "name": "table"
+        },
+        {
+          "name": "user"
+        }
+      ]
+    }
+  },
+  "environments": {
+    "simulation": {
+      "name": "simulation",
+      "description": "A decision problem over a forward model: an action is a params injection, a transition one step of the model, the reward another partition.",
+      "fields": [
+        {
+          "name": "action_param"
+        },
+        {
+          "name": "action_partition"
+        },
+        {
+          "name": "actions"
+        },
+        {
+          "name": "discount"
+        },
+        {
+          "name": "horizon"
+        },
+        {
+          "name": "model",
+          "fields": [
+            {
+              "name": "init_time"
+            },
+            {
+              "name": "partitions",
+              "fields": [
+                {
+                  "name": "init_state_from_upstream"
+                },
+                {
+                  "name": "init_state_values"
+                },
+                {
+                  "name": "iteration"
+                },
+                {
+                  "name": "name"
+                },
+                {
+                  "name": "params"
+                },
+                {
+                  "name": "params_as_partitions"
+                },
+                {
+                  "name": "params_from_input"
+                },
+                {
+                  "name": "params_from_upstream"
+                },
+                {
+                  "name": "seed"
+                },
+                {
+                  "name": "state_history_depth"
+                }
+              ]
+            },
+            {
+              "name": "timestep"
+            }
+          ]
+        },
+        {
+          "name": "parameters",
+          "fields": [
+            {
+              "name": "belief",
+              "fields": [
+                {
+                  "name": "observation_partition"
+                },
+                {
+                  "name": "variance"
+                }
+              ]
+            },
+            {
+              "name": "samples"
+            },
+            {
+              "name": "samples_from",
+              "fields": [
+                {
+                  "name": "burn_in"
+                },
+                {
+                  "name": "input"
+                },
+                {
+                  "name": "partition_name"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            },
+            {
+              "name": "targets",
+              "fields": [
+                {
+                  "name": "indices"
+                },
+                {
+                  "name": "param"
+                },
+                {
+                  "name": "partition"
+                }
+              ]
+            },
+            {
+              "name": "weights"
+            },
+            {
+              "name": "weights_from",
+              "fields": [
+                {
+                  "name": "input"
+                },
+                {
+                  "name": "partition_name"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "progress_partition"
+        },
+        {
+          "name": "return_range"
+        },
+        {
+          "name": "reward_partition"
+        },
+        {
+          "name": "scenario_seed"
+        }
+      ]
+    }
+  },
+  "execution_strategies": {
+    "inline": {
+      "name": "inline",
+      "description": "InlineExecution runs the simulation entirely on the calling goroutine: no worker goroutines, no channel handshakes and no WaitGroup barrier."
+    },
+    "persistent_worker": {
+      "name": "persistent_worker",
+      "description": "PersistentWorkerExecution runs the simulation with one long-lived goroutine per partition rather than spawning a fresh goroutine per partition per phase per step."
+    },
+    "spawn_per_step": {
+      "name": "spawn_per_step",
+      "description": "SpawnPerStepExecution is the default execution strategy: each step spawns one goroutine per partition for the iteration phase and again for the update phase, synchronised by a two-phase barrier."
+    }
+  },
+  "iterations": {
+    "bernoulli_process": {
+      "name": "bernoulli_process",
+      "description": "BernoulliProcessIteration emits 1/0 based on per-dimension success probs.",
+      "params": [
+        {
+          "name": "state_value_observation_probs"
+        }
+      ]
+    },
+    "binomial_observation_process": {
+      "name": "binomial_observation_process",
+      "description": "BinomialObservationProcessIteration draws binomial counts for selected indices.",
+      "params": [
+        {
+          "name": "observed_values"
+        },
+        {
+          "name": "state_value_observation_indices"
+        },
+        {
+          "name": "state_value_observation_probs"
+        }
+      ]
+    },
+    "categorical_state_transition": {
+      "name": "categorical_state_transition",
+      "description": "CategoricalStateTransitionIteration is essentially a state machine which transitions between states according to the event rate parameters.",
+      "params": [
+        {
+          "name": "transition_rates"
+        },
+        {
+          "name": "transitions_from_*"
+        }
+      ]
+    },
+    "compound_poisson_process": {
+      "name": "compound_poisson_process",
+      "description": "CompoundPoissonProcessIteration steps a compound Poisson process.",
+      "fields": [
+        {
+          "name": "jump_dist",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "rates"
+        }
+      ]
+    },
+    "constant_values": {
+      "name": "constant_values",
+      "description": "ConstantValuesIteration leaves initial state values unchanged over time."
+    },
+    "copy_values": {
+      "name": "copy_values",
+      "description": "CopyValuesIteration copies selected values from other partitions' latest states into its own state.",
+      "params": [
+        {
+          "name": "partition_state_values"
+        },
+        {
+          "name": "partitions"
+        }
+      ]
+    },
+    "cox_process": {
+      "name": "cox_process",
+      "description": "CoxProcessIteration defines an iteration for a Cox process.",
+      "params": [
+        {
+          "name": "rates"
+        }
+      ]
+    },
+    "cumulative": {
+      "name": "cumulative",
+      "description": "CumulativeIteration accumulates a provided iteration's outputs over time.",
+      "fields": [
+        {
+          "name": "iteration",
+          "required": true
+        }
+      ]
+    },
+    "cumulative_time": {
+      "name": "cumulative_time",
+      "description": "CumulativeTimeIteration outputs the cumulative simulation time."
+    },
+    "data_comparison": {
+      "name": "data_comparison",
+      "description": "DataComparisonIteration allows for any log-likelihood to be used as a comparison distribution between data values, a mean vector and covariance matrix.",
+      "fields": [
+        {
+          "name": "likelihood",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "burn_in_steps"
+        },
+        {
+          "name": "cumulative",
+          "optional": true
+        },
+        {
+          "name": "latest_data_values"
+        }
+      ]
+    },
+    "data_comparison_gradient": {
+      "name": "data_comparison_gradient",
+      "description": "DataComparisonGradientIteration allows for any log-likelihood gradient to be used in computing the overall comparison distribution gradient.",
+      "fields": [
+        {
+          "name": "gradient_function",
+          "required": true,
+          "choices": [
+            {
+              "name": "mean_gradient",
+              "description": "MeanGradientFunc computes the gradient with respect to the mean directly."
+            }
+          ]
+        },
+        {
+          "name": "likelihood",
+          "required": true
+        }
+      ],
+      "params_incomplete": true
+    },
+    "data_generation": {
+      "name": "data_generation",
+      "description": "DataGenerationIteration allows for any likelihood to be used as a data generation distribution based on a mean and covariance matrix.",
+      "fields": [
+        {
+          "name": "likelihood",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "correlation_with_previous",
+          "optional": true
+        },
+        {
+          "name": "steps_per_resample",
+          "optional": true
+        }
+      ]
+    },
+    "discounted_cumulative": {
+      "name": "discounted_cumulative",
+      "description": "DiscountedCumulativeIteration accumulates a provided iteration's outputs over time with a discount factor applied to the previous accumulated state.",
+      "fields": [
+        {
+          "name": "iteration",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "discount_factor"
+        }
+      ]
+    },
+    "drift_diffusion": {
+      "name": "drift_diffusion",
+      "description": "DriftDiffusionIteration steps a general drift–diffusion SDE per dimension.",
+      "params": [
+        {
+          "name": "diffusion_coefficients"
+        },
+        {
+          "name": "drift_coefficients"
+        }
+      ]
+    },
+    "drift_jump_diffusion": {
+      "name": "drift_jump_diffusion",
+      "description": "DriftJumpDiffusionIteration steps a general drift–jump–diffusion process.",
+      "fields": [
+        {
+          "name": "jump_dist",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "diffusion_coefficients"
+        },
+        {
+          "name": "drift_coefficients"
+        },
+        {
+          "name": "jump_rates"
+        }
+      ]
+    },
+    "embedded_simulation_run": {
+      "name": "embedded_simulation_run",
+      "description": "EmbeddedSimulationRunIteration runs a nested simulation to termination at each outer step.",
+      "fields": [
+        {
+          "name": "run"
+        }
+      ],
+      "params": [
+        {
+          "name": "burn_in_steps"
+        },
+        {
+          "name": "init_time_value",
+          "optional": true
+        }
+      ],
+      "params_incomplete": true
+    },
+    "ensemble_kalman_filter": {
+      "name": "ensemble_kalman_filter",
+      "description": "EnsembleKalmanFilterIteration assimilates observations into a forecast ensemble with the stochastic Ensemble Kalman Filter.",
+      "params": [
+        {
+          "name": "ensemble_size"
+        },
+        {
+          "name": "forecast_ensemble"
+        },
+        {
+          "name": "inflation",
+          "optional": true
+        },
+        {
+          "name": "latest_data_values"
+        },
+        {
+          "name": "observation_indices",
+          "optional": true
+        },
+        {
+          "name": "observation_noise_variance"
+        },
+        {
+          "name": "state_dimension"
+        }
+      ]
+    },
+    "expression": {
+      "name": "expression",
+      "description": "ExpressionIteration is a declarative Iteration: the per-step update is given as string expressions rather than as Go, so a whole partition can be specified as data (and hence from YAML, or by an agent) with no compilation step.",
+      "fields": [
+        {
+          "name": "bindings"
+        },
+        {
+          "name": "fields"
+        },
+        {
+          "name": "outputs"
+        },
+        {
+          "name": "upstreams"
+        }
+      ],
+      "params_incomplete": true
+    },
+    "from_history": {
+      "name": "from_history",
+      "description": "FromHistoryIteration streams data from an in-memory StateHistory.",
+      "fields": [
+        {
+          "name": "init_steps_taken"
+        }
+      ],
+      "params": [
+        {
+          "name": "latest_data_values"
+        }
+      ]
+    },
+    "from_input": {
+      "name": "from_input",
+      "description": "unboundInputIteration is what {type: from_input} resolves to at load: a placeholder for the input's rows, which are read when a run starts.",
+      "fields": [
+        {
+          "name": "input"
+        },
+        {
+          "name": "partition"
+        }
+      ]
+    },
+    "from_storage": {
+      "name": "from_storage",
+      "description": "FromStorageIteration streams data from an in-memory [][]float64.",
+      "fields": [
+        {
+          "name": "data"
+        },
+        {
+          "name": "init_steps_taken"
+        }
+      ]
+    },
+    "geometric_brownian_motion": {
+      "name": "geometric_brownian_motion",
+      "description": "GeometricBrownianMotionIteration steps a multiplicative (geometric) Brownian motion per dimension.",
+      "params": [
+        {
+          "name": "variances"
+        }
+      ]
+    },
+    "gradient_descent": {
+      "name": "gradient_descent",
+      "description": "GradientDescentIteration performs a gradient-based parameter update.",
+      "params": [
+        {
+          "name": "ascent",
+          "optional": true
+        },
+        {
+          "name": "gradient"
+        },
+        {
+          "name": "learning_rate"
+        }
+      ]
+    },
+    "hawkes_process": {
+      "name": "hawkes_process",
+      "description": "HawkesProcessIteration defines an iteration for a Hawkes process.",
+      "params": [
+        {
+          "name": "intensity"
+        }
+      ]
+    },
+    "hawkes_process_intensity": {
+      "name": "hawkes_process_intensity",
+      "description": "HawkesProcessIntensityIteration an iteration for a Hawkes process self-exciting intensity function.",
+      "fields": [
+        {
+          "name": "kernel",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "background_rates"
+        },
+        {
+          "name": "hawkes_partition_index"
+        }
+      ]
+    },
+    "mcts_apply": {
+      "name": "mcts_apply",
+      "description": "ApplyIteration advances the environment by one ply per stochadex outer step using a best-action signal supplied either via params_from_upstream (within-step) OR via params_as_partitions (lagged read of an upstream partition's state-history row).",
+      "fields": [
+        {
+          "name": "best_index_slot"
+        },
+        {
+          "name": "environment",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "best_idx_partition",
+          "optional": true
+        },
+        {
+          "name": "best_legal_idx",
+          "optional": true
+        }
+      ]
+    },
+    "mcts_rollout": {
+      "name": "mcts_rollout",
+      "description": "MCTSRolloutIteration runs one rollout per stochadex step.",
+      "fields": [
+        {
+          "name": "environment",
+          "required": true
+        },
+        {
+          "name": "rollout_max_steps"
+        }
+      ],
+      "params": [
+        {
+          "name": "leaf",
+          "optional": true
+        }
+      ]
+    },
+    "mcts_tree": {
+      "name": "mcts_tree",
+      "description": "MCTSTreeIteration runs the (selection + expansion + backup) phase of a UCT MCTS search as a stochadex iteration.",
+      "fields": [
+        {
+          "name": "environment",
+          "required": true
+        },
+        {
+          "name": "exploration"
+        },
+        {
+          "name": "max_tree_depth"
+        },
+        {
+          "name": "pinned_noise"
+        }
+      ],
+      "params": [
+        {
+          "name": "rollout_scores",
+          "optional": true
+        },
+        {
+          "name": "rollout_scores_partition",
+          "optional": true
+        },
+        {
+          "name": "root_state",
+          "optional": true
+        }
+      ]
+    },
+    "ornstein_uhlenbeck": {
+      "name": "ornstein_uhlenbeck",
+      "description": "OrnsteinUhlenbeckIteration steps an Ornstein–Uhlenbeck mean-reverting process per dimension using an Euler–Maruyama discretisation.",
+      "params": [
+        {
+          "name": "mus"
+        },
+        {
+          "name": "sigmas"
+        },
+        {
+          "name": "thetas"
+        }
+      ]
+    },
+    "ornstein_uhlenbeck_exact_gaussian": {
+      "name": "ornstein_uhlenbeck_exact_gaussian",
+      "description": "OrnsteinUhlenbeckExactGaussianIteration advances each dimension with the exact conditional Gaussian transition for an OU process on the current timestep increment (independent across dimensions).",
+      "params": [
+        {
+          "name": "mus"
+        },
+        {
+          "name": "sigmas"
+        },
+        {
+          "name": "thetas"
+        }
+      ]
+    },
+    "param_values": {
+      "name": "param_values",
+      "description": "ParamValuesIteration writes the float param values under \"param_values\" directly to the state.",
+      "params": [
+        {
+          "name": "param_values"
+        }
+      ]
+    },
+    "poisson_process": {
+      "name": "poisson_process",
+      "description": "PoissonProcessIteration implements a Poisson counting process for event simulation.",
+      "params": [
+        {
+          "name": "rates"
+        }
+      ]
+    },
+    "posterior_covariance": {
+      "name": "posterior_covariance",
+      "description": "PosteriorCovarianceIteration updates an estimate of the covariance matrix of the posterior distribution over params using log-likelihood and param values given in the state history of other partitions, and a mean vector.",
+      "params": [
+        {
+          "name": "loglike_indices",
+          "optional": true
+        },
+        {
+          "name": "loglike_partitions"
+        },
+        {
+          "name": "mean"
+        },
+        {
+          "name": "param_partitions"
+        },
+        {
+          "name": "posterior_log_normalisation"
+        }
+      ]
+    },
+    "posterior_log_normalisation": {
+      "name": "posterior_log_normalisation",
+      "description": "PosteriorLogNormalisationIteration updates the cumulative normalisation of the posterior distribution over params using log-likelihood values given in the state history of other partitions as well as a specified past discounting factor.",
+      "params": [
+        {
+          "name": "loglike_indices",
+          "optional": true
+        },
+        {
+          "name": "loglike_partitions"
+        },
+        {
+          "name": "past_discounting_factor"
+        }
+      ]
+    },
+    "posterior_mean": {
+      "name": "posterior_mean",
+      "description": "PosteriorMeanIteration updates an estimate of the mean of the posterior distribution over params using log-likelihood and param values given in the state history of other partitions.",
+      "fields": [
+        {
+          "name": "transform",
+          "required": true,
+          "choices": [
+            {
+              "name": "mean",
+              "description": "MeanTransform returns the values needed to compute the mean."
+            },
+            {
+              "name": "variance",
+              "description": "VarianceTransform returns the values needed to compute the variance.",
+              "params": [
+                {
+                  "name": "mean"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "loglike_indices",
+          "optional": true
+        },
+        {
+          "name": "loglike_partitions"
+        },
+        {
+          "name": "param_partitions"
+        },
+        {
+          "name": "posterior_log_normalisation"
+        }
+      ]
+    },
+    "replicated_simulation_run": {
+      "name": "replicated_simulation_run",
+      "description": "ReplicatedSimulationRunIteration states a model once, runs it once per replica at every step, and outputs each replica's final row of one partition.",
+      "fields": [
+        {
+          "name": "output_partition"
+        },
+        {
+          "name": "param_forwarding"
+        },
+        {
+          "name": "params_per_replica"
+        },
+        {
+          "name": "replicas"
+        },
+        {
+          "name": "run"
+        }
+      ],
+      "params": [
+        {
+          "name": "replica_params"
+        }
+      ]
+    },
+    "scalar_regression_stats": {
+      "name": "scalar_regression_stats",
+      "description": "ScalarRegressionStatsIteration maintains OLS-relevant sufficient statistics for scalar y on scalar x, optionally with intercept, and writes closed-form estimates each step.",
+      "params": [
+        {
+          "name": "x"
+        },
+        {
+          "name": "y"
+        }
+      ],
+      "params_incomplete": true
+    },
+    "smc_posterior": {
+      "name": "smc_posterior",
+      "description": "SMCPosteriorIteration computes importance-weighted posterior statistics from particle log-likelihoods and parameters received via params_from_upstream channels.",
+      "fields": [
+        {
+          "name": "param_names"
+        }
+      ],
+      "params": [
+        {
+          "name": "num_params"
+        },
+        {
+          "name": "num_particles"
+        },
+        {
+          "name": "particle_loglikes"
+        },
+        {
+          "name": "particle_params"
+        },
+        {
+          "name": "verbose"
+        }
+      ]
+    },
+    "smc_proposal": {
+      "name": "smc_proposal",
+      "description": "SMCProposalIteration generates N particle proposals at each step.",
+      "fields": [
+        {
+          "name": "priors",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "num_particles"
+        },
+        {
+          "name": "posterior_partition"
+        },
+        {
+          "name": "prior_params",
+          "optional": true
+        },
+        {
+          "name": "prior_types",
+          "optional": true
+        },
+        {
+          "name": "verbose"
+        }
+      ]
+    },
+    "values_changing_events": {
+      "name": "values_changing_events",
+      "description": "ValuesChangingEventsIteration calls and outputs from an iteration in the map keyed by an event.",
+      "fields": [
+        {
+          "name": "event_iteration",
+          "required": true
+        },
+        {
+          "name": "iteration_by_event",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "default_values",
+          "optional": true
+        }
+      ]
+    },
+    "values_collection": {
+      "name": "values_collection",
+      "description": "ValuesCollectionIteration maintains a fixed-width rolling collection of value vectors.",
+      "fields": [
+        {
+          "name": "pop_index",
+          "required": true,
+          "choices": [
+            {
+              "name": "next_non_empty",
+              "description": "NextNonEmptyPopIndexFunction scans the rolling collection for the next occupied slot (index \u003e 0) and returns its index for popping.",
+              "params": [
+                {
+                  "name": "empty_value"
+                },
+                {
+                  "name": "values_state_width"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "push",
+          "required": true,
+          "choices": [
+            {
+              "name": "other_partition",
+              "description": "OtherPartitionPushFunction collects the latest values from another partition to push into the collection, subject to empty_value.",
+              "params": [
+                {
+                  "name": "empty_value"
+                },
+                {
+                  "name": "other_partition"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            },
+            {
+              "name": "param_values",
+              "description": "ParamValuesPushFunction reads the next values directly from params under \"next_values_push\", subject to empty_value.",
+              "params": [
+                {
+                  "name": "empty_value"
+                },
+                {
+                  "name": "next_values_push"
+                }
+              ]
+            },
+            {
+              "name": "pop_from_other",
+              "description": "PopFromOtherCollectionPushFunction pulls the current popped values from another collection-like partition and uses them as the next values to push.",
+              "params": [
+                {
+                  "name": "empty_value"
+                },
+                {
+                  "name": "other_partition"
+                },
+                {
+                  "name": "values_state_width"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "empty_value"
+        },
+        {
+          "name": "values_state_width"
+        }
+      ]
+    },
+    "values_function": {
+      "name": "values_function",
+      "description": "ValuesFunctionIteration provides a flexible way to compute derived values from simulation state and parameters using user-defined functions.",
+      "fields": [
+        {
+          "name": "function",
+          "required": true,
+          "choices": [
+            {
+              "name": "params_event",
+              "description": "ParamsEventFunction emits an event value from the \"event\" params.",
+              "params": [
+                {
+                  "name": "event"
+                }
+              ]
+            },
+            {
+              "name": "partition_event",
+              "description": "PartitionEventFunction emits an event value from the latest state of another partition.",
+              "params": [
+                {
+                  "name": "event_partition_index"
+                },
+                {
+                  "name": "event_state_value_index"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "reduce",
+          "required": true,
+          "choices": [
+            {
+              "name": "sum",
+              "description": "SumReduce reduces a map of equally sized vectors by summing them element-wise into a single output vector."
+            }
+          ]
+        },
+        {
+          "name": "transform",
+          "required": true,
+          "choices": [
+            {
+              "name": "params",
+              "description": "ParamsTransform is a convenience transform that returns the current params map.",
+              "params_incomplete": true
+            }
+          ]
+        }
+      ]
+    },
+    "values_function_cumulative_mean": {
+      "name": "values_function_cumulative_mean",
+      "description": "ValuesFunctionCumulativeMeanIteration is the running mean of a function's values over every row of the data it reads: the data partition's initial row and each step's row after it, all weighted equally.",
+      "fields": [
+        {
+          "name": "function",
+          "required": true,
+          "choices": [
+            {
+              "name": "data_values",
+              "description": "DataValuesFunction returns values from \"data_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "data_values_indices",
+                  "optional": true
+                },
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                }
+              ]
+            },
+            {
+              "name": "data_values_variance",
+              "description": "DataValuesVarianceFunction returns per-index squared deviations from the provided \"mean\" for \"data_values_partition\".",
+              "params": [
+                {
+                  "name": "data_values_indices",
+                  "optional": true
+                },
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                },
+                {
+                  "name": "mean"
+                }
+              ]
+            },
+            {
+              "name": "other_values",
+              "description": "OtherValuesFunction returns values from \"other_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "latest_other_values"
+                },
+                {
+                  "name": "other_values_indices"
+                },
+                {
+                  "name": "other_values_partition"
+                }
+              ]
+            },
+            {
+              "name": "past_discounted_data_values",
+              "description": "PastDiscountedDataValuesFunction reads from \"data_values_partition\" and applies an exponential discount factor raised to the history depth index.",
+              "params": [
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                },
+                {
+                  "name": "past_discounting_factor"
+                }
+              ]
+            },
+            {
+              "name": "past_discounted_other_values",
+              "description": "PastDiscountedOtherValuesFunction mirrors PastDiscountedDataValuesFunction for \"other_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "latest_other_values"
+                },
+                {
+                  "name": "other_values_indices"
+                },
+                {
+                  "name": "other_values_partition"
+                },
+                {
+                  "name": "past_discounting_factor"
+                }
+              ]
+            },
+            {
+              "name": "unit_value",
+              "description": "UnitValueFunction returns [1]."
+            }
+          ]
+        }
+      ]
+    },
+    "values_function_vector_covariance": {
+      "name": "values_function_vector_covariance",
+      "description": "ValuesFunctionVectorCovarianceIteration computes a kernel-weighted rolling covariance of a function over historical values and times.",
+      "fields": [
+        {
+          "name": "function",
+          "required": true,
+          "choices": [
+            {
+              "name": "data_values",
+              "description": "DataValuesFunction returns values from \"data_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "data_values_indices",
+                  "optional": true
+                },
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                }
+              ]
+            },
+            {
+              "name": "data_values_variance",
+              "description": "DataValuesVarianceFunction returns per-index squared deviations from the provided \"mean\" for \"data_values_partition\".",
+              "params": [
+                {
+                  "name": "data_values_indices",
+                  "optional": true
+                },
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                },
+                {
+                  "name": "mean"
+                }
+              ]
+            },
+            {
+              "name": "other_values",
+              "description": "OtherValuesFunction returns values from \"other_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "latest_other_values"
+                },
+                {
+                  "name": "other_values_indices"
+                },
+                {
+                  "name": "other_values_partition"
+                }
+              ]
+            },
+            {
+              "name": "past_discounted_data_values",
+              "description": "PastDiscountedDataValuesFunction reads from \"data_values_partition\" and applies an exponential discount factor raised to the history depth index.",
+              "params": [
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                },
+                {
+                  "name": "past_discounting_factor"
+                }
+              ]
+            },
+            {
+              "name": "past_discounted_other_values",
+              "description": "PastDiscountedOtherValuesFunction mirrors PastDiscountedDataValuesFunction for \"other_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "latest_other_values"
+                },
+                {
+                  "name": "other_values_indices"
+                },
+                {
+                  "name": "other_values_partition"
+                },
+                {
+                  "name": "past_discounting_factor"
+                }
+              ]
+            },
+            {
+              "name": "unit_value",
+              "description": "UnitValueFunction returns [1]."
+            }
+          ]
+        },
+        {
+          "name": "kernel",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "data_values_partition"
+        },
+        {
+          "name": "latest_data_values"
+        },
+        {
+          "name": "mean"
+        }
+      ]
+    },
+    "values_function_vector_mean": {
+      "name": "values_function_vector_mean",
+      "description": "ValuesFunctionVectorMeanIteration computes a kernel-weighted rolling mean of a function over historical values and times.",
+      "fields": [
+        {
+          "name": "function",
+          "required": true,
+          "choices": [
+            {
+              "name": "data_values",
+              "description": "DataValuesFunction returns values from \"data_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "data_values_indices",
+                  "optional": true
+                },
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                }
+              ]
+            },
+            {
+              "name": "data_values_variance",
+              "description": "DataValuesVarianceFunction returns per-index squared deviations from the provided \"mean\" for \"data_values_partition\".",
+              "params": [
+                {
+                  "name": "data_values_indices",
+                  "optional": true
+                },
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                },
+                {
+                  "name": "mean"
+                }
+              ]
+            },
+            {
+              "name": "other_values",
+              "description": "OtherValuesFunction returns values from \"other_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "latest_other_values"
+                },
+                {
+                  "name": "other_values_indices"
+                },
+                {
+                  "name": "other_values_partition"
+                }
+              ]
+            },
+            {
+              "name": "past_discounted_data_values",
+              "description": "PastDiscountedDataValuesFunction reads from \"data_values_partition\" and applies an exponential discount factor raised to the history depth index.",
+              "params": [
+                {
+                  "name": "data_values_partition"
+                },
+                {
+                  "name": "latest_data_values"
+                },
+                {
+                  "name": "past_discounting_factor"
+                }
+              ]
+            },
+            {
+              "name": "past_discounted_other_values",
+              "description": "PastDiscountedOtherValuesFunction mirrors PastDiscountedDataValuesFunction for \"other_values_partition\", optionally subselecting indices.",
+              "params": [
+                {
+                  "name": "latest_other_values"
+                },
+                {
+                  "name": "other_values_indices"
+                },
+                {
+                  "name": "other_values_partition"
+                },
+                {
+                  "name": "past_discounting_factor"
+                }
+              ]
+            },
+            {
+              "name": "unit_value",
+              "description": "UnitValueFunction returns [1]."
+            }
+          ]
+        },
+        {
+          "name": "kernel",
+          "required": true
+        }
+      ],
+      "params": [
+        {
+          "name": "data_values_partition"
+        },
+        {
+          "name": "latest_data_values"
+        },
+        {
+          "name": "subtract_from_normalisation",
+          "optional": true
+        },
+        {
+          "name": "without_normalisation",
+          "optional": true
+        }
+      ]
+    },
+    "values_grouped_aggregation": {
+      "name": "values_grouped_aggregation",
+      "description": "ValuesGroupedAggregationIteration collects historical values and weights into grouping buckets (defined by tupled grouping series) and applies a caller-provided aggregation per bucket.",
+      "fields": [
+        {
+          "name": "aggregation",
+          "required": true,
+          "choices": [
+            {
+              "name": "count",
+              "description": "CountAggregation outputs, per group, the sum of weights (i.e., a count when weights are all 1)."
+            },
+            {
+              "name": "max",
+              "description": "MaxAggregation computes the maximum of weighted values per group."
+            },
+            {
+              "name": "mean",
+              "description": "MeanAggregation computes the weighted mean of values per group."
+            },
+            {
+              "name": "min",
+              "description": "MinAggregation computes the minimum of weighted values per group."
+            },
+            {
+              "name": "sum",
+              "description": "SumAggregation computes the weighted sum of values per group."
+            }
+          ]
+        },
+        {
+          "name": "kernel",
+          "required": true
+        },
+        {
+          "name": "undeclared_groups"
+        }
+      ],
+      "params": [
+        {
+          "name": "accepted_value_group_tupindex_*",
+          "optional": true
+        },
+        {
+          "name": "default_values",
+          "optional": true
+        },
+        {
+          "name": "float_precision"
+        },
+        {
+          "name": "grouping_partition_tupindex_*"
+        },
+        {
+          "name": "grouping_value_indices_tupindex_*"
+        },
+        {
+          "name": "latest_groupings_tupindex_*"
+        },
+        {
+          "name": "latest_states"
+        },
+        {
+          "name": "state_partition"
+        },
+        {
+          "name": "state_value_indices"
+        }
+      ]
+    },
+    "values_sorted_collection_covariance": {
+      "name": "values_sorted_collection_covariance",
+      "description": "ValuesSortedCollectionCovarianceIteration computes a weighted covariance matrix of the top entries in a sorted collection around a provided mean, blended with its own previous state via a learning rate.",
+      "params": [
+        {
+          "name": "empty_value",
+          "optional": true
+        },
+        {
+          "name": "learning_rate"
+        },
+        {
+          "name": "sorted_collection"
+        },
+        {
+          "name": "values_state_width"
+        },
+        {
+          "name": "weights"
+        }
+      ]
+    },
+    "values_sorted_collection_mean": {
+      "name": "values_sorted_collection_mean",
+      "description": "ValuesSortedCollectionMeanIteration computes a weighted mean of the top entries in a sorted collection, blended with its own previous state via a learning rate.",
+      "params": [
+        {
+          "name": "empty_value",
+          "optional": true
+        },
+        {
+          "name": "learning_rate"
+        },
+        {
+          "name": "sorted_collection"
+        },
+        {
+          "name": "values_state_width"
+        },
+        {
+          "name": "weights"
+        }
+      ]
+    },
+    "values_sorting_collection": {
+      "name": "values_sorting_collection",
+      "description": "ValuesSortingCollectionIteration maintains a sorted collection of entries.",
+      "fields": [
+        {
+          "name": "push_and_sort",
+          "required": true,
+          "choices": [
+            {
+              "name": "other_partitions",
+              "description": "OtherPartitionsPushAndSortFunction retrieves values from one partition and sorts by another partition's value.",
+              "params": [
+                {
+                  "name": "empty_value"
+                },
+                {
+                  "name": "other_partition"
+                },
+                {
+                  "name": "other_partition_sort_by"
+                },
+                {
+                  "name": "value_index_sort_by"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            },
+            {
+              "name": "param_values",
+              "description": "ParamValuesPushAndSortFunction uses params for both values and sort key.",
+              "params": [
+                {
+                  "name": "empty_value"
+                },
+                {
+                  "name": "next_values_push"
+                },
+                {
+                  "name": "next_values_sort_by"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "empty_value"
+        },
+        {
+          "name": "values_state_width"
+        }
+      ]
+    },
+    "values_weighted_resampling": {
+      "name": "values_weighted_resampling",
+      "description": "ValuesWeightedResamplingIteration resamples historical values from other partitions according to provided (optionally discounted) weights.",
+      "params": [
+        {
+          "name": "data_values_partitions"
+        },
+        {
+          "name": "log_weight_indices",
+          "optional": true
+        },
+        {
+          "name": "log_weight_partitions"
+        },
+        {
+          "name": "past_discounting_factor"
+        }
+      ]
+    },
+    "wiener_process": {
+      "name": "wiener_process",
+      "description": "WienerProcessIteration implements a standard Wiener process (Brownian motion) for stochastic simulation.",
+      "params": [
+        {
+          "name": "variances"
+        }
+      ]
+    }
+  },
+  "jumps": {
+    "gamma_jump": {
+      "name": "gamma_jump",
+      "description": "GammaJumpDistribution draws jump magnitudes from a gamma distribution.",
+      "params": [
+        {
+          "name": "gamma_alphas"
+        },
+        {
+          "name": "gamma_betas"
+        }
+      ]
+    }
+  },
+  "kernels": {
+    "binned": {
+      "name": "binned",
+      "description": "BinnedIntegrationKernel outputs piecewise-constant weights in time.",
+      "params": [
+        {
+          "name": "bin_stepsize"
+        },
+        {
+          "name": "bin_values"
+        }
+      ]
+    },
+    "constant": {
+      "name": "constant",
+      "description": "ConstantIntegrationKernel returns 1.0 for every sample."
+    },
+    "exponential": {
+      "name": "exponential",
+      "description": "ExponentialIntegrationKernel applies exponential decay over time.",
+      "params": [
+        {
+          "name": "exponential_weighting_timescale"
+        }
+      ]
+    },
+    "gaussian_state": {
+      "name": "gaussian_state",
+      "description": "GaussianStateIntegrationKernel implements a Gaussian state-distance kernel for weighting historical samples based on their distance from the current state.",
+      "params": [
+        {
+          "name": "covariance_matrix"
+        }
+      ]
+    },
+    "instantaneous": {
+      "name": "instantaneous",
+      "description": "InstantaneousIntegrationKernel returns 1.0 for the most recent sample and 0.0 otherwise."
+    },
+    "periodic": {
+      "name": "periodic",
+      "description": "PeriodicIntegrationKernel applies periodic (circular) time weighting.",
+      "params": [
+        {
+          "name": "periodic_weighting_timescale"
+        }
+      ]
+    },
+    "product": {
+      "name": "product",
+      "description": "ProductIntegrationKernel multiplies two kernels to form a composite weight.",
+      "fields": [
+        {
+          "name": "kernel_a",
+          "required": true
+        },
+        {
+          "name": "kernel_b",
+          "required": true
+        }
+      ]
+    },
+    "t_distribution_state": {
+      "name": "t_distribution_state",
+      "description": "TDistributionStateIntegrationKernel applies a multivariate t kernel using an input scale matrix and degrees of freedom.",
+      "params": [
+        {
+          "name": "degrees_of_freedom"
+        },
+        {
+          "name": "scale_matrix"
+        }
+      ]
+    }
+  },
+  "likelihoods": {
+    "beta": {
+      "name": "beta",
+      "description": "BetaLikelihoodDistribution implements a Beta distribution likelihood model for bounded continuous data analysis and parameter estimation.",
+      "params": [
+        {
+          "name": "alpha",
+          "optional": true
+        },
+        {
+          "name": "beta"
+        },
+        {
+          "name": "mean"
+        },
+        {
+          "name": "mean_partition"
+        },
+        {
+          "name": "variance"
+        },
+        {
+          "name": "variance_partition"
+        }
+      ]
+    },
+    "gamma": {
+      "name": "gamma",
+      "description": "GammaLikelihoodDistribution assumes the real data are well described by a gamma distribution, given the input mean and variance.",
+      "params": [
+        {
+          "name": "mean"
+        },
+        {
+          "name": "mean_partition"
+        },
+        {
+          "name": "variance"
+        },
+        {
+          "name": "variance_partition"
+        }
+      ]
+    },
+    "negative_binomial": {
+      "name": "negative_binomial",
+      "description": "NegativeBinomialLikelihoodDistribution assumes the real data are well described by a negative binomial distribution, given the input mean and variance.",
+      "params": [
+        {
+          "name": "mean"
+        },
+        {
+          "name": "mean_partition"
+        },
+        {
+          "name": "variance"
+        },
+        {
+          "name": "variance_partition"
+        }
+      ]
+    },
+    "normal": {
+      "name": "normal",
+      "description": "NormalLikelihoodDistribution models data with a multivariate normal.",
+      "fields": [
+        {
+          "name": "allow_default_covariance_fallback"
+        }
+      ],
+      "params": [
+        {
+          "name": "cov_burn_in_steps",
+          "optional": true
+        },
+        {
+          "name": "covariance_matrix"
+        },
+        {
+          "name": "covariance_matrix_partition"
+        },
+        {
+          "name": "default_covariance",
+          "optional": true
+        },
+        {
+          "name": "mean"
+        },
+        {
+          "name": "mean_partition"
+        },
+        {
+          "name": "variance"
+        },
+        {
+          "name": "variance_partition"
+        }
+      ]
+    },
+    "poisson": {
+      "name": "poisson",
+      "description": "PoissonLikelihoodDistribution models count data with a Poisson distribution.",
+      "params": [
+        {
+          "name": "mean"
+        },
+        {
+          "name": "mean_partition"
+        }
+      ]
+    },
+    "t_distribution": {
+      "name": "t_distribution",
+      "description": "TLikelihoodDistribution assumes the real data are well described by a Student's t-distribution, given the input degrees of freedom, mean and covariance matrix.",
+      "params": [
+        {
+          "name": "covariance_matrix"
+        },
+        {
+          "name": "covariance_matrix_partition"
+        },
+        {
+          "name": "default_covariance",
+          "optional": true
+        },
+        {
+          "name": "degrees_of_freedom"
+        },
+        {
+          "name": "mean"
+        },
+        {
+          "name": "mean_partition"
+        },
+        {
+          "name": "variance"
+        },
+        {
+          "name": "variance_partition"
+        }
+      ]
+    },
+    "wishart": {
+      "name": "wishart",
+      "description": "WishartLikelihoodDistribution assumes the real data are well described by a Wishart distribution, given the input degrees of freedom and scale matrix.",
+      "params": [
+        {
+          "name": "default_scale",
+          "optional": true
+        },
+        {
+          "name": "degrees_of_freedom"
+        },
+        {
+          "name": "scale_matrix"
+        }
+      ]
+    }
+  },
+  "macros": {
+    "evolution_strategy_optimisation": {
+      "name": "evolution_strategy_optimisation",
+      "fields": [
+        {
+          "name": "covariance",
+          "fields": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "learning_rate"
+            },
+            {
+              "name": "name"
+            }
+          ]
+        },
+        {
+          "name": "mean",
+          "fields": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "learning_rate"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "weights"
+            }
+          ]
+        },
+        {
+          "name": "reward",
+          "fields": [
+            {
+              "name": "discount_factor"
+            },
+            {
+              "name": "partition",
+              "fields": [
+                {
+                  "name": "outside_upstreams"
+                },
+                {
+                  "name": "partition",
+                  "fields": [
+                    {
+                      "name": "init_state_from_upstream"
+                    },
+                    {
+                      "name": "init_state_values"
+                    },
+                    {
+                      "name": "iteration"
+                    },
+                    {
+                      "name": "name"
+                    },
+                    {
+                      "name": "params"
+                    },
+                    {
+                      "name": "params_as_partitions"
+                    },
+                    {
+                      "name": "params_from_input"
+                    },
+                    {
+                      "name": "params_from_upstream"
+                    },
+                    {
+                      "name": "seed"
+                    },
+                    {
+                      "name": "state_history_depth"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "sampler",
+          "fields": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "name"
+            }
+          ]
+        },
+        {
+          "name": "seed"
+        },
+        {
+          "name": "sorting",
+          "fields": [
+            {
+              "name": "collection_size"
+            },
+            {
+              "name": "empty_value"
+            },
+            {
+              "name": "name"
+            }
+          ]
+        },
+        {
+          "name": "steps"
+        },
+        {
+          "name": "timestep"
+        },
+        {
+          "name": "window",
+          "fields": [
+            {
+              "name": "data",
+              "fields": [
+                {
+                  "name": "partition_name"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            },
+            {
+              "name": "depth"
+            },
+            {
+              "name": "partitions",
+              "fields": [
+                {
+                  "name": "outside_upstreams"
+                },
+                {
+                  "name": "partition",
+                  "fields": [
+                    {
+                      "name": "init_state_from_upstream"
+                    },
+                    {
+                      "name": "init_state_values"
+                    },
+                    {
+                      "name": "iteration"
+                    },
+                    {
+                      "name": "name"
+                    },
+                    {
+                      "name": "params"
+                    },
+                    {
+                      "name": "params_as_partitions"
+                    },
+                    {
+                      "name": "params_from_input"
+                    },
+                    {
+                      "name": "params_from_upstream"
+                    },
+                    {
+                      "name": "seed"
+                    },
+                    {
+                      "name": "state_history_depth"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "grouped_aggregation": {
+      "name": "grouped_aggregation",
+      "fields": [
+        {
+          "name": "aggregation"
+        },
+        {
+          "name": "data",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "default_value"
+        },
+        {
+          "name": "group_by",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "groups"
+        },
+        {
+          "name": "kernel"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "params"
+        },
+        {
+          "name": "precision"
+        },
+        {
+          "name": "undeclared_groups"
+        },
+        {
+          "name": "window"
+        }
+      ]
+    },
+    "likelihood_comparison": {
+      "name": "likelihood_comparison",
+      "fields": [
+        {
+          "name": "data",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "embedded_burn_in_steps"
+        },
+        {
+          "name": "model",
+          "fields": [
+            {
+              "name": "likelihood"
+            },
+            {
+              "name": "params"
+            },
+            {
+              "name": "params_as_partitions"
+            },
+            {
+              "name": "params_from_upstream"
+            }
+          ]
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "window",
+          "fields": [
+            {
+              "name": "data",
+              "fields": [
+                {
+                  "name": "partition_name"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            },
+            {
+              "name": "depth"
+            },
+            {
+              "name": "partitions",
+              "fields": [
+                {
+                  "name": "outside_upstreams"
+                },
+                {
+                  "name": "partition",
+                  "fields": [
+                    {
+                      "name": "init_state_from_upstream"
+                    },
+                    {
+                      "name": "init_state_values"
+                    },
+                    {
+                      "name": "iteration"
+                    },
+                    {
+                      "name": "name"
+                    },
+                    {
+                      "name": "params"
+                    },
+                    {
+                      "name": "params_as_partitions"
+                    },
+                    {
+                      "name": "params_from_input"
+                    },
+                    {
+                      "name": "params_from_upstream"
+                    },
+                    {
+                      "name": "seed"
+                    },
+                    {
+                      "name": "state_history_depth"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "window_data_history_depth"
+        }
+      ]
+    },
+    "likelihood_mean_function_fit": {
+      "name": "likelihood_mean_function_fit",
+      "fields": [
+        {
+          "name": "data",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "descent_iterations"
+        },
+        {
+          "name": "embedded_burn_in_steps"
+        },
+        {
+          "name": "gradient",
+          "fields": [
+            {
+              "name": "function"
+            },
+            {
+              "name": "width"
+            }
+          ]
+        },
+        {
+          "name": "learning_rate"
+        },
+        {
+          "name": "model",
+          "fields": [
+            {
+              "name": "likelihood"
+            },
+            {
+              "name": "params"
+            },
+            {
+              "name": "params_as_partitions"
+            },
+            {
+              "name": "params_from_upstream"
+            }
+          ]
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "warm_start"
+        },
+        {
+          "name": "window",
+          "fields": [
+            {
+              "name": "data",
+              "fields": [
+                {
+                  "name": "partition_name"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            },
+            {
+              "name": "depth"
+            },
+            {
+              "name": "partitions",
+              "fields": [
+                {
+                  "name": "outside_upstreams"
+                },
+                {
+                  "name": "partition",
+                  "fields": [
+                    {
+                      "name": "init_state_from_upstream"
+                    },
+                    {
+                      "name": "init_state_values"
+                    },
+                    {
+                      "name": "iteration"
+                    },
+                    {
+                      "name": "name"
+                    },
+                    {
+                      "name": "params"
+                    },
+                    {
+                      "name": "params_as_partitions"
+                    },
+                    {
+                      "name": "params_from_input"
+                    },
+                    {
+                      "name": "params_from_upstream"
+                    },
+                    {
+                      "name": "seed"
+                    },
+                    {
+                      "name": "state_history_depth"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "window_data_history_depth"
+        }
+      ]
+    },
+    "mcts_planning": {
+      "name": "mcts_planning",
+      "fields": [
+        {
+          "name": "action_param"
+        },
+        {
+          "name": "action_partition"
+        },
+        {
+          "name": "actions"
+        },
+        {
+          "name": "discount"
+        },
+        {
+          "name": "exploration"
+        },
+        {
+          "name": "horizon"
+        },
+        {
+          "name": "max_tree_depth"
+        },
+        {
+          "name": "model",
+          "fields": [
+            {
+              "name": "init_time"
+            },
+            {
+              "name": "partitions",
+              "fields": [
+                {
+                  "name": "init_state_from_upstream"
+                },
+                {
+                  "name": "init_state_values"
+                },
+                {
+                  "name": "iteration"
+                },
+                {
+                  "name": "name"
+                },
+                {
+                  "name": "params"
+                },
+                {
+                  "name": "params_as_partitions"
+                },
+                {
+                  "name": "params_from_input"
+                },
+                {
+                  "name": "params_from_upstream"
+                },
+                {
+                  "name": "seed"
+                },
+                {
+                  "name": "state_history_depth"
+                }
+              ]
+            },
+            {
+              "name": "timestep"
+            }
+          ]
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "parameters",
+          "fields": [
+            {
+              "name": "belief",
+              "fields": [
+                {
+                  "name": "observation_partition"
+                },
+                {
+                  "name": "variance"
+                }
+              ]
+            },
+            {
+              "name": "samples"
+            },
+            {
+              "name": "samples_from",
+              "fields": [
+                {
+                  "name": "burn_in"
+                },
+                {
+                  "name": "input"
+                },
+                {
+                  "name": "partition_name"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            },
+            {
+              "name": "targets",
+              "fields": [
+                {
+                  "name": "indices"
+                },
+                {
+                  "name": "param"
+                },
+                {
+                  "name": "partition"
+                }
+              ]
+            },
+            {
+              "name": "weights"
+            },
+            {
+              "name": "weights_from",
+              "fields": [
+                {
+                  "name": "input"
+                },
+                {
+                  "name": "partition_name"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "pinned_noise"
+        },
+        {
+          "name": "progress_partition"
+        },
+        {
+          "name": "return_range"
+        },
+        {
+          "name": "reward_partition"
+        },
+        {
+          "name": "rollout_max_steps"
+        },
+        {
+          "name": "scenario_seed"
+        },
+        {
+          "name": "seed"
+        },
+        {
+          "name": "sims_per_decision"
+        },
+        {
+          "name": "steps"
+        },
+        {
+          "name": "timestep"
+        }
+      ]
+    },
+    "mcts_self_play": {
+      "name": "mcts_self_play",
+      "fields": [
+        {
+          "name": "env"
+        },
+        {
+          "name": "exploration"
+        },
+        {
+          "name": "max_tree_depth"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "rollout_max_steps"
+        },
+        {
+          "name": "seed"
+        },
+        {
+          "name": "sims_per_ply"
+        },
+        {
+          "name": "simulations"
+        },
+        {
+          "name": "steps"
+        },
+        {
+          "name": "timestep"
+        }
+      ]
+    },
+    "posterior_estimation": {
+      "name": "posterior_estimation",
+      "fields": [
+        {
+          "name": "comparison",
+          "fields": [
+            {
+              "name": "data",
+              "fields": [
+                {
+                  "name": "partition_name"
+                },
+                {
+                  "name": "value_indices"
+                }
+              ]
+            },
+            {
+              "name": "embedded_burn_in_steps"
+            },
+            {
+              "name": "model",
+              "fields": [
+                {
+                  "name": "likelihood"
+                },
+                {
+                  "name": "params"
+                },
+                {
+                  "name": "params_as_partitions"
+                },
+                {
+                  "name": "params_from_upstream"
+                }
+              ]
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "type"
+            },
+            {
+              "name": "window",
+              "fields": [
+                {
+                  "name": "data",
+                  "fields": [
+                    {
+                      "name": "partition_name"
+                    },
+                    {
+                      "name": "value_indices"
+                    }
+                  ]
+                },
+                {
+                  "name": "depth"
+                },
+                {
+                  "name": "partitions",
+                  "fields": [
+                    {
+                      "name": "outside_upstreams"
+                    },
+                    {
+                      "name": "partition",
+                      "fields": [
+                        {
+                          "name": "init_state_from_upstream"
+                        },
+                        {
+                          "name": "init_state_values"
+                        },
+                        {
+                          "name": "iteration"
+                        },
+                        {
+                          "name": "name"
+                        },
+                        {
+                          "name": "params"
+                        },
+                        {
+                          "name": "params_as_partitions"
+                        },
+                        {
+                          "name": "params_from_input"
+                        },
+                        {
+                          "name": "params_from_upstream"
+                        },
+                        {
+                          "name": "seed"
+                        },
+                        {
+                          "name": "state_history_depth"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "window_data_history_depth"
+            }
+          ]
+        },
+        {
+          "name": "covariance",
+          "fields": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "just_variance"
+            },
+            {
+              "name": "name"
+            }
+          ]
+        },
+        {
+          "name": "log_norm",
+          "fields": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "name"
+            }
+          ]
+        },
+        {
+          "name": "mean",
+          "fields": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "name"
+            }
+          ]
+        },
+        {
+          "name": "memory_depth"
+        },
+        {
+          "name": "past_discount"
+        },
+        {
+          "name": "sampler",
+          "fields": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "distribution",
+              "fields": [
+                {
+                  "name": "likelihood"
+                },
+                {
+                  "name": "params"
+                },
+                {
+                  "name": "params_as_partitions"
+                },
+                {
+                  "name": "params_from_upstream"
+                }
+              ]
+            },
+            {
+              "name": "name"
+            }
+          ]
+        },
+        {
+          "name": "seed"
+        }
+      ]
+    },
+    "scalar_regression_stats": {
+      "name": "scalar_regression_stats",
+      "fields": [
+        {
+          "name": "intercept"
+        },
+        {
+          "name": "min_denominator"
+        },
+        {
+          "name": "mode"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "state_history_depth"
+        },
+        {
+          "name": "window_length"
+        },
+        {
+          "name": "x",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "y",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        }
+      ]
+    },
+    "smc_inference": {
+      "name": "smc_inference",
+      "fields": [
+        {
+          "name": "model",
+          "fields": [
+            {
+              "name": "loglike_partition"
+            },
+            {
+              "name": "observed_data",
+              "fields": [
+                {
+                  "name": "name"
+                },
+                {
+                  "name": "ref",
+                  "fields": [
+                    {
+                      "name": "partition_name"
+                    },
+                    {
+                      "name": "value_indices"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "param_forwarding"
+            },
+            {
+              "name": "partitions",
+              "fields": [
+                {
+                  "name": "init_state_from_upstream"
+                },
+                {
+                  "name": "init_state_values"
+                },
+                {
+                  "name": "iteration"
+                },
+                {
+                  "name": "name"
+                },
+                {
+                  "name": "params"
+                },
+                {
+                  "name": "params_as_partitions"
+                },
+                {
+                  "name": "params_from_input"
+                },
+                {
+                  "name": "params_from_upstream"
+                },
+                {
+                  "name": "seed"
+                },
+                {
+                  "name": "state_history_depth"
+                }
+              ]
+            },
+            {
+              "name": "simulation",
+              "fields": [
+                {
+                  "name": "execution_strategy"
+                },
+                {
+                  "name": "init_time_value"
+                },
+                {
+                  "name": "output_condition"
+                },
+                {
+                  "name": "output_function"
+                },
+                {
+                  "name": "termination_condition"
+                },
+                {
+                  "name": "timestep_function"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "num_particles"
+        },
+        {
+          "name": "num_rounds"
+        },
+        {
+          "name": "param_names"
+        },
+        {
+          "name": "posterior_name"
+        },
+        {
+          "name": "priors"
+        },
+        {
+          "name": "proposal_name"
+        },
+        {
+          "name": "seed"
+        },
+        {
+          "name": "sim_name"
+        },
+        {
+          "name": "timestep"
+        },
+        {
+          "name": "verbose"
+        }
+      ]
+    },
+    "vector_covariance": {
+      "name": "vector_covariance",
+      "fields": [
+        {
+          "name": "data",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "default_value"
+        },
+        {
+          "name": "kernel"
+        },
+        {
+          "name": "mean",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "params"
+        },
+        {
+          "name": "window"
+        }
+      ]
+    },
+    "vector_mean": {
+      "name": "vector_mean",
+      "fields": [
+        {
+          "name": "cumulative"
+        },
+        {
+          "name": "data",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "default_value"
+        },
+        {
+          "name": "kernel"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "params"
+        },
+        {
+          "name": "window"
+        }
+      ]
+    },
+    "vector_variance": {
+      "name": "vector_variance",
+      "fields": [
+        {
+          "name": "data",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "default_value"
+        },
+        {
+          "name": "kernel"
+        },
+        {
+          "name": "mean",
+          "fields": [
+            {
+              "name": "partition_name"
+            },
+            {
+              "name": "value_indices"
+            }
+          ]
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "params"
+        },
+        {
+          "name": "window"
+        }
+      ]
+    }
+  },
+  "output_conditions": {
+    "every_n_steps": {
+      "name": "every_n_steps",
+      "description": "EveryNStepsOutputCondition emits output once every N steps.",
+      "fields": [
+        {
+          "name": "n",
+          "required": true
+        }
+      ]
+    },
+    "every_step": {
+      "name": "every_step",
+      "description": "EveryStepOutputCondition calls the OutputFunction at every step."
+    },
+    "final_step": {
+      "name": "final_step",
+      "description": "FinalStepOutputCondition writes each partition's state once, as it stands when the run ends: the run's final step, or its initial state for a run of no steps.",
+      "fields": [
+        {
+          "name": "partitions",
+          "required": true
+        }
+      ]
+    },
+    "nil": {
+      "name": "nil",
+      "description": "NilOutputCondition never outputs."
+    },
+    "only_given_partitions": {
+      "name": "only_given_partitions",
+      "description": "OnlyGivenPartitionsOutputCondition emits output only for listed partitions.",
+      "fields": [
+        {
+          "name": "partitions",
+          "required": true
+        }
+      ]
+    }
+  },
+  "output_functions": {
+    "json_log": {
+      "name": "json_log",
+      "description": "JsonLogOutputFunction writes newline-delimited JSON log entries.",
+      "fields": [
+        {
+          "name": "path",
+          "required": true
+        }
+      ]
+    },
+    "nil": {
+      "name": "nil",
+      "description": "NilOutputFunction outputs nothing from the simulation."
+    },
+    "postgres": {
+      "name": "postgres",
+      "description": "PostgresDb is a struct which can be configured to define interactions with a PostgresSQL database.",
+      "fields": [
+        {
+          "name": "dbname"
+        },
+        {
+          "name": "driver"
+        },
+        {
+          "name": "dsn"
+        },
+        {
+          "name": "password"
+        },
+        {
+          "name": "table",
+          "required": true
+        },
+        {
+          "name": "user"
+        }
+      ]
+    },
+    "stdout": {
+      "name": "stdout",
+      "description": "StdoutOutputFunction outputs the state to the terminal."
+    },
+    "websocket": {
+      "name": "websocket",
+      "description": "WebsocketPushOutputFunction streams outputs to a websocket server, acting as the client: the config names a URL (output_function: {type: websocket, url: ...}) and the run pushes to it.",
+      "fields": [
+        {
+          "name": "url",
+          "required": true
+        }
+      ]
+    }
+  },
+  "priors": {
+    "half_normal": {
+      "name": "half_normal",
+      "description": "HalfNormalPrior is a half-normal distribution (x \u003e= 0) with scale sigma.",
+      "fields": [
+        {
+          "name": "sigma",
+          "required": true
+        }
+      ]
+    },
+    "log_normal": {
+      "name": "log_normal",
+      "description": "LogNormalPrior is a log-normal distribution: log(x) ~ N(mu, sigma^2).",
+      "fields": [
+        {
+          "name": "mu",
+          "required": true
+        },
+        {
+          "name": "sigma",
+          "required": true
+        }
+      ]
+    },
+    "truncated_normal": {
+      "name": "truncated_normal",
+      "description": "TruncatedNormalPrior is a normal distribution truncated to [Lo, Hi].",
+      "fields": [
+        {
+          "name": "hi",
+          "required": true
+        },
+        {
+          "name": "lo",
+          "required": true
+        },
+        {
+          "name": "mu",
+          "required": true
+        },
+        {
+          "name": "sigma",
+          "required": true
+        }
+      ]
+    },
+    "uniform": {
+      "name": "uniform",
+      "description": "UniformPrior is a uniform distribution on [Lo, Hi].",
+      "fields": [
+        {
+          "name": "hi",
+          "required": true
+        },
+        {
+          "name": "lo",
+          "required": true
+        }
+      ]
+    }
+  },
+  "stream_transports": {
+    "connection": {
+      "name": "connection"
+    },
+    "websocket": {
+      "name": "websocket",
+      "fields": [
+        {
+          "name": "url"
+        }
+      ]
+    }
+  },
+  "termination_conditions": {
+    "input_exhausted": {
+      "name": "input_exhausted",
+      "description": "unboundInputExhausted is termination_condition {type: input_exhausted}: a step per row after the input's first, once bound.",
+      "fields": [
+        {
+          "name": "input"
+        }
+      ]
+    },
+    "number_of_steps": {
+      "name": "number_of_steps",
+      "description": "NumberOfStepsTerminationCondition terminates after MaxNumberOfSteps.",
+      "fields": [
+        {
+          "name": "max_steps",
+          "required": true
+        }
+      ]
+    },
+    "time_elapsed": {
+      "name": "time_elapsed",
+      "description": "TimeElapsedTerminationCondition terminates after MaxTimeElapsed.",
+      "fields": [
+        {
+          "name": "max_time_elapsed",
+          "required": true
+        }
+      ]
+    }
+  },
+  "timestep_functions": {
+    "constant": {
+      "name": "constant",
+      "description": "ConstantTimestepFunction uses a fixed stepsize.",
+      "fields": [
+        {
+          "name": "stepsize",
+          "required": true
+        }
+      ]
+    },
+    "exponential_distribution": {
+      "name": "exponential_distribution",
+      "description": "ExponentialDistributionTimestepFunction draws dt from an exponential distribution parameterised by Mean and Seed.",
+      "fields": [
+        {
+          "name": "mean",
+          "required": true
+        },
+        {
+          "name": "seed",
+          "required": true
+        }
+      ]
+    },
+    "from_history": {
+      "name": "from_history",
+      "description": "FromHistoryTimestepFunction streams timesteps from an in-memory CumulativeTimestepsHistory."
+    },
+    "from_input": {
+      "name": "from_input",
+      "description": "unboundInputTimesteps is timestep_function {type: from_input}: the input's times, once bound.",
+      "fields": [
+        {
+          "name": "input"
+        }
+      ]
+    },
+    "from_storage": {
+      "name": "from_storage",
+      "description": "FromStorageTimestepFunction streams timesteps from an in-memory []float64.",
+      "fields": [
+        {
+          "name": "data"
+        },
+        {
+          "name": "init_steps_taken"
+        }
+      ]
+    }
+  }
+}

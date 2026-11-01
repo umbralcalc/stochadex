@@ -14,9 +14,9 @@ import (
 // Usage hints:
 //   - Provide: "sorted_collection" (flattened sorted state from upstream),
 //     "weights" (rank-based weights for top-μ entries, should sum to 1),
-//     "learning_rate" (blend factor α), "values_state_width" (dimension D
-//     of each entry, excluding sort key), and "mean" (current mean vector
-//     from the mean update partition).
+//     "learning_rate" (blend factor α), and "values_state_width" (dimension
+//     D of each entry, excluding sort key). It centres on the top entries'
+//     own weighted mean, so it takes no mean from elsewhere.
 //   - Output is a D×D flattened symmetric covariance matrix, consistent
 //     with mat.SymDense.RawSymmetric().Data format.
 type ValuesSortedCollectionCovarianceIteration struct {

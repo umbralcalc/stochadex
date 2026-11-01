@@ -117,7 +117,10 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      bespoke *maths* still goes through `expressions:`; the registry is for the framework's own
      catalogue. Two drift tests guard it (`registry_test.go`, `registry_coverage_test.go`): every
      registered name constructs the type it claims, and a `go/ast` scan requires every `Iterate`
-     type to be registered or excluded-with-reason.
+     type to be registered or excluded-with-reason. What `stochadex catalogue` says of each type
+     (description, spec fields, params) is generated from source into
+     `pkg/api/catalogue_fields.json`; after changing a registered type, rerun
+     `go test ./pkg/api -run TestCatalogueFieldsUpToDate -update-catalogue`.
    - **`run:`** — `{mode: batch | ensemble, seeds, concurrency}` (`RunModeConfig`).
    - **`inputs:` + `macros:`** (`pkg/api/macros*.go` decoding into `pkg/macros`, and
      `pkg/api/expand*.go`) — the analysis tier. A macro is a config → config shortcut: a run
