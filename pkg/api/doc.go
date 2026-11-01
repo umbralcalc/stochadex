@@ -11,8 +11,9 @@
 // selecting a registered name, e.g. iteration: {type: wiener_process} or
 // timestep_function: {type: constant, stepsize: 1.0}, resolved at load time by this
 // package's registries. There is no Go-expression spelling: the whole document is data, so
-// LoadApiRunConfigFromYaml resolves it and RunWithParsedArgs runs it in-process with no Go
-// toolchain. A component given as a scalar Go string is rejected at load.
+// LoadConfig resolves it and RunWith, RunToStorage or the CLI (Execute) runs it in-process
+// with no Go toolchain. A component given as a scalar Go string is rejected at load.
+// BuildCatalogue lists every name, with what each takes and reads.
 //
 // A partition's bespoke maths is data too: an expressions: entry (ExpressionConfig, inlining
 // general.ExpressionIteration) states the per-step update as expressions. The registries are
@@ -23,17 +24,22 @@
 //
 // # The config surface
 //
-//	main:     partitions and the simulation block (output condition and function,
-//	          termination condition, timestep function) — see RunConfig.
+// A config is one run: inputs → one runtime → outputs (docs/reference.md is the written
+// semantics).
+//
+//	inputs:   named, read-only data the run reads when it starts: a source (csv, json_log,
+//	          postgres, inline, plus registered ones), a pre-pass simulation, a nested run,
+//	          a file, or a live stream (InputConfig). data: is deprecated shorthand for one.
+//	main:     partitions, expressions and the simulation block (termination condition,
+//	          timestep function, initial time, execution strategy) — see RunConfig.
 //	embedded: named sub-runs, each a whole RunConfig (EmbeddedRunConfig). A main-run
 //	          partition whose name matches one is replaced by an embedded simulation
 //	          iteration wired to it, which is how a simulation nests inside a partition.
-//	run:      execution mode — batch, ensemble (seeds, concurrency) or serve (websocket,
-//	          pace_ms; see serve.go) (RunModeConfig).
-//	data:     a StateTimeStorage, produced either by a sub-simulation or by a pre-recorded
-//	          source (DataSource: csv, json_log, postgres, plus registered ones).
-//	macros:   each entry expands one pkg/macros constructor into a set of partitions over
-//	          that storage, or runs live with no data: block at all.
+//	macros:   shortcuts: a run expands each entry into core-language partitions in the
+//	          same run (Expand, expand*.go), which stochadex expand prints.
+//	outputs:  views of the run, each a condition and a destination (OutputViewConfig).
+//	run:      how many runtimes and how they are paced — batch, ensemble (seeds,
+//	          concurrency) or serve (websocket, pace_ms; see serve.go) (RunModeConfig).
 //
 // # Where the registries live
 //
@@ -52,7 +58,8 @@
 //	                     ordinary run (Expand); the run's partitions mirror the matching
 //	                     pkg/macros constructors.
 //	registry_environment.go
-//	                     agents.Environment implementations for the mcts_self_play macro.
+//	                     the environments the mcts_* iterations and the mcts_self_play
+//	                     macro search.
 //	                     Unlike the registries above this one is empty by default and filled
 //	                     by downstream modules calling RegisterEnvironment: decision rules
 //	                     are not part of the framework catalogue and have no data spelling,
@@ -67,7 +74,10 @@
 // go/ast scan requires every Iterate-implementing type in the candidate packages to be either
 // registered or listed in excludedIterations with a reason. A newly-added iteration therefore
 // fails CI until it is classified, which is what stops the registry silently lagging the
-// framework.
+// framework. What stochadex catalogue says of each registered type (its description,
+// spec fields and params) is read from source into catalogue_fields.json, which
+// TestCatalogueFieldsUpToDate keeps current and TestCatalogueFieldsCoverUsage checks
+// against every config in use.
 //
 // Imports drive go.mod, so components with heavy dependencies are not named here directly.
 // RegisterDataSource (and simulator.RegisterComponent for sinks) lets a package layered above
@@ -86,6 +96,6 @@
 //
 // Inference as forward simulation — a posterior stepped as a partition — is in scope, which
 // is why posterior_estimation and the other inference macros live here. Inference against
-// real data is the data: resource, which a downstream repo supplies. The decision layer stays
+// real data reads it as an input, which a downstream repo supplies. The decision layer stays
 // in Go on purpose: an agents.Environment is arbitrary game rules, not representable as data.
 package api

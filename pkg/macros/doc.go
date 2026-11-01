@@ -4,14 +4,21 @@
 // grouped aggregation — plus a *simulator.StateTimeStorage holding the data it
 // reads, and returns the *simulator.PartitionConfig values that realise it.
 //
-// This is the tier the YAML `macros:` key expands into. Every constructor here
-// is reachable from a config through pkg/api, which decodes the spec structs
-// from YAML and calls into this package. NewMCTSSelfPlayPartitions is reachable
-// too, but by a different route: its agents.Environment is arbitrary Go
-// decision rules with no data spelling, so a config names an environment that a
-// downstream module registered with api.RegisterEnvironment (an environment
-// component, which builds the typed half), and only the env-independent half of
-// the spec (MCTSSearchSettings) comes from the config.
+// It is the Go form of what a config's macros: key states as data. In a config,
+// a macro is a config → config shortcut over the core language: pkg/api expands
+// each entry into ordinary partitions in the same run (api.Expand, which
+// stochadex expand prints), the partitions these constructors build, with no
+// storage to run against. From Go, a constructor here builds the same topology
+// against a StateTimeStorage, to run with analysis.AddPartitionsToStateTimeStorage.
+// pkg/api's golden digests pin what each expansion runs, and its tests build the
+// posterior and mean-function-fit topologies here directly and check a config
+// gives the same.
+//
+// Self-play is the one macro whose central component has no data form: its
+// agents.Environment is arbitrary Go decision rules, so a config names an
+// environment a downstream module registered with api.RegisterEnvironment, and
+// only the environment-independent half of the spec (MCTSSearchSettings) comes
+// from the config; NewMCTSSelfPlayLayout gives both routes the same wiring.
 // The package is named for the shape of what it produces — spec in, partitions
 // out — not for the YAML key alone.
 //

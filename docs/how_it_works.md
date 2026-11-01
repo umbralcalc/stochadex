@@ -245,6 +245,8 @@ iterations:
 
 This is exactly the relationship used by [`CoxProcessIteration`](http://stochadex.github.io/pkg/discrete.html#CoxProcessIteration); when the upstream rate is itself stochastic, the same wiring becomes a Cox (doubly stochastic) process for free.
 
+The snippet is the Go [`Settings`](http://stochadex.github.io/pkg/simulator.html#Settings) file format, which names an upstream by its index; a YAML config names it (`upstream: rate_function`). Either way, `params_from_upstream` reads the upstream's value from the *same* step, so the upstream is computed first, while reading another partition's history reads it one step behind. The [config reference](reference.html#how-a-step-runs) shows both, with the one rule they imply: no cycle of within-step reads.
+
 ## Simulation loop and embedded simulation runs
 
 The simulation run loop coordinates the serial relationships between [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration)s while maximising concurrency in execution of each [`Iteration`](http://stochadex.github.io/pkg/simulator.html#Iteration) per step in time.
