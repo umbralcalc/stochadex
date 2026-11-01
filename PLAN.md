@@ -26,14 +26,14 @@ Status: **accepted** (2026-10-04).
 |---|---|
 | Phases 0, 1, 1b, Track O | **Done** |
 | Phase 2: 2.0–2.9, 2.12, 2.14 | **Done** (2.9 retired the macro-by-macro tier, #167) |
-| 2.11 `stochadex expand`, readable layout, anchors | **In review (#168)** |
-| 2.13 per-type fields in `stochadex catalogue` | To do |
+| 2.11 `stochadex expand`, readable layout, anchors | **Done (#168)** |
+| 2.13 per-type fields in `stochadex catalogue` | **In review (#170)**: catalogue v2, generated from source and checked against every config in use (which found a dead ES wire) |
 | Core semantics reference (with 2.13) | To do: a prose page, every snippet run in a test, and the catalogue as its machine-readable half |
 | 2.10 human-facing docs | To do |
 | Release v0.26.0 | After #168; again after 2.13 if the catalogue's version changes |
 | Track R (authoring gaps robert surfaces) | Standing, from now; #164 is its first entry |
 
-- **To close the plan, in order:** merge #168 → 2.13 and the semantics reference → 2.10 → a
+- **To close the plan, in order:** merge #170 → the semantics reference → 2.10 → a
   release → mark this plan **complete** and leave Track R running as its own short document.
 - **History:** every merged item, decision and finding, newest Phase 2 work first, is in
   [Appendix A](#appendix-a-progress-log).
