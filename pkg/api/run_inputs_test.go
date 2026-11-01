@@ -248,9 +248,12 @@ func corePlanner(t *testing.T, parameters string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The environment is stated by the apply, tree and rollout partitions.
-	if n := strings.Count(string(written), "samples: [[1.0]]"); n != 3 {
-		t.Fatalf("the placeholder sample appears %d times, want 3:\n%s", n, written)
+	// The apply, tree and rollout partitions share one environment, written
+	// once and aliased by the other two.
+	if n, aliases := strings.Count(string(written), "samples: [[1.0]]"),
+		strings.Count(string(written), "environment: *environment"); n != 1 || aliases != 2 {
+		t.Fatalf("the placeholder sample appears %d times and its environment is aliased %d, "+
+			"want once and twice:\n%s", n, aliases, written)
 	}
 	return strings.ReplaceAll(string(written), "samples: [[1.0]]", parameters)
 }

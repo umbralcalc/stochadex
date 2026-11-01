@@ -845,6 +845,24 @@ macros:
 
 Macros: the aggregations (`vector_mean` / `vector_variance` / `vector_covariance`, `grouped_aggregation`), `scalar_regression_stats`, `likelihood_comparison`, `likelihood_mean_function_fit`, `posterior_estimation`, and the two live ones, `evolution_strategy_optimisation` and `smc_inference`, which need no `data` block.
 
+### Seeing what macros expand to
+
+A `macros:` config runs as its expansion: the same run written out in the core config
+language, with the inputs replayed as partitions and each macro's partitions spelled out.
+`stochadex expand` prints it without running it, reading only the inputs' shapes:
+
+```bash
+stochadex expand -c model.yaml                     # YAML, to stdout
+stochadex expand -c model.yaml > expanded.yaml     # a config of its own, which runs the same
+```
+
+The output is laid out to be read: a component that fits on a line stays on it, a longer one is
+written field by field, and one that appears more than once (a planning environment the search
+reads in several places) is written once as a YAML anchor and referred to by alias after. It takes
+`--set` like a run does, and exits as a run would on a config error (78) or an input it cannot
+reach (75). From Go, `api.Expand(config)` returns it as a config and `api.ExpandToYAML(config)`
+as text.
+
 ### Estimating from every row
 
 Every row of a macro's data counts, exactly once, the first included: an input's first row is
@@ -897,7 +915,8 @@ Four macros *converge* or merely *run* depending on hyperparameters. Each ships 
 
 Using stochadex from an AI agent is [robert](https://github.com/umbralcalc/robert)'s job, not
 this repo's; see its documentation. It drives stochadex through the same CLI described above,
-with `--check`, `inspect --io`, `graph` and `catalogue` as its machine-readable contract.
+with `--check`, `inspect --io`, `graph`, `expand` and `catalogue` as its machine-readable
+contract.
 
 ## Example analysis notebooks
 
