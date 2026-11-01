@@ -109,6 +109,16 @@ an exact version rather than assume stability across minors.
 - An `embedded:` run with no partitions, or with no `main:` partition of its name to host it,
   is a config error at load rather than a nil-pointer panic.
 
+## [0.26.0] — 2026-11-01
+
+<!-- Release prose goes here: what this release is about and why this
+     bump. patch = fixes only; minor = new features or, in v0.x, a
+     breaking change. Delete this comment before merging. -->
+
+### Added
+
+- 
+
 ## [0.25.0] — 2026-10-31
 
 This release makes a `macros:` config one ordinary run. A config with macros now runs as its
@@ -2485,7 +2495,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.25.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.26.0...HEAD
+[0.26.0]: https://github.com/umbralcalc/stochadex/compare/v0.25.0...v0.26.0
 [0.25.0]: https://github.com/umbralcalc/stochadex/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/umbralcalc/stochadex/compare/v0.22.0...v0.23.0
