@@ -44,6 +44,14 @@ an exact version rather than assume stability across minors.
 - `evolution_strategy_optimisation` no longer wires its mean into the covariance update,
   which centres on its top samples' own mean and never read it. Results are unchanged.
 
+### Removed
+
+- **`.claude-plugin/marketplace.json`**, the deprecated Claude Code marketplace that only
+  pointed existing installs at robert. Agent integration for stochadex is
+  [robert](https://github.com/umbralcalc/robert)'s. An install of the old `stochadex` plugin
+  can no longer refresh this marketplace: remove it (`claude plugin marketplace remove
+  stochadex`) and install robert instead.
+
 ## [0.26.0] — 2026-11-01
 
 This release makes estimation from data quick and exact, and makes the macro tier a
