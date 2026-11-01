@@ -14,65 +14,27 @@ Status: **accepted** (2026-10-04).
   plugin. Agent-facing guidance, and testing whether agents can author configs, are robert's.
   What this plan owes robert instead is **a stable, versioned contract and regular releases**
   (see §9).
-- **Status (2026-10-30):** Phases 0, 1, 1b and Track O are done. Phase 2 has proven its core
-  claim: all 12 macros expand into the core language (2.1), expansion reads data only for shape
-  (2.5), and every shipped macro config, AMR's inference config and five of cryptobook's run
-  bit-identically expanded and through the macro tier (2.6), pinned by per-architecture
-  goldens. (The skill recipes were byte-identical copies of shipped examples, removed with
-  #154.) 2.2–2.4 were delivered inside 2.1.
-- **Remaining, in order:**
-  1. **2.12 performance parity — DONE (#153).** Expanded windows now run inline, as the
-     macro tier's do; every shipped macro config runs expanded level or faster (geomean −15%
-     time, −10% bytes, −14% allocs, −15% peak heap), recorded in `docs/performance.md`.
-  2. **2.14 default switch and `main:` + `macros:` composition** (rule 16).
-     - **Part 1, the switch: merged as #159 into #158's branch (stacking + squash stranded it),
-       landing on `main` via #160.** Lesson: don't stack PRs on a branch that will be
-       squash-merged; wait and rebase instead. Runs expand at run start (not
-       load: loading and `--check` never read inputs), once per loaded config; the macro tier
-       stays as `RunMacros` and for Go-assembled configs. Decided 2026-10-31: switch now, with
-       the single-run setup cost recorded (+0.3–2 ms per load-and-run on the short examples,
-       geomean +8%; repeated runs level).
-     - **Found on the way (#158): a loaded config re-read nothing on its second run** — binding
-       wrote into the caller's config. Decided 2026-10-31: every run reads its inputs. That also
-       showed #153's gate overstated the expanded path (it reran one loaded expansion, skipping
-       input reads the macro tier redid): fairly measured it is **level**, not 15% faster;
-       docs and CHANGELOG corrected.
-     - **Part 2 merged (#161).** **2.14 DONE.**
-       `main:` partitions, expressions, `embedded:` and `main.simulation` run beside macros in
-       one run. Clock: main.simulation, else a macro's own (duplicate refused), else inputs'.
-       Macros read main partitions live (exactly as recorded; depth raised); main reads macro
-       outputs. Refused: main partition named as an input's, main beside calibrate→plan.
-       `RunMacros` still refuses main. Next after 2.14: 2.9 (retire the old path), 2.7/2.8.
-     - **2.7 + 2.8 merged (#163).** `stochadex graph` draws a macros config's expansion;
-       ensemble and serve run its expansion (run: carried into the expanded document, validated
-       at load). Ensemble posterior test: per-seed estimates differ, mean within 0.5 of truth,
-       each member bit-identical to the written expansion's ensemble.
-     - **Downstream bumps to v0.25.0 merged**, every repo now off `RunMacros`:
-       cryptobook#1 (v0.14.0 → v0.25.0; cfgrun on RunToStorage, ensemble as a run: block;
-       all 66 claims byte-identical), card-game-studio#3 (test helper off RunMacros), AMR#4
-       (no changes; every cfg's rows identical to v0.22.0, only within-step order now fixed).
-       Every other ~/Code repo on stochadex also bumped to v0.25.0 and merged (11 PRs;
-       openaction2outcome needed the SMC per-particle API; its marks re-mint byte-identical).
-     - **2.9 merged (#167), after #165.** #165: each expansion test (expandedAlike, 56 runs) pinned to
-       per-arch golden digests (alike_<arch>.json) while still checked against RunMacros; amd64
-       from CI's log. Then, built locally on top (opened after #165 merges): RunMacros, the
-       macro-by-macro path, the Go-assembled fallback (now ErrConfig), each spec's resolve and
-       replayThroughViews deleted; clockedMacroSpec.clock() replaces liveMacroSpec; tests and
-       oracle golden-only (−1105 lines). The incomplete-clock / empty-embedded panic found on
-       the way is fixed in #166 (merged).
-     - **2.11 in review (#168).** `stochadex expand -c CONFIG [--set]` (run's exit codes);
-       expansion laid out to read (flow if ≤80 chars, else block, recursively; scalar lists stay
-       flow; params/wiring too); repeated components anchored once (planning env written once,
-       aliased twice). Runs unchanged (goldens). First-run cost +0.7% geomean. Next: 2.13, 2.10.
-  3. **2.9** retire the macro tier's replay path; the 2.6 goldens (and #165's per-test
-     goldens) become the guard.
-  4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
-     block style), the core semantics reference, and per-type fields in `stochadex catalogue`
-     as the schema; **2.10** human-facing docs.
-  5. **Releases.** v0.25.0 released (2026-10-31, #162): macros run as their expansion, `main:` beside macros, inputs read every run. v0.24.0 released (2026-10-30, #157): every macro expands, the CLI contract
-     (`graph`, `catalogue`, `SHA256SUMS`), deterministic output order. Cut one again around
-     each contract-visible change (2.14, 2.11, 2.13). cryptobook, card-game-studio and AMR are
-     all on v0.25.0.
+- **Reviewed (2026-11-01): this plan closes at the end of Phase 2.** The config model it set
+  out to build is in place: every config is inputs → one runtime → outputs; macros run only as
+  their expansion, which `stochadex expand` prints, beside `main:` and in every run mode; Track O
+  is done; all 14 downstream repos are on v0.25.0. Phase 3 leaves this plan (see Phase 3). The
+  review's findings and decisions are recorded in Appendix A (2026-11-01) and folded in below:
+  a golden re-record policy (§4.3), a standing Track R for authoring gaps robert surfaces, and a
+  corrected performance claim (§0.1).
+
+| | State |
+|---|---|
+| Phases 0, 1, 1b, Track O | **Done** |
+| Phase 2: 2.0–2.9, 2.12, 2.14 | **Done** (2.9 retired the macro-by-macro tier, #167) |
+| 2.11 `stochadex expand`, readable layout, anchors | **In review (#168)** |
+| 2.13 per-type fields in `stochadex catalogue` | To do |
+| Core semantics reference (with 2.13) | To do: a prose page, every snippet run in a test, and the catalogue as its machine-readable half |
+| 2.10 human-facing docs | To do |
+| Release v0.26.0 | After #168; again after 2.13 if the catalogue's version changes |
+| Track R (authoring gaps robert surfaces) | Standing, from now; #164 is its first entry |
+
+- **To close the plan, in order:** merge #168 → 2.13 and the semantics reference → 2.10 → a
+  release → mark this plan **complete** and leave Track R running as its own short document.
 - **History:** every merged item, decision and finding, newest Phase 2 work first, is in
   [Appendix A](#appendix-a-progress-log).
 
@@ -135,7 +97,7 @@ plan fixes the *semantics*.
 | A proper DSL, each construct with one meaning | **Supported** | 11/11 macro and structural twins exact (§4.2); macros become library, not semantics. Still to do: a written core semantics reference (execution order, within-step vs lag-1, nesting, clock) and a machine-readable schema. The meaning of each `{type: ...}` is still defined by its Go implementation and its docs. |
 | New behaviours by composition, without new macros | **Supported in principle, shown structurally** | Recursive nesting, replicated runs, and MCTS over any data-defined model compose freely: an ES over a posterior, a planner inside particles, a posterior per scenario. Composition also allows expensive or meaningless combinations, so validation (deadlock, widths, clock conflicts) and cost visibility matter more. |
 | More integrable and flexible | **Supported** | Declared inputs and outputs, one runtime per config, a lossless file chain (§4.2 finding 15), Track O, and environments as registered components. |
-| No performance cost | **Measured (#153): supported** | Every shipped macro config runs expanded level with macro by macro or faster (geomean −15% time, −14% allocations, −15% peak heap); the one regression found, likelihood windows not run inline, is fixed. MCTS's three environment instances became one per run scope (2.0d). Composition still makes multiplicative nesting cost easy to write. **Gate: benchmark (item 2.12) before retiring the old path.** |
+| No performance cost | **Measured: supported, level** | Fairly measured (#158, each run reading its inputs), every shipped macro config runs expanded level with the old macro-by-macro path (geomean +2% time, within noise), and choosing the run's execution strategy, which only the expanded form can, makes most faster (`docs/performance.md`). A single load-and-run pays a fixed expansion cost (+0.3–2 ms). #153's first figure, −15%, overstated it and was corrected. Composition still makes multiplicative nesting cost easy to write: see cost visibility, Track R. |
 
 ---
 
@@ -753,6 +715,22 @@ The work this adds to Phase 2:
 - an undeclared-group policy;
 - assert-applied mutation scripts.
 
+### 4.3 Verification basis after 2.9, and when goldens may change
+
+Until 2.9, every expansion was checked against an independent implementation, the macro tier.
+Since then the reference is **golden digests**, recorded while the two agreed: the shipped
+configs' (`expansion_<arch>.json`) and every expansion test's (`alike_<arch>.json`), per
+architecture. So a golden is no longer evidence by itself that a change is right; it only
+says the bits moved. **Policy (decided 2026-11-01):** a golden may be re-recorded only
+
+- for an **intended numerical change**, stated in the PR, *and* checked against an independent
+  reference: an analytic value, a direct `pkg/macros` build against storage, or the previous
+  release's output with the difference explained; or
+- for a **Go or architecture toolchain change**, shown to be compiler- or FMA-only (the same
+  change on every config, no semantic diff in the expansion text).
+
+A PR that re-records says which, and records both architectures (amd64 from CI's log).
+
 ### Phase 0 — tidy-up (no new schema)
 
 The goal: every key that is accepted does something, there is one Go entry point, and
@@ -845,7 +823,7 @@ manageable size, and that any new specs they need are generic (rules 9–11).
 | 2.0 | **DONE (#127)**: promote `replicated_simulation_run` | Move `SMCParticleEvaluationIteration` from `pkg/macros` to `pkg/general` under the generic name, with a `{type: ...}` spec (§4.2 finding 3); `smc_inference` expands to it | The spike's exact SMC twin, kept as a regression test |
 | 2.11 | **Done (#168).** **Half done**: `api.Expand` / `ExpandToYAML` exist (#140) and the twin oracle is 2.6 (#151); gaps (a)–(c) below were closed by 2.0b and 2.0c. **Left:** the CLI subcommand, as part of #154's CLI contract (`stochadex expand -c CONFIG [--set ...]`, deterministic output on stdout, `graph`'s exit codes), YAML anchors (they do not survive the expander's eager node encoding, #147), and readable block-style output. `stochadex expand` and the twin oracle | A CLI subcommand and an `api.Expand(config)` function emit the core-language config. For every shipped macro config, the expanded config runs byte-identically to the macro form. Sub-specs shared by several partitions are emitted once as YAML anchors (§4.2 finding 8). **Known core-language gaps to close by adding `{type: ...}` specs** (from `registry_coverage_test.go` and the macro constructors): (a) `DataComparisonGradientIteration` (`likelihood_mean_function_fit`), excluded today as "live-object built by macros:"; (b) an embedded simulation *inside a partition* (likelihood windows, SMC particles, the planning model), where `embedded:` is top-level only, so nesting needs a recursive spec; (c) the `pkg/agents` MCTS iterations, now item 2.0b; the spike proved their data-path specs give an exact twin. Each gap is either closed or recorded as a known gap; a tolerance is never widened. | The golden twin test passes for every `cfg/` macro config and skill recipe; the coverage test gains the agents package |
 | 2.12 | **DONE (#153); re-measured fairly in #158: expanded is level, not faster** — performance gate | Benchmark each shipped macro config, macro path versus expanded single-runtime path: wall-clock, allocations and peak memory, under the default and `inline` / `persistent_worker` execution strategies | No regression beyond noise on any config before 2.9 retires the old path; results recorded in `docs/performance.md` |
-| 2.13 | **Re-scoped (2026-10-30)**: the schema is per-type fields added to `stochadex catalogue` (#154; bump `catalogue_version`), the contract robert reads, rather than a separate JSON Schema file; the reference is linked from the docs, not a skill. Core semantics reference and schema | A written reference for the core language (execution order, within-step vs lag-1 reads, embedded-run semantics, clock resolution, input binding, origin annotations), plus a JSON Schema generated from the registries for editor and agent tooling | Schema drift test: every registered `{type: ...}` appears in it; the reference is linked from the skill |
+| 2.13 | **Re-scoped (2026-10-30)**: the schema is per-type fields added to `stochadex catalogue` (#154; bump `catalogue_version`), the contract robert reads, rather than a separate JSON Schema file; the reference is linked from the docs, not a skill. **Decided (2026-11-01):** the reference is a prose docs page whose every config snippet runs in a test, with the catalogue as its machine-readable half; together they close the "one meaning per construct" claim (§0.1). Core semantics reference and schema | A written reference for the core language (execution order, within-step vs lag-1 reads, embedded-run semantics, clock resolution, input binding, origin annotations), plus a JSON Schema generated from the registries for editor and agent tooling | Schema drift test: every registered `{type: ...}` appears in it; the reference is linked from the skill |
 | 2.10 | **Re-scoped (2026-10-30): human-facing docs only** | Rewrite the CLAUDE.md config section; `pkg/api/doc.go`; `pkg/macros/doc.go` ("macros are config → config shortcuts over the core language"); `docs/how_it_works.md` and `docs/quickstart.md`; CHANGELOG. The skill, its recipes and the skill falsifier are gone (#154); agent guidance and agent evaluation are robert's | The docs build; every config they show runs (an extracted-snippet test, as the quickstart's) |
 
 ### Track O — orchestration readiness (runs alongside Phases 1–2)
@@ -894,7 +872,32 @@ retried, cached or monitored separately into its own config.
 
 Every item meets the §4 test bar.
 
-### Phase 3 — optional follow-ups (decide later)
+### Track R — authoring gaps robert surfaces (standing, from 2026-11-01)
+
+**Why:** this plan built the config model; it did not anticipate where authoring a real
+analysis goes wrong. robert's agents find that (#164: a windowed mean that never fills,
+statistics that miss an input's first row, an output too large to read). Each such gap is
+engine work, and most are invisible to a review of the architecture.
+
+**How each gap is handled:**
+1. Reproduce it as the smallest config that shows it, from robert's report.
+2. Triage it into one of three: **engine** (a missing or wrong capability: fix it, with a
+   test against an independent reference); **error** (the config is wrong but the engine was
+   silent or unclear: make it a load or run error naming the fix); or **robert's** (guidance,
+   not engine: hand it back).
+3. Log it below, with its PR.
+
+| # | Gap | Triage | PR |
+|---|---|---|---|
+| R.1 | Estimating rates from a CSV: a `vector_mean` window longer than the input returns its default forever; `scalar_regression_stats` skips the first row; per-step output too large | engine (`cumulative: true`, `init_state_from_upstream`, first-row counting) and error (window longer than its input) and engine (`final_step` output condition) | #164 |
+| R.2 | Cost of composition is invisible until a run is slow: nesting depth and inner steps per outer step (§9) | engine: `inspect` reports them | to do |
+
+When this plan closes, Track R continues as its own short document.
+
+### Phase 3 — moved to a later plan (decided 2026-11-01)
+
+This plan closes at the end of Phase 2. The items below are not part of it; each needs its own
+evidence, and a later plan takes them up if robert's use or a downstream repo shows the need.
 
 - Flatten `main:` to the top level, and remove the deprecated `data:` / `main:` / `-s` /
   `RunMacros` spellings. This ships as a v0.x minor with a "Changed" entry (see §4.1).
@@ -908,6 +911,9 @@ Every item meets the §4 test bar.
 ---
 
 ## 5. Downstream impact
+
+**Now (2026-11-01):** every repo below, and every other repo on stochadex, is on v0.25.0, and
+none calls `RunMacros`, which 2.9 removed. The table records the impact as planned.
 
 | Repo | Today | Impact |
 |---|---|---|
@@ -958,7 +964,7 @@ evidence to collect before then. None blocks the next PRs.
 | Q | Question | Decide by | Evidence to gather first |
 |---|---|---|---|
 | 2 | ~~Stream clock: `hold_last` only, or also `step_per_message` (an event clock)?~~ **Decided (2026-10-08): `hold_last` only, for now** (#112). Add an event clock when a real feed needs one. **Evidence (2026-10-08):** dexact's protocol (dexetera's websocket driver) is lock-step, one step per inbound `ActionState`. So it is the first concrete user, if dexact ever drives a server-side stochadex serve. Nothing downstream uses that path today; cryptobook's feed is the other candidate | Phase 1.5 | — |
-| 5 | Flatten `main:` to the top level? | Phase 3 | Agent test A.1: does the `main:` level cause agent authoring errors? Plus the migration cost across downstream configs and recipes |
+| 5 | Flatten `main:` to the top level? | A later plan (Phase 3 left this one) | robert's authoring logs: how often the `main:` level causes an error or a retry (the agent test A.1 that was to answer it went with the skill, #154). Plus the migration cost across downstream configs |
 
 ## 7. Risks
 
@@ -1031,6 +1037,89 @@ What this plan owes robert is the contract it drives:
 
 Moved here from the header on 2026-10-30. Earlier phases read in order; Phase 2 entries
 are newest first.
+
+- **Review (2026-11-01): where the plan stands, and what changed.** With Phase 2 nearly
+  closed, a review against §0's intent.
+  - **Met:** one runtime per config; macros as shortcuts, now printable (`expand`) and pinned
+    by goldens; Track O; every downstream repo current. Each change landed behind an exact
+    oracle, and the work kept finding real latent bugs (#158 inputs read once, #166
+    incomplete clocks panicking, `ExpandToYAML` discarding encoder errors, #164's window and
+    first-row counting).
+  - **Drifted:**
+    - this document decayed (stale "remaining" list, the −15% performance figure, §5 saying
+      `RunMacros` is kept);
+    - the verification basis changed silently at 2.9, from two independent implementations
+      to pinned bits, with no rule for re-recording;
+    - the plan addressed architecture, not authoring ergonomics, so gaps like #164's had no
+      home;
+    - cost visibility (§9) and the semantics reference were never scheduled;
+    - open question 5 lost its evidence source when the agent test went to robert;
+    - a macros config built in Go no longer runs (load it from text), and `expand`'s layout
+      adds ~9% first-run allocation; both recorded in their PRs.
+  - **Decided:** close at Phase 2, Phase 3 to a later plan (1); the semantics reference as a
+    tested prose page plus the catalogue (2); a standing Track R (3); a strict golden
+    re-record policy, §4.3 (4).
+  - The status block this replaced, verbatim:
+
+    - **Status (2026-10-30):** Phases 0, 1, 1b and Track O are done. Phase 2 has proven its core
+      claim: all 12 macros expand into the core language (2.1), expansion reads data only for shape
+      (2.5), and every shipped macro config, AMR's inference config and five of cryptobook's run
+      bit-identically expanded and through the macro tier (2.6), pinned by per-architecture
+      goldens. (The skill recipes were byte-identical copies of shipped examples, removed with
+      #154.) 2.2–2.4 were delivered inside 2.1.
+    - **Remaining, in order:**
+      1. **2.12 performance parity — DONE (#153).** Expanded windows now run inline, as the
+         macro tier's do; every shipped macro config runs expanded level or faster (geomean −15%
+         time, −10% bytes, −14% allocs, −15% peak heap), recorded in `docs/performance.md`.
+      2. **2.14 default switch and `main:` + `macros:` composition** (rule 16).
+         - **Part 1, the switch: merged as #159 into #158's branch (stacking + squash stranded it),
+           landing on `main` via #160.** Lesson: don't stack PRs on a branch that will be
+           squash-merged; wait and rebase instead. Runs expand at run start (not
+           load: loading and `--check` never read inputs), once per loaded config; the macro tier
+           stays as `RunMacros` and for Go-assembled configs. Decided 2026-10-31: switch now, with
+           the single-run setup cost recorded (+0.3–2 ms per load-and-run on the short examples,
+           geomean +8%; repeated runs level).
+         - **Found on the way (#158): a loaded config re-read nothing on its second run** — binding
+           wrote into the caller's config. Decided 2026-10-31: every run reads its inputs. That also
+           showed #153's gate overstated the expanded path (it reran one loaded expansion, skipping
+           input reads the macro tier redid): fairly measured it is **level**, not 15% faster;
+           docs and CHANGELOG corrected.
+         - **Part 2 merged (#161).** **2.14 DONE.**
+           `main:` partitions, expressions, `embedded:` and `main.simulation` run beside macros in
+           one run. Clock: main.simulation, else a macro's own (duplicate refused), else inputs'.
+           Macros read main partitions live (exactly as recorded; depth raised); main reads macro
+           outputs. Refused: main partition named as an input's, main beside calibrate→plan.
+           `RunMacros` still refuses main. Next after 2.14: 2.9 (retire the old path), 2.7/2.8.
+         - **2.7 + 2.8 merged (#163).** `stochadex graph` draws a macros config's expansion;
+           ensemble and serve run its expansion (run: carried into the expanded document, validated
+           at load). Ensemble posterior test: per-seed estimates differ, mean within 0.5 of truth,
+           each member bit-identical to the written expansion's ensemble.
+         - **Downstream bumps to v0.25.0 merged**, every repo now off `RunMacros`:
+           cryptobook#1 (v0.14.0 → v0.25.0; cfgrun on RunToStorage, ensemble as a run: block;
+           all 66 claims byte-identical), card-game-studio#3 (test helper off RunMacros), AMR#4
+           (no changes; every cfg's rows identical to v0.22.0, only within-step order now fixed).
+           Every other ~/Code repo on stochadex also bumped to v0.25.0 and merged (11 PRs;
+           openaction2outcome needed the SMC per-particle API; its marks re-mint byte-identical).
+         - **2.9 merged (#167), after #165.** #165: each expansion test (expandedAlike, 56 runs) pinned to
+           per-arch golden digests (alike_<arch>.json) while still checked against RunMacros; amd64
+           from CI's log. Then, built locally on top (opened after #165 merges): RunMacros, the
+           macro-by-macro path, the Go-assembled fallback (now ErrConfig), each spec's resolve and
+           replayThroughViews deleted; clockedMacroSpec.clock() replaces liveMacroSpec; tests and
+           oracle golden-only (−1105 lines). The incomplete-clock / empty-embedded panic found on
+           the way is fixed in #166 (merged).
+         - **2.11 in review (#168).** `stochadex expand -c CONFIG [--set]` (run's exit codes);
+           expansion laid out to read (flow if ≤80 chars, else block, recursively; scalar lists stay
+           flow; params/wiring too); repeated components anchored once (planning env written once,
+           aliased twice). Runs unchanged (goldens). First-run cost +0.7% geomean. Next: 2.13, 2.10.
+      3. **2.9** retire the macro tier's replay path; the 2.6 goldens (and #165's per-test
+         goldens) become the guard.
+      4. **2.11 / 2.13** `stochadex expand` as part of the CLI contract (readable output: anchors,
+         block style), the core semantics reference, and per-type fields in `stochadex catalogue`
+         as the schema; **2.10** human-facing docs.
+      5. **Releases.** v0.25.0 released (2026-10-31, #162): macros run as their expansion, `main:` beside macros, inputs read every run. v0.24.0 released (2026-10-30, #157): every macro expands, the CLI contract
+         (`graph`, `catalogue`, `SHA256SUMS`), deterministic output order. Cut one again around
+         each contract-visible change (2.14, 2.11, 2.13). cryptobook, card-game-studio and AMR are
+         all on v0.25.0.
 
 - **Progress:**
   - **Merged:**
