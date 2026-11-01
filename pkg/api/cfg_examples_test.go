@@ -6,8 +6,8 @@ import (
 )
 
 // TestExampleConfigsRun guards the shipped example configs against bit-rot: each
-// resolves and runs with no Go toolchain. (Replaces the old test/configs_test.sh
-// shell smoke; the full inference model is covered by TestFullInferenceConfigAsData.)
+// resolves and runs with no Go toolchain. (The full inference model is covered by
+// TestFullInferenceConfigAsData.)
 func TestExampleConfigsRun(t *testing.T) {
 	// Run from the repo root so a config's relative paths (e.g. a CSV source)
 	// resolve as they do for the CLI.

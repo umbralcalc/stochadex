@@ -69,7 +69,7 @@ import "fmt"
 // Common Iteration Types:
 //   - Stochastic processes: WienerProcessIteration, PoissonProcessIteration
 //   - Deterministic functions: ValuesFunctionIteration, ConstantValuesIteration
-//   - Aggregation functions: VectorMeanIteration, GroupedAggregationIteration
+//   - Aggregation functions: ValuesFunctionVectorMeanIteration, ValuesGroupedAggregationIteration
 //   - User-defined iterations: Custom implementations for specific needs
 //
 // Performance Considerations:

@@ -67,9 +67,8 @@ var iterationBuilders = map[string]iterationBuilder{
 	"scalar_regression_stats": nullary(func() simulator.Iteration { return &macros.ScalarRegressionStatsIteration{} }),
 
 	// from_storage replays an inline series (its rows carried in the config as data)
-	// into a main: partition by step number. This is the config-level replay path
-	// that solar-fleet/STOCHADEX_GAPS.md recorded as missing: a precomputed external
-	// series stepped into a simulation partition with no Go. Unlike from_history its
+	// into a main: partition by step number: a precomputed external series stepped
+	// into a simulation partition with no Go. Unlike from_history its
 	// Data is config, not runtime-injected.
 	"from_storage": buildFromStorage,
 
@@ -223,7 +222,7 @@ func buildFromHistory(fields map[string]interface{}) (simulator.Iteration, error
 // buildFromStorage builds a FromStorageIteration that replays an inline series by
 // step number. The series is carried directly in the config as data (a list of
 // rows under "data"), with an optional "init_steps_taken" offset — the same two
-// inputs the Go form takes, now reachable without Go.
+// inputs the Go form takes, stated without Go.
 func buildFromStorage(fields map[string]interface{}) (simulator.Iteration, error) {
 	iteration := &general.FromStorageIteration{}
 	for key, value := range fields {

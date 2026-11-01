@@ -40,6 +40,7 @@ type ClimateCovariatesIteration struct {
 // the only covariate the warming trend acts on.
 const tempIndex = 1
 
+// Configure implements simulator.Iteration.
 func (c *ClimateCovariatesIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -50,6 +51,7 @@ func (c *ClimateCovariatesIteration) Configure(
 	))
 }
 
+// Iterate implements simulator.Iteration.
 func (c *ClimateCovariatesIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

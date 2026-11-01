@@ -119,8 +119,10 @@ type PostgresDbOutputFunction struct {
 	db *PostgresDb
 }
 
+// Configure implements simulator.OutputFunction.
 func (p *PostgresDbOutputFunction) Configure(*simulator.Settings) {}
 
+// Output implements simulator.OutputFunction.
 func (p *PostgresDbOutputFunction) Output(
 	partitionName string,
 	state []float64,

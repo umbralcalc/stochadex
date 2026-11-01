@@ -10,14 +10,11 @@ import (
 )
 
 // TestChangelogReleaseLinksResolve guards the reference-style version links at the foot of
-// the CHANGELOG against a silent-drift bug that shipped in v0.15.0: the stamp added the
-// `## [0.15.0]` heading but no matching `[0.15.0]: …compare/v0.14.0...v0.15.0` link
-// definition, so the heading rendered unlinked, and it left `[Unreleased]` comparing from
-// the previous version. Both are now managed by the prepare-release workflow; this test is
-// the backstop that fails CI if any release regresses either one.
-//
-// Every released heading is checked: the historical gaps (0.8.0–0.11.0) were backfilled, so
-// the file is fully linked and stays that way.
+// the CHANGELOG: every released "## [X.Y.Z]" heading needs a matching
+// "[X.Y.Z]: …compare/vW...vX.Y.Z" link definition, or it renders unlinked, and
+// "[Unreleased]" must compare from the latest release. The prepare-release workflow
+// maintains both; this test is the backstop that fails CI if any release regresses either
+// one. Every released heading is checked.
 func TestChangelogReleaseLinksResolve(t *testing.T) {
 	body, err := os.ReadFile(filepath.Join(repoDir, "CHANGELOG.md"))
 	if err != nil {

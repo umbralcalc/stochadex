@@ -21,12 +21,14 @@ type TDistributionStateIntegrationKernel struct {
 	dof            float64
 }
 
+// Configure implements IntegrationKernel.
 func (t *TDistributionStateIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// SetParams implements IntegrationKernel.
 func (t *TDistributionStateIntegrationKernel) SetParams(params *simulator.Params) {
 	scaleParams := params.Get("scale_matrix")
 	covMatrix := mat.NewSymDense(int(math.Sqrt(float64(len(scaleParams)))), scaleParams)
@@ -40,6 +42,7 @@ func (t *TDistributionStateIntegrationKernel) SetParams(params *simulator.Params
 	t.dof = params.GetIndex("degrees_of_freedom", 0)
 }
 
+// Evaluate implements IntegrationKernel.
 func (t *TDistributionStateIntegrationKernel) Evaluate(
 	currentState []float64,
 	pastState []float64,

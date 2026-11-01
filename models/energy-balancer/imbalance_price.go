@@ -26,12 +26,14 @@ import (
 // State: [price_gbp_per_mwh]
 type ImbalancePriceIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (p *ImbalancePriceIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (p *ImbalancePriceIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

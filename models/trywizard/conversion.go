@@ -20,6 +20,7 @@ type ConversionIteration struct {
 	scoreEventsPartitionIndex int
 }
 
+// Configure implements simulator.Iteration.
 func (c *ConversionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -39,6 +40,7 @@ func (c *ConversionIteration) Configure(
 	)
 }
 
+// Iterate implements simulator.Iteration.
 func (c *ConversionIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

@@ -70,7 +70,7 @@ func TestSavingLogsAdvanced(t *testing.T) {
 			// complete until the flush, and the read below would race it.
 			logChannel.Close()
 
-			// Read it back. Nothing else looks at this output now, so without this the test
+			// Read it back. Nothing else looks at this output, so without this the test
 			// would pass whether or not a single line was written.
 			storage, err := analysis.NewStateTimeStorageFromJsonLogEntries(logFile)
 			if err != nil {

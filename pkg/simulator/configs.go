@@ -88,7 +88,7 @@ type PartitionConfig struct {
 	// Iteration is the resolved iteration. It is set programmatically or by
 	// resolving IterationSpec's data form at load time.
 	Iteration Iteration `yaml:"-"`
-	// IterationSpec is the loaded `iteration:` value as a {type: ...} data spec,
+	// IterationSpec is the loaded iteration: value as a {type: ...} data spec,
 	// resolved into Iteration at load time by the api iteration registry. It is
 	// empty when the partition's iteration comes from an expression or an embedded
 	// run instead.

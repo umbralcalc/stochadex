@@ -14,7 +14,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// Registers `output_function: {type: duckdb, path: run.duckdb, table: results}`, landing
+// Registers output_function: {type: duckdb, path: run.duckdb, table: results}, landing
 // the run in a DuckDB database for SQL analytics — zero-copy, via the same Arrow record the
 // arrow sink writes. Compiled only under the duckdb_arrow tag (the driver is cgo), so the
 // pure-Go build of this binary is unaffected.

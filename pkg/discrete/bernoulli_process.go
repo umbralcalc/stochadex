@@ -15,6 +15,7 @@ type BernoulliProcessIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (b *BernoulliProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -22,6 +23,7 @@ func (b *BernoulliProcessIteration) Configure(
 	b.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (b *BernoulliProcessIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

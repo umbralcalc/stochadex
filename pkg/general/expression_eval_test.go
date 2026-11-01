@@ -197,11 +197,10 @@ func TestExpressionBroadcasting(t *testing.T) {
 	})
 
 	t.Run("where selects with the same rule as an operator", func(t *testing.T) {
-		// where selects directly rather than going through broadcastLen, so it was the one
-		// place the rule above did not hold: a branch wider than the condition was silently
-		// truncated to its first len(cond) elements, and a narrower one ran off the end with a
-		// bare Go index panic. Both are now rejected — see the malformed-expression table — and
-		// this is the half that must still work, a scalar branch broadcasting under a vector
+		// where selects directly rather than going through broadcastLen, so it checks the rule
+		// above itself: a branch wider or narrower than the condition is rejected — see the
+		// malformed-expression table — rather than truncated or run off the end. This is the
+		// half that must still work, a scalar branch broadcasting under a vector
 		// condition, which is how nearly every guard is written.
 		got := evalOnce(t, &ExpressionIteration{
 			Fields:  []ExpressionField{{Name: "v", Width: 3}},
@@ -363,7 +362,7 @@ func TestExpressionRejectsMalformedExpressions(t *testing.T) {
 		{"concat needs two", "concat(1)", "at least 2"},
 		{"index must be scalar", "pair[pair]", "index must be a scalar"},
 		// A vector condition selects elementwise, so a branch that is neither its width nor a
-		// scalar is a mismatch in either direction — the wide one used to be silently truncated.
+		// scalar is a mismatch in either direction — the wide one is not truncated.
 		{"where then branch too wide", "sum(where(pair > 0, concat(pair, 3), 0))",
 			"then branch has width 3, which is neither the condition's 2"},
 		{"where then branch too narrow", "sum(where(concat(pair, 3) > 0, pair, 0))",

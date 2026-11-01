@@ -1,7 +1,3 @@
-# The upstream wiring was once split across params_from_upstream_partition and
-# params_from_indices; it is now the single params_from_upstream below. This fixture kept the
-# old spelling long after the fields went away — yaml ignores a key it does not know, so both
-# loaded silently and did nothing, and the test asserted too little to notice.
 name: test
 params:
   test_params: [0, 1, 2]

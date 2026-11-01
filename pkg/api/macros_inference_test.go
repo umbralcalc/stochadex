@@ -144,7 +144,7 @@ func TestPosteriorEstimationMacroEquivalence(t *testing.T) {
 // from an off-truth prior [0, 0]. This is the behaviour the sampler->comparison
 // coupling exists to enable — without it the comparison loglike is independent of
 // the proposal, the weights are uniform, and the mean drifts instead of
-// converging (the previously-shipped degenerate config). The tolerance leaves
+// converging. The tolerance leaves
 // room for honest sampling residual on the high-variance (covariance 9) second
 // coordinate.
 func TestPosteriorEstimationMacroConverges(t *testing.T) {

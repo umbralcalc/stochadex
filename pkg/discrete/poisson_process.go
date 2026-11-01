@@ -53,6 +53,7 @@ type PoissonProcessIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (p *PoissonProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -60,6 +61,7 @@ func (p *PoissonProcessIteration) Configure(
 	p.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (p *PoissonProcessIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

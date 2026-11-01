@@ -805,7 +805,7 @@ func (c *exprCtx) evalCall(n *ast.CallExpr) exprValue {
 		//
 		// This is the one thing each cannot do. Its lanes are independent and each must produce
 		// a scalar, so nothing a lane computes reaches the next one. A scan lane may be any
-		// width, and that is what closes the case that asked for this: allocating k simultaneous
+		// width, and that is what a case like this needs: allocating k simultaneous
 		// arrivals to the first k free slots, where what has to be carried between lanes is
 		// which slots are now taken rather than a running total. Running maxima and true prefix
 		// operations are the same shape, and become O(n) rather than the O(n^2) of an each of

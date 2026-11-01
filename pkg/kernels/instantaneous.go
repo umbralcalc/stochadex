@@ -11,17 +11,20 @@ import (
 //   - Useful to select only the latest value when aggregating.
 type InstantaneousIntegrationKernel struct{}
 
+// Configure implements IntegrationKernel.
 func (i *InstantaneousIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// SetParams implements IntegrationKernel.
 func (i *InstantaneousIntegrationKernel) SetParams(
 	params *simulator.Params,
 ) {
 }
 
+// Evaluate implements IntegrationKernel.
 func (i *InstantaneousIntegrationKernel) Evaluate(
 	currentState []float64,
 	pastState []float64,

@@ -126,7 +126,7 @@ copy_assets() {
 
 # Prepare a working copy of the template with the Models nav list injected.
 # The source template.html carries empty MODELS_NAV markers; this fills them from
-# whatever lives in models/ so /new-model entries appear in the sidebar automatically.
+# whatever lives in models/ so new entries appear in the sidebar automatically.
 prepare_template() {
     log_info "Preparing navigation template..."
 

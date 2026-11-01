@@ -411,8 +411,8 @@ func writeExpansion(document expandedDocument) ([]byte, error) {
 	return written.Bytes(), nil
 }
 
-// printExpansion writes a macros: config's expansion to w, for `stochadex
-// expand`: the same text for the same config and inputs, which loads and
+// printExpansion writes a macros: config's expansion to w, for stochadex
+// expand: the same text for the same config and inputs, which loads and
 // runs as the config does.
 func printExpansion(config *ApiRunConfig, w io.Writer) error {
 	written, err := ExpandToYAML(config)

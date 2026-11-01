@@ -22,12 +22,14 @@ import (
 type ValuesSortedCollectionCovarianceIteration struct {
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesSortedCollectionCovarianceIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesSortedCollectionCovarianceIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

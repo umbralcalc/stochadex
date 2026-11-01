@@ -17,7 +17,7 @@ result, the methodology, and one-command reproduction.
 ## The short version
 
 - **Single-core: at NumPy parity.** On simple processes (GBM, Ornstein–Uhlenbeck) a single
-  stochadex core now matches idiomatic NumPy's SIMD-over-paths; on a branching process it is
+  stochadex core matches idiomatic NumPy's SIMD-over-paths; on a branching process it is
   already ahead.
 - **All cores: several× faster.** Independent runs as a barrier-free ensemble use every core —
   **~5–14× over NumPy** across processes.

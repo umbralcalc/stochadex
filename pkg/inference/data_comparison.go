@@ -13,6 +13,7 @@ type DataComparisonIteration struct {
 	cumulative  bool
 }
 
+// Configure implements simulator.Iteration.
 func (d *DataComparisonIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -27,6 +28,7 @@ func (d *DataComparisonIteration) Configure(
 	d.Likelihood.SetSeed(partitionIndex, settings)
 }
 
+// Iterate implements simulator.Iteration.
 func (d *DataComparisonIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

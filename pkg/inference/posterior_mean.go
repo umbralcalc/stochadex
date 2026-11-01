@@ -40,12 +40,14 @@ type PosteriorMeanIteration struct {
 	) mat.Vector
 }
 
+// Configure implements simulator.Iteration.
 func (p *PosteriorMeanIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (p *PosteriorMeanIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

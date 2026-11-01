@@ -1,7 +1,7 @@
 // Package rng provides a small, allocation-free random sampler for stochadex
-// iterations and likelihood distributions. It is a drop-in, bit-identical
-// replacement for the gonum distuv distribution draws the engine previously
-// made, tuned to avoid their per-call overhead in hot loops.
+// iterations and likelihood distributions. Its draws are bit-identical to
+// gonum's distuv distributions for the same seed, without their per-call
+// overhead in hot loops.
 //
 // Key Features:
 //   - A single owned math/rand/v2.Rand per Sampler, seeded once from a partition seed
@@ -11,8 +11,8 @@
 //   - No per-call allocation and no per-call distribution-value copy or wrapper construction
 //
 // Why this exists:
-// The stochastic iterations previously drew from gonum's distuv distributions, e.g.
-// distuv.Normal{Mu: 0, Sigma: 1, Src: rand.NewPCG(seed, seed)}.Rand(). Each such call
+// Drawing from gonum's distuv distributions directly, e.g.
+// distuv.Normal{Mu: 0, Sigma: 1, Src: rand.NewPCG(seed, seed)}.Rand(), is costly. Each such call
 // copies the distribution (distuv methods have value receivers) and, internally, does
 // rand.New(src) to build a fresh math/rand/v2.Rand wrapper — and for the compound
 // distributions it also binds method values (rnd.Float64, rnd.NormFloat64, …) that are

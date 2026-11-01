@@ -105,6 +105,7 @@ func (e *EmbeddedSimulationRunIteration) SetReseedBase(base uint64) {
 	e.reseedBase = &base
 }
 
+// Configure implements simulator.Iteration.
 func (e *EmbeddedSimulationRunIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -249,6 +250,7 @@ func (e *EmbeddedSimulationRunIteration) updateStateMemoryAndTime(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (e *EmbeddedSimulationRunIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

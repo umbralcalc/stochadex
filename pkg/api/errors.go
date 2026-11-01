@@ -50,7 +50,10 @@ type Error struct {
 	Err  error
 }
 
+// Error returns the underlying error's message.
 func (e *Error) Error() string { return e.Err.Error() }
+
+// Unwrap returns the underlying error.
 func (e *Error) Unwrap() error { return e.Err }
 
 // KindOf reports the ErrorKind of err: the kind it was classified with, or

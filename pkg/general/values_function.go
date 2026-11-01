@@ -140,12 +140,14 @@ type ValuesFunctionIteration struct {
 	) []float64
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesFunctionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesFunctionIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

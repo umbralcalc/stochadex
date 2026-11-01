@@ -249,8 +249,8 @@ func run(root string, write bool, logf func(string, ...any)) ([]string, error) {
 }
 
 // repoRoot walks up from this source file to the module root (the directory
-// holding go.mod), so the tool works whether invoked by `go run`, `go generate`,
-// or `go test` regardless of the working directory.
+// holding go.mod), so the tool works whether invoked by go run, go generate,
+// or go test regardless of the working directory.
 func repoRoot() (string, error) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {

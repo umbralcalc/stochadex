@@ -55,7 +55,7 @@ func TestGroupedStateTimeStorage(t *testing.T) {
 	// The accessors below are the contract pkg/macros builds grouped
 	// aggregation partitions from: NewGroupedAggregationPartition loops
 	// `for tupIndex := range GetGroupTupleLength()` and calls the per-tuple
-	// accessors to size and wire each partition. Since the split that is a
+	// accessors to size and wire each partition. That makes it a
 	// cross-package contract, so it is tested against a multi-dimensional
 	// grouping — a single GroupBy ref cannot distinguish a correct tupIndex
 	// from an ignored one.

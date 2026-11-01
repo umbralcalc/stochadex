@@ -32,12 +32,14 @@ import (
 // State: [carbon_gco2_kwh]
 type CarbonIntensityIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (c *CarbonIntensityIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CarbonIntensityIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

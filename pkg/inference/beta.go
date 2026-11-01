@@ -68,6 +68,7 @@ type BetaLikelihoodDistribution struct {
 	beta    *mat.VecDense
 }
 
+// SetSeed implements LikelihoodDistribution.
 func (b *BetaLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -75,6 +76,7 @@ func (b *BetaLikelihoodDistribution) SetSeed(
 	b.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// SetParams implements LikelihoodDistribution.
 func (b *BetaLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -102,6 +104,7 @@ func (b *BetaLikelihoodDistribution) SetParams(
 	}
 }
 
+// EvaluateLogLike implements LikelihoodDistribution.
 func (b *BetaLikelihoodDistribution) EvaluateLogLike(
 	data []float64,
 ) float64 {
@@ -115,6 +118,7 @@ func (b *BetaLikelihoodDistribution) EvaluateLogLike(
 	return logLike
 }
 
+// GenerateNewSamples implements LikelihoodDistribution.
 func (b *BetaLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
 	for i := range b.alpha.Len() {
@@ -123,6 +127,7 @@ func (b *BetaLikelihoodDistribution) GenerateNewSamples() []float64 {
 	return samples
 }
 
+// EvaluateLogLikeMeanGrad implements LikelihoodDistributionWithGradient.
 func (b *BetaLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {

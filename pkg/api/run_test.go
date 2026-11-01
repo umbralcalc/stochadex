@@ -366,8 +366,8 @@ func TestFullyDataResolution(t *testing.T) {
 	})
 
 	t.Run("a Go-string iteration config is rejected at load", func(t *testing.T) {
-		// The Go-expression config path has been removed: a component given as a
-		// scalar Go string (rather than a {type: ...} data spec) must no longer load.
+		// A component given as a scalar Go string (rather than a {type: ...} data
+		// spec) does not load.
 		goPath := filepath.Join(t.TempDir(), "go.yaml")
 		goYAML := `main:
   partitions:

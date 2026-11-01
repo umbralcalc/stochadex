@@ -260,8 +260,7 @@ embedded:
 
 // TestArgParseExitsOnBadArgs re-runs this test binary as a child that calls
 // ArgParse with no --config, and checks the child exits with the usage code and
-// prints the usage text. ArgParse used to print usage and carry on with an empty
-// config path.
+// prints the usage text, rather than carrying on with an empty config path.
 func TestArgParseExitsOnBadArgs(t *testing.T) {
 	if os.Getenv("STOCHADEX_ARGPARSE_CHILD") == "1" {
 		os.Args = []string{"stochadex"}

@@ -82,8 +82,8 @@ func (h *harnessFailStatefulTestIteration) Iterate(
 
 // harnessAliasTestIteration returns a live history row directly, without
 // mutating it. The other harness checks (NaN, width, depth-retention) all pass
-// for this — only the output-aliasing check rejects it. At StateHistoryDepth ==
-// 1 this is the pathology that was previously invisible.
+// for this — only the output-aliasing check rejects it, including at
+// StateHistoryDepth == 1.
 type harnessAliasTestIteration struct {
 }
 

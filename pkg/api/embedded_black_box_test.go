@@ -37,7 +37,7 @@ embedded:
 
 func TestEmbeddedRunsAreBlackBoxes(t *testing.T) {
 	t.Run("an embedded run that declares no output runs, writes nothing and is recorded by its host row", func(t *testing.T) {
-		// This used to crash: an embedded run had to declare output_function: {type: nil}.
+		// An embedded run need not declare output_function: {type: nil}.
 		dir := t.TempDir()
 		err, printed := executeIn(t, dir, "--config", writeConfigPath(t, blackBoxYAML))
 		if err != nil {

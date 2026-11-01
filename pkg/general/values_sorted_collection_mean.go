@@ -18,12 +18,14 @@ import (
 type ValuesSortedCollectionMeanIteration struct {
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesSortedCollectionMeanIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesSortedCollectionMeanIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

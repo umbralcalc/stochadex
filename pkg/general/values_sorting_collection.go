@@ -72,12 +72,14 @@ type ValuesSortingCollectionIteration struct {
 	) (SortingValues, bool)
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesSortingCollectionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesSortingCollectionIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

@@ -14,7 +14,8 @@ const (
 // score vector in [0,1] and an ok flag (false signals "no signal" — caller
 // counts the visit but skips the win credit). For binary winner games or
 // games using a Progress proxy, build the rollout from helpers in
-// rollout.go (UniformRandomRollout, OneHotFromWinner, FromProgress).
+// mcts_rollout.go (UniformRandomRollout, FromProgress, and WinnerToTerminal
+// for an Environment's Terminal).
 //
 // Progress is an optional per-state, per-player [0,1] value proxy used by
 // the FromProgress rollout adapter to score truncated rollouts.
