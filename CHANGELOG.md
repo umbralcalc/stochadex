@@ -22,6 +22,28 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-11-01
+
+This release makes estimation from data quick and exact, and makes the macro tier a
+pure shortcut for the core language. A Poisson rate or any running mean over a CSV is now
+a cumulative mean that counts every row at constant cost, writing only its final value
+(`cumulative: true`, the `final_step` output condition, `init_state_from_upstream`, and the
+`cfg/example_poisson_rate_config.yaml` worked example). Every `macros:` config now runs as its
+expansion, in any run mode, and `stochadex expand` prints that expansion.
+
+**Upgrading from 0.25.**
+
+- `scalar_regression_stats` now counts its data's first row, so its statistics change by
+  one observation. A sub-simulation input whose `init_state_values` were placeholders now
+  has them counted: make them data.
+- A windowed `vector_mean`, `vector_variance` or `vector_covariance` longer than its input
+  now fails when the run starts, instead of returning `default_value` every step. For a
+  running mean over all the data, use `cumulative: true`.
+- `api.RunMacros` is removed: use `api.RunToStorage`. A `macros:` config built in Go rather
+  than loaded from text is now a config error; load it with `api.LoadConfig`.
+- A run whose clock is incomplete, or an `embedded:` run with no partitions or no host, is
+  now a config error at load rather than a panic.
+
 ### Added
 
 - **`stochadex expand -c CONFIG [--set ...]`** prints a `macros:` config's expansion, the
@@ -88,16 +110,6 @@ an exact version rather than assume stability across minors.
   filled, which such a window never does. For `vector_mean` the error points to
   `cumulative: true`.
 
-### Removed
-
-- `api.RunMacros`, deprecated since v0.25.0, which ran a `macros:` config macro by macro.
-  Use `api.RunToStorage`: it runs the config as its expansion, with bit-identical results,
-  and returns the storage in `RunResult.Storage`. The `pkg/macros` constructors, and
-  `analysis.AddPartitionsToStateTimeStorage`, still build a macro's partitions against a
-  `StateTimeStorage` from Go.
-
-### Fixed
-
 - A run whose clock is incomplete is a config error at load, naming what is missing, rather
   than a nil-pointer panic once it runs. A `main.simulation` block that states any field needs
   both `termination_condition` and `timestep_function`; beside `macros:` it is the run's
@@ -108,6 +120,14 @@ an exact version rather than assume stability across minors.
   `--check`ing it without one is a config error.
 - An `embedded:` run with no partitions, or with no `main:` partition of its name to host it,
   is a config error at load rather than a nil-pointer panic.
+
+### Removed
+
+- `api.RunMacros`, deprecated since v0.25.0, which ran a `macros:` config macro by macro.
+  Use `api.RunToStorage`: it runs the config as its expansion, with bit-identical results,
+  and returns the storage in `RunResult.Storage`. The `pkg/macros` constructors, and
+  `analysis.AddPartitionsToStateTimeStorage`, still build a macro's partitions against a
+  `StateTimeStorage` from Go.
 
 ## [0.25.0] — 2026-10-31
 
@@ -2485,7 +2505,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.25.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.26.0...HEAD
+[0.26.0]: https://github.com/umbralcalc/stochadex/compare/v0.25.0...v0.26.0
 [0.25.0]: https://github.com/umbralcalc/stochadex/compare/v0.24.0...v0.25.0
 [0.24.0]: https://github.com/umbralcalc/stochadex/compare/v0.23.0...v0.24.0
 [0.23.0]: https://github.com/umbralcalc/stochadex/compare/v0.22.0...v0.23.0
