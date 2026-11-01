@@ -3,9 +3,8 @@ name: Prepare release PR
 # a "Release vX.Y.Z: stamp changelog" PR with the bookkeeping already done in
 # CHANGELOG.md: a new `## [X.Y.Z] — <today>` section inserted above the previous release,
 # with a prose placeholder and empty `### Added`, and its compare link. (There are no
-# plugin manifests to bump: agent integration moved to robert,
-# https://github.com/umbralcalc/robert, and .claude-plugin/marketplace.json is a frozen
-# deprecation notice.)
+# plugin manifests to bump: agent integration lives in robert,
+# https://github.com/umbralcalc/robert.)
 #
 # What it deliberately does NOT do is write the release prose — that is the reviewed,
 # human part, and the reason the changelog is hand-written rather than generated. You edit

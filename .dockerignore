@@ -3,7 +3,6 @@
 .git
 .github
 .claude
-.claude-plugin
 bin
 dist
 docs
