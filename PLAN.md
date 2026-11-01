@@ -27,14 +27,13 @@ Status: **accepted** (2026-10-04).
 | Phases 0, 1, 1b, Track O | **Done** |
 | Phase 2: 2.0–2.9, 2.12, 2.14 | **Done** (2.9 retired the macro-by-macro tier, #167) |
 | 2.11 `stochadex expand`, readable layout, anchors | **Done (#168)** |
-| 2.13 per-type fields in `stochadex catalogue` | **In review (#170)**: catalogue v2, generated from source and checked against every config in use (which found a dead ES wire) |
-| Core semantics reference (with 2.13) | To do: a prose page, every snippet run in a test, and the catalogue as its machine-readable half |
-| 2.10 human-facing docs | To do |
-| Release v0.26.0 | After #168; again after 2.13 if the catalogue's version changes |
+| 2.13 per-type fields in `stochadex catalogue` | **Done (#170)**: catalogue v2, generated from source and checked against every config in use (which found a dead ES wire) |
+| Core semantics reference (with 2.13) | **In review (#171)**: `docs/reference.md`, every rule shown with a config and its exact output, run by `TestDocsExamples`; it also took over the quickstart's reference material, so the quickstart is now short (decided 2026-11-01) |
+| 2.10 human-facing docs | Mostly done by #171 (quickstart and reference); left: `pkg/api/doc.go`, `pkg/macros/doc.go`, `how_it_works.md` read against the reference |
+| Releases | **v0.26.0 released** (#169; `expand`, run modes for macros, `RunMacros` removed). Next: v0.27.0 after #171 and 2.10 (catalogue v2 is a contract change for robert) |
 | Track R (authoring gaps robert surfaces) | Standing, from now; #164 is its first entry |
 
-- **To close the plan, in order:** merge #170 → the semantics reference → 2.10 → a
-  release → mark this plan **complete** and leave Track R running as its own short document.
+- **To close the plan, in order:** merge #171 → the rest of 2.10 → release v0.27.0 → mark this plan **complete** and leave Track R running as its own short document.
 - **History:** every merged item, decision and finding, newest Phase 2 work first, is in
   [Appendix A](#appendix-a-progress-log).
 
@@ -891,6 +890,7 @@ engine work, and most are invisible to a review of the architecture.
 |---|---|---|---|
 | R.1 | Estimating rates from a CSV: a `vector_mean` window longer than the input returns its default forever; `scalar_regression_stats` skips the first row; per-step output too large | engine (`cumulative: true`, `init_state_from_upstream`, first-row counting) and error (window longer than its input) and engine (`final_step` output condition) | #164 |
 | R.2 | Cost of composition is invisible until a run is slow: nesting depth and inner steps per outer step (§9) | engine: `inspect` reports them | to do |
+| R.3 | An expression reading further back than its upstream's `state_history_depth` (`lag(c, 3)` at depth 3) fails only when the run reaches it (exit 70); `--check` passes it (found writing the reference) | error: check a literal lag against the depth at load | to do |
 
 When this plan closes, Track R continues as its own short document.
 
