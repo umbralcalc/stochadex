@@ -22,6 +22,28 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **A config reference** ([docs/reference.md](docs/reference.md)): what a config means,
+  section by section. It starts with the core semantics (how a step runs, reading another
+  partition within the step or one step behind, history, the one rule against cycles within a
+  step, seeds, nested runs, and the run a macros config makes) and gathers the reference that
+  had built up in the quickstart: inputs, outputs, run modes, macros and the checking commands.
+  Each rule is shown with a config and exactly what running it prints, and a test runs every
+  one. The quickstart is now short: a first simulation, the CLI and a first config.
+
+### Changed
+
+- **`stochadex catalogue` says what each component takes (`catalogue_version` 2).** Each entry
+  the engine ships has its `description`, the `fields` its spec takes (with `required`, a
+  macro's or source's nested fields, and the `choices` of a field that names one of a set,
+  such as `function: data_values`), and the `params` it reads from its partition (with
+  `optional`, families such as `transitions_from_*`, and `params_incomplete` where a config
+  chooses the names). In version 1 an entry's `params` was a list of strings, never filled.
+  It is all read from the engine's source, so a type registered downstream lists its name.
+- `evolution_strategy_optimisation` no longer wires its mean into the covariance update,
+  which centres on its top samples' own mean and never read it. Results are unchanged.
+
 ## [0.26.0] — 2026-11-01
 
 This release makes estimation from data quick and exact, and makes the macro tier a
@@ -79,16 +101,6 @@ expansion, in any run mode, and `stochadex expand` prints that expansion.
   closed-form sums.
 
 ### Changed
-
-- **`stochadex catalogue` says what each component takes (`catalogue_version` 2).** Each entry
-  the engine ships has its `description`, the `fields` its spec takes (with `required`, a
-  macro's or source's nested fields, and the `choices` of a field that names one of a set,
-  such as `function: data_values`), and the `params` it reads from its partition (with
-  `optional`, families such as `transitions_from_*`, and `params_incomplete` where a config
-  chooses the names). In version 1 an entry's `params` was a list of strings, never filled.
-  It is all read from the engine's source, so a type registered downstream lists its name.
-- `evolution_strategy_optimisation` no longer wires its mean into the covariance update,
-  which centres on its top samples' own mean and never read it. Results are unchanged.
 
 - **An expansion is laid out to be read.** A generated component that fits on a line stays on
   it, in flow style; a longer one, such as a likelihood window's nested run, is written field by

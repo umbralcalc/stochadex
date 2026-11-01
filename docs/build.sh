@@ -228,6 +228,21 @@ generate_html_pages() {
     # second half of the quickstart, so the Go and YAML routes read as one document
     # rather than two that each had to re-introduce the engine.
 
+    # Generate the config reference page
+    if [ -f "$DOCS_DIR/reference.md" ]; then
+        log_info "Generating config reference page..."
+        local title=$(grep -E '^title:' "$DOCS_DIR/reference.md" | head -1 | sed 's/title: *"\(.*\)"/\1/' || echo "Config reference")
+        pandoc --template "$WORK_TEMPLATE" \
+            --wrap=preserve \
+            --mathjax \
+            $HIGHLIGHT_FLAG \
+            --metadata="title:$title" \
+            -f markdown \
+            -t html \
+            -o "$DOCS_DIR/pkg/reference.html" \
+            "$DOCS_DIR/reference.md"
+    fi
+
     # Generate how it works page
     if [ -f "$DOCS_DIR/how_it_works.md" ]; then
         log_info "Generating how it works page..."
@@ -505,6 +520,18 @@ EOF
         cat >> "$DOCS_DIR/sitemap.xml" << EOF
   <url>
     <loc>$base_url/pkg/quickstart.html</loc>
+    <lastmod>$(date -u +%Y-%m-%d)</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+EOF
+    fi
+
+    # Add the config reference page
+    if [ -f "$DOCS_DIR/pkg/reference.html" ]; then
+        cat >> "$DOCS_DIR/sitemap.xml" << EOF
+  <url>
+    <loc>$base_url/pkg/reference.html</loc>
     <lastmod>$(date -u +%Y-%m-%d)</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
