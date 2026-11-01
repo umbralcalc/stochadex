@@ -15,7 +15,7 @@ func runMacroConfig(t *testing.T, yamlText string) map[string][][]float64 {
 	if err := os.WriteFile(path, []byte(yamlText), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	storage, err := runMacros(LoadApiRunConfigFromYaml(path))
+	storage, err := runToStorage(LoadApiRunConfigFromYaml(path))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ macros:
 // (~1.5^2). This is the "does its job" bar — recovery from noise, not exact
 // algebra on a clean line — matching the convergence tests for the other macros.
 func TestScalarRegressionMacroRecoversNoisy(t *testing.T) {
-	storage, err := runMacros(LoadApiRunConfigFromYaml(
+	storage, err := runToStorage(LoadApiRunConfigFromYaml(
 		"../../cfg/example_regression_config.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +160,7 @@ macros:
 	if err := os.WriteFile(path, []byte(cfg), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	storage, err := runMacros(LoadApiRunConfigFromYaml(path))
+	storage, err := runToStorage(LoadApiRunConfigFromYaml(path))
 	if err != nil {
 		t.Fatal(err)
 	}

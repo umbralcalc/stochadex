@@ -243,12 +243,6 @@ embedded:
 			t.Errorf("expected an ErrConfig naming the misspelled type, got %v", err)
 		}
 	})
-	t.Run("RunMacros on a config with no macros is a config error", func(t *testing.T) {
-		_, err := RunMacros(&ApiRunConfig{})
-		if KindOf(err) != ErrConfig {
-			t.Errorf("expected an ErrConfig, got %v", err)
-		}
-	})
 	t.Run("a socket file without an address runs without serving", func(t *testing.T) {
 		configPath := filepath.Join(dir, "plain.yaml")
 		socketPath := filepath.Join(dir, "socket.yaml")

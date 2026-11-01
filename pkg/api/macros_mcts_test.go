@@ -17,7 +17,7 @@ func macroConfigError(t *testing.T, yamlText string) error {
 	if err := os.WriteFile(path, []byte(yamlText), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err := runMacros(LoadApiRunConfigFromYaml(path))
+	_, err := runToStorage(LoadApiRunConfigFromYaml(path))
 	return err
 }
 
@@ -108,15 +108,5 @@ func TestMCTSSelfPlayMacroValidation(t *testing.T) {
 				t.Errorf("error should mention %q, got: %v", testCase.wantErrHas, err)
 			}
 		})
-	}
-}
-
-// TestMCTSSelfPlayMacroRejectsStorageCombination pins the live/against-storage
-// split: mcts_self_play produces its own run, so pairing it with a data: block
-// and an analysis macro is a config error rather than a silent misread.
-func TestMCTSSelfPlayMacroRejectsStorageCombination(t *testing.T) {
-	spec := &mctsSelfPlaySpec{}
-	if _, _, err := spec.resolve(nil); err == nil {
-		t.Fatal("expected the against-storage path to be rejected")
 	}
 }

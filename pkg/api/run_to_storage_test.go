@@ -151,19 +151,23 @@ func TestRunToStorage(t *testing.T) {
 		}
 	})
 
-	t.Run("a macros config returns the same storage as RunMacros", func(t *testing.T) {
+	t.Run("a macros config returns its expansion's storage", func(t *testing.T) {
 		result, err := RunToStorage(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		reference, err := RunMacros(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"))
+		expanded, err := Expand(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		reference, err := RunToStorage(expanded)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if result.Members != nil {
 			t.Fatal("a macros run should set Storage only")
 		}
-		assertStoragesEqual(t, "RunToStorage vs RunMacros", result.Storage, reference)
+		assertStoragesEqual(t, "macros config vs its expansion", result.Storage, reference.Storage)
 	})
 
 	t.Run("an ensemble config returns members aligned to run.seeds", func(t *testing.T) {
@@ -335,4 +339,13 @@ func TestRunOutputIsDeterministic(t *testing.T) {
 			t.Errorf("line %d is partition %s, want %s (time order, names in order)", i, name, want)
 		}
 	}
+}
+
+// runToStorage runs a config as RunToStorage does and returns its storage.
+func runToStorage(config *ApiRunConfig) (*simulator.StateTimeStorage, error) {
+	result, err := RunToStorage(config)
+	if err != nil {
+		return nil, err
+	}
+	return result.Storage, nil
 }

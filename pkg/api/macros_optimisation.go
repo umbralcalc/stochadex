@@ -1,27 +1,5 @@
 package api
 
-import (
-	"fmt"
-
-	"github.com/umbralcalc/stochadex/pkg/macros"
-	"github.com/umbralcalc/stochadex/pkg/simulator"
-)
-
-// evolution_strategy_optimisation is a LIVE macro: unlike the against-storage
-// analysis macros, NewEvolutionStrategyOptimisationPartitions takes no data and
-// its partitions form a self-contained optimisation loop that runs as a fresh
-// simulation. So its spec implements liveMacroSpec (resolveLive) and its
-// against-storage resolve is an error.
-
-// liveMacroSpec is implemented by macros whose partitions run as a fresh
-// simulation for Steps, rather than against pre-recorded storage. The storage
-// (nil when there is no data: block) is passed through for macros — like
-// smc_inference — that need observed data to drive an otherwise-live run.
-type liveMacroSpec interface {
-	resolveLive(storage *simulator.StateTimeStorage) (
-		partitions []*simulator.PartitionConfig, steps int, timestep float64, err error)
-}
-
 type evolutionStrategySpec struct {
 	macroTypeField `yaml:",inline"`
 	Sampler        struct {
@@ -52,57 +30,4 @@ type evolutionStrategySpec struct {
 	Seed     uint64                 `yaml:"seed"`
 	Steps    int                    `yaml:"steps"`
 	Timestep float64                `yaml:"timestep,omitempty"`
-}
-
-// resolve reports that this is a live macro (it does not run against storage).
-func (s *evolutionStrategySpec) resolve(
-	*simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	return nil, nil, fmt.Errorf(
-		"evolution_strategy_optimisation is a live macro; it runs its own " +
-			"simulation and must not be combined with against-storage macros")
-}
-
-func (s *evolutionStrategySpec) resolveLive(
-	*simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, int, float64, error) {
-	rewardPartition, err := resolveWindowedPartition(s.Reward.Partition)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	window, err := s.Window.resolve()
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	applied := macros.AppliedEvolutionStrategyOptimisation{
-		Sampler:    macros.EvolutionStrategySampler{Name: s.Sampler.Name, Default: s.Sampler.Default},
-		Sorting:    macros.EvolutionStrategySorting{Name: s.Sorting.Name, CollectionSize: s.Sorting.CollectionSize, EmptyValue: s.Sorting.EmptyValue},
-		Mean:       macros.EvolutionStrategyMean{Name: s.Mean.Name, Default: s.Mean.Default, Weights: s.Mean.Weights, LearningRate: s.Mean.LearningRate},
-		Covariance: macros.EvolutionStrategyCovariance{Name: s.Covariance.Name, Default: s.Covariance.Default, LearningRate: s.Covariance.LearningRate},
-		Reward:     macros.EvolutionStrategyReward{Partition: rewardPartition, DiscountFactor: s.Reward.DiscountFactor},
-		Window:     window,
-		Seed:       s.Seed,
-	}
-	// Storage is nil: evolution strategy inspects no pre-recorded data.
-	partitions := macros.NewEvolutionStrategyOptimisationPartitions(applied, nil)
-	timestep := s.Timestep
-	if timestep == 0 {
-		timestep = 1.0
-	}
-	return partitions, s.Steps, timestep, nil
-}
-
-// resolveWindowedPartition resolves a single windowed partition spec (its inner
-// partition's data-spec iteration and outside upstreams).
-func resolveWindowedPartition(spec windowedPartitionSpec) (macros.WindowedPartition, error) {
-	partition := spec.Partition
-	partition.Init()
-	if partition.IterationSpec.IsData() {
-		iteration, err := ResolveIteration(partition.IterationSpec)
-		if err != nil {
-			return macros.WindowedPartition{}, fmt.Errorf("reward partition %q: %w", partition.Name, err)
-		}
-		partition.Iteration = iteration
-	}
-	return macros.WindowedPartition{Partition: &partition, OutsideUpstreams: spec.OutsideUpstreams}, nil
 }

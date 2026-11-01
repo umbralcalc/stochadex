@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 
-	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
@@ -19,22 +18,6 @@ type aggregationFields struct {
 	DefaultValue float64                 `yaml:"default_value,omitempty"`
 	Params       map[string][]float64    `yaml:"params,omitempty"`
 	Window       int                     `yaml:"window,omitempty"`
-}
-
-func (f aggregationFields) applied() (macros.AppliedAggregation, error) {
-	applied := macros.AppliedAggregation{
-		Name:         f.Name,
-		Data:         f.Data.resolve(),
-		DefaultValue: f.DefaultValue,
-	}
-	if f.Kernel.IsData() {
-		kernel, err := resolveKernel(f.Kernel)
-		if err != nil {
-			return applied, err
-		}
-		applied.Kernel = kernel
-	}
-	return applied, nil
 }
 
 func (f aggregationFields) window() int {
@@ -62,11 +45,6 @@ func (f aggregationFields) checkWindowFills(macro string, steps int, cumulative 
 		"input for only %d steps; it returns default_value (%v) until its window has filled, "+
 		"so it would return that every step. Fix: %s",
 		macro, f.Name, f.window(), steps, f.DefaultValue, fix))
-}
-
-// windowsFor pairs the macro partition (window 1) with its data source.
-func (f aggregationFields) windows() map[string]int {
-	return map[string]int{f.Name: 1, f.Data.PartitionName: f.window()}
 }
 
 type vectorMeanSpec struct {
@@ -98,73 +76,16 @@ func (s *vectorMeanSpec) checkCumulative() error {
 	return nil
 }
 
-func (s *vectorMeanSpec) resolve(
-	storage *simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	applied, err := s.applied()
-	if err != nil {
-		return nil, nil, err
-	}
-	if s.Cumulative {
-		if err := s.checkCumulative(); err != nil {
-			return nil, nil, err
-		}
-		// It reads only the data's latest value, so it asks no window of it.
-		partition := macros.NewVectorCumulativeMeanPartition(applied, storage)
-		return []*simulator.PartitionConfig{partition}, map[string]int{s.Name: 1}, nil
-	}
-	if err := s.checkWindowFills("vector_mean", len(storage.GetTimes())-1, true); err != nil {
-		return nil, nil, err
-	}
-	partition := macros.NewVectorMeanPartition(applied, storage)
-	applyParams(partition, s.Params)
-	return []*simulator.PartitionConfig{partition}, s.windows(), nil
-}
-
 type vectorVarianceSpec struct {
 	macroTypeField    `yaml:",inline"`
 	Mean              dataRefSpec `yaml:"mean"`
 	aggregationFields `yaml:",inline"`
 }
 
-func (s *vectorVarianceSpec) resolve(
-	storage *simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	applied, err := s.applied()
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := s.checkWindowFills("vector_variance", len(storage.GetTimes())-1, false); err != nil {
-		return nil, nil, err
-	}
-	partition := macros.NewVectorVariancePartition(s.Mean.resolve(), applied, storage)
-	applyParams(partition, s.Params)
-	windows := s.windows()
-	windows[s.Mean.PartitionName] = s.window()
-	return []*simulator.PartitionConfig{partition}, windows, nil
-}
-
 type vectorCovarianceSpec struct {
 	macroTypeField    `yaml:",inline"`
 	Mean              dataRefSpec `yaml:"mean"`
 	aggregationFields `yaml:",inline"`
-}
-
-func (s *vectorCovarianceSpec) resolve(
-	storage *simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	applied, err := s.applied()
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := s.checkWindowFills("vector_covariance", len(storage.GetTimes())-1, false); err != nil {
-		return nil, nil, err
-	}
-	partition := macros.NewVectorCovariancePartition(s.Mean.resolve(), applied, storage)
-	applyParams(partition, s.Params)
-	windows := s.windows()
-	windows[s.Mean.PartitionName] = s.window()
-	return []*simulator.PartitionConfig{partition}, windows, nil
 }
 
 // expandAggregation is an aggregation macro's partition as data, over the

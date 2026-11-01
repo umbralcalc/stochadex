@@ -15,7 +15,7 @@ import (
 // row is its replay's initial state, which the run never steps to, so a macro
 // that only folds in each step's latest value misses it. This suite runs each
 // macro that aggregates its data's rows over one CSV whose first row stands
-// out, in both tiers, and compares it with the same aggregate computed here
+// out, and compares it with the same aggregate computed here
 // from the rows themselves.
 
 // coverageRows are the CSV's rows after its time column: a group (0 or 1), a
@@ -253,20 +253,19 @@ func TestMacrosCountEveryRowOnce(t *testing.T) {
 	for _, name := range names {
 		c := coverageCases[name]
 		t.Run(name, func(t *testing.T) {
-			for tier, storage := range bothTiers(t, coverageConfig(t, c.macro)) {
-				checkCoverage(t, tier, name, storage, c.want)
-			}
+			storage := runAsExpansion(t, coverageConfig(t, c.macro))
+			checkCoverage(t, name, storage, c.want)
 		})
 	}
 }
 
 // checkCoverage compares a macro's every recorded step with its case's want.
-func checkCoverage(t *testing.T, tier, name string, storage *simulator.StateTimeStorage,
+func checkCoverage(t *testing.T, name string, storage *simulator.StateTimeStorage,
 	want func(int) []float64) {
 	t.Helper()
 	rows := storage.GetValues("out")
 	if len(rows) != len(coverageRows) {
-		t.Fatalf("%s: %d rows of out, want %d", tier, len(rows), len(coverageRows))
+		t.Fatalf("%d rows of out, want %d", len(rows), len(coverageRows))
 	}
 	defined := 0
 	for step, row := range rows {
@@ -276,10 +275,10 @@ func checkCoverage(t *testing.T, tier, name string, storage *simulator.StateTime
 		}
 		defined++
 		if got := coverageState(name, row); !floats.EqualApprox(got, expected, 1e-12) {
-			t.Errorf("%s: after step %d, out = %v, want %v from rows 0..%d", tier, step, got, expected, step)
+			t.Errorf("after step %d, out = %v, want %v from rows 0..%d", step, got, expected, step)
 		}
 	}
 	if defined == 0 {
-		t.Fatalf("%s: the case defines no step to check", tier)
+		t.Fatal("the case defines no step to check")
 	}
 }

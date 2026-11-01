@@ -70,39 +70,34 @@ At cache-resident sizes AXPY is at parity by default; DOT jumps from ~2.7 to ~10
 `-tags cblas`, matching NumPy — so you keep the pure-Go / WASM-clean binary by default and get
 NumPy-class BLAS when you opt in.
 
-## Macros cost nothing as a single run
+## Macros run as one simulation
 
 A `macros:` config is a shortcut: it expands into ordinary partitions that run as **one**
-simulation (`api.Expand`), with output bit-identical to running each macro in turn over the
-recorded data. Expanded, every shipped macro config runs level with the macro-by-macro path,
-and choosing the run's execution strategy, which only the expanded form can, makes most of
-them faster:
+simulation (`api.Expand`). Because the expansion is an ordinary run, its execution strategy can
+be chosen like any other's, which makes most of the shipped examples faster:
 
-| Config (macros) | Macro by macro | One run, expanded | Fastest strategy |
-|---|---|---|---|
-| `example_macro_config` (two chained aggregations) | 14.8 ms | 14.8 ms | inline, 10.8 ms |
-| `example_regression_config` (`scalar_regression_stats`) | 2.9 ms | 3.4 ms | inline, 2.0 ms |
-| `example_posterior_macro_config` (`posterior_estimation`) | 375 ms | 385 ms | inline, 339 ms |
-| `example_state_space_count_config` (count filter + SMC) | 377 ms | 347 ms | level |
-| `example_planning_config` (`mcts_planning`) | 122 ms | 118 ms | level |
-| `example_evolution_strategy_config` | 38.1 ms | 38.3 ms | persistent worker, 34.6 ms |
-| `example_smc_config` (`smc_inference`) | 20.7 ms | 21.2 ms | level |
-| `example_mcts_config` (`mcts_self_play`) | 4.4 ms | 4.4 ms | persistent worker, 4.1 ms |
-| `example_data_source_config` (aggregation over a CSV) | 2.9 ms | 3.1 ms | inline, 2.1 ms |
+| Config (macros) | Run by default | Fastest strategy |
+|---|---|---|
+| `example_macro_config` (two chained aggregations) | 14.8 ms | inline, 10.8 ms |
+| `example_regression_config` (`scalar_regression_stats`) | 3.4 ms | inline, 2.0 ms |
+| `example_posterior_macro_config` (`posterior_estimation`) | 385 ms | inline, 339 ms |
+| `example_state_space_count_config` (count filter + SMC) | 347 ms | level |
+| `example_planning_config` (`mcts_planning`) | 118 ms | level |
+| `example_evolution_strategy_config` | 38.3 ms | persistent worker, 34.6 ms |
+| `example_smc_config` (`smc_inference`) | 21.2 ms | level |
+| `example_mcts_config` (`mcts_self_play`) | 4.4 ms | persistent worker, 4.1 ms |
+| `example_data_source_config` (aggregation over a CSV) | 3.1 ms | inline, 2.1 ms |
 
-Medians of six runs on an Apple M4, each run reading its inputs afresh. Across all of them the
-expanded run takes 2% more time, within noise for most rows (benchstat, p > 0.05); the
-data-source and posterior examples are 8% and 3% slower (p = 0.04), and the planning example
-3% faster. Bytes and objects allocated are level, and peak heap is 3% lower. The "fastest
-strategy" column sets the expanded run's `execution_strategy`, which the macro-by-macro path
-has no way to choose. `BenchmarkMacroConfigs` in `pkg/api` reproduces it.
+Medians of six runs on an Apple M4, each run reading its inputs afresh. The "fastest strategy"
+column sets the expanded run's `execution_strategy`. `BenchmarkMacroConfigs` in `pkg/api`
+reproduces it.
 
 Run as `api.RunToStorage` and the CLI run it, a `macros:` config expands first, once per
 loaded config, so repeated runs of one config cost what the table shows. A single load and run,
 as each CLI invocation is, pays for expanding once: 0.3 ms for the regression example, 0.5 ms
 for the CSV one, 0.9 ms for self-play and 2 ms for SMC, which is 8% of these short examples'
 run time (geometric mean) and within 3% for the long ones. It is a fixed cost when the config
-loads, not per step. `BenchmarkMacroConfigsFirstRun` reproduces it.
+loads, not per step. `BenchmarkMacroConfigsFirstRun` measures a load and run.
 
 ## Reproduce it
 

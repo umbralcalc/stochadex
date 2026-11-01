@@ -52,43 +52,18 @@ func TestMacrosConfigsRunAsTheirExpansion(t *testing.T) {
 				len(written), len(want))
 		}
 
-		// Macro by macro, the result is replayed through the outputs in name
-		// order within each row; one run writes each step in partition order.
-		// The two hold the same lines, so the switch shows in their order.
-		replayed := filepath.Join(dir, "replayed.log")
-		reference, err := LoadConfig(writeConfigPath(t, strings.Replace(macros,
-			filepath.Join(dir, "macros.log"), replayed, 1)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		reference.source = nil // assembled in Go: runs macro by macro
-		if _, err := RunWith(reference, WithConfigOutputs()); err != nil {
-			t.Fatal(err)
-		}
-		old, err := os.ReadFile(replayed)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if bytes.Equal(old, written) || !sameLines(old, written) {
-			t.Error("the run should write the macro-by-macro lines, in a different order")
-		}
 	})
 
-	t.Run("a config assembled in Go, with no source to expand, runs macro by macro", func(t *testing.T) {
+	t.Run("a macros config that was not loaded does not run, saying how to load it", func(t *testing.T) {
 		config, err := LoadConfig("../../cfg/example_macro_config.yaml")
 		if err != nil {
 			t.Fatal(err)
 		}
-		config.source = nil
-		result, err := RunToStorage(config)
-		if err != nil {
-			t.Fatal(err)
+		config.expansion = nil // as a config not loaded from text has
+		_, err = RunToStorage(config)
+		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "load it with LoadConfig") {
+			t.Errorf("expected ErrConfig saying to load it, got %v", err)
 		}
-		reference, err := RunMacros(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		assertStoragesEqual(t, "assembled in Go", result.Storage, reference)
 	})
 
 	t.Run("captured views see the run as it outputs", func(t *testing.T) {
@@ -105,21 +80,4 @@ func TestMacrosConfigsRunAsTheirExpansion(t *testing.T) {
 			t.Error("the run's own every-row capture leaked into the views")
 		}
 	})
-}
-
-// sameLines reports that two logs hold the same lines, whatever their order.
-func sameLines(a, b []byte) bool {
-	count := map[string]int{}
-	for _, line := range strings.Split(string(a), "\n") {
-		count[line]++
-	}
-	for _, line := range strings.Split(string(b), "\n") {
-		count[line]--
-	}
-	for _, n := range count {
-		if n != 0 {
-			return false
-		}
-	}
-	return true
 }

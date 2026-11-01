@@ -287,7 +287,7 @@ func sameInputTimes(inputs map[string]InputConfig, names []string) error {
 func calibrationSplit(config *ApiRunConfig, hasInputs, mainClock bool) (int, error) {
 	var clocked []int
 	for index, macro := range config.Macros {
-		if _, live := macro.Spec.(liveMacroSpec); live {
+		if _, live := macro.Spec.(clockedMacroSpec); live {
 			clocked = append(clocked, index)
 		}
 	}

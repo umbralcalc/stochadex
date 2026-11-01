@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-// expandedAlike runs a macros: config through the macro tier and its expansion
-// through the single runtime, checks they record exactly the same rows at
-// exactly the same times, and checks the expanded run against its golden.
+// expandedAlike expands a macros: config and runs the expansion, checking it
+// against the golden this test recorded, and checks the config run as it is,
+// as its expansion, records exactly the same.
 func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 	t.Helper()
 	path := writeConfigPath(t, yaml)
@@ -25,15 +25,6 @@ func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config, err := LoadConfig(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// RunMacros runs macro by macro, the reference the expansion must match.
-	macro, err := RunMacros(config)
-	if err != nil {
-		t.Fatal(err)
-	}
 	if len(expanded.Macros) != 0 {
 		t.Fatalf("the expansion still has macros: %v", expanded.Macros)
 	}
@@ -41,9 +32,17 @@ func expandedAlike(t *testing.T, yaml string) *ApiRunConfig {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertStoragesEqual(t, "expanded vs macro tier", single.Storage, macro)
 	checkAlikeGolden(t, single.Storage)
-	if got, want := fmt.Sprint(single.Storage.GetTimes()), fmt.Sprint(macro.GetTimes()); got != want {
+	config, err := LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	asWritten, err := runToStorage(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertStoragesEqual(t, "expanded vs as written", single.Storage, asWritten)
+	if got, want := fmt.Sprint(single.Storage.GetTimes()), fmt.Sprint(asWritten.GetTimes()); got != want {
 		t.Errorf("times differ")
 	}
 	return expanded

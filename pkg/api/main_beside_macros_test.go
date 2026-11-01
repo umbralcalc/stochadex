@@ -48,7 +48,7 @@ func TestMainBesideMacros(t *testing.T) {
 
 	t.Run("a macro reads a main: partition live as it reads one recorded", func(t *testing.T) {
 		live := composedRun(t, walkMain("", mean)).Storage
-		recorded, err := RunMacros(LoadApiRunConfigFromYaml(writeConfigPath(t, walkRecorded(mean))))
+		recorded, err := runToStorage(LoadApiRunConfigFromYaml(writeConfigPath(t, walkRecorded(mean))))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -209,10 +209,4 @@ macros:
 		})
 	}
 
-	t.Run("macro by macro, main: beside macros is still refused", func(t *testing.T) {
-		_, err := RunMacros(LoadApiRunConfigFromYaml(writeConfigPath(t, walkMain("", mean))))
-		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "sets both main.partitions and macros:") {
-			t.Errorf("got %v", err)
-		}
-	})
 }

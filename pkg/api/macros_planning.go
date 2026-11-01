@@ -288,43 +288,6 @@ type planningModelSpec struct {
 	InitTime   float64                     `yaml:"init_time,omitempty"`
 }
 
-// resolve reports that this is a live macro.
-func (s *mctsPlanningSpec) resolve(
-	*simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, map[string]int, error) {
-	return nil, nil, fmt.Errorf(
-		"mcts_planning is a live macro; it drives its own model and must not be " +
-			"combined with against-storage macros")
-}
-
-func (s *mctsPlanningSpec) resolveLive(
-	storage *simulator.StateTimeStorage,
-) ([]*simulator.PartitionConfig, int, float64, error) {
-	environment, err := s.environment(storage)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	timestep := s.Timestep
-	if timestep == 0 {
-		timestep = 1.0
-	}
-	return macros.NewMCTSSelfPlayPartitions(s.search(environment)), s.Steps, timestep, nil
-}
-
-// environment checks the spec and builds its decision problem; storage is what
-// parameters.samples_from and weights_from read.
-func (s *mctsPlanningSpec) environment(
-	storage *simulator.StateTimeStorage,
-) (*simulationEnvironment, error) {
-	if err := s.checkSearch(); err != nil {
-		return nil, err
-	}
-	if err := s.refuseInputRefs(); err != nil {
-		return nil, err
-	}
-	return s.simulationEnvironmentSpec.build(storage, "mcts_planning")
-}
-
 // refuseInputRefs refuses samples or weights read from a named input, which a
 // {type: simulation} environment does but mcts_planning does not.
 func (s *mctsPlanningSpec) refuseInputRefs() error {

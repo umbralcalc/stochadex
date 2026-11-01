@@ -52,19 +52,14 @@ func ftoa(value float64) string {
 	return string(encoded)
 }
 
-// bothTiers runs a config as its expansion (the default) and macro by macro,
-// returning each tier's storage, or failing on an error.
-func bothTiers(t *testing.T, config func() *ApiRunConfig) map[string]*simulator.StateTimeStorage {
+// runAsExpansion runs a config as its expansion, failing on an error.
+func runAsExpansion(t *testing.T, config func() *ApiRunConfig) *simulator.StateTimeStorage {
 	t.Helper()
 	result, err := RunToStorage(config())
 	if err != nil {
 		t.Fatalf("run as its expansion: %v", err)
 	}
-	byMacro, err := runMacros(config())
-	if err != nil {
-		t.Fatalf("run macro by macro: %v", err)
-	}
-	return map[string]*simulator.StateTimeStorage{"expansion": result.Storage, "macro by macro": byMacro}
+	return result.Storage
 }
 
 func lastRow(storage *simulator.StateTimeStorage, name string) []float64 {
@@ -89,14 +84,13 @@ func TestMacrosCountEveryCSVRow(t *testing.T) {
 `, "")
 		}
 		want := []float64{sums[0] / n, sums[1] / n}
-		for tier, storage := range bothTiers(t, config) {
-			if got := lastRow(storage, "mean"); !floats.EqualApprox(got, want, 1e-12) {
-				t.Errorf("%s: final mean %v, want %v, the mean of all %d rows", tier, got, want, len(csvRows))
-			}
-			rows := storage.GetValues("mean")
-			if !floats.Equal(rows[0], csvRows[0]) {
-				t.Errorf("%s: initial mean %v, want the first row %v", tier, rows[0], csvRows[0])
-			}
+		storage := runAsExpansion(t, config)
+		if got := lastRow(storage, "mean"); !floats.EqualApprox(got, want, 1e-12) {
+			t.Errorf("final mean %v, want %v, the mean of all %d rows", got, want, len(csvRows))
+		}
+		rows := storage.GetValues("mean")
+		if !floats.Equal(rows[0], csvRows[0]) {
+			t.Errorf("initial mean %v, want the first row %v", rows[0], csvRows[0])
 		}
 	})
 
@@ -113,12 +107,11 @@ func TestMacrosCountEveryCSVRow(t *testing.T) {
 		for _, row := range csvRows {
 			sxy += row[0] * row[1]
 		}
-		for tier, storage := range bothTiers(t, config) {
-			// Through-origin layout: [Sxx, Sxy, Syy, n, beta, sigma2].
-			got := lastRow(storage, "ols")
-			if got[3] != n || got[1] != sxy {
-				t.Errorf("%s: n = %v, Sxy = %v; want %v and %v, every row counted", tier, got[3], got[1], n, sxy)
-			}
+		storage := runAsExpansion(t, config)
+		// Through-origin layout: [Sxx, Sxy, Syy, n, beta, sigma2].
+		got := lastRow(storage, "ols")
+		if got[3] != n || got[1] != sxy {
+			t.Errorf("n = %v, Sxy = %v; want %v and %v, every row counted", got[3], got[1], n, sxy)
 		}
 	})
 
@@ -134,13 +127,6 @@ func TestMacrosCountEveryCSVRow(t *testing.T) {
 			!strings.Contains(err.Error(), "window: 10") {
 			t.Fatalf("run as its expansion: got %v, want an error naming window: 10 and cumulative: true", err)
 		}
-		if _, err := runMacros(csvMacroConfig(t, `- type: vector_mean
-  name: mean
-  data: {partition_name: both}
-  window: 10
-`, "")); err == nil || !strings.Contains(err.Error(), "cumulative: true") {
-			t.Fatalf("run macro by macro: got %v, want an error naming cumulative: true", err)
-		}
 	})
 
 	t.Run("a window the input fills still runs", func(t *testing.T) {
@@ -153,14 +139,13 @@ func TestMacrosCountEveryCSVRow(t *testing.T) {
 `, "")
 		}
 		want := []float64{sums[0] / n, sums[1] / n}
-		for tier, storage := range bothTiers(t, config) {
-			if got := lastRow(storage, "mean"); !floats.EqualApprox(got, want, 1e-12) {
-				t.Errorf("%s: final mean %v, want %v", tier, got, want)
-			}
+		storage := runAsExpansion(t, config)
+		if got := lastRow(storage, "mean"); !floats.EqualApprox(got, want, 1e-12) {
+			t.Errorf("final mean %v, want %v", got, want)
 		}
 	})
 
-	t.Run("cumulative: true rejects the windowed mean's fields, in both tiers", func(t *testing.T) {
+	t.Run("cumulative: true rejects the windowed mean's fields", func(t *testing.T) {
 		for field, line := range map[string]string{
 			"kernel:":        "  kernel: {type: constant}\n",
 			"window:":        "  window: 3\n",
@@ -172,9 +157,6 @@ func TestMacrosCountEveryCSVRow(t *testing.T) {
 			if _, err := RunToStorage(csvMacroConfig(t, macro, "")); err == nil || !strings.Contains(err.Error(), field) {
 				t.Errorf("run as its expansion, with %s: got %v, want an error naming it", field, err)
 			}
-			if _, err := runMacros(csvMacroConfig(t, macro, "")); err == nil || !strings.Contains(err.Error(), field) {
-				t.Errorf("run macro by macro, with %s: got %v, want an error naming it", field, err)
-			}
 		}
 	})
 
@@ -185,7 +167,7 @@ func TestMacrosCountEveryCSVRow(t *testing.T) {
 		}
 	})
 
-	t.Run("a variance or covariance window longer than the input fails, in both tiers", func(t *testing.T) {
+	t.Run("a variance or covariance window longer than the input fails", func(t *testing.T) {
 		for _, macro := range []string{"vector_variance", "vector_covariance"} {
 			config := func() *ApiRunConfig {
 				return csvMacroConfig(t, "- {type: vector_mean, name: m, data: {partition_name: both}, cumulative: true}\n"+
@@ -195,9 +177,6 @@ func TestMacrosCountEveryCSVRow(t *testing.T) {
 			want := macro + ` "spread" has window: 10, but the run replays its input for only 4 steps`
 			if _, err := RunToStorage(config()); err == nil || !strings.Contains(err.Error(), want) {
 				t.Errorf("run as its expansion: got %v, want %q", err, want)
-			}
-			if _, err := runMacros(config()); err == nil || !strings.Contains(err.Error(), want) {
-				t.Errorf("run macro by macro: got %v, want %q", err, want)
 			}
 			// Only vector_mean has a cumulative form to point to.
 			if _, err := RunToStorage(config()); err != nil && strings.Contains(err.Error(), "cumulative: true") {
