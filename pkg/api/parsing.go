@@ -43,6 +43,9 @@ type ParsedArgs struct {
 	// and every registered component name (stochadex catalogue). It needs no
 	// config.
 	Catalogue bool
+	// Expand prints a macros: config written out in the core language, the
+	// run it runs as (stochadex expand).
+	Expand bool
 }
 
 // ArgParse parses CLI flags into a ParsedArgs.
@@ -60,7 +63,8 @@ func ArgParse() ParsedArgs {
 // parseArgs parses CLI arguments (os.Args form), returning an ErrUsage error
 // carrying the usage text when they are invalid. `stochadex inspect ...` is told
 // apart before parsing: argparse would require a subcommand on every run once
-// one is declared. The same holds for `stochadex graph` and `stochadex catalogue`.
+// one is declared. The same holds for `stochadex graph`, `stochadex expand` and
+// `stochadex catalogue`.
 func parseArgs(args []string) (ParsedArgs, error) {
 	if len(args) > 1 {
 		switch args[1] {
@@ -68,6 +72,8 @@ func parseArgs(args []string) (ParsedArgs, error) {
 			return parseInspectArgs(append([]string{args[0] + " inspect"}, args[2:]...))
 		case "graph":
 			return parseGraphArgs(append([]string{args[0] + " graph"}, args[2:]...))
+		case "expand":
+			return parseExpandArgs(append([]string{args[0] + " expand"}, args[2:]...))
 		case "catalogue":
 			return parseCatalogueArgs(append([]string{args[0] + " catalogue"}, args[2:]...))
 		}
@@ -75,7 +81,7 @@ func parseArgs(args []string) (ParsedArgs, error) {
 	parser := argparse.NewParser(
 		"stochadex",
 		"A generalised simulation engine. Other commands: stochadex inspect, "+
-			"stochadex graph and stochadex catalogue (each takes --help)",
+			"stochadex graph, stochadex expand and stochadex catalogue (each takes --help)",
 	)
 	configFile, sets, seedRange, debugEmbedded := configArgs(parser)
 	socketFile := parser.String(
@@ -181,6 +187,20 @@ func parseGraphArgs(args []string) (ParsedArgs, error) {
 	}
 	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, Graph: true,
 		GraphFormat: *format}, nil
+}
+
+// parseExpandArgs parses `stochadex expand`'s arguments.
+func parseExpandArgs(args []string) (ParsedArgs, error) {
+	parser := argparse.NewParser(
+		"stochadex expand",
+		"Print a macros: config written out in the core language, the run it runs "+
+			"as, without running it; reads its inputs' shapes",
+	)
+	configFile, sets := configFileArgs(parser)
+	if err := parser.Parse(args); err != nil {
+		return ParsedArgs{}, &Error{Kind: ErrUsage, Err: errors.New(parser.Usage(err))}
+	}
+	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, Expand: true}, nil
 }
 
 // parseCatalogueArgs parses `stochadex catalogue`'s arguments: there are none.

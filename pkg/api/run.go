@@ -347,6 +347,9 @@ func Execute(args []string) error {
 	if parsed.Graph {
 		return printGraph(config, parsed.GraphFormat, os.Stdout)
 	}
+	if parsed.Expand {
+		return printExpansion(config, os.Stdout)
+	}
 	if parsed.InspectProvenance {
 		provenance, err := ComputeProvenance(config)
 		if err != nil {

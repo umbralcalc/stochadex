@@ -24,6 +24,10 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`stochadex expand -c CONFIG [--set ...]`** prints a `macros:` config's expansion, the
+  core-language run it runs as, without running it. The text is the same for the same config
+  and inputs, and runs as the config does. A config with no macros is a config error (78), and
+  an input it cannot reach is unavailable (75), as for a run.
 - A `macros:` config runs in any run mode. `run: {mode: ensemble}` gives one member per seed,
   each the expansion's run under that seed, and each writes its own `outputs:` views;
   `run: {mode: serve}` streams the expansion's run to each client.
@@ -53,6 +57,13 @@ an exact version rather than assume stability across minors.
   closed-form sums.
 
 ### Changed
+
+- **An expansion is laid out to be read.** A generated component that fits on a line stays on
+  it, in flow style; a longer one, such as a likelihood window's nested run, is written field by
+  field, and its fields are laid out the same way. `params`, `params_as_partitions` and
+  `params_from_upstream` follow the same rule. A component repeated across a run's partitions
+  (a planning environment the apply, tree and rollout all read) is written once with a YAML
+  anchor, named after its field, and aliased after. The expansion runs exactly as before.
 
 - A `macros:` config's `run:` block is validated when it is loaded, as any config's is.
 - **`scalar_regression_stats` counts its data's first row.** An input's first row is its

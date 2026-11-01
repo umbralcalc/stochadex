@@ -1,6 +1,7 @@
 package api
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -96,8 +97,12 @@ func TestExpandedWindowsRunAsTheMacroTierRunsThem(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		forced := strings.Replace(string(written), "init_time_value: 0,",
-			"init_time_value: 0, execution_strategy: {type: inline},", 1)
+		// The nested run's simulation comes before the run's own.
+		forced := string(written)
+		if at := regexp.MustCompile(`\n( +)init_time_value: 0\n`).FindStringSubmatchIndex(forced); at != nil {
+			indent := forced[at[2]:at[3]]
+			forced = forced[:at[0]] + "\n" + indent + "execution_strategy: {type: inline}" + forced[at[0]:]
+		}
 		if forced == string(written) {
 			t.Fatalf("found no nested run to force inline in:\n%s", written)
 		}

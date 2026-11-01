@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"sort"
 	"strconv"
 
@@ -129,8 +130,8 @@ type expansion struct {
 type expandedPartition struct {
 	Name               string                      `yaml:"name"`
 	Iteration          *yaml3.Node                 `yaml:"iteration"`
-	Params             map[string][]float64        `yaml:"params,omitempty,flow"`
-	ParamsAsPartitions map[string][]string         `yaml:"params_as_partitions,omitempty,flow"`
+	Params             map[string][]float64        `yaml:"params,omitempty"`
+	ParamsAsPartitions map[string][]string         `yaml:"params_as_partitions,omitempty"`
 	ParamsFromUpstream map[string]expandedUpstream `yaml:"params_from_upstream,omitempty"`
 	InitStateValues    []float64                   `yaml:"init_state_values,omitempty,flow"`
 	InitStateFromUp    string                      `yaml:"init_state_from_upstream,omitempty"`
@@ -392,14 +393,34 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		return nil, err
 	}
 	document.Main.Expressions = source.mainExpressions
+	return writeExpansion(document)
+}
+
+// writeExpansion writes an expanded document as YAML. yaml.v3 quotes the text
+// YAML 1.1, which configs load with, reads as a boolean (a partition named
+// y), so it loads back as written.
+func writeExpansion(document expandedDocument) ([]byte, error) {
 	var written bytes.Buffer
 	encoder := yaml3.NewEncoder(&written)
 	encoder.SetIndent(2)
-	// yaml.v3 quotes the text YAML 1.1, which configs load with, reads as a
-	// boolean (a partition named y), so it loads back as written.
-	_ = encoder.Encode(document)
+	if err := encoder.Encode(document); err != nil {
+		return nil, fmt.Errorf("api: writing the expansion: %w", err)
+	}
+	// With the document written, closing only ends the stream in memory.
 	_ = encoder.Close()
 	return written.Bytes(), nil
+}
+
+// printExpansion writes a macros: config's expansion to w, for `stochadex
+// expand`: the same text for the same config and inputs, which loads and
+// runs as the config does.
+func printExpansion(config *ApiRunConfig, w io.Writer) error {
+	written, err := ExpandToYAML(config)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(written)
+	return err
 }
 
 // calibrationInput names the run: input calibrate, then plan expands its
@@ -512,6 +533,7 @@ func expandRun(
 			partitions[index].StateHistoryDepth = max(partitions[index].StateHistoryDepth, depth)
 		}
 	}
+	readable(partitions)
 	var run expandedMain
 	if clock == nil {
 		for _, name := range sortedKeys(owners) {
