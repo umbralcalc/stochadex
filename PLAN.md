@@ -53,7 +53,7 @@ Status: **accepted** (2026-10-04).
        (no changes; every cfg's rows identical to v0.22.0, only within-step order now fixed).
        Every other ~/Code repo on stochadex also bumped to v0.25.0 and merged (11 PRs;
        openaction2outcome needed the SMC per-particle API; its marks re-mint byte-identical).
-     - **2.9 in review (#167), after #165 merged.** #165: each expansion test (expandedAlike, 56 runs) pinned to
+     - **2.9 merged (#167), after #165.** #165: each expansion test (expandedAlike, 56 runs) pinned to
        per-arch golden digests (alike_<arch>.json) while still checked against RunMacros; amd64
        from CI's log. Then, built locally on top (opened after #165 merges): RunMacros, the
        macro-by-macro path, the Go-assembled fallback (now ErrConfig), each spec's resolve and
