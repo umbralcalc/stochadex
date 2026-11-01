@@ -102,7 +102,8 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
    directly in Go. Used in unit tests and when embedding stochadex as a library. This is
    where genuinely bespoke Go iterations live — anything neither in the framework catalogue
    nor expressible in the `expressions:` DSL.
-2. **YAML API path** — define the run in YAML (`ApiRunConfig`). The whole document is **data**:
+2. **YAML API path** — define the run in YAML (`ApiRunConfig`); `docs/reference.md` is the
+   written semantics, every example in it run by `TestDocsExamples`. The whole document is **data**:
    every position that holds a framework component is a `{type: ...}` data spec resolved at load
    with no toolchain (`iteration: {type: wiener_process}`; `timestep_function: {type: constant,
    stepsize: 1.0}`), and a partition's bespoke maths goes through `expressions:`. The config
@@ -121,7 +122,8 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
      (description, spec fields, params) is generated from source into
      `pkg/api/catalogue_fields.json`; after changing a registered type, rerun
      `go test ./pkg/api -run TestCatalogueFieldsUpToDate -update-catalogue`.
-   - **`run:`** — `{mode: batch | ensemble, seeds, concurrency}` (`RunModeConfig`).
+   - **`run:`** — `{mode: batch | ensemble | serve, seeds, concurrency, pace_ms}` (`RunModeConfig`).
+   - **`outputs:`** — views of the run, each a condition and a destination (`OutputViewConfig`).
    - **`inputs:` + `macros:`** (`pkg/api/macros*.go` decoding into `pkg/macros`, and
      `pkg/api/expand*.go`) — the analysis tier. A macro is a config → config shortcut: a run
      expands the config (`api.Expand`) into core-language partitions — input replays, then each
@@ -140,7 +142,7 @@ Simulations are usually assembled with a `simulator.ConfigGenerator` (`SetPartit
 
 **Invariant A restated for this surface (repo boundary).** Inference-*as-forward-simulation* — a
 posterior being stepped as a partition — is in scope here; `posterior_estimation` and the other
-inference macros belong in this engine. Inference *against real data* is the `data:` resource
+inference macros belong in this engine. Inference *against real data* reads it as an input
 (the observed dataset), which a downstream repo supplies. The engine owns the forward and
 inferential model; it does not own the dataset, the calibration loop, or the decision layer.
 `mcts_self_play` is the boundary case, and it is split rather than excluded. Its search
