@@ -113,6 +113,7 @@ direction, and roughly how much, does wetter forcing move the flood peak?*
 ## Generative behaviour under test
 
 [`stub_test.go`](stub_test.go) asserts, beyond "it runs":
+
 1. **Harness** — no NaNs, correct state widths, no `params` mutation, no statefulness
    residue across a repeated run (`simulator.RunWithHarnesses`).
 2. **Physical invariants** — rainfall ≥ 0; flows ≥ 0; soil moisture stays inside the

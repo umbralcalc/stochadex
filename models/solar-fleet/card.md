@@ -130,6 +130,7 @@ how does its variability respond to spreading the sites apart at fixed total cap
 ## Generative behaviour under test
 
 [`stub_test.go`](stub_test.go) asserts, beyond "it runs":
+
 1. **Harness** — no NaNs, correct state widths, no `params` mutation, no statefulness residue
    across a repeated run (`simulator.RunWithHarnesses`).
 2. **Structural invariants** — every site's generation non-negative and finite on every step, and

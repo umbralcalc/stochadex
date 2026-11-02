@@ -470,6 +470,7 @@ loads. A plain `model_path: models/brain.onnx` is shorthand for a file input of 
 `--check` doesn't read model files, and a run reads them when it starts.
 
 Inputs are read when the run starts, never when the config is loaded:
+
 - a missing input exits as unavailable (75);
 - an input lacking the named partition exits as a data error (65);
 - an undeclared or unused input is a config error (78).
@@ -865,6 +866,7 @@ fields.
 ### The simulation a macros config makes
 
 A `macros:` config runs as its expansion, one ordinary simulation:
+
 - **Its partitions:** each input's partitions, replayed under their own names, then the
   `main:` partitions, then each macro's partitions, in order. A macro reads the inputs, the
   `main:` partitions and earlier macros' outputs live, and a `main:` partition can read a
@@ -962,6 +964,7 @@ stochadex --config model.yaml --check     # exit 0 when valid; 78 naming the pro
 
 `stochadex inspect --io` prints, as JSON, what a run would read and write, without running
 it:
+
 - its inputs: kind, location, and what reads them;
 - every place it writes its results: each `outputs:` view and a stream input's `record:`
   file, with one path per member for an ensemble;
@@ -1071,6 +1074,7 @@ appear within a version. From Go, use `api.BuildCatalogue()`.
 
 `--provenance` writes `<output>.provenance.json` beside each `json_log` and `arrow` file a
 run writes. It records what produced the file:
+
 - the config as resolved, after `--set` and `${VAR}`;
 - a fingerprint of each input's contents, model files included (an S3 object by its
   version);
@@ -1091,6 +1095,7 @@ inputs, to fingerprint them.
 
 A run has a key only when everything that decides its outputs can be fingerprinted. It
 has none, and is never skipped, when:
+
 - an input is a Postgres table (its rows can change under the same query) or a live
   stream;
 - it is served;

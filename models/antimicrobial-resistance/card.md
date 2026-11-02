@@ -112,6 +112,7 @@ roughly how much, does changing that prescribing rate move them?*
 ## Generative behaviour under test
 
 [`stub_test.go`](stub_test.go) asserts, beyond "it runs":
+
 1. **Harness** — no NaNs, correct state widths, no `params` mutation, no statefulness
    residue across a repeated run (`simulator.RunWithHarnesses`).
 2. **Structural invariants** — `S, R ∈ [0,1]`, `S + R ≤ 1` every step; BSI counts ≥ 0.

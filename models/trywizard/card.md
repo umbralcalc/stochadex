@@ -166,6 +166,7 @@ outcome?*
 ## Generative behaviour under test
 
 [`stub_test.go`](stub_test.go) asserts, beyond "it runs":
+
 1. **Harness** — no NaNs, correct state widths, no `params` mutation, no statefulness residue
    across a repeated run (`simulator.RunWithHarnesses`).
 2. **Structural invariants** — every cumulative counting process (`score_events`,
