@@ -169,6 +169,7 @@ docker run --rm -p 2112:2112 -v "$PWD:/work" ghcr.io/umbralcalc/stochadex:latest
 
 The [config reference](reference.html) covers everything a config can say, with every example
 run by a test:
+
 - [how a step runs](reference.html#how-a-step-runs): time, reading other partitions within the
   step or one step behind, history, and the one rule (no cycle within a step);
 - [partitions](reference.html#partitions) and [nested runs](reference.html#nested-runs);
