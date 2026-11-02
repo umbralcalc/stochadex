@@ -15,7 +15,7 @@ import (
 // state history and touches no other partition.
 //
 // The update is act = persistence·act_prev + (1−persistence)·gamma(shape, rate),
-// matching the `shared(...)` expression in declarative.yaml exactly: one Gamma
+// matching the shared(...) expression in declarative.yaml exactly: one Gamma
 // draw per step from a sampler seeded by the partition's own Seed. The Gamma mean
 // shape/rate sets the long-run activity level (here ≈ act_ref = 4).
 //
@@ -26,6 +26,7 @@ type ActivityIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (a *ActivityIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -33,6 +34,7 @@ func (a *ActivityIteration) Configure(
 	a.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (a *ActivityIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

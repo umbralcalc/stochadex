@@ -171,6 +171,7 @@ type ValuesGroupedAggregationIteration struct {
 	precision          int
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesGroupedAggregationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -208,6 +209,7 @@ func (v *ValuesGroupedAggregationIteration) Configure(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesGroupedAggregationIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

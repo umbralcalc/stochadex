@@ -21,9 +21,8 @@ package rugby
 // evaluator's separate operations.
 //
 // Every partition is compared, match_state included: its lag-10 read of the card_events
-// history — once the one thing here with no declarative form, since an upstreams alias only
-// ever gives row 0 — is now lag(card_hist, 10), so the declarative build carries no Go at
-// all.
+// history is lag(card_hist, 10) (an upstreams alias only ever gives row 0), so the
+// declarative build carries no Go at all.
 
 import (
 	"math"

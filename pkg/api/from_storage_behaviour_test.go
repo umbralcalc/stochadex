@@ -31,8 +31,7 @@ func yamlRows(rows [][]float64) []interface{} {
 // partition sees the driver within-step, and that the timestep function replays
 // the clock. The resolution tests in registry_test.go prove it builds; these prove
 // it does the right thing when run. This is the behaviour
-// cfg/example_from_storage_config.yaml depends on and the semantics the closed gap
-// (solar-fleet/STOCHADEX_GAPS.md) needs.
+// cfg/example_from_storage_config.yaml depends on.
 func TestFromStorageReplayBehaviour(t *testing.T) {
 	// A two-lane series, so a width/lane mis-wiring would surface rather than hide
 	// behind a scalar.

@@ -24,6 +24,7 @@ type KeystrokeChannel interface {
 // StandardKeystrokeChannel retrieves keystrokes from the terminal.
 type StandardKeystrokeChannel struct{}
 
+// Get implements KeystrokeChannel.
 func (s *StandardKeystrokeChannel) Get(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -104,6 +105,7 @@ type UserInputIteration struct {
 	skipScanning     bool
 }
 
+// Configure implements simulator.Iteration.
 func (u *UserInputIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -132,6 +134,7 @@ func (u *UserInputIteration) Configure(
 	u.skipScanning = false // useful for graceful exits
 }
 
+// Iterate implements simulator.Iteration.
 func (u *UserInputIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

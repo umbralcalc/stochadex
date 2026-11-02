@@ -14,6 +14,7 @@ type CategoricalStateTransitionIteration struct {
 	rateSlices [][]int
 }
 
+// Configure implements simulator.Iteration.
 func (c *CategoricalStateTransitionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -38,6 +39,7 @@ func (c *CategoricalStateTransitionIteration) Configure(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CategoricalStateTransitionIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

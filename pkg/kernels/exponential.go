@@ -15,18 +15,21 @@ type ExponentialIntegrationKernel struct {
 	timescale float64
 }
 
+// Configure implements IntegrationKernel.
 func (e *ExponentialIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// SetParams implements IntegrationKernel.
 func (e *ExponentialIntegrationKernel) SetParams(
 	params *simulator.Params,
 ) {
 	e.timescale = params.GetIndex("exponential_weighting_timescale", 0)
 }
 
+// Evaluate implements IntegrationKernel.
 func (e *ExponentialIntegrationKernel) Evaluate(
 	currentState []float64,
 	pastState []float64,

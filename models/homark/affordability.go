@@ -16,12 +16,14 @@ type AffordabilityFromLogsIteration struct {
 	logEarningsIx int
 }
 
+// Configure implements simulator.Iteration.
 func (a *AffordabilityFromLogsIteration) Configure(partitionIndex int, settings *simulator.Settings) {
 	p := settings.Iterations[partitionIndex].Params.Map
 	a.logPriceIx = int(p["log_price_partition"][0])
 	a.logEarningsIx = int(p["log_earnings_partition"][0])
 }
 
+// Iterate implements simulator.Iteration.
 func (a *AffordabilityFromLogsIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

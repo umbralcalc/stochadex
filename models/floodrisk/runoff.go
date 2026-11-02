@@ -33,6 +33,7 @@ type RainfallRunoffIteration struct {
 	upstreamPartitionIndex int
 }
 
+// Configure implements simulator.Iteration.
 func (r *RainfallRunoffIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -42,6 +43,7 @@ func (r *RainfallRunoffIteration) Configure(
 	)
 }
 
+// Iterate implements simulator.Iteration.
 func (r *RainfallRunoffIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

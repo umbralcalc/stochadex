@@ -163,7 +163,7 @@ embedded:
 		if !strings.Contains(logLess, "type: postgres") {
 			t.Fatal("test config edit not applied")
 		}
-		config := writeConfig(t, logLess) // previously panicked: dial tcp 127.0.0.1:1
+		config := writeConfig(t, logLess) // loads without dialling 127.0.0.1:1
 		if _, err := RunToStorage(config); err != nil {
 			t.Fatalf("RunToStorage needs no database, got %v", err)
 		}

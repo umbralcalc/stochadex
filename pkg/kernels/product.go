@@ -14,6 +14,7 @@ type ProductIntegrationKernel struct {
 	KernelB IntegrationKernel
 }
 
+// Configure implements IntegrationKernel.
 func (p *ProductIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -22,6 +23,7 @@ func (p *ProductIntegrationKernel) Configure(
 	p.KernelB.Configure(partitionIndex, settings)
 }
 
+// SetParams implements IntegrationKernel.
 func (p *ProductIntegrationKernel) SetParams(
 	params *simulator.Params,
 ) {
@@ -29,6 +31,7 @@ func (p *ProductIntegrationKernel) SetParams(
 	p.KernelB.SetParams(params)
 }
 
+// Evaluate implements IntegrationKernel.
 func (p *ProductIntegrationKernel) Evaluate(
 	currentState []float64,
 	pastState []float64,

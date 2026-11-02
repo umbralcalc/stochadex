@@ -30,6 +30,7 @@ type ColonisationDynamicsIteration struct {
 	rng                       *rand.Rand
 }
 
+// Configure implements simulator.Iteration.
 func (c *ColonisationDynamicsIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -43,6 +44,7 @@ func (c *ColonisationDynamicsIteration) Configure(
 	))
 }
 
+// Iterate implements simulator.Iteration.
 func (c *ColonisationDynamicsIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

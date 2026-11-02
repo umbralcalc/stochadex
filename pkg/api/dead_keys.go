@@ -33,14 +33,12 @@ func unknownYamlKeys(data []byte, v any) map[string]bool {
 // validateNoDeadKeys rejects a config key that the schema will never read.
 //
 // yaml.v2 ignores an unknown key in silence, so a typo, or a key left behind by an older
-// schema, does nothing whatsoever while looking load-bearing. This is not hypothetical: a
-// state_width key sat in every config in this repo doing nothing (the width comes from
-// init_state_values), and pkg/simulator's partition fixture still carried two keys naming a
-// schema that no longer exists. Both read as meaningful and neither was.
+// schema, does nothing whatsoever while looking load-bearing: a state_width key, say, reads as
+// meaningful, but the width comes from init_state_values.
 //
 // The config is a single data schema (ApiRunConfig), so a key is dead when strict parsing
-// against it finds no field — e.g. the removed extra_packages / extra_vars of the old
-// Go-expression path.
+// against it finds no field — e.g. extra_packages / extra_vars, which name no part of the
+// schema.
 func validateNoDeadKeys(data []byte) error {
 	var concrete ApiRunConfig
 	unknown := unknownYamlKeys(data, &concrete)

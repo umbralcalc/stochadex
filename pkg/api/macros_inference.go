@@ -10,7 +10,7 @@ import (
 // ParameterisedModel, a WindowedPartitions holding inner partition configs), and
 // are expressed as typed spec structs decoded straight from YAML by MacroConfig —
 // which both handles the nesting and preserves scalar types (see the macros.go
-// note on the `y`->true coercion).
+// note on the "y" -> true coercion).
 
 // dataRefSpec is the data form of analysis.DataRef.
 type dataRefSpec struct {

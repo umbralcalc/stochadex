@@ -44,6 +44,7 @@ type ValuesChangingEventsIteration struct {
 	IterationByEvent map[float64]simulator.Iteration
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesChangingEventsIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -54,6 +55,7 @@ func (v *ValuesChangingEventsIteration) Configure(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesChangingEventsIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

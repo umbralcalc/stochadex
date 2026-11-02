@@ -32,7 +32,7 @@ import (
 //
 // A build is identified by what its build process stamped: a release version
 // (-X main.version), an image's commit (-X main.revision), or the module version
-// of a `go install ...@vX`. Go's own version-control stamp is recorded but not
+// of a go install ...@vX. Go's own version-control stamp is recorded but not
 // trusted: a local build may have uncommitted changes, and in a git worktree
 // nested in its main checkout Go stamps the main checkout's commit, so a cache
 // keyed on it could skip a run after the code changed.
@@ -244,7 +244,7 @@ func fileDigest(path string) (string, error) {
 }
 
 // buildVCS reads Go's version-control stamp, and buildModuleVersion the main
-// module's version (set by `go install ...@vX`); tests replace them.
+// module's version (set by go install ...@vX); tests replace them.
 var (
 	buildVCS           = vcsRevision
 	buildModuleVersion = func() string {
@@ -254,7 +254,7 @@ var (
 )
 
 // moduleVersion is the main module's version when it identifies the build: a
-// `go install ...@vX` build from the module cache, which carries no
+// go install ...@vX build from the module cache, which carries no
 // version-control stamp. A build in a checkout has its version derived from
 // that stamp (a pseudo-version since Go 1.24), which is not trusted.
 func moduleVersion(info *debug.BuildInfo) string {

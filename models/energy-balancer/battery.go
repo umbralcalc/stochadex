@@ -31,12 +31,14 @@ import (
 //	actual_dispatch_mw - actual dispatch after applying constraints
 type BatteryIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (b *BatteryIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (b *BatteryIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

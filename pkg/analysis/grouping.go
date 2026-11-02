@@ -20,7 +20,8 @@ type GroupedStateTimeStorage struct {
 	groupLabels    []string
 }
 
-// GetGroupingPartitions returns the partition used in the data for grouping.
+// GetGroupingPartition returns the name of the partition whose values supply
+// the tupIndex-th grouping.
 func (g *GroupedStateTimeStorage) GetGroupingPartition(tupIndex int) string {
 	return g.applied.GroupBy[tupIndex].PartitionName
 }

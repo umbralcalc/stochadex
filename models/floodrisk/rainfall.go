@@ -31,6 +31,7 @@ type StochasticRainfallIteration struct {
 	gammaDist distuv.Gamma
 }
 
+// Configure implements simulator.Iteration.
 func (s *StochasticRainfallIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -46,6 +47,7 @@ func (s *StochasticRainfallIteration) Configure(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (s *StochasticRainfallIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

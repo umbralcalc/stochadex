@@ -15,7 +15,7 @@ import (
 // computation here — not in a _test.go file — is what lets the card show exactly the
 // numbers the test asserts on, so the two can never disagree.
 
-// Observable state indices for the `observables` partition.
+// Observable state indices for the observables partition.
 const (
 	obsNLimit  = 0
 	obsNCancel = 1

@@ -15,9 +15,8 @@ import (
 // likelihood instead, the mean still recovers but the dispersion drifts to its prior
 // mean, because Poisson forces Var = mean so the dispersion never enters the
 // log-likelihood. That contrast is the point: the composition is only useful with a
-// dispersion-aware family, and the engine already ships one. This reproduces, domain-
-// free, the identifiability result the cryptobook project recorded (and is why the
-// STOCHADEX_GAPS "state-space likelihood" note is a composition, not a missing feature).
+// dispersion-aware family, and the engine already ships one. A state-space count
+// likelihood is therefore a composition, not a missing feature.
 func TestStateSpaceCountCalibration(t *testing.T) {
 	raw, err := os.ReadFile("../../cfg/example_state_space_count_config.yaml")
 	if err != nil {

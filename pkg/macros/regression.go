@@ -35,8 +35,8 @@ const (
 
 // ScalarRegressionStatsIteration maintains OLS-relevant sufficient statistics for
 // scalar y on scalar x, optionally with intercept, and writes closed-form
-// estimates each step. Row 0 of state history is the latest values, matching
-// LaggedValues / FromHistory conventions elsewhere.
+// estimates each step. Row 0 of state history is the latest values, as in
+// every StateHistory.
 //
 // Through-origin state (cumulative): [Sxx, Sxy, Syy, n, beta, sigma2] (width 6).
 // With intercept (cumulative): [n, Sx, Sy, Sxx, Sxy, Syy, alpha, beta, sigma2] (width 9).

@@ -11,12 +11,14 @@ import (
 type ConstantValuesIteration struct {
 }
 
+// Configure implements simulator.Iteration.
 func (c *ConstantValuesIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (c *ConstantValuesIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

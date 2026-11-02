@@ -70,12 +70,14 @@ type GaussianStateIntegrationKernel struct {
 	determinant    float64
 }
 
+// Configure implements IntegrationKernel.
 func (g *GaussianStateIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// SetParams implements IntegrationKernel.
 func (g *GaussianStateIntegrationKernel) SetParams(params *simulator.Params) {
 	covParams := params.Get("covariance_matrix")
 	covMatrix := mat.NewSymDense(int(math.Sqrt(float64(len(covParams)))), covParams)
@@ -88,6 +90,7 @@ func (g *GaussianStateIntegrationKernel) SetParams(params *simulator.Params) {
 	g.determinant = g.choleskyDecomp.Det()
 }
 
+// Evaluate implements IntegrationKernel.
 func (g *GaussianStateIntegrationKernel) Evaluate(
 	currentState []float64,
 	pastState []float64,

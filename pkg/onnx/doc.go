@@ -13,7 +13,7 @@
 // carries. The engine core therefore stays lean and CGO_ENABLED=0-clean (it
 // cross-compiles and builds to WASM for everyone who imports it as a library),
 // while consumers who want inference opt in by importing this module. The
-// implementation is behind the `onnx` build tag and CGO must be enabled.
+// implementation is behind the onnx build tag and CGO must be enabled.
 //
 // # How the opt-in works
 //

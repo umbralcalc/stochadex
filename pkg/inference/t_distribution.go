@@ -25,6 +25,7 @@ type TLikelihoodDistribution struct {
 	gradCholReady bool
 }
 
+// SetSeed implements LikelihoodDistribution.
 func (t *TLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -35,6 +36,7 @@ func (t *TLikelihoodDistribution) SetSeed(
 	)
 }
 
+// SetParams implements LikelihoodDistribution.
 func (t *TLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -76,16 +78,19 @@ func (t *TLikelihoodDistribution) getDist() *distmv.StudentsT {
 	return dist
 }
 
+// EvaluateLogLike implements LikelihoodDistribution.
 func (t *TLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
 	dist := t.getDist()
 	return dist.LogProb(data)
 }
 
+// GenerateNewSamples implements LikelihoodDistribution.
 func (t *TLikelihoodDistribution) GenerateNewSamples() []float64 {
 	dist := t.getDist()
 	return dist.Rand(nil)
 }
 
+// EvaluateLogLikeMeanGrad implements LikelihoodDistributionWithGradient.
 func (t *TLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {

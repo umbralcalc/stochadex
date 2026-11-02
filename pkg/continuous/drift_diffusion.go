@@ -18,6 +18,7 @@ type DriftDiffusionIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (d *DriftDiffusionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -25,6 +26,7 @@ func (d *DriftDiffusionIteration) Configure(
 	d.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (d *DriftDiffusionIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

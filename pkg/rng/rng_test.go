@@ -7,8 +7,7 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// Sampler is a bit-identical, drop-in replacement for the distuv.X{Src}.Rand() calls the
-// iterations used to make. These tests are the contract: if a future gonum version changes
+// Sampler is a bit-identical, drop-in replacement for distuv.X{Src}.Rand() calls. These tests are the contract: if a future gonum version changes
 // a distribution's algorithm, the mismatch surfaces here rather than as silent output drift
 // in every stochastic iteration.
 

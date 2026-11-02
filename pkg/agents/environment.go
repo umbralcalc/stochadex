@@ -7,7 +7,7 @@ package agents
 // Terminal returns the per-player [0,1] score vector and a done flag. The
 // score vector lets the env represent draws (0.5/0.5), graded scoring
 // (Catan-like), and standard winner-takes-all (one-hot) without faking a
-// "winner" int. For binary games, see WinnerToTerminal in rollout.go.
+// "winner" int. For binary games, see WinnerToTerminal in mcts_rollout.go.
 //
 // Actor returns the index of the player whose decision creates the next
 // edge from s; backups credit nodes by Actor at the parent. Players returns

@@ -39,11 +39,12 @@ import (
 //  7. Repeat until termination
 //
 // Fields:
-//   - Iterators: List of StateIterators, one per partition
+//   - Iterators: List of StateIterator, one per partition
 //   - Shared: Shared state and time information accessible to all partitions
 //   - TimestepFunction: Function that determines the next timestep increment
 //   - TerminationCondition: Condition that determines when to stop the simulation
-//   - newWorkChannels: Communication channels for coordinating partition work
+//   - RunStrategy: ExecutionStrategy that steps the partitions (nil for the default)
+//   - OutputFunction: The sink, kept so Run can finalize it
 //
 // Example Usage:
 //
@@ -301,9 +302,9 @@ func (c *PartitionCoordinator) Run() {
 	}
 }
 
-// NamePartitionPanic, deferred around a loop that steps c, re-raises a panic
-// from a partition's work under inline execution as a *PartitionPanic naming
-// the partition, as the concurrent strategies' Step already raises it. Inline
+// NamePartitionPanic re-raises a panic from a partition's work under inline
+// execution as a *PartitionPanic naming the partition, as the concurrent
+// strategies' Step already raises it, when deferred around a loop that steps c. Inline
 // Step defers nothing, to stay at serial speed, so a caller stepping c itself
 // defers this once for the loop:
 //

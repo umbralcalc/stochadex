@@ -139,10 +139,12 @@ func NewOutputFunction(
 	}
 }
 
+// Configure implements simulator.OutputFunction.
 func (o *OutputFunction) Configure(settings *simulator.Settings) {
 	o.inner.Configure(settings)
 }
 
+// Output implements simulator.OutputFunction.
 func (o *OutputFunction) Output(
 	partitionName string,
 	state []float64,

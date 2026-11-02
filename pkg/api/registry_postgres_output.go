@@ -8,7 +8,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// Registers `output_function: {type: postgres, ...}`, making database writes drivable
+// Registers output_function: {type: postgres, ...}, making database writes drivable
 // from config rather than Go.
 //
 // This lives in pkg/api, not in the simulator component registry, for a layering reason:
@@ -23,7 +23,7 @@ import (
 //	output_function: {type: postgres, user: u, password: p, dbname: d, table: results}
 //	output_function: {type: postgres, driver: pgx, dsn: "postgres://…", table: results}
 //
-// The `driver`/`dsn` form goes through database/sql, so it reaches any Postgres-wire
+// The driver/dsn form goes through database/sql, so it reaches any Postgres-wire
 // database (TimescaleDB, CockroachDB, a managed instance with sslmode) — and any other
 // database whose driver is compiled in — rather than only a local Postgres.
 //
@@ -86,8 +86,7 @@ type deferredPostgresOutput struct {
 	inner *analysis.PostgresDbOutputFunction
 }
 
-// Configure connects on the sink's first run, panicking on failure as building
-// the sink at load used to.
+// Configure connects on the sink's first run, and panics if it cannot.
 func (d *deferredPostgresOutput) Configure(settings *simulator.Settings) {
 	if d.inner == nil {
 		defer func() {

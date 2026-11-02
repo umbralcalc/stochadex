@@ -20,12 +20,14 @@ import (
 // State: [cumulative_efc]
 type BatteryDegradationIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (b *BatteryDegradationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (b *BatteryDegradationIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

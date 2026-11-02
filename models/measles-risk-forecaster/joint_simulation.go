@@ -17,6 +17,7 @@
 // The shared M is what correlates the UTLAs: a high-M scenario seeds everyone at
 // once. Both iterations are lifted verbatim from the downstream repo
 // (pkg/measles/joint_simulation.go).
+
 package measles
 
 import (
@@ -37,11 +38,13 @@ type NationalImportationIteration struct {
 	rng *rand.Rand
 }
 
+// Configure implements simulator.Iteration.
 func (n *NationalImportationIteration) Configure(partitionIndex int, settings *simulator.Settings) {
 	seed := settings.Iterations[partitionIndex].Seed
 	n.rng = rand.New(rand.NewPCG(seed, seed))
 }
 
+// Iterate implements simulator.Iteration.
 func (n *NationalImportationIteration) Iterate(
 	params *simulator.Params, partitionIndex int,
 	stateHistories []*simulator.StateHistory,
@@ -71,11 +74,13 @@ type JointOutbreakIteration struct {
 	rng *rand.Rand
 }
 
+// Configure implements simulator.Iteration.
 func (j *JointOutbreakIteration) Configure(partitionIndex int, settings *simulator.Settings) {
 	seed := settings.Iterations[partitionIndex].Seed
 	j.rng = rand.New(rand.NewPCG(seed, seed))
 }
 
+// Iterate implements simulator.Iteration.
 func (j *JointOutbreakIteration) Iterate(
 	params *simulator.Params, partitionIndex int,
 	stateHistories []*simulator.StateHistory,

@@ -13,8 +13,7 @@ import (
 //
 // Configs are run from the repository root (Dir = ".."), because some carry
 // repo-relative output paths (e.g. ./nbs/data/test.log) — the working directory
-// they are meant to be run from. This replaces the old test/configs_test.sh,
-// which was never wired into CI.
+// they are meant to be run from.
 func TestBinaryRunsExampleConfigs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping binary build+run in -short mode")

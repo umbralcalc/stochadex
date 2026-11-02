@@ -31,7 +31,7 @@ package amr
 // model to remove: AMR's iterations are lifted verbatim from the downstream repo, and
 // card.md documents the lambda=30 branch as part of the validity regime. (Both are recorded
 // as standardisation signals — v1 math/rand where the engine has settled on pkg/rng, and a
-// hand-rolled sampler where the engine now ships one — but that is a decision about the
+// hand-rolled sampler where the engine ships one — but that is a decision about the
 // bespoke code, not about this test.)
 //
 // # What is checked instead

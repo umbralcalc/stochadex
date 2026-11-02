@@ -33,7 +33,7 @@ Other declarative formats are narrower ([SBML](https://sbml.org/), [Modelica](ht
 
 Four ways in, depending on whether you're writing YAML, running it as a pipeline step, letting an agent write it for you, or writing Go.
 
-**As a CLI** → describe a whole run in one YAML file and execute it with a prebuilt binary. A config that names no Go anywhere runs in-process, so no Go toolchain is needed. See [running from a config file](https://stochadex.github.io/pkg/quickstart.html#running-from-a-config-file).
+**As a CLI** → describe a whole run in one YAML file and execute it with a prebuilt binary. A config is pure data and runs in-process, so no Go toolchain is needed. See [running from a config file](https://stochadex.github.io/pkg/quickstart.html#running-from-a-config-file).
 
 ```bash
 curl -L "https://github.com/umbralcalc/stochadex/releases/latest/download/stochadex-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" -o stochadex

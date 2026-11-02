@@ -1,6 +1,6 @@
 package agents_test
 
-// Direct unit tests for the rollout adapter functions in rollout.go:
+// Direct unit tests for the rollout adapter functions in mcts_rollout.go:
 // UniformRandomRollout, FromProgress, WinnerToTerminal. These are the
 // composable building blocks used by callers wiring custom rollout
 // strategies; their edge-case behaviour is contractual.

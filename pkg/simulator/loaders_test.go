@@ -19,9 +19,9 @@ func TestLoadPartitionConfig(t *testing.T) {
 		func(t *testing.T) {
 			config := LoadPartitionConfigFromYaml("./test_partition_config.yaml")
 
-			// Discarding the result would let a key that loads into nothing pass, which is
-			// how this fixture kept two keys from a superseded schema: yaml ignores what it
-			// does not recognise, so the wiring below silently did not load at all.
+			// Discarding the result would let a key that loads into nothing pass: yaml
+			// ignores what it does not recognise, so the wiring below could silently not
+			// load at all.
 			upstream, ok := config.ParamsFromUpstream["other_test_params"]
 			if !ok {
 				t.Fatalf("upstream wiring did not load: got %v", config.ParamsFromUpstream)

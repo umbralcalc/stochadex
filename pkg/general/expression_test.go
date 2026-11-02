@@ -356,8 +356,8 @@ func TestExpressionSemantics(t *testing.T) {
 	})
 
 	t.Run("inverse trig matches the Go math package elementwise", func(t *testing.T) {
-		// Inverse trig closes the solar-geometry gap recorded in
-		// solar-fleet/STOCHADEX_GAPS.md: azimuth needs atan2, altitude needs asin/acos.
+		// Solar geometry needs inverse trig: azimuth needs atan2, altitude needs
+		// asin/acos.
 		e := &ExpressionIteration{
 			Fields:  []ExpressionField{{Name: "v", Width: 3}},
 			Outputs: []string{"asin(v) + acos(v) + atan(v) + tan(v)"},
@@ -443,8 +443,9 @@ func TestExpressionStructuredAccess(t *testing.T) {
 
 	t.Run("a zero-width slice is empty, which is what a prefix sum needs", func(t *testing.T) {
 		// The natural prefix sum asks for nothing at lane 0, and nothing is the right block to
-		// ask for there. It used to panic, so the spelling that worked needed a where for the
-		// answer and a max(i, 1) as well, because the untaken branch is still bounds-checked.
+		// ask for there, so a zero width gives an empty block rather than a panic, and the prefix
+		// sum needs neither a where for the answer nor a max(i, 1) to keep the untaken branch,
+		// which is still bounds-checked, in range.
 		e := &ExpressionIteration{
 			Fields:  []ExpressionField{{Name: "v", Width: 6}},
 			Outputs: []string{"each(6, i, sum(slice(q, 0, i)))"},

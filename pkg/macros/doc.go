@@ -6,7 +6,7 @@
 //
 // It is the Go form of what a config's macros: key states as data. In a config,
 // a macro is a config → config shortcut over the core language: pkg/api expands
-// each entry into ordinary partitions in the same run (api.Expand, which
+// each entry into ordinary partitions in the same simulation (api.Expand, which
 // stochadex expand prints), the partitions these constructors build, with no
 // storage to run against. From Go, a constructor here builds the same topology
 // against a StateTimeStorage, to run with analysis.AddPartitionsToStateTimeStorage.
@@ -43,9 +43,9 @@
 //     windowed likelihood, i.e. inference run as forward simulation.
 //   - optimisation.go  — evolution-strategy optimisation over a windowed reward.
 //   - smc.go           — sequential Monte Carlo inference, including the live
-//     RunSMCInference driver. smc_particles.go holds the evaluator that runs one
-//     model per particle over simulator.ReentrantSimulation, which is why the
-//     model is stated once rather than replicated per particle.
+//     RunSMCInference driver. Each particle runs its own copy of one model, via
+//     general.ReplicatedSimulationRunIteration over simulator.ReentrantSimulation,
+//     which is why the model is stated once rather than replicated per particle.
 //   - regression.go    — ScalarRegressionStatsIteration, the one true Iteration
 //     in this package, streaming OLS sufficient statistics alongside a run.
 //   - mcts.go          — MCTS self-play topology over a pkg/agents Environment.

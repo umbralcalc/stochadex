@@ -53,6 +53,7 @@ type SingleLAPopulationIteration struct {
 	scratch []float64
 }
 
+// Configure implements simulator.Iteration.
 func (s *SingleLAPopulationIteration) Configure(partitionIndex int, settings *simulator.Settings) {
 	is := settings.Iterations[partitionIndex]
 	scales := is.Params.Get("sector_hazard_scales")
@@ -228,6 +229,7 @@ func (s *SingleLAPopulationIteration) binomialSample(nFloat float64, prob float6
 	return s.binomial.Rand()
 }
 
+// Iterate implements simulator.Iteration.
 func (s *SingleLAPopulationIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

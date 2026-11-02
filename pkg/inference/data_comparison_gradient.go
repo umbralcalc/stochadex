@@ -25,6 +25,7 @@ type DataComparisonGradientIteration struct {
 	Batch *simulator.StateHistory
 }
 
+// Configure implements simulator.Iteration.
 func (d *DataComparisonGradientIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -32,6 +33,7 @@ func (d *DataComparisonGradientIteration) Configure(
 	d.Likelihood.SetSeed(partitionIndex, settings)
 }
 
+// Iterate implements simulator.Iteration.
 func (d *DataComparisonGradientIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
@@ -54,6 +56,7 @@ func (d *DataComparisonGradientIteration) Iterate(
 	return d.GradientFunc(params, likeMeanGrad)
 }
 
+// UpdateMemory implements general.StateMemoryIteration.
 func (d *DataComparisonGradientIteration) UpdateMemory(
 	params *simulator.Params,
 	update general.StateMemoryUpdate,

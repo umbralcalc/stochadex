@@ -24,6 +24,7 @@ type OrnsteinUhlenbeckExactGaussianIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (o *OrnsteinUhlenbeckExactGaussianIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -31,6 +32,7 @@ func (o *OrnsteinUhlenbeckExactGaussianIteration) Configure(
 	o.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (o *OrnsteinUhlenbeckExactGaussianIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

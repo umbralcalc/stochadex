@@ -12,12 +12,14 @@ import (
 //   - Update uses x_{t+1} = x_t - lr * gradient (or + for ascent).
 type GradientDescentIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (g *GradientDescentIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (g *GradientDescentIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

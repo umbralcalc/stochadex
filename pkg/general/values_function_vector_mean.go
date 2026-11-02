@@ -159,6 +159,7 @@ type ValuesFunctionVectorMeanIteration struct {
 	Kernel kernels.IntegrationKernel
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesFunctionVectorMeanIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -166,6 +167,7 @@ func (v *ValuesFunctionVectorMeanIteration) Configure(
 	v.Kernel.Configure(partitionIndex, settings)
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesFunctionVectorMeanIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

@@ -18,7 +18,7 @@ import (
 //
 // Each macro is a typed, YAML-decodable spec implementing macroSpec. Decoding
 // straight into the typed spec (rather than an untyped map) is load-bearing: a
-// bare YAML scalar like a partition named `y` is coerced to the boolean true when
+// bare YAML scalar like a partition named "y" is coerced to the boolean true when
 // decoded into interface{}, but preserved as the string "y" when decoded into a
 // string field.
 
@@ -81,15 +81,15 @@ type DataConfig struct {
 }
 
 // macroTypeField is embedded (inline) in every macro spec so decoding a spec
-// consumes the `type` discriminator rather than leaving it as an unknown key —
+// consumes the type discriminator rather than leaving it as an unknown key —
 // which the strict dead-key check would otherwise flag.
 type macroTypeField struct {
 	Type string `yaml:"type"`
 }
 
-// MacroConfig is one entry in the macros: tier. It decodes its `type` and then
+// MacroConfig is one entry in the macros: tier. It decodes its type and then
 // the whole entry into that type's typed spec, so field values keep their YAML
-// types (see the package note on the `y`->true coercion).
+// types (see the package note on the "y" -> true coercion).
 type MacroConfig struct {
 	Type string
 	Spec macroSpec

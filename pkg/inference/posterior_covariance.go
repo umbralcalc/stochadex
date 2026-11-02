@@ -14,12 +14,14 @@ import (
 type PosteriorCovarianceIteration struct {
 }
 
+// Configure implements simulator.Iteration.
 func (p *PosteriorCovarianceIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (p *PosteriorCovarianceIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

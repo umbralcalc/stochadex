@@ -13,12 +13,14 @@ type FromStorageIteration struct {
 	InitStepsTaken int
 }
 
+// Configure implements simulator.Iteration.
 func (f *FromStorageIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (f *FromStorageIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
@@ -46,6 +48,7 @@ type FromStorageTimestepFunction struct {
 	InitStepsTaken int
 }
 
+// NextIncrement implements simulator.TimestepFunction.
 func (f *FromStorageTimestepFunction) NextIncrement(
 	timestepsHistory *simulator.CumulativeTimestepsHistory,
 ) float64 {

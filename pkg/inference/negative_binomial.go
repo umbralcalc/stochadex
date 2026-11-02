@@ -17,6 +17,7 @@ type NegativeBinomialLikelihoodDistribution struct {
 	variance *mat.VecDense
 }
 
+// SetSeed implements LikelihoodDistribution.
 func (n *NegativeBinomialLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -24,6 +25,7 @@ func (n *NegativeBinomialLikelihoodDistribution) SetSeed(
 	n.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// SetParams implements LikelihoodDistribution.
 func (n *NegativeBinomialLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -38,6 +40,7 @@ func (n *NegativeBinomialLikelihoodDistribution) SetParams(
 	)
 }
 
+// EvaluateLogLike implements LikelihoodDistribution.
 func (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLike(
 	data []float64,
 ) float64 {
@@ -56,12 +59,13 @@ func (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLike(
 	return logLike
 }
 
+// GenerateNewSamples implements LikelihoodDistribution.
 func (n *NegativeBinomialLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
 	for i := range n.mean.Len() {
 		// Gamma–Poisson mixture: draw lambda ~ Gamma(shape, rate), then Poisson(lambda).
-		// Both draws come from the one sampler, matching the two distuv distributions that
-		// previously shared a single Src (order: gamma then Poisson).
+		// Both draws come from the one sampler, matching two distuv distributions that
+		// share a single Src (order: gamma then Poisson).
 		beta := 1.0 / ((n.variance.AtVec(i) / n.mean.AtVec(i)) - 1.0)
 		alpha := n.mean.AtVec(i) * beta
 		lambda := n.sampler.Gamma(alpha, beta)
@@ -70,6 +74,7 @@ func (n *NegativeBinomialLikelihoodDistribution) GenerateNewSamples() []float64 
 	return samples
 }
 
+// EvaluateLogLikeMeanGrad implements LikelihoodDistributionWithGradient.
 func (n *NegativeBinomialLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {

@@ -1,4 +1,4 @@
-// Command stochadex-graph is a deprecated alias for `stochadex graph`, kept so
+// Command stochadex-graph is a deprecated alias for stochadex graph, kept so
 // existing scripts and CI guards keep working; use the subcommand instead:
 //
 //	stochadex graph -c cfg/example_inference_config.yaml            # Mermaid

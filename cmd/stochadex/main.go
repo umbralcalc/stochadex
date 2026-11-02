@@ -21,8 +21,8 @@
 //	CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" \
 //	    go build -tags "cblas duckdb_arrow" -o stochadex-accel .   # Linux
 //
-// The `cblas` tag routes gonum's BLAS to the linked system library (see
-// pkg/simulator/blas_accelerated.go); `duckdb_arrow` compiles the DuckDB sink below.
+// The cblas tag routes gonum's BLAS to the linked system library (see
+// pkg/simulator/blas_accelerated.go); duckdb_arrow compiles the DuckDB sink below.
 package main
 
 import (
@@ -49,7 +49,7 @@ var revision = ""
 
 func main() {
 	// Handled before ArgParse so it needs no config and cannot be refused by argument
-	// validation — `--version` must answer even on a machine with nothing set up.
+	// validation — --version must answer even on a machine with nothing set up.
 	for _, arg := range os.Args[1:] {
 		if arg == "--version" || arg == "-version" || arg == "version" {
 			printVersion()
@@ -73,7 +73,7 @@ func main() {
 // printVersion reports the build and, crucially, the optional capabilities compiled in.
 // The portable and accelerated assets are the same CLI with different features, so this
 // is how a caller confirms it has the binary it needs — e.g. before writing a config that
-// uses `output_function: {type: duckdb}`, which only the accelerated build can serve.
+// uses output_function: {type: duckdb}, which only the accelerated build can serve.
 func printVersion() {
 	compiled := append([]string(nil), features...)
 	sort.Strings(compiled)

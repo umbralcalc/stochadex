@@ -22,6 +22,7 @@ type OrnsteinUhlenbeckIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (o *OrnsteinUhlenbeckIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -29,6 +30,7 @@ func (o *OrnsteinUhlenbeckIteration) Configure(
 	o.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (o *OrnsteinUhlenbeckIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

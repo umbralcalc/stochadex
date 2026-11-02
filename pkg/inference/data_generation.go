@@ -13,6 +13,7 @@ type DataGenerationIteration struct {
 	stepsPerResample int
 }
 
+// Configure implements simulator.Iteration.
 func (d *DataGenerationIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -26,6 +27,7 @@ func (d *DataGenerationIteration) Configure(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (d *DataGenerationIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

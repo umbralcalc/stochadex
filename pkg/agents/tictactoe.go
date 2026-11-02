@@ -99,7 +99,10 @@ func (g *TTTGame) Terminal(s TTTState) ([]float64, bool) {
 	return scores, true
 }
 
-func (g *TTTGame) Actor(s TTTState) int   { return s.Current }
+// Actor implements Environment.
+func (g *TTTGame) Actor(s TTTState) int { return s.Current }
+
+// Players implements Environment.
 func (g *TTTGame) Players(s TTTState) int { return 2 }
 
 // TTTWidth is the encoded row width: 9 cells + current player.

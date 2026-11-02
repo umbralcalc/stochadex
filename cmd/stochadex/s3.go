@@ -23,10 +23,10 @@ import (
 //	simulation:
 //	  output_function: {type: s3, bucket: my-bucket, key: runs/out.arrow, format: arrow}
 //
-// `format:` names what the object contains, and the transport pairs with the existing
+// format: names what the object contains, and the transport pairs with the existing
 // reader/sink for it — so S3 supports whatever local files support. Credentials come from
-// the standard AWS chain, never the config. Optional `region:` and `endpoint:` are passed
-// through; set `endpoint:` for any S3-compatible store.
+// the standard AWS chain, never the config. Optional region: and endpoint: are passed
+// through; set endpoint: for any S3-compatible store.
 func init() {
 	// A run's provenance fingerprints an S3 input by its object's version, which
 	// changes whenever the object does, without downloading it.

@@ -26,12 +26,14 @@ import (
 // State: [cumulative_carbon_tco2]
 type CarbonSavingsIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (c *CarbonSavingsIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CarbonSavingsIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

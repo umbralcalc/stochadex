@@ -16,6 +16,7 @@ type DiscountedCumulativeIteration struct {
 	Iteration simulator.Iteration
 }
 
+// Configure implements simulator.Iteration.
 func (d *DiscountedCumulativeIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -25,6 +26,7 @@ func (d *DiscountedCumulativeIteration) Configure(
 	d.Iteration.Configure(partitionIndex, settings)
 }
 
+// Iterate implements simulator.Iteration.
 func (d *DiscountedCumulativeIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

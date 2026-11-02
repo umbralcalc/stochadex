@@ -22,12 +22,14 @@ import (
 // State: [dispatch_mw]
 type CarbonThresholdDispatchIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (c *CarbonThresholdDispatchIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CarbonThresholdDispatchIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
@@ -71,12 +73,14 @@ func (c *CarbonThresholdDispatchIteration) Iterate(
 // State: [dispatch_mw]
 type PriceThresholdDispatchIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (p *PriceThresholdDispatchIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (p *PriceThresholdDispatchIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

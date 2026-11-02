@@ -23,6 +23,7 @@ type InfectionProcessIteration struct {
 	rng                        *rand.Rand
 }
 
+// Configure implements simulator.Iteration.
 func (inf *InfectionProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -35,6 +36,7 @@ func (inf *InfectionProcessIteration) Configure(
 	))
 }
 
+// Iterate implements simulator.Iteration.
 func (inf *InfectionProcessIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

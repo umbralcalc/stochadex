@@ -389,7 +389,7 @@ macros:
 		{"a macro with its own clock beside inputs",
 			aggregationConfig("- {type: mcts_self_play, name: ttt, steps: 2, env: {type: tictactoe}}\n"),
 			"macros[0] (mcts_self_play) runs its own clock beside the config's inputs, but reads " +
-				"none of them; one run has one clock, so it does not expand"},
+				"none of them; a simulation has one clock, so it does not expand"},
 		{"a macro with its own clock after an analysis, reading nothing",
 			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: stream}, window: 3}\n" +
 				"- {type: mcts_self_play, name: ttt, steps: 2, env: {type: tictactoe}}\n"),
@@ -398,7 +398,7 @@ macros:
 			"macros:\n- {type: mcts_self_play, name: a, steps: 2, env: {type: tictactoe}}\n" +
 				"- {type: mcts_self_play, name: b, steps: 2, env: {type: tictactoe}}\n",
 			"macros[0] (mcts_self_play) and macros[1] (mcts_self_play) each run their own clock; " +
-				"one run has one clock, so a second macro with its own does not expand"},
+				"a simulation has one clock, so a second macro with its own does not expand"},
 		{"SMC observing data, with no inputs",
 			"macros:\n" + smcConfig(t)[strings.Index(smcConfig(t), "- type: smc_inference"):],
 			`smc_inference model.observed_data reads "obs", which no input supplies`},

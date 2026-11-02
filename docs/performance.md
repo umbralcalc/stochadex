@@ -17,7 +17,7 @@ result, the methodology, and one-command reproduction.
 ## The short version
 
 - **Single-core: at NumPy parity.** On simple processes (GBM, Ornstein–Uhlenbeck) a single
-  stochadex core now matches idiomatic NumPy's SIMD-over-paths; on a branching process it is
+  stochadex core matches idiomatic NumPy's SIMD-over-paths; on a branching process it is
   already ahead.
 - **All cores: several× faster.** Independent runs as a barrier-free ensemble use every core —
   **~5–14× over NumPy** across processes.
@@ -26,6 +26,8 @@ result, the methodology, and one-command reproduction.
   and beats even a hand-optimized gather/scatter.
 - **Warmup-free.** ~1 µs from an unbuilt simulation to the first result — a statically compiled
   binary with no interpreter or JIT to warm up.
+- **Built-ins over expressions.** A built-in iteration runs the same maths as an `expression`
+  **~4× faster** (up to 9× for a single process), so reach for one first.
 
 ## Whole-process simulation, across every execution model
 
@@ -98,6 +100,44 @@ as each CLI invocation is, pays for expanding once: 0.3 ms for the regression ex
 for the CSV one, 0.9 ms for self-play and 2 ms for SMC, which is 8% of these short examples'
 run time (geometric mean) and within 3% for the long ones. It is a fixed cost when the config
 loads, not per step. `BenchmarkMacroConfigsFirstRun` measures a load and run.
+
+## Built-in iterations beat the same maths as an expression
+
+The `expression` iteration lets a config state any update as maths, but it is interpreted,
+where a built-in iteration is compiled Go. So when a built-in, or a chain of them wired with
+`params_from_upstream`, already does what a model needs, it is the faster choice, often by a lot.
+Each pair below is one process written both ways, checked to compute the same thing (the same
+draws in the same order, so equal to rounding, step by step) and timed over 1,000 steps, with
+nothing written out:
+
+| Process | Width | Built-in | Expression | Built-in is faster by |
+|---|---|---|---|---|
+| `wiener_process` | 1 | 0.77 ms | 3.96 ms | 5.2× |
+| | 100 | 1.58 ms | 10.9 ms | 6.9× |
+| `ornstein_uhlenbeck` | 1 | 0.78 ms | 3.97 ms | 5.1× |
+| | 100 | 1.59 ms | 11.7 ms | 7.3× |
+| `geometric_brownian_motion` | 1 | 0.77 ms | 7.25 ms | 9.5× |
+| | 100 | 1.59 ms | 14.1 ms | 8.8× |
+| `poisson_process` | 1 | 0.77 ms | 6.61 ms | 8.6× |
+| | 100 | 1.87 ms | 13.8 ms | 7.4× |
+| A Cox process: a rate partition feeding `poisson_process`, against one expression | 1 | 4.24 ms | 8.48 ms | 2.0× |
+| | 100 | 6.12 ms | 14.9 ms | 2.4× |
+| A running mean: `values_function_cumulative_mean` | 1 | 3.51 ms | 6.56 ms | 1.9× |
+| | 100 | 8.44 ms | 11.6 ms | 1.4× |
+| A 20-row rolling mean: `values_function_vector_mean` | 1 | 5.73 ms | 9.70 ms | 1.7× |
+| | 100 | 15.8 ms | 20.5 ms | 1.3× |
+
+Medians of six runs on an Apple M4, run by default (one goroutine per partition per step).
+Across all fourteen, the built-in is 3.9× faster (geometric mean), and the expression also
+allocates more, up to 8× as many bytes at width 100. The gap is widest for a single process,
+where the arithmetic is most of the step; where a model has several partitions, the
+coordinator's work each step is a larger share of the whole, and the gap narrows.
+
+Two practical points follow. Look in `stochadex catalogue` for a built-in before writing an
+expression, and factor a model to use them: the Cox process above is two building blocks, a
+rate and a plain Poisson process, wired by `params_from_upstream`. And an expression remains the
+right tool for maths no built-in states. `BenchmarkBuiltinVsExpression` in `pkg/api` reproduces
+the table, and `TestBuiltinsAndExpressionsCompute` checks each pair agrees.
 
 ## Reproduce it
 

@@ -11,12 +11,14 @@ import (
 //   - Useful for logging or as an input to time-dependent components.
 type CumulativeTimeIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (c *CumulativeTimeIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CumulativeTimeIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

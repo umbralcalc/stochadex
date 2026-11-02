@@ -61,10 +61,10 @@ func ArgParse() ParsedArgs {
 }
 
 // parseArgs parses CLI arguments (os.Args form), returning an ErrUsage error
-// carrying the usage text when they are invalid. `stochadex inspect ...` is told
+// carrying the usage text when they are invalid. stochadex inspect ... is told
 // apart before parsing: argparse would require a subcommand on every run once
-// one is declared. The same holds for `stochadex graph`, `stochadex expand` and
-// `stochadex catalogue`.
+// one is declared. The same holds for stochadex graph, stochadex expand and
+// stochadex catalogue.
 func parseArgs(args []string) (ParsedArgs, error) {
 	if len(args) > 1 {
 		switch args[1] {
@@ -131,7 +131,7 @@ func parseArgs(args []string) (ParsedArgs, error) {
 	}, nil
 }
 
-// parseInspectArgs parses `stochadex inspect`'s arguments.
+// parseInspectArgs parses stochadex inspect's arguments.
 func parseInspectArgs(args []string) (ParsedArgs, error) {
 	parser := argparse.NewParser(
 		"stochadex inspect",
@@ -165,7 +165,7 @@ func parseInspectArgs(args []string) (ParsedArgs, error) {
 		DebugEmbedded: *debugEmbedded, InspectIO: *io, InspectProvenance: *provenance}, nil
 }
 
-// parseGraphArgs parses `stochadex graph`'s arguments.
+// parseGraphArgs parses stochadex graph's arguments.
 func parseGraphArgs(args []string) (ParsedArgs, error) {
 	parser := argparse.NewParser(
 		"stochadex graph",
@@ -189,7 +189,7 @@ func parseGraphArgs(args []string) (ParsedArgs, error) {
 		GraphFormat: *format}, nil
 }
 
-// parseExpandArgs parses `stochadex expand`'s arguments.
+// parseExpandArgs parses stochadex expand's arguments.
 func parseExpandArgs(args []string) (ParsedArgs, error) {
 	parser := argparse.NewParser(
 		"stochadex expand",
@@ -203,7 +203,7 @@ func parseExpandArgs(args []string) (ParsedArgs, error) {
 	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, Expand: true}, nil
 }
 
-// parseCatalogueArgs parses `stochadex catalogue`'s arguments: there are none.
+// parseCatalogueArgs parses stochadex catalogue's arguments: there are none.
 func parseCatalogueArgs(args []string) (ParsedArgs, error) {
 	parser := argparse.NewParser(
 		"stochadex catalogue",

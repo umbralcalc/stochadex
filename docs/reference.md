@@ -10,26 +10,28 @@ What a stochadex config means, section by section: how a run steps, how partitio
 another, and what inputs, outputs, run modes and macros do. The [quickstart](quickstart.html)
 gets a first config running; this page is the reference behind it.
 
-## A config is one run
+## A config is one simulation
 
-Every config describes exactly one run: **inputs → one runtime → outputs**.
+Every config describes exactly one simulation, **inputs → simulation → outputs**, and says how
+many times to run it.
 
 - **`inputs:`** are named, read-only data the run reads: a file, a database, an inline series,
   a pre-pass simulation, or a live stream. They are read when the run starts, never when the
   config loads.
-- **The runtime** is one coordinator stepping one set of partitions on one clock. It is
+- **The simulation** is one set of partitions stepped together on one clock. It is
   written in the core language: `main:` partitions, each advanced by an `iteration:` or by
   `expressions:`, wired together with `params_from_upstream` and `params_as_partitions`, and a
   `simulation:` block that sets the clock. `embedded:` and the `embedded_simulation_run`
-  iteration put whole runs inside a partition.
-- **`macros:`** are shortcuts. Each expands into ordinary partitions in the same run, so a
-  `macros:` config is its expansion, which `stochadex expand` prints.
-- **`outputs:`** are views of the run, each a condition and a destination.
-- **`run:`** says how many runtimes there are and how they are paced: one batch run, one per
-  seed in an ensemble, or one per client served.
+  iteration put a whole simulation inside a partition.
+- **`macros:`** are shortcuts. Each expands into ordinary partitions in the same simulation,
+  so a `macros:` config is its expansion, which `stochadex expand` prints.
+- **`outputs:`** are views of a run, each a condition and a destination.
+- **`run:`** says how many times the simulation runs, and how fast: once (the default), once
+  per seed in an ensemble, or once per client served. Each run is independent, with its own
+  state, random streams and outputs.
 
-Chaining runs happens outside the engine, through files: one config's output is the next one's
-input. Nothing in a config describes stages.
+Chaining simulations happens outside the engine, through files: one config's output is the
+next one's input. Nothing in a config describes stages.
 
 The examples on this page are complete configs. Each is followed by exactly what
 `stochadex --config` prints for it, and a test runs every one, so the page stays true to the
@@ -69,6 +71,11 @@ result).
 
 Registered names span the catalogue: `ornstein_uhlenbeck`, `geometric_brownian_motion`, `poisson_process`, `hawkes_process`, `categorical_state_transition`, and more, including *composable* ones that nest (`{type: data_generation, likelihood: {type: normal}}`).
 
+A built-in is compiled Go and runs the same maths several times faster than an expression (see
+[performance](performance.html#built-in-iterations-beat-the-same-maths-as-an-expression)), so
+look in `stochadex catalogue` for one, or a chain of them wired with `params_from_upstream`,
+before writing an expression.
+
 **Bespoke maths**, written as expressions:
 
 ```yaml
@@ -90,7 +97,7 @@ main:
 
 Expressions use field names, params keys, `dt`, `t`, `step`, earlier bindings, and upstream aliases. Functions: `sqrt pow exp log abs min max clamp where floor sin cos erf`, `slice`, `concat`, `lag`, plus arithmetic and comparisons, all elementwise with length-1 broadcasting.
 
-> **The most common mistake.** A random draw with all-scalar parameters has ambiguous width and fails. Wrap it: `shared(normal(0, 1))` for one sample, `iid(n, normal(0, 1))` for *n*. A draw whose parameter is already a vector needs no wrapper.
+> **The most common mistake.** A random draw with all-scalar parameters has ambiguous width and fails, and a one-element param counts as a scalar. Wrap it: `shared(normal(0, 1))` for one sample, `iid(n, normal(0, 1))` for *n*. A draw whose parameter is already a vector needs no wrapper.
 
 
 ## How a step runs
@@ -856,9 +863,9 @@ run's partitions; and four with a clock of their own, `evolution_strategy_optimi
 `smc_inference`, `mcts_self_play` and `mcts_planning`. `stochadex catalogue` lists each one's
 fields.
 
-### The run a macros config makes
+### The simulation a macros config makes
 
-A `macros:` config runs as its expansion, one ordinary run:
+A `macros:` config runs as its expansion, one ordinary simulation:
 
 - **Its partitions:** each input's partitions, replayed under their own names, then the
   `main:` partitions, then each macro's partitions, in order. A macro reads the inputs, the
@@ -875,7 +882,7 @@ A `macros:` config runs as its expansion, one ordinary run:
 
 ### Seeing what macros expand to
 
-A `macros:` config runs as its expansion: the same run written out in the core config
+A `macros:` config runs as its expansion: the same simulation written out in the core config
 language, with the inputs replayed as partitions and each macro's partitions spelled out.
 `stochadex expand` prints it without running it, reading only the inputs' shapes:
 

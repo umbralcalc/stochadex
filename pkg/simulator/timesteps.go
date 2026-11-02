@@ -18,6 +18,7 @@ type ConstantTimestepFunction struct {
 	Stepsize float64
 }
 
+// NextIncrement implements TimestepFunction.
 func (t *ConstantTimestepFunction) NextIncrement(
 	timestepsHistory *CumulativeTimestepsHistory,
 ) float64 {
@@ -32,6 +33,7 @@ type ExponentialDistributionTimestepFunction struct {
 	distribution distuv.Exponential
 }
 
+// NextIncrement implements TimestepFunction.
 func (t *ExponentialDistributionTimestepFunction) NextIncrement(
 	timestepsHistory *CumulativeTimestepsHistory,
 ) float64 {

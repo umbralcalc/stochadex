@@ -20,12 +20,14 @@ import (
 // State: [cumulative_revenue_gbp]
 type RevenueIteration struct{}
 
+// Configure implements simulator.Iteration.
 func (r *RevenueIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (r *RevenueIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

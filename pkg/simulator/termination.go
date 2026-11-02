@@ -13,6 +13,7 @@ type NumberOfStepsTerminationCondition struct {
 	MaxNumberOfSteps int
 }
 
+// Terminate implements TerminationCondition.
 func (t *NumberOfStepsTerminationCondition) Terminate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,
@@ -25,6 +26,7 @@ type TimeElapsedTerminationCondition struct {
 	MaxTimeElapsed float64
 }
 
+// Terminate implements TerminationCondition.
 func (t *TimeElapsedTerminationCondition) Terminate(
 	stateHistories []*StateHistory,
 	timestepsHistory *CumulativeTimestepsHistory,

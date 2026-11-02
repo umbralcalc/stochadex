@@ -10,17 +10,20 @@ import (
 //   - Use to compute simple (unweighted) sums or means.
 type ConstantIntegrationKernel struct{}
 
+// Configure implements IntegrationKernel.
 func (c *ConstantIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// SetParams implements IntegrationKernel.
 func (c *ConstantIntegrationKernel) SetParams(
 	params *simulator.Params,
 ) {
 }
 
+// Evaluate implements IntegrationKernel.
 func (c *ConstantIntegrationKernel) Evaluate(
 	currentState []float64,
 	pastState []float64,

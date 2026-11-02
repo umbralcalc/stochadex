@@ -15,6 +15,7 @@ type GammaLikelihoodDistribution struct {
 	variance *mat.VecDense
 }
 
+// SetSeed implements LikelihoodDistribution.
 func (g *GammaLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -22,6 +23,7 @@ func (g *GammaLikelihoodDistribution) SetSeed(
 	g.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// SetParams implements LikelihoodDistribution.
 func (g *GammaLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -36,6 +38,7 @@ func (g *GammaLikelihoodDistribution) SetParams(
 	)
 }
 
+// EvaluateLogLike implements LikelihoodDistribution.
 func (g *GammaLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
 	dist := &distuv.Gamma{Alpha: 1.0, Beta: 1.0}
 	logLike := 0.0
@@ -50,6 +53,7 @@ func (g *GammaLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
 	return logLike
 }
 
+// GenerateNewSamples implements LikelihoodDistribution.
 func (g *GammaLikelihoodDistribution) GenerateNewSamples() []float64 {
 	samples := make([]float64, 0)
 	var m, v float64
@@ -62,6 +66,7 @@ func (g *GammaLikelihoodDistribution) GenerateNewSamples() []float64 {
 	return samples
 }
 
+// EvaluateLogLikeMeanGrad implements LikelihoodDistributionWithGradient.
 func (g *GammaLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {

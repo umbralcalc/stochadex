@@ -62,7 +62,7 @@ func TestToDataframes(t *testing.T) {
 				t.Fatalf("could not close the output file: %v", err)
 			}
 
-			// Read it back. Nothing else looks at this output now, so without this the test
+			// Read it back. Nothing else looks at this output, so without this the test
 			// would pass whether or not a single row was written.
 			readBack, err := os.Open(dfFile)
 			if err != nil {

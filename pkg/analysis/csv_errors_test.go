@@ -10,7 +10,7 @@ import (
 )
 
 // TestCsvLoaderReturnsErrors pins that a missing or unparseable file comes back
-// as an error the caller can handle — it used to log.Fatal, exiting the process.
+// as an error the caller can handle, rather than exiting the process.
 func TestCsvLoaderReturnsErrors(t *testing.T) {
 	t.Run("a missing file", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "absent.csv")

@@ -1,5 +1,12 @@
 package solarfleet
 
+import (
+	"math"
+
+	"github.com/umbralcalc/stochadex/pkg/rng"
+	"github.com/umbralcalc/stochadex/pkg/simulator"
+)
+
 // FleetSkyIteration is the full-covariance form (b): one wide partition carrying
 // the whole fleet's clear-sky index and generation. Its state is
 // [logK_0..S-1, gen_0..S-1] (width 2S). Each step it draws one innovation vector
@@ -9,16 +16,8 @@ package solarfleet
 // build_covariance_config), whose DSL twin proves this is config-expressible.
 //
 // Draw order is load-bearing for the declarative twin: the S normals of xi are drawn
-// first, in order, exactly as `iid(S, normal(0,1))` does, before any are used — so
+// first, in order, exactly as iid(S, normal(0,1)) does, before any are used — so
 // the bespoke stream and the evaluator's stream align exactly.
-
-import (
-	"math"
-
-	"github.com/umbralcalc/stochadex/pkg/rng"
-	"github.com/umbralcalc/stochadex/pkg/simulator"
-)
-
 type FleetSkyIteration struct {
 	sampler  *rng.Sampler
 	numSites int
@@ -26,6 +25,7 @@ type FleetSkyIteration struct {
 	out      []float64
 }
 
+// Configure implements simulator.Iteration.
 func (f *FleetSkyIteration) Configure(partitionIndex int, settings *simulator.Settings) {
 	f.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 	// The state is [logK_0..S-1, gen_0..S-1]; its width fixes S once at setup.
@@ -44,6 +44,7 @@ func clamp(x, lo, hi float64) float64 {
 	return x
 }
 
+// Iterate implements simulator.Iteration.
 func (f *FleetSkyIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
@@ -66,7 +67,7 @@ func (f *FleetSkyIteration) Iterate(
 	prev := stateHistories[partitionIndex].Values.RawRowView(0)
 
 	// Draw the whole innovation vector once, in order — this must precede any use so
-	// the stream matches `iid(S, normal(0,1))` in the twin.
+	// the stream matches iid(S, normal(0,1)) in the twin.
 	for i := 0; i < s; i++ {
 		f.xi[i] = f.sampler.Normal(0, 1)
 	}

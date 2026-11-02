@@ -28,6 +28,7 @@ type WishartLikelihoodDistribution struct {
 	gradInvReady bool
 }
 
+// SetSeed implements LikelihoodDistribution.
 func (w *WishartLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -38,6 +39,7 @@ func (w *WishartLikelihoodDistribution) SetSeed(
 	)
 }
 
+// SetParams implements LikelihoodDistribution.
 func (w *WishartLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -70,11 +72,13 @@ func (w *WishartLikelihoodDistribution) getDist() *distmat.Wishart {
 	return dist
 }
 
+// EvaluateLogLike implements LikelihoodDistribution.
 func (w *WishartLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
 	dist := w.getDist()
 	return dist.LogProbSym(mat.NewSymDense(w.dims, data))
 }
 
+// GenerateNewSamples implements LikelihoodDistribution.
 func (w *WishartLikelihoodDistribution) GenerateNewSamples() []float64 {
 	dist := w.getDist()
 	data := mat.NewSymDense(w.dims, nil)
@@ -82,6 +86,7 @@ func (w *WishartLikelihoodDistribution) GenerateNewSamples() []float64 {
 	return data.RawSymmetric().Data
 }
 
+// EvaluateLogLikeMeanGrad implements LikelihoodDistributionWithGradient.
 func (w *WishartLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {

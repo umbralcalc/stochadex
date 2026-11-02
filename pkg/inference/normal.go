@@ -43,6 +43,7 @@ type NormalLikelihoodDistribution struct {
 	gradCholReady bool
 }
 
+// SetSeed implements LikelihoodDistribution.
 func (n *NormalLikelihoodDistribution) SetSeed(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -53,6 +54,7 @@ func (n *NormalLikelihoodDistribution) SetSeed(
 	)
 }
 
+// SetParams implements LikelihoodDistribution.
 func (n *NormalLikelihoodDistribution) SetParams(
 	params *simulator.Params,
 	partitionIndex int,
@@ -118,16 +120,19 @@ func (n *NormalLikelihoodDistribution) getDist() *distmv.Normal {
 	return dist
 }
 
+// EvaluateLogLike implements LikelihoodDistribution.
 func (n *NormalLikelihoodDistribution) EvaluateLogLike(data []float64) float64 {
 	dist := n.getDist()
 	return dist.LogProb(data)
 }
 
+// GenerateNewSamples implements LikelihoodDistribution.
 func (n *NormalLikelihoodDistribution) GenerateNewSamples() []float64 {
 	dist := n.getDist()
 	return dist.Rand(nil)
 }
 
+// EvaluateLogLikeMeanGrad implements LikelihoodDistributionWithGradient.
 func (n *NormalLikelihoodDistribution) EvaluateLogLikeMeanGrad(
 	data []float64,
 ) []float64 {

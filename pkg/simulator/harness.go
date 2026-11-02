@@ -43,6 +43,7 @@ type IterationTestHarness struct {
 	history   *mat.Dense
 }
 
+// Configure implements Iteration.
 func (h *IterationTestHarness) Configure(
 	partitionIndex int,
 	settings *Settings,
@@ -57,6 +58,7 @@ func (h *IterationTestHarness) Configure(
 	h.Iteration.Configure(partitionIndex, settings)
 }
 
+// Iterate implements Iteration.
 func (h *IterationTestHarness) Iterate(
 	params *Params,
 	partitionIndex int,

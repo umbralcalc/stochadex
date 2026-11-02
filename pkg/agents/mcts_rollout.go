@@ -172,7 +172,7 @@ type MCTSRolloutIteration[S any, A any] struct {
 	seed uint64
 }
 
-// Param key used by MCTSRolloutIteration.Iterate to read the leaf state from
+// MCTSRolloutParamLeaf is the param key used by MCTSRolloutIteration.Iterate to read the leaf state from
 // an upstream MCTSTreeIteration via params_from_upstream. The slice should
 // be of length StateWidth followed by a single has_leaf flag (matching
 // MCTSTreeIteration's row layout: leaf_state then has_leaf). Use Indices on

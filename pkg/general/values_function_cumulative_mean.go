@@ -28,12 +28,14 @@ type ValuesFunctionCumulativeMeanIteration struct {
 	) []float64
 }
 
+// Configure implements simulator.Iteration.
 func (v *ValuesFunctionCumulativeMeanIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// Iterate implements simulator.Iteration.
 func (v *ValuesFunctionCumulativeMeanIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

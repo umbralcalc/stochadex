@@ -140,6 +140,7 @@ func (o *OnnxInferenceIteration) effectiveInputs() []OnnxInput {
 	return []OnnxInput{{ParamKey: key, ModelInputName: o.InputName}}
 }
 
+// Configure implements simulator.Iteration.
 func (o *OnnxInferenceIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -234,6 +235,7 @@ func (o *OnnxInferenceIteration) Configure(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (o *OnnxInferenceIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

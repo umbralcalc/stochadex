@@ -24,6 +24,7 @@ type GammaJumpDistribution struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements JumpDistribution.
 func (g *GammaJumpDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -31,6 +32,7 @@ func (g *GammaJumpDistribution) Configure(
 	g.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// NewJump implements JumpDistribution.
 func (g *GammaJumpDistribution) NewJump(
 	params *simulator.Params,
 	valueIndex int,
@@ -52,6 +54,7 @@ type CompoundPoissonProcessIteration struct {
 	sampler  *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (c *CompoundPoissonProcessIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -60,6 +63,7 @@ func (c *CompoundPoissonProcessIteration) Configure(
 	c.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (c *CompoundPoissonProcessIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

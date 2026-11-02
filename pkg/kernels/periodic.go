@@ -15,12 +15,14 @@ type PeriodicIntegrationKernel struct {
 	timescaleSq float64
 }
 
+// Configure implements IntegrationKernel.
 func (p *PeriodicIntegrationKernel) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 }
 
+// SetParams implements IntegrationKernel.
 func (p *PeriodicIntegrationKernel) SetParams(
 	params *simulator.Params,
 ) {
@@ -28,6 +30,7 @@ func (p *PeriodicIntegrationKernel) SetParams(
 	p.timescaleSq = timescale * timescale
 }
 
+// Evaluate implements IntegrationKernel.
 func (p *PeriodicIntegrationKernel) Evaluate(
 	currentState []float64,
 	pastState []float64,

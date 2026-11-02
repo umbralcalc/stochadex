@@ -10,7 +10,7 @@ import (
 // benchmarkConfig is a run of Wiener processes as a config, with its output
 // function and, optionally, an execution strategy. These measure the config
 // path end to end — load once, then Run — which is where the output views
-// every config now goes through would show up.
+// every config goes through would show up.
 func benchmarkConfig(b *testing.B, partitions, width, steps int, output, strategy string) {
 	b.Helper()
 	var yaml strings.Builder

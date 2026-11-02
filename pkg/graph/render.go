@@ -20,7 +20,7 @@ import (
 // producer read this way gets a distinct, differently coloured past-copy node
 // bearing the same name, and the lag edge originates there. Unrolling the
 // one-step lag into its own node means a safe mutual-lag cycle (the documented
-// cycle-breaking pattern) no longer draws as a cycle — only a genuine
+// cycle-breaking pattern) does not draw as a cycle — only a genuine
 // within-step deadlock does, and those partitions are highlighted so the hazard
 // is visible at a glance.
 //

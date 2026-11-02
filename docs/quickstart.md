@@ -83,7 +83,7 @@ See the [Integrations table](https://stochadex.github.io/#integrations) for the 
 
 ## Running from a config file
 
-No Go needed. Describe a whole run in **one YAML file** and run it with a prebuilt binary. A config that names no Go runs **in-process**: no codegen, no toolchain.
+No Go needed. Describe a whole run in **one YAML file** and run it with a prebuilt binary. A config is pure data and runs **in-process**: no codegen, no toolchain.
 
 ### Install the CLI
 

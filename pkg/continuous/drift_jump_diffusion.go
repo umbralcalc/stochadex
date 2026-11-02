@@ -23,6 +23,7 @@ type DriftJumpDiffusionIteration struct {
 	uniformSampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (d *DriftJumpDiffusionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -36,6 +37,7 @@ func (d *DriftJumpDiffusionIteration) Configure(
 	d.JumpDist.Configure(partitionIndex, settings)
 }
 
+// Iterate implements simulator.Iteration.
 func (d *DriftJumpDiffusionIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

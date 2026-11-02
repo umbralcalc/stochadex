@@ -169,7 +169,7 @@ func (r *specReader) priorList(key string) []inference.Prior {
 // iterationByEvent reads a list of {event: <number>, iteration: <spec>} pairs
 // into the map keyed by event value that ValuesChangingEventsIteration switches
 // on. A list rather than a YAML mapping keyed by the event number: yaml.v2
-// decodes `1` as an int and `1.0` as a float64, so a mapping would silently key
+// decodes 1 as an int and 1.0 as a float64, so a mapping would silently key
 // the same event two ways, and mapping keys bypass the strict unknown-field
 // checking every other spec field gets.
 func (r *specReader) iterationByEvent(key string) map[float64]simulator.Iteration {

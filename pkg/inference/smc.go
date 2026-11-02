@@ -47,6 +47,7 @@ type SMCProposalIteration struct {
 	verbose               bool
 }
 
+// Configure implements simulator.Iteration.
 func (s *SMCProposalIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -72,6 +73,7 @@ func (s *SMCProposalIteration) Configure(
 	s.posteriorPartitionIdx = int(iterParams.GetIndex("posterior_partition", 0))
 }
 
+// Iterate implements simulator.Iteration.
 func (s *SMCProposalIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,
@@ -135,6 +137,7 @@ type SMCPosteriorIteration struct {
 	verbose      bool
 }
 
+// Configure implements simulator.Iteration.
 func (s *SMCPosteriorIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -154,6 +157,7 @@ func (s *SMCPosteriorIteration) Configure(
 	}
 }
 
+// Iterate implements simulator.Iteration.
 func (s *SMCPosteriorIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

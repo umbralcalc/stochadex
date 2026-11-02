@@ -74,7 +74,7 @@ func buildReplicatedSimulationRun(
 		return nil, fmt.Errorf("replicated_simulation_run: %w", err)
 	}
 	// The first replica takes the run already decoded and checked; the rest
-	// decode their own from the same bytes, which cannot fail now.
+	// decode their own from the same bytes, which cannot fail once the first has.
 	first := spec
 	iteration, err := general.NewReplicatedSimulationRunIteration(func() *general.ReplicatedModel {
 		replica := first

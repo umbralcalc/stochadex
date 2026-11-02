@@ -10,34 +10,29 @@
 // House / NOMIS / Bank of England), panel calibration, and SMC inference
 // helpers are inference / ingestion concerns and were left downstream.
 //
-// # The declarative twin, and the gap that used to be here
+// # The declarative twin
 //
-// This entry was the catalogue's one worked example of a category 2 capability
-// gap: the model that could not be stated as data. That gap is closed, and
-// [declarative.yaml] is the twin.
-//
-// What was missing was structure, not vocabulary — general.ExpressionIteration
-// was elementwise over a partition's current row, and a cohort flow is precisely
-// the update that breaks that alignment. Element i of the next register reads
+// [declarative.yaml] is the twin. Stating this model as data takes structure,
+// not vocabulary: a cohort flow is precisely the update that breaks elementwise
+// alignment over a partition's current row. Element i of the next register reads
 // element i-1 of the current one (a business ages one month), the top bucket is
 // absorbing, and the state is a flattened sector × age grid whose per-sector
-// blocks the evaluator had no way to address. The diagnosis held: no set of
-// functions rescued it, and what closed it was an operator that enlarges the
-// DSL. That operator is each(n, i, expr), which builds a width-n value whose
-// element i is expr with the lane index i bound. It answers all three parts at
-// once. The lane index carries both grid coordinates, so sec = floor(k/60) and
+// blocks must be addressed. No set of functions states it; an operator that
+// enlarges the DSL does. That operator is each(n, i, expr), which builds a width-n
+// value whose element i is expr with the lane index i bound. It answers all three
+// parts at once. The lane index carries both grid coordinates, so sec = floor(k/60) and
 // age = k%60 reproduce offset(sec, age) exactly and the per-sector blocks become
 // addressable. A lane may read element k-1, which is the index shift itself. And
 // everything inside a lane is a scalar, so where is lazy there: the age 0 lane
 // never evaluates register[-1], and a guarded draw is genuinely skipped rather
 // than merely discarded. concat and slice supply the shifted denominator that
 // turns the ONS survival curve into monthly hazards, which is the other place the
-// old evaluator had to reach past the current element.
+// twin reaches past the current element.
 //
 // # The sampler note, which is still a category 1 finding
 //
 // This iteration hand-rolls poissonSample and binomialSample beside the samplers
-// pkg/rng now ships. That remains standardisation debt in the model, to be paid
+// pkg/rng ships. That remains standardisation debt in the model, to be paid
 // on its own merits and never as a side effect of making an equivalence test
 // agree.
 //

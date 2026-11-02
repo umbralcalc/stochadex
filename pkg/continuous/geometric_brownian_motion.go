@@ -18,6 +18,7 @@ type GeometricBrownianMotionIteration struct {
 	sampler *rng.Sampler
 }
 
+// Configure implements simulator.Iteration.
 func (g *GeometricBrownianMotionIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
@@ -25,6 +26,7 @@ func (g *GeometricBrownianMotionIteration) Configure(
 	g.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 }
 
+// Iterate implements simulator.Iteration.
 func (g *GeometricBrownianMotionIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

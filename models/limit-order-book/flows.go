@@ -49,13 +49,14 @@ type FlowsIteration struct {
 	out            []float64
 }
 
+// Configure implements simulator.Iteration.
 func (f *FlowsIteration) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
 	f.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
 	// Binomial draws from the same generator as the Poisson/Gamma methods, exactly as
-	// the evaluator's `binomial` draws from c.sampler.Rand().
+	// the evaluator's binomial draws from c.sampler.Rand().
 	f.binomial = distuv.Binomial{N: 1, P: 0.5, Src: f.sampler.Rand()}
 	f.bookPartition = int(
 		settings.Iterations[partitionIndex].Params.Get("book_partition")[0],
@@ -69,6 +70,7 @@ func (f *FlowsIteration) Configure(
 	f.out = make([]float64, 4*Levels+3)
 }
 
+// Iterate implements simulator.Iteration.
 func (f *FlowsIteration) Iterate(
 	params *simulator.Params,
 	partitionIndex int,

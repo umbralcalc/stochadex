@@ -11,8 +11,8 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// Registers `data: {source: {arrow: {path: run.arrow}}}`, closing the round trip: a run
-// written with `output_function: {type: arrow}` can be read straight back in as the
+// Registers data: {source: {arrow: {path: run.arrow}}}, closing the round trip: a run
+// written with output_function: {type: arrow} can be read straight back in as the
 // dataset for an analysis or inference macro, with no CSV detour and no Go.
 //
 // It goes through api.RegisterDataSource because arrow-go lives in a separate opt-in

@@ -28,7 +28,7 @@ type DataSource struct {
 }
 
 // extraDataSources holds sources registered from above this package, keyed by the YAML
-// key that selects them (e.g. "arrow" for `source: {arrow: {path: run.arrow}}`).
+// key that selects them (e.g. "arrow" for source: {arrow: {path: run.arrow}}).
 var extraDataSources = map[string]func(
 	fields map[string]interface{},
 ) (*simulator.StateTimeStorage, error){}

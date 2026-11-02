@@ -135,7 +135,7 @@ func (*inputStandIn) Iterate(
 }
 
 // IOManifest describes what a run of a config reads and writes, without
-// running it. Its JSON form is what `stochadex inspect --io` prints.
+// running it. Its JSON form is what stochadex inspect --io prints.
 //
 // Locations are given as the config writes them: a relative path is relative
 // to the directory the run starts in. Nothing secret is reported: a sink's or
@@ -183,12 +183,13 @@ type ManifestColumns struct {
 	Width     int    `json:"width"`
 }
 
-// ManifestRun is how many runtimes a config makes, and of what kind.
+// ManifestRun is how many times a config's simulation runs, and how.
 type ManifestRun struct {
 	// Mode is batch, ensemble or serve.
 	Mode string `json:"mode"`
 	// Runtime is main, or macros for a macros: config, which runs as its
-	// expansion (Expand): one run of the partitions its macros expand into.
+	// expansion (Expand): one simulation of the partitions its macros expand
+	// into.
 	Runtime     string   `json:"runtime"`
 	Macros      []string `json:"macros,omitempty"`
 	Seeds       []uint64 `json:"seeds,omitempty"`

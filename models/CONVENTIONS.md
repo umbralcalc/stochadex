@@ -187,8 +187,7 @@ into the card:
 
 The result is one bond — claim → test → observed number — that fails CI in either direction:
 break a claim's sign and the binding test fails; change a number without regenerating and the
-card guard fails. New entries should adopt this from birth; older entries are being migrated
-to it.
+card guard fails. Every entry carries it.
 
 ### 5. Declarative twin (`declarative.yaml` + `expression_equivalence_test.go`)
 
@@ -382,7 +381,7 @@ same test: a twin that could not be written, and a named output it blocked.
 | Slicing — no way to address a block within a flat vector | `trywizard` (9 coefficients at a stride-9 offset) | `slice` + `concat` |
 | Draw ordering and lane-wise laziness — an expression takes all its Gammas before any Poisson, and a vector-guarded `where` draws in every lane | `measles-risk-forecaster` (per-area interleaved draws, inactive areas skipped) | `each` |
 | No fold across `each` lanes — lanes are independent and scalar, so a lane cannot see what earlier lanes did | a downstream order-book model (assigning *k* simultaneous arrivals to the first *k* free slots, which blocked its queue-position output) | `scan(n, i, acc, init, expr)` |
-| `slice` rejected a zero width, so the natural prefix sum died on lane 0 | the same model (walking a book across price levels) | a zero width now gives an empty value |
+| `slice` rejected a zero width, so the natural prefix sum died on lane 0 | the same model (walking a book across price levels) | a zero width gives an empty value |
 
 Three things that table is worth reading twice for. **The structural gaps rhymed**: every one
 was about *structured access* or *per-lane control of draws*, which is exactly the axis a
@@ -408,7 +407,7 @@ judgement.
 
 ## Adding an entry
 
-Use the `/new-model` skill, or by hand: create the folder, write the artifacts (`doc.go`,
+Create the folder, write the artifacts (`doc.go`,
 `card.md`, `stub.go`, `stub_test.go`, `behaviour_test.go`, and the bespoke `<iteration>.go`
 files), add a row to the table in [`README.md`](README.md), and confirm
 `go test ./models/<domain-name>/...` passes. Register the model in `cmd/model-graphs` (for

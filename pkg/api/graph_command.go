@@ -8,7 +8,7 @@ import (
 )
 
 // printGraph writes the main run's partition dependency graph to w, in format
-// (mermaid or dot), for `stochadex graph`. It reads only the wiring
+// (mermaid or dot), for stochadex graph. It reads only the wiring
 // (params_from_upstream and params_as_partitions), and returns an ErrConfig
 // error naming each within-step deadlock cycle after the graph is written, so
 // the command exits non-zero on one and can guard CI. A macros: config's graph

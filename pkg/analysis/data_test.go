@@ -91,8 +91,8 @@ func TestDataRef(t *testing.T) {
 	)
 	// GetTimeIndexFromStorage is how pkg/macros seeds a windowed simulation:
 	// NewLikelihoodComparisonPartition calls it at index 0 to derive the
-	// InitStateValues of each replayed data partition. Since the split that
-	// is a cross-package contract, and it was previously untested.
+	// InitStateValues of each replayed data partition, which makes it a
+	// cross-package contract.
 	t.Run(
 		"test that a single time index can be read from storage",
 		func(t *testing.T) {
