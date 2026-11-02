@@ -71,6 +71,11 @@ result).
 
 Registered names span the catalogue: `ornstein_uhlenbeck`, `geometric_brownian_motion`, `poisson_process`, `hawkes_process`, `categorical_state_transition`, and more, including *composable* ones that nest (`{type: data_generation, likelihood: {type: normal}}`).
 
+A built-in is compiled Go and runs the same maths several times faster than an expression (see
+[performance](performance.html#built-in-iterations-beat-the-same-maths-as-an-expression)), so
+look in `stochadex catalogue` for one, or a chain of them wired with `params_from_upstream`,
+before writing an expression.
+
 **Bespoke maths**, written as expressions:
 
 ```yaml
@@ -92,7 +97,7 @@ main:
 
 Expressions use field names, params keys, `dt`, `t`, `step`, earlier bindings, and upstream aliases. Functions: `sqrt pow exp log abs min max clamp where floor sin cos erf`, `slice`, `concat`, `lag`, plus arithmetic and comparisons, all elementwise with length-1 broadcasting.
 
-> **The most common mistake.** A random draw with all-scalar parameters has ambiguous width and fails. Wrap it: `shared(normal(0, 1))` for one sample, `iid(n, normal(0, 1))` for *n*. A draw whose parameter is already a vector needs no wrapper.
+> **The most common mistake.** A random draw with all-scalar parameters has ambiguous width and fails, and a one-element param counts as a scalar. Wrap it: `shared(normal(0, 1))` for one sample, `iid(n, normal(0, 1))` for *n*. A draw whose parameter is already a vector needs no wrapper.
 
 
 ## How a step runs
