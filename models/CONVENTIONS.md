@@ -22,6 +22,8 @@ models/
     behaviour_test.go  # expected-behaviour suite: named, human-legible response claims
     declarative.yaml   # the same model stated as data — no Go, no compilation
     expression_equivalence_test.go  # proves the twin is the same model
+    building_blocks.yaml  # optional: the twin with built-in iterations wherever one fits
+    building_blocks_test.go  # proves it is the same model; benchmarks the three builds
     <iteration>.go     # bespoke simulator.Iteration implementations, beside the stub
 ```
 
@@ -301,6 +303,28 @@ nothing reports the same green as a test that missed a real bug (BSD `sed` suppo
 
 Where a model resists the DSL, the twin's **absence is the artifact**: record what could not
 be expressed and why, as a category 2 finding below.
+
+### 6. Building-block twin (`building_blocks.yaml` + `building_blocks_test.go`), optional
+
+The declarative twin is all expressions on purpose: it tests that the model *can* be data.
+The building-block twin is the model as data should usually be written: a **built-in
+iteration wherever one states a partition's update**, and an expression only where none
+does. Built-ins are compiled Go and several times faster than the same maths as an expression
+(see the performance page), so this is the form to show anyone authoring a config. Find each
+built-in in `stochadex catalogue`; the model may need factoring into more partitions wired by
+`params_from_upstream` for one to fit (a time-varying rate feeding `poisson_process` is a Cox
+process).
+
+It must be the same model as `declarative.yaml`: same partition names, order, params, state
+layout and wiring, with only `iteration:` added where a built-in replaces an expression (and
+that expression removed). Built-ins draw from their partition's seeded stream exactly as the
+expressions they replace, so the two run in lockstep, and `building_blocks_test.go` compares
+whole runs with `models/twins`: every partition, every step, on several seeds, at the model's
+stepsize and at another (a stepsize of 1 hides a dropped `dt`). Its `BenchmarkTwins` times the
+Go stub and both twins. [`homark/building_blocks.yaml`](homark/building_blocks.yaml) is the
+reference entry.
+
+Where no built-in fits any partition, there is nothing to write: the twin's absence says so.
 
 ## Bespoke extensions
 

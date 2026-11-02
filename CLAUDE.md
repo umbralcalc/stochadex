@@ -194,8 +194,9 @@ repo boundary follows the **generative/inferential split** — this engine owns 
 model; downstream repos own inference, data, calibration, and the decision layer.
 
 The full spec (per-entry artifacts — `card.md`, `stub.go`, `stub_test.go`, the mandatory
-`behaviour_test.go` expected-behaviour suite, and a `declarative.yaml` twin with its
-equivalence test — plus the actionable/structural response-claim taxonomy and the two-category
+`behaviour_test.go` expected-behaviour suite, a `declarative.yaml` twin with its
+equivalence test, and an optional `building_blocks.yaml` twin using built-in iterations wherever
+one fits — plus the actionable/structural response-claim taxonomy and the two-category
 promotion triage) lives in **`models/CONVENTIONS.md`**. Add entries with the `/new-model`
 skill; the reference entries are `models/antimicrobial-resistance/`, `models/floodrisk/`,
 and `models/energy-balancer/`.

@@ -63,7 +63,18 @@ func declarativeBuildStub(
 	numSteps int,
 	seed uint64,
 ) *simulator.ConfigGenerator {
-	config := api.LoadApiRunConfigFromYaml("declarative.yaml")
+	return buildFromYAML("declarative.yaml", strategy, numSteps, seed)
+}
+
+// buildFromYAML assembles the model from a YAML twin, injecting the run knobs as
+// declarativeBuildStub describes.
+func buildFromYAML(
+	path string,
+	strategy *SubstitutionStrategy,
+	numSteps int,
+	seed uint64,
+) *simulator.ConfigGenerator {
+	config := api.LoadApiRunConfigFromYaml(path)
 	config.Main.Simulation = simulator.SimulationConfig{
 		OutputCondition: &simulator.EveryStepOutputCondition{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

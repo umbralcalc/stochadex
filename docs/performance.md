@@ -133,6 +133,20 @@ allocates more, up to 8× as many bytes at width 100. The gap is widest for a si
 where the arithmetic is most of the step; where a model has several partitions, the
 coordinator's work each step is a larger share of the whole, and the gap narrows.
 
+The same holds for whole models. Three catalogue models have a building-block twin beside their
+all-expression one: the same model, with a built-in wherever one states a partition's update.
+Each runs in lockstep with its expression twin (checked step by step), and timing the run alone:
+
+| Model | Built-ins in place of expressions | Go stub | Expression twin | Building-block twin | Building blocks are faster by |
+|---|---|---|---|---|---|
+| `homark` (120 steps) | `ornstein_uhlenbeck`, 2 × `drift_diffusion` | 0.52 ms | 2.37 ms | 1.50 ms | 1.6× |
+| `bathing-water-forecaster` (120 steps) | `ornstein_uhlenbeck` | 0.46 ms | 2.66 ms | 1.63 ms | 1.6× |
+| `trywizard` (80 steps) | `param_values`, 2 × `cox_process` | 0.59 ms | 2.50 ms | 1.87 ms | 1.3× |
+
+What remains between a building-block twin and its Go stub is the partitions no built-in
+states (a planning pipeline, a price-drift map, a match's scoring), which stay expressions;
+each is a candidate built-in. `BenchmarkTwins` in each model reproduces its row.
+
 Two practical points follow. Look in `stochadex catalogue` for a built-in before writing an
 expression, and factor a model to use them: the Cox process above is two building blocks, a
 rate and a plain Poisson process, wired by `params_from_upstream`. And an expression remains the
