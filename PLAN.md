@@ -12,15 +12,15 @@ Status: **proposed** (2026-11-01), successor to the config-runtime plan (complet
 
 | | State |
 |---|---|
-| A. Docs and docstrings meet the repo's standards | In progress (session `docs-standards-sweep`) |
-| "One simulation, run: says how many times" wording | **In review (#175)** |
-| B. Evidence: expression versus built-in cost | To do |
+| A. Docs and docstrings meet the repo's standards | **Done (#176)** |
+| "One simulation, run: says how many times" wording | **Done (#175)** |
+| B. Evidence: expression versus built-in cost | **Part 1 in review (#177)**; part 2 built (branch `claude/building-block-twins`, opened once #177 merges) |
 | C. The catalogue says what each iteration computes | To do |
 | D. Suggesting built-ins for expressions | To do, after B and C |
 | E. One implementation per macro | To do |
 | F. Retire deprecated spellings; decide on flattening `main:` | To do, with robert |
 | R. Authoring gaps robert surfaces (standing) | R.2, R.3 open |
-| robert's half of building blocks first | In progress (session `robert-builtins-first`, robert repo) |
+| robert's half of building blocks first | **Done (robert#20)**: catalogue-first authoring, a gate on every expression partition |
 
 ## 0. Where the config language stands (assessment, 2026-11-01)
 
@@ -148,6 +148,20 @@ robert's), and logged here with its PR.
 | R.1 | Estimating rates from a CSV: a window longer than its input returns its default forever; regression skipped the first row; per-step output too large | engine and error | #164 (done) |
 | R.2 | Cost of composition is invisible until a run is slow: nesting depth and inner steps per outer step | engine: `inspect` reports them | to do |
 | R.3 | An expression reading further back than its upstream's `state_history_depth` fails only when the run reaches it; `--check` passes it | error: check a literal lag against the depth at load | to do |
+
+### B. Results so far
+
+- **Process pairs (#177):** seven processes written both ways, checked to agree to rounding step
+  by step (the expressions take the same draws in the same order), benchmarked over 1,000 steps
+  at widths 1 and 100. Built-ins are 3.9× faster overall (geomean), 5–9× for a single process,
+  1.3–2.4× where several partitions share the work. A one-element param counts as a scalar for
+  a draw's width, a trap the reference now notes.
+- **Building-block twins (part 2):** homark, bathing-water-forecaster and trywizard, each in
+  lockstep with its expression twin (three seeds, stepsizes 1 and 0.37), 1.3–1.6× faster than
+  the all-expression twin; the rest of the gap to each Go stub is partitions no built-in states
+  (homark's pipeline and price drift, trywizard's scoring), which are promotion candidates.
+- **Found:** `cox_process` and `poisson_process` have identical update code (both read `rates`
+  each step); one can become an alias of the other under E.
 
 ## 2. Order
 
