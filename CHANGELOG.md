@@ -55,6 +55,15 @@ an exact version rather than assume stability across minors.
   panics saying so instead of quietly using a stale fallback. A `default_covariance` that is not
   positive-definite either now panics with a message naming it, instead of a nil-pointer
   dereference.
+- `posterior_covariance`, `values_sorted_collection_covariance` and
+  `values_function_vector_covariance` (and so the `posterior_estimation`,
+  `evolution_strategy_optimisation` and `vector_covariance` macros) output the full symmetric
+  covariance matrix. Each updated only the upper triangle, so the lower-triangle entries of its
+  state kept their earlier values (`posterior_covariance`), decayed by `1 - learning_rate`
+  (`values_sorted_collection_covariance`) or were 0 (`values_function_vector_covariance`). Every
+  reader of these states as a `covariance_matrix` reads the upper triangle, so their results are
+  unchanged; only the lower-triangle entries of the outputs differ, now equal to their mirrored
+  upper-triangle entries.
 
 ## [0.27.0] — 2026-11-01
 

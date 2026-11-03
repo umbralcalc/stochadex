@@ -17,15 +17,15 @@ import (
 //     "learning_rate" (blend factor α), and "values_state_width" (dimension
 //     D of each entry, excluding sort key). It centres on the top entries'
 //     own weighted mean, so it takes no mean from elsewhere.
-//   - Output is the D×D covariance matrix flattened row-major in
-//     mat.SymDense.RawSymmetric().Data format: only the upper triangle
-//     (including the diagonal) is estimated, and each lower-triangle entry
-//     only decays by (1 - learning_rate) from its previous value.
+//   - Output is the full D×D symmetric covariance matrix flattened
+//     row-major, consistent with mat.SymDense.RawSymmetric().Data format.
+//     The blend is computed on the upper triangle (as mat.SymDense reads
+//     it), and the lower triangle mirrors it.
 //
 // Update:
 //
 //	x[i*m + j] <- (1 - learning_rate) * x@1[i*m + j] + learning_rate * C[i][j]   for i <= j
-//	x[i*m + j] <- (1 - learning_rate) * x@1[i*m + j]                             for i > j
+//	x[i*m + j] <- x[j*m + i]                                                     for i > j
 //	C = sum over e of (weights[e] / W) * (v_e - u)(v_e - u)^T
 //	u = sum over e of (weights[e] / W) * v_e,  W = sum over e of weights[e]
 //	where v_e is the values of sorted_collection entry e (entries are values_state_width + 1
@@ -105,6 +105,13 @@ func (v *ValuesSortedCollectionCovarianceIteration) Iterate(
 	covData := newCov.RawSymmetric().Data
 	for j := range covData {
 		covData[j] = (1-learningRate)*previousCov[j] + learningRate*covData[j]
+	}
+	// mat.SymDense fills only the upper triangle, so mirror it into the
+	// lower one to keep the whole state symmetric.
+	for i := range valuesWidth {
+		for j := range i {
+			covData[i*valuesWidth+j] = covData[j*valuesWidth+i]
+		}
 	}
 
 	return covData

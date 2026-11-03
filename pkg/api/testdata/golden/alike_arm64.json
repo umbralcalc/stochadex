@@ -29,7 +29,7 @@
     "TestExpandAggregationMacros/a_two-wide_covariance_puts_its_default_on_the_diagonal": {
       "times": "3e29f75db992bfad05e390b246b8d5c639e0604a8ca5890d1319dcf3708d7ee5",
       "partitions": {
-        "c": "61x4 ea33e1e70d7d5cd9cc97f67a15e763e32c645d55e7279ec2d41aea01757df5e1",
+        "c": "61x4 c166819b349b1c96fc5615edd2e0c81146ecad528425722e971c5c50a23ae712",
         "level": "61x1 b94dd630432e702dbe1bee6e293207d8c6a0fcc40d1b973fcb071510f227e108",
         "m": "61x2 94da521608d67fd647fc177d68b9a6b48db7de641d4b1cd9ccd84dab279420e4",
         "stream": "61x2 41d5c6b65e8f97d954d8903ef09e03c96fac193900ebfbf8d0a997b118666104"
@@ -159,7 +159,7 @@
       "partitions": {
         "test_data": "2001x2 ff3abc3957a9185ad0d4ac40cd50f82ee389100e985ea696bd212494bf3c048f",
         "test_likelihood": "2001x3 14351e7c0ff4cbfe141c3e17a4b567edd94b2a5cdeb322ac49a2079c9245fd4c",
-        "test_post_cov": "2001x4 4ad359ca5df73b49c69590c1c21071540724526b2037186211e482ed7ba5d374",
+        "test_post_cov": "2001x4 9764e45d0b4d6549e44efbcf17aa0300faa110f034757a49319fa625be8d362a",
         "test_post_log_norm": "2001x1 7e81a95af30ae18fffe92be6bd3621926b0ca62c82b29613408188dc725bc856",
         "test_post_mean": "2001x2 7fd80553b541c11cafc0e72b47a477eca1e458f1650ecce351c66af50dcb65f9",
         "test_post_sampler": "2001x2 f2e3440ddadb1f834f4e7a8091f5f6bdb71bdd222e537c81f6380fd857c8b426"
@@ -311,7 +311,7 @@
     "TestExpandLiveMacros/../../cfg/example_evolution_strategy_config.yaml_expands_exactly": {
       "times": "5e0924ec4ae801801cc5f532c4439777a9a810c1883ec4e8cd38848d8d43f2dc",
       "partitions": {
-        "es_covariance": "1001x4 d5db0e0dc8b8bc7611703922769730d3d619a1be296c34468d4717c748132517",
+        "es_covariance": "1001x4 48ccf8c091cd436de66bae248421adab70825849e1011e08329cab3636bacee6",
         "es_mean": "1001x2 a2162a9744fe27ea074b20c05c8c5740b48c2101830300ce3a5e702f102059c0",
         "es_sampler": "1001x2 c1acc06596653d52e2400491daf0bdd1080916082fdf7f1feb6714cf95609db6",
         "es_sampler_simulation": "1001x2 e987b4299dc55df05ea1a9bb11ba40995543a17ef1427320055ff0938d55163c",
@@ -406,7 +406,7 @@
     "TestExpandLiveMacros/an_evolution_strategy,_then_an_analysis_of_its_output": {
       "times": "dd22fbacd39157d5459168cc3eaa31d3648bd6a034be8d7b668886ea426f72b8",
       "partitions": {
-        "es_covariance": "31x4 dc675b94821cccf4f5627ab6e0bcebc42dc476336a9fa4cb36d491a0ad7557bd",
+        "es_covariance": "31x4 28b21365f80824c21a27d0909402ef3f1477c03fcd5e8e272df59a37e17b32e5",
         "es_mean": "31x2 d6bc6847f65abc338f57ba89871e65e0ea8d81b8bcdda04ff9d78612ff1ece54",
         "es_sampler": "31x2 e5d17abb13d2616a74aa1cfcedbe498e65ae19e35ea6b46ee925be6921b625ad",
         "es_sampler_simulation": "31x2 7b6dfe77f9445cb6c704e57d542c837d1a37acce6d2c9bee107c2d9dadebca20",
@@ -417,7 +417,7 @@
     "TestExpandLiveMacros/an_evolution_strategy_whose_covariance_collapses_falls_back_to_its_default": {
       "times": "576b531337d3197c5410a9d1bf8e7354eebd2c0a382544d1d61427b26c2fc685",
       "partitions": {
-        "es_covariance": "21x4 4532791c4a5d4f3a0dbfaf066df0624d14620979479a9918b2798d240cafa2cb",
+        "es_covariance": "21x4 079c33d4b5cff20537707abffd7992f53dbe1dccb2fdebbe177f200fe94729b3",
         "es_mean": "21x2 6647e6dab5681b55cb2260819bdbedccc9a8ff5c68485bea2fc1d67e2d4b2bfd",
         "es_sampler": "21x2 dde0915347f28e55ff7ad4776e8e0e9852f771780433048e77b17700ca259058",
         "es_sampler_simulation": "21x2 5d104a4697d9e7d24d5435e875609e7fdfaa5dc0a6e737816ee2729fdda19113",
@@ -427,7 +427,7 @@
     "TestExpandLiveMacros/an_evolution_strategy_with_every_field_and_wiring_set": {
       "times": "8f515d27d3e9ed071442c37e47e4e2101bfabc784e7a1ec63faec2cabcd1c48c",
       "partitions": {
-        "es_covariance": "41x4 0ebf755d70a97c461dc650a2a2c5de1480b42d66a3056912efbfc507251ec224",
+        "es_covariance": "41x4 97b41073a4d4daf4d42c8b046717dcbb876164d9006c7a2293c18cb50cc3f75f",
         "es_mean": "41x2 074d54d1b21e7d2f6d9c4ed2b313a2b437647a9e6ecdca8b2c9bdb468eeffe93",
         "es_sampler": "41x2 12cae894bce89f49e84e942151291a7a182770a0ce74d1f8b2ecc6daf513bda4",
         "es_sampler_simulation": "41x2 ebcf086e9501444c56e72c6380ec528093922ec1d97ac91f5fda5b187645065e",

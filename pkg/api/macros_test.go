@@ -305,12 +305,11 @@ func TestVectorCovarianceValueIndicesSubset(t *testing.T) {
 			nonZero := false
 			for step := range full {
 				want := make([]float64, n*n)
-				// the iteration fills only the upper triangle of its row-major
-				// n×n output, so read each pair from the full upper triangle
+				// each output is a row-major symmetric matrix, so pair (i, j)
+				// of the subset is pair (subset[i], subset[j]) of the full one
 				for i := range n {
-					for j := i; j < n; j++ {
-						a, b := min(subset[i], subset[j]), max(subset[i], subset[j])
-						want[i*n+j] = full[step][a*3+b]
+					for j := range n {
+						want[i*n+j] = full[step][subset[i]*3+subset[j]]
 					}
 				}
 				if !floats.EqualApprox(sub[step], want, 1e-12) {
