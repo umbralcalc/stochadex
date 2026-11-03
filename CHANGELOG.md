@@ -64,6 +64,11 @@ an exact version rather than assume stability across minors.
   reader of these states as a `covariance_matrix` reads the upper triangle, so their results are
   unchanged; only the lower-triangle entries of the outputs differ, now equal to their mirrored
   upper-triangle entries.
+- `values_weighted_resampling` draws each value in its history with that value's own weight. It
+  read every history row's weight from the latest row of the log-weight partitions, so a value
+  `k` rows back was drawn with the latest weight discounted `k` times rather than with its own.
+  It also no longer draws from history rows the run has not yet reached, whose zeros are no
+  partition's values, and a weight that underflows beside the others no longer panics the draw.
 
 ## [0.27.0] — 2026-11-01
 

@@ -1587,7 +1587,7 @@
     "values_weighted_resampling": {
       "name": "values_weighted_resampling",
       "description": "ValuesWeightedResamplingIteration resamples historical values from other partitions according to provided (optionally discounted) weights.",
-      "update": "(k, j) ~ Categorical(p), p(k, j) proportional to exp(L_j) * past_discounting_factor^(k-1)\nfor k = 1..D and j over log_weight_partitions, where\nL_j = log_weight_partitions[j]@1[log_weight_indices[j]] (element 0 if unset)\nand D = log_weight_partitions[0]'s state_history_depth\nx \u003c- data_values_partitions[j]@k",
+      "update": "(k, j) ~ Categorical(p), p(k, j) proportional to exp(L_j(k)) * past_discounting_factor^(k-1)\nfor k = 1..min(D, step) and j over log_weight_partitions, where\nL_j(k) = log_weight_partitions[j]@k[log_weight_indices[j]] (element 0 if unset)\nand D = log_weight_partitions[0]'s state_history_depth\nx \u003c- data_values_partitions[j]@k",
       "params": [
         {
           "name": "data_values_partitions"
