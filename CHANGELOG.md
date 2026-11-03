@@ -41,6 +41,15 @@ an exact version rather than assume stability across minors.
   macros config's clock or windows now say "a simulation has one clock" and "a simulation keeps
   one history per partition".
 
+### Fixed
+
+- `continuous.GammaJumpDistribution` draws its jump sizes from a stream derived from the
+  partition seed rather than from the partition seed itself. `CompoundPoissonProcessIteration`
+  takes its event draws from the partition seed, so the jump sizes were drawn from an identically
+  seeded stream and depended on the event draws: with a gamma shape below 1, the first jump's
+  size correlated with its event uniform at about 0.6 across seeds. The event draws are
+  unchanged; the jump sizes, and so the process's values, differ for a given seed.
+
 ## [0.27.0] — 2026-11-01
 
 This release makes the config language documented and machine-readable. `stochadex catalogue`

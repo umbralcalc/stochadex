@@ -19,7 +19,10 @@ type JumpDistribution interface {
 //
 // Usage hints:
 //   - Param names per dimension: "gamma_alphas" and "gamma_betas".
-//   - Seed is taken from the partition's Settings for reproducibility.
+//   - Seed is derived from the partition's Settings for reproducibility,
+//     as a stream distinct from the partition seed itself, so the jump
+//     sizes are independent of draws the iteration takes from that seed
+//     (such as the event draws of CompoundPoissonProcessIteration).
 //
 // Update:
 //
@@ -33,7 +36,9 @@ func (g *GammaJumpDistribution) Configure(
 	partitionIndex int,
 	settings *simulator.Settings,
 ) {
-	g.sampler = rng.New(settings.Iterations[partitionIndex].Seed)
+	g.sampler = rng.New(
+		simulator.DeriveSeed(settings.Iterations[partitionIndex].Seed, 0),
+	)
 }
 
 // NewJump implements JumpDistribution.
@@ -58,6 +63,7 @@ func (g *GammaJumpDistribution) NewJump(
 //
 //	x[i] <- x[i] + B[i] * J[i],  B[i] ~ Bernoulli(rates[i] / (rates[i] + 1/dt)),  J[i] ~ jump_dist
 //	J[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.
+//	B and J are drawn from independent streams, both determined by the partition seed.
 type CompoundPoissonProcessIteration struct {
 	JumpDist JumpDistribution
 	sampler  *rng.Sampler
