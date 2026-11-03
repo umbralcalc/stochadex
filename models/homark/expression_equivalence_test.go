@@ -46,15 +46,25 @@ var partitionNames = []string{
 }
 
 // declarativeBuildStub assembles the model from declarative.yaml, matching BuildStub's
-// signature so it can be dropped into the behaviour helpers. The YAML holds the model; the
-// run knobs BuildStub takes as arguments are injected here, exactly as BuildStub injects
-// them into its Go partitions.
+// signature so it can be dropped into the behaviour helpers.
 func declarativeBuildStub(
 	approvalRate float64,
 	numSteps int,
 	seed uint64,
 ) *simulator.ConfigGenerator {
-	config := api.LoadApiRunConfigFromYaml("declarative.yaml")
+	return buildFromYAML("declarative.yaml", approvalRate, numSteps, seed)
+}
+
+// buildFromYAML assembles the model from a YAML twin. The YAML holds the model; the run
+// knobs BuildStub takes as arguments are injected here, exactly as BuildStub injects them
+// into its Go partitions.
+func buildFromYAML(
+	path string,
+	approvalRate float64,
+	numSteps int,
+	seed uint64,
+) *simulator.ConfigGenerator {
+	config := api.LoadApiRunConfigFromYaml(path)
 	config.Main.Simulation = simulator.SimulationConfig{
 		OutputCondition: &simulator.EveryStepOutputCondition{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

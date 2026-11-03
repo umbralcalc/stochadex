@@ -39,16 +39,26 @@ import (
 const tolerance = 1e-12
 
 // declarativeBuildStub assembles the model from declarative.yaml, matching BuildStub's
-// signature so it can be dropped into the behaviour helpers. The YAML holds the model; the
-// run knobs BuildStub takes as arguments are injected here, exactly as BuildStub injects
-// them into its Go partitions. The sites need no seed injected because BuildStub pins them
-// to 0 and they draw nothing.
+// signature so it can be dropped into the behaviour helpers.
 func declarativeBuildStub(
 	anomalyVolatility float64,
 	numSteps int,
 	seed uint64,
 ) *simulator.ConfigGenerator {
-	config := api.LoadApiRunConfigFromYaml("declarative.yaml")
+	return buildFromYAML("declarative.yaml", anomalyVolatility, numSteps, seed)
+}
+
+// buildFromYAML assembles the model from a YAML twin. The YAML holds the model; the run
+// knobs BuildStub takes as arguments are injected here, exactly as BuildStub injects them
+// into its Go partitions. The sites need no seed injected because BuildStub pins them to 0
+// and they draw nothing.
+func buildFromYAML(
+	path string,
+	anomalyVolatility float64,
+	numSteps int,
+	seed uint64,
+) *simulator.ConfigGenerator {
+	config := api.LoadApiRunConfigFromYaml(path)
 	config.Main.Simulation = simulator.SimulationConfig{
 		OutputCondition: &simulator.EveryStepOutputCondition{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
