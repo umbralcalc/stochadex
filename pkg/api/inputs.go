@@ -103,6 +103,10 @@ func (i *InputConfig) load() (*simulator.StateTimeStorage, error) {
 // built into its host's iteration at load, which configures it there, before
 // any input is read; binding gives it its replay in place, and its host
 // configures it again when the run starts.
+//
+// Update:
+//
+//	x <- the input partition's row number step (row 0 is the initial state)
 type unboundInputIteration struct {
 	input     string
 	partition string

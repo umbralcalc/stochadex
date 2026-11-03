@@ -8,6 +8,13 @@ import (
 
 // DataGenerationIteration allows for any likelihood to be used as a
 // data generation distribution based on a mean and covariance matrix.
+//
+// Update:
+//
+//	y ~ L(...),  x <- y                                     if step % steps_per_resample == 0
+//	x <- (1 - correlation_with_previous) y + correlation_with_previous x@1   when that param is set
+//	x <- x@1                                                otherwise
+//	steps_per_resample defaults to 1.
 type DataGenerationIteration struct {
 	Likelihood       LikelihoodDistribution
 	stepsPerResample int

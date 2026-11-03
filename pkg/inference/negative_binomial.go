@@ -11,6 +11,18 @@ import (
 // NegativeBinomialLikelihoodDistribution assumes the real data are well
 // described by a negative binomial distribution, given the input mean
 // and variance.
+//
+// Update:
+//
+//	r_i = m_i^2 / (v_i - m_i),  p_i = m_i / v_i
+//	log p(y | m, v) = sum_i [lgamma(r_i + y_i) - lgamma(y_i + 1) - lgamma(r_i)
+//	                         + r_i log p_i + y_i log(1 - p_i)]
+//	lambda_i ~ Gamma(shape = r_i, rate = m_i / (v_i - m_i)),  y_i ~ Poisson(lambda_i)
+//
+//	so each y_i has mean m_i and variance v_i (v_i > m_i is required), where
+//	m is mean, or else the latest row of the partition indexed by mean_partition;
+//	v is variance, or else the latest row of the partition indexed by
+//	variance_partition. Each index i of y is scored and drawn independently.
 type NegativeBinomialLikelihoodDistribution struct {
 	sampler  *rng.Sampler
 	mean     *mat.VecDense

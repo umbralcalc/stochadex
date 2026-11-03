@@ -39,6 +39,12 @@ func ParamsEventFunction(
 // Usage hints:
 //   - Set EventIteration to produce the event key; provide IterationByEvent map.
 //   - Optional: set "default_values" to override fallback behaviour.
+//
+// Update:
+//
+//	e <- e(x)[0], the update of event_iteration
+//	x <- f_e(x), the update of the iteration_by_event entry for e, if there is one
+//	otherwise x <- default_values if set, else x <- x@1
 type ValuesChangingEventsIteration struct {
 	EventIteration   simulator.Iteration
 	IterationByEvent map[float64]simulator.Iteration

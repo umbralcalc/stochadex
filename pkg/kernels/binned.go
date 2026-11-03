@@ -10,6 +10,13 @@ import (
 //
 // Usage hints:
 //   - Provide "bin_values" and "bin_stepsize"; index is floor((t_now - t_past)/stepsize).
+//
+// Update:
+//
+//	w(s) = bin_values[floor((t - t_s) / bin_stepsize)]
+//
+//	where t is the current time the caller passes and t_s the sample's time;
+//	an index outside bin_values panics.
 type BinnedIntegrationKernel struct {
 	binValues   []float64
 	binStepsize float64

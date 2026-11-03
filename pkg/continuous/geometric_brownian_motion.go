@@ -14,6 +14,10 @@ import (
 //   - Provide per-dimension "variances"; multiplicative noise uses sqrt(variance*dt).
 //   - Consider log-transforms if you need additive dynamics in log space.
 //   - Seed is taken from the partition's Settings for reproducibility.
+//
+// Update:
+//
+//	x[i] <- x[i] * (1 + sqrt(variances[i] * dt) * Z[i]),  Z[i] ~ N(0, 1)
 type GeometricBrownianMotionIteration struct {
 	sampler *rng.Sampler
 }

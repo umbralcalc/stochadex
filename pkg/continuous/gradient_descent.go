@@ -10,6 +10,11 @@ import (
 //   - Provide params: "gradient" (vector) and "learning_rate" (scalar).
 //   - Optional flag: "ascent" == 1 switches to gradient ascent.
 //   - Update uses x_{t+1} = x_t - lr * gradient (or + for ascent).
+//
+// Update:
+//
+//	x[i] <- x[i] - learning_rate[0] * gradient[i]
+//	when ascent is given and ascent[0] == 1: x[i] <- x[i] + learning_rate[0] * gradient[i]
 type GradientDescentIteration struct{}
 
 // Configure implements simulator.Iteration.

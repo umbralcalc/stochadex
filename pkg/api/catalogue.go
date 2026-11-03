@@ -61,6 +61,9 @@ type CatalogueEntry struct {
 	Name string `json:"name"`
 	// Description is the first sentence of the Go type's doc comment.
 	Description string `json:"description,omitempty"`
+	// Update is what it computes each step, as its Go doc comment states it in an
+	// Update: paragraph (see docs/reference.md for the notation).
+	Update string `json:"update,omitempty"`
 	// Fields are the keys its spec takes: {type: normal, allow_default_...}.
 	Fields []CatalogueField `json:"fields,omitempty"`
 	// Params are the names it reads from its partition's params:, which

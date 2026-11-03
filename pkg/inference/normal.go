@@ -26,6 +26,22 @@ import (
 //     supply "variance" (diagonal) or wire a variance partition instead of a
 //     dense covariance_matrix upstream.
 //   - GenerateNewSamples draws from the current parameterised distribution.
+//
+// Update:
+//
+//	log p(y | m, S) = -0.5 (y - m)^T S^{-1} (y - m) - 0.5 log det(S) - (d / 2) log(2 pi)
+//	y ~ N(m, S)
+//
+//	where d is the length of m and
+//	m is mean, or else the latest row of the partition indexed by mean_partition.
+//	S is the first one set of: covariance_matrix (flattened row-major, upper
+//	triangle read); diag(variance); the latest row of the partition indexed by
+//	covariance_matrix_partition; diag of the latest row of the partition indexed
+//	by variance_partition.
+//	While the step number is at most cov_burn_in_steps, S is default_covariance
+//	when that is set. If S is not positive-definite, it is replaced by
+//	default_covariance only when AllowDefaultCovarianceFallback is true;
+//	otherwise it panics.
 type NormalLikelihoodDistribution struct {
 	Src        rand.Source
 	mean       *mat.VecDense

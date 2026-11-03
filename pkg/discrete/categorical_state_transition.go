@@ -9,6 +9,15 @@ import (
 
 // CategoricalStateTransitionIteration is essentially a state machine which
 // transitions between states according to the event rate parameters.
+//
+// Update:
+//
+//	s = x[0],  r = transition_rates[o_s : o_s + m_s],  d = transitions_from_s
+//	x[0] <- d[j]  with probability r[j] / (1/dt + sum(r)),  for j = 0..m_s-1
+//	x[0] <- s     with probability (1/dt) / (1/dt + sum(r))
+//	One U ~ U(0, 1) per step picks the outcome. m_s = len(transitions_from_s) and
+//	o_s = m_0 + ... + m_(s-1): transition_rates holds the rates for every
+//	transitions_from_<k> list concatenated in k order. Other elements of x are unchanged.
 type CategoricalStateTransitionIteration struct {
 	sampler    *rng.Sampler
 	rateSlices [][]int

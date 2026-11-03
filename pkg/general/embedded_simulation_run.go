@@ -80,6 +80,18 @@ type forwardedParam struct {
 // nested simulation is being evaluated rather than advanced — a model re-run over
 // a window, a proposal scored more than once. simulator.ReentrantSimulation is
 // the same capability as a standalone value.
+//
+// Update:
+//
+//	x <- the final states of the nested run's partitions, joined in partition order
+//	each step the nested run starts afresh from its partitions' initial states and
+//	runs until its own termination condition. Before it starts, each params key
+//	inner/param sets that param on the nested partition named inner
+//	(inner/init_state_values sets its initial state), init_time_value, if set,
+//	is its start time, and inner/init_state_values_from_outer = [o, w] sets the
+//	initial state to x@1[o : o + w]. Its draws continue from the previous step's
+//	run unless SetReseedBase is used.
+//	x <- x@1 while step < burn_in_steps
 type EmbeddedSimulationRunIteration struct {
 	settings              *simulator.Settings
 	implementations       *simulator.Implementations

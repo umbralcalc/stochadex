@@ -29,9 +29,11 @@ import (
 //   - Events occur at rate λ per unit time on average
 //
 // Implementation Details:
-//   - Probability of event in timestep dt ≈ λ * dt (for small dt)
+//   - At most one event per timestep, with probability λ / (λ + 1/dt), which is
+//     ≈ λ * dt for small dt
 //   - Uses uniform random sampling for event detection
-//   - Maintains cumulative count of events since t=0
+//   - Adds events to the count held in the state, starting from the
+//     partition's initial state values
 //   - Each dimension can have different event rates
 //
 // Configuration:
@@ -49,6 +51,10 @@ import (
 //   - O(d) time complexity where d is the number of dimensions
 //   - Memory usage: O(1) per dimension
 //   - Efficient for high-dimensional event modeling
+//
+// Update:
+//
+//	x[i] <- x[i] + Bernoulli(rates[i] / (rates[i] + 1/dt))
 type PoissonProcessIteration struct {
 	sampler *rng.Sampler
 }

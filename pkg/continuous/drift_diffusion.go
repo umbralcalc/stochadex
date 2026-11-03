@@ -14,6 +14,10 @@ import (
 //   - The update uses x_{t+dt} = x_t + drift*dt + diffusion*sqrt(dt)*N(0,1).
 //   - Ensure the timestep function is configured; diffusion scales with sqrt(dt).
 //   - Seed is taken from the partition's Settings for reproducibility.
+//
+// Update:
+//
+//	x[i] <- x[i] + drift_coefficients[i] * dt + diffusion_coefficients[i] * sqrt(dt) * Z[i],  Z[i] ~ N(0, 1)
 type DriftDiffusionIteration struct {
 	sampler *rng.Sampler
 }

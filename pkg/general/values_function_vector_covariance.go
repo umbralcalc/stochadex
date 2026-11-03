@@ -19,6 +19,17 @@ import (
 //   - Set Kernel and related params (e.g., bandwidth, discounting).
 //   - Requires a "mean" param vector for centring.
 //   - The upper-triangular covariance is returned flattened.
+//
+// Update:
+//
+//	x[i*m + j] <- (sum over k = 0..D of w(k) * (f(k)[i] - mean[i]) * (f(k)[j] - mean[j]))
+//	              / (sum over k = 0..D of w(k) - 1)        for i <= j
+//	x[i*m + j] <- 0                                         for i > j
+//	where f(k) is the function's values k rows back (k = 0: latest_data_values),
+//	m its width, D = data_values_partition's state_history_depth,
+//	w(k) = w(latest_data_values, y(k), t + dt, t@k) with y(0) = latest_data_values,
+//	y(k) = data_values_partition@k, and t@k the time k steps back (t@0 = t + dt, t@1 = t)
+//	x <- x@1 while step < D
 type ValuesFunctionVectorCovarianceIteration struct {
 	Function func(
 		params *simulator.Params,

@@ -156,6 +156,22 @@ const otherGroup = "other"
 //     "grouping_partition_tupindex_k" and "grouping_value_indices_tupindex_k".
 //   - Provide the state series via "state_partition" and "state_value_indices".
 //   - Set Kernel and precision ("float_precision"); optionally set "default_values".
+//
+// Update:
+//
+//	for each position j of state_value_indices, with a = state_value_indices[j]:
+//	  v = latest_states[a] joins group latest_groupings_tupindex_*[j]
+//	      with weight w(v, v, t + dt, t + dt)
+//	  v = state_partition@k[a] joins group grouping_partition_tupindex_*@k[g]
+//	      with g = grouping_value_indices_tupindex_*[j] and weight
+//	      w(latest_states[a], v, t + dt, t@k), for k = 1..min(step, D)
+//	x <- default_values (zeros if unset), then for each declared group g
+//	x[g] <- aggregation(the values and weights in group g)
+//	where a group is the tuple over tupindex 0, 1, ... rounded to float_precision,
+//	the declared groups are the accepted_value_group_tupindex_* tuples in order,
+//	D = state_partition's state_history_depth and t@k the time k steps back (t@1 = t).
+//	Undeclared groups are dropped, fail the run (error), or are aggregated
+//	together into x[n-1] (other).
 type ValuesGroupedAggregationIteration struct {
 	Aggregation func(
 		defaultValues []float64,

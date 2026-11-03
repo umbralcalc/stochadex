@@ -11,6 +11,12 @@ import (
 // Usage hints:
 //   - Provide "periodic_weighting_timescale"; weight = exp(-2 sin^2(dt/2)/tau^2).
 //   - Useful for daily/weekly seasonality.
+//
+// Update:
+//
+//	w(s) = exp(-2 * sin^2((t - t_s) / 2) / periodic_weighting_timescale^2)
+//
+//	where t is the current time the caller passes and t_s the sample's time.
 type PeriodicIntegrationKernel struct {
 	timescaleSq float64
 }

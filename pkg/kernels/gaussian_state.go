@@ -19,14 +19,14 @@ import (
 // Mathematical Background:
 // The Gaussian kernel computes weights using the multivariate Gaussian density:
 //
-//	w(x_current, x_past) = exp(-0.5 * (x_current - x_past)^T * Σ^{-1} * (x_current - x_past)) / sqrt(det(Σ))
+//	w(x_current, x_past) = exp(-0.5 * (x_current - x_past)^T * Σ^{-1} * (x_current - x_past)) / det(Σ)
 //
 // where Σ is the covariance matrix defining the shape and scale of the weighting.
 //
 // Key Properties:
 //   - Mahalanobis distance: d² = (x_current - x_past)^T * Σ^{-1} * (x_current - x_past)
-//   - Weight range: w ∈ [0, 1/sqrt(det(Σ))]
-//   - Maximum weight: w_max = 1/sqrt(det(Σ)) when states are identical
+//   - Weight range: w ∈ [0, 1/det(Σ)]
+//   - Maximum weight: w_max = 1/det(Σ) when states are identical
 //   - Decay rate: Controlled by eigenvalues of Σ (larger eigenvalues = slower decay)
 //
 // Applications:
@@ -56,7 +56,7 @@ import (
 //	weight := kernel.Evaluate(currentState, pastState, currentTime, pastTime)
 //
 // Performance:
-//   - O(d²) setup cost for Cholesky decomposition where d is state dimension
+//   - O(d³) setup cost for Cholesky decomposition where d is state dimension
 //   - O(d²) evaluation cost for matrix-vector operations
 //   - Memory usage: O(d²) for storing Cholesky decomposition
 //   - Efficient for moderate dimensions (< 100)
@@ -64,7 +64,16 @@ import (
 // Error Handling:
 //   - Panics if covariance matrix is not positive definite
 //   - Panics if matrix dimension doesn't match state dimension
-//   - Panics if matrix is not square or symmetric
+//   - Panics if the flattened length is not a perfect square
+//   - Reads only the upper triangle, so symmetry is assumed, not checked
+//
+// Update:
+//
+//	w(s) = exp(-0.5 * (x - x_s)^T S^{-1} (x - x_s)) / det(S)
+//
+//	where x is the current state the caller passes, x_s the sample's state,
+//	and S is covariance_matrix (flattened row-major, upper triangle read).
+//	The weight does not depend on time.
 type GaussianStateIntegrationKernel struct {
 	choleskyDecomp mat.Cholesky
 	determinant    float64

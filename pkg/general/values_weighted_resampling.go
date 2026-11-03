@@ -17,6 +17,14 @@ import (
 //   - Provide: "log_weight_partitions" (and optional "log_weight_indices").
 //   - Provide: "data_values_partitions" to choose which values to resample.
 //   - Use "past_discounting_factor" to downweight older history (exponential).
+//
+// Update:
+//
+//	(k, j) ~ Categorical(p), p(k, j) proportional to exp(L_j) * past_discounting_factor^(k-1)
+//	for k = 1..D and j over log_weight_partitions, where
+//	L_j = log_weight_partitions[j]@1[log_weight_indices[j]] (element 0 if unset)
+//	and D = log_weight_partitions[0]'s state_history_depth
+//	x <- data_values_partitions[j]@k
 type ValuesWeightedResamplingIteration struct {
 	src     rand.Source
 	catDist distuv.Categorical

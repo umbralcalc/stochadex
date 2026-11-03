@@ -152,9 +152,22 @@ func EnsembleKalmanAnalysis(
 //   - observation_indices: which state components y observes (length p). Defaults to
 //     [0, 1, …, d−1] (the whole state observed) when absent.
 //   - observation_noise_variance: diagonal of R (length p, or length 1 to broadcast).
-//   - inflation: multiplicative forecast-spread inflation (optional, default 1.0),
-//     applied to the forecast anomalies before the update to counter ensemble
-//     collapse.
+//   - inflation: multiplicative forecast-covariance inflation (optional, default
+//     1.0): the forecast anomalies are scaled by its square root before the update,
+//     to counter ensemble collapse.
+//
+// Update:
+//
+//	f_i = forecast_ensemble[i*d : (i+1)*d],  m = (1/N) sum_i f_i
+//	f_i <- m + sqrt(inflation) (f_i - m)
+//	H f selects f at observation_indices,  R = diag(observation_noise_variance)
+//	Pxy = (1/(N-1)) sum_i (f_i - m)(H f_i - H m)^T
+//	Pyy = (1/(N-1)) sum_i (H f_i - H m)(H f_i - H m)^T + R
+//	K = Pxy Pyy^-1
+//	e_i[j] ~ N(0, observation_noise_variance[j])
+//	x[i*d : (i+1)*d] <- f_i + K (latest_data_values + e_i - H f_i)
+//	N = ensemble_size, d = state_dimension; only the first p = len(observation_indices)
+//	values of latest_data_values are used.
 type EnsembleKalmanFilterIteration struct {
 	sampler *rng.Sampler
 }

@@ -9,6 +9,17 @@ import (
 
 // GammaLikelihoodDistribution assumes the real data are well described
 // by a gamma distribution, given the input mean and variance.
+//
+// Update:
+//
+//	k_i = m_i^2 / v_i,  b_i = m_i / v_i
+//	log p(y | m, v) = sum_i [(k_i - 1) log y_i - b_i y_i + k_i log b_i - lgamma(k_i)]
+//	y_i ~ Gamma(shape = k_i, rate = b_i)
+//
+//	so each y_i has mean m_i and variance v_i, where
+//	m is mean, or else the latest row of the partition indexed by mean_partition;
+//	v is variance, or else the latest row of the partition indexed by
+//	variance_partition. Each index i of y is scored and drawn independently.
 type GammaLikelihoodDistribution struct {
 	sampler  *rng.Sampler
 	mean     *mat.VecDense

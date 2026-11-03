@@ -9,6 +9,13 @@ import (
 // Usage hints:
 //   - Configure and SetParams will be forwarded to both KernelA and KernelB.
 //   - Useful to combine, e.g., temporal and state-distance weightings.
+//
+// Update:
+//
+//	w(s) = w_A(s) * w_B(s)
+//
+//	where w_A and w_B are the weights of KernelA and KernelB, both given
+//	the same params.
 type ProductIntegrationKernel struct {
 	KernelA IntegrationKernel
 	KernelB IntegrationKernel

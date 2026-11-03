@@ -19,6 +19,11 @@ import (
 //     latest, so at step k the state is the mean of k+1 rows.
 //   - The count comes from the run's step number, so the run must start at
 //     step 0 with the data at its initial row.
+//
+// Update:
+//
+//	x[i] <- x@1[i] + (f[i] - x@1[i]) / (step + 1)
+//	where f is the function's values on the latest row (latest_data_values)
 type ValuesFunctionCumulativeMeanIteration struct {
 	Function func(
 		params *simulator.Params,

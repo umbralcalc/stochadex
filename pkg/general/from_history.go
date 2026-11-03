@@ -9,6 +9,13 @@ import (
 // Usage hints:
 //   - Use with EmbeddedSimulationRunIteration or analysis windows to replay data.
 //   - Set Data to the source history; supports initial offset via InitStepsTaken.
+//
+// Update:
+//
+//	x <- r[step + init_steps_taken]
+//	where r[0], ..., r[d-1] are the source history's rows oldest first (r[0] is the
+//	initial state), r[d] = latest_data_values and d is the history's depth;
+//	it panics once step + init_steps_taken passes d
 type FromHistoryIteration struct {
 	Data           *simulator.StateHistory
 	InitStepsTaken int

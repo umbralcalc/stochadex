@@ -11,7 +11,24 @@ import (
 
 // TLikelihoodDistribution assumes the real data are well described by a
 // Student's t-distribution, given the input degrees of freedom,
-// mean and covariance matrix.
+// mean and a scale matrix read from the covariance params.
+//
+// Update:
+//
+//	n = degrees_of_freedom, d = length of m
+//	log p(y | m, S, n) = lgamma((n + d) / 2) - lgamma(n / 2) - (d / 2) log(n pi)
+//	                     - 0.5 log det(S)
+//	                     - ((n + d) / 2) log(1 + (y - m)^T S^{-1} (y - m) / n)
+//	y = m + z sqrt(n / u),  z ~ N(0, S),  u ~ ChiSquared(n)
+//
+//	m is mean, or else the latest row of the partition indexed by mean_partition.
+//	S is the scale matrix, so the covariance of y is S n / (n - 2) for n > 2.
+//	S is read from the covariance params, the first one set of: covariance_matrix (flattened row-major, upper
+//	triangle read); diag(variance); the latest row of the partition indexed by
+//	covariance_matrix_partition; diag of the latest row of the partition indexed
+//	by variance_partition.
+//	If S is not positive-definite, default_covariance is used in its place
+//	when set; otherwise it panics.
 type TLikelihoodDistribution struct {
 	Src        rand.Source
 	dof        float64

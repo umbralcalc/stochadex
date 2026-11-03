@@ -154,6 +154,14 @@ type ExpressionBinding struct {
 // This is deliberately not a general-purpose language: there is no assignment and no
 // recursion, and the only repetition is each's bounded comprehension, so an expression always
 // terminates.
+//
+// Update:
+//
+//	x <- the user's expressions: bindings evaluated in order, then one output
+//	expression per field giving that field's block of x, elementwise with length-1
+//	values broadcasting (a length-1 output fills its whole field)
+//	a field's name reads its block of x@1, an upstream alias that partition's last
+//	committed state, a params key its value, and dt, t and step as usual
 type ExpressionIteration struct {
 	// Fields names the blocks of this partition's state, in layout order.
 	Fields []ExpressionField `yaml:"fields"`

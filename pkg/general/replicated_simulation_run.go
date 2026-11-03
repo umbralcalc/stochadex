@@ -54,6 +54,15 @@ type ReplicaParamForwarding struct {
 //     parameters at [r*ParamsPerReplica, (r+1)*ParamsPerReplica). Normally wired
 //     from an upstream partition via params_from_upstream. Not read when
 //     ParamsPerReplica is 0.
+//
+// Update:
+//
+//	x[r*w : (r+1)*w] <- the final state of output_partition in replica r's nested run
+//	where w is output_partition's width. Each step every replica's nested run starts
+//	afresh from its initial state and runs until its own termination condition,
+//	with a seed derived from this partition's seed, the step and r. Before it runs,
+//	each param_forwarding entry partition/param = [j1, j2, ...] sets that param to
+//	[replica_params[r*m + j1], replica_params[r*m + j2], ...], m = params_per_replica
 type ReplicatedSimulationRunIteration struct {
 	// Simulations holds one independent model per replica. They are separate
 	// values because they run concurrently and a ReentrantSimulation is not

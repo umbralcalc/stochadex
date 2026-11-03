@@ -8,6 +8,10 @@ import (
 //
 // Usage hints:
 //   - Useful for fixed baselines or as a placeholder partition.
+//
+// Update:
+//
+//	x <- x@1
 type ConstantValuesIteration struct {
 }
 

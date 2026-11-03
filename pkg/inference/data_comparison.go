@@ -7,6 +7,12 @@ import (
 // DataComparisonIteration allows for any log-likelihood to be used as a
 // comparison distribution between data values, a mean vector and covariance
 // matrix.
+//
+// Update:
+//
+//	x[0] <- log p(latest_data_values | ...)                 when cumulative is unset or 0
+//	x[0] <- x@1[0] + log p(latest_data_values | ...)        when cumulative = 1
+//	x <- x@1                                                while step < burn_in_steps
 type DataComparisonIteration struct {
 	Likelihood  LikelihoodDistribution
 	burnInSteps int

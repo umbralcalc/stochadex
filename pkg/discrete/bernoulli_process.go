@@ -11,6 +11,10 @@ import (
 //   - Provide "state_value_observation_probs" with values in [0, 1].
 //   - Outputs are written into the partition's reusable next-state buffer.
 //   - Seed is taken from the partition's Settings for reproducibility.
+//
+// Update:
+//
+//	x[i] <- Bernoulli(state_value_observation_probs[i])
 type BernoulliProcessIteration struct {
 	sampler *rng.Sampler
 }

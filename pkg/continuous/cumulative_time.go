@@ -9,6 +9,10 @@ import (
 // Usage hints:
 //   - Returns a single-element vector: current_time + dt for the next step.
 //   - Useful for logging or as an input to time-dependent components.
+//
+// Update:
+//
+//	x <- [t + dt]
 type CumulativeTimeIteration struct{}
 
 // Configure implements simulator.Iteration.

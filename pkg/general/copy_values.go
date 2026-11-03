@@ -9,6 +9,11 @@ import (
 //
 // Usage hints:
 //   - Provide params: "partitions" (indices) and "partition_state_values".
+//
+// Update:
+//
+//	x[i] <- partitions[i]@1[partition_state_values[i]]
+//	where partitions[i]@1 is the last committed state of the partition with that index
 type CopyValuesIteration struct {
 }
 

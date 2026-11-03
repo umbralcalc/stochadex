@@ -33,6 +33,16 @@ func MeanTransform(
 // PosteriorMeanIteration updates an estimate of the mean of the posterior
 // distribution over params using log-likelihood and param values given in
 // the state history of other partitions.
+//
+// Update:
+//
+//	l_j = loglike_partitions[j]@1[loglike_indices[j]]       (index 0 when loglike_indices is unset)
+//	c = posterior_log_normalisation
+//	T = log(exp(c) + sum_j exp(l_j))
+//	x <- exp(c - T) x@1 + sum_j exp(l_j - T) transform(param_partitions[j]@1)
+//	x <- x@1 if T is NaN or infinite; a non-finite exp(c - T) counts as 0
+//	and a term whose exp(l_j - T) is non-finite is skipped.
+//	transform(v) is v for mean, and (mean - v)^2 per element for variance.
 type PosteriorMeanIteration struct {
 	Transform func(
 		params *simulator.Params,

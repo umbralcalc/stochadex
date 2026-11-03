@@ -163,6 +163,15 @@ func WinnerToTerminal(winner, players int, done bool) []float64 {
 //   - Decoder: decodes the leaf_state from the upstream-supplied
 //     []float64 back into the typed S.
 //   - Players: P, the per-player score vector length.
+//
+// Update:
+//
+//	leaf = [encoded state (W values), has_leaf]
+//	(r, ok) = rollout(decode(leaf[0:W])): a playout of at most rollout_max_steps
+//	          actions under the environment's legal actions, apply and terminal,
+//	          seeded from the partition seed and step
+//	x[0:P] <- r,  x[P] <- 1     when has_leaf != 0 and the rollout gives ok with P scores
+//	x <- 0                      otherwise
 type MCTSRolloutIteration[S any, A any] struct {
 	Env     Environment[S, A]
 	Cfg     MCTSConfig[S, A]

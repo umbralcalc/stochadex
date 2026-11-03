@@ -14,6 +14,15 @@ import (
 //   - Provide: "background_rates" and "hawkes_partition_index" (the partition
 //     running the HawkesProcessIteration whose history excites this intensity).
 //   - Set ExcitingKernel to the kernel weighting past events by their age.
+//
+// Update:
+//
+//	x[i] <- background_rates[i] + sum over k = 2..D of
+//	        w(H@1, H@k, t, t@k) * (H@(k-1)[i] - H@k[i])
+//	H@k is hawkes_partition_index@k, the counting partition's state k steps back
+//	(its index is read once, at Configure). D is that partition's state history
+//	depth, t@k the time of its state k steps back (t@1 = t), and w(...) the kernel,
+//	which weights each step's count increment by the whole state vectors and times.
 type HawkesProcessIntensityIteration struct {
 	ExcitingKernel       kernels.IntegrationKernel
 	hawkesPartitionIndex int
@@ -63,6 +72,10 @@ func (h *HawkesProcessIntensityIteration) Iterate(
 }
 
 // HawkesProcessIteration defines an iteration for a Hawkes process.
+//
+// Update:
+//
+//	x[i] <- x[i] + Bernoulli(intensity[i] / (intensity[i] + 1/dt))
 type HawkesProcessIteration struct {
 	sampler *rng.Sampler
 }

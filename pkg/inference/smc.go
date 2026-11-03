@@ -37,6 +37,18 @@ type SMCResult struct {
 //	prior_params:       [4 values per prior]
 //	posterior_partition: [partition_index] (via params_as_partitions)
 //	verbose:            [0 or 1]
+//
+// Update:
+//
+//	theta_p[j] ~ prior_j                                    for step = 1
+//	theta_p ~ N(m, C'), redrawn until theta_p[j] is in prior_j's support for every j,  for step > 1
+//	m = posterior_partition@1[0:d],  C = posterior_partition@1[d:d+d^2]
+//	C' = C with each diagonal C[j][j] raised to at least 0.01 times prior_j's variance
+//	x[p*d : (p+1)*d] <- theta_p                             for p = 0..num_particles-1
+//	d is the number of priors. Prior variance: (hi - lo)^2/12 for uniform, sigma^2
+//	for truncated normal, half normal and log normal, 1 otherwise. If C' is not
+//	positive definite, the draw uses the diagonal factor sqrt(C'[j][j]) instead
+//	(1 for a non-positive entry).
 type SMCProposalIteration struct {
 	Priors []Prior
 
@@ -129,6 +141,13 @@ func (s *SMCProposalIteration) Iterate(
 //	particle_loglikes: [N values] (via params_from_upstream)
 //	particle_params:   [N*d flat] (via params_from_upstream)
 //	verbose:           [0 or 1]
+//
+// Update:
+//
+//	l_p = particle_loglikes[p],  theta_p = particle_params[p*d : (p+1)*d]
+//	w_p = exp(l_p - log sum_q exp(l_q))
+//	m = sum_p w_p theta_p,  C = sum_p w_p (theta_p - m)(theta_p - m)^T
+//	x[0:d] <- m,  x[d : d+d^2] <- C (row-major),  x[d+d^2] <- log sum_p exp(l_p) - log N
 type SMCPosteriorIteration struct {
 	ParamNames []string
 

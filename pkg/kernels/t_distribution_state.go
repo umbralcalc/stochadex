@@ -14,7 +14,16 @@ import (
 // Usage hints:
 //   - Provide "scale_matrix" as a flattened symmetric matrix (row-major) and
 //     "degrees_of_freedom".
-//   - Weights are proportional to (1 + (x-μ)^T S^{-1} (x-μ)/ν)^{-(d+ν)/2} / det(S).
+//   - Weights are proportional to (1 + (x-x_s)^T S^{-1} (x-x_s)/ν)^{-(d+ν)/2} / det(S),
+//     where x is the current state and x_s the past sample's state..
+//
+// Update:
+//
+//	w(s) = (1 + (x - x_s)^T S^{-1} (x - x_s) / degrees_of_freedom)^(-(d + degrees_of_freedom) / 2) / det(S)
+//
+//	where x is the current state the caller passes, x_s the sample's state,
+//	d is the state width, and S is scale_matrix (flattened row-major, upper
+//	triangle read). The weight does not depend on time.
 type TDistributionStateIntegrationKernel struct {
 	choleskyDecomp mat.Cholesky
 	determinant    float64

@@ -13,6 +13,19 @@ import (
 // WishartLikelihoodDistribution assumes the real data are well described
 // by a Wishart distribution, given the input degrees of freedom and scale
 // matrix.
+//
+// Update:
+//
+//	n = degrees_of_freedom, V = scale_matrix, d = sqrt(len(scale_matrix))
+//	log p(Y | n, V) = ((n - d - 1) / 2) log det(Y) - tr(V^{-1} Y) / 2
+//	                  - (n d / 2) log 2 - (n / 2) log det(V) - log Gamma_d(n / 2)
+//	Y ~ Wishart(n, V)
+//
+//	y is the d x d matrix Y flattened row-major; scoring reads only its upper
+//	triangle, and a draw fills only the upper triangle (entries below the
+//	diagonal are 0). V is read from its upper triangle. If V is not
+//	positive-definite, default_scale is used in its place when set;
+//	otherwise it panics.
 type WishartLikelihoodDistribution struct {
 	Src          rand.Source
 	dims         int

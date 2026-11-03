@@ -11,13 +11,20 @@ import (
 // posterior distribution over params using log-likelihood values given in the
 // state history of other partitions as well as a specified past discounting factor.
 //
-// Rolling history: each row i of the log-likelihood partition’s history is
-// weighted by past_discounting_factor^i inside the inner LogSumExp. During an
+// Rolling history: each row i of the log-likelihood partitions' history is
+// weighted by past_discounting_factor^i inside the outer LogSumExp. During an
 // embedded likelihood burn-in, early outer steps often repeat the same inner
 // score (e.g. 0); those rows remain in history until they roll off, so
 // discounting applies to them as well—prefer aligning embedded burn-in with
 // window depth or overriding EmbeddedBurnInSteps when building comparison
 // partitions (see macros.AppliedLikelihoodComparison).
+//
+// Update:
+//
+//	l_j(k) = loglike_partitions[j]@k[loglike_indices[j]]    (index 0 when loglike_indices is unset)
+//	x[0] <- log sum_{k=1..D} past_discounting_factor^(k-1) sum_j exp(l_j(k))
+//	D is the state history depth of loglike_partitions[0]; every row of that
+//	depth is summed, including rows not yet written by a step.
 type PosteriorLogNormalisationIteration struct {
 }
 

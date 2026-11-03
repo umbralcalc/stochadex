@@ -22,6 +22,17 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`stochadex catalogue` says what each component computes.** Every iteration, kernel,
+  likelihood, prior and jump distribution the engine ships has an `update`: its rule, such as
+  `x[i] <- x[i] + thetas[i] * (mus[i] - x[i]) * dt + sigmas[i] * sqrt(dt) * Z[i]` for
+  `ornstein_uhlenbeck`, read from the Update paragraph of its Go doc comment. A named function
+  that states one carries it among a field's `choices` too. The config reference documents the
+  notation (the next state `x <- ...`, history `x@k`, draws, components), so a model's update can
+  be matched to a built-in before it is written as an expression. A new key in
+  `catalogue_version` 2.
+
 ### Changed
 
 - The docs and messages name what a config describes, and running it, one way each: a config
