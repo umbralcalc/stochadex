@@ -16,6 +16,13 @@ func MeanGradientFunc(
 
 // DataComparisonGradientIteration allows for any log-likelihood gradient to be
 // used in computing the overall comparison distribution gradient.
+//
+// Update:
+//
+//	g = (1/D) sum_{i=1..D} d/dmean log p(b_i | mean, ...)
+//	x <- gradient_function(g)
+//	b_1..b_D are the rows of the batch the host feeds it: the history of the
+//	partition named by its <name>->data_values param. mean_gradient is g itself.
 type DataComparisonGradientIteration struct {
 	Likelihood   LikelihoodDistributionWithGradient
 	GradientFunc func(

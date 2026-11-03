@@ -18,6 +18,10 @@ import (
 //     likelihoods versus the continuous-time OU. For inference with stiff θ,
 //     prefer OrnsteinUhlenbeckExactGaussianIteration or a smaller Δt.
 //   - Seed is taken from the partition's Settings for reproducibility.
+//
+// Update:
+//
+//	x[i] <- x[i] + thetas[i] * (mus[i] - x[i]) * dt + sigmas[i] * sqrt(dt) * Z[i],  Z[i] ~ N(0, 1)
 type OrnsteinUhlenbeckIteration struct {
 	sampler *rng.Sampler
 }

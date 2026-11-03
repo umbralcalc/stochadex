@@ -4,11 +4,17 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// InstantaneousIntegrationKernel returns 1.0 for the most recent sample and
-// 0.0 otherwise.
+// InstantaneousIntegrationKernel returns 1.0 for a sample whose time equals
+// the current time and 0.0 otherwise.
 //
 // Usage hints:
 //   - Useful to select only the latest value when aggregating.
+//
+// Update:
+//
+//	w(s) = 1 if t_s == t, else 0
+//
+//	where t is the current time the caller passes and t_s the sample's time.
 type InstantaneousIntegrationKernel struct{}
 
 // Configure implements IntegrationKernel.

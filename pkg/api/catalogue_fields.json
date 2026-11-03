@@ -229,6 +229,7 @@
     "bernoulli_process": {
       "name": "bernoulli_process",
       "description": "BernoulliProcessIteration emits 1/0 based on per-dimension success probs.",
+      "update": "x[i] \u003c- Bernoulli(state_value_observation_probs[i])",
       "params": [
         {
           "name": "state_value_observation_probs"
@@ -238,6 +239,7 @@
     "binomial_observation_process": {
       "name": "binomial_observation_process",
       "description": "BinomialObservationProcessIteration draws binomial counts for selected indices.",
+      "update": "x[j] \u003c- Binomial(observed_values[state_value_observation_indices[j]], state_value_observation_probs[j])\nn = len(state_value_observation_indices); j runs over 0..n-1.",
       "params": [
         {
           "name": "observed_values"
@@ -253,6 +255,7 @@
     "categorical_state_transition": {
       "name": "categorical_state_transition",
       "description": "CategoricalStateTransitionIteration is essentially a state machine which transitions between states according to the event rate parameters.",
+      "update": "s = x[0],  r = transition_rates[o_s : o_s + m_s],  d = transitions_from_s\nx[0] \u003c- d[j]  with probability r[j] / (1/dt + sum(r)),  for j = 0..m_s-1\nx[0] \u003c- s     with probability (1/dt) / (1/dt + sum(r))\nOne U ~ U(0, 1) per step picks the outcome. m_s = len(transitions_from_s) and\no_s = m_0 + ... + m_(s-1): transition_rates holds the rates for every\ntransitions_from_\u003ck\u003e list concatenated in k order. Other elements of x are unchanged.",
       "params": [
         {
           "name": "transition_rates"
@@ -265,6 +268,7 @@
     "compound_poisson_process": {
       "name": "compound_poisson_process",
       "description": "CompoundPoissonProcessIteration steps a compound Poisson process.",
+      "update": "x[i] \u003c- x[i] + B[i] * J[i],  B[i] ~ Bernoulli(rates[i] / (rates[i] + 1/dt)),  J[i] ~ jump_dist\nJ[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.",
       "fields": [
         {
           "name": "jump_dist",
@@ -279,11 +283,13 @@
     },
     "constant_values": {
       "name": "constant_values",
-      "description": "ConstantValuesIteration leaves initial state values unchanged over time."
+      "description": "ConstantValuesIteration leaves initial state values unchanged over time.",
+      "update": "x \u003c- x@1"
     },
     "copy_values": {
       "name": "copy_values",
       "description": "CopyValuesIteration copies selected values from other partitions' latest states into its own state.",
+      "update": "x[i] \u003c- partitions[i]@1[partition_state_values[i]]\nwhere partitions[i]@1 is the last committed state of the partition with that index",
       "params": [
         {
           "name": "partition_state_values"
@@ -296,6 +302,7 @@
     "cox_process": {
       "name": "cox_process",
       "description": "CoxProcessIteration defines an iteration for a Cox process.",
+      "update": "x[i] \u003c- x[i] + Bernoulli(rates[i] / (rates[i] + 1/dt))",
       "params": [
         {
           "name": "rates"
@@ -305,6 +312,7 @@
     "cumulative": {
       "name": "cumulative",
       "description": "CumulativeIteration accumulates a provided iteration's outputs over time.",
+      "update": "x \u003c- x@1 + f(x)\nwhere f(x) is the wrapped iteration's update",
       "fields": [
         {
           "name": "iteration",
@@ -314,11 +322,13 @@
     },
     "cumulative_time": {
       "name": "cumulative_time",
-      "description": "CumulativeTimeIteration outputs the cumulative simulation time."
+      "description": "CumulativeTimeIteration outputs the cumulative simulation time.",
+      "update": "x \u003c- [t + dt]"
     },
     "data_comparison": {
       "name": "data_comparison",
       "description": "DataComparisonIteration allows for any log-likelihood to be used as a comparison distribution between data values, a mean vector and covariance matrix.",
+      "update": "x[0] \u003c- log p(latest_data_values | ...)                 when cumulative is unset or 0\nx[0] \u003c- x@1[0] + log p(latest_data_values | ...)        when cumulative = 1\nx \u003c- x@1                                                while step \u003c burn_in_steps",
       "fields": [
         {
           "name": "likelihood",
@@ -341,6 +351,7 @@
     "data_comparison_gradient": {
       "name": "data_comparison_gradient",
       "description": "DataComparisonGradientIteration allows for any log-likelihood gradient to be used in computing the overall comparison distribution gradient.",
+      "update": "g = (1/D) sum_{i=1..D} d/dmean log p(b_i | mean, ...)\nx \u003c- gradient_function(g)\nb_1..b_D are the rows of the batch the host feeds it: the history of the\npartition named by its \u003cname\u003e-\u003edata_values param. mean_gradient is g itself.",
       "fields": [
         {
           "name": "gradient_function",
@@ -362,6 +373,7 @@
     "data_generation": {
       "name": "data_generation",
       "description": "DataGenerationIteration allows for any likelihood to be used as a data generation distribution based on a mean and covariance matrix.",
+      "update": "y ~ L(...),  x \u003c- y                                     if step % steps_per_resample == 0\nx \u003c- (1 - correlation_with_previous) y + correlation_with_previous x@1   when that param is set\nx \u003c- x@1                                                otherwise\nsteps_per_resample defaults to 1.",
       "fields": [
         {
           "name": "likelihood",
@@ -382,6 +394,7 @@
     "discounted_cumulative": {
       "name": "discounted_cumulative",
       "description": "DiscountedCumulativeIteration accumulates a provided iteration's outputs over time with a discount factor applied to the previous accumulated state.",
+      "update": "x[i] \u003c- f(x)[i] + discount_factor * x@1[i]\nwhere f(x) is the wrapped iteration's update",
       "fields": [
         {
           "name": "iteration",
@@ -397,6 +410,7 @@
     "drift_diffusion": {
       "name": "drift_diffusion",
       "description": "DriftDiffusionIteration steps a general drift–diffusion SDE per dimension.",
+      "update": "x[i] \u003c- x[i] + drift_coefficients[i] * dt + diffusion_coefficients[i] * sqrt(dt) * Z[i],  Z[i] ~ N(0, 1)",
       "params": [
         {
           "name": "diffusion_coefficients"
@@ -409,6 +423,7 @@
     "drift_jump_diffusion": {
       "name": "drift_jump_diffusion",
       "description": "DriftJumpDiffusionIteration steps a general drift–jump–diffusion process.",
+      "update": "x[i] \u003c- x[i] + drift_coefficients[i] * dt + diffusion_coefficients[i] * sqrt(dt) * Z[i] + B[i] * J[i]\nZ[i] ~ N(0, 1),  B[i] ~ Bernoulli(jump_rates[i] / (jump_rates[i] + 1/dt)),  J[i] ~ jump_dist\nJ[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.",
       "fields": [
         {
           "name": "jump_dist",
@@ -430,6 +445,7 @@
     "embedded_simulation_run": {
       "name": "embedded_simulation_run",
       "description": "EmbeddedSimulationRunIteration runs a nested simulation to termination at each outer step.",
+      "update": "x \u003c- the final states of the nested run's partitions, joined in partition order\neach step the nested run starts afresh from its partitions' initial states and\nruns until its own termination condition. Before it starts, each params key\ninner/param sets that param on the nested partition named inner\n(inner/init_state_values sets its initial state), init_time_value, if set,\nis its start time, and inner/init_state_values_from_outer = [o, w] sets the\ninitial state to x@1[o : o + w]. Its draws continue from the previous step's\nrun unless SetReseedBase is used.\nx \u003c- x@1 while step \u003c burn_in_steps",
       "fields": [
         {
           "name": "run"
@@ -449,6 +465,7 @@
     "ensemble_kalman_filter": {
       "name": "ensemble_kalman_filter",
       "description": "EnsembleKalmanFilterIteration assimilates observations into a forecast ensemble with the stochastic Ensemble Kalman Filter.",
+      "update": "f_i = forecast_ensemble[i*d : (i+1)*d],  m = (1/N) sum_i f_i\nf_i \u003c- m + sqrt(inflation) (f_i - m)\nH f selects f at observation_indices,  R = diag(observation_noise_variance)\nPxy = (1/(N-1)) sum_i (f_i - m)(H f_i - H m)^T\nPyy = (1/(N-1)) sum_i (H f_i - H m)(H f_i - H m)^T + R\nK = Pxy Pyy^-1\ne_i[j] ~ N(0, observation_noise_variance[j])\nx[i*d : (i+1)*d] \u003c- f_i + K (latest_data_values + e_i - H f_i)\nN = ensemble_size, d = state_dimension; only the first p = len(observation_indices)\nvalues of latest_data_values are used.",
       "params": [
         {
           "name": "ensemble_size"
@@ -478,6 +495,7 @@
     "expression": {
       "name": "expression",
       "description": "ExpressionIteration is a declarative Iteration: the per-step update is given as string expressions rather than as Go, so a whole partition can be specified as data (and hence from YAML, or by an agent) with no compilation step.",
+      "update": "x \u003c- the user's expressions: bindings evaluated in order, then one output\nexpression per field giving that field's block of x, elementwise with length-1\nvalues broadcasting (a length-1 output fills its whole field)\na field's name reads its block of x@1, an upstream alias that partition's last\ncommitted state, a params key its value, and dt, t and step as usual",
       "fields": [
         {
           "name": "bindings"
@@ -497,6 +515,7 @@
     "from_history": {
       "name": "from_history",
       "description": "FromHistoryIteration streams data from an in-memory StateHistory.",
+      "update": "x \u003c- r[step + init_steps_taken]\nwhere r[0], ..., r[d-1] are the source history's rows oldest first (r[0] is the\ninitial state), r[d] = latest_data_values and d is the history's depth;\nit panics once step + init_steps_taken passes d",
       "fields": [
         {
           "name": "init_steps_taken"
@@ -511,6 +530,7 @@
     "from_input": {
       "name": "from_input",
       "description": "unboundInputIteration is what {type: from_input} resolves to at load: a placeholder for the input's rows, which are read when a run starts.",
+      "update": "x \u003c- the input partition's row number step (row 0 is the initial state)",
       "fields": [
         {
           "name": "input"
@@ -523,6 +543,7 @@
     "from_storage": {
       "name": "from_storage",
       "description": "FromStorageIteration streams data from an in-memory [][]float64.",
+      "update": "x \u003c- data[step + init_steps_taken]\nwhere data[0] is the initial state; it panics once the rows run out",
       "fields": [
         {
           "name": "data"
@@ -535,6 +556,7 @@
     "geometric_brownian_motion": {
       "name": "geometric_brownian_motion",
       "description": "GeometricBrownianMotionIteration steps a multiplicative (geometric) Brownian motion per dimension.",
+      "update": "x[i] \u003c- x[i] * (1 + sqrt(variances[i] * dt) * Z[i]),  Z[i] ~ N(0, 1)",
       "params": [
         {
           "name": "variances"
@@ -544,6 +566,7 @@
     "gradient_descent": {
       "name": "gradient_descent",
       "description": "GradientDescentIteration performs a gradient-based parameter update.",
+      "update": "x[i] \u003c- x[i] - learning_rate[0] * gradient[i]\nwhen ascent is given and ascent[0] == 1: x[i] \u003c- x[i] + learning_rate[0] * gradient[i]",
       "params": [
         {
           "name": "ascent",
@@ -560,6 +583,7 @@
     "hawkes_process": {
       "name": "hawkes_process",
       "description": "HawkesProcessIteration defines an iteration for a Hawkes process.",
+      "update": "x[i] \u003c- x[i] + Bernoulli(intensity[i] / (intensity[i] + 1/dt))",
       "params": [
         {
           "name": "intensity"
@@ -569,6 +593,7 @@
     "hawkes_process_intensity": {
       "name": "hawkes_process_intensity",
       "description": "HawkesProcessIntensityIteration an iteration for a Hawkes process self-exciting intensity function.",
+      "update": "x[i] \u003c- background_rates[i] + sum over k = 2..D of\n        w(H@1, H@k, t, t@k) * (H@(k-1)[i] - H@k[i])\nH@k is hawkes_partition_index@k, the counting partition's state k steps back\n(its index is read once, at Configure). D is that partition's state history\ndepth, t@k the time of its state k steps back (t@1 = t), and w(...) the kernel,\nwhich weights each step's count increment by the whole state vectors and times.",
       "fields": [
         {
           "name": "kernel",
@@ -587,6 +612,7 @@
     "mcts_apply": {
       "name": "mcts_apply",
       "description": "ApplyIteration advances the environment by one ply per stochadex outer step using a best-action signal supplied either via params_from_upstream (within-step) OR via params_as_partitions (lagged read of an upstream partition's state-history row).",
+      "update": "s = decode(x@1)\nb = best_idx_partition@1[best_index_slot] if best_idx_partition is set, else best_legal_idx\nx \u003c- encode(apply(s, legal actions(s)[b]))\nx \u003c- x@1 if terminal(s), b \u003c 0, b is not a legal-action index, or apply fails",
       "fields": [
         {
           "name": "best_index_slot"
@@ -610,6 +636,7 @@
     "mcts_rollout": {
       "name": "mcts_rollout",
       "description": "MCTSRolloutIteration runs one rollout per stochadex step.",
+      "update": "leaf = [encoded state (W values), has_leaf]\n(r, ok) = rollout(decode(leaf[0:W])): a playout of at most rollout_max_steps\n          actions under the environment's legal actions, apply and terminal,\n          seeded from the partition seed and step\nx[0:P] \u003c- r,  x[P] \u003c- 1     when has_leaf != 0 and the rollout gives ok with P scores\nx \u003c- 0                      otherwise",
       "fields": [
         {
           "name": "environment",
@@ -629,6 +656,7 @@
     "mcts_tree": {
       "name": "mcts_tree",
       "description": "MCTSTreeIteration runs the (selection + expansion + backup) phase of a UCT MCTS search as a stochadex iteration.",
+      "update": "if root_state is set and differs from the root: reset the tree to decode(root_state)\nback up the path selected at step - 1 with r = rollout_scores_partition@1[0:P]\n  (or rollout_scores[0:P]) when its ok flag r[P] != 0; else count a visit only\nselect a leaf by UCT from the root, using the environment's legal actions,\n  apply and terminal (a terminal leaf is backed up with its terminal scores at once)\nx[0] \u003c- most-visited root legal-action index (-1 if none)\nx[1 : 1+W] \u003c- encode(leaf),  x[1+W] \u003c- 1     when the leaf awaits a rollout\nx[1 : 1+W] \u003c- encode(root),  x[1+W] \u003c- 0     when the leaf is terminal or apply failed\nx[2+W : 2+W+K] \u003c- root visits per legal action,  x[2+W+K : 2+W+2K] \u003c- root win sums",
       "fields": [
         {
           "name": "environment",
@@ -662,6 +690,7 @@
     "ornstein_uhlenbeck": {
       "name": "ornstein_uhlenbeck",
       "description": "OrnsteinUhlenbeckIteration steps an Ornstein–Uhlenbeck mean-reverting process per dimension using an Euler–Maruyama discretisation.",
+      "update": "x[i] \u003c- x[i] + thetas[i] * (mus[i] - x[i]) * dt + sigmas[i] * sqrt(dt) * Z[i],  Z[i] ~ N(0, 1)",
       "params": [
         {
           "name": "mus"
@@ -677,6 +706,7 @@
     "ornstein_uhlenbeck_exact_gaussian": {
       "name": "ornstein_uhlenbeck_exact_gaussian",
       "description": "OrnsteinUhlenbeckExactGaussianIteration advances each dimension with the exact conditional Gaussian transition for an OU process on the current timestep increment (independent across dimensions).",
+      "update": "x[i] \u003c- mus[i] + (x[i] - mus[i]) * exp(-thetas[i] * dt) + sqrt(v[i]) * Z[i],  Z[i] ~ N(0, 1)\nv[i] = max(0, sigmas[i]^2 / (2 * thetas[i]) * (1 - exp(-2 * thetas[i] * dt)))\nwhen thetas[i] == 0: x[i] \u003c- x[i] + sigmas[i] * sqrt(dt) * Z[i]",
       "params": [
         {
           "name": "mus"
@@ -692,6 +722,7 @@
     "param_values": {
       "name": "param_values",
       "description": "ParamValuesIteration writes the float param values under \"param_values\" directly to the state.",
+      "update": "x \u003c- param_values",
       "params": [
         {
           "name": "param_values"
@@ -701,6 +732,7 @@
     "poisson_process": {
       "name": "poisson_process",
       "description": "PoissonProcessIteration implements a Poisson counting process for event simulation.",
+      "update": "x[i] \u003c- x[i] + Bernoulli(rates[i] / (rates[i] + 1/dt))",
       "params": [
         {
           "name": "rates"
@@ -710,6 +742,7 @@
     "posterior_covariance": {
       "name": "posterior_covariance",
       "description": "PosteriorCovarianceIteration updates an estimate of the covariance matrix of the posterior distribution over params using log-likelihood and param values given in the state history of other partitions, and a mean vector.",
+      "update": "l_j = loglike_partitions[j]@1[loglike_indices[j]]       (index 0 when loglike_indices is unset)\nc = posterior_log_normalisation\nT = log(exp(c) + sum_j exp(l_j))\ne_j = mean - param_partitions[j]@1\nC \u003c- exp(c - T) C@1 + sum_j exp(l_j - T) e_j e_j^T\nx is C, d x d row-major with d the length of mean. Only the upper triangle\n(x[i*d + k], k \u003e= i) is updated; the lower triangle keeps x@1.\nx \u003c- x@1 if T is NaN or infinite; a non-finite exp(c - T) counts as 0\nand a term whose exp(l_j - T) is non-finite is skipped.",
       "params": [
         {
           "name": "loglike_indices",
@@ -732,6 +765,7 @@
     "posterior_log_normalisation": {
       "name": "posterior_log_normalisation",
       "description": "PosteriorLogNormalisationIteration updates the cumulative normalisation of the posterior distribution over params using log-likelihood values given in the state history of other partitions as well as a specified past discounting factor.",
+      "update": "l_j(k) = loglike_partitions[j]@k[loglike_indices[j]]    (index 0 when loglike_indices is unset)\nx[0] \u003c- log sum_{k=1..D} past_discounting_factor^(k-1) sum_j exp(l_j(k))\nD is the state history depth of loglike_partitions[0]; every row of that\ndepth is summed, including rows not yet written by a step.",
       "params": [
         {
           "name": "loglike_indices",
@@ -748,6 +782,7 @@
     "posterior_mean": {
       "name": "posterior_mean",
       "description": "PosteriorMeanIteration updates an estimate of the mean of the posterior distribution over params using log-likelihood and param values given in the state history of other partitions.",
+      "update": "l_j = loglike_partitions[j]@1[loglike_indices[j]]       (index 0 when loglike_indices is unset)\nc = posterior_log_normalisation\nT = log(exp(c) + sum_j exp(l_j))\nx \u003c- exp(c - T) x@1 + sum_j exp(l_j - T) transform(param_partitions[j]@1)\nx \u003c- x@1 if T is NaN or infinite; a non-finite exp(c - T) counts as 0\nand a term whose exp(l_j - T) is non-finite is skipped.\ntransform(v) is v for mean, and (mean - v)^2 per element for variance.",
       "fields": [
         {
           "name": "transform",
@@ -788,6 +823,7 @@
     "replicated_simulation_run": {
       "name": "replicated_simulation_run",
       "description": "ReplicatedSimulationRunIteration states a model once, runs it once per replica at every step, and outputs each replica's final row of one partition.",
+      "update": "x[r*w : (r+1)*w] \u003c- the final state of output_partition in replica r's nested run\nwhere w is output_partition's width. Each step every replica's nested run starts\nafresh from its initial state and runs until its own termination condition,\nwith a seed derived from this partition's seed, the step and r. Before it runs,\neach param_forwarding entry partition/param = [j1, j2, ...] sets that param to\n[replica_params[r*m + j1], replica_params[r*m + j2], ...], m = params_per_replica",
       "fields": [
         {
           "name": "output_partition"
@@ -814,6 +850,7 @@
     "scalar_regression_stats": {
       "name": "scalar_regression_stats",
       "description": "ScalarRegressionStatsIteration maintains OLS-relevant sufficient statistics for scalar y on scalar x, optionally with intercept, and writes closed-form estimates each step.",
+      "update": "X = the x param, Y = the y param (one value each)\ncumulative: each sum adds this step's pair to its value in x@1\n  Sx += X, Sy += Y, Sxx += X^2, Sxy += X Y, Syy += Y^2, n += 1\nwindow: the pair is appended to the last W = scalar_regression_window_length\n  pairs (the oldest dropped once W are held) and the sums are over those pairs\nthrough origin: beta \u003c- Sxy / Sxx,  sigma2 \u003c- (Syy - Sxy^2 / Sxx) / (n - 1)\nintercept: D = n Sxx - Sx^2,  beta \u003c- (n Sxy - Sx Sy) / D,  alpha \u003c- (Sy - beta Sx) / n\n  sigma2 \u003c- (Syy - alpha Sy - beta Sxy) / (n - 2)\nDegenerate fits, with eps = scalar_regression_min_denominator (default 1e-12):\nthrough origin, beta = sigma2 = 0 when Sxx \u003c= eps, and sigma2 = 0 when n \u003c 2;\nintercept, alpha = Sy / n and beta = sigma2 = 0 when |D| \u003c= eps or n \u003c 2, and\nsigma2 = 0 when n \u003c 3. A residual sum slightly below 0 from rounding is taken as 0.",
       "params": [
         {
           "name": "x"
@@ -827,6 +864,7 @@
     "smc_posterior": {
       "name": "smc_posterior",
       "description": "SMCPosteriorIteration computes importance-weighted posterior statistics from particle log-likelihoods and parameters received via params_from_upstream channels.",
+      "update": "l_p = particle_loglikes[p],  theta_p = particle_params[p*d : (p+1)*d]\nw_p = exp(l_p - log sum_q exp(l_q))\nm = sum_p w_p theta_p,  C = sum_p w_p (theta_p - m)(theta_p - m)^T\nx[0:d] \u003c- m,  x[d : d+d^2] \u003c- C (row-major),  x[d+d^2] \u003c- log sum_p exp(l_p) - log N",
       "fields": [
         {
           "name": "param_names"
@@ -853,6 +891,7 @@
     "smc_proposal": {
       "name": "smc_proposal",
       "description": "SMCProposalIteration generates N particle proposals at each step.",
+      "update": "theta_p[j] ~ prior_j                                    for step = 1\ntheta_p ~ N(m, C'), redrawn until theta_p[j] is in prior_j's support for every j,  for step \u003e 1\nm = posterior_partition@1[0:d],  C = posterior_partition@1[d:d+d^2]\nC' = C with each diagonal C[j][j] raised to at least 0.01 times prior_j's variance\nx[p*d : (p+1)*d] \u003c- theta_p                             for p = 0..num_particles-1\nd is the number of priors. Prior variance: (hi - lo)^2/12 for uniform, sigma^2\nfor truncated normal, half normal and log normal, 1 otherwise. If C' is not\npositive definite, the draw uses the diagonal factor sqrt(C'[j][j]) instead\n(1 for a non-positive entry).",
       "fields": [
         {
           "name": "priors",
@@ -882,6 +921,7 @@
     "values_changing_events": {
       "name": "values_changing_events",
       "description": "ValuesChangingEventsIteration calls and outputs from an iteration in the map keyed by an event.",
+      "update": "e \u003c- e(x)[0], the update of event_iteration\nx \u003c- f_e(x), the update of the iteration_by_event entry for e, if there is one\notherwise x \u003c- default_values if set, else x \u003c- x@1",
       "fields": [
         {
           "name": "event_iteration",
@@ -902,6 +942,7 @@
     "values_collection": {
       "name": "values_collection",
       "description": "ValuesCollectionIteration maintains a fixed-width rolling collection of value vectors.",
+      "update": "slot k is x[k*m : (k+1)*m] with m = values_state_width; slot 0 holds this step's pop\nx \u003c- x@1, then\npush: if push gives values v, v fills the lowest slot k \u003e= 1 whose first\nelement is empty_value (it panics when there is none)\npop: slot 0 \u003c- empty_value; then if pop_index gives k, slot 0 \u003c- slot k and\nslot k \u003c- empty_value",
       "fields": [
         {
           "name": "pop_index",
@@ -982,6 +1023,7 @@
     "values_function": {
       "name": "values_function",
       "description": "ValuesFunctionIteration provides a flexible way to compute derived values from simulation state and parameters using user-defined functions.",
+      "update": "x \u003c- function(params, state histories, time)\nor, with transform and reduce in place of function,\nx \u003c- reduce(transform(params, state histories, time))",
       "fields": [
         {
           "name": "function",
@@ -1036,6 +1078,7 @@
     "values_function_cumulative_mean": {
       "name": "values_function_cumulative_mean",
       "description": "ValuesFunctionCumulativeMeanIteration is the running mean of a function's values over every row of the data it reads: the data partition's initial row and each step's row after it, all weighted equally.",
+      "update": "x[i] \u003c- x@1[i] + (f[i] - x@1[i]) / (step + 1)\nwhere f is the function's values on the latest row (latest_data_values)",
       "fields": [
         {
           "name": "function",
@@ -1135,6 +1178,7 @@
     "values_function_vector_covariance": {
       "name": "values_function_vector_covariance",
       "description": "ValuesFunctionVectorCovarianceIteration computes a kernel-weighted rolling covariance of a function over historical values and times.",
+      "update": "x[i*m + j] \u003c- (sum over k = 0..D of w(k) * (f(k)[i] - mean[i]) * (f(k)[j] - mean[j]))\n              / (sum over k = 0..D of w(k) - 1)        for i \u003c= j\nx[i*m + j] \u003c- 0                                         for i \u003e j\nwhere f(k) is the function's values k rows back (k = 0: latest_data_values),\nm its width, D = data_values_partition's state_history_depth,\nw(k) = w(latest_data_values, y(k), t + dt, t@k) with y(0) = latest_data_values,\ny(k) = data_values_partition@k, and t@k the time k steps back (t@0 = t + dt, t@1 = t)\nx \u003c- x@1 while step \u003c D",
       "fields": [
         {
           "name": "function",
@@ -1249,6 +1293,7 @@
     "values_function_vector_mean": {
       "name": "values_function_vector_mean",
       "description": "ValuesFunctionVectorMeanIteration computes a kernel-weighted rolling mean of a function over historical values and times.",
+      "update": "x \u003c- (sum over k = 0..D of w(k) * f(k)) / (sum over k = 0..D of w(k) - c)\nwhere f(k) is the function's values k rows back (k = 0: latest_data_values),\nD = data_values_partition's state_history_depth,\nw(k) = w(latest_data_values, y(k), t + dt, t@k) with y(0) = latest_data_values,\ny(k) = data_values_partition@k, and t@k the time k steps back (t@0 = t + dt, t@1 = t),\nand c = subtract_from_normalisation (0 if unset)\nwith without_normalisation = 1 the division is dropped: x \u003c- sum over k of w(k) * f(k)\nx \u003c- x@1 while step \u003c D",
       "fields": [
         {
           "name": "function",
@@ -1368,6 +1413,7 @@
     "values_grouped_aggregation": {
       "name": "values_grouped_aggregation",
       "description": "ValuesGroupedAggregationIteration collects historical values and weights into grouping buckets (defined by tupled grouping series) and applies a caller-provided aggregation per bucket.",
+      "update": "for each position j of state_value_indices, with a = state_value_indices[j]:\n  v = latest_states[a] joins group latest_groupings_tupindex_*[j]\n      with weight w(v, v, t + dt, t + dt)\n  v = state_partition@k[a] joins group grouping_partition_tupindex_*@k[g]\n      with g = grouping_value_indices_tupindex_*[j] and weight\n      w(latest_states[a], v, t + dt, t@k), for k = 1..min(step, D)\nx \u003c- default_values (zeros if unset), then for each declared group g\nx[g] \u003c- aggregation(the values and weights in group g)\nwhere a group is the tuple over tupindex 0, 1, ... rounded to float_precision,\nthe declared groups are the accepted_value_group_tupindex_* tuples in order,\nD = state_partition's state_history_depth and t@k the time k steps back (t@1 = t).\nUndeclared groups are dropped, fail the run (error), or are aggregated\ntogether into x[n-1] (other).",
       "fields": [
         {
           "name": "aggregation",
@@ -1438,6 +1484,7 @@
     "values_sorted_collection_covariance": {
       "name": "values_sorted_collection_covariance",
       "description": "ValuesSortedCollectionCovarianceIteration computes a weighted covariance matrix of the top entries in a sorted collection around a provided mean, blended with its own previous state via a learning rate.",
+      "update": "x[i*m + j] \u003c- (1 - learning_rate) * x@1[i*m + j] + learning_rate * C[i][j]   for i \u003c= j\nx[i*m + j] \u003c- (1 - learning_rate) * x@1[i*m + j]                             for i \u003e j\nC = sum over e of (weights[e] / W) * (v_e - u)(v_e - u)^T\nu = sum over e of (weights[e] / W) * v_e,  W = sum over e of weights[e]\nwhere v_e is the values of sorted_collection entry e (entries are values_state_width + 1\nwide, sort key first), m = values_state_width, e runs over the first len(weights)\nentries, skipping those whose key is empty_value when it is set\nx \u003c- x@1 when W = 0",
       "params": [
         {
           "name": "empty_value",
@@ -1460,6 +1507,7 @@
     "values_sorted_collection_mean": {
       "name": "values_sorted_collection_mean",
       "description": "ValuesSortedCollectionMeanIteration computes a weighted mean of the top entries in a sorted collection, blended with its own previous state via a learning rate.",
+      "update": "x[j] \u003c- (1 - learning_rate) * x@1[j] + learning_rate * u[j]\nu = sum over e of weights[e] * v_e\nwhere v_e is the values of sorted_collection entry e (entries are values_state_width + 1\nwide, sort key first) and e runs over the first len(weights) entries\nwith empty_value set, entries whose key is empty_value are skipped and u is\ndivided by the sum of the weights used; if none is used, x \u003c- x@1",
       "params": [
         {
           "name": "empty_value",
@@ -1482,6 +1530,7 @@
     "values_sorting_collection": {
       "name": "values_sorting_collection",
       "description": "ValuesSortingCollectionIteration maintains a sorted collection of entries.",
+      "update": "entry k is x[k*(m+1) : (k+1)*(m+1)] = [key, values] with m = values_state_width\nx \u003c- x@1, then if push_and_sort gives key s and values v, [s, v] goes into the\nfirst entry k whose key is empty_value or less than s; when s is greater than\nthat key, entries k, k+1, ... first shift down one and the last is dropped.\nIf no entry qualifies, nothing is inserted. Entries stay highest key first.",
       "fields": [
         {
           "name": "push_and_sort",
@@ -1538,6 +1587,7 @@
     "values_weighted_resampling": {
       "name": "values_weighted_resampling",
       "description": "ValuesWeightedResamplingIteration resamples historical values from other partitions according to provided (optionally discounted) weights.",
+      "update": "(k, j) ~ Categorical(p), p(k, j) proportional to exp(L_j) * past_discounting_factor^(k-1)\nfor k = 1..D and j over log_weight_partitions, where\nL_j = log_weight_partitions[j]@1[log_weight_indices[j]] (element 0 if unset)\nand D = log_weight_partitions[0]'s state_history_depth\nx \u003c- data_values_partitions[j]@k",
       "params": [
         {
           "name": "data_values_partitions"
@@ -1557,6 +1607,7 @@
     "wiener_process": {
       "name": "wiener_process",
       "description": "WienerProcessIteration implements a standard Wiener process (Brownian motion) for stochastic simulation.",
+      "update": "x[i] \u003c- x[i] + sqrt(variances[i] * dt) * Z[i],  Z[i] ~ N(0, 1)",
       "params": [
         {
           "name": "variances"
@@ -1568,6 +1619,7 @@
     "gamma_jump": {
       "name": "gamma_jump",
       "description": "GammaJumpDistribution draws jump magnitudes from a gamma distribution.",
+      "update": "jump ~ Gamma(gamma_alphas[i], gamma_betas[i])  (shape gamma_alphas[i], rate gamma_betas[i])",
       "params": [
         {
           "name": "gamma_alphas"
@@ -1582,6 +1634,7 @@
     "binned": {
       "name": "binned",
       "description": "BinnedIntegrationKernel outputs piecewise-constant weights in time.",
+      "update": "w(s) = bin_values[floor((t - t_s) / bin_stepsize)]\n\nwhere t is the current time the caller passes and t_s the sample's time;\nan index outside bin_values panics.",
       "params": [
         {
           "name": "bin_stepsize"
@@ -1593,11 +1646,13 @@
     },
     "constant": {
       "name": "constant",
-      "description": "ConstantIntegrationKernel returns 1.0 for every sample."
+      "description": "ConstantIntegrationKernel returns 1.0 for every sample.",
+      "update": "w(s) = 1"
     },
     "exponential": {
       "name": "exponential",
       "description": "ExponentialIntegrationKernel applies exponential decay over time.",
+      "update": "w(s) = exp(-(t - t_s) / exponential_weighting_timescale)\n\nwhere t is the current time the caller passes and t_s the sample's time.",
       "params": [
         {
           "name": "exponential_weighting_timescale"
@@ -1607,6 +1662,7 @@
     "gaussian_state": {
       "name": "gaussian_state",
       "description": "GaussianStateIntegrationKernel implements a Gaussian state-distance kernel for weighting historical samples based on their distance from the current state.",
+      "update": "w(s) = exp(-0.5 * (x - x_s)^T S^{-1} (x - x_s)) / det(S)\n\nwhere x is the current state the caller passes, x_s the sample's state,\nand S is covariance_matrix (flattened row-major, upper triangle read).\nThe weight does not depend on time.",
       "params": [
         {
           "name": "covariance_matrix"
@@ -1615,11 +1671,13 @@
     },
     "instantaneous": {
       "name": "instantaneous",
-      "description": "InstantaneousIntegrationKernel returns 1.0 for the most recent sample and 0.0 otherwise."
+      "description": "InstantaneousIntegrationKernel returns 1.0 for a sample whose time equals the current time and 0.0 otherwise.",
+      "update": "w(s) = 1 if t_s == t, else 0\n\nwhere t is the current time the caller passes and t_s the sample's time."
     },
     "periodic": {
       "name": "periodic",
       "description": "PeriodicIntegrationKernel applies periodic (circular) time weighting.",
+      "update": "w(s) = exp(-2 * sin^2((t - t_s) / 2) / periodic_weighting_timescale^2)\n\nwhere t is the current time the caller passes and t_s the sample's time.",
       "params": [
         {
           "name": "periodic_weighting_timescale"
@@ -1629,6 +1687,7 @@
     "product": {
       "name": "product",
       "description": "ProductIntegrationKernel multiplies two kernels to form a composite weight.",
+      "update": "w(s) = w_A(s) * w_B(s)\n\nwhere w_A and w_B are the weights of KernelA and KernelB, both given\nthe same params.",
       "fields": [
         {
           "name": "kernel_a",
@@ -1643,6 +1702,7 @@
     "t_distribution_state": {
       "name": "t_distribution_state",
       "description": "TDistributionStateIntegrationKernel applies a multivariate t kernel using an input scale matrix and degrees of freedom.",
+      "update": "w(s) = (1 + (x - x_s)^T S^{-1} (x - x_s) / degrees_of_freedom)^(-(d + degrees_of_freedom) / 2) / det(S)\n\nwhere x is the current state the caller passes, x_s the sample's state,\nd is the state width, and S is scale_matrix (flattened row-major, upper\ntriangle read). The weight does not depend on time.",
       "params": [
         {
           "name": "degrees_of_freedom"
@@ -1657,6 +1717,7 @@
     "beta": {
       "name": "beta",
       "description": "BetaLikelihoodDistribution implements a Beta distribution likelihood model for bounded continuous data analysis and parameter estimation.",
+      "update": "log p(y | a, b) = sum_i [(a_i - 1) log y_i + (b_i - 1) log(1 - y_i) - log B(a_i, b_i)]\ny_i ~ Beta(a_i, b_i)\n\na = alpha and b = beta when alpha is set; otherwise, from mean m and\nvariance v,\n\nf_i = m_i (1 - m_i) / v_i - 1,  a_i = m_i f_i,  b_i = (1 - m_i) f_i\n\nwhere m is mean, or else the latest row of the partition indexed by\nmean_partition, and v is variance, or else the latest row of the\npartition indexed by variance_partition.",
       "params": [
         {
           "name": "alpha",
@@ -1682,6 +1743,7 @@
     "gamma": {
       "name": "gamma",
       "description": "GammaLikelihoodDistribution assumes the real data are well described by a gamma distribution, given the input mean and variance.",
+      "update": "k_i = m_i^2 / v_i,  b_i = m_i / v_i\nlog p(y | m, v) = sum_i [(k_i - 1) log y_i - b_i y_i + k_i log b_i - lgamma(k_i)]\ny_i ~ Gamma(shape = k_i, rate = b_i)\n\nso each y_i has mean m_i and variance v_i, where\nm is mean, or else the latest row of the partition indexed by mean_partition;\nv is variance, or else the latest row of the partition indexed by\nvariance_partition. Each index i of y is scored and drawn independently.",
       "params": [
         {
           "name": "mean"
@@ -1700,6 +1762,7 @@
     "negative_binomial": {
       "name": "negative_binomial",
       "description": "NegativeBinomialLikelihoodDistribution assumes the real data are well described by a negative binomial distribution, given the input mean and variance.",
+      "update": "r_i = m_i^2 / (v_i - m_i),  p_i = m_i / v_i\nlog p(y | m, v) = sum_i [lgamma(r_i + y_i) - lgamma(y_i + 1) - lgamma(r_i)\n                         + r_i log p_i + y_i log(1 - p_i)]\nlambda_i ~ Gamma(shape = r_i, rate = m_i / (v_i - m_i)),  y_i ~ Poisson(lambda_i)\n\nso each y_i has mean m_i and variance v_i (v_i \u003e m_i is required), where\nm is mean, or else the latest row of the partition indexed by mean_partition;\nv is variance, or else the latest row of the partition indexed by\nvariance_partition. Each index i of y is scored and drawn independently.",
       "params": [
         {
           "name": "mean"
@@ -1718,6 +1781,7 @@
     "normal": {
       "name": "normal",
       "description": "NormalLikelihoodDistribution models data with a multivariate normal.",
+      "update": "log p(y | m, S) = -0.5 (y - m)^T S^{-1} (y - m) - 0.5 log det(S) - (d / 2) log(2 pi)\ny ~ N(m, S)\n\nwhere d is the length of m and\nm is mean, or else the latest row of the partition indexed by mean_partition.\nS is the first one set of: covariance_matrix (flattened row-major, upper\ntriangle read); diag(variance); the latest row of the partition indexed by\ncovariance_matrix_partition; diag of the latest row of the partition indexed\nby variance_partition.\nWhile the step number is at most cov_burn_in_steps, S is default_covariance\nwhen that is set. If S is not positive-definite, it is replaced by\ndefault_covariance only when AllowDefaultCovarianceFallback is true;\notherwise it panics.",
       "fields": [
         {
           "name": "allow_default_covariance_fallback"
@@ -1755,6 +1819,7 @@
     "poisson": {
       "name": "poisson",
       "description": "PoissonLikelihoodDistribution models count data with a Poisson distribution.",
+      "update": "log p(y | m) = sum_i [y_i log m_i - m_i - lgamma(y_i + 1)]\ny_i ~ Poisson(m_i)\n\nwhere m is mean, or else the latest row of the partition indexed by\nmean_partition.",
       "params": [
         {
           "name": "mean"
@@ -1766,7 +1831,8 @@
     },
     "t_distribution": {
       "name": "t_distribution",
-      "description": "TLikelihoodDistribution assumes the real data are well described by a Student's t-distribution, given the input degrees of freedom, mean and covariance matrix.",
+      "description": "TLikelihoodDistribution assumes the real data are well described by a Student's t-distribution, given the input degrees of freedom, mean and a scale matrix read from the covariance params.",
+      "update": "n = degrees_of_freedom, d = length of m\nlog p(y | m, S, n) = lgamma((n + d) / 2) - lgamma(n / 2) - (d / 2) log(n pi)\n                     - 0.5 log det(S)\n                     - ((n + d) / 2) log(1 + (y - m)^T S^{-1} (y - m) / n)\ny = m + z sqrt(n / u),  z ~ N(0, S),  u ~ ChiSquared(n)\n\nm is mean, or else the latest row of the partition indexed by mean_partition.\nS is the scale matrix, so the covariance of y is S n / (n - 2) for n \u003e 2.\nS is read from the covariance params, the first one set of: covariance_matrix (flattened row-major, upper\ntriangle read); diag(variance); the latest row of the partition indexed by\ncovariance_matrix_partition; diag of the latest row of the partition indexed\nby variance_partition.\nIf S is not positive-definite, default_covariance is used in its place\nwhen set; otherwise it panics.",
       "params": [
         {
           "name": "covariance_matrix"
@@ -1798,6 +1864,7 @@
     "wishart": {
       "name": "wishart",
       "description": "WishartLikelihoodDistribution assumes the real data are well described by a Wishart distribution, given the input degrees of freedom and scale matrix.",
+      "update": "n = degrees_of_freedom, V = scale_matrix, d = sqrt(len(scale_matrix))\nlog p(Y | n, V) = ((n - d - 1) / 2) log det(Y) - tr(V^{-1} Y) / 2\n                  - (n d / 2) log 2 - (n / 2) log det(V) - log Gamma_d(n / 2)\nY ~ Wishart(n, V)\n\ny is the d x d matrix Y flattened row-major; scoring reads only its upper\ntriangle, and a draw fills only the upper triangle (entries below the\ndiagonal are 0). V is read from its upper triangle. If V is not\npositive-definite, default_scale is used in its place when set;\notherwise it panics.",
       "params": [
         {
           "name": "default_scale",
@@ -3056,6 +3123,7 @@
     "half_normal": {
       "name": "half_normal",
       "description": "HalfNormalPrior is a half-normal distribution (x \u003e= 0) with scale sigma.",
+      "update": "log p(x) = log 2 - 0.5 (x / Sigma)^2 - log Sigma - 0.5 log(2 pi) for x \u003e= 0, else -Inf\nx = Sigma |z|,  z ~ N(0, 1)",
       "fields": [
         {
           "name": "sigma",
@@ -3066,6 +3134,7 @@
     "log_normal": {
       "name": "log_normal",
       "description": "LogNormalPrior is a log-normal distribution: log(x) ~ N(mu, sigma^2).",
+      "update": "log p(x) = -0.5 ((log x - Mu) / Sigma)^2 - log x - log Sigma - 0.5 log(2 pi) for x \u003e 0, else -Inf\nx = exp(Mu + Sigma z),  z ~ N(0, 1)",
       "fields": [
         {
           "name": "mu",
@@ -3080,6 +3149,7 @@
     "truncated_normal": {
       "name": "truncated_normal",
       "description": "TruncatedNormalPrior is a normal distribution truncated to [Lo, Hi].",
+      "update": "log p(x) = -0.5 ((x - Mu) / Sigma)^2 - log Sigma - 0.5 log(2 pi) for Lo \u003c= x \u003c= Hi, else -Inf\nx ~ N(Mu, Sigma^2), redrawn until Lo \u003c= x \u003c= Hi\n\nThe log-density omits the truncation normaliser, which is constant\non the support.",
       "fields": [
         {
           "name": "hi",
@@ -3102,6 +3172,7 @@
     "uniform": {
       "name": "uniform",
       "description": "UniformPrior is a uniform distribution on [Lo, Hi].",
+      "update": "log p(x) = -log(Hi - Lo) for Lo \u003c= x \u003c= Hi, else -Inf\nx = Lo + u (Hi - Lo),  u ~ U(0, 1)",
       "fields": [
         {
           "name": "hi",

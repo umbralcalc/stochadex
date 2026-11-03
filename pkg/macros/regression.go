@@ -40,8 +40,23 @@ const (
 //
 // Through-origin state (cumulative): [Sxx, Sxy, Syy, n, beta, sigma2] (width 6).
 // With intercept (cumulative): [n, Sx, Sy, Sxx, Sxy, Syy, alpha, beta, sigma2] (width 9).
-// Window modes prefix a packed ring of the last W (x, y) pairs plus a count slot,
-// then the same trailing statistic/estimate block.
+// Window modes prefix the last W (x, y) pairs, packed oldest first, plus a count
+// slot, then the same trailing statistic/estimate block.
+//
+// Update:
+//
+//	X = the x param, Y = the y param (one value each)
+//	cumulative: each sum adds this step's pair to its value in x@1
+//	  Sx += X, Sy += Y, Sxx += X^2, Sxy += X Y, Syy += Y^2, n += 1
+//	window: the pair is appended to the last W = scalar_regression_window_length
+//	  pairs (the oldest dropped once W are held) and the sums are over those pairs
+//	through origin: beta <- Sxy / Sxx,  sigma2 <- (Syy - Sxy^2 / Sxx) / (n - 1)
+//	intercept: D = n Sxx - Sx^2,  beta <- (n Sxy - Sx Sy) / D,  alpha <- (Sy - beta Sx) / n
+//	  sigma2 <- (Syy - alpha Sy - beta Sxy) / (n - 2)
+//	Degenerate fits, with eps = scalar_regression_min_denominator (default 1e-12):
+//	through origin, beta = sigma2 = 0 when Sxx <= eps, and sigma2 = 0 when n < 2;
+//	intercept, alpha = Sy / n and beta = sigma2 = 0 when |D| <= eps or n < 2, and
+//	sigma2 = 0 when n < 3. A residual sum slightly below 0 from rounding is taken as 0.
 type ScalarRegressionStatsIteration struct {
 	intercept    bool
 	mode         RegressionStatsMode

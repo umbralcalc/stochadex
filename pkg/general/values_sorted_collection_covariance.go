@@ -17,8 +17,21 @@ import (
 //     "learning_rate" (blend factor α), and "values_state_width" (dimension
 //     D of each entry, excluding sort key). It centres on the top entries'
 //     own weighted mean, so it takes no mean from elsewhere.
-//   - Output is a D×D flattened symmetric covariance matrix, consistent
-//     with mat.SymDense.RawSymmetric().Data format.
+//   - Output is the D×D covariance matrix flattened row-major in
+//     mat.SymDense.RawSymmetric().Data format: only the upper triangle
+//     (including the diagonal) is estimated, and each lower-triangle entry
+//     only decays by (1 - learning_rate) from its previous value.
+//
+// Update:
+//
+//	x[i*m + j] <- (1 - learning_rate) * x@1[i*m + j] + learning_rate * C[i][j]   for i <= j
+//	x[i*m + j] <- (1 - learning_rate) * x@1[i*m + j]                             for i > j
+//	C = sum over e of (weights[e] / W) * (v_e - u)(v_e - u)^T
+//	u = sum over e of (weights[e] / W) * v_e,  W = sum over e of weights[e]
+//	where v_e is the values of sorted_collection entry e (entries are values_state_width + 1
+//	wide, sort key first), m = values_state_width, e runs over the first len(weights)
+//	entries, skipping those whose key is empty_value when it is set
+//	x <- x@1 when W = 0
 type ValuesSortedCollectionCovarianceIteration struct {
 }
 

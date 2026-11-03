@@ -1066,6 +1066,35 @@ An entry the engine ships says what it takes:
   `params_incomplete` marks a type that also reads params whose names a config chooses, as an
   `expression` reads the ones its formulas name.
 
+**`update`** is what the component computes each step, so you can tell whether a built-in already
+does what a model needs before writing it as an expression (a built-in is several times faster;
+see [performance](performance.html#built-in-iterations-beat-the-same-maths-as-an-expression)).
+Search it the same way:
+
+```bash
+stochadex catalogue | jq -r '.iterations[] | select(.update | test("dt")) | .name'
+```
+
+An update is written in a small notation:
+
+- `x` is the partition's state, `x[i]` its element `i` and `n` its width; `x <- ...` gives the
+  next state. A rule written for `x[i]` applies to every element.
+- A param is written by its key, `variances[i]`. A param set by `params_from_upstream` holds the
+  upstream's value from *this* step.
+- `dt` is this step's increment, `t` the time the step starts from, and `step` the step's number,
+  counting from 1.
+- `x@k` is the partition's own state `k` steps back (`x@1` is its last committed state), and
+  `P@k` the same for a partition `P` named by a `params_as_partitions` param; `t@k` is the time
+  of the state `k` steps back (`t@1` is `t`, and `t@0` is `t + dt`, the time the step reaches).
+- `Z ~ N(m, s^2)`, `U ~ U(0, 1)`, `Poisson(r)`, `Gamma(a, b)` and `Bernoulli(p)` are draws,
+  independent for every element and step unless the rule says *shared*.
+- A component the iteration takes appears as itself: a kernel's weight `w(...)`, a likelihood's
+  log-density `log p(y | ...)` or draw `y ~ L(...)`, a nested iteration's update `f(x)`. A
+  kernel, likelihood, prior or jump states its own rule in the same notation.
+
+A rule may end with a line of prose for what the formula can't show, such as a default
+returned until a window has filled.
+
 All of this is read from the engine's source, and checked against every shipped config.
 `catalogue_version` changes only if a key is removed or changes meaning; new keys may
 appear within a version. From Go, use `api.BuildCatalogue()`.

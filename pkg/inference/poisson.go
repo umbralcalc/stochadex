@@ -13,6 +13,14 @@ import (
 // Usage hints:
 //   - Provide mean via params or upstream partition outputs.
 //   - GenerateNewSamples draws iid Poisson variates per dimension.
+//
+// Update:
+//
+//	log p(y | m) = sum_i [y_i log m_i - m_i - lgamma(y_i + 1)]
+//	y_i ~ Poisson(m_i)
+//
+//	where m is mean, or else the latest row of the partition indexed by
+//	mean_partition.
 type PoissonLikelihoodDistribution struct {
 	sampler *rng.Sampler
 	mean    *mat.VecDense

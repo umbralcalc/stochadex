@@ -48,6 +48,7 @@ type goPackage struct {
 	consts  map[string]string
 	structs map[string]*ast.StructType
 	docs    map[string]string
+	updates map[string]string
 	vars    map[string]ast.Expr
 	files   []*ast.File
 }
@@ -69,7 +70,8 @@ func parseSource(t *testing.T) goSource {
 		}
 		pkg := &goPackage{name: name, funcs: map[string]*ast.FuncDecl{},
 			methods: map[string]map[string]*ast.FuncDecl{}, consts: map[string]string{},
-			structs: map[string]*ast.StructType{}, docs: map[string]string{}, vars: map[string]ast.Expr{}}
+			structs: map[string]*ast.StructType{}, docs: map[string]string{}, vars: map[string]ast.Expr{},
+			updates: map[string]string{}}
 		for _, parsed := range packages {
 			for _, file := range parsed.Files {
 				pkg.files = append(pkg.files, file)
@@ -116,6 +118,7 @@ func indexFile(pkg *goPackage, file *ast.File) {
 						text = typed.Doc.Text()
 					}
 					pkg.docs[spec.Name.Name] = firstSentence(text)
+					pkg.updates[spec.Name.Name] = updateRule(text)
 				}
 			}
 		}
@@ -142,6 +145,32 @@ func receiverType(expression ast.Expr) string {
 func firstSentence(text string) string {
 	var parser doc.Package
 	return strings.Join(strings.Fields(parser.Synopsis(text)), " ")
+}
+
+// updateRule is the rule a doc comment states in its Update: paragraph: the indented
+// block that follows the line "Update:", with its indent removed.
+func updateRule(text string) string {
+	lines := strings.Split(text, "\n")
+	for index, line := range lines {
+		if strings.TrimSpace(line) != "Update:" {
+			continue
+		}
+		var rule []string
+		for _, next := range lines[index+1:] {
+			switch {
+			case strings.HasPrefix(next, "\t"):
+				rule = append(rule, strings.TrimPrefix(next, "\t"))
+			case strings.TrimSpace(next) == "" && len(rule) == 0:
+				continue
+			case strings.TrimSpace(next) == "":
+				rule = append(rule, "")
+			default:
+				return strings.TrimSpace(strings.Join(rule, "\n"))
+			}
+		}
+		return strings.TrimSpace(strings.Join(rule, "\n"))
+	}
+	return ""
 }
 
 // reads collects the params one function reads, and the functions it calls
@@ -712,6 +741,7 @@ func describedTypes(t *testing.T) map[string]map[string]CatalogueEntry {
 			return entry
 		}
 		entry.Description = pkg.docs[typeName]
+		entry.Update = pkg.updates[typeName]
 		reads := source.typeParams(pkg, typeName)
 		for _, name := range sortedKeys(reads.names) {
 			entry.Params = append(entry.Params, CatalogueField{Name: name, Optional: reads.names[name]})
@@ -818,6 +848,7 @@ func (s goSource) choices(pkg *goPackage, registry string) []CatalogueEntry {
 		}
 		if decl := owner.funcs[function]; decl != nil {
 			choice.Description = firstSentence(decl.Doc.Text())
+			choice.Update = updateRule(decl.Doc.Text())
 			reads := s.readParams(owner, "", []ast.Node{decl})
 			for _, param := range sortedKeys(reads.names) {
 				choice.Params = append(choice.Params, CatalogueField{Name: param, Optional: reads.names[param]})
@@ -1056,4 +1087,35 @@ func TestCatalogueFieldsCoverUsage(t *testing.T) {
 	for _, line := range sortedKeys(missing) {
 		t.Error(line)
 	}
+}
+
+// ruledFamilies are the families whose every engine-shipped entry must state what it
+// computes: the components a partition's update is made of.
+var ruledFamilies = []string{"iterations", "kernels", "likelihoods", "priors", "jumps"}
+
+func TestCatalogueUpdateRules(t *testing.T) {
+	described := catalogueFields()
+	for _, family := range ruledFamilies {
+		var missing []string
+		for _, name := range sortedKeys(described[family]) {
+			if described[family][name].Update == "" {
+				missing = append(missing, name)
+			}
+		}
+		if len(missing) > 0 {
+			t.Errorf("%s with no Update: paragraph in their Go doc comment: %v", family, missing)
+		}
+	}
+
+	t.Run("a rule is the indented block after Update:", func(t *testing.T) {
+		for text, want := range map[string]string{
+			"Steps a walk.\n\nUpdate:\n\n\tx <- x + Z\n\tZ ~ N(0, 1)\n\nMore prose.\n": "x <- x + Z\nZ ~ N(0, 1)",
+			"Update:\n\tx <- x\n\n\tthen y <- x\n":                                     "x <- x\n\nthen y <- x",
+			"Steps a walk, with no rule stated.\n":                                     "",
+		} {
+			if got := updateRule(text); got != want {
+				t.Errorf("updateRule(%q) = %q, want %q", text, got, want)
+			}
+		}
+	})
 }

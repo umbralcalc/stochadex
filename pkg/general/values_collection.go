@@ -99,6 +99,15 @@ func ParamValuesPushFunction(
 //   - Provide: "values_state_width" and "empty_value" for sentinel handling.
 //   - Set Push to define how new values are appended; set PopIndex to surface
 //     an existing entry into index 0 and clear that slot.
+//
+// Update:
+//
+//	slot k is x[k*m : (k+1)*m] with m = values_state_width; slot 0 holds this step's pop
+//	x <- x@1, then
+//	push: if push gives values v, v fills the lowest slot k >= 1 whose first
+//	element is empty_value (it panics when there is none)
+//	pop: slot 0 <- empty_value; then if pop_index gives k, slot 0 <- slot k and
+//	slot k <- empty_value
 type ValuesCollectionIteration struct {
 	PopIndex func(
 		params *simulator.Params,

@@ -13,13 +13,19 @@ import (
 //
 // For dimension i with θ=thetas[i], μ=mus[i], σ=sigmas[i], Δt=NextIncrement,
 // X_{t+Δt} | X_t is Gaussian with mean μ+(X_t-μ)exp(-θΔt) and variance
-// (σ²/(2θ))(1-exp(-2θΔt)) when θ>0; when θ=0 it reduces to Brownian motion
+// (σ²/(2θ))(1-exp(-2θΔt)) when θ≠0; when θ=0 it reduces to Brownian motion
 // with variance σ²Δt.
 //
 // Usage hints:
 //   - Same param keys as OrnsteinUhlenbeckIteration ("thetas", "mus", "sigmas").
 //   - Suitable when Euler–Maruyama error from OrnsteinUhlenbeckIteration would
 //     dominate (large θΔt) and the model is linear OU per dimension.
+//
+// Update:
+//
+//	x[i] <- mus[i] + (x[i] - mus[i]) * exp(-thetas[i] * dt) + sqrt(v[i]) * Z[i],  Z[i] ~ N(0, 1)
+//	v[i] = max(0, sigmas[i]^2 / (2 * thetas[i]) * (1 - exp(-2 * thetas[i] * dt)))
+//	when thetas[i] == 0: x[i] <- x[i] + sigmas[i] * sqrt(dt) * Z[i]
 type OrnsteinUhlenbeckExactGaussianIteration struct {
 	sampler *rng.Sampler
 }

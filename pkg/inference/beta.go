@@ -62,6 +62,20 @@ import (
 //   - O(d) time complexity where d is the data dimension
 //   - Memory usage: O(d) for parameter storage
 //   - Efficient for moderate dimensions (< 1000)
+//
+// Update:
+//
+//	log p(y | a, b) = sum_i [(a_i - 1) log y_i + (b_i - 1) log(1 - y_i) - log B(a_i, b_i)]
+//	y_i ~ Beta(a_i, b_i)
+//
+//	a = alpha and b = beta when alpha is set; otherwise, from mean m and
+//	variance v,
+//
+//	f_i = m_i (1 - m_i) / v_i - 1,  a_i = m_i f_i,  b_i = (1 - m_i) f_i
+//
+//	where m is mean, or else the latest row of the partition indexed by
+//	mean_partition, and v is variance, or else the latest row of the
+//	partition indexed by variance_partition.
 type BetaLikelihoodDistribution struct {
 	sampler *rng.Sampler
 	alpha   *mat.VecDense

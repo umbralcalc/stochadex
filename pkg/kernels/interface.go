@@ -28,20 +28,20 @@ import "github.com/umbralcalc/stochadex/pkg/simulator"
 //   - Zero weights indicate no influence from that historical sample
 //
 // Common Kernel Types:
-//   - ExponentialIntegrationKernel: Exponential time decay w(t) = exp(-λt)
-//   - GaussianStateIntegrationKernel: State distance weighting w(x,y) = exp(-||x-y||²/2σ²)
-//   - InstantaneousIntegrationKernel: No weighting, w = 1 for current, 0 for past
+//   - ExponentialIntegrationKernel: Exponential time decay w = exp(-(t-s)/τ)
+//   - GaussianStateIntegrationKernel: State distance weighting w = exp(-(x-y)ᵀΣ⁻¹(x-y)/2) / det(Σ)
+//   - InstantaneousIntegrationKernel: w = 1 for a sample at the current time, 0 otherwise
 //   - PeriodicIntegrationKernel: Periodic time weighting for seasonal patterns
 //
 // Example Usage:
 //
 //	kernel := &ExponentialIntegrationKernel{}
 //	kernel.Configure(0, settings)
-//	kernel.SetParams(params) // params contains decay rate λ
+//	kernel.SetParams(params) // params holds exponential_weighting_timescale τ
 //
 //	// Evaluate weight for a sample from 1.0 time units ago
 //	weight := kernel.Evaluate(currentState, pastState, 5.0, 4.0)
-//	// weight = exp(-λ * 1.0)
+//	// weight = exp(-1.0 / τ)
 //
 // Performance Considerations:
 //   - Evaluate is called frequently during aggregation

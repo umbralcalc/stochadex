@@ -8,6 +8,11 @@ import (
 //
 // Usage hints:
 //   - Provide Data (rows over time); supports initial offset via InitStepsTaken.
+//
+// Update:
+//
+//	x <- data[step + init_steps_taken]
+//	where data[0] is the initial state; it panics once the rows run out
 type FromStorageIteration struct {
 	Data           [][]float64
 	InitStepsTaken int

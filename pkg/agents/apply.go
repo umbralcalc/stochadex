@@ -44,6 +44,13 @@ import (
 // Optional warm field:
 //   - BestIdxSlot: row offset of the best-action index within the
 //     upstream partition's row when using state-history mode.
+//
+// Update:
+//
+//	s = decode(x@1)
+//	b = best_idx_partition@1[best_index_slot] if best_idx_partition is set, else best_legal_idx
+//	x <- encode(apply(s, legal actions(s)[b]))
+//	x <- x@1 if terminal(s), b < 0, b is not a legal-action index, or apply fails
 type ApplyIteration[S any, A any] struct {
 	Env         Environment[S, A]
 	Decoder     func([]float64) (S, error)

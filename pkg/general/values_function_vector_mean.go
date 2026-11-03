@@ -149,6 +149,17 @@ func DataValuesFunction(
 //   - Set Kernel and related params (e.g., discount factors, bandwidth, etc.).
 //   - Use "without_normalisation" to return the weighted sum rather than mean;
 //     "subtract_from_normalisation" adjusts the normaliser if needed.
+//
+// Update:
+//
+//	x <- (sum over k = 0..D of w(k) * f(k)) / (sum over k = 0..D of w(k) - c)
+//	where f(k) is the function's values k rows back (k = 0: latest_data_values),
+//	D = data_values_partition's state_history_depth,
+//	w(k) = w(latest_data_values, y(k), t + dt, t@k) with y(0) = latest_data_values,
+//	y(k) = data_values_partition@k, and t@k the time k steps back (t@0 = t + dt, t@1 = t),
+//	and c = subtract_from_normalisation (0 if unset)
+//	with without_normalisation = 1 the division is dropped: x <- sum over k of w(k) * f(k)
+//	x <- x@1 while step < D
 type ValuesFunctionVectorMeanIteration struct {
 	Function func(
 		params *simulator.Params,

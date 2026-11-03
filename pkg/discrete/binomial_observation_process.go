@@ -12,8 +12,15 @@ import (
 // Usage hints:
 //   - Provide: "observed_values" (counts), "state_value_observation_probs" (p's),
 //     and "state_value_observation_indices" (which entries to observe).
-//   - For each index i: draws Binomial(N=observed_values[i], p=probs[i]).
+//   - For the j-th entry of the indices: draws
+//     Binomial(N=observed_values[indices[j]], p=probs[j]); the output has one
+//     element per index.
 //   - Seed is taken from the partition's Settings for reproducibility.
+//
+// Update:
+//
+//	x[j] <- Binomial(observed_values[state_value_observation_indices[j]], state_value_observation_probs[j])
+//	n = len(state_value_observation_indices); j runs over 0..n-1.
 type BinomialObservationProcessIteration struct {
 	binomialDist *distuv.Binomial
 }

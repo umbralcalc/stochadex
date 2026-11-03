@@ -50,6 +50,10 @@ import (
 //   - O(d) time complexity where d is the number of dimensions
 //   - Memory usage: O(1) per dimension
 //   - Efficient for high-dimensional simulations
+//
+// Update:
+//
+//	x[i] <- x[i] + sqrt(variances[i] * dt) * Z[i],  Z[i] ~ N(0, 1)
 type WienerProcessIteration struct {
 	sampler *rng.Sampler
 }

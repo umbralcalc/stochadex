@@ -20,6 +20,10 @@ type JumpDistribution interface {
 // Usage hints:
 //   - Param names per dimension: "gamma_alphas" and "gamma_betas".
 //   - Seed is taken from the partition's Settings for reproducibility.
+//
+// Update:
+//
+//	jump ~ Gamma(gamma_alphas[i], gamma_betas[i])  (shape gamma_alphas[i], rate gamma_betas[i])
 type GammaJumpDistribution struct {
 	sampler *rng.Sampler
 }
@@ -49,6 +53,11 @@ func (g *GammaJumpDistribution) NewJump(
 //   - Provide per-dimension "rates" and a JumpDistribution implementation.
 //   - At each step, increments by a jump draw with probability approx. rate*dt.
 //   - Configure timestep size via the simulator to control event frequency.
+//
+// Update:
+//
+//	x[i] <- x[i] + B[i] * J[i],  B[i] ~ Bernoulli(rates[i] / (rates[i] + 1/dt)),  J[i] ~ jump_dist
+//	J[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.
 type CompoundPoissonProcessIteration struct {
 	JumpDist JumpDistribution
 	sampler  *rng.Sampler

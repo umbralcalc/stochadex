@@ -9,6 +9,11 @@ import (
 //
 // Usage hints:
 //   - Wrap another iteration to compute cumulative sums step-by-step.
+//
+// Update:
+//
+//	x <- x@1 + f(x)
+//	where f(x) is the wrapped iteration's update
 type CumulativeIteration struct {
 	Iteration simulator.Iteration
 }

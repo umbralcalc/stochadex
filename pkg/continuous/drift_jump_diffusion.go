@@ -17,6 +17,12 @@ import (
 //   - Uses x_{t+dt} = x_t + drift*dt + diffusion*sqrt(dt)*N(0,1) + jumps.
 //   - Jumps occur with Poisson hazard approx. rate*dt; set dt via timestep config.
 //   - Seed for RNGs derives from the partition's Settings for reproducibility.
+//
+// Update:
+//
+//	x[i] <- x[i] + drift_coefficients[i] * dt + diffusion_coefficients[i] * sqrt(dt) * Z[i] + B[i] * J[i]
+//	Z[i] ~ N(0, 1),  B[i] ~ Bernoulli(jump_rates[i] / (jump_rates[i] + 1/dt)),  J[i] ~ jump_dist
+//	J[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.
 type DriftJumpDiffusionIteration struct {
 	JumpDist       JumpDistribution
 	normalSampler  *rng.Sampler

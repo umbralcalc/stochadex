@@ -12,9 +12,9 @@
 // Mathematical Background:
 // Kernels define weighting functions K(t, s) that determine how much influence
 // a data point at time s has on the aggregated value at time t. Common patterns:
-//   - Exponential kernels: K(t, s) = exp(-λ(t-s)) for time decay
-//   - Gaussian kernels: K(x, y) = exp(-||x-y||²/2σ²) for state similarity
-//   - Periodic kernels: K(t, s) = cos(2π(t-s)/T) for cyclical patterns
+//   - Exponential kernels: K(t, s) = exp(-(t-s)/τ) for time decay over a timescale τ
+//   - Gaussian state kernels: K(x, y) = exp(-(x-y)ᵀΣ⁻¹(x-y)/2) / det(Σ) for state similarity
+//   - Periodic kernels: K(t, s) = exp(-2 sin²((t-s)/2) / τ²) for cyclical patterns
 //
 // Usage Patterns:
 //   - Weight historical data for rolling window statistics

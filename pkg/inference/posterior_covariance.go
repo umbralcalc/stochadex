@@ -11,6 +11,18 @@ import (
 // PosteriorCovarianceIteration updates an estimate of the covariance matrix
 // of the posterior distribution over params using log-likelihood and param
 // values given in the state history of other partitions, and a mean vector.
+//
+// Update:
+//
+//	l_j = loglike_partitions[j]@1[loglike_indices[j]]       (index 0 when loglike_indices is unset)
+//	c = posterior_log_normalisation
+//	T = log(exp(c) + sum_j exp(l_j))
+//	e_j = mean - param_partitions[j]@1
+//	C <- exp(c - T) C@1 + sum_j exp(l_j - T) e_j e_j^T
+//	x is C, d x d row-major with d the length of mean. Only the upper triangle
+//	(x[i*d + k], k >= i) is updated; the lower triangle keeps x@1.
+//	x <- x@1 if T is NaN or infinite; a non-finite exp(c - T) counts as 0
+//	and a term whose exp(l_j - T) is non-finite is skipped.
 type PosteriorCovarianceIteration struct {
 }
 

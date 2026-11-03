@@ -109,7 +109,7 @@ func NewTransformReduceFunction(
 //	        // Extract current state from first partition
 //	        currentState := stateHistories[0].Values.RawRowView(0)
 //
-//	        // Compute derived feature: moving average
+//	        // Compute derived feature: mean of the first two values
 //	        if len(currentState) >= 2 {
 //	            return []float64{(currentState[0] + currentState[1]) / 2.0}
 //	        }
@@ -131,6 +131,12 @@ func NewTransformReduceFunction(
 //   - See NewTransformReduceFunction for composed transform-reduce operations
 //   - See ParamsTransform for parameter extraction utilities
 //   - See SumReduce for simple reduction operations
+//
+// Update:
+//
+//	x <- function(params, state histories, time)
+//	or, with transform and reduce in place of function,
+//	x <- reduce(transform(params, state histories, time))
 type ValuesFunctionIteration struct {
 	Function func(
 		params *simulator.Params,

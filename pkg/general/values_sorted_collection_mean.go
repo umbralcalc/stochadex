@@ -15,6 +15,15 @@ import (
 //     "learning_rate" (blend factor α), and "values_state_width" (dimension D
 //     of each entry, excluding sort key).
 //   - Sorted collection entries are ordered highest sort key first (index 0).
+//
+// Update:
+//
+//	x[j] <- (1 - learning_rate) * x@1[j] + learning_rate * u[j]
+//	u = sum over e of weights[e] * v_e
+//	where v_e is the values of sorted_collection entry e (entries are values_state_width + 1
+//	wide, sort key first) and e runs over the first len(weights) entries
+//	with empty_value set, entries whose key is empty_value are skipped and u is
+//	divided by the sum of the weights used; if none is used, x <- x@1
 type ValuesSortedCollectionMeanIteration struct {
 }
 

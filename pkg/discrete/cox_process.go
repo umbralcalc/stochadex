@@ -6,6 +6,10 @@ import (
 )
 
 // CoxProcessIteration defines an iteration for a Cox process.
+//
+// Update:
+//
+//	x[i] <- x[i] + Bernoulli(rates[i] / (rates[i] + 1/dt))
 type CoxProcessIteration struct {
 	sampler *rng.Sampler
 }

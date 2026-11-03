@@ -545,16 +545,17 @@ func (t *MCTSTree[S, A]) RootEdgeStats(legal []A) []MCTSEdgeStat[A] {
 //
 // # Pipeline lag
 //
-// MCTSTreeIteration is one half of a 2-step pipeline with a downstream rollout
-// partition. The rollout partition reads (leaf_state, has_leaf) and
-// outputs scores; MCTSTreeIteration then reads those scores via
-// params_from_upstream (key MCTSTreeParamRolloutScores) and applies a backup
-// to the path it selected two steps earlier. The 2-step lag is
-// fundamental to expressing selection-then-backup as stochadex's
-// single-row dataflow.
+// MCTSTreeIteration is one half of a two-partition pipeline with a downstream
+// rollout partition. The rollout partition reads (leaf_state, has_leaf)
+// within-step and outputs scores; MCTSTreeIteration then reads those scores
+// one step later, from the rollout partition's state history (key
+// MCTSTreeParamRolloutScoresPartition) or via params_from_upstream (key
+// MCTSTreeParamRolloutScores), and applies a backup to the path it selected
+// the step before. The 1-step lag is fundamental to expressing
+// selection-then-backup as stochadex's single-row dataflow.
 //
 // In steady state each outer step does one selection + one backup, so the
-// throughput is one MCTS iteration per stochadex step (after a 2-step
+// throughput is one MCTS iteration per stochadex step (after a 1-step
 // fill).
 //
 // Warm fields (must be set before Configure):
@@ -567,6 +568,18 @@ func (t *MCTSTree[S, A]) RootEdgeStats(legal []A) []MCTSEdgeStat[A] {
 //     Stats slots beyond the actual legal count are zero-padded.
 //   - StateWidth: W, the width of one encoded state.
 //   - Players: P, the per-player score vector length.
+//
+// Update:
+//
+//	if root_state is set and differs from the root: reset the tree to decode(root_state)
+//	back up the path selected at step - 1 with r = rollout_scores_partition@1[0:P]
+//	  (or rollout_scores[0:P]) when its ok flag r[P] != 0; else count a visit only
+//	select a leaf by UCT from the root, using the environment's legal actions,
+//	  apply and terminal (a terminal leaf is backed up with its terminal scores at once)
+//	x[0] <- most-visited root legal-action index (-1 if none)
+//	x[1 : 1+W] <- encode(leaf),  x[1+W] <- 1     when the leaf awaits a rollout
+//	x[1 : 1+W] <- encode(root),  x[1+W] <- 0     when the leaf is terminal or apply failed
+//	x[2+W : 2+W+K] <- root visits per legal action,  x[2+W+K : 2+W+2K] <- root win sums
 type MCTSTreeIteration[S any, A any] struct {
 	Env             Environment[S, A]
 	Cfg             MCTSConfig[S, A]

@@ -11,6 +11,12 @@ import (
 // Usage hints:
 //   - Provide "exponential_weighting_timescale"; weight = exp((t_past - t_now)/tau).
 //   - Suitable for recency-weighted means.
+//
+// Update:
+//
+//	w(s) = exp(-(t - t_s) / exponential_weighting_timescale)
+//
+//	where t is the current time the caller passes and t_s the sample's time.
 type ExponentialIntegrationKernel struct {
 	timescale float64
 }

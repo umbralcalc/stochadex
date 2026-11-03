@@ -8,6 +8,10 @@ import (
 //
 // Usage hints:
 //   - Use to compute simple (unweighted) sums or means.
+//
+// Update:
+//
+//	w(s) = 1
 type ConstantIntegrationKernel struct{}
 
 // Configure implements IntegrationKernel.

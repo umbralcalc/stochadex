@@ -12,6 +12,11 @@ import (
 // Usage hints:
 //   - Wrap another iteration to compute discounted cumulative sums step-by-step.
 //   - Provide: "discount_factor" (single float γ in [0, 1]).
+//
+// Update:
+//
+//	x[i] <- f(x)[i] + discount_factor * x@1[i]
+//	where f(x) is the wrapped iteration's update
 type DiscountedCumulativeIteration struct {
 	Iteration simulator.Iteration
 }

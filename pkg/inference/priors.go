@@ -14,6 +14,11 @@ type Prior interface {
 }
 
 // UniformPrior is a uniform distribution on [Lo, Hi].
+//
+// Update:
+//
+//	log p(x) = -log(Hi - Lo) for Lo <= x <= Hi, else -Inf
+//	x = Lo + u (Hi - Lo),  u ~ U(0, 1)
 type UniformPrior struct {
 	Lo, Hi float64
 }
@@ -37,6 +42,14 @@ func (p *UniformPrior) InSupport(x float64) bool {
 }
 
 // TruncatedNormalPrior is a normal distribution truncated to [Lo, Hi].
+//
+// Update:
+//
+//	log p(x) = -0.5 ((x - Mu) / Sigma)^2 - log Sigma - 0.5 log(2 pi) for Lo <= x <= Hi, else -Inf
+//	x ~ N(Mu, Sigma^2), redrawn until Lo <= x <= Hi
+//
+//	The log-density omits the truncation normaliser, which is constant
+//	on the support.
 type TruncatedNormalPrior struct {
 	Mu, Sigma float64
 	Lo, Hi    float64
@@ -68,6 +81,11 @@ func (p *TruncatedNormalPrior) InSupport(x float64) bool {
 }
 
 // HalfNormalPrior is a half-normal distribution (x >= 0) with scale sigma.
+//
+// Update:
+//
+//	log p(x) = log 2 - 0.5 (x / Sigma)^2 - log Sigma - 0.5 log(2 pi) for x >= 0, else -Inf
+//	x = Sigma |z|,  z ~ N(0, 1)
 type HalfNormalPrior struct {
 	Sigma float64
 }
@@ -92,6 +110,11 @@ func (p *HalfNormalPrior) InSupport(x float64) bool {
 }
 
 // LogNormalPrior is a log-normal distribution: log(x) ~ N(mu, sigma^2).
+//
+// Update:
+//
+//	log p(x) = -0.5 ((log x - Mu) / Sigma)^2 - log x - log Sigma - 0.5 log(2 pi) for x > 0, else -Inf
+//	x = exp(Mu + Sigma z),  z ~ N(0, 1)
 type LogNormalPrior struct {
 	Mu, Sigma float64
 }

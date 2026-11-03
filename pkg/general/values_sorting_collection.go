@@ -63,6 +63,14 @@ func ParamValuesPushAndSortFunction(
 // Usage hints:
 //   - Provide: "values_state_width" (entry width minus 1 for sort key) and
 //     "empty_value" sentinel. Set PushAndSort to define insertion behaviour.
+//
+// Update:
+//
+//	entry k is x[k*(m+1) : (k+1)*(m+1)] = [key, values] with m = values_state_width
+//	x <- x@1, then if push_and_sort gives key s and values v, [s, v] goes into the
+//	first entry k whose key is empty_value or less than s; when s is greater than
+//	that key, entries k, k+1, ... first shift down one and the last is dropped.
+//	If no entry qualifies, nothing is inserted. Entries stay highest key first.
 type ValuesSortingCollectionIteration struct {
 	PushAndSort func(
 		params *simulator.Params,
