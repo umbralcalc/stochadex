@@ -268,7 +268,7 @@
     "compound_poisson_process": {
       "name": "compound_poisson_process",
       "description": "CompoundPoissonProcessIteration steps a compound Poisson process.",
-      "update": "x[i] \u003c- x[i] + B[i] * J[i],  B[i] ~ Bernoulli(rates[i] / (rates[i] + 1/dt)),  J[i] ~ jump_dist\nJ[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.",
+      "update": "x[i] \u003c- x[i] + B[i] * J[i],  B[i] ~ Bernoulli(rates[i] / (rates[i] + 1/dt)),  J[i] ~ jump_dist\nJ[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.\nB and J are drawn from independent streams, both determined by the partition seed.",
       "fields": [
         {
           "name": "jump_dist",
@@ -1832,7 +1832,7 @@
     "t_distribution": {
       "name": "t_distribution",
       "description": "TLikelihoodDistribution assumes the real data are well described by a Student's t-distribution, given the input degrees of freedom, mean and a scale matrix read from the covariance params.",
-      "update": "n = degrees_of_freedom, d = length of m\nlog p(y | m, S, n) = lgamma((n + d) / 2) - lgamma(n / 2) - (d / 2) log(n pi)\n                     - 0.5 log det(S)\n                     - ((n + d) / 2) log(1 + (y - m)^T S^{-1} (y - m) / n)\ny = m + z sqrt(n / u),  z ~ N(0, S),  u ~ ChiSquared(n)\n\nm is mean, or else the latest row of the partition indexed by mean_partition.\nS is the scale matrix, so the covariance of y is S n / (n - 2) for n \u003e 2.\nS is read from the covariance params, the first one set of: covariance_matrix (flattened row-major, upper\ntriangle read); diag(variance); the latest row of the partition indexed by\ncovariance_matrix_partition; diag of the latest row of the partition indexed\nby variance_partition.\nIf S is not positive-definite, default_covariance is used in its place\nwhen set; otherwise it panics.",
+      "update": "n = degrees_of_freedom, d = length of m\nlog p(y | m, S, n) = lgamma((n + d) / 2) - lgamma(n / 2) - (d / 2) log(n pi)\n                     - 0.5 log det(S)\n                     - ((n + d) / 2) log(1 + (y - m)^T S^{-1} (y - m) / n)\ny = m + z sqrt(n / u),  z ~ N(0, S),  u ~ ChiSquared(n)\n\nm is mean, or else the latest row of the partition indexed by mean_partition.\nS is the scale matrix, so the covariance of y is S n / (n - 2) for n \u003e 2.\nS is read from the covariance params, the first one set of: covariance_matrix (flattened row-major, upper\ntriangle read); diag(variance); the latest row of the partition indexed by\ncovariance_matrix_partition; diag of the latest row of the partition indexed\nby variance_partition.\nIf S is not positive-definite, default_covariance is used in its place\nwhen set in these params; otherwise, or if it is not positive-definite\neither, it panics.",
       "params": [
         {
           "name": "covariance_matrix"

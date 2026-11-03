@@ -1,6 +1,8 @@
 package inference
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"math/rand/v2"
@@ -10,6 +12,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/kernels"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/stat/distmv"
 )
 
 func TestTDistributionLogLikelihood(t *testing.T) {
@@ -195,4 +198,90 @@ func TestTDistributionLogLikelihoodGradient(t *testing.T) {
 			}
 		},
 	)
+}
+
+func TestTDistributionDefaultCovariance(t *testing.T) {
+	t.Run(
+		"test that a non-positive-definite covariance falls back to default_covariance",
+		func(t *testing.T) {
+			mean := []float64{0.5, -1.0}
+			defaultCov := []float64{2.0, 0.3, 0.3, 1.5}
+			params := simulator.NewParams(map[string][]float64{
+				"degrees_of_freedom": {4.0},
+				"mean":               mean,
+				"covariance_matrix":  {1.0, 2.0, 2.0, 1.0},
+				"default_covariance": defaultCov,
+			})
+			dist := &TLikelihoodDistribution{Src: rand.NewPCG(1, 1)}
+			dist.SetParams(&params, 0, nil, nil)
+			want, ok := distmv.NewStudentsT(
+				mean, mat.NewSymDense(2, defaultCov), 4.0, nil)
+			if !ok {
+				t.Fatal("reference scale matrix is not positive-definite")
+			}
+			data := []float64{1.2, 0.4}
+			if got := dist.EvaluateLogLike(data); got != want.LogProb(data) {
+				t.Errorf("log-likelihood %v, want %v", got, want.LogProb(data))
+			}
+		},
+	)
+	t.Run(
+		"test that default_covariance does not carry over once absent from params",
+		func(t *testing.T) {
+			withDefault := simulator.NewParams(map[string][]float64{
+				"degrees_of_freedom": {4.0},
+				"mean":               {0.0, 0.0},
+				"covariance_matrix":  {1.0, 2.0, 2.0, 1.0},
+				"default_covariance": {1.0, 0.0, 0.0, 1.0},
+			})
+			withoutDefault := simulator.NewParams(map[string][]float64{
+				"degrees_of_freedom": {4.0},
+				"mean":               {0.0, 0.0},
+				"covariance_matrix":  {1.0, 2.0, 2.0, 1.0},
+			})
+			dist := &TLikelihoodDistribution{Src: rand.NewPCG(1, 1)}
+			dist.SetParams(&withDefault, 0, nil, nil)
+			dist.EvaluateLogLike([]float64{0.0, 0.0})
+			dist.SetParams(&withoutDefault, 0, nil, nil)
+			got := recoveredPanic(func() { dist.EvaluateLogLike([]float64{0.0, 0.0}) })
+			if got != "covariance matrix is not positive-definite" {
+				t.Errorf("panic %q, want the covariance reported as not positive-definite", got)
+			}
+		},
+	)
+	t.Run(
+		"test that a non-positive-definite default_covariance panics clearly",
+		func(t *testing.T) {
+			params := simulator.NewParams(map[string][]float64{
+				"degrees_of_freedom": {4.0},
+				"mean":               {0.0, 0.0},
+				"covariance_matrix":  {1.0, 2.0, 2.0, 1.0},
+				"default_covariance": {1.0, 3.0, 3.0, 1.0},
+			})
+			dist := &TLikelihoodDistribution{Src: rand.NewPCG(1, 1)}
+			dist.SetParams(&params, 0, nil, nil)
+			for name, call := range map[string]func(){
+				"EvaluateLogLike":    func() { dist.EvaluateLogLike([]float64{0.0, 0.0}) },
+				"GenerateNewSamples": func() { dist.GenerateNewSamples() },
+			} {
+				got := recoveredPanic(call)
+				if !strings.Contains(got, "default_covariance is also not positive-definite") {
+					t.Errorf("%s panic %q, want default_covariance reported as not positive-definite",
+						name, got)
+				}
+			}
+		},
+	)
+}
+
+// recoveredPanic runs call and returns the message it panicked with, or the
+// empty string if it returned normally.
+func recoveredPanic(call func()) (message string) {
+	defer func() {
+		if r := recover(); r != nil {
+			message = fmt.Sprint(r)
+		}
+	}()
+	call()
+	return ""
 }

@@ -49,6 +49,12 @@ an exact version rather than assume stability across minors.
   seeded stream and depended on the event draws: with a gamma shape below 1, the first jump's
   size correlated with its event uniform at about 0.6 across seeds. The event draws are
   unchanged; the jump sizes, and so the process's values, differ for a given seed.
+- The t-distribution likelihood (`inference.TLikelihoodDistribution`) treats
+  `default_covariance` as the normal likelihood does. A `default_covariance` absent from the
+  params is no longer kept from an earlier call, so a covariance that is not positive-definite
+  panics saying so instead of quietly using a stale fallback. A `default_covariance` that is not
+  positive-definite either now panics with a message naming it, instead of a nil-pointer
+  dereference.
 
 ## [0.27.0] — 2026-11-01
 
