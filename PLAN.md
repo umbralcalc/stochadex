@@ -14,8 +14,8 @@ Status: **proposed** (2026-11-01), successor to the config-runtime plan (complet
 |---|---|
 | A. Docs and docstrings meet the repo's standards | **Done (#176)** |
 | "One simulation, run: says how many times" wording | **Done (#175)** |
-| B. Evidence: expression versus built-in cost | **Part 1 in review (#177)**; part 2 built (branch `claude/building-block-twins`, opened once #177 merges) |
-| C. The catalogue says what each iteration computes | To do |
+| B. Evidence: expression versus built-in cost | **Part 1 done (#177)**; part 2 in review (#179) |
+| C. The catalogue says what each iteration computes | **In review (#180)**: an update rule for all 71 shipped components, from their doc comments, tested for completeness; notation in the reference |
 | D. Suggesting built-ins for expressions | To do, after B and C |
 | E. One implementation per macro | To do |
 | F. Retire deprecated spellings; decide on flattening `main:` | To do, with robert |
@@ -162,6 +162,15 @@ robert's), and logged here with its PR.
   (homark's pipeline and price drift, trywizard's scoring), which are promotion candidates.
 - **Found:** `cox_process` and `poisson_process` have identical update code (both read `rates`
   each step); one can become an alias of the other under E.
+
+### C. Findings
+
+Writing each rule from the code corrected about a dozen doc comments that disagreed with it,
+and turned up four likely bugs, proposed as their own session: `compound_poisson_process`'s
+event and jump samplers share a seed; the t-distribution likelihood keeps a stale
+`default_covariance` and nil-panics on its fallback; `posterior_covariance` (and two other
+covariance iterations) leave the lower triangle stale or zero; `values_weighted_resampling`
+reads every depth's weight from the latest row.
 
 ## 2. Order
 
