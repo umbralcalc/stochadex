@@ -121,7 +121,7 @@ Acceptance: the suggestions are machine-readable for robert (the robert session'
 one as a failure to fix); every shipped config and expression twin is either clean or its
 suggestions are recorded and justified.
 
-**Built, in review (#182).** `stochadex inspect --suggest` (JSON, robert's contract) and an
+**Merged (#182).** `stochadex inspect --suggest` (JSON, robert's contract) and an
 unverified `--check` notice. There are seven templates, and factoring covers a non-param slot.
 Each suggestion is verified by a capped lockstep run of the replacement. Recall on the catalogue
 is exact: the three declarative twins' suggestions are precisely the hand-written building-block
@@ -151,6 +151,12 @@ Acceptance: the hand-written template list is gone; every built-in with a closed
 its own state is matched; the rest are excluded with reasons; `TestSuggestOnCatalogueTwins` and
 D's tests pass unchanged; every generated template is tested both ways (it fires on its
 expression form, and the verified replacement agrees step for step).
+
+**Built, in review (#183).** There are 9 built-ins suggested, 2 aliases (`cox_process` and `hawkes_process` are
+`poisson_process`) and 40 exclusions with reasons, held by `TestSuggestionTemplateCoverage`. The
+exclusions are mostly components, other partitions' state, history, or rules with cases. The
+next widening would be rules with cases (`gradient_descent`, `ornstein_uhlenbeck_exact_gaussian`).
+Release D and D.2 together once this merges.
 
 ### E. One implementation per macro
 
