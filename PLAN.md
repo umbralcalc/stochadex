@@ -130,6 +130,28 @@ after the release, its gate can run `inspect --suggest` and treat a non-empty re
 failure to fix. Not covered: multi-field partitions, and groups of expression partitions that
 together equal one built-in. Add templates as the catalogue shows a need.
 
+### D.2 Suggestion templates generated from the catalogue
+
+D's seven templates are hand-copied versions of the catalogue's update rules (C). Generate them
+from those rules instead, so coverage grows with the catalogue and can't drift from it:
+
+1. Translate each update rule written in the plain notation (`x[i] <- ...` over its own state,
+   params by key, `dt`/`t`/`step`, draws `Z`/`U` and the named draws) into a template. Params
+   become slots and draws the standard placeholders. The matcher and the verification run
+   are D's, unchanged.
+2. A coverage test in the style of `registry_coverage_test.go`: every built-in iteration either
+   has a generated template or is excluded with a stated reason ("takes a kernel", "reads a
+   window", "nested iteration", "agent/inference state"). A new built-in can't land without one
+   or the other, and the exclusion list is the published answer to what `--suggest` can't find.
+
+Multi-field partitions and groups of expression partitions that together equal one built-in
+stay out until a real config shows the need.
+
+Acceptance: the hand-written template list is gone; every built-in with a closed-form update of
+its own state is matched; the rest are excluded with reasons; `TestSuggestOnCatalogueTwins` and
+D's tests pass unchanged; every generated template is tested both ways (it fires on its
+expression form, and the verified replacement agrees step for step).
+
 ### E. One implementation per macro
 
 First, the safety net: a test that builds every macro both ways (the `pkg/macros` constructor
@@ -186,11 +208,12 @@ reads every depth's weight from the latest row.
 1. A and the wording (#175), in flight.
 2. B, the evidence.
 3. C, then D, with robert's session consuming each as it lands.
-4. E, starting with its cross-check test (useful on its own).
-5. F, once robert has moved.
-6. R items as they come; R.2 and R.3 whenever a slot is free.
+4. D.2, once D has merged: it reuses D's matcher and verification.
+5. E, starting with its cross-check test (useful on its own).
+6. F, once robert has moved.
+7. R items as they come; R.2 and R.3 whenever a slot is free.
 
-Release around each contract-visible change (C's catalogue field, D's suggestions, F's
+Release around each contract-visible change (C's catalogue field, D's suggestions and D.2's wider coverage, F's
 removals), verifying each release as before.
 
 ## 3. Policies carried over
