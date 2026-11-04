@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/parser"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -287,6 +288,19 @@ func TestSuggest(t *testing.T) {
 		}
 	})
 
+	t.Run("a served config is checked as one run", func(t *testing.T) {
+		config := suggestConfig(expressionPartition(1, "x + sqrt(v * dt) * shared(normal(0, 1))", "v: [2]", "", 0)) +
+			"outputs:\n  - {name: stream, function: {type: connection}}\n" +
+			"run:\n  mode: serve\n  websocket: {address: \":2112\", handle: /handle}\n"
+		suggestions, err := Suggest(writeConfig(t, config))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(suggestions) != 1 || suggestions[0].Iteration != "wiener_process" {
+			t.Fatalf("got %+v", suggestions)
+		}
+	})
+
 	t.Run("a config not loaded from text is refused", func(t *testing.T) {
 		config := writeConfig(t, suggestConfig(expressionPartition(1, "x", "", "", 1)))
 		config.source = nil
@@ -426,4 +440,54 @@ func TestSuggestionMatching(t *testing.T) {
 			t.Error("they do not agree")
 		}
 	})
+}
+
+// TestSuggestOnCatalogueTwins runs Suggest over every catalogue model's twins. A
+// declarative twin is the model with every partition an expression, and a building-block
+// twin the same model with built-ins wherever one fits, chosen by hand, so the suggestions
+// for the first should be the built-ins of the second, and the second should have none.
+// (trywizard's building-block twin uses cox_process where poisson_process is suggested: the
+// two compute the same update.)
+func TestSuggestOnCatalogueTwins(t *testing.T) {
+	want := map[string][]string{
+		"homark/declarative.yaml": {"bank_rate ornstein_uhlenbeck", "log_earnings drift_diffusion",
+			"log_price drift_diffusion"},
+		"trywizard/declarative.yaml": {"baseline_rates param_values", "score_events poisson_process",
+			"card_events poisson_process"},
+		"bathing-water-forecaster/declarative.yaml": {"anomaly ornstein_uhlenbeck"},
+	}
+	files, err := filepath.Glob(filepath.Join(repoDir, "models", "*", "*.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	twins := 0
+	for _, file := range files {
+		name := filepath.Base(filepath.Dir(file)) + "/" + filepath.Base(file)
+		if !strings.HasSuffix(name, "/declarative.yaml") && !strings.HasSuffix(name, "/building_blocks.yaml") {
+			continue
+		}
+		twins++
+		t.Run(name, func(t *testing.T) {
+			text := readFile(t, file)
+			// A twin's caller sets its clock; it is given one here.
+			if !strings.Contains(text, "\n  simulation:") {
+				text += "  simulation:\n    termination_condition: {type: number_of_steps, max_steps: 50}\n" +
+					"    timestep_function: {type: constant, stepsize: 0.37}\n    init_time_value: 0\n"
+			}
+			suggestions, err := Suggest(writeConfig(t, text))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := []string{}
+			for _, suggestion := range suggestions {
+				got = append(got, suggestion.Partition+" "+suggestion.Iteration)
+			}
+			if fmt.Sprint(got) != fmt.Sprint(want[name]) {
+				t.Errorf("got %q, want %q", got, want[name])
+			}
+		})
+	}
+	if twins < 14 {
+		t.Errorf("found %d twins, want at least 14", twins)
+	}
 }

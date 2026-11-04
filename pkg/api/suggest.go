@@ -82,8 +82,8 @@ const suggestionStepCap = 50
 
 // Suggest returns a verified built-in for each expression partition of the config's
 // simulation (its expansion's, for a macros: config) that restates one, in partition
-// order. It runs the config, capped at a few steps, so it reads its inputs; it writes
-// nothing.
+// order. It runs the config once, capped at a few steps, whatever its run: says, so it
+// reads its inputs; it writes nothing.
 func Suggest(config *ApiRunConfig) ([]Suggestion, error) {
 	text := config.source
 	if len(config.Macros) > 0 {
@@ -623,6 +623,15 @@ func runCapped(
 	var document yaml3.Node
 	_ = yaml3.Unmarshal(text, &document)
 	root := document.Content[0]
+	// The check is of the partitions' maths, so it is one batch run, recording only to
+	// memory, however the config says to run and where to write.
+	var kept []*yaml3.Node
+	for index := 0; index < len(root.Content); index += 2 {
+		if key := root.Content[index].Value; key != "run" && key != "outputs" {
+			kept = append(kept, root.Content[index], root.Content[index+1])
+		}
+	}
+	root.Content = kept
 	if main := mappingValue(root, "main"); main != nil {
 		if partitions := mappingValue(main, "partitions"); partitions != nil && partition != "" {
 			var kept []*yaml3.Node
