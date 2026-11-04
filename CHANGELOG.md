@@ -25,10 +25,12 @@ an exact version rather than assume stability across minors.
 ### Added
 
 - **`stochadex inspect --suggest` finds the built-in an expression restates.** For each
-  expression partition whose update is that of `constant_values`, `param_values`,
-  `wiener_process`, `geometric_brownian_motion`, `drift_diffusion`, `ornstein_uhlenbeck` or
-  `poisson_process`, it prints, as JSON, the built-in and the YAML to replace the partition
-  with. A part of the update the built-in can't take as a param moves into an expression
+  expression partition whose update is a built-in's, it prints, as JSON, the built-in and the
+  YAML to replace the partition with. It matches every built-in whose catalogue `update` rule
+  is a one-line formula of its own state, params, clock and standard draws (nine today, from
+  `wiener_process` to `bernoulli_process`; `cox_process` and `hawkes_process` compute
+  `poisson_process`'s rule and are suggested as it), from templates generated from the
+  catalogue. A test requires every other built-in to be excluded with a reason. A part of the update the built-in can't take as a param moves into an expression
   partition of its own, wired to the built-in through `params_from_upstream`. Each suggestion
   is checked by running the config as written and with the replacement, for up to 50 steps,
   and is kept only if they agree at every step. From Go, `api.Suggest`.

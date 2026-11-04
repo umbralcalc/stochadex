@@ -1137,11 +1137,18 @@ stochadex inspect --suggest -c pull.yaml | jq -r '.[].yaml'
   seed: 7
 ```
 
-It matches a partition of one field against the updates of `constant_values`,
-`param_values`, `wiener_process`, `geometric_brownian_motion`, `drift_diffusion`,
-`ornstein_uhlenbeck` and `poisson_process`. The match ignores the order of terms and factors,
-inlines `bindings`, and reads a draw written at its scale (`normal(0, sqrt(v * dt))`) as the
-standard one scaled. A part of the update that the built-in takes as a param becomes that
+It matches a partition of one field against the `update` rule of every built-in whose rule
+is a one-line formula of its own state, its params, `dt`, `t`, `step` and standard draws, such
+as `wiener_process`, `ornstein_uhlenbeck`, `poisson_process` or `bernoulli_process`. The
+matching templates are generated from the catalogue, so a built-in is matched as soon as its
+rule is stated. Built-ins that compute the same rule (`cox_process` and `hawkes_process` do
+`poisson_process`'s) are suggested as one. A built-in that takes a component (a kernel,
+likelihood, function or nested iteration), reads other partitions or its own history, or has
+cases is not matched. The match ignores the order of terms and factors, inlines `bindings`,
+reads a draw written at its scale (`normal(0, sqrt(v * dt))`) as the standard one scaled, and
+multiplies out a comparison with a quotient (`u < r / (r + 1 / dt)` is `u * (r + 1 / dt) < r`).
+A term of a rule can also be left out when its params appear nowhere else in it and the rest
+still draws, so `x + b * sqrt(dt) * Z` is `drift_diffusion` with no drift. A part of the update that the built-in takes as a param becomes that
 param: a number, a `params:` entry, or a `params_from_upstream` read. Any other part,
 such as a rate of `2 + sin(t)`, moves into an expression partition of its own, `<name>_<param>`,
 which the built-in reads through `params_from_upstream`. The replacement is then the two
