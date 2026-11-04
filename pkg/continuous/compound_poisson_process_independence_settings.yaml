@@ -1,0 +1,12 @@
+iterations:
+- name: always_jumping
+  params:
+    rates: [1.0e+12]
+    gamma_alphas: [0.5]
+    gamma_betas: [2.0]
+  init_state_values: [0.0]
+  seed: 0
+  state_width: 1
+  state_history_depth: 2
+init_time_value: 0.0
+timesteps_history_depth: 2

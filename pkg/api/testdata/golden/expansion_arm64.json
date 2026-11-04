@@ -11,7 +11,7 @@
     "cfg/example_evolution_strategy_config.yaml": {
       "times": "5e0924ec4ae801801cc5f532c4439777a9a810c1883ec4e8cd38848d8d43f2dc",
       "partitions": {
-        "es_covariance": "1001x4 d5db0e0dc8b8bc7611703922769730d3d619a1be296c34468d4717c748132517",
+        "es_covariance": "1001x4 48ccf8c091cd436de66bae248421adab70825849e1011e08329cab3636bacee6",
         "es_mean": "1001x2 a2162a9744fe27ea074b20c05c8c5740b48c2101830300ce3a5e702f102059c0",
         "es_sampler": "1001x2 c1acc06596653d52e2400491daf0bdd1080916082fdf7f1feb6714cf95609db6",
         "es_sampler_simulation": "1001x2 e987b4299dc55df05ea1a9bb11ba40995543a17ef1427320055ff0938d55163c",
@@ -53,7 +53,7 @@
       "partitions": {
         "test_data": "2001x2 ff3abc3957a9185ad0d4ac40cd50f82ee389100e985ea696bd212494bf3c048f",
         "test_likelihood": "2001x3 14351e7c0ff4cbfe141c3e17a4b567edd94b2a5cdeb322ac49a2079c9245fd4c",
-        "test_post_cov": "2001x4 4ad359ca5df73b49c69590c1c21071540724526b2037186211e482ed7ba5d374",
+        "test_post_cov": "2001x4 9764e45d0b4d6549e44efbcf17aa0300faa110f034757a49319fa625be8d362a",
         "test_post_log_norm": "2001x1 7e81a95af30ae18fffe92be6bd3621926b0ca62c82b29613408188dc725bc856",
         "test_post_mean": "2001x2 7fd80553b541c11cafc0e72b47a477eca1e458f1650ecce351c66af50dcb65f9",
         "test_post_sampler": "2001x2 f2e3440ddadb1f834f4e7a8091f5f6bdb71bdd222e537c81f6380fd857c8b426"

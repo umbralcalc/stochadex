@@ -17,12 +17,16 @@ import (
 //   - Provide: "log_weight_partitions" (and optional "log_weight_indices").
 //   - Provide: "data_values_partitions" to choose which values to resample.
 //   - Use "past_discounting_factor" to downweight older history (exponential).
+//   - Each value in the history is drawn with probability proportional to
+//     its own weight, read from the same history row of the paired
+//     log-weight partition, times the discounting factor raised to the
+//     row's depth. Rows the run has not yet reached are not drawn.
 //
 // Update:
 //
-//	(k, j) ~ Categorical(p), p(k, j) proportional to exp(L_j) * past_discounting_factor^(k-1)
-//	for k = 1..D and j over log_weight_partitions, where
-//	L_j = log_weight_partitions[j]@1[log_weight_indices[j]] (element 0 if unset)
+//	(k, j) ~ Categorical(p), p(k, j) proportional to exp(L_j(k)) * past_discounting_factor^(k-1)
+//	for k = 1..min(D, step) and j over log_weight_partitions, where
+//	L_j(k) = log_weight_partitions[j]@k[log_weight_indices[j]] (element 0 if unset)
 //	and D = log_weight_partitions[0]'s state_history_depth
 //	x <- data_values_partitions[j]@k
 type ValuesWeightedResamplingIteration struct {
@@ -60,10 +64,18 @@ func (v *ValuesWeightedResamplingIteration) Iterate(
 	logDiscount := math.Log(params.GetIndex("past_discounting_factor", 0))
 	stateHistoryDepth := stateHistories[int(
 		params.GetIndex("log_weight_partitions", 0))].StateHistoryDepth
-	logWeights := make([]float64, 0)
-	indices := make([][]int, 0)
+	// At step k the history holds the k rows before this one; any deeper rows
+	// are not yet filled, so they are given no weight.
+	filled := min(stateHistoryDepth, timestepsHistory.CurrentStepNumber)
+	logWeightPartitions := params.Get("log_weight_partitions")
+	// Entry i*len(logWeightPartitions) + j is history row i of partition j.
+	logWeights := make([]float64, 0, stateHistoryDepth*len(logWeightPartitions))
 	for i := range stateHistoryDepth {
-		for j, logWeightPartition := range params.Get("log_weight_partitions") {
+		for j, logWeightPartition := range logWeightPartitions {
+			if i >= filled {
+				logWeights = append(logWeights, math.Inf(-1))
+				continue
+			}
 			var valueIndex int
 			if v, ok := params.GetOk("log_weight_indices"); ok {
 				valueIndex = int(v[j])
@@ -72,17 +84,21 @@ func (v *ValuesWeightedResamplingIteration) Iterate(
 			}
 			logWeights = append(
 				logWeights,
-				stateHistories[int(logWeightPartition)].Values.At(0, valueIndex)+
+				stateHistories[int(logWeightPartition)].Values.At(i, valueIndex)+
 					(logDiscount*float64(i)),
 			)
-			indices = append(indices, []int{i, j})
 		}
 	}
+	// Reweighting all at once, rather than one entry at a time, never passes
+	// through a zero total weight on the way.
 	logNorm := floats.LogSumExp(logWeights)
 	for i, logWeight := range logWeights {
-		v.catDist.Reweight(i, math.Exp(logWeight-logNorm))
+		logWeights[i] = math.Exp(logWeight - logNorm)
 	}
-	indexPair := indices[int(v.catDist.Rand())]
-	dataPartition := params.GetIndex("data_values_partitions", indexPair[1])
-	return stateHistories[int(dataPartition)].CopyStateRow(indexPair[0])
+	v.catDist.ReweightAll(logWeights)
+	entry := int(v.catDist.Rand())
+	dataPartition := params.GetIndex(
+		"data_values_partitions", entry%len(logWeightPartitions))
+	return stateHistories[int(dataPartition)].CopyStateRow(
+		entry / len(logWeightPartitions))
 }

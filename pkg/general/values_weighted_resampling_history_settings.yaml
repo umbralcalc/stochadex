@@ -1,0 +1,36 @@
+iterations:
+- name: weights_a
+  params: {}
+  init_state_values: [0.0]
+  seed: 0
+  state_width: 1
+  state_history_depth: 3
+- name: weights_b
+  params: {}
+  init_state_values: [0.0]
+  seed: 0
+  state_width: 1
+  state_history_depth: 3
+- name: data_a
+  params: {}
+  init_state_values: [0.0]
+  seed: 0
+  state_width: 1
+  state_history_depth: 3
+- name: data_b
+  params: {}
+  init_state_values: [0.0]
+  seed: 0
+  state_width: 1
+  state_history_depth: 3
+- name: resampled
+  params:
+    past_discounting_factor: [0.5]
+    log_weight_partitions: [0, 1]
+    data_values_partitions: [2, 3]
+  init_state_values: [0.0]
+  seed: 1735
+  state_width: 1
+  state_history_depth: 2
+init_time_value: 0.0
+timesteps_history_depth: 2

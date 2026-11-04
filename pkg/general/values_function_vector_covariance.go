@@ -18,13 +18,12 @@ import (
 //     the data partition's values); the output is that count squared wide.
 //   - Set Kernel and related params (e.g., bandwidth, discounting).
 //   - Requires a "mean" param vector for centring.
-//   - The upper-triangular covariance is returned flattened.
+//   - The full symmetric covariance matrix is returned flattened row-major.
 //
 // Update:
 //
 //	x[i*m + j] <- (sum over k = 0..D of w(k) * (f(k)[i] - mean[i]) * (f(k)[j] - mean[j]))
-//	              / (sum over k = 0..D of w(k) - 1)        for i <= j
-//	x[i*m + j] <- 0                                         for i > j
+//	              / (sum over k = 0..D of w(k) - 1)        for all i, j (x is symmetric)
 //	where f(k) is the function's values k rows back (k = 0: latest_data_values),
 //	m its width, D = data_values_partition's state_history_depth,
 //	w(k) = w(latest_data_values, y(k), t + dt, t@k) with y(0) = latest_data_values,
@@ -117,6 +116,13 @@ func (v *ValuesFunctionVectorCovarianceIteration) Iterate(
 	// adding in the most recent weighted values here
 	covMat.SymRankOne(covMat, 1.0/(cumulativeWeightSum-1), mostRecentDiffVec)
 
-	// returns the upper triangular part of the covariance matrix
-	return covMat.RawSymmetric().Data
+	// mat.SymDense fills only the upper triangle, so mirror it into the
+	// lower one to return the whole symmetric matrix
+	covData := covMat.RawSymmetric().Data
+	for i := range numValues {
+		for j := range i {
+			covData[i*numValues+j] = covData[j*numValues+i]
+		}
+	}
+	return covData
 }

@@ -268,7 +268,7 @@
     "compound_poisson_process": {
       "name": "compound_poisson_process",
       "description": "CompoundPoissonProcessIteration steps a compound Poisson process.",
-      "update": "x[i] \u003c- x[i] + B[i] * J[i],  B[i] ~ Bernoulli(rates[i] / (rates[i] + 1/dt)),  J[i] ~ jump_dist\nJ[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.",
+      "update": "x[i] \u003c- x[i] + B[i] * J[i],  B[i] ~ Bernoulli(rates[i] / (rates[i] + 1/dt)),  J[i] ~ jump_dist\nJ[i] is drawn only when B[i] = 1, from jump_dist reading this partition's params at element i.\nB and J are drawn from independent streams, both determined by the partition seed.",
       "fields": [
         {
           "name": "jump_dist",
@@ -742,7 +742,7 @@
     "posterior_covariance": {
       "name": "posterior_covariance",
       "description": "PosteriorCovarianceIteration updates an estimate of the covariance matrix of the posterior distribution over params using log-likelihood and param values given in the state history of other partitions, and a mean vector.",
-      "update": "l_j = loglike_partitions[j]@1[loglike_indices[j]]       (index 0 when loglike_indices is unset)\nc = posterior_log_normalisation\nT = log(exp(c) + sum_j exp(l_j))\ne_j = mean - param_partitions[j]@1\nC \u003c- exp(c - T) C@1 + sum_j exp(l_j - T) e_j e_j^T\nx is C, d x d row-major with d the length of mean. Only the upper triangle\n(x[i*d + k], k \u003e= i) is updated; the lower triangle keeps x@1.\nx \u003c- x@1 if T is NaN or infinite; a non-finite exp(c - T) counts as 0\nand a term whose exp(l_j - T) is non-finite is skipped.",
+      "update": "l_j = loglike_partitions[j]@1[loglike_indices[j]]       (index 0 when loglike_indices is unset)\nc = posterior_log_normalisation\nT = log(exp(c) + sum_j exp(l_j))\ne_j = mean - param_partitions[j]@1\nC \u003c- exp(c - T) C@1 + sum_j exp(l_j - T) e_j e_j^T\nx is C, d x d row-major with d the length of mean. The upper triangle\n(x[i*d + k], k \u003e= i) is updated from that of x@1, and the lower triangle\nmirrors it: x[k*d + i] = x[i*d + k].\nx \u003c- x@1 if T is NaN or infinite; a non-finite exp(c - T) counts as 0\nand a term whose exp(l_j - T) is non-finite is skipped.",
       "params": [
         {
           "name": "loglike_indices",
@@ -1178,7 +1178,7 @@
     "values_function_vector_covariance": {
       "name": "values_function_vector_covariance",
       "description": "ValuesFunctionVectorCovarianceIteration computes a kernel-weighted rolling covariance of a function over historical values and times.",
-      "update": "x[i*m + j] \u003c- (sum over k = 0..D of w(k) * (f(k)[i] - mean[i]) * (f(k)[j] - mean[j]))\n              / (sum over k = 0..D of w(k) - 1)        for i \u003c= j\nx[i*m + j] \u003c- 0                                         for i \u003e j\nwhere f(k) is the function's values k rows back (k = 0: latest_data_values),\nm its width, D = data_values_partition's state_history_depth,\nw(k) = w(latest_data_values, y(k), t + dt, t@k) with y(0) = latest_data_values,\ny(k) = data_values_partition@k, and t@k the time k steps back (t@0 = t + dt, t@1 = t)\nx \u003c- x@1 while step \u003c D",
+      "update": "x[i*m + j] \u003c- (sum over k = 0..D of w(k) * (f(k)[i] - mean[i]) * (f(k)[j] - mean[j]))\n              / (sum over k = 0..D of w(k) - 1)        for all i, j (x is symmetric)\nwhere f(k) is the function's values k rows back (k = 0: latest_data_values),\nm its width, D = data_values_partition's state_history_depth,\nw(k) = w(latest_data_values, y(k), t + dt, t@k) with y(0) = latest_data_values,\ny(k) = data_values_partition@k, and t@k the time k steps back (t@0 = t + dt, t@1 = t)\nx \u003c- x@1 while step \u003c D",
       "fields": [
         {
           "name": "function",
@@ -1484,7 +1484,7 @@
     "values_sorted_collection_covariance": {
       "name": "values_sorted_collection_covariance",
       "description": "ValuesSortedCollectionCovarianceIteration computes a weighted covariance matrix of the top entries in a sorted collection around a provided mean, blended with its own previous state via a learning rate.",
-      "update": "x[i*m + j] \u003c- (1 - learning_rate) * x@1[i*m + j] + learning_rate * C[i][j]   for i \u003c= j\nx[i*m + j] \u003c- (1 - learning_rate) * x@1[i*m + j]                             for i \u003e j\nC = sum over e of (weights[e] / W) * (v_e - u)(v_e - u)^T\nu = sum over e of (weights[e] / W) * v_e,  W = sum over e of weights[e]\nwhere v_e is the values of sorted_collection entry e (entries are values_state_width + 1\nwide, sort key first), m = values_state_width, e runs over the first len(weights)\nentries, skipping those whose key is empty_value when it is set\nx \u003c- x@1 when W = 0",
+      "update": "x[i*m + j] \u003c- (1 - learning_rate) * x@1[i*m + j] + learning_rate * C[i][j]   for i \u003c= j\nx[i*m + j] \u003c- x[j*m + i]                                                     for i \u003e j\nC = sum over e of (weights[e] / W) * (v_e - u)(v_e - u)^T\nu = sum over e of (weights[e] / W) * v_e,  W = sum over e of weights[e]\nwhere v_e is the values of sorted_collection entry e (entries are values_state_width + 1\nwide, sort key first), m = values_state_width, e runs over the first len(weights)\nentries, skipping those whose key is empty_value when it is set\nx \u003c- x@1 when W = 0",
       "params": [
         {
           "name": "empty_value",
@@ -1587,7 +1587,7 @@
     "values_weighted_resampling": {
       "name": "values_weighted_resampling",
       "description": "ValuesWeightedResamplingIteration resamples historical values from other partitions according to provided (optionally discounted) weights.",
-      "update": "(k, j) ~ Categorical(p), p(k, j) proportional to exp(L_j) * past_discounting_factor^(k-1)\nfor k = 1..D and j over log_weight_partitions, where\nL_j = log_weight_partitions[j]@1[log_weight_indices[j]] (element 0 if unset)\nand D = log_weight_partitions[0]'s state_history_depth\nx \u003c- data_values_partitions[j]@k",
+      "update": "(k, j) ~ Categorical(p), p(k, j) proportional to exp(L_j(k)) * past_discounting_factor^(k-1)\nfor k = 1..min(D, step) and j over log_weight_partitions, where\nL_j(k) = log_weight_partitions[j]@k[log_weight_indices[j]] (element 0 if unset)\nand D = log_weight_partitions[0]'s state_history_depth\nx \u003c- data_values_partitions[j]@k",
       "params": [
         {
           "name": "data_values_partitions"
@@ -1832,7 +1832,7 @@
     "t_distribution": {
       "name": "t_distribution",
       "description": "TLikelihoodDistribution assumes the real data are well described by a Student's t-distribution, given the input degrees of freedom, mean and a scale matrix read from the covariance params.",
-      "update": "n = degrees_of_freedom, d = length of m\nlog p(y | m, S, n) = lgamma((n + d) / 2) - lgamma(n / 2) - (d / 2) log(n pi)\n                     - 0.5 log det(S)\n                     - ((n + d) / 2) log(1 + (y - m)^T S^{-1} (y - m) / n)\ny = m + z sqrt(n / u),  z ~ N(0, S),  u ~ ChiSquared(n)\n\nm is mean, or else the latest row of the partition indexed by mean_partition.\nS is the scale matrix, so the covariance of y is S n / (n - 2) for n \u003e 2.\nS is read from the covariance params, the first one set of: covariance_matrix (flattened row-major, upper\ntriangle read); diag(variance); the latest row of the partition indexed by\ncovariance_matrix_partition; diag of the latest row of the partition indexed\nby variance_partition.\nIf S is not positive-definite, default_covariance is used in its place\nwhen set; otherwise it panics.",
+      "update": "n = degrees_of_freedom, d = length of m\nlog p(y | m, S, n) = lgamma((n + d) / 2) - lgamma(n / 2) - (d / 2) log(n pi)\n                     - 0.5 log det(S)\n                     - ((n + d) / 2) log(1 + (y - m)^T S^{-1} (y - m) / n)\ny = m + z sqrt(n / u),  z ~ N(0, S),  u ~ ChiSquared(n)\n\nm is mean, or else the latest row of the partition indexed by mean_partition.\nS is the scale matrix, so the covariance of y is S n / (n - 2) for n \u003e 2.\nS is read from the covariance params, the first one set of: covariance_matrix (flattened row-major, upper\ntriangle read); diag(variance); the latest row of the partition indexed by\ncovariance_matrix_partition; diag of the latest row of the partition indexed\nby variance_partition.\nIf S is not positive-definite, default_covariance is used in its place\nwhen set in these params; otherwise, or if it is not positive-definite\neither, it panics.",
       "params": [
         {
           "name": "covariance_matrix"

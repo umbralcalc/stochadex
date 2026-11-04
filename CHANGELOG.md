@@ -41,6 +41,35 @@ an exact version rather than assume stability across minors.
   macros config's clock or windows now say "a simulation has one clock" and "a simulation keeps
   one history per partition".
 
+### Fixed
+
+- `continuous.GammaJumpDistribution` draws its jump sizes from a stream derived from the
+  partition seed rather than from the partition seed itself. `CompoundPoissonProcessIteration`
+  takes its event draws from the partition seed, so the jump sizes were drawn from an identically
+  seeded stream and depended on the event draws: with a gamma shape below 1, the first jump's
+  size correlated with its event uniform at about 0.6 across seeds. The event draws are
+  unchanged; the jump sizes, and so the process's values, differ for a given seed.
+- The t-distribution likelihood (`inference.TLikelihoodDistribution`) treats
+  `default_covariance` as the normal likelihood does. A `default_covariance` absent from the
+  params is no longer kept from an earlier call, so a covariance that is not positive-definite
+  panics saying so instead of quietly using a stale fallback. A `default_covariance` that is not
+  positive-definite either now panics with a message naming it, instead of a nil-pointer
+  dereference.
+- `posterior_covariance`, `values_sorted_collection_covariance` and
+  `values_function_vector_covariance` (and so the `posterior_estimation`,
+  `evolution_strategy_optimisation` and `vector_covariance` macros) output the full symmetric
+  covariance matrix. Each updated only the upper triangle, so the lower-triangle entries of its
+  state kept their earlier values (`posterior_covariance`), decayed by `1 - learning_rate`
+  (`values_sorted_collection_covariance`) or were 0 (`values_function_vector_covariance`). Every
+  reader of these states as a `covariance_matrix` reads the upper triangle, so their results are
+  unchanged; only the lower-triangle entries of the outputs differ, now equal to their mirrored
+  upper-triangle entries.
+- `values_weighted_resampling` draws each value in its history with that value's own weight. It
+  read every history row's weight from the latest row of the log-weight partitions, so a value
+  `k` rows back was drawn with the latest weight discounted `k` times rather than with its own.
+  It also no longer draws from history rows the run has not yet reached, whose zeros are no
+  partition's values, and a weight that underflows beside the others no longer panics the draw.
+
 ## [0.27.0] — 2026-11-01
 
 This release makes the config language documented and machine-readable. `stochadex catalogue`

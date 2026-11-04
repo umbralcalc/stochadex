@@ -13,6 +13,12 @@ import (
 // Student's t-distribution, given the input degrees of freedom,
 // mean and a scale matrix read from the covariance params.
 //
+// Usage hints:
+//   - Optional "default_covariance" is used in place of the covariance when
+//     that is not positive-definite. It applies only while it is in the
+//     params passed to SetParams, and if it is not positive-definite either,
+//     the distribution panics saying so.
+//
 // Update:
 //
 //	n = degrees_of_freedom, d = length of m
@@ -28,7 +34,8 @@ import (
 //	covariance_matrix_partition; diag of the latest row of the partition indexed
 //	by variance_partition.
 //	If S is not positive-definite, default_covariance is used in its place
-//	when set; otherwise it panics.
+//	when set in these params; otherwise, or if it is not positive-definite
+//	either, it panics.
 type TLikelihoodDistribution struct {
 	Src        rand.Source
 	dof        float64
@@ -69,6 +76,8 @@ func (t *TLikelihoodDistribution) SetParams(
 	)
 	if c, ok := params.GetOk("default_covariance"); ok {
 		t.defaultCov = c
+	} else {
+		t.defaultCov = nil
 	}
 	t.gradCholReady = false // covariance may have changed; recompute lazily on next gradient
 }
@@ -82,12 +91,15 @@ func (t *TLikelihoodDistribution) getDist() *distmv.StudentsT {
 	)
 	if !ok {
 		if t.defaultCov != nil {
-			dist, _ = distmv.NewStudentsT(
+			dist, ok = distmv.NewStudentsT(
 				t.mean.RawVector().Data,
 				mat.NewSymDense(t.mean.Len(), t.defaultCov),
 				t.dof,
 				t.Src,
 			)
+			if !ok {
+				panic("inference.TLikelihoodDistribution: default_covariance is also not positive-definite")
+			}
 		} else {
 			panic("covariance matrix is not positive-definite")
 		}

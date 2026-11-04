@@ -12,6 +12,12 @@ import (
 // of the posterior distribution over params using log-likelihood and param
 // values given in the state history of other partitions, and a mean vector.
 //
+// Usage hints:
+//   - The state is the full d×d covariance matrix flattened row-major, where
+//     d is the length of "mean". The update is computed on its upper triangle
+//     (as mat.SymDense reads it), and the lower triangle mirrors it, so the
+//     state reads the same as a full matrix or as mat.SymDense data.
+//
 // Update:
 //
 //	l_j = loglike_partitions[j]@1[loglike_indices[j]]       (index 0 when loglike_indices is unset)
@@ -19,8 +25,9 @@ import (
 //	T = log(exp(c) + sum_j exp(l_j))
 //	e_j = mean - param_partitions[j]@1
 //	C <- exp(c - T) C@1 + sum_j exp(l_j - T) e_j e_j^T
-//	x is C, d x d row-major with d the length of mean. Only the upper triangle
-//	(x[i*d + k], k >= i) is updated; the lower triangle keeps x@1.
+//	x is C, d x d row-major with d the length of mean. The upper triangle
+//	(x[i*d + k], k >= i) is updated from that of x@1, and the lower triangle
+//	mirrors it: x[k*d + i] = x[i*d + k].
 //	x <- x@1 if T is NaN or infinite; a non-finite exp(c - T) counts as 0
 //	and a term whose exp(l_j - T) is non-finite is skipped.
 type PosteriorCovarianceIteration struct {
@@ -77,5 +84,12 @@ func (p *PosteriorCovarianceIteration) Iterate(
 		diffs.SubVec(mean, stateHistories[int(paramsPartition)].Values.RowView(0))
 		covMat.SymRankOne(covMat, w, diffs)
 	}
-	return covMat.RawSymmetric().Data
+	// mat.SymDense updates only the upper triangle, so mirror it into the
+	// lower one to keep the whole state symmetric.
+	for i := range dims {
+		for j := range i {
+			covMatValues[i*dims+j] = covMatValues[j*dims+i]
+		}
+	}
+	return covMatValues
 }

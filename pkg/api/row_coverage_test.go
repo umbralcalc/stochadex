@@ -122,10 +122,9 @@ var coverageCases = map[string]coverageCase{
 				ce += (counts[i] - mc) * (exposures[i] - me)
 				ee += (exposures[i] - me) * (exposures[i] - me)
 			}
-			// The sample covariance's upper triangle, row-major, as the
-			// iteration returns it.
+			// The sample covariance matrix, row-major.
 			n := float64(len(counts) - 1)
-			return []float64{cc / n, ce / n, 0, ee / n}
+			return []float64{cc / n, ce / n, ce / n, ee / n}
 		}),
 	},
 	"grouped_aggregation count": {

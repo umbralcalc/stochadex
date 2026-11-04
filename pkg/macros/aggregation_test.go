@@ -248,7 +248,7 @@ func TestAggregation(t *testing.T) {
 				t.Error("data covariance burn-in failed. values were: " +
 					fmt.Sprint(covarianceValues[1]))
 			}
-			if !floats.Equal(covarianceValues[2], []float64{1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0}) {
+			if !floats.Equal(covarianceValues[2], []float64{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}) {
 				t.Error("data covariance failed. values were: " +
 					fmt.Sprint(covarianceValues[2]))
 			}
