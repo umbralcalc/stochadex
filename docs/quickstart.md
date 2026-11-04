@@ -184,7 +184,7 @@ run by a test:
 
 Using stochadex from an AI agent is [robert](https://github.com/umbralcalc/robert)'s job, not
 this repo's; see its documentation. It drives stochadex through the same CLI described above,
-with `--check`, `inspect --io`, `graph`, `expand` and `catalogue` as its machine-readable
+with `--check`, `inspect --io`, `inspect --suggest`, `graph`, `expand` and `catalogue` as its machine-readable
 contract.
 
 ## Example analysis notebooks

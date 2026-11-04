@@ -1099,6 +1099,71 @@ All of this is read from the engine's source, and checked against every shipped 
 `catalogue_version` changes only if a key is removed or changes meaning; new keys may
 appear within a version. From Go, use `api.BuildCatalogue()`.
 
+### Finding a built-in an expression restates
+
+An expression partition whose update is one a built-in computes runs that built-in's maths
+more slowly. `stochadex inspect --suggest` finds each such partition and prints, as JSON, the
+built-in and the YAML to replace it with:
+
+```yaml
+# pull.yaml
+main:
+  partitions:
+  - name: level                     # mean-reverting, written out as an expression
+    iteration:
+      type: expression
+      fields: [{name: x}]
+      outputs: ["x + 0.5 * (target - x) * dt + 0.2 * sqrt(dt) * shared(normal(0, 1))"]
+    params: {target: [3.0]}
+    init_state_values: [0.0]
+    state_history_depth: 1
+    seed: 7
+  simulation:
+    termination_condition: {type: number_of_steps, max_steps: 100}
+    timestep_function: {type: constant, stepsize: 0.1}
+    init_time_value: 0
+```
+
+```bash
+stochadex inspect --suggest -c pull.yaml | jq -r '.[].yaml'
+```
+
+```yaml
+- name: level
+  iteration: {type: ornstein_uhlenbeck}
+  params: {mus: [3], sigmas: [0.2], thetas: [0.5]}
+  init_state_values: [0]
+  state_history_depth: 1
+  seed: 7
+```
+
+It matches a partition of one field against the updates of `constant_values`,
+`param_values`, `wiener_process`, `geometric_brownian_motion`, `drift_diffusion`,
+`ornstein_uhlenbeck` and `poisson_process`. The match ignores the order of terms and factors,
+inlines `bindings`, and reads a draw written at its scale (`normal(0, sqrt(v * dt))`) as the
+standard one scaled. A part of the update that the built-in takes as a param becomes that
+param: a number, a `params:` entry, or a `params_from_upstream` read. Any other part,
+such as a rate of `2 + sin(t)`, moves into an expression partition of its own, `<name>_<param>`,
+which the built-in reads through `params_from_upstream`. The replacement is then the two
+partitions.
+
+Every suggestion is checked before it is printed. The config runs for up to 50 steps as
+written and again with the replacement, and the replacement is kept only if the partition's
+state agrees at every step to rounding. Built-ins draw from the same seeded stream as
+expressions, so a true restatement agrees exactly, and the check catches the cases a match
+can't see, such as a draw `shared` across a field that the built-in draws for each element.
+The command therefore runs the config, reading its inputs, though it writes nothing. A
+`macros:` config is checked through its expansion.
+
+`--check` doesn't run anything, so it only notes on stderr each partition that matches,
+unchecked, and still exits 0:
+
+```text
+stochadex: partition "level" looks like the built-in ornstein_uhlenbeck, which runs the same maths faster; stochadex inspect --suggest checks it and gives the replacement
+```
+
+From Go, use `api.Suggest(config)`.
+
 ### Skipping runs whose outputs are up to date
 
 `--provenance` writes `<output>.provenance.json` beside each `json_log` and `arrow` file a

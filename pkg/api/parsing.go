@@ -23,6 +23,9 @@ type ParsedArgs struct {
 	SocketFile    string
 	// Check validates the config and exits without running it (--check).
 	Check bool
+	// InspectSuggest prints, as JSON, a verified built-in for each expression partition
+	// that restates one (stochadex inspect --suggest).
+	InspectSuggest bool
 	// InspectIO prints the config's I/O manifest instead of running it
 	// (stochadex inspect --io).
 	InspectIO bool
@@ -154,15 +157,24 @@ func parseInspectArgs(args []string) (ParsedArgs, error) {
 				"identifies it (reads its inputs to fingerprint them)",
 		},
 	)
+	suggest := parser.Flag(
+		"",
+		"suggest",
+		&argparse.Options{
+			Help: "print, as JSON, a built-in iteration for each expression partition that " +
+				"restates one, each checked by running both for a few steps (reads its inputs)",
+		},
+	)
 	err := parser.Parse(args)
-	if err == nil && *io == *provenance {
-		err = errors.New("give exactly one of --io and --provenance")
+	if chosen := btoi(*io) + btoi(*provenance) + btoi(*suggest); err == nil && chosen != 1 {
+		err = errors.New("give exactly one of --io, --provenance and --suggest")
 	}
 	if err != nil {
 		return ParsedArgs{}, &Error{Kind: ErrUsage, Err: errors.New(parser.Usage(err))}
 	}
 	return ParsedArgs{ConfigFile: *configFile, Sets: *sets, SeedRange: *seedRange,
-		DebugEmbedded: *debugEmbedded, InspectIO: *io, InspectProvenance: *provenance}, nil
+		DebugEmbedded: *debugEmbedded, InspectIO: *io, InspectProvenance: *provenance,
+		InspectSuggest: *suggest}, nil
 }
 
 // parseGraphArgs parses stochadex graph's arguments.
@@ -263,4 +275,12 @@ func configFileArgs(parser *argparse.Parser) (configFile *string, sets *[]string
 		},
 	)
 	return configFile, sets
+}
+
+// btoi is 1 for true and 0 for false.
+func btoi(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }

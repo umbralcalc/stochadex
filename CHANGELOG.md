@@ -24,6 +24,16 @@ an exact version rather than assume stability across minors.
 
 ### Added
 
+- **`stochadex inspect --suggest` finds the built-in an expression restates.** For each
+  expression partition whose update is that of `constant_values`, `param_values`,
+  `wiener_process`, `geometric_brownian_motion`, `drift_diffusion`, `ornstein_uhlenbeck` or
+  `poisson_process`, it prints, as JSON, the built-in and the YAML to replace the partition
+  with. A part of the update the built-in can't take as a param moves into an expression
+  partition of its own, wired to the built-in through `params_from_upstream`. Each suggestion
+  is checked by running the config as written and with the replacement, for up to 50 steps,
+  and is kept only if they agree at every step. From Go, `api.Suggest`.
+- **`--check` notes expression partitions that look like a built-in.** It prints one line on
+  stderr for each, unchecked since `--check` runs nothing, and still exits 0.
 - **`stochadex catalogue` says what each component computes.** Every iteration, kernel,
   likelihood, prior and jump distribution the engine ships has an `update`: its rule, such as
   `x[i] <- x[i] + thetas[i] * (mus[i] - x[i]) * dt + sigmas[i] * sqrt(dt) * Z[i]` for

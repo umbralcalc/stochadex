@@ -350,6 +350,13 @@ func Execute(args []string) error {
 	if parsed.Expand {
 		return printExpansion(config, os.Stdout)
 	}
+	if parsed.InspectSuggest {
+		suggestions, err := Suggest(config)
+		if err != nil {
+			return err
+		}
+		return printJSON(suggestions)
+	}
 	if parsed.InspectProvenance {
 		provenance, err := ComputeProvenance(config)
 		if err != nil {
@@ -367,6 +374,9 @@ func Execute(args []string) error {
 		}
 		if err := Check(config); err != nil {
 			return err
+		}
+		for _, notice := range suggestionNotices(config) {
+			fmt.Fprintln(os.Stderr, "stochadex: "+notice)
 		}
 		fmt.Fprintf(os.Stderr, "stochadex: %s is valid\n", parsed.ConfigFile)
 		return nil
