@@ -22,6 +22,8 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-11-04
+
 ### Added
 
 - **`stochadex inspect --suggest` finds the built-in an expression restates.** For each
@@ -30,8 +32,9 @@ an exact version rather than assume stability across minors.
   is a one-line formula of its own state, params, clock and standard draws (nine today, from
   `wiener_process` to `bernoulli_process`; `cox_process` and `hawkes_process` compute
   `poisson_process`'s rule and are suggested as it), from templates generated from the
-  catalogue. A test requires every other built-in to be excluded with a reason. A part of the update the built-in can't take as a param moves into an expression
-  partition of its own, wired to the built-in through `params_from_upstream`. Each suggestion
+  catalogue. A test requires every other built-in to be excluded with a reason. A part of the
+  update the built-in can't take as a param moves into an expression partition of its own,
+  wired to the built-in through `params_from_upstream`. Each suggestion
   is checked by running the config as written and with the replacement, for up to 50 steps,
   and is kept only if they agree at every step. From Go, `api.Suggest`.
 - **`--check` notes expression partitions that look like a built-in.** It prints one line on
@@ -2613,7 +2616,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.27.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.28.0...HEAD
+[0.28.0]: https://github.com/umbralcalc/stochadex/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/umbralcalc/stochadex/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/umbralcalc/stochadex/compare/v0.25.0...v0.26.0
 [0.25.0]: https://github.com/umbralcalc/stochadex/compare/v0.24.0...v0.25.0
