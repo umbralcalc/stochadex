@@ -46,7 +46,7 @@ chmod +x stochadex
 docker pull ghcr.io/umbralcalc/stochadex:latest
 ```
 
-**With an agent** → using stochadex from an AI agent is [robert](https://github.com/umbralcalc/robert)'s job; see its documentation. It drives the same CLI, with `--check`, `inspect --io`, `graph` and `catalogue` as its machine-readable contract, and the engine itself stays deterministic and agent-free.
+**With an agent** → using stochadex from an AI agent is [robert](https://github.com/umbralcalc/robert)'s job; see its documentation. It drives the same CLI, with `--check`, `inspect --io`, `inspect --suggest`, `graph`, `expand` and `catalogue` as its machine-readable contract, and the engine itself stays deterministic and agent-free.
 
 **As a Go library** → implement the `Iteration` interface to add a primitive the catalogue doesn't have, or embed the engine in your own service. Start with the [quickstart](https://stochadex.github.io/pkg/quickstart.html).
 
