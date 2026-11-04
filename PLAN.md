@@ -121,6 +121,15 @@ Acceptance: the suggestions are machine-readable for robert (the robert session'
 one as a failure to fix); every shipped config and expression twin is either clean or its
 suggestions are recorded and justified.
 
+**Built, in review (#182).** `stochadex inspect --suggest` (JSON, robert's contract) and an
+unverified `--check` notice. There are seven templates, and factoring covers a non-param slot.
+Each suggestion is verified by a capped lockstep run of the replacement. Recall on the catalogue
+is exact: the three declarative twins' suggestions are precisely the hand-written building-block
+twins' built-ins, and everything else is clean (`TestSuggestOnCatalogueTwins`). For robert:
+after the release, its gate can run `inspect --suggest` and treat a non-empty result as a
+failure to fix. Not covered: multi-field partitions, and groups of expression partitions that
+together equal one built-in. Add templates as the catalogue shows a need.
+
 ### E. One implementation per macro
 
 First, the safety net: a test that builds every macro both ways (the `pkg/macros` constructor
