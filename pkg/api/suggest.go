@@ -17,11 +17,12 @@ import (
 // expression, so an expression partition that restates a built-in is worth replacing.
 // Suggest finds them. A suggestion is made in two steps, and only the second is trusted:
 //
-//  1. The partition's update is matched against a short list of templates, each a
-//     built-in's rule written as an expression with slots (A, B, ... for any part that
+//  1. The partition's update is matched against templates, each a built-in's rule
+//     from the catalogue written as a pattern with slots (A, B, ... for any part that
 //     neither reads the state nor draws, X for the state, Z and U for a standard normal
-//     and uniform draw). Matching allows terms and factors in any order, one slot taking
-//     several of them, and the equivalent spellings of a draw, and nothing else.
+//     and uniform draw; see suggest_templates.go). Matching allows terms and factors in
+//     any order, one slot taking several of them, a draw written at its scale, and a
+//     comparison with a quotient multiplied out, and nothing else.
 //  2. The replacement is written into the config's own text, both configs are run, and
 //     the suggestion stands only if the partition's rows agree at every step. Built-ins
 //     draw from their partition's seeded stream as the expressions they replace do, so a
@@ -42,39 +43,6 @@ type Suggestion struct {
 	// factored-out partitions, then the built-in. The partition's expressions: entry, if
 	// it has one, goes.
 	YAML string `json:"yaml"`
-}
-
-// suggestionTemplate is one built-in's rule as an expression with slots, and which of
-// the built-in's params each slot fills. A param mapped to "" is set to 0.
-type suggestionTemplate struct {
-	iteration string
-	pattern   string
-	params    map[string]string
-	// paramsOnly marks a template whose slots must be params or numbers: factoring
-	// its slot out would only move the expression, not replace it.
-	paramsOnly bool
-}
-
-// suggestionTemplates are the rules Suggest recognises, each written as the built-in
-// computes it (see each type's Update in the catalogue).
-var suggestionTemplates = []suggestionTemplate{
-	{"constant_values", "X", nil, false},
-	{"param_values", "P", map[string]string{"param_values": "P"}, true},
-	{"wiener_process", "X + sqrt(V * dt) * Z", map[string]string{"variances": "V"}, false},
-	{"wiener_process", "X + normal(0, sqrt(V * dt))", map[string]string{"variances": "V"}, false},
-	{"geometric_brownian_motion", "X * (1 + sqrt(V * dt) * Z)", map[string]string{"variances": "V"}, false},
-	{"geometric_brownian_motion", "X * (1 + normal(0, sqrt(V * dt)))", map[string]string{"variances": "V"}, false},
-	{"drift_diffusion", "X + A * dt + B * sqrt(dt) * Z",
-		map[string]string{"drift_coefficients": "A", "diffusion_coefficients": "B"}, false},
-	{"drift_diffusion", "X + A * dt + normal(0, B * sqrt(dt))",
-		map[string]string{"drift_coefficients": "A", "diffusion_coefficients": "B"}, false},
-	{"drift_diffusion", "X + B * sqrt(dt) * Z",
-		map[string]string{"drift_coefficients": "", "diffusion_coefficients": "B"}, false},
-	{"ornstein_uhlenbeck", "X + T * (M - X) * dt + S * sqrt(dt) * Z",
-		map[string]string{"thetas": "T", "mus": "M", "sigmas": "S"}, false},
-	{"ornstein_uhlenbeck", "X + T * (M - X) * dt + normal(0, S * sqrt(dt))",
-		map[string]string{"thetas": "T", "mus": "M", "sigmas": "S"}, false},
-	{"poisson_process", "X + where(U * (R + 1 / dt) < R, 1, 0)", map[string]string{"rates": "R"}, false},
 }
 
 // suggestionStepCap is the most steps a suggestion is checked over.
@@ -184,10 +152,9 @@ func matchPartition(
 	}
 	field := iteration.Fields[0].Name
 	expression := canonical(output)
-	for _, template := range suggestionTemplates {
-		pattern, _ := parser.ParseExpr(template.pattern)
+	for _, template := range suggestionTemplates() {
 		slots := map[string]*exprNode{}
-		if !unify(canonical(pattern), expression, field, slots) {
+		if !unify(template.pattern, expression, field, slots) {
 			continue
 		}
 		nodes, ok := replacement(partition, iteration, template, slots)
@@ -239,6 +206,16 @@ func canonical(expression ast.Expr) *exprNode {
 			return canonical(typed.Args[0])
 		case name == "iid" && len(typed.Args) == 2:
 			return canonical(typed.Args[1])
+		case name == "normal" && len(typed.Args) == 2:
+			// normal(m, s) draws m + s Z, from the one standard draw Z.
+			mean, scale := canonical(typed.Args[0]), canonical(typed.Args[1])
+			if !isNumber(mean, "0") || !isNumber(scale, "1") {
+				scaled := flatten("*", scale, standardNormal())
+				if isNumber(mean, "0") {
+					return scaled
+				}
+				return flatten("+", mean, scaled)
+			}
 		}
 		node := &exprNode{kind: "call", name: exprString(typed.Fun)}
 		for _, argument := range typed.Args {
@@ -256,15 +233,42 @@ func canonical(expression ast.Expr) *exprNode {
 			return flatten("*", left, right)
 		case token.QUO:
 			return &exprNode{kind: "/", kids: []*exprNode{left, right}}
+		case token.LSS:
+			return comparison("<", left, right)
+		case token.LEQ:
+			return comparison("<=", left, right)
 		case token.GTR:
-			return &exprNode{kind: "<", kids: []*exprNode{right, left}}
+			return comparison("<", right, left)
 		case token.GEQ:
-			return &exprNode{kind: "<=", kids: []*exprNode{right, left}}
+			return comparison("<=", right, left)
 		default:
 			return &exprNode{kind: typed.Op.String(), kids: []*exprNode{left, right}}
 		}
 	}
 	return &exprNode{kind: "name", name: exprString(expression)}
+}
+
+// comparison is left < right (or <=) with a quotient on either side multiplied out, as
+// a < b / c is a * c < b: the match only proposes, and the run that checks it settles
+// the sign of c.
+func comparison(kind string, left, right *exprNode) *exprNode {
+	if right.kind == "/" {
+		left, right = flatten("*", left, right.kids[1]), right.kids[0]
+	} else if left.kind == "/" {
+		left, right = left.kids[0], flatten("*", right, left.kids[1])
+	}
+	return &exprNode{kind: kind, kids: []*exprNode{left, right}}
+}
+
+// standardNormal is the draw normal(0, 1).
+func standardNormal() *exprNode {
+	return &exprNode{kind: "call", name: "normal", kids: []*exprNode{
+		{kind: "num", name: "0"}, {kind: "num", name: "1"}}}
+}
+
+// isNumber reports whether node is the number value.
+func isNumber(node *exprNode, value string) bool {
+	return node.kind == "num" && node.name == value
 }
 
 // flatten joins two operands of an associative operator into one list.
@@ -402,8 +406,7 @@ func copySlots(slots map[string]*exprNode) map[string]*exprNode {
 // isStandardDraw reports whether node is draw(a, b).
 func isStandardDraw(node *exprNode, draw, a, b string) bool {
 	return node.kind == "call" && node.name == draw && len(node.kids) == 2 &&
-		node.kids[0].kind == "num" && node.kids[0].name == a &&
-		node.kids[1].kind == "num" && node.kids[1].name == b
+		isNumber(node.kids[0], a) && isNumber(node.kids[1], b)
 }
 
 // mentions reports whether node reads the name.

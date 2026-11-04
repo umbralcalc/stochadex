@@ -106,6 +106,15 @@ func TestSuggest(t *testing.T) {
 		{"a Cox process whose rate comes from upstream", expressionPartition(2,
 			"x + where(rates > (rates + 1 / dt) * iid(2, uniform(0, 1)), 1, 0)", "rates: [0, 0]",
 			"    params_from_upstream: {rates: {upstream: rate}}\n", 0), "poisson_process"},
+		{"a Bernoulli draw", expressionPartition(2, "where(iid(2, uniform(0, 1)) < p, 1, 0)", "p: [0.3, 0.8]", "", 0),
+			"bernoulli_process"},
+		{"a clock", expressionPartition(1, "t + dt", "", "", 0), "cumulative_time"},
+		{"a Poisson step with its probability written as a quotient", expressionPartition(2,
+			"x + where(rates / (rates + 1 / dt) > iid(2, uniform(0, 1)), 1, 0)", "rates: [0.5, 2]", "", 0),
+			"poisson_process"},
+		{"an Ornstein-Uhlenbeck step with its draw first", expressionPartition(1,
+			"x + thetas * (mus - x) * dt + shared(normal(0, 1)) * sigmas * sqrt(dt)", "thetas: [0.3], mus: [1], sigmas: [0.5]", "", 0),
+			"ornstein_uhlenbeck"},
 		{"a param copied out", expressionPartition(2, "level", "level: [4, 5]", "", 0), "param_values"},
 		{"a constant", expressionPartition(2, "x", "", "", 3), "constant_values"},
 	} {
@@ -381,6 +390,10 @@ func TestSuggestionMatching(t *testing.T) {
 		{"a > b", "(b) < (a)"},
 		{"a == b / c", "(a) == ((b) / (c))"},
 		{"math.f(a, 'q')", "math.f(a, 'q')"},
+		{"normal(m, s)", "(m) + ((s) * (normal(0, 1)))"},
+		{"normal(0, s)", "(s) * (normal(0, 1))"},
+		{"a < b / c", "((a) * (c)) < (b)"},
+		{"b / c <= a", "(b) <= ((a) * (c))"},
 	} {
 		t.Run(c.expression+" is read in order-free form", func(t *testing.T) {
 			parsed, err := parser.ParseExpr(c.expression)
@@ -489,5 +502,116 @@ func TestSuggestOnCatalogueTwins(t *testing.T) {
 	}
 	if twins < 14 {
 		t.Errorf("found %d twins, want at least 14", twins)
+	}
+}
+
+// TestSuggestionTemplateCoverage holds the templates to the catalogue: every built-in
+// iteration's rule translates into a template, or the built-in is an alias of one whose
+// rule is the same, or it is excluded with a reason and its rule does not translate.
+func TestSuggestionTemplateCoverage(t *testing.T) {
+	described := catalogueFields()["iterations"]
+	patterns := map[string]*exprNode{}
+	for _, name := range sortedKeys(described) {
+		templates, err := templatesFromRule(name, described[name])
+		_, aliased := suggestionAliases[name]
+		reason, excluded := suggestionExclusions[name]
+		switch {
+		case aliased && excluded:
+			t.Errorf("%s is both an alias and excluded", name)
+		case excluded && err == nil:
+			t.Errorf("%s is excluded (%s), but its rule translates: suggest it", name, reason)
+		case !excluded && err != nil:
+			t.Errorf("%s: %v; state its rule as a template, or exclude it with a reason", name, err)
+		case err == nil:
+			patterns[name] = templates[0].pattern
+		}
+	}
+	for alias, name := range suggestionAliases {
+		if patterns[alias] == nil || patterns[name] == nil || !sameNode(patterns[alias], patterns[name]) {
+			t.Errorf("%s's rule is not %s's", alias, name)
+		}
+	}
+	for name := range suggestionExclusions {
+		if _, ok := described[name]; !ok {
+			t.Errorf("%s is excluded, but is not in the catalogue", name)
+		}
+	}
+	suggested := map[string]bool{}
+	for _, template := range suggestionTemplates() {
+		suggested[template.iteration] = true
+	}
+	if len(suggested)+len(suggestionAliases)+len(suggestionExclusions) != len(described) || len(suggested) < 9 {
+		t.Errorf("%d suggested, %d aliased and %d excluded of %d", len(suggested), len(suggestionAliases),
+			len(suggestionExclusions), len(described))
+	}
+}
+
+func TestTemplatesFromRule(t *testing.T) {
+	entry := func(update string, params ...string) CatalogueEntry {
+		described := CatalogueEntry{Update: update}
+		for _, param := range params {
+			described.Params = append(described.Params, CatalogueField{Name: param})
+		}
+		return described
+	}
+	for _, c := range []struct {
+		name  string
+		entry CatalogueEntry
+		want  string
+	}{
+		{"a rule of two lines", entry("x[i] <- a[i]\nwhen b"), "more than one line"},
+		{"a rule for something other than x", entry("y <- 1"), "does not give x"},
+		{"a draw other than a standard one", entry("x[i] <- G[i],  G[i] ~ Gamma(1, 2)"), "it draws"},
+		{"a read of history", entry("x[i] <- x@2[i]"), "elements or history"},
+		{"a read of another element", entry("x[i] <- x[i+1]"), "elements or history"},
+		{"text", entry("x <- the next row"), "not an expression"},
+		{"a name that is not a param", entry("x[i] <- x[i] + k[i]", "a"), "reads k"},
+		{"more params than slots", CatalogueEntry{}, ""},
+	} {
+		t.Run(c.name+" does not translate", func(t *testing.T) {
+			if c.name == "more params than slots" {
+				// 24 distinct names, one more than there are slot letters.
+				var names []string
+				for index := 0; index < 24; index++ {
+					names = append(names, fmt.Sprintf("p%d", index))
+				}
+				c.entry = entry("x[i] <- "+strings.Join(names, " + "), names...)
+				c.want = "more params than a template has slots"
+			}
+			if _, err := templatesFromRule("test", c.entry); err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("got %v, want %q", err, c.want)
+			}
+		})
+	}
+
+	for _, c := range []struct {
+		name, update string
+		params       []string
+		want         []string
+	}{
+		{"a drift term is dropped, its param set to 0", "x[i] <- x[i] + a[i] * dt + b[i] * Z[i],  Z[i] ~ N(0, 1)",
+			[]string{"a", "b"}, []string{"(X) + ((A) * (dt)) + ((B) * (Z)) map[a:A b:B]", "(X) + ((B) * (Z)) map[a: b:B]"}},
+		{"a term whose param the rest reads stays", "x[i] <- x[i] + a[i] * dt + a[i] * Z[i],  Z[i] ~ N(0, 1)",
+			[]string{"a"}, []string{"(X) + ((A) * (dt)) + ((A) * (Z)) map[a:A]"}},
+		{"a term leaving nothing drawn stays", "x[i] <- x[i] + a[i] * U[i],  U[i] ~ U(0, 1)",
+			[]string{"a"}, []string{"(X) + ((A) * (U)) map[a:A]"}},
+		{"a term reading the state stays", "x[i] <- x[i] * a[i] + b[i] * Z[i],  Z[i] ~ N(0, 1)",
+			[]string{"a", "b"}, []string{"((X) * (A)) + ((B) * (Z)) map[a:A b:B]"}},
+		{"a term with no params stays", "x[i] <- x[i] + dt + Z[i],  Z[i] ~ N(0, 1)",
+			nil, []string{"(X) + (dt) + (Z) map[]"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			templates, err := templatesFromRule("test", entry(c.update, c.params...))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []string
+			for _, template := range templates {
+				got = append(got, nodeSource(template.pattern)+" "+fmt.Sprint(template.params))
+			}
+			if fmt.Sprint(got) != fmt.Sprint(c.want) {
+				t.Errorf("got %q, want %q", got, c.want)
+			}
+		})
 	}
 }
