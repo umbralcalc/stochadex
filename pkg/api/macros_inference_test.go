@@ -56,7 +56,7 @@ macros:
 // directPosteriorStorage builds the same scenario as posteriorMacroYAML with a
 // hand-written Go AppliedPosteriorEstimation, so the macro can be checked against
 // the constructor it wraps.
-func directPosteriorStorage() *simulator.StateTimeStorage {
+func directPosteriorStorage(tweak ...func(*macros.AppliedPosteriorEstimation)) *simulator.StateTimeStorage {
 	storage := analysis.NewStateTimeStorageFromPartitions(
 		[]*simulator.PartitionConfig{{
 			Name:      "test_data",
@@ -69,74 +69,44 @@ func directPosteriorStorage() *simulator.StateTimeStorage {
 		&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 500},
 		&simulator.ConstantTimestepFunction{Stepsize: 1.0}, 0.0,
 	)
-	partitions := macros.NewPosteriorEstimationPartitions(
-		macros.AppliedPosteriorEstimation{
-			LogNorm:    macros.PosteriorLogNorm{Name: "test_post_log_norm", Default: 0.0},
-			Mean:       macros.PosteriorMean{Name: "test_post_mean", Default: []float64{1.8, 5.0}},
-			Covariance: macros.PosteriorCovariance{Name: "test_post_cov", Default: []float64{2.5, 0, 0, 9.0}},
-			Sampler: macros.PosteriorSampler{
-				Name: "test_post_sampler", Default: []float64{1.8, 5.0},
-				Distribution: macros.ParameterisedModel{
-					Likelihood: &inference.NormalLikelihoodDistribution{AllowDefaultCovarianceFallback: true},
-					Params: simulator.NewParams(map[string][]float64{
-						"default_covariance": {2.5, 0, 0, 9.0}, "cov_burn_in_steps": {200},
-					}),
-					ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-						"mean": {Upstream: "test_post_mean"}, "covariance_matrix": {Upstream: "test_post_cov"},
-					},
+	applied := macros.AppliedPosteriorEstimation{
+		LogNorm:    macros.PosteriorLogNorm{Name: "test_post_log_norm", Default: 0.0},
+		Mean:       macros.PosteriorMean{Name: "test_post_mean", Default: []float64{1.8, 5.0}},
+		Covariance: macros.PosteriorCovariance{Name: "test_post_cov", Default: []float64{2.5, 0, 0, 9.0}},
+		Sampler: macros.PosteriorSampler{
+			Name: "test_post_sampler", Default: []float64{1.8, 5.0},
+			Distribution: macros.ParameterisedModel{
+				Likelihood: &inference.NormalLikelihoodDistribution{AllowDefaultCovarianceFallback: true},
+				Params: simulator.NewParams(map[string][]float64{
+					"default_covariance": {2.5, 0, 0, 9.0}, "cov_burn_in_steps": {200},
+				}),
+				ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+					"mean": {Upstream: "test_post_mean"}, "covariance_matrix": {Upstream: "test_post_cov"},
 				},
 			},
-			Comparison: macros.AppliedLikelihoodComparison{
-				Name: "test_likelihood",
-				Model: macros.ParameterisedModel{
-					Likelihood: &inference.NormalLikelihoodDistribution{},
-					Params: simulator.NewParams(map[string][]float64{
-						"covariance_matrix": {2.5, 0, 0, 9.0},
-					}),
-					ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-						"mean": {Upstream: "test_post_sampler"},
-					},
-				},
-				Data:                   analysis.DataRef{PartitionName: "test_data"},
-				Window:                 macros.WindowedPartitions{Data: []analysis.DataRef{{PartitionName: "test_data"}}, Depth: 200},
-				WindowDataHistoryDepth: map[string]int{"test_data": 200},
-			},
-			PastDiscount: 1.0, MemoryDepth: 200, Seed: 1234,
 		},
-		storage,
-	)
+		Comparison: macros.AppliedLikelihoodComparison{
+			Name: "test_likelihood",
+			Model: macros.ParameterisedModel{
+				Likelihood: &inference.NormalLikelihoodDistribution{},
+				Params: simulator.NewParams(map[string][]float64{
+					"covariance_matrix": {2.5, 0, 0, 9.0},
+				}),
+				ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
+					"mean": {Upstream: "test_post_sampler"},
+				},
+			},
+			Data:                   analysis.DataRef{PartitionName: "test_data"},
+			Window:                 macros.WindowedPartitions{Data: []analysis.DataRef{{PartitionName: "test_data"}}, Depth: 200},
+			WindowDataHistoryDepth: map[string]int{"test_data": 200},
+		},
+		PastDiscount: 1.0, MemoryDepth: 200, Seed: 1234,
+	}
+	for _, change := range tweak {
+		change(&applied)
+	}
+	partitions := macros.NewPosteriorEstimationPartitions(applied, storage)
 	return analysis.AddPartitionsToStateTimeStorage(storage, partitions, map[string]int{"test_data": 200})
-}
-
-// TestPosteriorEstimationMacroEquivalence proves the posterior_estimation macro
-// produces output identical to a hand-written NewPosteriorEstimationPartitions
-// call with the equivalent AppliedPosteriorEstimation — i.e. the spec->Applied
-// translation is faithful.
-func TestPosteriorEstimationMacroEquivalence(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "config.yaml")
-	if err := os.WriteFile(path, []byte(posteriorMacroYAML), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	macroStorage, err := runToStorage(LoadApiRunConfigFromYaml(path))
-	if err != nil {
-		t.Fatal(err)
-	}
-	direct := directPosteriorStorage()
-
-	for _, name := range []string{"test_post_mean", "test_post_cov", "test_post_log_norm"} {
-		got := macroStorage.GetValues(name)
-		want := direct.GetValues(name)
-		if len(got) == 0 || len(want) == 0 {
-			t.Fatalf("%s: missing output (got %d, want %d rows)", name, len(got), len(want))
-		}
-		gotFinal, wantFinal := got[len(got)-1], want[len(want)-1]
-		for i := range wantFinal {
-			if gotFinal[i] != wantFinal[i] {
-				t.Errorf("%s[%d]: macro=%v direct=%v (translation not faithful)",
-					name, i, gotFinal[i], wantFinal[i])
-			}
-		}
-	}
 }
 
 // TestPosteriorEstimationMacroConverges guards the shipped example end-to-end:
@@ -213,12 +183,7 @@ macros:
 	}
 }
 
-// TestLikelihoodMeanFunctionFitMacroEquivalence proves the fit macro is a
-// faithful wrapper of NewLikelihoodMeanFunctionFitPartition (same output as the
-// hand-written Applied), independent of whether the chosen hyperparameters
-// converge.
-func TestLikelihoodMeanFunctionFitMacroEquivalence(t *testing.T) {
-	const fitYAML = `data:
+const meanFitYAML = `data:
   steps: 100
   timestep: 1.0
   partitions:
@@ -241,15 +206,10 @@ macros:
   descent_iterations: 3
   window_data_history_depth: {test_data: 10}
 `
-	path := filepath.Join(t.TempDir(), "config.yaml")
-	if err := os.WriteFile(path, []byte(fitYAML), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	macroStorage, err := runToStorage(LoadApiRunConfigFromYaml(path))
-	if err != nil {
-		t.Fatal(err)
-	}
 
+// directMeanFitStorage builds the scenario in meanFitYAML with a hand-written Go
+// AppliedLikelihoodMeanFunctionFit.
+func directMeanFitStorage(tweak ...func(*macros.AppliedLikelihoodMeanFunctionFit)) *simulator.StateTimeStorage {
 	// Direct Go equivalent, same data and Applied.
 	storage := analysis.NewStateTimeStorageFromPartitions(
 		[]*simulator.PartitionConfig{{
@@ -263,34 +223,23 @@ macros:
 		&simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 100},
 		&simulator.ConstantTimestepFunction{Stepsize: 1.0}, 0.0,
 	)
-	fit := macros.NewLikelihoodMeanFunctionFitPartition(
-		macros.AppliedLikelihoodMeanFunctionFit{
-			Name: "mean_fit",
-			Model: macros.ParameterisedModelWithGradient{
-				Likelihood: &inference.NormalLikelihoodDistribution{},
-				Params:     simulator.NewParams(map[string][]float64{"covariance_matrix": {1, 0, 0, 1}}),
-			},
-			Gradient:               macros.LikelihoodMeanGradient{Function: inference.MeanGradientFunc, Width: 2},
-			Data:                   analysis.DataRef{PartitionName: "test_data"},
-			Window:                 macros.WindowedPartitions{Depth: 10},
-			LearningRate:           0.005,
-			DescentIterations:      3,
-			WindowDataHistoryDepth: map[string]int{"test_data": 10},
+	applied := macros.AppliedLikelihoodMeanFunctionFit{
+		Name: "mean_fit",
+		Model: macros.ParameterisedModelWithGradient{
+			Likelihood: &inference.NormalLikelihoodDistribution{},
+			Params:     simulator.NewParams(map[string][]float64{"covariance_matrix": {1, 0, 0, 1}}),
 		},
-		storage,
-	)
-	direct := analysis.AddPartitionsToStateTimeStorage(storage,
+		Gradient:               macros.LikelihoodMeanGradient{Function: inference.MeanGradientFunc, Width: 2},
+		Data:                   analysis.DataRef{PartitionName: "test_data"},
+		Window:                 macros.WindowedPartitions{Depth: 10},
+		LearningRate:           0.005,
+		DescentIterations:      3,
+		WindowDataHistoryDepth: map[string]int{"test_data": 10},
+	}
+	for _, change := range tweak {
+		change(&applied)
+	}
+	fit := macros.NewLikelihoodMeanFunctionFitPartition(applied, storage)
+	return analysis.AddPartitionsToStateTimeStorage(storage,
 		[]*simulator.PartitionConfig{fit}, map[string]int{"test_data": 10})
-
-	got := macroStorage.GetValues("mean_fit")
-	want := direct.GetValues("mean_fit")
-	if len(got) == 0 || len(want) == 0 {
-		t.Fatalf("missing mean_fit output (got %d want %d)", len(got), len(want))
-	}
-	g, w := got[len(got)-1], want[len(want)-1]
-	for i := range w {
-		if g[i] != w[i] {
-			t.Errorf("mean_fit[%d]: macro=%v direct=%v (translation not faithful)", i, g[i], w[i])
-		}
-	}
 }
