@@ -152,11 +152,10 @@ its own state is matched; the rest are excluded with reasons; `TestSuggestOnCata
 D's tests pass unchanged; every generated template is tested both ways (it fires on its
 expression form, and the verified replacement agrees step for step).
 
-**Built, in review (#183).** There are 9 built-ins suggested, 2 aliases (`cox_process` and `hawkes_process` are
+**Merged (#183), released in v0.28.0 with D; robert's gate consumes it (robert#24).** There are 9 built-ins suggested, 2 aliases (`cox_process` and `hawkes_process` are
 `poisson_process`) and 40 exclusions with reasons, held by `TestSuggestionTemplateCoverage`. The
 exclusions are mostly components, other partitions' state, history, or rules with cases. The
 next widening would be rules with cases (`gradient_descent`, `ornstein_uhlenbeck_exact_gaussian`).
-Release D and D.2 together once this merges.
 
 ### E. One implementation per macro
 
@@ -166,6 +165,13 @@ Then consolidate. The likely direction is that `pkg/macros` constructors build b
 macro's spec and resolving it (one definition, the expander), keeping their Go signatures for
 library callers; measure the result before deciding. Acceptance: one definition of each macro's
 partitions; the cross-check test kept as the guard; no change to any golden.
+
+**Cross-check built, in review (#185).** `TestMacroRoutesAgree`: 19 cases, bit for bit at every
+row. All 11 macros with both routes agree today, so nothing has drifted (`mcts_planning` has no
+constructor). **Open question on direction:** the plan's "constructors build by expanding" would
+make `pkg/macros` depend on the expander in `pkg/api`, which inverts the layering, and constructors
+take Go values (a `Likelihood`, a bespoke iteration) that have no data form. `NewMCTSSelfPlayLayout`
+shows the alternative: a shared layout both routes read.
 
 ### F. Retire deprecated spellings; decide on flattening `main:`
 
