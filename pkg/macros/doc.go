@@ -36,6 +36,8 @@
 //
 //   - aggregation.go   — grouped and rolling vector mean/variance/covariance
 //     partitions over an analysis.GroupedStateTimeStorage.
+//   - aggregation_layout.go — what those partitions are wired with, apart from their
+//     iterations: both these constructors and a config's expansion read it.
 //   - likelihood.go    — the windowed-simulation substrate (WindowedPartitions,
 //     ParameterisedModel) plus rolling likelihood comparison and mean-function
 //     fitting. inference.go and optimisation.go build on its types.

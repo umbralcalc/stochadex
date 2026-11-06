@@ -22,6 +22,15 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`macros.NewVectorMeanLayout` and the other aggregation layouts** say what an aggregation's
+  partition is wired with: its params, upstreams and initial state, everything but its name
+  and iteration. `NewVectorCumulativeMeanLayout`, `NewVectorVarianceLayout`,
+  `NewVectorCovarianceLayout` and `NewGroupedAggregationLayout` do the same for the others. The
+  constructors and a config's expansion both read them, so the two no longer state this wiring
+  separately. Results are unchanged.
+
 ## [0.28.0] — 2026-11-04
 
 ### Added
