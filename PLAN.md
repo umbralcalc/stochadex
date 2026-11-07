@@ -175,11 +175,12 @@ shows the alternative: a shared layout both routes read.
 
 **Decided: shared layouts.** Merged: aggregations (#187, 570 → 509 code lines), likelihood
 windows (#188, `NewWindowLayout` with `AddComparison`/`AddMeanFit`, 795 → 711), posterior
-(#189, 555 → 507), evolution strategy (#190, 665 → 578). SMC in review (#191, `NewSMCLayout`
-including depth and seeds; the particle model stays per route, 271 → 240). Each saves 9–13%; the
+(#189, 555 → 507), evolution strategy (#190, 665 → 578), SMC (#191, `NewSMCLayout` including
+depth and seeds; the particle model stays per route, 271 → 240). Regression partition in review
+(#192, 108 → 96; it also added the config-route depth test that was missing). Each saves 9–13%; the
 gain is one definition of each macro's wiring, not much less code. A shared layout's bugs hit
-both routes, so each one is mutation-checked with the cross-check excluded. Left: the regression
-partition (whose init state is already shared).
+both routes, so each one is mutation-checked with the cross-check excluded. With #192 every macro
+with two routes reads one layout; `mcts_planning` has one route.
 
 ### F. Retire deprecated spellings; decide on flattening `main:`
 
