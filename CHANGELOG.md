@@ -22,6 +22,14 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-11-07
+
+This release leaves one spelling of everything. A config has one place for data coming in,
+`inputs:`, and one for results going out, `outputs:`; the older spellings are removed, and a
+config still using one fails with an error that writes out its replacement. Inside, every macro
+with both a Go and a config route now builds its partitions from one shared layout, so the two
+cannot state its wiring differently.
+
 **Upgrading from 0.28.** The deprecated spellings are removed. Each config form still in use
 fails to load with an error that gives its replacement, so a config is upgraded by pasting
 what the error says.
@@ -2684,7 +2692,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.28.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.29.0...HEAD
+[0.29.0]: https://github.com/umbralcalc/stochadex/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/umbralcalc/stochadex/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/umbralcalc/stochadex/compare/v0.26.0...v0.27.0
 [0.26.0]: https://github.com/umbralcalc/stochadex/compare/v0.25.0...v0.26.0
