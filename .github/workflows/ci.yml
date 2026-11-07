@@ -11,6 +11,7 @@ concurrency: # cancel superseded runs to save iteration time
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     services:
       postgres:
         image: postgres:16
@@ -91,8 +92,10 @@ jobs:
           # `update && install` the install was skipped silently. Drop that source, and
           # keep update and install separate so either failing fails the step.
           sudo rm -f /etc/apt/sources.list.d/microsoft*
-          sudo apt-get update
-          sudo apt-get install -y libopenblas-dev
+          # A stuck mirror otherwise holds the job until GitHub's six-hour limit: bound each
+          # connection and each command, so it fails or retries in minutes.
+          sudo timeout 300 apt-get -o Acquire::http::Timeout=30 -o Acquire::Retries=3 update
+          sudo timeout 600 apt-get -o Acquire::http::Timeout=30 -o Acquire::Retries=3 install -y libopenblas-dev
           cd cmd/stochadex && CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" \
             go build -tags "cblas duckdb_arrow" ./... && \
             CGO_ENABLED=1 CGO_LDFLAGS="-lopenblas" go test -tags "cblas duckdb_arrow" ./... -count=1
@@ -124,6 +127,7 @@ jobs:
   site:
     needs: [test]
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -137,8 +141,10 @@ jobs:
           # `update && install` the install was skipped silently. Drop that source, and
           # keep update and install separate so either failing fails the step.
           sudo rm -f /etc/apt/sources.list.d/microsoft*
-          sudo apt-get update
-          sudo apt-get install -y pandoc
+          # A stuck mirror otherwise holds the job until GitHub's six-hour limit: bound each
+          # connection and each command, so it fails or retries in minutes.
+          sudo timeout 300 apt-get -o Acquire::http::Timeout=30 -o Acquire::Retries=3 update
+          sudo timeout 600 apt-get -o Acquire::http::Timeout=30 -o Acquire::Retries=3 install -y pandoc
       - name: Install gomarkdoc
         run: |
           go install github.com/princjef/gomarkdoc/cmd/gomarkdoc@latest
