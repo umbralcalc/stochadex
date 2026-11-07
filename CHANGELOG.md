@@ -38,6 +38,9 @@ an exact version rather than assume stability across minors.
 - **`macros.NewPosteriorLayout`** does the same for the rest of a posterior: its normaliser, mean,
   covariance (or variance) and sampler. `macros.PosteriorReadsSampler` is the check both routes
   make that the comparison reads the sampler. Results are unchanged.
+- **`macros.NewEvolutionStrategyLayout`** does the same for `evolution_strategy_optimisation`: the
+  simulation running its window and discounted reward, and its sampler, sorting collection, mean
+  and covariance. Results are unchanged.
 
 ## [0.28.0] — 2026-11-04
 

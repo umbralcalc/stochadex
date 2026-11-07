@@ -71,7 +71,6 @@ func NewEvolutionStrategyOptimisationPartitions(
 	applied AppliedEvolutionStrategyOptimisation,
 	storage *simulator.StateTimeStorage,
 ) []*simulator.PartitionConfig {
-	sampleDim := len(applied.Sampler.Default)
 	partitions := make([]*simulator.PartitionConfig, 0)
 
 	// Build the embedded simulation containing user partitions
@@ -86,209 +85,51 @@ func NewEvolutionStrategyOptimisationPartitions(
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 		InitTimeValue:    0.0,
 	})
-	simInitStateValues := make([]float64, 0)
-	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
-	simParamsAsPartitions := make(map[string][]string)
-	if applied.Window.Partitions != nil {
-		for _, partition := range applied.Window.Partitions {
-			generator.SetPartition(partition.Partition)
-			simInitStateValues = append(
-				simInitStateValues,
-				partition.Partition.InitStateValues...,
-			)
-			if partition.OutsideUpstreams == nil {
-				continue
-			}
-			for paramsName, upstream := range partition.OutsideUpstreams {
-				simParamsFromUpstream[partition.Partition.Name+
-					"/"+paramsName] = upstream
-			}
+	var window []WindowPartitionRef
+	for _, partition := range applied.Window.Partitions {
+		generator.SetPartition(partition.Partition)
+		window = append(window, WindowPartitionRef{Name: partition.Partition.Name,
+			InitState: partition.Partition.InitStateValues, OutsideUpstreams: partition.OutsideUpstreams})
+	}
+	var replays []WindowReplay
+	for _, ref := range applied.Window.Data {
+		if ref.ValueIndices != nil {
+			panic("value indices are not supported in window data")
 		}
+		replay := WindowReplay{Name: ref.PartitionName, InitState: ref.GetTimeIndexFromStorage(storage, 0)}
+		replays = append(replays, replay)
+		generator.SetPartition(&simulator.PartitionConfig{
+			Name:              ref.PartitionName,
+			Iteration:         &general.FromHistoryIteration{},
+			Params:            simulator.NewParams(make(map[string][]float64)),
+			InitStateValues:   replay.InitState,
+			StateHistoryDepth: 1,
+		})
 	}
-	if applied.Window.Data != nil {
-		for _, ref := range applied.Window.Data {
-			if ref.ValueIndices != nil {
-				panic("value indices are not supported in window data")
-			}
-			initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
-			generator.SetPartition(&simulator.PartitionConfig{
-				Name:              ref.PartitionName,
-				Iteration:         &general.FromHistoryIteration{},
-				Params:            simulator.NewParams(make(map[string][]float64)),
-				InitStateValues:   initStateValues,
-				StateHistoryDepth: 1,
-				Seed:              0,
-			})
-			simInitStateValues = append(simInitStateValues, initStateValues...)
-			simParamsAsPartitions[ref.PartitionName+
-				"/update_from_partition_history"] = []string{ref.PartitionName}
-			simParamsAsPartitions[ref.PartitionName+
-				"/initial_state_from_partition_history"] = []string{ref.PartitionName}
-		}
-	}
-
-	// Add the reward partition wrapped with discounted cumulative
-	rewardPartition := applied.Reward.Partition.Partition
-	rewardParams := simulator.NewParams(make(map[string][]float64))
-	for k, v := range rewardPartition.Params.Map {
-		rewardParams.Set(k, v)
-	}
-	rewardParams.Set(
-		"discount_factor",
-		[]float64{applied.Reward.DiscountFactor},
-	)
-	rewardParamsAsPartitions := make(map[string][]string)
-	if rewardPartition.ParamsAsPartitions != nil {
-		for k, v := range rewardPartition.ParamsAsPartitions {
-			rewardParamsAsPartitions[k] = v
-		}
-	}
-	rewardParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
-	if rewardPartition.ParamsFromUpstream != nil {
-		for k, v := range rewardPartition.ParamsFromUpstream {
-			rewardParamsFromUpstream[k] = v
-		}
-	}
-	// Seed the discounted-reward accumulator with the sorting sentinel, not the
-	// user's init. At the first (outer) step the embedded sim has not run, so this
-	// value is what the sorter would rank the never-sampled initial point by; the
-	// user's init reward is typically 0, which for a maximise-me objective outranks
-	// every real (negative) reward and pins the initial point at the top of the
-	// collection, dragging the mean toward it forever. Seeding with empty_value
-	// sinks that placeholder to the bottom (and the mean/covariance updates skip it).
-	rewardInitState := make([]float64, len(rewardPartition.InitStateValues))
-	for i := range rewardInitState {
-		rewardInitState[i] = applied.Sorting.EmptyValue
-	}
-	generator.SetPartition(&simulator.PartitionConfig{
-		Name: "discounted_reward",
-		Iteration: &general.DiscountedCumulativeIteration{
-			Iteration: rewardPartition.Iteration,
-		},
-		Params:             rewardParams,
-		ParamsAsPartitions: rewardParamsAsPartitions,
-		ParamsFromUpstream: rewardParamsFromUpstream,
-		InitStateValues:    rewardInitState,
-		StateHistoryDepth:  1,
-		Seed:               0,
+	reward := applied.Reward.Partition.Partition
+	layout := NewEvolutionStrategyLayout(applied.Sampler, applied.Sorting, applied.Mean,
+		applied.Covariance, window, replays, EvolutionStrategyRewardWiring{
+			Params:             reward.Params.Map,
+			ParamsAsPartitions: reward.ParamsAsPartitions,
+			ParamsFromUpstream: reward.ParamsFromUpstream,
+			Width:              len(reward.InitStateValues),
+			OutsideUpstreams:   applied.Reward.Partition.OutsideUpstreams,
+			DiscountFactor:     applied.Reward.DiscountFactor,
+		})
+	generator.SetPartition(layout.Reward.partition("discounted_reward",
+		&general.DiscountedCumulativeIteration{Iteration: reward.Iteration}))
+	simulation := layout.Simulation.partition(layout.SimulationName,
+		general.NewEmbeddedSimulationRunIteration(generator.GenerateConfigs()))
+	sampler := layout.Sampler.partition(applied.Sampler.Name, &inference.DataGenerationIteration{
+		Likelihood: &inference.NormalLikelihoodDistribution{AllowDefaultCovarianceFallback: true},
 	})
-	if applied.Reward.Partition.OutsideUpstreams != nil {
-		for paramsName, upstream := range applied.Reward.Partition.OutsideUpstreams {
-			simParamsFromUpstream["discounted_reward/"+paramsName] = upstream
-		}
-	}
-	simInitStateValues = append(simInitStateValues, rewardInitState...)
-
-	// Compute the sort-by index: offset of discounted_reward in
-	// the concatenated embedded sim output
-	sortByIndex := len(simInitStateValues) - len(rewardInitState)
-
-	simName := applied.Sampler.Name + "_simulation"
-	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {0},
+	sampler.Seed = applied.Seed
+	sorting := layout.Sorting.partition(applied.Sorting.Name, &general.ValuesSortingCollectionIteration{
+		PushAndSort: general.OtherPartitionsPushAndSortFunction,
 	})
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name: simName,
-		Iteration: general.NewEmbeddedSimulationRunIteration(
-			generator.GenerateConfigs(),
-		),
-		Params:             simParams,
-		ParamsAsPartitions: simParamsAsPartitions,
-		ParamsFromUpstream: simParamsFromUpstream,
-		InitStateValues:    simInitStateValues,
-		StateHistoryDepth:  1,
-		Seed:               0,
-	})
-
-	// Sampler: draws from N(mean, covariance) where mean and covariance
-	// come from the update partitions
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name: applied.Sampler.Name,
-		Iteration: &inference.DataGenerationIteration{
-			Likelihood: &inference.NormalLikelihoodDistribution{
-				AllowDefaultCovarianceFallback: true,
-			},
-		},
-		Params: simulator.NewParams(map[string][]float64{
-			"default_covariance": applied.Covariance.Default,
-		}),
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"mean":              {Upstream: applied.Mean.Name},
-			"covariance_matrix": {Upstream: applied.Covariance.Name},
-		},
-		InitStateValues:   applied.Sampler.Default,
-		StateHistoryDepth: 1,
-		Seed:              applied.Seed,
-	})
-
-	// Sorting collection: ranks samples by discounted return
-	entryWidth := sampleDim + 1
-	collectionStateWidth := applied.Sorting.CollectionSize * entryWidth
-	sortInitState := make([]float64, collectionStateWidth)
-	for i := range sortInitState {
-		sortInitState[i] = applied.Sorting.EmptyValue
-	}
-	sampleValueIndices := make([]float64, sampleDim)
-	for i := range sampleDim {
-		sampleValueIndices[i] = float64(i)
-	}
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name: applied.Sorting.Name,
-		Iteration: &general.ValuesSortingCollectionIteration{
-			PushAndSort: general.OtherPartitionsPushAndSortFunction,
-		},
-		Params: simulator.NewParams(map[string][]float64{
-			"value_indices":       sampleValueIndices,
-			"value_index_sort_by": {float64(sortByIndex)},
-			"empty_value":         {applied.Sorting.EmptyValue},
-			"values_state_width":  {float64(sampleDim)},
-		}),
-		ParamsAsPartitions: map[string][]string{
-			"other_partition":         {applied.Sampler.Name},
-			"other_partition_sort_by": {simName},
-		},
-		InitStateValues:   sortInitState,
-		StateHistoryDepth: 2,
-		Seed:              0,
-	})
-
-	// Mean update: weighted mean of top-ranked samples blended with
-	// previous mean
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:      applied.Mean.Name,
-		Iteration: &general.ValuesSortedCollectionMeanIteration{},
-		Params: simulator.NewParams(map[string][]float64{
-			"weights":            applied.Mean.Weights,
-			"learning_rate":      {applied.Mean.LearningRate},
-			"values_state_width": {float64(sampleDim)},
-			"empty_value":        {applied.Sorting.EmptyValue},
-		}),
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"sorted_collection": {Upstream: applied.Sorting.Name},
-		},
-		InitStateValues:   applied.Mean.Default,
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
-
-	// Covariance update: weighted covariance around the updated mean
-	// blended with previous covariance
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:      applied.Covariance.Name,
-		Iteration: &general.ValuesSortedCollectionCovarianceIteration{},
-		Params: simulator.NewParams(map[string][]float64{
-			"weights":            applied.Mean.Weights,
-			"learning_rate":      {applied.Covariance.LearningRate},
-			"values_state_width": {float64(sampleDim)},
-			"empty_value":        {applied.Sorting.EmptyValue},
-		}),
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"sorted_collection": {Upstream: applied.Sorting.Name},
-		},
-		InitStateValues:   applied.Covariance.Default,
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
-
+	sorting.StateHistoryDepth = 2
+	partitions = append(partitions, simulation, sampler, sorting,
+		layout.Mean.partition(applied.Mean.Name, &general.ValuesSortedCollectionMeanIteration{}),
+		layout.Covariance.partition(applied.Covariance.Name, &general.ValuesSortedCollectionCovarianceIteration{}))
 	return partitions
 }
