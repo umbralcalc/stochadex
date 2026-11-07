@@ -78,41 +78,36 @@ func inlineOrdered(partitions []expandedPartition) bool {
 	return true
 }
 
-// windowHost is what a likelihood window's host partition and its run hold
-// before the scoring partitions are added.
+// windowHost is a likelihood window as data: the partitions it runs, and its layout.
 type windowHost struct {
-	partitions   []expandedPartition
-	initState    []float64
-	fromUpstream map[string]expandedUpstream
-	asPartitions map[string][]string
-	inner        map[string]bool
+	partitions []expandedPartition
+	layout     macros.WindowLayout
 }
 
 // expandWindow states a likelihood window's partitions and data replays, as
-// macros.NewLikelihoodComparisonPartition and its kin build them.
+// macros.NewLikelihoodComparisonPartition and its kin build them, with burnIn outer
+// steps (the window's depth unless set) before it first runs.
 func expandWindow(
 	ctx *expansionContext,
 	window windowedPartitionsSpec,
 	historyDepths map[string]int,
+	burnInSet *int,
 ) (*windowHost, error) {
 	if window.Depth < 1 {
 		return nil, fmt.Errorf("window depth must be >= 1, got %d", window.Depth)
 	}
-	host := &windowHost{fromUpstream: map[string]expandedUpstream{},
-		asPartitions: map[string][]string{}, inner: map[string]bool{}}
+	host := &windowHost{}
+	var refs []macros.WindowPartitionRef
 	for _, windowed := range window.Partitions {
 		partition, err := partitionAsData(windowed.Partition)
 		if err != nil {
 			return nil, err
 		}
 		host.partitions = append(host.partitions, partition)
-		host.initState = append(host.initState, partition.InitStateValues...)
-		host.inner[partition.Name] = true
-		for param, upstream := range windowed.OutsideUpstreams {
-			host.fromUpstream[partition.Name+"/"+param] =
-				expandedUpstream{Upstream: upstream.Upstream, Indices: upstream.Indices}
-		}
+		refs = append(refs, macros.WindowPartitionRef{Name: partition.Name,
+			InitState: partition.InitStateValues, OutsideUpstreams: windowed.OutsideUpstreams})
 	}
+	var replays []macros.WindowReplay
 	for _, ref := range window.Data {
 		if len(ref.ValueIndices) > 0 {
 			return nil, fmt.Errorf("window data %q: value indices are not supported in window data",
@@ -150,91 +145,68 @@ func expandWindow(
 			InitStateValues:   first,
 			StateHistoryDepth: 1,
 		})
-		host.initState = append(host.initState, first...)
-		host.inner[ref.PartitionName] = true
-		host.asPartitions[ref.PartitionName+"/update_from_partition_history"] = []string{ref.PartitionName}
-		host.asPartitions[ref.PartitionName+"/initial_state_from_partition_history"] = []string{ref.PartitionName}
-		host.fromUpstream[ref.PartitionName+"/latest_data_values"] = expandedUpstream{Upstream: ref.PartitionName}
+		replays = append(replays, macros.WindowReplay{Name: ref.PartitionName, InitState: first})
 	}
+	burnIn := window.Depth
+	if burnInSet != nil {
+		burnIn = *burnInSet
+	}
+	if burnIn < 0 {
+		return nil, fmt.Errorf("embedded_burn_in_steps must be >= 0, got %d", burnIn)
+	}
+	host.layout = macros.NewWindowLayout(refs, replays, burnIn)
 	return host, nil
 }
 
-// burnIn is a window host's burn-in: the window's depth unless the config sets
-// one.
-func burnIn(window windowedPartitionsSpec, set *int) (int, error) {
-	steps := window.Depth
-	if set != nil {
-		steps = *set
+// add adds a partition inside the window, wired by its layout.
+func (h *windowHost) add(name string, iteration *yaml3.Node, layout macros.InnerLayout) {
+	h.partitions = append(h.partitions, expandedPartition{
+		Name:               name,
+		Iteration:          iteration,
+		Params:             layout.Params,
+		ParamsAsPartitions: layout.ParamsAsPartitions,
+		ParamsFromUpstream: upstreamsAsData(layout.ParamsFromUpstream),
+		InitStateValues:    layout.InitStateValues,
+		StateHistoryDepth:  1,
+	})
+}
+
+// run is the host partition running the window over simulation.
+func (h *windowHost) run(name string, simulation map[string]interface{}, historyDepth int) expandedPartition {
+	return expandedPartition{
+		Name:               name,
+		Iteration:          windowRun(h.partitions, simulation),
+		Params:             h.layout.Params,
+		ParamsAsPartitions: h.layout.ParamsAsPartitions,
+		ParamsFromUpstream: upstreamsAsData(h.layout.ParamsFromUpstream),
+		InitStateValues:    h.layout.InitStateValues,
+		StateHistoryDepth:  historyDepth,
 	}
-	if steps < 0 {
-		return 0, fmt.Errorf("embedded_burn_in_steps must be >= 0, got %d", steps)
-	}
-	return steps, nil
 }
 
 // expandComparison is a likelihood_comparison's host partition, as
 // macros.NewLikelihoodComparisonPartition builds it.
 func (s likelihoodComparisonSpec) expandComparison(ctx *expansionContext) (expandedPartition, error) {
-	host, err := expandWindow(ctx, s.Window, s.WindowDataHistoryDepth)
-	if err != nil {
-		return expandedPartition{}, err
-	}
-	steps, err := burnIn(s.Window, s.EmbeddedBurnInSteps)
+	host, err := expandWindow(ctx, s.Window, s.WindowDataHistoryDepth, s.EmbeddedBurnInSteps)
 	if err != nil {
 		return expandedPartition{}, err
 	}
 	if _, err := ctx.width(s.Data.PartitionName); err != nil {
 		return expandedPartition{}, err
 	}
-	params := maps.Clone(s.Model.Params)
-	if params == nil {
-		params = map[string][]float64{}
-	}
-	params["cumulative"], params["burn_in_steps"] = []float64{1}, []float64{0}
-	upstreams := maps.Clone(s.Model.ParamsFromUpstream)
-	if upstreams == nil {
-		upstreams = map[string]simulator.NamedUpstreamConfig{}
-	}
-	upstreams["latest_data_values"] = simulator.NamedUpstreamConfig{
-		Upstream: s.Data.PartitionName, Indices: s.Data.ValueIndices}
-	// The model's wiring to a partition outside the window (a posterior's
-	// sampler) is forwarded in by the host each step, as comparison/<param>.
-	inner := map[string]simulator.NamedUpstreamConfig{}
-	for key, upstream := range upstreams {
-		if host.inner[upstream.Upstream] {
-			inner[key] = upstream
-		} else {
-			host.fromUpstream["comparison/"+key] =
-				expandedUpstream{Upstream: upstream.Upstream, Indices: upstream.Indices}
-		}
-	}
 	if s.Model.Likelihood.IsZero() {
 		return expandedPartition{}, fmt.Errorf("model needs a likelihood: {type: ...}")
 	}
-	host.partitions = append(host.partitions, expandedPartition{
-		Name: "comparison",
-		Iteration: component("data_comparison", map[string]interface{}{
-			"likelihood": component(s.Model.Likelihood.Type, s.Model.Likelihood.Fields)}),
-		Params:             params,
-		ParamsAsPartitions: maps.Clone(s.Model.ParamsAsPartitions),
-		ParamsFromUpstream: upstreamsAsData(inner),
-		InitStateValues:    []float64{0},
-		StateHistoryDepth:  1,
-	})
-	return expandedPartition{
-		Name: s.Name,
-		Iteration: windowRun(host.partitions, map[string]interface{}{
-			"termination_condition": component("number_of_steps",
-				map[string]interface{}{"max_steps": s.Window.Depth}),
-			"timestep_function": component("from_history", nil),
-			"init_time_value":   0.0,
-		}),
-		Params:             map[string][]float64{"burn_in_steps": {float64(steps)}},
-		ParamsAsPartitions: host.asPartitions,
-		ParamsFromUpstream: host.fromUpstream,
-		InitStateValues:    append(host.initState, 0),
-		StateHistoryDepth:  1,
-	}, nil
+	host.add("comparison", component("data_comparison", map[string]interface{}{
+		"likelihood": component(s.Model.Likelihood.Type, s.Model.Likelihood.Fields)}),
+		host.layout.AddComparison(s.Model.Params, s.Model.ParamsAsPartitions, s.Model.ParamsFromUpstream,
+			macros.AggregationRef{Partition: s.Data.PartitionName, Indices: s.Data.ValueIndices}))
+	return host.run(s.Name, map[string]interface{}{
+		"termination_condition": component("number_of_steps",
+			map[string]interface{}{"max_steps": s.Window.Depth}),
+		"timestep_function": component("from_history", nil),
+		"init_time_value":   0.0,
+	}, 1), nil
 }
 
 func (s *likelihoodComparisonSpec) expand(ctx *expansionContext) (*expansion, error) {
@@ -360,73 +332,27 @@ func (s *likelihoodMeanFunctionFitSpec) expand(ctx *expansionContext) (*expansio
 	if s.Model.Likelihood.IsZero() {
 		return nil, fmt.Errorf("model needs a likelihood: {type: ...}")
 	}
-	host, err := expandWindow(ctx, s.Window, s.WindowDataHistoryDepth)
-	if err != nil {
-		return nil, err
-	}
-	steps, err := burnIn(s.Window, s.EmbeddedBurnInSteps)
+	host, err := expandWindow(ctx, s.Window, s.WindowDataHistoryDepth, s.EmbeddedBurnInSteps)
 	if err != nil {
 		return nil, err
 	}
 	if _, err := ctx.width(s.Data.PartitionName); err != nil {
 		return nil, err
 	}
-	width := s.Gradient.Width
-	params := maps.Clone(s.Model.Params)
-	if params == nil {
-		params = map[string][]float64{}
-	}
-	params[s.Data.PartitionName+"->data_values"] = []float64{}
-	asPartitions := maps.Clone(s.Model.ParamsAsPartitions)
-	if asPartitions == nil {
-		asPartitions = map[string][]string{}
-	}
-	asPartitions["mean_partition"] = []string{"gradient_descent"}
-	host.partitions = append(host.partitions, expandedPartition{
-		Name: "gradient",
-		Iteration: component("data_comparison_gradient", map[string]interface{}{
-			"likelihood":        component(s.Model.Likelihood.Type, s.Model.Likelihood.Fields),
-			"gradient_function": s.Gradient.Function,
-		}),
-		Params:             params,
-		ParamsAsPartitions: asPartitions,
-		ParamsFromUpstream: upstreamsAsData(s.Model.ParamsFromUpstream),
-		InitStateValues:    make([]float64, width),
-		StateHistoryDepth:  1,
-	})
-	host.asPartitions["gradient/update_from_partition_history"] = []string{s.Data.PartitionName}
-	host.fromUpstream["gradient/target_state"] = expandedUpstream{Upstream: s.Data.PartitionName}
-	host.initState = append(host.initState, make([]float64, width)...)
-	descentOffset := len(host.initState)
-	host.partitions = append(host.partitions, expandedPartition{
-		Name:               "gradient_descent",
-		Iteration:          component("gradient_descent", nil),
-		Params:             map[string][]float64{"learning_rate": {s.LearningRate}},
-		ParamsFromUpstream: map[string]expandedUpstream{"gradient": {Upstream: "gradient"}},
-		InitStateValues:    make([]float64, width),
-		StateHistoryDepth:  1,
-	})
-	host.initState = append(host.initState, make([]float64, width)...)
-	hostParams := map[string][]float64{"burn_in_steps": {float64(steps)}}
-	if s.WarmStart {
-		hostParams["gradient_descent/init_state_values_from_outer"] =
-			[]float64{float64(descentOffset), float64(width)}
-	}
+	gradient, descent := host.layout.AddMeanFit(s.Model.Params, s.Model.ParamsAsPartitions,
+		s.Model.ParamsFromUpstream, s.Data.PartitionName, s.Gradient.Width, s.LearningRate, s.WarmStart)
+	host.add("gradient", component("data_comparison_gradient", map[string]interface{}{
+		"likelihood":        component(s.Model.Likelihood.Type, s.Model.Likelihood.Fields),
+		"gradient_function": s.Gradient.Function,
+	}), gradient)
+	host.add("gradient_descent", component("gradient_descent", nil), descent)
 	return &expansion{
-		partitions: []expandedPartition{{
-			Name: s.Name,
-			Iteration: windowRun(host.partitions, map[string]interface{}{
-				"termination_condition": component("number_of_steps",
-					map[string]interface{}{"max_steps": s.DescentIterations}),
-				"timestep_function": component("constant", map[string]interface{}{"stepsize": 1.0}),
-				"init_time_value":   0.0,
-			}),
-			Params:             hostParams,
-			ParamsAsPartitions: host.asPartitions,
-			ParamsFromUpstream: host.fromUpstream,
-			InitStateValues:    host.initState,
-			StateHistoryDepth:  s.Window.Depth,
-		}},
+		partitions: []expandedPartition{host.run(s.Name, map[string]interface{}{
+			"termination_condition": component("number_of_steps",
+				map[string]interface{}{"max_steps": s.DescentIterations}),
+			"timestep_function": component("constant", map[string]interface{}{"stepsize": 1.0}),
+			"init_time_value":   0.0,
+		}, s.Window.Depth)},
 		depths: s.WindowDataHistoryDepth,
 	}, nil
 }

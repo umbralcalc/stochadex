@@ -112,115 +112,14 @@ func NewLikelihoodComparisonPartition(
 		// This will be overwritten with the times in the data...
 		InitTimeValue: 0.0,
 	})
-	simInitStateValues := make([]float64, 0)
-	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
-	if applied.Window.Partitions != nil {
-		for _, partition := range applied.Window.Partitions {
-			generator.SetPartition(partition.Partition)
-			simInitStateValues = append(
-				simInitStateValues,
-				partition.Partition.InitStateValues...,
-			)
-			if partition.OutsideUpstreams == nil {
-				continue
-			}
-			for paramsName, upstream := range partition.OutsideUpstreams {
-				simParamsFromUpstream[partition.Partition.Name+
-					"/"+paramsName] = upstream
-			}
-		}
-	}
-	simParamsAsPartitions := make(map[string][]string)
-	if applied.Window.Data != nil {
-		for _, ref := range applied.Window.Data {
-			if ref.ValueIndices != nil {
-				panic("value indices are not supported in window data")
-			}
-			initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
-			generator.SetPartition(&simulator.PartitionConfig{
-				Name:              ref.PartitionName,
-				Iteration:         &general.FromHistoryIteration{},
-				Params:            simulator.NewParams(make(map[string][]float64)),
-				InitStateValues:   initStateValues,
-				StateHistoryDepth: 1,
-				Seed:              0,
-			})
-			simInitStateValues = append(simInitStateValues, initStateValues...)
-			simParamsAsPartitions[ref.PartitionName+
-				"/update_from_partition_history"] = []string{ref.PartitionName}
-			simParamsAsPartitions[ref.PartitionName+
-				"/initial_state_from_partition_history"] = []string{ref.PartitionName}
-			simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
-				simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
-		}
-	}
+	burnIn := windowBurnIn(applied.Window.Depth, applied.EmbeddedBurnInSteps)
+	layout := applied.Window.layout(generator, storage, burnIn)
 	applied.Model.Init()
-	applied.Model.Params.Set("cumulative", []float64{1})
-	applied.Model.Params.Set("burn_in_steps", []float64{0})
-	applied.Model.ParamsFromUpstream["latest_data_values"] =
-		simulator.NamedUpstreamConfig{
-			Upstream: applied.Data.PartitionName,
-			Indices:  applied.Data.ValueIndices,
-		}
-	// Partition the model's upstream wiring into inner and outer. Names that
-	// resolve to a partition inside this embedded window (the replayed data
-	// sources, other window partitions) stay on the inner "comparison"
-	// partition. Names that don't — e.g. a posterior sampler living in the outer
-	// simulation — cannot be resolved by the inner generator, so route them as
-	// outside upstreams (comparison/<param> <- outer partition); the embedded-run
-	// machinery injects the outer value into the inner param each step. This is
-	// what lets posterior_estimation drive the comparison likelihood with the
-	// sampled parameters, so the loglike actually depends on the proposal.
-	innerNames := make(map[string]bool)
-	for _, partition := range applied.Window.Partitions {
-		innerNames[partition.Partition.Name] = true
-	}
-	for _, ref := range applied.Window.Data {
-		innerNames[ref.PartitionName] = true
-	}
-	innerModelUpstreams := make(map[string]simulator.NamedUpstreamConfig)
-	for key, upstream := range applied.Model.ParamsFromUpstream {
-		if innerNames[upstream.Upstream] {
-			innerModelUpstreams[key] = upstream
-		} else {
-			simParamsFromUpstream["comparison/"+key] = upstream
-		}
-	}
-	generator.SetPartition(&simulator.PartitionConfig{
-		Name: "comparison",
-		Iteration: &inference.DataComparisonIteration{
-			Likelihood: applied.Model.Likelihood,
-		},
-		Params:             applied.Model.Params,
-		ParamsAsPartitions: applied.Model.ParamsAsPartitions,
-		ParamsFromUpstream: innerModelUpstreams,
-		InitStateValues:    []float64{0.0},
-		StateHistoryDepth:  1,
-		Seed:               0,
-	})
-	simInitStateValues = append(simInitStateValues, 0.0)
-	burnIn := applied.Window.Depth
-	if applied.EmbeddedBurnInSteps != nil {
-		burnIn = *applied.EmbeddedBurnInSteps
-	}
-	if burnIn < 0 {
-		panic(fmt.Sprintf("macros: EmbeddedBurnInSteps must be >= 0, got %d", burnIn))
-	}
-	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(burnIn)},
-	})
-	return &simulator.PartitionConfig{
-		Name: applied.Name,
-		Iteration: general.NewEmbeddedSimulationRunIteration(
-			withInlineExecution(generator.GenerateConfigs()),
-		),
-		Params:             simParams,
-		ParamsAsPartitions: simParamsAsPartitions,
-		ParamsFromUpstream: simParamsFromUpstream,
-		InitStateValues:    simInitStateValues,
-		StateHistoryDepth:  1,
-		Seed:               0,
-	}
+	generator.SetPartition(layout.AddComparison(applied.Model.Params.Map,
+		applied.Model.ParamsAsPartitions, applied.Model.ParamsFromUpstream,
+		AggregationRef{Partition: applied.Data.PartitionName, Indices: applied.Data.ValueIndices},
+	).partition("comparison", &inference.DataComparisonIteration{Likelihood: applied.Model.Likelihood}))
+	return layout.host(applied.Name, generator, 1)
 }
 
 // ParameterisedModelWithGradient augments ParameterisedModel with gradient
@@ -303,113 +202,74 @@ func NewLikelihoodMeanFunctionFitPartition(
 		TimestepFunction: &simulator.ConstantTimestepFunction{Stepsize: 1.0},
 		InitTimeValue:    0.0,
 	})
-	simInitStateValues := make([]float64, 0)
-	simParamsFromUpstream := make(map[string]simulator.NamedUpstreamConfig)
-	if applied.Window.Partitions != nil {
-		for _, partition := range applied.Window.Partitions {
-			generator.SetPartition(partition.Partition)
-			simInitStateValues = append(
-				simInitStateValues,
-				partition.Partition.InitStateValues...,
-			)
-			if partition.OutsideUpstreams == nil {
-				continue
-			}
-			for paramsName, upstream := range partition.OutsideUpstreams {
-				simParamsFromUpstream[partition.Partition.Name+
-					"/"+paramsName] = upstream
-			}
-		}
-	}
-	simParamsAsPartitions := make(map[string][]string)
-	if applied.Window.Data != nil {
-		for _, ref := range applied.Window.Data {
-			if ref.ValueIndices != nil {
-				panic("value indices are not supported in window data")
-			}
-			initStateValues := ref.GetTimeIndexFromStorage(storage, 0)
-			generator.SetPartition(&simulator.PartitionConfig{
-				Name:              ref.PartitionName,
-				Iteration:         &general.FromHistoryIteration{},
-				Params:            simulator.NewParams(make(map[string][]float64)),
-				InitStateValues:   initStateValues,
-				StateHistoryDepth: 1,
-				Seed:              0,
-			})
-			simInitStateValues = append(simInitStateValues, initStateValues...)
-			simParamsAsPartitions[ref.PartitionName+
-				"/update_from_partition_history"] = []string{ref.PartitionName}
-			simParamsAsPartitions[ref.PartitionName+
-				"/initial_state_from_partition_history"] = []string{ref.PartitionName}
-			simParamsFromUpstream[ref.PartitionName+"/latest_data_values"] =
-				simulator.NamedUpstreamConfig{Upstream: ref.PartitionName}
-		}
-	}
+	burnIn := windowBurnIn(applied.Window.Depth, applied.EmbeddedBurnInSteps)
+	layout := applied.Window.layout(generator, storage, burnIn)
 	applied.Model.Init()
-	applied.Model.Params.Set(applied.Data.PartitionName+"->data_values", []float64{})
-	applied.Model.ParamsAsPartitions["mean_partition"] = []string{"gradient_descent"}
-	generator.SetPartition(&simulator.PartitionConfig{
-		Name: "gradient",
-		Iteration: &inference.DataComparisonGradientIteration{
-			Likelihood:   applied.Model.Likelihood,
-			GradientFunc: applied.Gradient.Function,
-		},
-		Params:             applied.Model.Params,
-		ParamsAsPartitions: applied.Model.ParamsAsPartitions,
-		ParamsFromUpstream: applied.Model.ParamsFromUpstream,
-		InitStateValues:    make([]float64, applied.Gradient.Width),
-		StateHistoryDepth:  1,
-		Seed:               0,
-	})
-	simParamsAsPartitions["gradient/update_from_partition_history"] =
-		[]string{applied.Data.PartitionName}
-	simParamsFromUpstream["gradient/target_state"] =
-		simulator.NamedUpstreamConfig{Upstream: applied.Data.PartitionName}
-	simInitStateValues = append(
-		simInitStateValues, make([]float64, applied.Gradient.Width)...)
-	gradientDescentOffset := len(simInitStateValues)
-	gradientDescentParams := simulator.NewParams(make(map[string][]float64))
-	gradientDescentParams.Set("learning_rate", []float64{applied.LearningRate})
-	generator.SetPartition(&simulator.PartitionConfig{
-		Name:      "gradient_descent",
-		Iteration: &continuous.GradientDescentIteration{},
-		Params:    gradientDescentParams,
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"gradient": {Upstream: "gradient"},
-		},
-		InitStateValues:   make([]float64, applied.Gradient.Width),
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
-	simInitStateValues = append(
-		simInitStateValues, make([]float64, applied.Gradient.Width)...)
-	burnInFit := applied.Window.Depth
-	if applied.EmbeddedBurnInSteps != nil {
-		burnInFit = *applied.EmbeddedBurnInSteps
+	gradient, descent := layout.AddMeanFit(applied.Model.Params.Map, applied.Model.ParamsAsPartitions,
+		applied.Model.ParamsFromUpstream, applied.Data.PartitionName, applied.Gradient.Width,
+		applied.LearningRate, applied.WarmStart)
+	generator.SetPartition(gradient.partition("gradient", &inference.DataComparisonGradientIteration{
+		Likelihood:   applied.Model.Likelihood,
+		GradientFunc: applied.Gradient.Function,
+	}))
+	generator.SetPartition(descent.partition("gradient_descent", &continuous.GradientDescentIteration{}))
+	return layout.host(applied.Name, generator, applied.Window.Depth)
+}
+
+// windowBurnIn is a window's burn-in: its depth unless set.
+func windowBurnIn(depth int, set *int) int {
+	burnIn := depth
+	if set != nil {
+		burnIn = *set
 	}
-	if burnInFit < 0 {
-		panic(fmt.Sprintf("macros: EmbeddedBurnInSteps must be >= 0, got %d", burnInFit))
+	if burnIn < 0 {
+		panic(fmt.Sprintf("macros: EmbeddedBurnInSteps must be >= 0, got %d", burnIn))
 	}
-	simParams := simulator.NewParams(map[string][]float64{
-		"burn_in_steps": {float64(burnInFit)},
-	})
-	if applied.WarmStart {
-		simParams.Set(
-			"gradient_descent/init_state_values_from_outer",
-			[]float64{float64(gradientDescentOffset), float64(applied.Gradient.Width)},
-		)
+	return burnIn
+}
+
+// layout adds the window's partitions and data replays to generator, in the order
+// its layout lays them out, and returns that layout.
+func (w WindowedPartitions) layout(
+	generator *simulator.ConfigGenerator,
+	storage *simulator.StateTimeStorage,
+	burnIn int,
+) WindowLayout {
+	refs := make([]WindowPartitionRef, len(w.Partitions))
+	for i, partition := range w.Partitions {
+		generator.SetPartition(partition.Partition)
+		refs[i] = WindowPartitionRef{Name: partition.Partition.Name,
+			InitState: partition.Partition.InitStateValues, OutsideUpstreams: partition.OutsideUpstreams}
 	}
+	replays := make([]WindowReplay, len(w.Data))
+	for i, ref := range w.Data {
+		if ref.ValueIndices != nil {
+			panic("value indices are not supported in window data")
+		}
+		replays[i] = WindowReplay{Name: ref.PartitionName, InitState: ref.GetTimeIndexFromStorage(storage, 0)}
+		generator.SetPartition(&simulator.PartitionConfig{
+			Name:              ref.PartitionName,
+			Iteration:         &general.FromHistoryIteration{},
+			Params:            simulator.NewParams(make(map[string][]float64)),
+			InitStateValues:   replays[i].InitState,
+			StateHistoryDepth: 1,
+		})
+	}
+	return NewWindowLayout(refs, replays, burnIn)
+}
+
+// host is the partition running the window generator holds, wired by the layout.
+func (l WindowLayout) host(name string, generator *simulator.ConfigGenerator, historyDepth int) *simulator.PartitionConfig {
 	return &simulator.PartitionConfig{
-		Name: applied.Name,
+		Name: name,
 		Iteration: general.NewEmbeddedSimulationRunIteration(
 			withInlineExecution(generator.GenerateConfigs()),
 		),
-		Params:             simParams,
-		ParamsAsPartitions: simParamsAsPartitions,
-		ParamsFromUpstream: simParamsFromUpstream,
-		InitStateValues:    simInitStateValues,
-		StateHistoryDepth:  applied.Window.Depth,
-		Seed:               0,
+		Params:             simulator.NewParams(l.Params),
+		ParamsAsPartitions: l.ParamsAsPartitions,
+		ParamsFromUpstream: l.ParamsFromUpstream,
+		InitStateValues:    l.InitStateValues,
+		StateHistoryDepth:  historyDepth,
 	}
 }
 
