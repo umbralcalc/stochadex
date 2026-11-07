@@ -30,6 +30,11 @@ an exact version rather than assume stability across minors.
   `NewVectorCovarianceLayout` and `NewGroupedAggregationLayout` do the same for the others. The
   constructors and a config's expansion both read them, so the two no longer state this wiring
   separately. Results are unchanged.
+- **`macros.NewWindowLayout`** does the same for a likelihood window: the host's forwarded params
+  and upstreams, and its initial state in the order the window runs its partitions. Its
+  `AddComparison` and `AddMeanFit` add the partitions `likelihood_comparison` and
+  `likelihood_mean_function_fit` run inside it, and so `posterior_estimation`'s comparison.
+  Results are unchanged.
 
 ## [0.28.0] — 2026-11-04
 
