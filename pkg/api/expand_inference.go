@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 
+	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 	yaml3 "gopkg.in/yaml.v3"
@@ -350,35 +351,20 @@ func (s *scalarRegressionStatsSpec) expand(ctx *expansionContext) (*expansion, e
 	if err != nil {
 		return nil, err
 	}
-	flag := func(on bool) []float64 {
-		if on {
-			return []float64{1}
-		}
-		return []float64{0}
-	}
-	minDenominator := s.MinDenominator
-	if minDenominator <= 0 {
-		minDenominator = 1e-12
-	}
 	// The statistics start from the first rows' pair, so the data's initial
 	// row, which the run never steps to, counts too. index has checked both
 	// partitions are visible.
 	yFirst, xFirst := ctx.firstRows[s.Y.PartitionName], ctx.firstRows[s.X.PartitionName]
-	return &expansion{partitions: []expandedPartition{{
-		Name:      s.Name,
-		Iteration: component("scalar_regression_stats", nil),
-		Params: map[string][]float64{
-			"scalar_regression_intercept":       flag(s.Intercept),
-			"scalar_regression_mode":            flag(mode == macros.RegressionStatsWindow),
-			"scalar_regression_window_length":   {float64(s.WindowLength)},
-			"scalar_regression_min_denominator": {minDenominator},
-		},
-		ParamsFromUpstream: map[string]expandedUpstream{
-			macros.ScalarRegressionParamY: {Upstream: s.Y.PartitionName, Indices: []int{y}},
-			macros.ScalarRegressionParamX: {Upstream: s.X.PartitionName, Indices: []int{x}},
-		},
-		InitStateValues: macros.ScalarRegressionInitState(s.Intercept, mode, s.WindowLength,
-			minDenominator, xFirst[x], yFirst[y]),
-		StateHistoryDepth: max(s.StateHistoryDepth, 1),
-	}}}, nil
+	layout := macros.NewScalarRegressionLayout(macros.AppliedScalarRegressionStats{
+		Y:                 analysis.DataRef{PartitionName: s.Y.PartitionName},
+		X:                 analysis.DataRef{PartitionName: s.X.PartitionName},
+		Intercept:         s.Intercept,
+		Mode:              mode,
+		WindowLength:      s.WindowLength,
+		MinDenominator:    s.MinDenominator,
+		StateHistoryDepth: s.StateHistoryDepth,
+	}, y, x, xFirst[x], yFirst[y])
+	partition := innerPartition(s.Name, component("scalar_regression_stats", nil), layout.Partition)
+	partition.StateHistoryDepth = layout.HistoryDepth
+	return &expansion{partitions: []expandedPartition{partition}}, nil
 }

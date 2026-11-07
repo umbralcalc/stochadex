@@ -378,49 +378,13 @@ func NewScalarRegressionStatsPartition(
 ) *simulator.PartitionConfig {
 	yIdx := oneScalarValueIndex(applied.Y, storage)
 	xIdx := oneScalarValueIndex(applied.X, storage)
-	w := applied.WindowLength
-	if applied.Mode == RegressionStatsWindow && w < 1 {
+	if applied.Mode == RegressionStatsWindow && applied.WindowLength < 1 {
 		panic("scalar regression: WindowLength must be >= 1 when Mode is RegressionStatsWindow")
 	}
-	interceptFlag := 0.0
-	if applied.Intercept {
-		interceptFlag = 1.0
-	}
-	modeVal := 0.0
-	if applied.Mode == RegressionStatsWindow {
-		modeVal = 1.0
-	}
-	minD := applied.MinDenominator
-	if minD <= 0 {
-		minD = 1e-12
-	}
-	depth := applied.StateHistoryDepth
-	if depth <= 0 {
-		depth = 1
-	}
-	return &simulator.PartitionConfig{
-		Name:      applied.Name,
-		Iteration: &ScalarRegressionStatsIteration{},
-		Params: simulator.NewParams(map[string][]float64{
-			scalarRegressionInterceptKey:      {interceptFlag},
-			scalarRegressionModeKey:           {modeVal},
-			scalarRegressionWindowLengthKey:   {float64(w)},
-			scalarRegressionMinDenominatorKey: {minD},
-		}),
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			ScalarRegressionParamY: {
-				Upstream: applied.Y.PartitionName,
-				Indices:  []int{yIdx},
-			},
-			ScalarRegressionParamX: {
-				Upstream: applied.X.PartitionName,
-				Indices:  []int{xIdx},
-			},
-		},
-		InitStateValues: ScalarRegressionInitState(applied.Intercept, applied.Mode, w, minD,
-			storage.GetValues(applied.X.PartitionName)[0][xIdx],
-			storage.GetValues(applied.Y.PartitionName)[0][yIdx]),
-		StateHistoryDepth: depth,
-		Seed:              0,
-	}
+	layout := NewScalarRegressionLayout(applied, yIdx, xIdx,
+		storage.GetValues(applied.X.PartitionName)[0][xIdx],
+		storage.GetValues(applied.Y.PartitionName)[0][yIdx])
+	partition := layout.Partition.partition(applied.Name, &ScalarRegressionStatsIteration{})
+	partition.StateHistoryDepth = layout.HistoryDepth
+	return partition
 }
