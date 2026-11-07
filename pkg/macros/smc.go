@@ -60,13 +60,6 @@ func NewSMCInferencePartitions(
 ) []*simulator.PartitionConfig {
 	N := applied.NumParticles
 	d := len(applied.Priors)
-	posteriorWidth := inference.PosteriorStateWidth(d)
-
-	verboseFlag := 0.0
-	if applied.Verbose {
-		verboseFlag = 1.0
-	}
-	priorTypes, priorParams := inference.EncodePriors(applied.Priors)
 
 	// One model per particle, evaluated in parallel each round. The particle
 	// count is a property of this run rather than of the model's configuration.
@@ -85,79 +78,19 @@ func NewSMCInferencePartitions(
 		panic(fmt.Sprintf("macros: SMC particle model: %v", err))
 	}
 
-	// Init states. The evaluation partition's row is one log-likelihood per
-	// particle, so the posterior reads it whole.
-	proposalInit := make([]float64, N*d)
-	evaluationInit := make([]float64, N)
-	posteriorInit := make([]float64, posteriorWidth)
-	for j := range d {
-		posteriorInit[d+j*d+j] = 1.0 // identity covariance
+	layout := NewSMCLayout(applied.ProposalName, applied.SimName, applied.PosteriorName,
+		N, applied.Priors, applied.Verbose, applied.Seed)
+	partitions := []*simulator.PartitionConfig{
+		layout.Proposal.partition(applied.ProposalName,
+			&inference.SMCProposalIteration{Priors: applied.Priors}),
+		layout.Evaluation.partition(applied.SimName, evaluation),
+		layout.Posterior.partition(applied.PosteriorName,
+			&inference.SMCPosteriorIteration{ParamNames: applied.ParamNames}),
 	}
-
-	partitions := make([]*simulator.PartitionConfig, 0, 3)
-
-	// [0] Proposal
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name: applied.ProposalName,
-		Iteration: &inference.SMCProposalIteration{
-			Priors: applied.Priors,
-		},
-		Params: simulator.NewParams(map[string][]float64{
-			"verbose":       {verboseFlag},
-			"num_particles": {float64(N)},
-			"prior_types":   priorTypes,
-			"prior_params":  priorParams,
-		}),
-		ParamsAsPartitions: map[string][]string{
-			"posterior_partition": {applied.PosteriorName},
-		},
-		InitStateValues:   proposalInit,
-		StateHistoryDepth: 2,
-		Seed:              applied.Seed,
-	})
-
-	// [1] Particle evaluation
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:      applied.SimName,
-		Iteration: evaluation,
-		Params: simulator.NewParams(map[string][]float64{
-			"replica_params": make([]float64, N*d),
-		}),
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"replica_params": {Upstream: applied.ProposalName},
-		},
-		InitStateValues:   evaluationInit,
-		StateHistoryDepth: 2,
-		// The base every particle's per-round seed is derived from.
-		Seed: applied.Seed + 100,
-	})
-
-	// [2] Posterior
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name: applied.PosteriorName,
-		Iteration: &inference.SMCPosteriorIteration{
-			ParamNames: applied.ParamNames,
-		},
-		Params: simulator.NewParams(map[string][]float64{
-			"verbose":           {verboseFlag},
-			"num_particles":     {float64(N)},
-			"num_params":        {float64(d)},
-			"particle_loglikes": make([]float64, N),
-			"particle_params":   make([]float64, N*d),
-		}),
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			// The evaluation partition's row is exactly one log-likelihood per
-			// particle, so it is read whole.
-			"particle_loglikes": {Upstream: applied.SimName},
-			"particle_params": {
-				Upstream: applied.ProposalName,
-			},
-		},
-		InitStateValues:   posteriorInit,
-		StateHistoryDepth: 2,
-		Seed:              0,
-	})
-
+	for _, partition := range partitions {
+		partition.StateHistoryDepth = layout.HistoryDepth
+	}
+	partitions[0].Seed, partitions[1].Seed = layout.ProposalSeed, layout.EvaluationSeed
 	return partitions
 }
 

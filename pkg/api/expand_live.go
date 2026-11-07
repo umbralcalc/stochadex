@@ -364,68 +364,27 @@ func (s *smcInferenceSpec) expand(ctx *expansionContext) (*expansion, error) {
 		particle = append(particle, partition)
 	}
 
-	particles, dimension := s.NumParticles, len(s.Priors)
-	verbose := 0.0
-	if s.Verbose {
-		verbose = 1.0
-	}
-	priorTypes, priorParams := inference.EncodePriors(priors)
-	posteriorInit := make([]float64, inference.PosteriorStateWidth(dimension))
-	for j := range dimension {
-		posteriorInit[dimension+j*dimension+j] = 1.0 // identity covariance
-	}
 	replicated := map[string]interface{}{
-		"replicas":           particles,
-		"params_per_replica": dimension,
+		"replicas":           s.NumParticles,
+		"params_per_replica": len(s.Priors),
 		"output_partition":   s.Model.LoglikePartition,
 		"run":                map[string]interface{}{"partitions": particle, "simulation": simulation},
 	}
 	if len(s.Model.ParamForwarding) > 0 {
 		replicated["param_forwarding"] = s.Model.ParamForwarding
 	}
-	return &expansion{
-		partitions: []expandedPartition{
-			{
-				Name:      s.ProposalName,
-				Iteration: component("smc_proposal", map[string]interface{}{"priors": priorSpecs}),
-				Params: map[string][]float64{
-					"verbose":       {verbose},
-					"num_particles": {float64(particles)},
-					"prior_types":   priorTypes,
-					"prior_params":  priorParams,
-				},
-				ParamsAsPartitions: map[string][]string{"posterior_partition": {s.PosteriorName}},
-				InitStateValues:    make([]float64, particles*dimension),
-				StateHistoryDepth:  2,
-				Seed:               s.Seed,
-			},
-			{
-				Name:               s.SimName,
-				Iteration:          component("replicated_simulation_run", replicated),
-				Params:             map[string][]float64{"replica_params": make([]float64, particles*dimension)},
-				ParamsFromUpstream: map[string]expandedUpstream{"replica_params": {Upstream: s.ProposalName}},
-				InitStateValues:    make([]float64, particles),
-				StateHistoryDepth:  2,
-				Seed:               s.Seed + 100,
-			},
-			{
-				Name:      s.PosteriorName,
-				Iteration: component("smc_posterior", map[string]interface{}{"param_names": s.ParamNames}),
-				Params: map[string][]float64{
-					"verbose":           {verbose},
-					"num_particles":     {float64(particles)},
-					"num_params":        {float64(dimension)},
-					"particle_loglikes": make([]float64, particles),
-					"particle_params":   make([]float64, particles*dimension),
-				},
-				ParamsFromUpstream: map[string]expandedUpstream{
-					"particle_loglikes": {Upstream: s.SimName},
-					"particle_params":   {Upstream: s.ProposalName},
-				},
-				InitStateValues:   posteriorInit,
-				StateHistoryDepth: 2,
-			},
-		},
-		clock: s.clock(),
-	}, nil
+	layout := macros.NewSMCLayout(s.ProposalName, s.SimName, s.PosteriorName,
+		s.NumParticles, priors, s.Verbose, s.Seed)
+	partitions := []expandedPartition{
+		innerPartition(s.ProposalName, component("smc_proposal",
+			map[string]interface{}{"priors": priorSpecs}), layout.Proposal),
+		innerPartition(s.SimName, component("replicated_simulation_run", replicated), layout.Evaluation),
+		innerPartition(s.PosteriorName, component("smc_posterior",
+			map[string]interface{}{"param_names": s.ParamNames}), layout.Posterior),
+	}
+	for i := range partitions {
+		partitions[i].StateHistoryDepth = layout.HistoryDepth
+	}
+	partitions[0].Seed, partitions[1].Seed = layout.ProposalSeed, layout.EvaluationSeed
+	return &expansion{partitions: partitions, clock: s.clock()}, nil
 }

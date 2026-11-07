@@ -56,6 +56,8 @@
 //     RunSMCInference driver. Each particle runs its own copy of one model, via
 //     general.ReplicatedSimulationRunIteration over simulator.ReentrantSimulation,
 //     which is why the model is stated once rather than replicated per particle.
+//   - smc_layout.go    — what its proposal, particle evaluation and posterior are
+//     wired with: both its constructor and a config's expansion read it.
 //   - regression.go    — ScalarRegressionStatsIteration, the one true Iteration
 //     in this package, streaming OLS sufficient statistics alongside a run.
 //   - mcts.go          — MCTS self-play topology over a pkg/agents Environment.
