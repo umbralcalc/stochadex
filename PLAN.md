@@ -166,12 +166,19 @@ macro's spec and resolving it (one definition, the expander), keeping their Go s
 library callers; measure the result before deciding. Acceptance: one definition of each macro's
 partitions; the cross-check test kept as the guard; no change to any golden.
 
-**Cross-check built, in review (#185).** `TestMacroRoutesAgree`: 19 cases, bit for bit at every
+**Cross-check merged (#185).** `TestMacroRoutesAgree`: 19 cases, bit for bit at every
 row. All 11 macros with both routes agree today, so nothing has drifted (`mcts_planning` has no
 constructor). **Open question on direction:** the plan's "constructors build by expanding" would
 make `pkg/macros` depend on the expander in `pkg/api`, which inverts the layering, and constructors
 take Go values (a `Likelihood`, a bespoke iteration) that have no data form. `NewMCTSSelfPlayLayout`
 shows the alternative: a shared layout both routes read.
+
+**Decided: shared layouts.** Aggregations merged (#187: 570 → 509 code lines). Likelihood
+windows in review (#188: `NewWindowLayout` with `AddComparison`/`AddMeanFit`, 795 → 711). Both
+save about 11%; the gain is one definition of each macro's wiring, not much less code. A shared
+layout's bugs hit both routes, so each one is mutation-checked with the cross-check excluded. Left:
+posterior's own partitions, evolution strategy, SMC, and the regression partition (whose init
+state is already shared).
 
 ### F. Retire deprecated spellings; decide on flattening `main:`
 
