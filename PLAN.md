@@ -173,12 +173,13 @@ make `pkg/macros` depend on the expander in `pkg/api`, which inverts the layerin
 take Go values (a `Likelihood`, a bespoke iteration) that have no data form. `NewMCTSSelfPlayLayout`
 shows the alternative: a shared layout both routes read.
 
-**Decided: shared layouts.** Aggregations merged (#187: 570 → 509 code lines). Likelihood
-windows in review (#188: `NewWindowLayout` with `AddComparison`/`AddMeanFit`, 795 → 711). Both
-save about 11%; the gain is one definition of each macro's wiring, not much less code. A shared
-layout's bugs hit both routes, so each one is mutation-checked with the cross-check excluded. Left:
-posterior's own partitions, evolution strategy, SMC, and the regression partition (whose init
-state is already shared).
+**Decided: shared layouts.** Merged: aggregations (#187, 570 → 509 code lines), likelihood
+windows (#188, `NewWindowLayout` with `AddComparison`/`AddMeanFit`, 795 → 711), posterior
+(#189, 555 → 507), evolution strategy (#190, 665 → 578). SMC in review (#191, `NewSMCLayout`
+including depth and seeds; the particle model stays per route, 271 → 240). Each saves 9–13%; the
+gain is one definition of each macro's wiring, not much less code. A shared layout's bugs hit
+both routes, so each one is mutation-checked with the cross-check excluded. Left: the regression
+partition (whose init state is already shared).
 
 ### F. Retire deprecated spellings; decide on flattening `main:`
 
