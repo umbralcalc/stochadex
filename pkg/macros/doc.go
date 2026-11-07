@@ -60,6 +60,8 @@
 //     wired with: both its constructor and a config's expansion read it.
 //   - regression.go    — ScalarRegressionStatsIteration, the one true Iteration
 //     in this package, streaming OLS sufficient statistics alongside a run.
+//   - regression_layout.go — what that partition is wired with: both its
+//     constructor and a config's expansion read it.
 //   - mcts.go          — MCTS self-play topology over a pkg/agents Environment.
 //
 // # Invariants

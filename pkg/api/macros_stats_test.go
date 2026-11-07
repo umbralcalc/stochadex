@@ -182,3 +182,47 @@ macros:
 		}
 	}
 }
+
+// TestScalarRegressionMacroHistoryDepth checks the regression partition keeps the
+// history its config asks for, so a partition reading its lagged statistics can, and
+// one step of it when none is asked for.
+func TestScalarRegressionMacroHistoryDepth(t *testing.T) {
+	for _, c := range []struct {
+		name, field string
+		want        int
+	}{{"as asked for", "  state_history_depth: 4\n", 4}, {"by default", "", 1}} {
+		t.Run(c.name, func(t *testing.T) {
+			config, err := LoadConfig(writeConfigPath(t, `data:
+  steps: 5
+  timestep: 1.0
+  partitions:
+  - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+  - {name: y, init_state_values: [1.0], state_history_depth: 1, seed: 0}
+  expressions:
+  - {partition: x, fields: [{name: v}], outputs: ["t"]}
+  - {partition: y, fields: [{name: v}], outputs: ["2.5 * t + 1.0"]}
+macros:
+- type: scalar_regression_stats
+  name: ols
+  y: {partition_name: y}
+  x: {partition_name: x}
+`+c.field))
+			if err != nil {
+				t.Fatal(err)
+			}
+			expanded, err := Expand(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, partition := range expanded.Main.Partitions {
+				if partition.Name == "ols" {
+					if partition.StateHistoryDepth != c.want {
+						t.Errorf("depth %d, want %d", partition.StateHistoryDepth, c.want)
+					}
+					return
+				}
+			}
+			t.Fatal("no ols partition in the expansion")
+		})
+	}
+}
