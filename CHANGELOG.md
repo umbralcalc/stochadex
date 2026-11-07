@@ -22,6 +22,15 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.29.1] — 2026-11-07
+
+### Fixed
+
+- **The accelerated binaries are released again.** The release workflow's smoke test ran a
+  config that still used the output pair 0.29.0 removed, so the four accelerated binaries
+  failed it and were not attached to the 0.29.0 Release. The smoke test now runs the config
+  with its default output. The engine is unchanged from 0.29.0.
+
 ## [0.29.0] — 2026-11-07
 
 This release leaves one spelling of everything. A config has one place for data coming in,
@@ -2692,7 +2701,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.29.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.29.1...HEAD
+[0.29.1]: https://github.com/umbralcalc/stochadex/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/umbralcalc/stochadex/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/umbralcalc/stochadex/compare/v0.27.0...v0.28.0
 [0.27.0]: https://github.com/umbralcalc/stochadex/compare/v0.26.0...v0.27.0
