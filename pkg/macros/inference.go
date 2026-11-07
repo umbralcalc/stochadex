@@ -97,19 +97,12 @@ func NewPosteriorEstimationPartitions(
 	// OutsideUpstream and the comparison scores that partition's output (the embedded
 	// forward-simulation case — e.g. the sample drives an OU mus). The coupling is
 	// model-specific so it cannot be auto-wired; require one of the two and fail loud.
-	samplerRead := false
-	for _, upstream := range applied.Comparison.Model.ParamsFromUpstream {
-		if upstream.Upstream == applied.Sampler.Name {
-			samplerRead = true
-		}
+	outside := make([]map[string]simulator.NamedUpstreamConfig, len(applied.Comparison.Window.Partitions))
+	for i, partition := range applied.Comparison.Window.Partitions {
+		outside[i] = partition.OutsideUpstreams
 	}
-	for _, partition := range applied.Comparison.Window.Partitions {
-		for _, upstream := range partition.OutsideUpstreams {
-			if upstream.Upstream == applied.Sampler.Name {
-				samplerRead = true
-			}
-		}
-	}
+	samplerRead := PosteriorReadsSampler(applied.Sampler.Name,
+		applied.Comparison.Model.ParamsFromUpstream, outside)
 	if !samplerRead {
 		panic(fmt.Sprintf(
 			"macros: posterior comparison must read the sampler %q so the loglike "+
@@ -125,115 +118,29 @@ func NewPosteriorEstimationPartitions(
 		storage,
 	)
 	compPartition.StateHistoryDepth = applied.MemoryDepth
-	loglikePartitions := []string{applied.Comparison.Name}
-	paramPartitions := []string{applied.Sampler.Name}
-	loglikeIndices := []float64{
-		float64(len(compPartition.InitStateValues) - 1)}
-	partitions := make([]*simulator.PartitionConfig, 0)
-	logNormParams := simulator.NewParams(make(map[string][]float64))
-	logNormParams.Set("loglike_indices", loglikeIndices)
-	logNormParams.Set(
-		"past_discounting_factor",
-		[]float64{applied.PastDiscount},
-	)
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name:      applied.LogNorm.Name,
-		Iteration: &inference.PosteriorLogNormalisationIteration{},
-		Params:    logNormParams,
-		ParamsAsPartitions: map[string][]string{
-			"loglike_partitions": loglikePartitions,
+	layout := NewPosteriorLayout(applied.LogNorm, applied.Mean, applied.Covariance,
+		PosteriorSamplerWiring{
+			Name:               applied.Sampler.Name,
+			Default:            applied.Sampler.Default,
+			Params:             applied.Sampler.Distribution.Params.Map,
+			ParamsAsPartitions: applied.Sampler.Distribution.ParamsAsPartitions,
+			ParamsFromUpstream: applied.Sampler.Distribution.ParamsFromUpstream,
 		},
-		InitStateValues:   []float64{applied.LogNorm.Default},
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
-	meanParams := simulator.NewParams(make(map[string][]float64))
-	meanParams.Set("loglike_indices", loglikeIndices)
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name: applied.Mean.Name,
-		Iteration: &inference.PosteriorMeanIteration{
-			Transform: inference.MeanTransform,
-		},
-		Params: meanParams,
-		ParamsAsPartitions: map[string][]string{
-			"loglike_partitions": loglikePartitions,
-			"param_partitions":   paramPartitions,
-		},
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"posterior_log_normalisation": {Upstream: applied.LogNorm.Name},
-		},
-		InitStateValues:   applied.Mean.Default,
-		StateHistoryDepth: 1,
-		Seed:              0,
-	})
-	covParams := simulator.NewParams(make(map[string][]float64))
-	covParams.Set("loglike_indices", loglikeIndices)
+		applied.Comparison.Name, len(compPartition.InitStateValues)-1, applied.PastDiscount)
+	var covariance simulator.Iteration = &inference.PosteriorCovarianceIteration{}
 	if applied.Covariance.JustVariance {
-		partitions = append(partitions, &simulator.PartitionConfig{
-			Name: applied.Covariance.Name,
-			Iteration: &inference.PosteriorMeanIteration{
-				Transform: inference.VarianceTransform,
-			},
-			Params: covParams,
-			ParamsAsPartitions: map[string][]string{
-				"loglike_partitions": loglikePartitions,
-				"param_partitions":   paramPartitions,
-			},
-			ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-				"posterior_log_normalisation": {Upstream: applied.LogNorm.Name},
-				"mean":                        {Upstream: applied.Mean.Name},
-			},
-			InitStateValues:   applied.Covariance.Default,
-			StateHistoryDepth: 1,
-			Seed:              0,
-		})
-	} else {
-		partitions = append(partitions, &simulator.PartitionConfig{
-			Name:      applied.Covariance.Name,
-			Iteration: &inference.PosteriorCovarianceIteration{},
-			Params:    covParams,
-			ParamsAsPartitions: map[string][]string{
-				"loglike_partitions": loglikePartitions,
-				"param_partitions":   paramPartitions,
-			},
-			ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-				"posterior_log_normalisation": {Upstream: applied.LogNorm.Name},
-				"mean":                        {Upstream: applied.Mean.Name},
-			},
-			InitStateValues:   applied.Covariance.Default,
-			StateHistoryDepth: 1,
-			Seed:              0,
-		})
+		covariance = &inference.PosteriorMeanIteration{Transform: inference.VarianceTransform}
 	}
-	applied.Sampler.Distribution.Init()
-	if applied.Covariance.JustVariance {
-		pas := make(map[string][]string)
-		for k, v := range applied.Sampler.Distribution.ParamsAsPartitions {
-			pas[k] = v
-		}
-		pas["variance_partition"] = []string{applied.Covariance.Name}
-		applied.Sampler.Distribution.ParamsAsPartitions = pas
-		pfu := make(map[string]simulator.NamedUpstreamConfig)
-		for k, v := range applied.Sampler.Distribution.ParamsFromUpstream {
-			if k == "covariance_matrix" {
-				continue
-			}
-			pfu[k] = v
-		}
-		applied.Sampler.Distribution.ParamsFromUpstream = pfu
-	}
-	partitions = append(partitions, &simulator.PartitionConfig{
-		Name: applied.Sampler.Name,
-		Iteration: &inference.DataGenerationIteration{
-			Likelihood: applied.Sampler.Distribution.Likelihood,
-		},
-		Params:             applied.Sampler.Distribution.Params,
-		ParamsAsPartitions: applied.Sampler.Distribution.ParamsAsPartitions,
-		ParamsFromUpstream: applied.Sampler.Distribution.ParamsFromUpstream,
-		InitStateValues:    applied.Sampler.Default,
-		StateHistoryDepth:  1,
-		Seed:               applied.Seed,
+	sampler := layout.Sampler.partition(applied.Sampler.Name, &inference.DataGenerationIteration{
+		Likelihood: applied.Sampler.Distribution.Likelihood,
 	})
+	sampler.Seed = applied.Seed
+	partitions := []*simulator.PartitionConfig{
+		layout.LogNorm.partition(applied.LogNorm.Name, &inference.PosteriorLogNormalisationIteration{}),
+		layout.Mean.partition(applied.Mean.Name, &inference.PosteriorMeanIteration{Transform: inference.MeanTransform}),
+		layout.Covariance.partition(applied.Covariance.Name, covariance),
+		sampler,
+	}
 	partitions = append(partitions, compPartition)
 	return partitions
 }

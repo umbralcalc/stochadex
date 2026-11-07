@@ -35,6 +35,9 @@ an exact version rather than assume stability across minors.
   `AddComparison` and `AddMeanFit` add the partitions `likelihood_comparison` and
   `likelihood_mean_function_fit` run inside it, and so `posterior_estimation`'s comparison.
   Results are unchanged.
+- **`macros.NewPosteriorLayout`** does the same for the rest of a posterior: its normaliser, mean,
+  covariance (or variance) and sampler. `macros.PosteriorReadsSampler` is the check both routes
+  make that the comparison reads the sampler. Results are unchanged.
 
 ## [0.28.0] — 2026-11-04
 

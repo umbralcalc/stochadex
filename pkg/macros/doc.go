@@ -44,6 +44,9 @@
 //   - window_layout.go — what a likelihood window's host is wired with, and the
 //     comparison or mean fit inside it: both these constructors and a config's
 //     expansion read it.
+//   - posterior_layout.go — what a posterior's normaliser, mean, covariance and
+//     sampler are wired with: both these constructors and a config's expansion
+//     read it.
 //   - inference.go     — posterior mean/covariance/sampler partitions driving a
 //     windowed likelihood, i.e. inference run as forward simulation.
 //   - optimisation.go  — evolution-strategy optimisation over a windowed reward.
