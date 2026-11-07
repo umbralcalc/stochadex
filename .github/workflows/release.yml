@@ -174,8 +174,6 @@ jobs:
               state_history_depth: 1
               seed: 7
             simulation:
-              output_condition: {type: every_step}
-              output_function: {type: stdout}
               termination_condition: {type: number_of_steps, max_steps: 3}
               timestep_function: {type: constant, stepsize: 1.0}
               init_time_value: 0.0
