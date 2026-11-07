@@ -41,6 +41,9 @@ an exact version rather than assume stability across minors.
 - **`macros.NewEvolutionStrategyLayout`** does the same for `evolution_strategy_optimisation`: the
   simulation running its window and discounted reward, and its sampler, sorting collection, mean
   and covariance. Results are unchanged.
+- **`macros.NewSMCLayout`** does the same for `smc_inference`: its proposal, particle evaluation
+  and posterior, with their history depth and seeds. The particle model stays per route, a build
+  function in Go and partitions in a config. Results are unchanged.
 
 ## [0.28.0] — 2026-11-04
 
