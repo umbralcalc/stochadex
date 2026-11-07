@@ -50,6 +50,8 @@
 //   - inference.go     — posterior mean/covariance/sampler partitions driving a
 //     windowed likelihood, i.e. inference run as forward simulation.
 //   - optimisation.go  — evolution-strategy optimisation over a windowed reward.
+//   - optimisation_layout.go — what its partitions are wired with: both its constructor
+//     and a config's expansion read it.
 //   - smc.go           — sequential Monte Carlo inference, including the live
 //     RunSMCInference driver. Each particle runs its own copy of one model, via
 //     general.ReplicatedSimulationRunIteration over simulator.ReentrantSimulation,

@@ -2,12 +2,10 @@ package api
 
 import (
 	"fmt"
-	"maps"
 
 	"github.com/umbralcalc/stochadex/pkg/agents"
 	"github.com/umbralcalc/stochadex/pkg/inference"
 	"github.com/umbralcalc/stochadex/pkg/macros"
-	"github.com/umbralcalc/stochadex/pkg/simulator"
 	yaml3 "gopkg.in/yaml.v3"
 )
 
@@ -39,115 +37,55 @@ func (s *evolutionStrategySpec) expand(*expansionContext) (*expansion, error) {
 			"it runs its own clock with no inputs, so has no recorded rows to read")
 	}
 	var inner []expandedPartition
-	var initState []float64
-	upstreams := map[string]expandedUpstream{}
-	outside := func(partition string, params map[string]simulator.NamedUpstreamConfig) {
-		for param, upstream := range upstreamsAsData(params) {
-			upstreams[partition+"/"+param] = upstream
-		}
-	}
+	var window []macros.WindowPartitionRef
 	for _, windowed := range s.Window.Partitions {
 		partition, err := partitionAsData(windowed.Partition)
 		if err != nil {
 			return nil, err
 		}
 		inner = append(inner, partition)
-		initState = append(initState, partition.InitStateValues...)
-		outside(partition.Name, windowed.OutsideUpstreams)
+		window = append(window, macros.WindowPartitionRef{Name: partition.Name,
+			InitState: partition.InitStateValues, OutsideUpstreams: windowed.OutsideUpstreams})
 	}
-
 	reward, err := partitionAsData(s.Reward.Partition.Partition)
 	if err != nil {
 		return nil, err
 	}
-	// The accumulator starts at the sorting sentinel, not the reward's own
-	// init, so the never-sampled initial point ranks last (see the macro).
-	reward.Name = "discounted_reward"
-	reward.Iteration = component("discounted_cumulative",
-		map[string]interface{}{"iteration": reward.Iteration})
-	if reward.Params == nil {
-		reward.Params = map[string][]float64{}
-	}
-	reward.Params["discount_factor"] = []float64{s.Reward.DiscountFactor}
-	reward.InitStateValues = repeated(s.Sorting.EmptyValue, len(reward.InitStateValues))
-	reward.StateHistoryDepth, reward.Seed = 1, 0
-	inner = append(inner, reward)
-	sortBy := len(initState)
-	initState = append(initState, reward.InitStateValues...)
-	outside(reward.Name, s.Reward.Partition.OutsideUpstreams)
-
-	dimension := len(s.Sampler.Default)
-	sampleIndices := make([]int, dimension)
-	for i := range sampleIndices {
-		sampleIndices[i] = i
-	}
-	simulation := s.Sampler.Name + "_simulation"
-	collection := map[string][]float64{
-		"weights":            s.Mean.Weights,
-		"values_state_width": {float64(dimension)},
-		"empty_value":        {s.Sorting.EmptyValue},
-	}
-	update := func(name string, learningRate float64, initState []float64,
-		upstreams map[string]expandedUpstream, typeName string) expandedPartition {
-		params := maps.Clone(collection)
-		params["learning_rate"] = []float64{learningRate}
-		return expandedPartition{Name: name, Iteration: component(typeName, nil), Params: params,
-			ParamsFromUpstream: upstreams, InitStateValues: initState, StateHistoryDepth: 1}
-	}
+	layout := macros.NewEvolutionStrategyLayout(
+		macros.EvolutionStrategySampler{Name: s.Sampler.Name, Default: s.Sampler.Default},
+		macros.EvolutionStrategySorting{Name: s.Sorting.Name, CollectionSize: s.Sorting.CollectionSize,
+			EmptyValue: s.Sorting.EmptyValue},
+		macros.EvolutionStrategyMean{Name: s.Mean.Name, Default: s.Mean.Default, Weights: s.Mean.Weights,
+			LearningRate: s.Mean.LearningRate},
+		macros.EvolutionStrategyCovariance{Name: s.Covariance.Name, Default: s.Covariance.Default,
+			LearningRate: s.Covariance.LearningRate},
+		window, nil, macros.EvolutionStrategyRewardWiring{
+			Params:             reward.Params,
+			ParamsAsPartitions: reward.ParamsAsPartitions,
+			ParamsFromUpstream: s.Reward.Partition.Partition.ParamsFromUpstream,
+			Width:              len(reward.InitStateValues),
+			OutsideUpstreams:   s.Reward.Partition.OutsideUpstreams,
+			DiscountFactor:     s.Reward.DiscountFactor,
+		})
+	inner = append(inner, innerPartition("discounted_reward", component("discounted_cumulative",
+		map[string]interface{}{"iteration": reward.Iteration}), layout.Reward))
+	simulation := innerPartition(layout.SimulationName, nestedRunComponent(inner, map[string]interface{}{
+		"termination_condition": component("number_of_steps",
+			map[string]interface{}{"max_steps": s.Window.Depth}),
+		"timestep_function": component("constant", map[string]interface{}{"stepsize": 1.0}),
+		"init_time_value":   0.0,
+	}), layout.Simulation)
+	sampler := innerPartition(s.Sampler.Name, component("data_generation", map[string]interface{}{
+		"likelihood": component("normal", map[string]interface{}{"allow_default_covariance_fallback": true}),
+	}), layout.Sampler)
+	sampler.Seed = s.Seed
+	sorting := innerPartition(s.Sorting.Name, component("values_sorting_collection",
+		map[string]interface{}{"push_and_sort": "other_partitions"}), layout.Sorting)
+	sorting.StateHistoryDepth = 2
 	return &expansion{
-		partitions: []expandedPartition{
-			{
-				Name: simulation,
-				Iteration: nestedRunComponent(inner, map[string]interface{}{
-					"termination_condition": component("number_of_steps",
-						map[string]interface{}{"max_steps": s.Window.Depth}),
-					"timestep_function": component("constant",
-						map[string]interface{}{"stepsize": 1.0}),
-					"init_time_value": 0.0,
-				}),
-				Params:             map[string][]float64{"burn_in_steps": {0}},
-				ParamsFromUpstream: upstreams,
-				InitStateValues:    initState,
-				StateHistoryDepth:  1,
-			},
-			{
-				Name: s.Sampler.Name,
-				Iteration: component("data_generation", map[string]interface{}{
-					"likelihood": component("normal",
-						map[string]interface{}{"allow_default_covariance_fallback": true}),
-				}),
-				Params: map[string][]float64{"default_covariance": s.Covariance.Default},
-				ParamsFromUpstream: map[string]expandedUpstream{
-					"mean":              {Upstream: s.Mean.Name},
-					"covariance_matrix": {Upstream: s.Covariance.Name},
-				},
-				InitStateValues:   s.Sampler.Default,
-				StateHistoryDepth: 1,
-				Seed:              s.Seed,
-			},
-			{
-				Name: s.Sorting.Name,
-				Iteration: component("values_sorting_collection",
-					map[string]interface{}{"push_and_sort": "other_partitions"}),
-				Params: map[string][]float64{
-					"value_indices":       indexParams(sampleIndices),
-					"value_index_sort_by": {float64(sortBy)},
-					"empty_value":         {s.Sorting.EmptyValue},
-					"values_state_width":  {float64(dimension)},
-				},
-				ParamsAsPartitions: map[string][]string{
-					"other_partition":         {s.Sampler.Name},
-					"other_partition_sort_by": {simulation},
-				},
-				InitStateValues:   repeated(s.Sorting.EmptyValue, s.Sorting.CollectionSize*(dimension+1)),
-				StateHistoryDepth: 2,
-			},
-			update(s.Mean.Name, s.Mean.LearningRate, s.Mean.Default,
-				map[string]expandedUpstream{"sorted_collection": {Upstream: s.Sorting.Name}},
-				"values_sorted_collection_mean"),
-			update(s.Covariance.Name, s.Covariance.LearningRate, s.Covariance.Default,
-				map[string]expandedUpstream{"sorted_collection": {Upstream: s.Sorting.Name}},
-				"values_sorted_collection_covariance"),
+		partitions: []expandedPartition{simulation, sampler, sorting,
+			innerPartition(s.Mean.Name, component("values_sorted_collection_mean", nil), layout.Mean),
+			innerPartition(s.Covariance.Name, component("values_sorted_collection_covariance", nil), layout.Covariance),
 		},
 		clock: s.clock(),
 	}, nil
