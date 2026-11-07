@@ -10,9 +10,9 @@
 // stochadex expand prints), the partitions these constructors build, with no
 // storage to run against. From Go, a constructor here builds the same topology
 // against a StateTimeStorage, to run with analysis.AddPartitionsToStateTimeStorage.
-// pkg/api's golden digests pin what each expansion runs, and its tests build the
-// posterior and mean-function-fit topologies here directly and check a config
-// gives the same.
+// pkg/api's golden digests pin what each expansion runs, and its tests build each
+// macro here directly and check a config gives the same, bit for bit
+// (TestMacroRoutesAgree).
 //
 // Self-play is the one macro whose central component has no data form: its
 // agents.Environment is arbitrary Go decision rules, so a config names an
