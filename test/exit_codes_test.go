@@ -19,11 +19,11 @@ const validMain = `main:
     state_history_depth: 1
     seed: 1
   simulation:
-    output_condition: {type: every_step}
-    output_function: OUTPUT
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: OUTPUT}
 `
 
 func withOutput(output string) string {
@@ -42,21 +42,24 @@ func macroOver(data, partition string) string {
 `
 }
 
-const subSimData = `data:
-  steps: 10
-  partitions:
-  - name: d
-    iteration: {type: wiener_process}
-    params: {variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 3
-    seed: 1
+const subSimData = `inputs:
+  data:
+    simulation:
+      steps: 10
+      partitions:
+      - name: d
+        iteration: {type: wiener_process}
+        params: {variances: [1.0]}
+        init_state_values: [0.0]
+        state_history_depth: 3
+        seed: 1
 `
 
 func csvData(path string) string {
-	return `data:
-  source:
-    csv: {path: "` + path + `", time_column: 0, state_columns: {d: [1]}}
+	return `inputs:
+  data:
+    source:
+      csv: {path: "` + path + `", time_column: 0, state_columns: {d: [1]}}
 `
 }
 
@@ -117,11 +120,11 @@ func TestBinaryExitCodes(t *testing.T) {
   - {name: a, iteration: {type: copy_values}, params: {partitions: [1], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
   - {name: b, iteration: {type: copy_values}, params: {partitions: [0], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `, want: 78},
 		{name: "an unknown run mode",
 			config: withOutput("{type: nil}") + "run: {mode: sweep}\n", want: 78},
@@ -154,12 +157,12 @@ func TestBinaryExitCodes(t *testing.T) {
     state_history_depth: 1
     seed: 0
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
     execution_strategy: {type: inline}
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `, want: 70},
 	}
 

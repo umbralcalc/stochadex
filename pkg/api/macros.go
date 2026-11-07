@@ -65,7 +65,7 @@ var macroSpecFactories = map[string]func() macroSpec{
 	"mcts_planning":                   func() macroSpec { return &mctsPlanningSpec{} },
 }
 
-// DataConfig is the data: tier: it produces the StateTimeStorage that macros
+// DataConfig is a simulation input: it produces the StateTimeStorage that macros
 // analyse, either by running a sub-simulation (Partitions run for Steps) or by
 // loading a file (Source). Sub-simulation partitions carry data-spec iterations
 // (or expressions), like any other run.
@@ -118,7 +118,7 @@ func (m *MacroConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// buildStorage produces the data: tier's storage: from a file source when one is
+// buildStorage produces the input's storage: from a file source when one is
 // configured, otherwise by running the sub-simulation to completion.
 func (d *DataConfig) buildStorage() (*simulator.StateTimeStorage, error) {
 	if d.Source != nil {
@@ -155,7 +155,7 @@ func (d *DataConfig) buildStorage() (*simulator.StateTimeStorage, error) {
 }
 
 // resolveIterations resolves any data-spec iterations on the given partitions in
-// place (used by the data: tier, which has no simulation block to resolve).
+// place (used by a simulation input, which has no simulation block to resolve).
 func resolveIterations(partitions []simulator.PartitionConfig) error {
 	for index := range partitions {
 		if !partitions[index].IterationSpec.IsData() {

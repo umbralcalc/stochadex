@@ -403,7 +403,7 @@ func TestCheck(t *testing.T) {
 			`api: embedded run nested partition "inner" needs state_history_depth of at least 1`},
 		{"data: without macros",
 			checkYAML(walkPartition("a", ""), "data: {steps: 3, timestep: 1.0, partitions: []}\n"),
-			"sets data: but no macros:"},
+			"data: was removed"},
 		{"macros in an ensemble that sets pace_ms",
 			string(macroConfig) + "run: {mode: ensemble, seeds: [1, 2], pace_ms: 5}\n",
 			"run.pace_ms paces a batch or served run"},
@@ -625,17 +625,6 @@ func TestManifestOfEveryMainRunReadAndWrite(t *testing.T) {
 	wantJSON, _ := json.MarshalIndent(want, "", "  ")
 	if string(gotJSON) != string(wantJSON) {
 		t.Errorf("manifest\n%s\nwant\n%s", gotJSON, wantJSON)
-	}
-}
-
-func TestCheckWithTheSocketAlias(t *testing.T) {
-	// --socket is rejected alongside an ensemble; --check says so as the run does.
-	socket := writeConfigPath(t, "address: 127.0.0.1:0\nhandle: /\n")
-	config := writeConfigPath(t, ensembleIOYAML)
-	checked, _ := executeIn(t, t.TempDir(), "--config", config, "--socket", socket, "--check")
-	ran, _ := executeIn(t, t.TempDir(), "--config", config, "--socket", socket)
-	if KindOf(checked) != ErrUsage || ran == nil || ran.Error() != checked.Error() {
-		t.Errorf("--check said %v, the run said %v", checked, ran)
 	}
 }
 

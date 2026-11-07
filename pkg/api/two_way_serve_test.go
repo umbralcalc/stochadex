@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"io"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -251,14 +250,6 @@ func TestTwoWayServeValidation(t *testing.T) {
 			}
 		})
 	}
-	t.Run("--socket alongside stream inputs is a usage error", func(t *testing.T) {
-		_, err := withSocketAlias(writeConfig(t, streamConfigYAML(
-			"    stream: {websocket: {url: \"ws://x\"}}", 5)),
-			&SocketConfig{Address: ":2112"}, io.Discard)
-		if KindOf(err) != ErrUsage || !strings.Contains(err.Error(), "does not support stream inputs") {
-			t.Errorf("expected ErrUsage, got %v", err)
-		}
-	})
 }
 
 func TestDecodeActionState(t *testing.T) {

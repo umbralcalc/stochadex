@@ -35,11 +35,11 @@ const configureCounterYAML = `main:
   partitions:
   - {name: counted, iteration: {type: configure_counter}, params: {value: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 1}
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `
 
 // TestARunGeneratesItsConfigsOnce guards against generating a run twice — once
@@ -49,7 +49,7 @@ const configureCounterYAML = `main:
 func TestARunGeneratesItsConfigsOnce(t *testing.T) {
 	runs := map[string]func(config *ApiRunConfig) error{
 		"Run": func(config *ApiRunConfig) error {
-			Run(config, &SocketConfig{})
+			Run(config)
 			return nil
 		},
 		"RunToStorage": func(config *ApiRunConfig) error {

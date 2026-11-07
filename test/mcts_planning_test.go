@@ -20,7 +20,11 @@ func runPlanningConfig(t *testing.T, yaml string) map[string][][]float64 {
 	if err := os.WriteFile(path, []byte(yaml), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	result, err := api.RunToStorage(api.LoadApiRunConfigFromYaml(path))
+	config, err := api.LoadConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := api.RunToStorage(config)
 	if err != nil {
 		t.Fatalf("running the planning config: %v", err)
 	}
@@ -69,16 +73,18 @@ func TestPlanningRecoversAKnownOptimum(t *testing.T) {
 // correct plan is evidence the inference reached the truth AND that its spread
 // reached the planner.
 func TestPlanningUnderAnInferredPosterior(t *testing.T) {
-	const config = `data:
-  steps: 2500
-  timestep: 1.0
-  partitions:
-  - name: observations
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [3.0], covariance_matrix: [0.25]}
-    init_state_values: [3.0]
-    state_history_depth: 2500
-    seed: 17
+	const config = `inputs:
+  data:
+    simulation:
+      steps: 2500
+      timestep: 1.0
+      partitions:
+      - name: observations
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [3.0], covariance_matrix: [0.25]}
+        init_state_values: [3.0]
+        state_history_depth: 2500
+        seed: 17
 macros:
 - type: posterior_estimation
   log_norm: {name: post_log_norm, default: 0.0}

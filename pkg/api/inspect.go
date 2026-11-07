@@ -159,9 +159,6 @@ type IOManifest struct {
 	// box whose host partition's row, each outer step, is its inner partitions'
 	// final states concatenated in Columns' order.
 	Embedded []ManifestEmbedded `json:"embedded,omitempty"`
-	// Deprecations are notices for the deprecated forms the config uses, each
-	// naming its replacement.
-	Deprecations []string `json:"deprecations,omitempty"`
 	// Debug lists the logs a run writes only because its config asks for an
 	// embedded run's inner detail: every inner step of every outer step. They
 	// are for debugging, not results, so provenance and
@@ -224,9 +221,8 @@ type ManifestInput struct {
 // ManifestOutput is one place a run writes.
 type ManifestOutput struct {
 	Name string `json:"name"`
-	// DeclaredIn is where the config declares it: outputs, main.simulation
-	// (the shorthand pair), default (no output declared), an embedded run's
-	// simulation, or a stream input's record.
+	// DeclaredIn is where the config declares it: outputs, default (no output
+	// declared), an embedded run's simulation, or a stream input's record.
 	DeclaredIn string `json:"declared_in"`
 	Condition  string `json:"condition"`
 	Sink       string `json:"sink"`
@@ -240,13 +236,12 @@ type ManifestOutput struct {
 // Manifest describes what config reads and writes. It reads nothing.
 func Manifest(config *ApiRunConfig) *IOManifest {
 	manifest := &IOManifest{
-		Deprecations: config.deprecations,
-		Config:       config.sourcePath,
-		Overrides:    config.overrides,
-		Variables:    config.variables,
-		Run:          manifestRun(config),
-		Inputs:       []ManifestInput{},
-		Outputs:      []ManifestOutput{},
+		Config:    config.sourcePath,
+		Overrides: config.overrides,
+		Variables: config.variables,
+		Run:       manifestRun(config),
+		Inputs:    []ManifestInput{},
+		Outputs:   []ManifestOutput{},
 	}
 	if len(config.Macros) == 0 {
 		manifest.Clock = &ManifestClock{
@@ -297,12 +292,8 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 	}
 	for _, view := range config.Outputs {
 		declared := "outputs"
-		if view.fromShorthand {
-			declared = "main.simulation"
-			if config.Main.SimulationStrings.OutputFunction.IsZero() &&
-				config.Main.SimulationStrings.OutputCondition.IsZero() {
-				declared = "default"
-			}
+		if view.isDefault {
+			declared = "default"
 		}
 		location := sinkLocation(view.Function)
 		manifest.Outputs = append(manifest.Outputs, ManifestOutput{

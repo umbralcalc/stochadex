@@ -91,7 +91,7 @@ func TestRunWith(t *testing.T) {
 			fmt.Sprintf("- {name: w, condition: {type: only_given_partitions, partitions: [w]}, function: {type: json_log, path: %q}}\n"+
 				"- {name: sparse, condition: {type: every_n_steps, n: 2}, function: {type: json_log, path: %q}}\n",
 				filepath.Join(referenceDir, "w.log"), filepath.Join(referenceDir, "sparse.log")))
-		Run(writeConfig(t, yaml), &SocketConfig{})
+		Run(writeConfig(t, yaml))
 		for name := range conditions {
 			assertSameEntries(t, "captured view "+name,
 				storageEntries(result.Views[name]),
@@ -116,7 +116,7 @@ func TestRunWith(t *testing.T) {
 		}
 		// Positive control: a normal run does write every sink, the nested one
 		// included (6 outer steps x 5 inner rows).
-		Run(config, &SocketConfig{})
+		Run(config)
 		if n := len(readLogEntries(t, filepath.Join(dir, "nested.log"))); n != 30 {
 			t.Errorf("a normal run should write 30 nested entries, got %d", n)
 		}
@@ -129,7 +129,7 @@ func TestRunWith(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		Run(writeConfig(t, nestedSinksYAML(runDir)), &SocketConfig{})
+		Run(writeConfig(t, nestedSinksYAML(runDir)))
 		for _, file := range []string{"all.log", "w.log"} {
 			assertSameEntries(t, file,
 				keyedEntries(t, filepath.Join(teeDir, file)),
@@ -164,7 +164,7 @@ func TestRunWith(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		Run(writeConfig(t, fmt.Sprintf(batchConfigYAML, condition, runPath)), &SocketConfig{})
+		Run(writeConfig(t, fmt.Sprintf(batchConfigYAML, condition, runPath)))
 		assertSameEntries(t, "tee'd shorthand sink", keyedEntries(t, teePath), keyedEntries(t, runPath))
 		if n := len(storageEntries(result.Views["all"])); n != 62 {
 			t.Errorf("the captured view should still see every row (62), got %d", n)
@@ -173,7 +173,7 @@ func TestRunWith(t *testing.T) {
 
 	t.Run("a config without any output still runs with WithConfigOutputs", func(t *testing.T) {
 		yaml := replaceOnce(t, fmt.Sprintf(batchConfigYAML, "{type: every_step}", "unused"),
-			"    output_condition: {type: every_step}\n    output_function: {type: json_log, path: \"unused\"}\n", "")
+			"outputs:\n- {name: output, condition: {type: every_step}, function: {type: json_log, path: \"unused\"}}\n", "")
 		result, err := RunWith(writeConfig(t, yaml), CaptureView("all", nil), WithConfigOutputs())
 		if err != nil {
 			t.Fatal(err)
@@ -234,7 +234,7 @@ func TestRunWith(t *testing.T) {
 		runPath := filepath.Join(t.TempDir(), "var.log")
 		var runErr error
 		captureStdout(t, func() {
-			runErr = runChecked(writeConfig(t, replaceOnce(t, yaml, path, runPath)), &SocketConfig{})
+			runErr = runChecked(writeConfig(t, replaceOnce(t, yaml, path, runPath)))
 		})
 		if runErr != nil {
 			t.Fatal(runErr)

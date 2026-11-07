@@ -164,7 +164,17 @@ func writeConfig(t testing.TB, contents string) *ApiRunConfig {
 	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
 		t.Fatalf("writing temp config: %v", err)
 	}
-	return LoadApiRunConfigFromYaml(path)
+	return mustLoad(t, path)
+}
+
+// mustLoad loads the config at path, failing the test if it does not load.
+func mustLoad(t testing.TB, path string, options ...LoadOption) *ApiRunConfig {
+	t.Helper()
+	config, err := LoadConfig(path, options...)
+	if err != nil {
+		t.Fatalf("loading %s: %v", path, err)
+	}
+	return config
 }
 
 func TestRunModeParsing(t *testing.T) {
@@ -253,23 +263,24 @@ const fullyDataEnsembleYAML = `main:
     fields: [{name: x}]
     outputs: ["x + rate * x * dt + noise * x * shared(normal(0,1)) * sqrt(dt)"]
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 10}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 run:
   mode: ensemble
   seeds: [11, 22, 33]
 `
 
-func TestRunEnsembleToStorage(t *testing.T) {
+func TestEnsembleMembers(t *testing.T) {
 	t.Run("returns one member per seed, index-aligned, trajectories vary", func(t *testing.T) {
 		config := writeConfig(t, fullyDataEnsembleYAML)
-		runs, err := RunEnsembleToStorage(config)
+		result, err := RunToStorage(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+		runs := result.Members
 		if len(runs) != 3 {
 			t.Fatalf("want 3 members, got %d", len(runs))
 		}
@@ -289,33 +300,9 @@ func TestRunEnsembleToStorage(t *testing.T) {
 		}
 	})
 
-	t.Run("agrees with the unexported ensembleRuns it wraps", func(t *testing.T) {
-		config := writeConfig(t, fullyDataEnsembleYAML)
-		exported, err := RunEnsembleToStorage(config)
-		if err != nil {
-			t.Fatal(err)
-		}
-		// Resolve the simulation the same way the exported path does, so the two
-		// share identical inputs — the wrapper must add nothing but the resolution.
-		internal, err := ensembleRuns(config, config.GetConfigGenerator().GetSimulation(), false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(exported) != len(internal) {
-			t.Fatalf("member counts differ: %d vs %d", len(exported), len(internal))
-		}
-		for i := range exported {
-			a := exported[i].Storage.GetValues("growth")
-			b := internal[i].Storage.GetValues("growth")
-			if a[len(a)-1][0] != b[len(b)-1][0] {
-				t.Errorf("member %d: exported %v != internal %v", i, a[len(a)-1], b[len(b)-1])
-			}
-		}
-	})
-
 	t.Run("an in-memory config is rejected with an error, not a panic", func(t *testing.T) {
 		config := &ApiRunConfig{Run: RunModeConfig{Mode: "ensemble", Seeds: []uint64{1}}}
-		if _, err := RunEnsembleToStorage(config); err == nil {
+		if _, err := RunToStorage(config); err == nil {
 			t.Error("expected an error when the config has no source path")
 		}
 	})
@@ -323,7 +310,7 @@ func TestRunEnsembleToStorage(t *testing.T) {
 	t.Run("empty seeds is rejected", func(t *testing.T) {
 		config := writeConfig(t, fullyDataEnsembleYAML)
 		config.Run.Seeds = nil
-		if _, err := RunEnsembleToStorage(config); err == nil {
+		if _, err := RunToStorage(config); err == nil {
 			t.Error("expected an error for empty run.seeds")
 		}
 	})
@@ -342,11 +329,11 @@ func TestFullyDataResolution(t *testing.T) {
     fields: [{name: x}]
     outputs: ["x + rate * x * dt"]
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 8}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	if err := os.WriteFile(path, []byte(fullyData), 0o644); err != nil {
@@ -354,7 +341,7 @@ func TestFullyDataResolution(t *testing.T) {
 	}
 
 	t.Run("load resolves the data-spec simulation components", func(t *testing.T) {
-		config := LoadApiRunConfigFromYaml(path)
+		config := mustLoad(t, path)
 		sim := config.Main.Simulation
 		if sim.OutputCondition == nil || sim.OutputFunction == nil ||
 			sim.TerminationCondition == nil || sim.TimestepFunction == nil {
@@ -378,16 +365,16 @@ func TestFullyDataResolution(t *testing.T) {
     state_history_depth: 1
     seed: 1
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: stdout}
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: stdout}}
 `
 		if err := os.WriteFile(goPath, []byte(goYAML), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if !didPanic(func() { LoadApiRunConfigFromYaml(goPath) }) {
-			t.Error("a Go-string iteration config should be rejected at load")
+		if _, err := LoadConfig(goPath); KindOf(err) != ErrConfig {
+			t.Errorf("a Go-string iteration config should be rejected at load, got %v", err)
 		}
 	})
 }

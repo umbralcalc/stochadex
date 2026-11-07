@@ -29,11 +29,11 @@ func TestEnsembleExpectedBehaviour(t *testing.T) {
     state_history_depth: 1
     seed: 1
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: stdout}
     termination_condition: {type: number_of_steps, max_steps: %d}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: stdout}}
 run:
   mode: ensemble
   seeds: [%s]
@@ -43,7 +43,7 @@ run:
 	if err := os.WriteFile(path, []byte(cfg), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	config := LoadApiRunConfigFromYaml(path)
+	config := mustLoad(t, path)
 	// Use the config's own resolved (data-spec) simulation, so members run the full
 	// horizon — not a stand-in with a different step count.
 	runs, err := ensembleRuns(config, &config.Main.Simulation, false)

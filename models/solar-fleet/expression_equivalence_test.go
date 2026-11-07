@@ -35,7 +35,10 @@ const tolerance = 1e-12
 // run on identical inputs and streams. This is what makes the whole-suite comparison a
 // test of the DSL formulas, not of the data.
 func declarativeBuildStub(cloudVolatility float64, numSteps int, seed uint64) *simulator.ConfigGenerator {
-	config := api.LoadApiRunConfigFromYaml("declarative.yaml")
+	config, err := api.LoadConfig("declarative.yaml")
+	if err != nil {
+		panic(err)
+	}
 	config.Main.Simulation = simulator.SimulationConfig{
 		OutputCondition: &simulator.EveryStepOutputCondition{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

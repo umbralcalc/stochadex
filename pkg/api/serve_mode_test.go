@@ -1,10 +1,8 @@
 package api
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -26,21 +24,21 @@ func serveRun(address string) string {
 	return fmt.Sprintf("run: {mode: serve, websocket: {address: %q, handle: /handle}}\n", address)
 }
 
-// shorthandPair is serveConfigYAML's output_condition / output_function, which a
-// serve config replaces with outputs: views.
-const shorthandPair = "    output_condition: {type: every_step}\n    output_function: {type: nil}\n"
+// quietOutput is serveConfigYAML's output, a view writing nowhere, which a serve
+// config replaces with its own outputs: views.
+const quietOutput = "outputs:\n- {name: output, function: {type: nil}}\n"
 
 // streamView is the outputs: view that sends every step to the client.
 const streamView = "{name: stream, function: {type: connection}}"
 
-// servedYAML turns a batch model (with the shorthand pair) into a serve config on
-// address: the pair is replaced by outputs: (the stream view when none are
+// servedYAML turns a batch model (with quietOutput) into a serve config on
+// address: its output is replaced by outputs: (the stream view when none are
 // given) and a run: block is added.
 func servedYAML(model, address string, outputs ...string) string {
 	if len(outputs) == 0 {
 		outputs = []string{streamView}
 	}
-	yaml := strings.Replace(model, shorthandPair, "", 1) + serveRun(address) + "outputs:\n"
+	yaml := strings.Replace(model, quietOutput, "", 1) + serveRun(address) + "outputs:\n"
 	for _, view := range outputs {
 		yaml += "- " + view + "\n"
 	}
@@ -141,7 +139,7 @@ func TestServeMode(t *testing.T) {
 
 		// Reference: the batch twin writing the same views to plain paths.
 		referenceDir := t.TempDir()
-		reference := replaceOnce(t, serveConfigYAML, shorthandPair, "") + "outputs:\n" + strings.NewReplacer(
+		reference := replaceOnce(t, serveConfigYAML, quietOutput, "") + "outputs:\n" + strings.NewReplacer(
 			filepath.Join(dir, "all-{connection}.log"), filepath.Join(referenceDir, "all.log"),
 			filepath.Join(dir, "second-{connection}.log"), filepath.Join(referenceDir, "second.log"),
 		).Replace(views)
@@ -245,11 +243,11 @@ main:
   partitions:
   - {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1, seed: 0}
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: input_exhausted, input: prices}
     timestep_function: {type: from_input, input: prices}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `, csv), "127.0.0.1:0"))
 		// Positive control: while the input exists, a connection replays it.
 		var got []float64
@@ -278,7 +276,7 @@ main:
 
 	t.Run("a connection serves the config validated at startup, not the file as edited since", func(t *testing.T) {
 		path := writeConfigPath(t, served)
-		handler, err := serveHandler(LoadApiRunConfigFromYaml(path))
+		handler, err := serveHandler(mustLoad(t, path))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -331,11 +329,11 @@ main:
   partitions:
   - {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1, seed: 0}
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: input_exhausted, input: prices}
     timestep_function: {type: from_input, input: prices}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `, csv)
 	return struct{ config, csv string }{servedYAML(config, "127.0.0.1:0"), csv}
 }
@@ -373,42 +371,10 @@ func TestServeModeEndToEnd(t *testing.T) {
 		assertMatchesReference(t, "served", readStream(t, "ws://"+address+"/handle"), want)
 	})
 
-	t.Run("a --socket file still serves, as an alias for serve mode", func(t *testing.T) {
-		address := freeAddress(t)
-		socket := filepath.Join(t.TempDir(), "socket.yaml")
-		writeFile(t, socket, fmt.Sprintf("address: %q\nhandle: \"/handle\"\nmillisecond_delay: 0\n", address))
-		executeServing(t, address, "--config", writeConfigPath(t, serveConfigYAML), "--socket", socket)
-		assertMatchesReference(t, "served", readStream(t, "ws://"+address+"/handle"), want)
-	})
-
-	t.Run("--socket keeps its old stream: the run gated by output_condition", func(t *testing.T) {
-		// A shorthand config has no connection view; through the alias its
-		// client receives the run filtered by output_condition, as before.
-		address := freeAddress(t)
-		socket := filepath.Join(t.TempDir(), "socket.yaml")
-		writeFile(t, socket, fmt.Sprintf("address: %q\nhandle: \"/handle\"\nmillisecond_delay: 0\n", address))
-		gated := replaceOnce(t, serveConfigYAML, "output_condition: {type: every_step}",
-			"output_condition: {type: only_given_partitions, partitions: [first_wiener_process]}")
-		executeServing(t, address, "--config", writeConfigPath(t, gated), "--socket", socket)
-		assertMatchesReference(t, "served", readStream(t, "ws://"+address+"/handle"),
-			capturedRun(t, serveConfigYAML, &simulator.OnlyGivenPartitionsOutputCondition{
-				Partitions: map[string]bool{"first_wiener_process": true}}))
-	})
-
-	t.Run("--socket alongside a serve config is a usage error", func(t *testing.T) {
-		socket := filepath.Join(t.TempDir(), "socket.yaml")
-		writeFile(t, socket, "address: \":2112\"\nhandle: /handle\n")
-		err := Execute([]string{"stochadex",
-			"--config", writeConfigPath(t, servedYAML(serveConfigYAML, ":2112")), "--socket", socket})
-		if KindOf(err) != ErrUsage || ExitCode(err) != 64 {
-			t.Errorf("expected ErrUsage (64), got %v", err)
-		}
-	})
-
 	t.Run("a serve config with no file to re-load is a config error", func(t *testing.T) {
 		config := writeConfig(t, servedYAML(serveConfigYAML, "127.0.0.1:0"))
 		config.sourcePath = ""
-		if err := runE(config, &SocketConfig{}); KindOf(err) != ErrConfig {
+		if err := runE(config); KindOf(err) != ErrConfig {
 			t.Errorf("expected ErrConfig, got %v", err)
 		}
 	})
@@ -429,7 +395,7 @@ func TestServeModeEndToEnd(t *testing.T) {
 
 func TestServeModeValidation(t *testing.T) {
 	dir := t.TempDir()
-	noShorthand := strings.Replace(serveConfigYAML, shorthandPair, "", 1)
+	noOutput := strings.Replace(serveConfigYAML, quietOutput, "", 1)
 	view := func(path string) string {
 		return fmt.Sprintf("outputs:\n- {name: log, function: {type: json_log, path: %q}}\n",
 			filepath.Join(dir, path))
@@ -446,11 +412,11 @@ func TestServeModeValidation(t *testing.T) {
 		{"seeds on a serve run", serveConfigYAML +
 			"run: {mode: serve, seeds: [1], websocket: {address: \":2112\"}}\n",
 			"only apply to run: {mode: ensemble}"},
-		{"a view every connection would share", noShorthand + serveRun(":2112") + view("run.log"),
+		{"a view every connection would share", noOutput + serveRun(":2112") + view("run.log"),
 			"put {connection} in it"},
-		{"{connection} outside serve mode", noShorthand + view("run-{connection}.log"),
+		{"{connection} outside serve mode", noOutput + view("run-{connection}.log"),
 			"uses {connection}"},
-		{"{member} in serve mode", noShorthand + serveRun(":2112") + view("run-{member}-{connection}.log"),
+		{"{member} in serve mode", noOutput + serveRun(":2112") + view("run-{member}-{connection}.log"),
 			"uses {member}"},
 		{"a shorthand pair with no connection in serve mode", serveConfigYAML + serveRun(":2112"),
 			"needs exactly one outputs: view with function {type: connection} — what each client receives — got 0"},
@@ -458,9 +424,9 @@ func TestServeModeValidation(t *testing.T) {
 			"needs exactly one outputs: view with function {type: connection} — what each client receives — got 0"},
 		{"serve with two connection views", servedYAML(serveConfigYAML, ":2112", streamView,
 			"{name: again, function: {type: connection}}"), "got 2"},
-		{"a connection view outside serve mode", noShorthand + "outputs:\n- " + streamView + "\n",
+		{"a connection view outside serve mode", noOutput + "outputs:\n- " + streamView + "\n",
 			`output view "stream" sends to {type: connection}, which only applies to run: {mode: serve}`},
-		{"a connection view in an ensemble", noShorthand + "run: {mode: ensemble, seeds: [1]}\noutputs:\n- " +
+		{"a connection view in an ensemble", noOutput + "run: {mode: ensemble, seeds: [1]}\noutputs:\n- " +
 			streamView + "\n", "only applies to run: {mode: serve}"},
 		{"a connection view with fields", servedYAML(serveConfigYAML, ":2112",
 			"{name: stream, function: {type: connection, url: \"ws://x\"}}"), "takes no fields"},
@@ -493,7 +459,7 @@ func TestServeModeValidation(t *testing.T) {
 		}
 	})
 	t.Run("nil and connection views need no placeholder, and handle defaults to /", func(t *testing.T) {
-		config, err := LoadConfig(writeConfigPath(t, noShorthand+
+		config, err := LoadConfig(writeConfigPath(t, noOutput+
 			"run: {mode: serve, websocket: {address: \":2112\"}}\n"+
 			"outputs:\n- {name: quiet, function: {type: nil}}\n- "+streamView+"\n"))
 		if err != nil {
@@ -503,69 +469,4 @@ func TestServeModeValidation(t *testing.T) {
 			t.Errorf("default handle = %q, want /", got)
 		}
 	})
-}
-
-func TestSocketAlias(t *testing.T) {
-	socket := &SocketConfig{Address: "127.0.0.1:2112", Handle: "/h", MillisecondDelay: 7,
-		AllowedOrigins: []string{"https://dash.example.org"}}
-
-	t.Run("it switches a batch config to serving, leaving the caller's config alone", func(t *testing.T) {
-		config := writeConfig(t, serveConfigYAML)
-		served, err := withSocketAlias(config, socket, io.Discard)
-		if err != nil {
-			t.Fatal(err)
-		}
-		w := served.Run.Websocket
-		if served.Run.Mode != "serve" || served.Run.PaceMs != 7 || w == nil ||
-			w.Address != socket.Address || w.Handle != "/h" ||
-			len(w.AllowedOrigins) != 1 || w.AllowedOrigins[0] != "https://dash.example.org" {
-			t.Errorf("aliased run: block = %+v (websocket %+v)", served.Run, w)
-		}
-		if config.Run.Mode != "" || config.Run.Websocket != nil {
-			t.Errorf("the caller's config was modified: %+v", config.Run)
-		}
-	})
-
-	t.Run("it prints a deprecation notice", func(t *testing.T) {
-		config := writeConfig(t, serveConfigYAML)
-		var notices bytes.Buffer
-		if _, err := withSocketAlias(config, socket, &notices); err != nil {
-			t.Fatal(err)
-		}
-		if !strings.Contains(notices.String(), "--socket is deprecated") ||
-			!strings.Contains(notices.String(), `address: "127.0.0.1:2112"`) {
-			t.Errorf("notice = %q", notices.String())
-		}
-	})
-
-	t.Run("an inactive socket leaves the config as it is", func(t *testing.T) {
-		config := writeConfig(t, serveConfigYAML)
-		got, err := withSocketAlias(config, &SocketConfig{Handle: "/h"}, io.Discard)
-		if err != nil || got != config {
-			t.Errorf("expected the same config back, got %v, %v", got, err)
-		}
-	})
-
-	cases := []struct {
-		name, yaml string
-		kind       ErrorKind
-		want       string
-	}{
-		{"a config that already serves", servedYAML(serveConfigYAML, ":2112"), ErrUsage,
-			"both configure serving"},
-		{"an ensemble", readFile(t, "../../cfg/example_ensemble_config.yaml"), ErrUsage,
-			"only applies to a batch run, not run: {mode: ensemble}"},
-		{"a macros config", macroConfigYAML, ErrUsage, "does not apply to a macros: config"},
-		{"outputs: views", strings.Replace(serveConfigYAML, shorthandPair, "", 1) +
-			fmt.Sprintf("outputs:\n- {name: log, function: {type: json_log, path: %q}}\n",
-				filepath.Join(t.TempDir(), "run.log")), ErrUsage, "does not support outputs: views"},
-	}
-	for _, c := range cases {
-		t.Run("it is rejected alongside "+c.name, func(t *testing.T) {
-			_, err := withSocketAlias(writeConfig(t, c.yaml), socket, io.Discard)
-			if KindOf(err) != c.kind || !strings.Contains(err.Error(), c.want) {
-				t.Errorf("expected kind %v containing %q, got %v", c.kind, c.want, err)
-			}
-		})
-	}
 }

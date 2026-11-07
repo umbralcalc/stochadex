@@ -222,16 +222,12 @@ type ApiRunConfig struct {
 	Main     RunConfig           `yaml:"main"`
 	Embedded []EmbeddedRunConfig `yaml:"embedded,omitempty"`
 	Run      RunModeConfig       `yaml:"run,omitempty"`
-	// Data is the optional data: tier — a sub-simulation run to produce storage
-	// for the macros: tier to analyse.
-	Data *DataConfig `yaml:"data,omitempty"`
 	// Macros is the optional macros: tier — partition-set-producing analysis
-	// functions expanded against Data's storage.
+	// functions expanded against the inputs' storage.
 	Macros []MacroConfig `yaml:"macros,omitempty"`
 	// Outputs are the run's output views: each a named sink gated by its own
-	// condition, all fed from the one run. Mutually exclusive with
-	// main.simulation's output_condition / output_function, which are shorthand
-	// for a single unnamed view.
+	// condition, all fed from the one run. With none, the run writes every step
+	// to stdout.
 	Outputs []OutputViewConfig `yaml:"outputs,omitempty"`
 	// Inputs are named, read-only storages read when a run starts and replayed
 	// into main: partitions with {type: from_input} (see inputs.go).
@@ -254,23 +250,14 @@ type ApiRunConfig struct {
 	// fileReaders are the iteration fields that read each file input, by
 	// config path (see resolveFileInputs).
 	fileReaders map[string][]string
-	// deprecations are notices for the deprecated forms the config uses (see
-	// deprecations.go).
-	deprecations []string
 	// readsFiles are the partitions whose iterations read a file input, as
 	// "main/<name>" or "<embedded run>/<name>", which Check stands in for.
 	readsFiles map[string]bool
-	// outputViews are the resolved outputs: views, including the one made from
-	// the shorthand output pair or the default (see resolveOutputs). The main
-	// path also installs them as its simulation's output; the macros path
-	// replays its result through them (see replayThroughViews).
+	// outputViews are the resolved outputs: views, including the default (see
+	// resolveOutputs). The main path also installs them as its simulation's
+	// output; the macros path replays its result through them (see
+	// replayThroughViews).
 	outputViews *simulator.OutputViews
-	// outputsDeclared reports whether the config itself wrote outputs:, as
-	// opposed to Outputs holding the shorthand or default view.
-	outputsDeclared bool
-	// socketAlias marks a config served through the deprecated --socket alias
-	// (see withSocketAlias).
-	socketAlias bool
 	// boundParamRows holds the stored input rows params_from_input keys read,
 	// by "partition/key", once a run has read them (see storedParamRows).
 	boundParamRows map[string][][]float64
@@ -281,63 +268,28 @@ type OutputViewConfig struct {
 	Name      string                  `yaml:"name"`
 	Condition simulator.ComponentSpec `yaml:"condition,omitempty"`
 	Function  simulator.ComponentSpec `yaml:"function"`
-	// fromShorthand marks the view made from main.simulation's output pair, or
-	// the default when no output is declared, so errors can name what the user
-	// actually wrote.
-	fromShorthand bool
+	// isDefault marks the view a config declaring no output gets.
+	isDefault bool
 }
 
-// label names a view in errors as the user wrote it.
+// label names a view in errors.
 func (v OutputViewConfig) label() string {
-	if v.fromShorthand {
-		return "main.simulation's output_function"
-	}
 	return fmt.Sprintf("output view %q", v.Name)
 }
 
-// shorthandView names the view that main.simulation's output_condition /
-// output_function pair, or the default when no output is declared, becomes.
-const shorthandView = "output"
+// defaultView names the view a config declaring no output gets: every step to
+// stdout.
+const defaultView = "output"
 
-// resolveOutputs makes outputs: the one place a config's outputs are declared,
-// then builds its views and installs them as the main simulation's output, so
-// every run path (batch, ensemble, serve, macros) uses them and every path that
-// replaces the output (RunToStorage, serving a connection) suppresses them
-// alike.
-//
-// main.simulation's output_condition / output_function pair is shorthand for
-// one view named "output", and a config declaring no output at all gets the
+// resolveOutputs builds a config's outputs: views and installs them as the main
+// simulation's output, so every run path (batch, ensemble, serve, macros) uses
+// them and every path that replaces the output (RunToStorage, serving a
+// connection) suppresses them alike. A config declaring no output gets the
 // default view: every step to stdout.
 func (a *ApiRunConfig) resolveOutputs() error {
-	pair := &a.Main.SimulationStrings
-	shorthand := !pair.OutputCondition.IsZero() || !pair.OutputFunction.IsZero()
-	if len(a.Outputs) > 0 && shorthand {
-		return fmt.Errorf("api: a config sets both outputs: and " +
-			"main.simulation.output_condition / output_function; the latter is " +
-			"shorthand for a single view — move it into outputs:")
-	}
-	a.outputsDeclared = len(a.Outputs) > 0
-	// The run's own condition is what RunToStorage mirrors: the shorthand's, or
-	// every step.
-	var mirror simulator.OutputCondition = &simulator.EveryStepOutputCondition{}
-	switch {
-	case shorthand:
-		function := pair.OutputFunction
-		if function.IsZero() {
-			function = simulator.ComponentSpec{Type: "stdout"}
-		}
-		a.Outputs = []OutputViewConfig{{Name: shorthandView, Condition: pair.OutputCondition,
-			Function: function, fromShorthand: true}}
-		if !pair.OutputCondition.IsZero() {
-			resolved, err := simulator.ResolveOutputCondition(pair.OutputCondition)
-			if err != nil {
-				return fmt.Errorf("api: main.simulation's output_condition: %w", err)
-			}
-			mirror = resolved
-		}
-	case len(a.Outputs) == 0:
-		a.Outputs = []OutputViewConfig{{Name: shorthandView,
-			Function: simulator.ComponentSpec{Type: "stdout"}, fromShorthand: true}}
+	if len(a.Outputs) == 0 {
+		a.Outputs = []OutputViewConfig{{Name: defaultView,
+			Function: simulator.ComponentSpec{Type: "stdout"}, isDefault: true}}
 	}
 	views := make([]simulator.OutputView, 0, len(a.Outputs))
 	seen := make(map[string]bool, len(a.Outputs))
@@ -383,8 +335,9 @@ func (a *ApiRunConfig) resolveOutputs() error {
 	}
 	a.outputViews = &simulator.OutputViews{Views: views}
 	a.Main.Simulation.OutputFunction = a.outputViews
-	// Not consulted for OutputViews (each view has its own condition).
-	a.Main.Simulation.OutputCondition = mirror
+	// Not consulted for OutputViews (each view has its own condition); it is
+	// what RunToStorage mirrors.
+	a.Main.Simulation.OutputCondition = &simulator.EveryStepOutputCondition{}
 	return nil
 }
 
@@ -759,56 +712,12 @@ func validateEmbeddedForwarding(config *ApiRunConfig) error {
 	return nil
 }
 
-// LoadApiRunConfigFromYaml loads simulation configuration from a YAML file.
-//
-// The whole config is data: partition iterations are {type: ...} specs or
-// expressions:, and every simulation: component is a {type: ...} spec. It resolves
-// and runs in-process — no code generation, no Go toolchain.
-//
-// Parameters:
-//   - path: Path to the YAML configuration file (must exist and be readable)
-//
-// Returns:
-//   - *ApiRunConfig: Loaded and initialized configuration ready for execution
-//
-// YAML File Format:
-//
-//	main:
-//	  partitions:
-//	    - name: "process1"
-//	      iteration: {type: wiener_process}
-//	      params:
-//	        variances: [0.1, 0.2]
-//	      init_state_values: [0.0, 0.0]
-//	      state_history_depth: 10
-//	      seed: 42
-//	  simulation:
-//	    output_condition: {type: every_step}
-//	    output_function: {type: stdout}
-//	    termination_condition: {type: number_of_steps, max_steps: 1000}
-//	    timestep_function: {type: constant, stepsize: 0.01}
-//	    init_time_value: 0.0
-//	embedded:
-//	  - name: "sub_simulation"
-//	    partitions: [...]
-//	    simulation: [...]
-//
-// Error Handling:
-//   - Panics on file read errors (file not found, permission denied)
-//   - Panics on YAML parsing errors (malformed YAML, type mismatches)
-//   - Panics on data-spec resolution errors (unknown type, bad field)
-func LoadApiRunConfigFromYaml(path string, options ...LoadOption) *ApiRunConfig {
-	config, err := LoadConfig(path, options...)
-	if err != nil {
-		panic(err.(*Error).Err)
-	}
-	return config
-}
-
-// LoadConfig loads and resolves a config like LoadApiRunConfigFromYaml, but
-// returns a failure instead of panicking. Every failure is an ErrConfig *Error:
-// an unreadable file, invalid YAML, a key nothing reads, an unknown type or
-// field, or a partition with no iteration.
+// LoadConfig loads and resolves a config from a YAML file. The whole config is
+// data: partition iterations are {type: ...} specs or expressions:, and every
+// simulation: component is a {type: ...} spec, so it resolves and runs
+// in-process, with no code generation and no Go toolchain. Every failure is an
+// ErrConfig *Error: an unreadable file, invalid YAML, a key nothing reads, an
+// unknown type or field, or a partition with no iteration.
 //
 // options apply per-invocation overrides before anything is checked: WithSet
 // replaces a value by its path, and ${VAR} placeholders in the file are filled
@@ -846,6 +755,9 @@ func (c *ApiRunConfig) reload() (*ApiRunConfig, error) {
 // loadConfigData decodes, resolves and validates a config document. path is
 // where it came from.
 func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
+	if err := rejectRemovedData(yamlFile); err != nil {
+		return nil, configError(err)
+	}
 	if deadKeyErr := validateNoDeadKeys(yamlFile); deadKeyErr != nil {
 		return nil, configError(deadKeyErr)
 	}
@@ -887,7 +799,9 @@ func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 		}
 		config.Embedded[index].Run.recordInputReaders(scope)
 	}
-	findDeprecations(&config)
+	if err := rejectRemovedOutputPair(&config); err != nil {
+		return nil, configError(err)
+	}
 	if err := config.resolveOutputs(); err != nil {
 		return nil, configError(err)
 	}

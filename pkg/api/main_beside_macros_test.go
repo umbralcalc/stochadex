@@ -48,7 +48,7 @@ func TestMainBesideMacros(t *testing.T) {
 
 	t.Run("a macro reads a main: partition live as it reads one recorded", func(t *testing.T) {
 		live := composedRun(t, walkMain("", mean)).Storage
-		recorded, err := runToStorage(LoadApiRunConfigFromYaml(writeConfigPath(t, walkRecorded(mean))))
+		recorded, err := runToStorage(mustLoad(t, writeConfigPath(t, walkRecorded(mean))))
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -367,17 +367,17 @@ func TestDataSpecIterationRunsInProcess(t *testing.T) {
     state_history_depth: 1
     seed: 7
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	if err := os.WriteFile(path, []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	loaded := LoadApiRunConfigFromYaml(path)
+	loaded := mustLoad(t, path)
 	if loaded.Main.Partitions[0].Iteration == nil {
 		t.Fatal("the data-spec iteration should be resolved at load")
 	}
@@ -385,7 +385,7 @@ func TestDataSpecIterationRunsInProcess(t *testing.T) {
 		t.Errorf("resolved iteration is %s, want a WienerProcessIteration", got)
 	}
 	// Run it: no panic, produces a generator that steps to termination.
-	Run(loaded, &SocketConfig{})
+	Run(loaded)
 }
 
 // TestNewlyRegisteredIterationsRunFromYaml is the end-to-end proof for the three
@@ -462,17 +462,17 @@ func TestNewlyRegisteredIterationsRunFromYaml(t *testing.T) {
     state_history_depth: 2
     seed: 1735
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 20}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	if err := os.WriteFile(path, []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	loaded := LoadApiRunConfigFromYaml(path)
+	loaded := mustLoad(t, path)
 	want := map[string]string{
 		"intensity": "*discrete.HawkesProcessIntensityIteration",
 		"switcher":  "*general.ValuesChangingEventsIteration",
@@ -507,7 +507,7 @@ func TestNewlyRegisteredIterationsRunFromYaml(t *testing.T) {
 		t.Fatalf("partitions missing from the loaded config: %v", want)
 	}
 	// No Go toolchain involved: this steps to termination in-process.
-	Run(loaded, &SocketConfig{})
+	Run(loaded)
 }
 
 // TestComposableResolution covers the recursive Phase B resolver: nested interface
@@ -644,23 +644,23 @@ func TestComposableRunsInProcess(t *testing.T) {
     state_history_depth: 50
     seed: 0
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 100}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	if err := os.WriteFile(path, []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	loaded := LoadApiRunConfigFromYaml(path)
+	loaded := mustLoad(t, path)
 	for _, p := range loaded.Main.Partitions {
 		if p.Iteration == nil {
 			t.Fatalf("partition %q iteration not resolved at load", p.Name)
 		}
 	}
-	Run(loaded, &SocketConfig{})
+	Run(loaded)
 }
 
 // TestFullInferenceConfigAsData is the Phase B acceptance test: the complete
@@ -670,7 +670,7 @@ func TestComposableRunsInProcess(t *testing.T) {
 // parameters that generated the data.
 func TestFullInferenceConfigAsData(t *testing.T) {
 	path := "../../cfg/example_inference_config.yaml"
-	config := LoadApiRunConfigFromYaml(path)
+	config := mustLoad(t, path)
 	// Run the fully-data config twice and capture params_posterior_mean each time.
 	//
 	// Determinism and finiteness are architecture-independent; a hard-coded exact
@@ -681,7 +681,7 @@ func TestFullInferenceConfigAsData(t *testing.T) {
 	// tolerance. Byte-for-byte data-path == Go-path agreement holds per machine (shared
 	// float) and is covered by the macro equivalence tests above.
 	first := runInferenceData(t, config)
-	second := runInferenceData(t, LoadApiRunConfigFromYaml(path))
+	second := runInferenceData(t, mustLoad(t, path))
 
 	if len(first) != 4 {
 		t.Fatalf("params_posterior_mean width = %d, want 4", len(first))
@@ -719,7 +719,7 @@ func runInferenceData(t *testing.T, config *ApiRunConfig) []float64 {
 	storage := simulator.NewStateTimeStorage()
 	config.Main.Simulation.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: storage}
 	config.Main.Simulation.TerminationCondition = &simulator.NumberOfStepsTerminationCondition{MaxNumberOfSteps: 2000}
-	Run(config, &SocketConfig{})
+	Run(config)
 	values := storage.GetValues("params_posterior_mean")
 	if len(values) == 0 {
 		t.Fatal("no params_posterior_mean output recorded")

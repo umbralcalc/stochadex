@@ -10,8 +10,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// DataSource is the data: tier's optional pre-recorded source: instead of running
-// a sub-simulation, storage is loaded from a file or a database. Exactly one field
+// DataSource is an input's pre-recorded source: instead of running a
+// sub-simulation, storage is loaded from a file or a database. Exactly one field
 // is set.
 type DataSource struct {
 	Csv      *csvSource      `yaml:"csv,omitempty"`

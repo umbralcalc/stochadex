@@ -168,16 +168,18 @@ func TestRunInputs(t *testing.T) {
 
 // calibration infers the mean of a stream (truly 3) with posterior_estimation;
 // post_sampler's rows are draws from its running posterior.
-const calibration = `data:
-  steps: 300
-  timestep: 1.0
-  partitions:
-  - name: observations
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [3.0], covariance_matrix: [0.25]}
-    init_state_values: [3.0]
-    state_history_depth: 20
-    seed: 17
+const calibration = `inputs:
+  data:
+    simulation:
+      steps: 300
+      timestep: 1.0
+      partitions:
+      - name: observations
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [3.0], covariance_matrix: [0.25]}
+        init_state_values: [3.0]
+        state_history_depth: 20
+        seed: 17
 macros:
 - type: posterior_estimation
   log_norm: {name: post_log_norm, default: 0.0}

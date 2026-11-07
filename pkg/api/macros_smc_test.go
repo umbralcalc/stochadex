@@ -63,16 +63,18 @@ func TestModelPartitionInstantiation(t *testing.T) {
 // invisible with a deterministic model and fatal for simulation-based inference,
 // where the cloud is supposed to carry the model's Monte Carlo variation.
 func TestSMCParticlesGetDistinctNoise(t *testing.T) {
-	const cfg = `data:
-  steps: 12
-  timestep: 1.0
-  partitions:
-  - name: obs
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [2.0], covariance_matrix: [0.5]}
-    init_state_values: [2.0]
-    state_history_depth: 1
-    seed: 7
+	const cfg = `inputs:
+  data:
+    simulation:
+      steps: 12
+      timestep: 1.0
+      partitions:
+      - name: obs
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [2.0], covariance_matrix: [0.5]}
+        init_state_values: [2.0]
+        state_history_depth: 1
+        seed: 7
 macros:
 - type: smc_inference
   proposal_name: smc_proposals

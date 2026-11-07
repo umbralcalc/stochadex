@@ -7,7 +7,7 @@
 #
 #   docker compose up postgres        # just the DB, for `go test ./test/...`
 #   docker compose run --rm stochadex --config cfg/example_config.yaml
-#   docker compose --profile socket up stochadex-socket
+#   docker compose --profile serve up stochadex-serve
 #
 # The Postgres credentials match those hard-coded in
 # test/postgres_writing_and_querying_test.go, so bringing this up is what makes
@@ -50,17 +50,16 @@ services:
   # The websocket service mode, which is the part of the CLI that is a service
   # rather than a job. Opt-in so `up` does not start a long-running process by
   # default.
-  stochadex-socket:
-    profiles: ["socket"]
+  stochadex-serve:
+    profiles: ["serve"]
     build:
       context: .
     # Every config is data and runs in-process with no Go toolchain, which is all
-    # the image carries. This picks the logistic-growth example for the socket demo.
+    # the image carries. This config's run: {mode: serve} block serves a random
+    # walk on :2112, a fresh run per connection.
     command:
       - --config
-      - cfg/example_data_only_config.yaml
-      - --socket
-      - cfg/socket.yaml
+      - cfg/example_serve_config.yaml
     ports:
       - "2112:2112"
     volumes:

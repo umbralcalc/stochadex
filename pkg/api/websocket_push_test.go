@@ -98,8 +98,8 @@ func (p *pushReceiver) waitForConnections(t *testing.T, n int) {
 
 func pushConfigYAML(url string) string {
 	return strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", "unused"),
-		`output_function: {type: json_log, path: "unused"}`,
-		fmt.Sprintf(`output_function: {type: websocket, url: "%s"}`, url), 1)
+		`function: {type: json_log, path: "unused"}`,
+		fmt.Sprintf(`function: {type: websocket, url: "%s"}`, url), 1)
 }
 
 func TestWebsocketPushOutput(t *testing.T) {
@@ -122,8 +122,8 @@ func TestWebsocketPushOutput(t *testing.T) {
 		receiver.mutex.Unlock()
 
 		// Two runs of the same config object: the sink reconnects for the second.
-		Run(config, &SocketConfig{})
-		Run(config, &SocketConfig{})
+		Run(config)
+		Run(config)
 		receiver.waitForConnections(t, 2)
 
 		times := reference.Storage.GetTimes()
@@ -166,7 +166,7 @@ func TestWebsocketPushOutput(t *testing.T) {
 					message = fmt.Sprint(r)
 				}
 			}()
-			Run(config, &SocketConfig{})
+			Run(config)
 			return ""
 		}()
 		if !strings.Contains(message, "ws://127.0.0.1:1/never") {

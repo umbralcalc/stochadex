@@ -477,8 +477,8 @@ Inputs are read when the run starts, never when the config is loaded:
 
 A `macros:` config reads `inputs:` too: its macros analyse every input's partitions. When
 there are several inputs they must share one time axis, and a partition name may come from
-only one of them. (A top-level `data:` block, the older spelling of a single input named
-`data`, still works but is deprecated: it prints a notice naming its replacement.)
+only one of them. (A top-level `data:` block, an older spelling of a single input named
+`data`, fails to load with an error giving the `inputs:` entry it becomes.)
 
 ### Setting params from an input, including a live stream
 
@@ -602,9 +602,10 @@ the termination condition), and `{type: final_step, partitions: [a, b]}` writes 
 partitions; it is the one to use for an estimation run, which wants the final estimate and not
 a row per step. Functions are
 `stdout`, `json_log`, `websocket`, `arrow`, `duckdb`, `postgres`, `s3` and `nil`. A config with
-no `outputs:` prints every step to stdout. (The older `simulation.output_condition` /
-`output_function` pair is deprecated shorthand for one view named `output`; a config that
-uses it prints a notice giving the exact `outputs:` line to replace it with.)
+no `outputs:` prints every step to stdout. (A main run's `simulation.output_condition` /
+`output_function`, an older spelling of one view named `output`, fails to load with an error
+giving the exact `outputs:` line it becomes. An embedded run's pair still loads: it is that
+run's debug log, as "Embedded runs are black boxes" describes.)
 
 Each view applies its own condition as the run goes. Here `every_n_steps` writes steps 0, 2
 and 4, and `final_step` writes `double` once, as the run ends:
@@ -769,10 +770,6 @@ What a client receives is an output like any other. It is the `outputs:` view wh
 one such view.
 Each connection also writes its own copy of the other views. Put `{connection}` (the
 connection's index, from 0) in each view's fields, just as ensembles use `{member}`.
-
-The old `--socket socket.yaml` flag still
-works as an alias for a batch config with the shorthand pair: it streams the run filtered by
-`output_condition`, and doesn't write `output_function`. It is deprecated.
 
 ### Varying a run without editing the file
 
@@ -997,8 +994,7 @@ stochadex graph -c model.yaml --format dot | dot -Tsvg > model.svg
 
 A within-step cycle, which would deadlock the run, is marked in the graph. The command
 still prints the graph, then names the cycle on stderr and exits 78, so it works as a CI
-guard. (`stochadex-graph --config ...`, the old separate binary, still works from a
-checkout but is deprecated, and releases no longer ship it.)
+guard.
 
 ### What a build can run
 

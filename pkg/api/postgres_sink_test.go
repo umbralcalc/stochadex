@@ -57,8 +57,8 @@ func TestPostgresSinkWritesARun(t *testing.T) {
 
 	yaml := fmt.Sprintf(batchConfigYAML, "{type: every_step}", "unused")
 	yaml = replaceOnce(t, yaml,
-		`output_function: {type: json_log, path: "unused"}`,
-		fmt.Sprintf(`output_function: {type: postgres, user: %s, password: %s, dbname: %s, table: %s}`,
+		`function: {type: json_log, path: "unused"}`,
+		fmt.Sprintf(`function: {type: postgres, user: %s, password: %s, dbname: %s, table: %s}`,
 			testPostgresUser, testPostgresPassword, testPostgresDbname, table))
 	path := filepath.Join(t.TempDir(), "postgres.yaml")
 	writeFile(t, path, yaml)
@@ -69,7 +69,7 @@ func TestPostgresSinkWritesARun(t *testing.T) {
 		t.Fatalf("running with a postgres sink: %v", err)
 	}
 
-	reference, err := RunToStorage(LoadApiRunConfigFromYaml(path))
+	reference, err := RunToStorage(mustLoad(t, path))
 	if err != nil {
 		t.Fatal(err)
 	}

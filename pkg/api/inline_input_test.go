@@ -45,11 +45,11 @@ main:
     state_history_depth: 1
     seed: 0
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: stdout}
     termination_condition: {type: number_of_steps, max_steps: 10}
     timestep_function: {type: from_input, input: sun}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: stdout}}
 `
 
 var clearSky = []float64{0, 5, 30, 120, 340, 610, 790, 880, 860, 720, 500}
@@ -165,8 +165,8 @@ main:
   params: {exponential_weighting_timescale: [5.0]}
   window: 10
 `
-		fromFile := fmt.Sprintf("data:\n  source:\n    csv: {path: %q, time_column: 0, state_columns: {stream: [1]}}\n", csv) + macro
-		fromInline := fmt.Sprintf("data:\n  source:\n    inline:\n      times: [%s]\n      partitions: {stream: [%s]}\n",
+		fromFile := fmt.Sprintf("inputs:\n  data:\n    source:\n      csv: {path: %q, time_column: 0, state_columns: {stream: [1]}}\n", csv) + macro
+		fromInline := fmt.Sprintf("inputs:\n  data:\n    source:\n      inline:\n        times: [%s]\n        partitions: {stream: [%s]}\n",
 			strings.Join(times, ", "), strings.TrimSuffix(inline, ", ")) + macro
 		want, err := RunToStorage(writeConfig(t, fromFile))
 		if err != nil {

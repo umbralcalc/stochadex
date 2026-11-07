@@ -82,10 +82,10 @@ func TestMacroResultsThroughOutputViews(t *testing.T) {
 		dir := t.TempDir()
 		var macroErr, twinErr error
 		printed := captureStdout(t, func() {
-			macroErr = runChecked(writeConfig(t, macroConfigYAML+viewsBlock(dir, "macro", conditions)), &SocketConfig{})
+			macroErr = runChecked(writeConfig(t, macroConfigYAML+viewsBlock(dir, "macro", conditions)))
 		})
 		captureStdout(t, func() {
-			twinErr = runChecked(writeConfig(t, macroTwinYAML+viewsBlock(dir, "twin", conditions)), &SocketConfig{})
+			twinErr = runChecked(writeConfig(t, macroTwinYAML+viewsBlock(dir, "twin", conditions)))
 		})
 		if macroErr != nil || twinErr != nil {
 			t.Fatalf("runs failed: macro %v, twin %v", macroErr, twinErr)
@@ -114,10 +114,10 @@ func TestMacroResultsThroughOutputViews(t *testing.T) {
 		path := filepath.Join(dir, "mean.log")
 		config := writeConfig(t, readFile(t, "../../cfg/example_evolution_strategy_config.yaml")+
 			fmt.Sprintf("outputs:\n- {name: mean, condition: {type: only_given_partitions, partitions: [es_mean]}, function: {type: json_log, path: %q}}\n", path))
-		if err := runChecked(config, &SocketConfig{}); err != nil {
+		if err := runChecked(config); err != nil {
 			t.Fatal(err)
 		}
-		reference, err := RunToStorage(LoadApiRunConfigFromYaml(config.sourcePath))
+		reference, err := RunToStorage(mustLoad(t, config.sourcePath))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -152,7 +152,7 @@ func TestMacroResultsThroughOutputViews(t *testing.T) {
 		url := "ws" + strings.TrimPrefix(server.URL, "http")
 		config := writeConfig(t, macroConfigYAML+fmt.Sprintf(
 			"outputs:\n- {name: dash, condition: {type: only_given_partitions, partitions: [rolling_mean]}, function: {type: websocket, url: %q}}\n", url))
-		if err := runChecked(config, &SocketConfig{}); err != nil {
+		if err := runChecked(config); err != nil {
 			t.Fatal(err)
 		}
 		receiver.waitForConnections(t, 1)

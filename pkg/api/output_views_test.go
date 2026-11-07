@@ -11,19 +11,13 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-// viewsMain is batchConfigYAML's partitions with the simulation block's output
-// pair replaced by SIMOUTPUT, so a test can supply either the shorthand pair or
-// nothing (when the config uses outputs:).
-func viewsMain(simOutput string) string {
+// viewsMain is batchConfigYAML's partitions and simulation, with no output, so a
+// test can supply its own outputs:.
+func viewsMain() string {
 	base := fmt.Sprintf(batchConfigYAML, "{type: every_step}", "unused")
 	return strings.Replace(base,
-		"    output_condition: {type: every_step}\n    output_function: {type: json_log, path: \"unused\"}\n",
-		simOutput, 1)
-}
-
-func shorthand(condition, path string) string {
-	return fmt.Sprintf("    output_condition: %s\n    output_function: {type: json_log, path: %q}\n",
-		condition, path)
+		"outputs:\n- {name: output, condition: {type: every_step}, function: {type: json_log, path: \"unused\"}}\n",
+		"", 1)
 }
 
 // keyedEntries indexes a json_log's entries by (time, partition), failing on
@@ -67,12 +61,14 @@ func TestOutputViews(t *testing.T) {
 			outputs += fmt.Sprintf("- {name: %s, condition: %s, function: {type: json_log, path: %q}}\n",
 				name, condition, filepath.Join(dir, name+".log"))
 		}
-		Run(writeConfig(t, viewsMain("")+outputs), &SocketConfig{})
+		Run(writeConfig(t, viewsMain()+outputs))
 
 		for name, condition := range conditions {
-			// Reference: the same partitions and seeds, through the shorthand pair.
+			// Reference: the same partitions and seeds, through that one view alone.
 			referencePath := filepath.Join(dir, name+".reference.log")
-			Run(writeConfig(t, viewsMain(shorthand(condition, referencePath))), &SocketConfig{})
+			Run(writeConfig(t, viewsMain()+fmt.Sprintf(
+				"outputs:\n- {name: reference, condition: %s, function: {type: json_log, path: %q}}\n",
+				condition, referencePath)))
 			assertSameEntries(t, "view "+name,
 				keyedEntries(t, filepath.Join(dir, name+".log")),
 				keyedEntries(t, referencePath))
@@ -94,7 +90,7 @@ func TestOutputViews(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "view.log")
 		writeSentinel(t, path)
-		config := writeConfig(t, viewsMain("")+fmt.Sprintf(
+		config := writeConfig(t, viewsMain()+fmt.Sprintf(
 			"outputs:\n- {name: log, function: {type: json_log, path: %q}}\n", path))
 		result, err := RunToStorage(config)
 		if err != nil {
@@ -111,11 +107,11 @@ func TestOutputViews(t *testing.T) {
 		defer server.Close()
 		url := "ws" + strings.TrimPrefix(server.URL, "http")
 		dir := t.TempDir()
-		config := writeConfig(t, viewsMain("")+fmt.Sprintf(`outputs:
+		config := writeConfig(t, viewsMain()+fmt.Sprintf(`outputs:
 - {name: dash, condition: {type: only_given_partitions, partitions: [first]}, function: {type: websocket, url: %q}}
 - {name: log, function: {type: json_log, path: %q}}
 `, url, filepath.Join(dir, "log.log")))
-		Run(config, &SocketConfig{})
+		Run(config)
 		receiver.waitForConnections(t, 1)
 		stream := receiver.connections[0]
 		if len(stream) != 31 {
@@ -134,7 +130,7 @@ func TestOutputViews(t *testing.T) {
 
 	t.Run("a view whose sink cannot be reached exits as unavailable", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "config.yaml")
-		if err := os.WriteFile(path, []byte(viewsMain("")+fmt.Sprintf(
+		if err := os.WriteFile(path, []byte(viewsMain()+fmt.Sprintf(
 			"outputs:\n- {name: log, function: {type: json_log, path: %q}}\n",
 			filepath.Join(t.TempDir(), "missing", "run.log"))), 0o644); err != nil {
 			t.Fatal(err)
@@ -148,27 +144,28 @@ func TestOutputViews(t *testing.T) {
 	invalid := []struct {
 		name, yaml, wantInError string
 	}{
-		{"outputs: alongside the shorthand pair",
-			viewsMain(shorthand("{type: every_step}", "x.log")) +
+		{"outputs: alongside the removed output pair",
+			strings.Replace(viewsMain(), "  simulation:\n",
+				"  simulation:\n    output_function: {type: json_log, path: x.log}\n", 1) +
 				"outputs:\n- {name: a, function: {type: nil}}\n",
-			"both outputs:"},
+			"output_condition / output_function was removed"},
 		{"a view without a name",
-			viewsMain("") + "outputs:\n- {function: {type: nil}}\n", "needs a name"},
+			viewsMain() + "outputs:\n- {function: {type: nil}}\n", "needs a name"},
 		{"two views with one name",
-			viewsMain("") + "outputs:\n- {name: a, function: {type: nil}}\n- {name: a, function: {type: nil}}\n",
+			viewsMain() + "outputs:\n- {name: a, function: {type: nil}}\n- {name: a, function: {type: nil}}\n",
 			`view "a" twice`},
 		{"a view without a function",
-			viewsMain("") + "outputs:\n- {name: a}\n", "needs a function"},
+			viewsMain() + "outputs:\n- {name: a}\n", "needs a function"},
 		{"a view with a misspelled condition type",
-			viewsMain("") + "outputs:\n- {name: a, condition: {type: every_stpe}, function: {type: nil}}\n",
+			viewsMain() + "outputs:\n- {name: a, condition: {type: every_stpe}, function: {type: nil}}\n",
 			`output view "a" condition`},
 		{"a view with an unknown sink type",
-			viewsMain("") + "outputs:\n- {name: a, function: {type: carrier_pigeon}}\n", `"a"`},
+			viewsMain() + "outputs:\n- {name: a, function: {type: carrier_pigeon}}\n", `"a"`},
 		{"an ensemble view every member would write to the same file",
-			viewsMain("") + "outputs:\n- {name: a, function: {type: json_log, path: run.log}}\nrun: {mode: ensemble, seeds: [1, 2]}\n",
+			viewsMain() + "outputs:\n- {name: a, function: {type: json_log, path: run.log}}\nrun: {mode: ensemble, seeds: [1, 2]}\n",
 			"same destination"},
 		{"a {member} placeholder outside an ensemble",
-			viewsMain("") + "outputs:\n- {name: a, function: {type: json_log, path: \"run-{member}.log\"}}\n",
+			viewsMain() + "outputs:\n- {name: a, function: {type: json_log, path: \"run-{member}.log\"}}\n",
 			"only apply to run: {mode: ensemble}"},
 	}
 	for _, c := range invalid {
@@ -177,13 +174,9 @@ func TestOutputViews(t *testing.T) {
 			if err := os.WriteFile(path, []byte(c.yaml), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			message := func() (message string) {
-				defer func() { message = stringify(recover()) }()
-				LoadApiRunConfigFromYaml(path)
-				return ""
-			}()
-			if !strings.Contains(message, c.wantInError) {
-				t.Errorf("expected a load error mentioning %q, got %q", c.wantInError, message)
+			_, err := LoadConfig(path)
+			if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), c.wantInError) {
+				t.Errorf("expected a load error mentioning %q, got %v", c.wantInError, err)
 			}
 			if _, err := LoadConfig(path); KindOf(err) != ErrConfig {
 				t.Errorf("LoadConfig should classify this as ErrConfig (exit 78), got %v", err)

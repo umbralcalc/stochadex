@@ -107,7 +107,7 @@ LABEL org.opencontainers.image.title="stochadex" \
 ENV STOCHADEX_VERSION="${VERSION}" \
     STOCHADEX_REVISION="${REVISION}"
 
-# The websocket port used by cfg/socket.yaml when --socket is passed.
+# The websocket port cfg/example_serve_config.yaml serves on.
 EXPOSE 2112
 
 # Configs and any CSV/JSON egress are expected under /work, so a caller only has

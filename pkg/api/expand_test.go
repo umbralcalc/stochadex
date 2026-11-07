@@ -106,15 +106,6 @@ func TestExpandAggregationMacros(t *testing.T) {
 		}
 	})
 
-	t.Run("a data: block expands to the input named data", func(t *testing.T) {
-		yaml := inputsAsData(t, readFile(t, "../../cfg/example_macro_config.yaml"))
-		expanded := expandedAlike(t, yaml)
-		if _, ok := expanded.Inputs["data"]; !ok || expanded.Data != nil {
-			t.Errorf("the expansion should declare inputs: {data: ...}, got inputs %v data %v",
-				expanded.Inputs, expanded.Data)
-		}
-	})
-
 	dir := t.TempDir()
 	csv := filepath.Join(dir, "obs.csv")
 	rows := []string{}
@@ -124,8 +115,9 @@ func TestExpandAggregationMacros(t *testing.T) {
 	if err := os.WriteFile(csv, []byte(strings.Join(rows, "\n")+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	sourced := fmt.Sprintf(`data:
-  source: {csv: {path: %q, time_column: 0, state_columns: {obs: [1, 2]}}}
+	sourced := fmt.Sprintf(`inputs:
+  data:
+    source: {csv: {path: %q, time_column: 0, state_columns: {obs: [1, 2]}}}
 macros:
 - {type: vector_mean, name: m, data: {partition_name: obs}, kernel: {type: exponential}, params: {exponential_weighting_timescale: [4.0]}, window: 6}
 `, csv)

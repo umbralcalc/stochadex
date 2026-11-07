@@ -9,8 +9,8 @@ import (
 )
 
 // inputsAsData rewrites a config whose only input is inputs: {data: ...} in the
-// deprecated data: shorthand it stands for, as older configs were written: a
-// source input's block, or a simulation input's sub-simulation.
+// removed data: shorthand, as older configs were written: a source input's
+// block, or a simulation input's sub-simulation.
 func inputsAsData(t *testing.T, contents string) string {
 	t.Helper()
 	lines := strings.Split(contents, "\n")
@@ -40,12 +40,11 @@ func inputsAsData(t *testing.T, contents string) string {
 	return strings.Join(out, "\n")
 }
 
-// TestDataShorthandIsAnInput keeps the deprecated data: shorthand honest until
-// it is removed: every shipped config that analyses an
+// TestDataShorthandNamesItsInput checks every shipped config that analyses an
 // inputs: {data: ...} — the cfg/ examples, covering csv sources,
-// sub-simulations, against-storage and live macros — gives byte-identical
-// results written in the data: form, which carries its deprecation notice.
-func TestDataShorthandIsAnInput(t *testing.T) {
+// sub-simulations, against-storage and live macros — fails to load when written
+// in the removed data: form, with an error naming the input of its own form.
+func TestDataShorthandNamesItsInput(t *testing.T) {
 	wd, _ := os.Getwd()
 	if err := os.Chdir("../.."); err != nil { // configs carry repo-relative paths
 		t.Fatal(err)
@@ -68,22 +67,17 @@ func TestDataShorthandIsAnInput(t *testing.T) {
 	}
 	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
-			declared, err := RunToStorage(LoadApiRunConfigFromYaml(path))
-			if err != nil {
-				t.Fatal(err)
+			form := "simulation"
+			if strings.Contains(readFile(t, path), "\ninputs:\n  data:\n    source:") {
+				form = "source"
 			}
 			legacy := filepath.Join(scratch, strings.ReplaceAll(path, "/", "_"))
 			writeFile(t, legacy, inputsAsData(t, readFile(t, path)))
-			config := LoadApiRunConfigFromYaml(legacy)
-			if notices := config.Deprecations(); len(notices) != 1 || !strings.HasPrefix(notices[0], "data: is deprecated") {
-				t.Fatalf("the data: form should carry its notice, got %v", notices)
+			_, err := LoadConfig(legacy)
+			if KindOf(err) != ErrConfig || !strings.Contains(err.Error(),
+				"data: was removed") || !strings.Contains(err.Error(), "inputs: {data: {"+form+": ...}}") {
+				t.Fatalf("the data: form should fail naming its %s input, got %v", form, err)
 			}
-			shorthand, err := RunToStorage(config)
-			if err != nil {
-				t.Fatal(err)
-			}
-			assertSameStorage(t, "data: vs inputs:", shorthand.Storage, declared.Storage)
-			assertSameStorage(t, "inputs: vs data:", declared.Storage, shorthand.Storage)
 		})
 	}
 }
@@ -116,18 +110,21 @@ func TestMacrosOverSeveralInputs(t *testing.T) {
 			t.Fatal(err)
 		}
 		// References: each macro over its own input as the config's only data.
-		priceOnly, err := RunToStorage(writeConfig(t, fmt.Sprintf(`data:
-  source: {csv: {path: %q, time_column: 0, state_columns: {price: [1]}}}
+		priceOnly, err := RunToStorage(writeConfig(t, fmt.Sprintf(`inputs:
+  data:
+    source: {csv: {path: %q, time_column: 0, state_columns: {price: [1]}}}
 macros:
 - {type: vector_mean, name: price_mean, data: {partition_name: price}, kernel: {type: exponential}, params: {exponential_weighting_timescale: [2.0]}, window: 3}
 `, csvPath)))
 		if err != nil {
 			t.Fatal(err)
 		}
-		demandOnly, err := RunToStorage(writeConfig(t, `data:
-  steps: 5
-  partitions:
-  - {name: demand, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [10.0], state_history_depth: 3, seed: 4}
+		demandOnly, err := RunToStorage(writeConfig(t, `inputs:
+  data:
+    simulation:
+      steps: 5
+      partitions:
+      - {name: demand, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [10.0], state_history_depth: 3, seed: 4}
 macros:
 - {type: vector_mean, name: demand_mean, data: {partition_name: demand}, kernel: {type: exponential}, params: {exponential_weighting_timescale: [2.0]}, window: 3}
 `))

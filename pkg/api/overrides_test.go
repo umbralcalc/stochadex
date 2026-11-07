@@ -270,12 +270,12 @@ func TestSetOverrideErrors(t *testing.T) {
 	}
 
 	t.Run("an error in the file itself is reported as the file's, at the file's line", func(t *testing.T) {
-		// Re-encoding drops the blank lines, so only the file's own error says line 24.
+		// Re-encoding drops the blank lines, so only the file's own error says line 22.
 		broken := replaceOnce(t, replaceOnce(t, model, "init_time_value: 0.0", "init_time_value: zero"),
 			"  simulation:", "\n\n  simulation:")
 		_, err := LoadConfig(writeConfigPath(t, broken), WithSet(firstSeed, "99"), WithSet(maxSteps, "12"))
 		if KindOf(err) != ErrConfig || strings.Contains(err.Error(), "--set") ||
-			!strings.Contains(err.Error(), "line 24: cannot unmarshal !!str `zero` into float64") {
+			!strings.Contains(err.Error(), "line 22: cannot unmarshal !!str `zero` into float64") {
 			t.Errorf("expected the file's own error, got %v", err)
 		}
 	})
@@ -469,10 +469,12 @@ func TestOverridesKeepEveryConfigIntact(t *testing.T) {
     state_history_depth: 1
   simulation: &sim
     init_time_value: 0.0
-data:
-  steps: 3
-  timestep: 1.0
-  partitions: []
+inputs:
+  data:
+    simulation:
+      steps: 3
+      timestep: 1.0
+      partitions: []
 macros:
 - type: scalar_regression_stats
   name: r

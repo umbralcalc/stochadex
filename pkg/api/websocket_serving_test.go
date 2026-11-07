@@ -35,12 +35,10 @@ const serveConfigYAML = `main:
     state_history_depth: 1
     seed: 2939
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 40}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
-`
+` + quietOutput
 
 // readStream connects to the server and collects every PartitionState it sends
 // until the server closes the connection at the end of the run.
@@ -83,7 +81,7 @@ func keyByTimeAndPartition(stream []*simulator.PartitionState) map[string][]floa
 // recorded row the same way, as the ground truth a served stream must match.
 func referenceRun(t *testing.T, path string) map[string][]float64 {
 	t.Helper()
-	generator := LoadApiRunConfigFromYaml(path).GetConfigGenerator()
+	generator := mustLoad(t, path).GetConfigGenerator()
 	storage := simulator.NewStateTimeStorage()
 	simulation := generator.GetSimulation()
 	simulation.OutputFunction = &simulator.StateTimeStorageOutputFunction{Store: storage}
@@ -124,7 +122,11 @@ func assertMatchesReference(
 // every connection, so concurrent clients never share iteration instances.
 func reloadBuild(path string) func() *simulator.ConfigGenerator {
 	return func() *simulator.ConfigGenerator {
-		return LoadApiRunConfigFromYaml(path).GetConfigGenerator()
+		config, err := LoadConfig(path)
+		if err != nil {
+			panic(err)
+		}
+		return config.GetConfigGenerator()
 	}
 }
 
@@ -261,22 +263,6 @@ func TestWebsocketOriginEnforcement(t *testing.T) {
 		defer server.Close()
 		if _, err := dialWithOrigin(server, "https://dash.example.org"); err != nil {
 			t.Errorf("expected the listed origin to connect: %v", err)
-		}
-	})
-
-	t.Run("allowed_origins loads from the socket config", func(t *testing.T) {
-		socketPath := filepath.Join(t.TempDir(), "socket.yaml")
-		if err := os.WriteFile(socketPath, []byte(
-			"address: \":2112\"\nhandle: \"/handle\"\nmillisecond_delay: 0\n"+
-				"allowed_origins: [\"https://dash.example.org\", \"*\"]\n",
-		), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		socket := LoadSocketConfigFromYaml(socketPath)
-		want := []string{"https://dash.example.org", "*"}
-		if len(socket.AllowedOrigins) != len(want) ||
-			socket.AllowedOrigins[0] != want[0] || socket.AllowedOrigins[1] != want[1] {
-			t.Errorf("allowed_origins = %v, want %v", socket.AllowedOrigins, want)
 		}
 	})
 }

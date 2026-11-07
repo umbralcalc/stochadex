@@ -41,7 +41,7 @@ func assertSameStorage(t *testing.T, label string, got, want *simulator.StateTim
 // model exactly.
 func TestSolarFleetDrivenFromAnInput(t *testing.T) {
 	const declarative = "../../models/solar-fleet/declarative.yaml"
-	reference, err := RunToStorage(LoadApiRunConfigFromYaml(declarative))
+	reference, err := RunToStorage(mustLoad(t, declarative))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,11 +129,11 @@ main:
     state_history_depth: 1
     seed: 3
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: input_exhausted, input: src}
     timestep_function: {type: from_input, input: src}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `
 
 func inputsConfig(inputs, replay string) string {
@@ -194,7 +194,7 @@ func TestInputs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		Run(previous, &SocketConfig{})
+		Run(previous)
 		result, err := RunToStorage(writeConfig(t, inputsConfig(
 			fmt.Sprintf("  src:\n    source: {json_log: {path: %q}}", logPath),
 			"{type: from_input, input: src, partition: first}")))
@@ -284,7 +284,6 @@ func TestInputs(t *testing.T) {
 		{"a clock naming an undeclared input", strings.Replace(inputsConfig(simulationInput,
 			"{type: from_input, input: src, partition: source}"), "{type: from_input, input: src}", "{type: from_input, input: nope}", 1),
 			`names input "nope"`},
-		{"both data: and inputs:", macroConfigYAML + "inputs:\n" + simulationInput + "\n", "both data: and inputs:"},
 	}
 	for _, c := range loadErrors {
 		t.Run(c.name+" is a config error at load", func(t *testing.T) {

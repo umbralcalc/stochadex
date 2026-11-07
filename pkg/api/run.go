@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -224,27 +223,19 @@ func CheckForDeadlock(generator *simulator.ConfigGenerator) error {
 // "ensemble" runs one seeded member per seed concurrently, each writing its own
 // views; "serve" serves a websocket, one fresh run per connection, until the
 // server fails. A macros: run's result is replayed through the views. Every
-// mode writes through the config's outputs: views, which hold the shorthand
-// output pair or, when no output is declared, every step to stdout.
-//
-// An active socket config is a deprecated alias for run: {mode: serve}: it
-// switches a batch config to serving with the socket's address, handle,
-// origins and delay.
+// mode writes through the config's outputs: views, which hold, when no output
+// is declared, every step to stdout.
 //
 // A failure exits the process; a panic raised while running propagates. Use
 // Execute (as the CLI does) for classified errors and exit codes instead.
-func Run(config *ApiRunConfig, socket *SocketConfig) {
-	if err := runChecked(config, socket); err != nil {
+func Run(config *ApiRunConfig) {
+	if err := runChecked(config); err != nil {
 		log.Fatal(err)
 	}
 }
 
 // runChecked is Run, returning its failure instead of exiting.
-func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
-	config, err := withSocketAlias(config, socket, os.Stderr)
-	if err != nil {
-		return err
-	}
+func runChecked(config *ApiRunConfig) (err error) {
 	if len(config.Macros) > 0 {
 		// A macros: config runs as its expansion, in any run mode.
 		if config, err = expandToRun(config); err != nil {
@@ -284,8 +275,8 @@ func runChecked(config *ApiRunConfig, socket *SocketConfig) error {
 // re-raises it on its own as a *simulator.PartitionPanic, so it comes back as
 // an ErrRuntime naming the partition. An ensemble member runs on a goroutine of
 // its own, where a panic still crashes the process.
-func runE(config *ApiRunConfig, socket *SocketConfig) error {
-	return runRecovered(func() error { return runChecked(config, socket) })
+func runE(config *ApiRunConfig) error {
+	return runRecovered(func() error { return runChecked(config) })
 }
 
 // runRecovered calls run, returning a panic raised in it as a classified error
@@ -299,16 +290,21 @@ func runRecovered(run func() error) (err error) {
 	return run()
 }
 
-// Execute is the CLI's whole run: parse args (os.Args form), load the config and
-// optional socket config, and run. It never exits or panics on a failure it can
-// intercept; it returns an *Error whose kind ExitCode maps to the process exit
-// status. Unlike ArgParse / LoadSocketConfigFromYaml, it writes nothing to
-// stdout of its own, so stdout carries only the run's output.
+// Execute is the CLI's whole run: parse args (os.Args form), load the config,
+// and run. It never exits or panics on a failure it can intercept; it returns
+// an *Error whose kind ExitCode maps to the process exit status. Unlike
+// ArgParse, it writes nothing to stdout of its own, so stdout carries only the
+// run's output.
 func Execute(args []string) error {
 	parsed, err := parseArgs(args)
 	if err != nil {
 		return err
 	}
+	return executeParsed(parsed)
+}
+
+// executeParsed is Execute after its args are parsed.
+func executeParsed(parsed ParsedArgs) error {
 	if parsed.Catalogue {
 		return printJSON(BuildCatalogue())
 	}
@@ -334,9 +330,6 @@ func Execute(args []string) error {
 	config, err := LoadConfig(parsed.ConfigFile, options...)
 	if err != nil {
 		return err
-	}
-	for _, notice := range config.Deprecations() {
-		fmt.Fprintln(os.Stderr, "stochadex: "+notice)
 	}
 	if parsed.SeedRange != "" {
 		warnSharedMemberNames(config, os.Stderr)
@@ -364,14 +357,7 @@ func Execute(args []string) error {
 		}
 		return printJSON(provenance)
 	}
-	socket, err := loadSocketConfig(parsed.SocketFile)
-	if err != nil {
-		return err
-	}
 	if parsed.Check {
-		if config, err = withSocketAlias(config, socket, io.Discard); err != nil {
-			return err
-		}
 		if err := Check(config); err != nil {
 			return err
 		}
@@ -382,7 +368,7 @@ func Execute(args []string) error {
 		return nil
 	}
 	if !parsed.Provenance {
-		return runE(config, socket)
+		return runE(config)
 	}
 	// Fingerprinted before the run, from the inputs it is about to read.
 	provenance, err := ComputeProvenance(config)
@@ -399,7 +385,7 @@ func Execute(args []string) error {
 		}
 		fmt.Fprintf(os.Stderr, "stochadex: running: %s\n", why)
 	}
-	if err := runE(config, socket); err != nil {
+	if err := runE(config); err != nil {
 		return err
 	}
 	return writeSidecars(provenance, targets)
@@ -736,38 +722,11 @@ func unknownRunModeError(mode string) error {
 		"api: unknown run mode %q — expected \"batch\", \"ensemble\" or \"serve\"", mode)
 }
 
-// validateMainContext rejects a data: block on a config with no macros:. Only the
-// macros: tier reads data: — the main simulation never does — so on its own it
-// looks load-bearing and does nothing. It also checks the main run has its
-// clock, which a config loaded with no main.simulation block leaves for its
-// caller to supply.
+// validateMainContext checks the main run has its clock, which a config loaded
+// with no main.simulation block leaves for its caller to supply.
 func validateMainContext(config *ApiRunConfig) error {
-	if config.Data != nil {
-		return fmt.Errorf("api: a config sets data: but no macros:; data: is only " +
-			"read by the macros: tier and the main simulation ignores it")
-	}
 	return clockError("main.simulation", config.Main.Simulation.TerminationCondition == nil,
 		config.Main.Simulation.TimestepFunction == nil)
-}
-
-// RunEnsembleToStorage runs the config's ensemble and returns each member's
-// recorded storage, index-aligned to run.seeds, whatever run.mode says.
-//
-// The ensemble mechanism rebuilds each member by re-loading the source file for
-// fresh, non-shared iteration instances, so: the config must have been loaded from
-// a file; embedded runs are unsupported; every main partition must resolve a data
-// iteration; and run.seeds must be non-empty.
-//
-// Deprecated: use RunToStorage with run: {mode: ensemble}, which returns the same
-// members in RunResult.Members.
-func RunEnsembleToStorage(
-	config *ApiRunConfig,
-) ([]simulator.EnsembleRun, error) {
-	prepared, err := preparedMainGenerator(config)
-	if err != nil {
-		return nil, err
-	}
-	return ensembleRuns(config, prepared.generator.GetSimulation(), false)
 }
 
 // ensembleRuns validates the config for ensemble mode and runs one member per
@@ -875,32 +834,12 @@ func assertDataOnly(config *ApiRunConfig) error {
 	return nil
 }
 
-// RunWithParsedArgs runs the configured simulation. The whole config is data
-// (data-spec partitions and simulation, or expressions:, plus optional data:/macros:
-// tiers), so it is resolved and run in-process with no Go toolchain.
+// RunWithParsedArgs runs the CLI's whole run, as Execute does, from args already
+// parsed (ArgParse). A failure is printed to stderr and exits the process with
+// ExitCode's status.
 func RunWithParsedArgs(args ParsedArgs) {
-	// Stamp the run's provenance to stderr before anything else, so the very first
-	// line of a job log ties whatever this run produces to the exact build (and,
-	// when the orchestrator supplies it, the exact image) that produced it.
-	LogRunProvenance(os.Stderr)
-
-	options, err := setOptions(args.Sets)
-	if err != nil {
-		panic(err)
+	if err := executeParsed(args); err != nil {
+		fmt.Fprintln(os.Stderr, "stochadex:", err)
+		os.Exit(ExitCode(err))
 	}
-	if args.SeedRange != "" {
-		shard, err := seedRangeOption(args.SeedRange)
-		if err != nil {
-			panic(err)
-		}
-		options = append(options, shard)
-	}
-	config := LoadApiRunConfigFromYaml(args.ConfigFile, options...)
-	for _, notice := range config.Deprecations() {
-		fmt.Fprintln(os.Stderr, "stochadex: "+notice)
-	}
-	Run(
-		config,
-		LoadSocketConfigFromYaml(args.SocketFile),
-	)
 }

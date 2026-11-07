@@ -17,7 +17,7 @@ func macroConfigError(t *testing.T, yamlText string) error {
 	if err := os.WriteFile(path, []byte(yamlText), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err := runToStorage(LoadApiRunConfigFromYaml(path))
+	_, err := runToStorage(mustLoad(t, path))
 	return err
 }
 

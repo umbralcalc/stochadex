@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"sync/atomic"
@@ -71,67 +70,6 @@ func validateRunMode(config *ApiRunConfig) error {
 	return nil
 }
 
-// withSocketAlias returns the config a deprecated socket file describes: a
-// batch config switched to serve mode with the socket's address, handle,
-// origins and delay. An inactive socket (no address) leaves the config as it
-// is, and the caller's config is never modified. A socket file is rejected
-// alongside a config that already serves, runs an ensemble, or has macros —
-// before serve mode existed in the config it was silently ignored there. The
-// deprecation notice goes to notices.
-func withSocketAlias(
-	config *ApiRunConfig,
-	socket *SocketConfig,
-	notices io.Writer,
-) (*ApiRunConfig, error) {
-	if socket == nil || !socket.Active() {
-		return config, nil
-	}
-	usage := func(format string, args ...interface{}) error {
-		return &Error{Kind: ErrUsage, Err: fmt.Errorf(format, args...)}
-	}
-	switch {
-	case config.Run.Mode == "serve":
-		return nil, usage("api: --socket and run: {mode: serve} both configure " +
-			"serving; drop --socket")
-	case len(config.Macros) > 0:
-		return nil, usage("api: --socket does not apply to a macros: config")
-	case config.Run.Mode != "" && config.Run.Mode != "batch":
-		return nil, usage("api: --socket only applies to a batch run, not "+
-			"run: {mode: %s}", config.Run.Mode)
-	case config.outputsDeclared:
-		return nil, usage("api: --socket does not support outputs: views; use " +
-			"run: {mode: serve} with a view of function {type: connection} instead")
-	case hasStreamInputs(config):
-		return nil, usage("api: --socket does not support stream inputs; use " +
-			"run: {mode: serve} instead")
-	}
-	fmt.Fprintf(notices, "stochadex: --socket is deprecated; put run: {mode: serve, "+
-		"websocket: {address: %q, handle: %q}, pace_ms: %d} in the config instead\n",
-		socket.Address, socket.Handle, socket.MillisecondDelay)
-	served := *config
-	served.socketAlias = true
-	served.Run = RunModeConfig{
-		Mode: "serve",
-		Websocket: &WebsocketServeConfig{
-			Address:        socket.Address,
-			Handle:         socket.Handle,
-			AllowedOrigins: socket.AllowedOrigins,
-		},
-		PaceMs: socket.MillisecondDelay,
-	}
-	return &served, nil
-}
-
-// hasStreamInputs reports whether any of a config's inputs is a stream.
-func hasStreamInputs(config *ApiRunConfig) bool {
-	for _, input := range config.Inputs {
-		if input.Stream != nil {
-			return true
-		}
-	}
-	return false
-}
-
 // serveHandler returns the websocket handler behind run: {mode: serve}. Each
 // connection rebuilds the config, from the document loaded at startup with its
 // overrides applied, for a fresh, unshared run of the model. The
@@ -139,12 +77,6 @@ func hasStreamInputs(config *ApiRunConfig) bool {
 // condition, and the connection writes the other outputs: views for itself with
 // {connection} substituted. Each connection reads its inputs afresh, so a connection whose inputs have gone is closed with the
 // reason rather than served.
-//
-// A config served through the deprecated --socket alias declares no outputs:,
-// so its one view is the shorthand pair's (or the default): the alias sends that
-// view to the connection instead of its sink, so the client receives the run
-// gated by output_condition and output_function is not written, exactly as
-// --socket always behaved.
 func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 	if config.sourcePath == "" {
 		return nil, fmt.Errorf("api: serving a websocket requires a config " +
@@ -168,9 +100,6 @@ func serveHandler(config *ApiRunConfig) (http.Handler, error) {
 		prepared, err := preparedMainGenerator(connectionConfig)
 		if err != nil {
 			return servedRun{}, err
-		}
-		if config.socketAlias {
-			connectionConfig.Outputs[0].Function = simulator.ComponentSpec{Type: connectionSink}
 		}
 		implementations := *prepared.implementations
 		views := connectionConfig.connectionOutputViews(connection, stream)
