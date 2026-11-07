@@ -160,7 +160,12 @@ func expandWindow(
 
 // add adds a partition inside the window, wired by its layout.
 func (h *windowHost) add(name string, iteration *yaml3.Node, layout macros.InnerLayout) {
-	h.partitions = append(h.partitions, expandedPartition{
+	h.partitions = append(h.partitions, innerPartition(name, iteration, layout))
+}
+
+// innerPartition is a layout as a partition with this name and iteration.
+func innerPartition(name string, iteration *yaml3.Node, layout macros.InnerLayout) expandedPartition {
+	return expandedPartition{
 		Name:               name,
 		Iteration:          iteration,
 		Params:             layout.Params,
@@ -168,7 +173,7 @@ func (h *windowHost) add(name string, iteration *yaml3.Node, layout macros.Inner
 		ParamsFromUpstream: upstreamsAsData(layout.ParamsFromUpstream),
 		InitStateValues:    layout.InitStateValues,
 		StateHistoryDepth:  1,
-	})
+	}
 }
 
 // run is the host partition running the window over simulation.
@@ -234,15 +239,11 @@ func (s *posteriorEstimationSpec) expand(ctx *expansionContext) (*expansion, err
 	case s.MemoryDepth < 1:
 		return nil, fmt.Errorf("memory_depth must be >= 1, got %d", s.MemoryDepth)
 	}
-	samplerRead := false
-	for _, upstream := range s.Comparison.Model.ParamsFromUpstream {
-		samplerRead = samplerRead || upstream.Upstream == s.Sampler.Name
+	outside := make([]map[string]simulator.NamedUpstreamConfig, len(s.Comparison.Window.Partitions))
+	for i, windowed := range s.Comparison.Window.Partitions {
+		outside[i] = windowed.OutsideUpstreams
 	}
-	for _, windowed := range s.Comparison.Window.Partitions {
-		for _, upstream := range windowed.OutsideUpstreams {
-			samplerRead = samplerRead || upstream.Upstream == s.Sampler.Name
-		}
-	}
+	samplerRead := macros.PosteriorReadsSampler(s.Sampler.Name, s.Comparison.Model.ParamsFromUpstream, outside)
 	if !samplerRead {
 		return nil, fmt.Errorf("posterior comparison must read the sampler %q so the loglike "+
 			"depends on the proposal, else the posterior cannot converge — either the "+
@@ -255,71 +256,36 @@ func (s *posteriorEstimationSpec) expand(ctx *expansionContext) (*expansion, err
 		return nil, err
 	}
 	comparison.StateHistoryDepth = s.MemoryDepth
-	loglikeIndices := []float64{float64(len(comparison.InitStateValues) - 1)}
-	loglikes := []string{s.Comparison.Name}
-	weighted := map[string][]string{"loglike_partitions": loglikes, "param_partitions": {s.Sampler.Name}}
-	posterior := map[string]expandedUpstream{
-		"posterior_log_normalisation": {Upstream: s.LogNorm.Name}, "mean": {Upstream: s.Mean.Name}}
-
-	covariance := component("posterior_covariance", nil)
-	samplerAsPartitions := maps.Clone(s.Sampler.Distribution.ParamsAsPartitions)
-	samplerUpstreams := maps.Clone(s.Sampler.Distribution.ParamsFromUpstream)
-	if s.Covariance.JustVariance {
-		covariance = component("posterior_mean", map[string]interface{}{"transform": "variance"})
-		if samplerAsPartitions == nil {
-			samplerAsPartitions = map[string][]string{}
-		}
-		samplerAsPartitions["variance_partition"] = []string{s.Covariance.Name}
-		delete(samplerUpstreams, "covariance_matrix")
-	}
 	if s.Sampler.Distribution.Likelihood.IsZero() {
 		return nil, fmt.Errorf("sampler.distribution needs a likelihood: {type: ...}")
 	}
-	samplerParams := maps.Clone(s.Sampler.Distribution.Params)
-	if samplerParams == nil {
-		samplerParams = map[string][]float64{}
+	layout := macros.NewPosteriorLayout(
+		macros.PosteriorLogNorm{Name: s.LogNorm.Name, Default: s.LogNorm.Default},
+		macros.PosteriorMean{Name: s.Mean.Name, Default: s.Mean.Default},
+		macros.PosteriorCovariance{Name: s.Covariance.Name, Default: s.Covariance.Default,
+			JustVariance: s.Covariance.JustVariance},
+		macros.PosteriorSamplerWiring{
+			Name:               s.Sampler.Name,
+			Default:            s.Sampler.Default,
+			Params:             s.Sampler.Distribution.Params,
+			ParamsAsPartitions: s.Sampler.Distribution.ParamsAsPartitions,
+			ParamsFromUpstream: s.Sampler.Distribution.ParamsFromUpstream,
+		},
+		s.Comparison.Name, len(comparison.InitStateValues)-1, s.PastDiscount)
+	covariance := component("posterior_covariance", nil)
+	if s.Covariance.JustVariance {
+		covariance = component("posterior_mean", map[string]interface{}{"transform": "variance"})
 	}
+	sampler := innerPartition(s.Sampler.Name, component("data_generation", map[string]interface{}{
+		"likelihood": component(s.Sampler.Distribution.Likelihood.Type,
+			s.Sampler.Distribution.Likelihood.Fields)}), layout.Sampler)
+	sampler.Seed = s.Seed
 	partitions := []expandedPartition{
-		{
-			Name:      s.LogNorm.Name,
-			Iteration: component("posterior_log_normalisation", nil),
-			Params: map[string][]float64{"loglike_indices": loglikeIndices,
-				"past_discounting_factor": {s.PastDiscount}},
-			ParamsAsPartitions: map[string][]string{"loglike_partitions": loglikes},
-			InitStateValues:    []float64{s.LogNorm.Default},
-			StateHistoryDepth:  1,
-		},
-		{
-			Name:               s.Mean.Name,
-			Iteration:          component("posterior_mean", map[string]interface{}{"transform": "mean"}),
-			Params:             map[string][]float64{"loglike_indices": loglikeIndices},
-			ParamsAsPartitions: weighted,
-			ParamsFromUpstream: map[string]expandedUpstream{
-				"posterior_log_normalisation": posterior["posterior_log_normalisation"]},
-			InitStateValues:   s.Mean.Default,
-			StateHistoryDepth: 1,
-		},
-		{
-			Name:               s.Covariance.Name,
-			Iteration:          covariance,
-			Params:             map[string][]float64{"loglike_indices": loglikeIndices},
-			ParamsAsPartitions: weighted,
-			ParamsFromUpstream: posterior,
-			InitStateValues:    s.Covariance.Default,
-			StateHistoryDepth:  1,
-		},
-		{
-			Name: s.Sampler.Name,
-			Iteration: component("data_generation", map[string]interface{}{
-				"likelihood": component(s.Sampler.Distribution.Likelihood.Type,
-					s.Sampler.Distribution.Likelihood.Fields)}),
-			Params:             samplerParams,
-			ParamsAsPartitions: samplerAsPartitions,
-			ParamsFromUpstream: upstreamsAsData(samplerUpstreams),
-			InitStateValues:    s.Sampler.Default,
-			StateHistoryDepth:  1,
-			Seed:               s.Seed,
-		},
+		innerPartition(s.LogNorm.Name, component("posterior_log_normalisation", nil), layout.LogNorm),
+		innerPartition(s.Mean.Name, component("posterior_mean", map[string]interface{}{"transform": "mean"}),
+			layout.Mean),
+		innerPartition(s.Covariance.Name, covariance, layout.Covariance),
+		sampler,
 		comparison,
 	}
 	return &expansion{partitions: partitions, depths: s.Comparison.WindowDataHistoryDepth}, nil
