@@ -83,7 +83,10 @@ jobs:
       fail-fast: false # one platform failing to link must not withhold the others
       matrix:
         include:
-          - runner: macos-14      # Apple silicon
+          # macos-15, not macos-14: GitHub no longer runs the macos-14 configuration
+          # and cancels a job asking for it, which held back this asset from 0.29.0
+          # and 0.29.1.
+          - runner: macos-15      # Apple silicon
             goos: darwin
             goarch: arm64
           # macos-15-intel, not macos-13: the macOS 13 image was deprecated in

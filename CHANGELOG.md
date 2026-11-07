@@ -22,6 +22,15 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.29.2] — 2026-11-07
+
+### Fixed
+
+- **The Apple silicon accelerated binary is released again.** It was built on GitHub's
+  `macos-14` runner, which GitHub no longer runs, so the job was cancelled before it started
+  and 0.29.0 and 0.29.1 shipped without `stochadex-accel-darwin-arm64`. It now builds on
+  `macos-15`. The engine is unchanged from 0.29.0.
+
 ## [0.29.1] — 2026-11-07
 
 ### Fixed
@@ -2701,7 +2710,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.29.1...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.29.2...HEAD
+[0.29.2]: https://github.com/umbralcalc/stochadex/compare/v0.29.1...v0.29.2
 [0.29.1]: https://github.com/umbralcalc/stochadex/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/umbralcalc/stochadex/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/umbralcalc/stochadex/compare/v0.27.0...v0.28.0
