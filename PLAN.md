@@ -190,6 +190,13 @@ one v0.x minor with "Upgrading" notes. Coordinate with robert first: its config 
 (`model/partitions.yaml`) and recipes must move before the release. Flattening `main:` is decided
 on robert's authoring logs (how often the `main:` level causes an error or a retry), not before.
 
+**In review (#193).** Census across this repo, robert and 14 downstreams: only cryptobook's 24
+configs used a removed config form (migrated, cryptobook#3, byte-identical expansions) and
+card-game-studio one `LoadApiRunConfigFromYaml` call (card-game-studio#5); robert needs prose
+only, with its lock bump. Removed forms fail at load with their replacement written out. After
+#193: release the minor, bump robert's lock and reword its docs, bump the downstreams. Flattening
+`main:` still waits on robert's logs.
+
 ### R. Authoring gaps robert surfaces (standing)
 
 Each gap is reproduced as the smallest config that shows it, triaged (engine, error, or
