@@ -3,8 +3,6 @@ package api
 import (
 	"fmt"
 	"maps"
-	"slices"
-	"strconv"
 
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
@@ -100,14 +98,9 @@ func (s *groupedAggregationSpec) expand(ctx *expansionContext) (*expansion, erro
 	if err != nil {
 		return nil, err
 	}
-	params := map[string][]float64{
-		"float_precision":     {float64(s.Precision)},
-		"state_value_indices": indexParams(stateIndices),
-	}
-	asPartitions := map[string][]string{"state_partition": {s.Data.PartitionName}}
-	upstreams := map[string]expandedUpstream{"latest_states": {Upstream: s.Data.PartitionName}}
 	window := max(s.Window, 1)
 	depths := map[string]int{s.Data.PartitionName: window}
+	groupings := make([]macros.AggregationGrouping, len(s.GroupBy))
 	for k, ref := range s.GroupBy {
 		indices, err := ctx.indices(ref)
 		if err != nil {
@@ -118,10 +111,7 @@ func (s *groupedAggregationSpec) expand(ctx *expansionContext) (*expansion, erro
 				"grouping value groups the data value at its position",
 				ref.PartitionName, len(indices), len(stateIndices))
 		}
-		key := strconv.Itoa(k)
-		params["grouping_value_indices_tupindex_"+key] = indexParams(indices)
-		asPartitions["grouping_partition_tupindex_"+key] = []string{ref.PartitionName}
-		upstreams["latest_groupings_tupindex_"+key] = expandedUpstream{Upstream: ref.PartitionName}
+		groupings[k] = macros.AggregationGrouping{Partition: ref.PartitionName, ValueIndices: indexParams(indices)}
 		depths[ref.PartitionName] = window
 	}
 	if groups == nil {
@@ -129,19 +119,21 @@ func (s *groupedAggregationSpec) expand(ctx *expansionContext) (*expansion, erro
 			return nil, err
 		}
 	}
-	for k := range s.GroupBy {
+	for k := range groupings {
 		column := make([]float64, len(groups))
 		for i, group := range groups {
 			column[i] = group[k]
 		}
-		params["accepted_value_group_tupindex_"+strconv.Itoa(k)] = column
+		groupings[k].AcceptedValues = column
 	}
-	defaults := repeated(s.DefaultValue, len(groups))
+	outputs := len(groups)
 	if policy == general.UndeclaredGroupsOther {
-		defaults = append(defaults, s.DefaultValue)
+		outputs++
 	}
-	params["default_values"] = defaults
-	maps.Copy(params, s.Params)
+	layout := macros.NewGroupedAggregationLayout(
+		macros.AggregationRef{Partition: s.Data.PartitionName, Indices: stateIndices},
+		groupings, s.Precision, outputs, s.DefaultValue)
+	maps.Copy(layout.Params, s.Params)
 	fields := map[string]interface{}{
 		"aggregation": s.Aggregation,
 		"kernel":      componentOf(s.Kernel, "instantaneous"),
@@ -150,15 +142,8 @@ func (s *groupedAggregationSpec) expand(ctx *expansionContext) (*expansion, erro
 		fields["undeclared_groups"] = s.UndeclaredGroups
 	}
 	return &expansion{
-		partitions: []expandedPartition{{
-			Name:               s.Name,
-			Iteration:          component("values_grouped_aggregation", fields),
-			Params:             params,
-			ParamsAsPartitions: asPartitions,
-			ParamsFromUpstream: upstreams,
-			InitStateValues:    slices.Clone(defaults),
-			StateHistoryDepth:  1,
-		}},
+		partitions: []expandedPartition{aggregationPartition(s.Name,
+			component("values_grouped_aggregation", fields), layout)},
 		depths: depths,
 	}, nil
 }

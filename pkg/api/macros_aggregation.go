@@ -2,8 +2,11 @@ package api
 
 import (
 	"fmt"
+	"maps"
 
+	"github.com/umbralcalc/stochadex/pkg/macros"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	yaml3 "gopkg.in/yaml.v3"
 )
 
 // The aggregation macros: rolling windowed mean / variance / covariance of a data
@@ -88,15 +91,14 @@ type vectorCovarianceSpec struct {
 	aggregationFields `yaml:",inline"`
 }
 
-// expandAggregation is an aggregation macro's partition as data, over the
-// iteration and value function the pkg/macros constructor uses, with the
-// params: pass-through applied over the top as applyParams does.
+// expandAggregation is an aggregation macro's partition as data: its layout, over the
+// iteration and value function the pkg/macros constructor uses, with the params:
+// pass-through applied over the top as applyParams does.
 func (f aggregationFields) expandAggregation(
 	ctx *expansionContext,
 	macro, iteration, function string,
 	mean *dataRefSpec,
-	params map[string][]float64,
-	initStateValues func(width int) []float64,
+	layoutOf func(mean, data macros.AggregationRef) macros.AggregationLayout,
 ) (*expansion, error) {
 	indices, err := ctx.indices(f.Data)
 	if err != nil {
@@ -107,41 +109,39 @@ func (f aggregationFields) expandAggregation(
 			return nil, err
 		}
 	}
-	params["data_values_indices"] = indexParams(indices)
-	for name, values := range f.Params {
-		params[name] = values
-	}
-	upstream := map[string]expandedUpstream{
-		"latest_data_values": {Upstream: f.Data.PartitionName, Indices: indices}}
-	depths := map[string]int{f.Data.PartitionName: f.window()}
+	var meanRef macros.AggregationRef
 	if mean != nil {
 		meanIndices, err := ctx.indices(*mean)
 		if err != nil {
 			return nil, err
 		}
-		// The mean is read as it stands this step, never over its history, so
-		// it asks no window of its partition.
-		upstream["mean"] = expandedUpstream{Upstream: mean.PartitionName, Indices: meanIndices}
+		meanRef = macros.AggregationRef{Partition: mean.PartitionName, Indices: meanIndices}
 	}
+	layout := layoutOf(meanRef, macros.AggregationRef{Partition: f.Data.PartitionName, Indices: indices})
+	maps.Copy(layout.Params, f.Params)
 	return &expansion{
-		partitions: []expandedPartition{{
-			Name: f.Name,
-			Iteration: component(iteration, map[string]interface{}{
-				"function": function,
-				"kernel":   componentOf(f.Kernel, "instantaneous"),
-			}),
-			Params:             params,
-			ParamsAsPartitions: map[string][]string{"data_values_partition": {f.Data.PartitionName}},
-			ParamsFromUpstream: upstream,
-			InitStateValues:    initStateValues(len(indices)),
-			StateHistoryDepth:  1,
-		}},
-		depths: depths,
+		partitions: []expandedPartition{aggregationPartition(f.Name, component(iteration, map[string]interface{}{
+			"function": function,
+			"kernel":   componentOf(f.Kernel, "instantaneous"),
+		}), layout)},
+		// The mean is read as it stands this step, never over its history, so it asks
+		// no window of its partition.
+		depths: map[string]int{f.Data.PartitionName: f.window()},
 	}, nil
 }
 
-func (f aggregationFields) defaults(width int) []float64 {
-	return repeated(f.DefaultValue, width)
+// aggregationPartition is a layout as a partition with this name and iteration.
+func aggregationPartition(name string, iteration *yaml3.Node, layout macros.AggregationLayout) expandedPartition {
+	return expandedPartition{
+		Name:               name,
+		Iteration:          iteration,
+		Params:             layout.Params,
+		ParamsAsPartitions: layout.ParamsAsPartitions,
+		ParamsFromUpstream: upstreamsAsData(layout.ParamsFromUpstream),
+		InitStateValues:    layout.InitStateValues,
+		InitStateFromUp:    layout.InitStateFromUpstream,
+		StateHistoryDepth:  1,
+	}
 }
 
 func (s *vectorMeanSpec) expand(ctx *expansionContext) (*expansion, error) {
@@ -149,23 +149,22 @@ func (s *vectorMeanSpec) expand(ctx *expansionContext) (*expansion, error) {
 		return s.expandCumulative(ctx)
 	}
 	return s.expandAggregation(ctx, "vector_mean", "values_function_vector_mean", "data_values", nil,
-		map[string][]float64{}, s.defaults)
+		func(_, data macros.AggregationRef) macros.AggregationLayout {
+			return macros.NewVectorMeanLayout(data, s.DefaultValue)
+		})
 }
 
 func (s *vectorVarianceSpec) expand(ctx *expansionContext) (*expansion, error) {
 	return s.expandAggregation(ctx, "vector_variance", "values_function_vector_mean", "data_values_variance", &s.Mean,
-		map[string][]float64{"subtract_from_normalisation": {1}}, s.defaults)
+		func(mean, data macros.AggregationRef) macros.AggregationLayout {
+			return macros.NewVectorVarianceLayout(mean, data, s.DefaultValue)
+		})
 }
 
 func (s *vectorCovarianceSpec) expand(ctx *expansionContext) (*expansion, error) {
 	return s.expandAggregation(ctx, "vector_covariance", "values_function_vector_covariance", "data_values", &s.Mean,
-		map[string][]float64{}, func(width int) []float64 {
-			// row-major width × width, the default on the diagonal
-			values := make([]float64, width*width)
-			for i := range width {
-				values[i*width+i] = s.DefaultValue
-			}
-			return values
+		func(mean, data macros.AggregationRef) macros.AggregationLayout {
+			return macros.NewVectorCovarianceLayout(mean, data, s.DefaultValue)
 		})
 }
 
@@ -180,21 +179,9 @@ func (s *vectorMeanSpec) expandCumulative(ctx *expansionContext) (*expansion, er
 		return nil, err
 	}
 	return &expansion{
-		partitions: []expandedPartition{{
-			Name: s.Name,
-			Iteration: component("values_function_cumulative_mean", map[string]interface{}{
-				"function": "data_values",
-			}),
-			Params:             map[string][]float64{"data_values_indices": indexParams(indices)},
-			ParamsAsPartitions: map[string][]string{"data_values_partition": {s.Data.PartitionName}},
-			ParamsFromUpstream: map[string]expandedUpstream{
-				"latest_data_values": {Upstream: s.Data.PartitionName, Indices: indices}},
-			// The mean of the one row before the first step: the data's own
-			// initial state.
-			InitStateValues:   make([]float64, len(indices)),
-			InitStateFromUp:   "latest_data_values",
-			StateHistoryDepth: 1,
-		}},
+		partitions: []expandedPartition{aggregationPartition(s.Name,
+			component("values_function_cumulative_mean", map[string]interface{}{"function": "data_values"}),
+			macros.NewVectorCumulativeMeanLayout(macros.AggregationRef{Partition: s.Data.PartitionName, Indices: indices}))},
 		// It reads only the data's latest value, so it asks no window of it.
 		depths: map[string]int{},
 	}, nil

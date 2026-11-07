@@ -1,8 +1,6 @@
 package macros
 
 import (
-	"strconv"
-
 	"github.com/umbralcalc/stochadex/pkg/analysis"
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/kernels"
@@ -154,54 +152,21 @@ func NewGroupedAggregationPartition(
 	applied AppliedAggregation,
 	storage *analysis.GroupedStateTimeStorage,
 ) *simulator.PartitionConfig {
-	stateValueIndices := make([]float64, 0)
-	for _, index := range applied.Data.GetValueIndices(storage.Storage) {
-		stateValueIndices = append(stateValueIndices, float64(index))
+	groupings := make([]AggregationGrouping, storage.GetGroupTupleLength())
+	for k := range groupings {
+		groupings[k] = AggregationGrouping{
+			Partition:      storage.GetGroupingPartition(k),
+			ValueIndices:   storage.GetGroupingValueIndices(k),
+			AcceptedValues: storage.GetAcceptedValueGroups(k),
+		}
 	}
-	params := simulator.NewParams(map[string][]float64{
-		"float_precision":     {float64(storage.GetPrecision())},
-		"state_value_indices": stateValueIndices,
+	return NewGroupedAggregationLayout(
+		aggregationRef(applied.Data, storage.Storage), groupings, storage.GetPrecision(),
+		storage.GetAcceptedValueGroupsLength(), applied.DefaultValue,
+	).partition(applied.Name, &general.ValuesGroupedAggregationIteration{
+		Aggregation: aggregation,
+		Kernel:      applied.GetKernel(),
 	})
-	paramsAsPartitions := map[string][]string{
-		"state_partition": {applied.Data.PartitionName},
-	}
-	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
-		"latest_states": {Upstream: applied.Data.PartitionName},
-	}
-	defaults := make([]float64, storage.GetAcceptedValueGroupsLength())
-	for i := range defaults {
-		defaults[i] = applied.DefaultValue
-	}
-	params.Set("default_values", defaults)
-	for tupIndex := range storage.GetGroupTupleLength() {
-		strTupIndex := strconv.Itoa(tupIndex)
-		params.Set(
-			"grouping_value_indices_tupindex_"+strTupIndex,
-			storage.GetGroupingValueIndices(tupIndex),
-		)
-		params.Set(
-			"accepted_value_group_tupindex_"+strTupIndex,
-			storage.GetAcceptedValueGroups(tupIndex),
-		)
-		groupingPartition := storage.GetGroupingPartition(tupIndex)
-		paramsAsPartitions["grouping_partition_tupindex_"+strTupIndex] =
-			[]string{groupingPartition}
-		paramsFromUpstream["latest_groupings_tupindex_"+strTupIndex] =
-			simulator.NamedUpstreamConfig{Upstream: groupingPartition}
-	}
-	return &simulator.PartitionConfig{
-		Name: applied.Name,
-		Iteration: &general.ValuesGroupedAggregationIteration{
-			Aggregation: aggregation,
-			Kernel:      applied.GetKernel(),
-		},
-		Params:             params,
-		ParamsAsPartitions: paramsAsPartitions,
-		ParamsFromUpstream: paramsFromUpstream,
-		InitStateValues:    defaults,
-		StateHistoryDepth:  1,
-		Seed:               0,
-	}
 }
 
 // NewVectorMeanPartition creates a partition that computes rolling weighted means
@@ -250,40 +215,11 @@ func NewVectorMeanPartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	appliedValueIndices := applied.Data.GetValueIndices(storage)
-	initStateValues := make([]float64, len(appliedValueIndices))
-	for i := range initStateValues {
-		initStateValues[i] = applied.DefaultValue
-	}
-	dataValuesIndices := make([]float64, 0)
-	for _, index := range appliedValueIndices {
-		dataValuesIndices = append(dataValuesIndices, float64(index))
-	}
-	params := simulator.NewParams(map[string][]float64{
-		"data_values_indices": dataValuesIndices,
-	})
-	paramsAsPartitions := map[string][]string{
-		"data_values_partition": {applied.Data.PartitionName},
-	}
-	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
-		"latest_data_values": {
-			Upstream: applied.Data.PartitionName,
-			Indices:  appliedValueIndices,
-		},
-	}
-	return &simulator.PartitionConfig{
-		Name: applied.Name,
-		Iteration: &general.ValuesFunctionVectorMeanIteration{
+	return NewVectorMeanLayout(aggregationRef(applied.Data, storage), applied.DefaultValue).
+		partition(applied.Name, &general.ValuesFunctionVectorMeanIteration{
 			Function: general.DataValuesFunction,
 			Kernel:   applied.GetKernel(),
-		},
-		Params:             params,
-		ParamsAsPartitions: paramsAsPartitions,
-		ParamsFromUpstream: paramsFromUpstream,
-		InitStateValues:    initStateValues,
-		StateHistoryDepth:  1,
-		Seed:               0,
-	}
+		})
 }
 
 // NewVectorCumulativeMeanPartition constructs a PartitionConfig whose state is
@@ -297,33 +233,10 @@ func NewVectorCumulativeMeanPartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	appliedValueIndices := applied.Data.GetValueIndices(storage)
-	dataValuesIndices := make([]float64, len(appliedValueIndices))
-	for i, index := range appliedValueIndices {
-		dataValuesIndices[i] = float64(index)
-	}
-	return &simulator.PartitionConfig{
-		Name: applied.Name,
-		Iteration: &general.ValuesFunctionCumulativeMeanIteration{
+	return NewVectorCumulativeMeanLayout(aggregationRef(applied.Data, storage)).
+		partition(applied.Name, &general.ValuesFunctionCumulativeMeanIteration{
 			Function: general.DataValuesFunction,
-		},
-		Params: simulator.NewParams(map[string][]float64{
-			"data_values_indices": dataValuesIndices,
-		}),
-		ParamsAsPartitions: map[string][]string{
-			"data_values_partition": {applied.Data.PartitionName},
-		},
-		ParamsFromUpstream: map[string]simulator.NamedUpstreamConfig{
-			"latest_data_values": {
-				Upstream: applied.Data.PartitionName,
-				Indices:  appliedValueIndices,
-			},
-		},
-		InitStateValues:       make([]float64, len(appliedValueIndices)),
-		InitStateFromUpstream: "latest_data_values",
-		StateHistoryDepth:     1,
-		Seed:                  0,
-	}
+		})
 }
 
 // NewVectorVariancePartition constructs a PartitionConfig that computes the
@@ -334,45 +247,12 @@ func NewVectorVariancePartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	appliedValueIndices := applied.Data.GetValueIndices(storage)
-	initStateValues := make([]float64, len(appliedValueIndices))
-	for i := range initStateValues {
-		initStateValues[i] = applied.DefaultValue
-	}
-	dataValuesIndices := make([]float64, 0)
-	for _, index := range appliedValueIndices {
-		dataValuesIndices = append(dataValuesIndices, float64(index))
-	}
-	params := simulator.NewParams(map[string][]float64{
-		"subtract_from_normalisation": {1},
-		"data_values_indices":         dataValuesIndices,
+	return NewVectorVarianceLayout(aggregationRef(mean, storage),
+		aggregationRef(applied.Data, storage), applied.DefaultValue,
+	).partition(applied.Name, &general.ValuesFunctionVectorMeanIteration{
+		Function: general.DataValuesVarianceFunction,
+		Kernel:   applied.GetKernel(),
 	})
-	paramsAsPartitions := map[string][]string{
-		"data_values_partition": {applied.Data.PartitionName},
-	}
-	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
-		"mean": {
-			Upstream: mean.PartitionName,
-			Indices:  mean.GetValueIndices(storage),
-		},
-		"latest_data_values": {
-			Upstream: applied.Data.PartitionName,
-			Indices:  appliedValueIndices,
-		},
-	}
-	return &simulator.PartitionConfig{
-		Name: applied.Name,
-		Iteration: &general.ValuesFunctionVectorMeanIteration{
-			Function: general.DataValuesVarianceFunction,
-			Kernel:   applied.GetKernel(),
-		},
-		Params:             params,
-		ParamsAsPartitions: paramsAsPartitions,
-		ParamsFromUpstream: paramsFromUpstream,
-		InitStateValues:    initStateValues,
-		StateHistoryDepth:  1,
-		Seed:               0,
-	}
 }
 
 // NewVectorCovariancePartition constructs a PartitionConfig that computes the
@@ -383,48 +263,10 @@ func NewVectorCovariancePartition(
 	applied AppliedAggregation,
 	storage *simulator.StateTimeStorage,
 ) *simulator.PartitionConfig {
-	appliedValueIndices := applied.Data.GetValueIndices(storage)
-	num := len(appliedValueIndices)
-	initStateValues := make([]float64, num*num)
-	for i := range num {
-		for j := range num {
-			// row-major n×n: the default sits on the diagonal
-			if i == j {
-				initStateValues[i*num+j] = applied.DefaultValue
-			}
-		}
-	}
-	dataValuesIndices := make([]float64, 0)
-	for _, index := range appliedValueIndices {
-		dataValuesIndices = append(dataValuesIndices, float64(index))
-	}
-	params := simulator.NewParams(map[string][]float64{
-		"data_values_indices": dataValuesIndices,
+	return NewVectorCovarianceLayout(aggregationRef(mean, storage),
+		aggregationRef(applied.Data, storage), applied.DefaultValue,
+	).partition(applied.Name, &general.ValuesFunctionVectorCovarianceIteration{
+		Function: general.DataValuesFunction,
+		Kernel:   applied.GetKernel(),
 	})
-	paramsAsPartitions := map[string][]string{
-		"data_values_partition": {applied.Data.PartitionName},
-	}
-	paramsFromUpstream := map[string]simulator.NamedUpstreamConfig{
-		"mean": {
-			Upstream: mean.PartitionName,
-			Indices:  mean.GetValueIndices(storage),
-		},
-		"latest_data_values": {
-			Upstream: applied.Data.PartitionName,
-			Indices:  appliedValueIndices,
-		},
-	}
-	return &simulator.PartitionConfig{
-		Name: applied.Name,
-		Iteration: &general.ValuesFunctionVectorCovarianceIteration{
-			Function: general.DataValuesFunction,
-			Kernel:   applied.GetKernel(),
-		},
-		Params:             params,
-		ParamsAsPartitions: paramsAsPartitions,
-		ParamsFromUpstream: paramsFromUpstream,
-		InitStateValues:    initStateValues,
-		StateHistoryDepth:  1,
-		Seed:               0,
-	}
 }
