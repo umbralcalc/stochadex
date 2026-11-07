@@ -429,10 +429,6 @@ func validateInputs(config *ApiRunConfig) error {
 				"to run: {mode: ensemble}")
 		}
 	}
-	if len(config.Inputs) > 0 && config.Data != nil {
-		return fmt.Errorf("api: a config sets both data: and inputs:; data: is " +
-			"shorthand for a single input — move it into inputs:")
-	}
 	used := map[string]bool{}
 	for name := range config.fileReaders {
 		used[name] = true
@@ -804,27 +800,19 @@ func inputRows(storage *simulator.StateTimeStorage, input, partition string) ([]
 		"api: input %q has no partition %q (it has: %s)", input, partition, strings.Join(names, ", ")))
 }
 
-// macroInputs returns the inputs a macros: config analyses: its inputs:, or its
-// data: block desugared to a single input named "data" (a data: source is a
-// source input; a data: sub-simulation is a simulation input).
+// macroInputs returns the inputs a macros: config analyses: its inputs:, less
+// file inputs, which an iteration reads instead.
 func macroInputs(config *ApiRunConfig) map[string]InputConfig {
-	switch {
-	case len(config.Inputs) > 0:
-		// Macros analyse data; a file input is read by an iteration instead.
-		data := map[string]InputConfig{}
-		for name, input := range config.Inputs {
-			if input.File == nil {
-				data[name] = input
-			}
-		}
-		return data
-	case config.Data == nil:
+	if len(config.Inputs) == 0 {
 		return nil
-	case config.Data.Source != nil:
-		return map[string]InputConfig{"data": {Source: config.Data.Source}}
-	default:
-		return map[string]InputConfig{"data": {Simulation: config.Data}}
 	}
+	data := map[string]InputConfig{}
+	for name, input := range config.Inputs {
+		if input.File == nil {
+			data[name] = input
+		}
+	}
+	return data
 }
 
 // loadMacroStorage loads a macros: config's inputs into the one storage its

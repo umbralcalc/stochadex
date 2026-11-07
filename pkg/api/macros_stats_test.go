@@ -15,7 +15,7 @@ func runMacroConfig(t *testing.T, yamlText string) map[string][][]float64 {
 	if err := os.WriteFile(path, []byte(yamlText), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	storage, err := runToStorage(LoadApiRunConfigFromYaml(path))
+	storage, err := runToStorage(mustLoad(t, path))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,15 +30,17 @@ func runMacroConfig(t *testing.T, yamlText string) map[string][][]float64 {
 // deterministic linear relation y = 2.5x + 1 (and exercises the y/n YAML-boolean
 // coercion fix, since the partitions are named x and y).
 func TestScalarRegressionMacro(t *testing.T) {
-	const cfg = `data:
-  steps: 50
-  timestep: 1.0
-  partitions:
-  - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: y, init_state_values: [1.0], state_history_depth: 1, seed: 0}
-  expressions:
-  - {partition: x, fields: [{name: v}], outputs: ["t"]}
-  - {partition: y, fields: [{name: v}], outputs: ["2.5 * t + 1.0"]}
+	const cfg = `inputs:
+  data:
+    simulation:
+      steps: 50
+      timestep: 1.0
+      partitions:
+      - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+      - {name: y, init_state_values: [1.0], state_history_depth: 1, seed: 0}
+      expressions:
+      - {partition: x, fields: [{name: v}], outputs: ["t"]}
+      - {partition: y, fields: [{name: v}], outputs: ["2.5 * t + 1.0"]}
 macros:
 - type: scalar_regression_stats
   name: ols
@@ -78,7 +80,7 @@ macros:
 // (~1.5^2). This is the "does its job" bar — recovery from noise, not exact
 // algebra on a clean line — matching the convergence tests for the other macros.
 func TestScalarRegressionMacroRecoversNoisy(t *testing.T) {
-	storage, err := runToStorage(LoadApiRunConfigFromYaml(
+	storage, err := runToStorage(mustLoad(t,
 		"../../cfg/example_regression_config.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -105,15 +107,17 @@ func TestScalarRegressionMacroRecoversNoisy(t *testing.T) {
 // TestGroupedAggregationMacro checks the grouped aggregation macro runs and
 // produces per-group output.
 func TestGroupedAggregationMacro(t *testing.T) {
-	const cfg = `data:
-  steps: 30
-  timestep: 1.0
-  partitions:
-  - {name: vals, init_state_values: [0.0, 0.0, 0.0], state_history_depth: 2, seed: 0}
-  - {name: grp, init_state_values: [1.0, 2.0, 1.0], state_history_depth: 2, seed: 0}
-  expressions:
-  - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "t + 1", "t + 2"]}
-  - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["1", "2", "1"]}
+	const cfg = `inputs:
+  data:
+    simulation:
+      steps: 30
+      timestep: 1.0
+      partitions:
+      - {name: vals, init_state_values: [0.0, 0.0, 0.0], state_history_depth: 2, seed: 0}
+      - {name: grp, init_state_values: [1.0, 2.0, 1.0], state_history_depth: 2, seed: 0}
+      expressions:
+      - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "t + 1", "t + 2"]}
+      - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["1", "2", "1"]}
 macros:
 - type: grouped_aggregation
   name: agg
@@ -136,15 +140,17 @@ macros:
 // macro sets its kernel's params: with an exponential kernel, each group's sum
 // weighs the window's rows by exp(-age/timescale).
 func TestGroupedAggregationMacroExponentialKernel(t *testing.T) {
-	const cfg = `data:
-  steps: 8
-  timestep: 1.0
-  partitions:
-  - {name: vals, init_state_values: [0.0, 0.0, 0.0], state_history_depth: 2, seed: 0}
-  - {name: grp, init_state_values: [1.0, 2.0, 1.0], state_history_depth: 2, seed: 0}
-  expressions:
-  - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "10 * t", "t * t"]}
-  - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["1", "2", "1"]}
+	const cfg = `inputs:
+  data:
+    simulation:
+      steps: 8
+      timestep: 1.0
+      partitions:
+      - {name: vals, init_state_values: [0.0, 0.0, 0.0], state_history_depth: 2, seed: 0}
+      - {name: grp, init_state_values: [1.0, 2.0, 1.0], state_history_depth: 2, seed: 0}
+      expressions:
+      - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "10 * t", "t * t"]}
+      - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["1", "2", "1"]}
 macros:
 - type: grouped_aggregation
   name: agg
@@ -160,7 +166,7 @@ macros:
 	if err := os.WriteFile(path, []byte(cfg), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	storage, err := runToStorage(LoadApiRunConfigFromYaml(path))
+	storage, err := runToStorage(mustLoad(t, path))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,15 +198,17 @@ func TestScalarRegressionMacroHistoryDepth(t *testing.T) {
 		want        int
 	}{{"as asked for", "  state_history_depth: 4\n", 4}, {"by default", "", 1}} {
 		t.Run(c.name, func(t *testing.T) {
-			config, err := LoadConfig(writeConfigPath(t, `data:
-  steps: 5
-  timestep: 1.0
-  partitions:
-  - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: y, init_state_values: [1.0], state_history_depth: 1, seed: 0}
-  expressions:
-  - {partition: x, fields: [{name: v}], outputs: ["t"]}
-  - {partition: y, fields: [{name: v}], outputs: ["2.5 * t + 1.0"]}
+			config, err := LoadConfig(writeConfigPath(t, `inputs:
+  data:
+    simulation:
+      steps: 5
+      timestep: 1.0
+      partitions:
+      - {name: x, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+      - {name: y, init_state_values: [1.0], state_history_depth: 1, seed: 0}
+      expressions:
+      - {partition: x, fields: [{name: v}], outputs: ["t"]}
+      - {partition: y, fields: [{name: v}], outputs: ["2.5 * t + 1.0"]}
 macros:
 - type: scalar_regression_stats
   name: ols

@@ -1,14 +1,6 @@
 {
   "go": "go1.25.2",
   "tests": {
-    "TestExpandAggregationMacros/a_data:_block_expands_to_the_input_named_data": {
-      "times": "145a872587ccca6a0ffeaee5abcea097514f12a247a39c2c9fd46c46a81850c2",
-      "partitions": {
-        "data_stream": "501x2 2de25795e2d2c527b699917a71cdf8067f62a70366e873028977bf8ab53ef45e",
-        "rolling_mean": "501x2 be9493213a85b6aec2703f29565714329c273fc6ec032d629579c70dd4d39b94",
-        "rolling_var": "501x2 bbf6c437027d47deba7cfd8de5a5db611b17114cd4dd6a08e48f7675cc75b784"
-      }
-    },
     "TestExpandAggregationMacros/a_file_source's_shape_is_read_from_the_file": {
       "times": "3f49eb678a767de6ea1aa5715121ea6dbc17d72ced1fd2849584684cb1190326",
       "partitions": {

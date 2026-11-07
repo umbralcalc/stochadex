@@ -110,7 +110,8 @@ main:
     bindings: [{name: b, expr: "x + 1"}]
     outputs: ["b"]
   simulation:
-    output_condition: {type: nil}
+outputs:
+- {name: output, condition: {type: nil}, function: {type: stdout}}
 embedded:
 # The embedded run is inlined, so its partitions sit directly here — there is no run key.
 - name: inner
@@ -146,7 +147,7 @@ main:
 			"test_program_expression_coupled_config.yaml",
 		} {
 			t.Run(path, func(t *testing.T) {
-				if didPanic(func() { LoadApiRunConfigFromYaml(path) }) {
+				if didPanic(func() { mustLoad(t, path) }) {
 					t.Errorf("%s has a key nothing reads", path)
 				}
 			})

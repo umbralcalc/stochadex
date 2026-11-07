@@ -51,7 +51,7 @@ func TestExampleConfigsRun(t *testing.T) {
 			os.Stdout = devnull
 			defer func() { os.Stdout = old }()
 			// Panics on any wiring/resolution error; completing is the assertion.
-			Run(LoadApiRunConfigFromYaml(path), &SocketConfig{})
+			Run(mustLoad(t, path))
 		})
 	}
 }

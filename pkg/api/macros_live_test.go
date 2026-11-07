@@ -64,16 +64,18 @@ func TestStateSpaceCountCalibration(t *testing.T) {
 // recovers the true mean (2.0) of an observed data stream — a full particle-filter
 // inference expressed entirely as config.
 func TestSMCInferenceMacro(t *testing.T) {
-	const cfg = `data:
-  steps: 60
-  timestep: 1.0
-  partitions:
-  - name: obs
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [2.0], covariance_matrix: [0.5]}
-    init_state_values: [2.0]
-    state_history_depth: 1
-    seed: 7
+	const cfg = `inputs:
+  data:
+    simulation:
+      steps: 60
+      timestep: 1.0
+      partitions:
+      - name: obs
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [2.0], covariance_matrix: [0.5]}
+        init_state_values: [2.0]
+        state_history_depth: 1
+        seed: 7
 macros:
 - type: smc_inference
   proposal_name: smc_proposals

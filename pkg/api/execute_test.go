@@ -20,11 +20,11 @@ const executeMain = `main:
     state_history_depth: 1
     seed: 1
   simulation:
-    output_condition: {type: every_step}
-    output_function: OUTPUT
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: OUTPUT}
 `
 
 func executeWithOutput(output string) string {
@@ -54,25 +54,26 @@ func TestExecute(t *testing.T) {
   window: 3
 `, partition)
 	}
-	subSim := `data:
-  steps: 10
-  partitions:
-  - name: d
-    iteration: {type: wiener_process}
-    params: {variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 3
-    seed: 1
+	subSim := `inputs:
+  data:
+    simulation:
+      steps: 10
+      partitions:
+      - name: d
+        iteration: {type: wiener_process}
+        params: {variances: [1.0]}
+        init_state_values: [0.0]
+        state_history_depth: 3
+        seed: 1
 `
 	csvOf := func(path string) string {
-		return fmt.Sprintf("data:\n  source:\n    csv: {path: %q, time_column: 0, state_columns: {d: [1]}}\n", path)
+		return fmt.Sprintf("inputs:\n  data:\n    source:\n      csv: {path: %q, time_column: 0, state_columns: {d: [1]}}\n", path)
 	}
 	nilOutput := executeWithOutput("{type: nil}")
 
 	cases := []struct {
 		name   string
 		config string   // written and passed as --config unless args is set
-		socket string   // written and passed as --socket when non-empty
 		args   []string // raw args (after the program name) when set
 		kind   ErrorKind
 	}{
@@ -97,9 +98,6 @@ func TestExecute(t *testing.T) {
 			kind: ErrConfig},
 		{name: "an unknown run mode", config: nilOutput + "run: {mode: sweep}\n", kind: ErrConfig},
 		{name: "a macro referencing a missing partition", config: macroOn(subSim, "ghost"), kind: ErrConfig},
-		{name: "a missing socket config file", config: nilOutput,
-			args: nil, socket: "\x00missing", kind: ErrConfig},
-		{name: "an invalid socket config", config: nilOutput, socket: "address: [unclosed\n", kind: ErrConfig},
 
 		{name: "a malformed input", config: macroOn(csvOf(malformedCSV), "d"), kind: ErrData},
 
@@ -118,12 +116,12 @@ func TestExecute(t *testing.T) {
     state_history_depth: 1
     seed: 0
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
     execution_strategy: {type: inline}
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `, kind: ErrRuntime},
 	}
 
@@ -134,12 +132,6 @@ func TestExecute(t *testing.T) {
 				args = append(args, c.args...)
 			} else {
 				args = append(args, "--config", write(fmt.Sprintf("case-%d.yaml", i), c.config))
-				switch {
-				case c.socket == "\x00missing":
-					args = append(args, "--socket", filepath.Join(dir, "absent-socket.yaml"))
-				case c.socket != "":
-					args = append(args, "--socket", write(fmt.Sprintf("socket-%d.yaml", i), c.socket))
-				}
 			}
 			var err error
 			captureStdout(t, func() { err = Execute(args) })
@@ -156,7 +148,7 @@ func TestExecute(t *testing.T) {
 }
 
 // TestLoadConfigErrors pins that LoadConfig returns (not panics) an ErrConfig
-// error, while LoadApiRunConfigFromYaml still panics with the underlying error.
+// error.
 func TestLoadConfigErrors(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "bad.yaml")
 	if err := os.WriteFile(path, []byte("main: [unclosed\n"), 0o644); err != nil {
@@ -165,9 +157,6 @@ func TestLoadConfigErrors(t *testing.T) {
 	config, err := LoadConfig(path)
 	if config != nil || KindOf(err) != ErrConfig {
 		t.Fatalf("LoadConfig: got (%v, %v), want (nil, an ErrConfig error)", config, err)
-	}
-	if !didPanic(func() { LoadApiRunConfigFromYaml(path) }) {
-		t.Error("LoadApiRunConfigFromYaml should still panic on an invalid config")
 	}
 }
 
@@ -198,11 +187,11 @@ func TestFailureClassificationReachesNestedAndDeferredParts(t *testing.T) {
   partitions:
   - {name: inner_run, init_state_values: [0.0], state_history_depth: 1, seed: 0, params: {burn_in_steps: [0]}}
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 2}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 embedded:
 - name: inner_run
   partitions:
@@ -243,17 +232,12 @@ embedded:
 			t.Errorf("expected an ErrConfig naming the misspelled type, got %v", err)
 		}
 	})
-	t.Run("a socket file without an address runs without serving", func(t *testing.T) {
+	t.Run("--socket is not a flag", func(t *testing.T) {
 		configPath := filepath.Join(dir, "plain.yaml")
-		socketPath := filepath.Join(dir, "socket.yaml")
 		writeFile(t, configPath, executeWithOutput("{type: nil}"))
-		writeFile(t, socketPath, "handle: /handle\nmillisecond_delay: 0\n")
-		var err error
-		captureStdout(t, func() {
-			err = Execute([]string{"stochadex", "--config", configPath, "--socket", socketPath})
-		})
-		if err != nil {
-			t.Errorf("an inactive socket config should run normally, got %v", err)
+		err := Execute([]string{"stochadex", "--config", configPath, "--socket", "socket.yaml"})
+		if KindOf(err) != ErrUsage {
+			t.Errorf("expected a usage error, got %v", err)
 		}
 	})
 }

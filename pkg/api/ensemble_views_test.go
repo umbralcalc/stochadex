@@ -40,7 +40,7 @@ func TestEnsembleMemberViews(t *testing.T) {
 		dir := t.TempDir()
 		var err error
 		printed := captureStdout(t, func() {
-			err = runChecked(writeConfig(t, ensembleViewsYAML(t, dir)), &SocketConfig{})
+			err = runChecked(writeConfig(t, ensembleViewsYAML(t, dir)))
 		})
 		if err != nil {
 			t.Fatal(err)

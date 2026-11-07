@@ -86,11 +86,11 @@ main:
   - {name: dial, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, params_from_input: {level: {input: feed}}, init_state_values: [0.0], state_history_depth: 1, seed: 1}
   - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, params_from_upstream: {variances: {upstream: dial}}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: %d}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `, feed, steps)
 }
 
@@ -254,11 +254,11 @@ main:
   partitions:
   - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, %s, init_state_values: [0.0], state_history_depth: 1, seed: 3}
 %s  simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: %d}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, function: {type: nil}}
 `, csv, binding, "", steps)
 }
 

@@ -25,13 +25,14 @@ func TestCsvDataSource(t *testing.T) {
 	if err := os.WriteFile(csvPath, []byte(b.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg := fmt.Sprintf(`data:
-  source:
-    csv:
-      path: %q
-      time_column: 0
-      state_columns: {stream: [1, 2]}
-      skip_header: false
+	cfg := fmt.Sprintf(`inputs:
+  data:
+    source:
+      csv:
+        path: %q
+        time_column: 0
+        state_columns: {stream: [1, 2]}
+        skip_header: false
 macros:
 - type: vector_mean
   name: rolling_mean

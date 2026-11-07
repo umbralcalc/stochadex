@@ -22,6 +22,29 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+**Upgrading from 0.28.** The deprecated spellings are removed. Each config form still in use
+fails to load with an error that gives its replacement, so a config is upgraded by pasting
+what the error says.
+
+- A top-level `data:` block becomes an input named `data`: `inputs: {data: {source: ...}}` for
+  a source, or `inputs: {data: {simulation: ...}}` with the block's contents moved under
+  `simulation:` for a sub-simulation. Macros read it exactly as before.
+- `main.simulation`'s `output_condition` / `output_function` becomes one `outputs:` view, which
+  the error writes out from the config, such as `outputs: [{name: output, condition:
+  {type: every_step}, function: {type: stdout}}]`. An embedded run's own pair is its debug log
+  and is unchanged.
+- `--socket socket.yaml` becomes a `run: {mode: serve, websocket: {address, handle,
+  allowed_origins}, pace_ms}` block in the config, with an `outputs:` view of
+  `{type: connection}`, as in `cfg/example_serve_config.yaml`.
+- From Go, `api.LoadApiRunConfigFromYaml(path)` becomes `api.LoadConfig(path)`, which returns
+  an error instead of panicking; `api.RunEnsembleToStorage(config)` becomes
+  `api.RunToStorage(config)` on a `run: {mode: ensemble}` config, whose `RunResult.Members`
+  holds the same members; and `api.Run(config, socket)` becomes `api.Run(config)`.
+- `RunToStorage` now records every step of a batch run. It used to record only what the output
+  pair's condition selected; record a selection with `RunWith(config, CaptureView(name,
+  condition))` instead.
+- `stochadex-graph --config ...` becomes `stochadex graph --config ...`.
+
 ### Added
 
 - **`macros.NewVectorMeanLayout` and the other aggregation layouts** say what an aggregation's
@@ -47,6 +70,25 @@ an exact version rather than assume stability across minors.
 - **`macros.NewScalarRegressionLayout`** does the same for `scalar_regression_stats`: its params,
   the upstreams its y and x read, the statistics of its data's first pair, and its history depth,
   with the defaults for the minimum denominator and depth. Results are unchanged.
+
+### Changed
+
+- **`api.RunWithParsedArgs`** runs exactly what the CLI's `api.Execute` runs, from args already
+  parsed, and on a failure prints it and exits with `api.ExitCode`'s status rather than
+  panicking.
+- **`mcts_planning`'s `weights_from` and `samples_from` errors** name the input the partition
+  must come from, rather than a `data:` block.
+
+### Removed
+
+- **The `data:` block and the main run's `output_condition` / `output_function` pair.** A config
+  using either fails to load with an error giving its `inputs:` or `outputs:` replacement.
+  `ApiRunConfig.Deprecations` and the `deprecations` field of `inspect --io` went with them.
+- **`--socket`**, with `api.SocketConfig` and `api.LoadSocketConfigFromYaml`. `run: {mode: serve}`
+  serves a config. `api.Run` takes the config alone.
+- **`api.RunEnsembleToStorage`**: `api.RunToStorage` returns an ensemble's members.
+- **`api.LoadApiRunConfigFromYaml`**: `api.LoadConfig` returns its error.
+- **The `stochadex-graph` command**: `stochadex graph` prints the same graph.
 
 ## [0.28.0] — 2026-11-04
 

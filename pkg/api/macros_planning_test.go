@@ -175,20 +175,22 @@ func TestMCTSPlanningProgressPartition(t *testing.T) {
 // best response to demand=25 (profit 100) but loses money against the actual
 // spread (−25), while ordering 10 earns a certain 40.
 func TestMCTSPlanningOverAPosterior(t *testing.T) {
-	const cfg = `data:
-  steps: 5
-  timestep: 1.0
-  partitions:
-  - name: demand_draws
-    iteration:
-      type: expression
-      fields: [{name: d}]
-      bindings:
-      - {name: phase, expr: "step - 6 * floor(step / 6)"}
-      outputs: ["where(phase < 5, 10, 100)"]
-    init_state_values: [10.0]
-    state_history_depth: 1
-    seed: 0
+	const cfg = `inputs:
+  data:
+    simulation:
+      steps: 5
+      timestep: 1.0
+      partitions:
+      - name: demand_draws
+        iteration:
+          type: expression
+          fields: [{name: d}]
+          bindings:
+          - {name: phase, expr: "step - 6 * floor(step / 6)"}
+          outputs: ["where(phase < 5, 10, 100)"]
+        init_state_values: [10.0]
+        state_history_depth: 1
+        seed: 0
 macros:
 - type: mcts_planning
   name: plan
@@ -329,16 +331,18 @@ func TestMCTSPlanningWithBeliefUpdating(t *testing.T) {
 // is a newsvendor whose right order depends on that mean, so the plan is only
 // right if the inference actually reached the truth.
 func TestMCTSPlanningFromAnInferredPosterior(t *testing.T) {
-	const cfg = `data:
-  steps: 2500
-  timestep: 1.0
-  partitions:
-  - name: observations
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [3.0], covariance_matrix: [0.25]}
-    init_state_values: [3.0]
-    state_history_depth: 2500
-    seed: 17
+	const cfg = `inputs:
+  data:
+    simulation:
+      steps: 2500
+      timestep: 1.0
+      partitions:
+      - name: observations
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [3.0], covariance_matrix: [0.25]}
+        init_state_values: [3.0]
+        state_history_depth: 2500
+        seed: 17
 macros:
 - type: posterior_estimation
   log_norm: {name: post_log_norm, default: 0.0}
@@ -488,4 +492,20 @@ func TestMCTSPlanningHonoursSampleWeights(t *testing.T) {
 			t.Fatal("expected an error for a weight count that does not match the samples")
 		}
 	})
+}
+
+// TestPlanningParametersNeedStorageToRead checks samples_from and weights_from
+// name what they need when there is no storage to read them from.
+func TestPlanningParametersNeedStorageToRead(t *testing.T) {
+	samples := &planningParametersSpec{SamplesFrom: &planningSamplesRef{PartitionName: "post"},
+		Targets: []planningParamTarget{{Partition: "demand", Param: "rate", Indices: []int{0}}}}
+	if _, err := samples.resolve(nil); err == nil ||
+		err.Error() != `mcts_planning parameters.samples_from needs an input to read "post" from` {
+		t.Errorf("samples_from: got %v", err)
+	}
+	weights := &planningParametersSpec{WeightsFrom: &planningRowsRef{PartitionName: "credence"}}
+	if _, err := weights.resolveWeights(nil, 2); err == nil ||
+		err.Error() != `mcts_planning parameters.weights_from needs an input, or an earlier macro, producing "credence"` {
+		t.Errorf("weights_from: got %v", err)
+	}
 }

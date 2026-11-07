@@ -91,7 +91,7 @@ type simulationEnvironmentSpec struct {
 }
 
 // planningParametersSpec supplies the posterior the search plans over. Samples
-// come either inline or from a partition recorded in the data: tier — one row
+// come either inline or from a partition recorded in an input — one row
 // per draw — which is how a calibration's own output feeds the planner.
 type planningParametersSpec struct {
 	Samples [][]float64 `yaml:"samples,omitempty"`
@@ -159,7 +159,7 @@ func (p *planningParametersSpec) resolveWeights(
 	}
 	if storage == nil {
 		return nil, fmt.Errorf(
-			"mcts_planning parameters.weights_from needs a data: block, or an earlier "+
+			"mcts_planning parameters.weights_from needs an input, or an earlier "+
 				"macro, producing %q", p.WeightsFrom.PartitionName)
 	}
 	rows := storage.GetValues(p.WeightsFrom.PartitionName)
@@ -243,7 +243,7 @@ func (p *planningParametersSpec) resolve(
 	}
 	if storage == nil {
 		return nil, fmt.Errorf(
-			"mcts_planning parameters.samples_from needs a data: block to read %q from",
+			"mcts_planning parameters.samples_from needs an input to read %q from",
 			p.SamplesFrom.PartitionName)
 	}
 	rows := storage.GetValues(p.SamplesFrom.PartitionName)

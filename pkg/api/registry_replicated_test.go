@@ -109,11 +109,11 @@ func TestReplicatedSimulationRun(t *testing.T) {
 	})
 
 	t.Run("matches the smc_inference macro it generalises, exactly", func(t *testing.T) {
-		macro, err := RunToStorage(LoadApiRunConfigFromYaml("testdata/replicated/smc_macro.yaml"))
+		macro, err := RunToStorage(mustLoad(t, "testdata/replicated/smc_macro.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		twin, err := RunToStorage(LoadApiRunConfigFromYaml("testdata/replicated/smc_twin.yaml"))
+		twin, err := RunToStorage(mustLoad(t, "testdata/replicated/smc_twin.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}

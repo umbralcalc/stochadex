@@ -22,11 +22,11 @@ main:
     state_history_depth: 1
     seed: 0
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 embedded:
 - name: nested
   partitions:

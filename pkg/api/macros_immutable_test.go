@@ -18,16 +18,18 @@ import (
 // the partitions it builds: params, params_as_partitions, params_from_upstream
 // and, for the window, inner partitions with params of their own.
 var macroConfigsWithoutShippedExample = map[string]string{
-	"vector_covariance": `data:
-  steps: 40
-  timestep: 1.0
-  partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 20
-    seed: 291
+	"vector_covariance": `inputs:
+  data:
+    simulation:
+      steps: 40
+      timestep: 1.0
+      partitions:
+      - name: data_stream
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
+        init_state_values: [1.3, 8.3]
+        state_history_depth: 20
+        seed: 291
 macros:
 - type: vector_mean
   name: rolling_mean
@@ -44,15 +46,17 @@ macros:
   window: 15
   default_value: 3.0
 `,
-	"grouped_aggregation": `data:
-  steps: 30
-  timestep: 1.0
-  partitions:
-  - {name: vals, init_state_values: [0.0, 0.0, 0.0], state_history_depth: 2, seed: 0}
-  - {name: grp, init_state_values: [1.0, 2.0, 1.0], state_history_depth: 2, seed: 0}
-  expressions:
-  - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "t + 1", "t + 2"]}
-  - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["1", "2", "1"]}
+	"grouped_aggregation": `inputs:
+  data:
+    simulation:
+      steps: 30
+      timestep: 1.0
+      partitions:
+      - {name: vals, init_state_values: [0.0, 0.0, 0.0], state_history_depth: 2, seed: 0}
+      - {name: grp, init_state_values: [1.0, 2.0, 1.0], state_history_depth: 2, seed: 0}
+      expressions:
+      - {partition: vals, fields: [{name: a}, {name: b}, {name: c}], outputs: ["t", "t + 1", "t + 2"]}
+      - {partition: grp, fields: [{name: a}, {name: b}, {name: c}], outputs: ["1", "2", "1"]}
 macros:
 - type: grouped_aggregation
   name: agg
@@ -62,21 +66,23 @@ macros:
   data: {partition_name: vals}
   window: 2
 `,
-	"likelihood_comparison": `data:
-  steps: 40
-  timestep: 1.0
-  partitions:
-  - name: test_data
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [2.0], covariance_matrix: [1.0]}
-    init_state_values: [2.0]
-    state_history_depth: 20
-    seed: 123
-  - name: model_mean
-    iteration: {type: constant_values}
-    init_state_values: [2.5]
-    state_history_depth: 20
-    seed: 0
+	"likelihood_comparison": `inputs:
+  data:
+    simulation:
+      steps: 40
+      timestep: 1.0
+      partitions:
+      - name: test_data
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [2.0], covariance_matrix: [1.0]}
+        init_state_values: [2.0]
+        state_history_depth: 20
+        seed: 123
+      - name: model_mean
+        iteration: {type: constant_values}
+        init_state_values: [2.5]
+        state_history_depth: 20
+        seed: 0
 macros:
 - type: likelihood_comparison
   name: test_likelihood
@@ -101,16 +107,18 @@ macros:
     depth: 10
   window_data_history_depth: {test_data: 10, model_mean: 10}
 `,
-	"likelihood_mean_function_fit": `data:
-  steps: 40
-  timestep: 1.0
-  partitions:
-  - name: test_data
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [2.0, 3.0], covariance_matrix: [1.0, 0.0, 0.0, 1.0]}
-    init_state_values: [2.0, 3.0]
-    state_history_depth: 40
-    seed: 5
+	"likelihood_mean_function_fit": `inputs:
+  data:
+    simulation:
+      steps: 40
+      timestep: 1.0
+      partitions:
+      - name: test_data
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [2.0, 3.0], covariance_matrix: [1.0, 0.0, 0.0, 1.0]}
+        init_state_values: [2.0, 3.0]
+        state_history_depth: 40
+        seed: 5
 macros:
 - type: likelihood_mean_function_fit
   name: mean_fit
@@ -138,14 +146,14 @@ macros:
 `,
 }
 
-// marshalledMacroTiers is the config's data: and macros: tiers as YAML — what a
+// marshalledMacroTiers is the config's inputs: and macros: tiers as YAML — what a
 // macro run must leave as it found it.
 func marshalledMacroTiers(t *testing.T, config *ApiRunConfig) string {
 	t.Helper()
 	out, err := yaml.Marshal(struct {
-		Data   *DataConfig   `yaml:"data"`
-		Macros []MacroConfig `yaml:"macros"`
-	}{config.Data, config.Macros})
+		Inputs map[string]InputConfig `yaml:"inputs"`
+		Macros []MacroConfig          `yaml:"macros"`
+	}{config.Inputs, config.Macros})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +228,7 @@ func TestMacroRunLeavesConfigUnmodified(t *testing.T) {
 			if !strings.Contains(string(text), "\nmacros:") {
 				continue
 			}
-			config := LoadApiRunConfigFromYaml(path)
+			config := mustLoad(t, path)
 			if len(config.Macros) == 0 {
 				continue
 			}

@@ -38,8 +38,7 @@ const implicitFilePrefix = "file/"
 // resolveFileInputs gives each {input: NAME} iteration field its file input's
 // path, makes each bare model_path an implicit file input, and records what
 // reads each file input. It looks at main partitions, embedded runs' and input
-// sub-simulations'; a legacy data: block cannot have inputs: beside it, so its
-// partitions are left as written.
+// sub-simulations'.
 func resolveFileInputs(config *ApiRunConfig) error {
 	config.fileReaders = map[string][]string{}
 	config.readsFiles = map[string]bool{}

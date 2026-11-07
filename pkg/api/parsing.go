@@ -9,8 +9,7 @@ import (
 )
 
 // ParsedArgs bundles CLI-derived inputs for running the API: the YAML config
-// path, any --set overrides (each path=value), and an optional socket config
-// path.
+// path, any --set overrides (each path=value), and what to do with the config.
 type ParsedArgs struct {
 	ConfigFile string
 	Sets       []string
@@ -20,7 +19,6 @@ type ParsedArgs struct {
 	// DebugEmbedded writes embedded runs' inner steps to json_logs, each
 	// NAME=PATH (--debug-embedded).
 	DebugEmbedded []string
-	SocketFile    string
 	// Check validates the config and exits without running it (--check).
 	Check bool
 	// InspectSuggest prints, as JSON, a verified built-in for each expression partition
@@ -87,14 +85,6 @@ func parseArgs(args []string) (ParsedArgs, error) {
 			"stochadex graph, stochadex expand and stochadex catalogue (each takes --help)",
 	)
 	configFile, sets, seedRange, debugEmbedded := configArgs(parser)
-	socketFile := parser.String(
-		"s",
-		"socket",
-		&argparse.Options{
-			Required: false,
-			Help:     "deprecated: yaml socket config path; use run: {mode: serve} in the config",
-		},
-	)
 	check := parser.Flag(
 		"",
 		"check",
@@ -127,7 +117,6 @@ func parseArgs(args []string) (ParsedArgs, error) {
 		Sets:            *sets,
 		SeedRange:       *seedRange,
 		DebugEmbedded:   *debugEmbedded,
-		SocketFile:      *socketFile,
 		Check:           *check,
 		Provenance:      *provenance || *skip,
 		SkipIfUnchanged: *skip,

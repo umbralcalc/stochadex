@@ -13,18 +13,20 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const macroConfigYAML = `data:
-  steps: 500
-  timestep: 1.0
-  partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
-    params:
-      mean: [1.8, 5.0]
-      covariance_matrix: [2.5, 0.0, 0.0, 9.0]
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 200
-    seed: 291
+const macroConfigYAML = `inputs:
+  data:
+    simulation:
+      steps: 500
+      timestep: 1.0
+      partitions:
+      - name: data_stream
+        iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
+        params:
+          mean: [1.8, 5.0]
+          covariance_matrix: [2.5, 0.0, 0.0, 9.0]
+        init_state_values: [1.3, 8.3]
+        state_history_depth: 200
+        seed: 291
 macros:
 - type: vector_mean
   name: rolling_mean
@@ -41,7 +43,7 @@ macros:
   window: 150
 `
 
-// TestMacroTierRunsInProcess is the macro-tier acceptance: a data: + macros:
+// TestMacroTierRunsInProcess is the macro-tier acceptance: an inputs: + macros:
 // config builds storage, expands the aggregation macros against it (the variance
 // macro referencing the mean macro's output), and runs — all data, no toolchain.
 // The rolling mean recovers the stream's true mean.
@@ -50,9 +52,9 @@ func TestMacroTierRunsInProcess(t *testing.T) {
 	if err := os.WriteFile(path, []byte(macroConfigYAML), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	config := LoadApiRunConfigFromYaml(path)
-	if len(config.Macros) != 2 || config.Data == nil {
-		t.Fatalf("data: and macros: not loaded (%d macros, data=%v)", len(config.Macros), config.Data != nil)
+	config := mustLoad(t, path)
+	if _, input := config.Inputs["data"]; len(config.Macros) != 2 || !input {
+		t.Fatalf("inputs: and macros: not loaded (%d macros, inputs=%v)", len(config.Macros), config.Inputs)
 	}
 	storage, err := runToStorage(config)
 	if err != nil {
@@ -138,71 +140,25 @@ macros:
 	}
 }
 
-// ensembleMainConfigYAML is a minimal main: config runnable in ensemble mode.
-const ensembleMainConfigYAML = `main:
-  partitions:
-  - name: w
-    iteration: {type: wiener_process}
-    params: {variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 1
-  simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
-run: {mode: ensemble, seeds: [1, 2]}
-`
-
-// TestValidateMainContext covers the main-path guard: data: is only read by the
-// macros: tier, so on a config without macros it must be rejected — through the
-// public RunEnsembleToStorage path, with a positive control that the same config
-// minus data: still runs.
-func TestValidateMainContext(t *testing.T) {
-	dataBlock := "data:\n  steps: 5\n  partitions: []\n"
-
-	t.Run("data without macros is rejected, naming data:", func(t *testing.T) {
-		config := writeConfig(t, ensembleMainConfigYAML+dataBlock)
-		_, err := RunEnsembleToStorage(config)
-		if err == nil {
-			t.Fatal("expected RunEnsembleToStorage to reject data: without macros:")
-		}
-		if !strings.Contains(err.Error(), "data:") {
-			t.Errorf("error should name data: so the author knows what to move: %v", err)
-		}
-	})
-
-	t.Run("the same config without data still runs", func(t *testing.T) {
-		config := writeConfig(t, ensembleMainConfigYAML)
-		runs, err := RunEnsembleToStorage(config)
-		if err != nil {
-			t.Fatalf("expected the config to run: %v", err)
-		}
-		if len(runs) != 2 || len(runs[0].Storage.GetValues("w")) == 0 {
-			t.Errorf("expected 2 members with recorded output, got %d", len(runs))
-		}
-	})
-}
-
 // TestVectorCovarianceDefaultValue checks the user-facing path of the
 // vector_covariance macro's default_value: during burn-in the macro emits its
 // initial state, which must be default_value on the diagonal and zero elsewhere
 // (row-major), and once burn-in ends it must estimate the stream's covariance.
 func TestVectorCovarianceDefaultValue(t *testing.T) {
-	config := writeConfig(t, `data:
-  steps: 400
-  timestep: 1.0
-  partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
-    params:
-      mean: [1.8, 5.0]
-      covariance_matrix: [2.5, 0.0, 0.0, 9.0]
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 200
-    seed: 291
+	config := writeConfig(t, `inputs:
+  data:
+    simulation:
+      steps: 400
+      timestep: 1.0
+      partitions:
+      - name: data_stream
+        iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
+        params:
+          mean: [1.8, 5.0]
+          covariance_matrix: [2.5, 0.0, 0.0, 9.0]
+        init_state_values: [1.3, 8.3]
+        state_history_depth: 200
+        seed: 291
 macros:
 - type: vector_mean
   name: rolling_mean
@@ -243,18 +199,20 @@ macros:
 // value_indices subset given, each centred on the same full-width rolling mean
 // (subset through the mean reference's own value_indices).
 func vectorCovarianceSubsetYAML(indices string) string {
-	return `data:
-  steps: 300
-  timestep: 1.0
-  partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params:
-      mean: [1.8, 5.0, -2.0]
-      covariance_matrix: [2.5, 1.2, -0.7, 1.2, 9.0, 2.1, -0.7, 2.1, 4.0]
-    init_state_values: [1.3, 8.3, -1.5]
-    state_history_depth: 100
-    seed: 291
+	return `inputs:
+  data:
+    simulation:
+      steps: 300
+      timestep: 1.0
+      partitions:
+      - name: data_stream
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params:
+          mean: [1.8, 5.0, -2.0]
+          covariance_matrix: [2.5, 1.2, -0.7, 1.2, 9.0, 2.1, -0.7, 2.1, 4.0]
+        init_state_values: [1.3, 8.3, -1.5]
+        state_history_depth: 100
+        seed: 291
 macros:
 - type: vector_mean
   name: rolling_mean

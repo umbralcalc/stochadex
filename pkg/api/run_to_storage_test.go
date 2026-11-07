@@ -15,8 +15,9 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-// batchConfigYAML is a seeded two-partition batch run whose output_function is a
-// json_log sink at %s, so the sink path and the storage path can be compared.
+// batchConfigYAML is a seeded two-partition batch run whose one output view writes
+// what condition %s selects to a json_log sink at %s, so the sink path and the
+// storage path can be compared.
 const batchConfigYAML = `main:
   partitions:
   - name: first
@@ -32,11 +33,11 @@ const batchConfigYAML = `main:
     state_history_depth: 1
     seed: 2939
   simulation:
-    output_condition: %s
-    output_function: {type: json_log, path: "%s"}
     termination_condition: {type: number_of_steps, max_steps: 30}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: %s, function: {type: json_log, path: "%s"}}
 `
 
 // assertStoragesEqual fails unless both storages hold the same partitions, times
@@ -109,7 +110,7 @@ func TestRunToStorage(t *testing.T) {
 
 		// The same config object, run afterwards through Run, must still emit through
 		// its own sink — RunToStorage left it unmodified.
-		Run(config, &SocketConfig{})
+		Run(config)
 		fromSink, err := analysis.NewStateTimeStorageFromJsonLogEntries(logPath)
 		if err != nil {
 			t.Fatal(err)
@@ -120,43 +121,12 @@ func TestRunToStorage(t *testing.T) {
 		}
 	})
 
-	t.Run("the config's output_condition decides what is recorded", func(t *testing.T) {
-		logPath := filepath.Join(t.TempDir(), "unused.log")
-		only := writeConfig(t, fmt.Sprintf(batchConfigYAML,
-			"{type: only_given_partitions, partitions: [second]}", logPath))
-		result, err := RunToStorage(only)
-		if err != nil {
-			t.Fatal(err)
-		}
-		// Every partition is registered in storage, but only selected ones get rows.
-		if rows := result.Storage.GetValues("first"); len(rows) != 0 {
-			t.Errorf("only_given_partitions [second] recorded %d rows for first", len(rows))
-		}
-		if rows := result.Storage.GetValues("second"); len(rows) != 31 {
-			t.Errorf("expected 31 rows for second, got %d", len(rows))
-		}
-
-		everyAll := writeConfig(t, fmt.Sprintf(batchConfigYAML, "{type: every_step}", logPath))
-		all, err := RunToStorage(everyAll)
-		if err != nil {
-			t.Fatal(err)
-		}
-		// The selected partition's rows match the unfiltered run of the same seeds.
-		want := all.Storage.GetValues("second")
-		got := result.Storage.GetValues("second")
-		for i := range want {
-			if !floats.Equal(got[i], want[i]) {
-				t.Fatalf("filtered row %d = %v, want %v", i, got[i], want[i])
-			}
-		}
-	})
-
 	t.Run("a macros config returns its expansion's storage", func(t *testing.T) {
-		result, err := RunToStorage(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"))
+		result, err := RunToStorage(mustLoad(t, "../../cfg/example_macro_config.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		expanded, err := Expand(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"))
+		expanded, err := Expand(mustLoad(t, "../../cfg/example_macro_config.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -171,11 +141,12 @@ func TestRunToStorage(t *testing.T) {
 	})
 
 	t.Run("an ensemble config returns members aligned to run.seeds", func(t *testing.T) {
-		result, err := RunToStorage(LoadApiRunConfigFromYaml("../../cfg/example_ensemble_config.yaml"))
+		result, err := RunToStorage(mustLoad(t, "../../cfg/example_ensemble_config.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		reference, err := RunEnsembleToStorage(LoadApiRunConfigFromYaml("../../cfg/example_ensemble_config.yaml"))
+		config := mustLoad(t, "../../cfg/example_ensemble_config.yaml")
+		reference, err := ensembleRuns(config, config.GetConfigGenerator().GetSimulation(), false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -206,10 +177,6 @@ func TestRunToStorage(t *testing.T) {
 			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog),
 				"main:", "run: {mode: sweep}\nmain:", 1),
 			"unknown run mode"},
-		{"data: without macros:",
-			fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog) +
-				"data:\n  steps: 5\n  partitions: []\n",
-			"data:"},
 		{"ensemble with no seeds",
 			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog+"-{member}"),
 				"main:", "run: {mode: ensemble}\nmain:", 1),
@@ -224,11 +191,11 @@ func TestRunToStorage(t *testing.T) {
   - {name: a, iteration: {type: copy_values}, params: {partitions: [1], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
   - {name: b, iteration: {type: copy_values}, params: {partitions: [0], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 `,
 			"deadlock"},
 	}
@@ -275,9 +242,9 @@ func rowLines(storage *simulator.StateTimeStorage, prefix string) []string {
 func TestRunPrintsRunToStorage(t *testing.T) {
 	t.Run("macros: the result, row by row in time order", func(t *testing.T) {
 		printed := captureStdout(t, func() {
-			Run(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"), &SocketConfig{})
+			Run(mustLoad(t, "../../cfg/example_macro_config.yaml"))
 		})
-		result, err := RunToStorage(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"))
+		result, err := RunToStorage(mustLoad(t, "../../cfg/example_macro_config.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -289,9 +256,9 @@ func TestRunPrintsRunToStorage(t *testing.T) {
 	})
 	t.Run("ensemble: each member's rows, prefixed, in its own time order", func(t *testing.T) {
 		printed := captureStdout(t, func() {
-			Run(LoadApiRunConfigFromYaml("../../cfg/example_ensemble_config.yaml"), &SocketConfig{})
+			Run(mustLoad(t, "../../cfg/example_ensemble_config.yaml"))
 		})
-		result, err := RunToStorage(LoadApiRunConfigFromYaml("../../cfg/example_ensemble_config.yaml"))
+		result, err := RunToStorage(mustLoad(t, "../../cfg/example_ensemble_config.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -321,13 +288,13 @@ func TestRunPrintsRunToStorage(t *testing.T) {
 // come from a map, so unsorted printing varied run to run.
 func TestRunOutputIsDeterministic(t *testing.T) {
 	first := captureStdout(t, func() {
-		Run(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"), &SocketConfig{})
+		Run(mustLoad(t, "../../cfg/example_macro_config.yaml"))
 	})
 	// Unsorted, the order changes in roughly a quarter of runs (measured), so 50
 	// repetitions miss an ordering regression with probability ~1e-6.
 	for i := range 50 {
 		again := captureStdout(t, func() {
-			Run(LoadApiRunConfigFromYaml("../../cfg/example_macro_config.yaml"), &SocketConfig{})
+			Run(mustLoad(t, "../../cfg/example_macro_config.yaml"))
 		})
 		if again != first {
 			t.Fatalf("run %d printed different output from run 0", i+1)

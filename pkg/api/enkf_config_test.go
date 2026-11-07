@@ -15,7 +15,7 @@ import (
 // observation of the current truth — beyond merely running. The update maths and the
 // steady-state variance are pinned separately in pkg/inference.
 func TestEnKFConfigFilters(t *testing.T) {
-	config := LoadApiRunConfigFromYaml("../../cfg/example_enkf_config.yaml")
+	config := mustLoad(t, "../../cfg/example_enkf_config.yaml")
 	generator := config.GetConfigGenerator()
 
 	// Redirect output to a storage sink so the run is inspectable (the shipped config

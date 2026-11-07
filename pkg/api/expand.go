@@ -608,8 +608,7 @@ type expandedSource struct {
 	mainExpressions, mainSimulation *yaml3.Node
 }
 
-// sourceNodes takes the config's inputs (a data: block becoming the input
-// named "data", as macroInputs reads it) and outputs from its source text, so
+// sourceNodes takes the config's inputs and outputs from its source text, so
 // they are written out exactly as given.
 func sourceNodes(config *ApiRunConfig) (expandedSource, error) {
 	if len(config.source) == 0 {
@@ -641,19 +640,6 @@ func sourceNodes(config *ApiRunConfig) (expandedSource, error) {
 			}
 			kept.mainExpressions = mappingValue(value, "expressions")
 			kept.mainSimulation = mappingValue(value, "simulation")
-		case "data":
-			kind := "simulation"
-			for j := 0; j+1 < len(value.Content); j += 2 {
-				if value.Content[j].Value == "source" {
-					kind, value = "source", value.Content[j+1]
-					break
-				}
-			}
-			kept.inputs = &yaml3.Node{Kind: yaml3.MappingNode, Content: []*yaml3.Node{
-				{Kind: yaml3.ScalarNode, Value: "data"},
-				{Kind: yaml3.MappingNode, Content: []*yaml3.Node{
-					{Kind: yaml3.ScalarNode, Value: kind}, value}},
-			}}
 		}
 	}
 	return kept, nil

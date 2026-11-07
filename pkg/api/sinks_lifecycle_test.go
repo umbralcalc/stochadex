@@ -86,7 +86,7 @@ func TestSinksOpenOnlyWhenARunStarts(t *testing.T) {
 		}
 
 		// Running for real replaces the old output with exactly this run's rows.
-		Run(config, &SocketConfig{})
+		Run(config)
 		entries := readLogEntries(t, logPath)
 		if len(entries) != 2*31 {
 			t.Fatalf("expected 62 entries (2 partitions x 31 rows), got %d", len(entries))
@@ -117,11 +117,11 @@ func TestSinksOpenOnlyWhenARunStarts(t *testing.T) {
     state_history_depth: 1
     seed: 0
   simulation:
-    output_condition: {type: every_step}
-    output_function: {type: nil}
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
+outputs:
+- {name: output, condition: {type: every_step}, function: {type: nil}}
 embedded:
 - name: nested
   partitions:
@@ -138,7 +138,7 @@ embedded:
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
 `, logPath))
-		Run(config, &SocketConfig{})
+		Run(config)
 		entries := readLogEntries(t, logPath)
 		// 3 outer steps, each running the inner simulation: its initial row + 4 steps.
 		if len(entries) != 3*5 {
@@ -156,8 +156,8 @@ embedded:
 	t.Run("a postgres sink connects when the run starts, not at load", func(t *testing.T) {
 		// Port 1 refuses connections immediately, with or without a local database.
 		logLess := strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", "unused"),
-			`output_function: {type: json_log, path: "unused"}`,
-			`output_function: {type: postgres, driver: postgres, `+
+			`function: {type: json_log, path: "unused"}`,
+			`function: {type: postgres, driver: postgres, `+
 				`dsn: "postgres://u:p@127.0.0.1:1/db?sslmode=disable&connect_timeout=1", `+
 				`table: results}`, 1)
 		if !strings.Contains(logLess, "type: postgres") {
@@ -173,7 +173,7 @@ embedded:
 					message = fmt.Sprint(r)
 				}
 			}()
-			Run(config, &SocketConfig{})
+			Run(config)
 			return ""
 		}()
 		if !strings.Contains(panicked, "127.0.0.1:1") {

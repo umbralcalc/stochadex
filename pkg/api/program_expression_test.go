@@ -104,7 +104,7 @@ func TestExpressionOnlyConfigRunsFromYaml(t *testing.T) {
 	t.Run(
 		"a config whose partition is specified only as data loads and runs",
 		func(t *testing.T) {
-			config := LoadApiRunConfigFromYaml("test_program_expression_config.yaml")
+			config := mustLoad(t, "test_program_expression_config.yaml")
 
 			// The inlined specification must have survived the YAML round-trip.
 			if len(config.Main.Expressions) != 1 {
@@ -162,7 +162,7 @@ func TestExpressionsResolveUpstreamsFromYaml(t *testing.T) {
 	t.Run(
 		"a coupled model written only as data runs and couples correctly",
 		func(t *testing.T) {
-			config := LoadApiRunConfigFromYaml("test_program_expression_coupled_config.yaml")
+			config := mustLoad(t, "test_program_expression_coupled_config.yaml")
 			store := simulator.NewStateTimeStorage()
 			config.Main.Simulation = simulator.SimulationConfig{
 				OutputCondition: &simulator.EveryStepOutputCondition{},

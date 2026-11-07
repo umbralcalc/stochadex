@@ -169,11 +169,11 @@ func TestUndeclaredGroups(t *testing.T) {
 	})
 
 	t.Run("the hand-written grouped twin, groups declared, reproduces grouped_aggregation exactly", func(t *testing.T) {
-		macro, err := RunToStorage(LoadApiRunConfigFromYaml("testdata/grouped/grouped_macro.yaml"))
+		macro, err := RunToStorage(mustLoad(t, "testdata/grouped/grouped_macro.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}
-		twin, err := RunToStorage(LoadApiRunConfigFromYaml("testdata/grouped/grouped_twin.yaml"))
+		twin, err := RunToStorage(mustLoad(t, "testdata/grouped/grouped_twin.yaml"))
 		if err != nil {
 			t.Fatal(err)
 		}

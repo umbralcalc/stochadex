@@ -12,16 +12,18 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-const posteriorMacroYAML = `data:
-  steps: 500
-  timestep: 1.0
-  partitions:
-  - name: test_data
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 500
-    seed: 123
+const posteriorMacroYAML = `inputs:
+  data:
+    simulation:
+      steps: 500
+      timestep: 1.0
+      partitions:
+      - name: test_data
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [1.8, 5.0], covariance_matrix: [2.5, 0.0, 0.0, 9.0]}
+        init_state_values: [1.3, 8.3]
+        state_history_depth: 500
+        seed: 123
 macros:
 - type: posterior_estimation
   log_norm: {name: test_post_log_norm, default: 0.0}
@@ -118,7 +120,7 @@ func directPosteriorStorage(tweak ...func(*macros.AppliedPosteriorEstimation)) *
 // room for honest sampling residual on the high-variance (covariance 9) second
 // coordinate.
 func TestPosteriorEstimationMacroConverges(t *testing.T) {
-	storage, err := runToStorage(LoadApiRunConfigFromYaml(
+	storage, err := runToStorage(mustLoad(t,
 		"../../cfg/example_posterior_macro_config.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -147,16 +149,18 @@ func TestPosteriorEstimationMacroConverges(t *testing.T) {
 // nil map — an internal failure with nothing pointing at the config that caused
 // it. `params: {}` was the workaround; it should not be needed.
 func TestComparisonModelWithoutParams(t *testing.T) {
-	const noParamsYAML = `data:
-  steps: 60
-  timestep: 1.0
-  partitions:
-  - name: test_data
-    iteration: {type: data_generation, likelihood: {type: poisson}}
-    params: {mean: [3.0]}
-    init_state_values: [3.0]
-    state_history_depth: 20
-    seed: 123
+	const noParamsYAML = `inputs:
+  data:
+    simulation:
+      steps: 60
+      timestep: 1.0
+      partitions:
+      - name: test_data
+        iteration: {type: data_generation, likelihood: {type: poisson}}
+        params: {mean: [3.0]}
+        init_state_values: [3.0]
+        state_history_depth: 20
+        seed: 123
 macros:
 - type: likelihood_comparison
   name: test_likelihood
@@ -174,7 +178,7 @@ macros:
 	if err := os.WriteFile(path, []byte(noParamsYAML), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	storage, err := runToStorage(LoadApiRunConfigFromYaml(path))
+	storage, err := runToStorage(mustLoad(t, path))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,16 +187,18 @@ macros:
 	}
 }
 
-const meanFitYAML = `data:
-  steps: 100
-  timestep: 1.0
-  partitions:
-  - name: test_data
-    iteration: {type: data_generation, likelihood: {type: normal}}
-    params: {mean: [2.0, 3.0], covariance_matrix: [1.0, 0.0, 0.0, 1.0]}
-    init_state_values: [2.0, 3.0]
-    state_history_depth: 100
-    seed: 5
+const meanFitYAML = `inputs:
+  data:
+    simulation:
+      steps: 100
+      timestep: 1.0
+      partitions:
+      - name: test_data
+        iteration: {type: data_generation, likelihood: {type: normal}}
+        params: {mean: [2.0, 3.0], covariance_matrix: [1.0, 0.0, 0.0, 1.0]}
+        init_state_values: [2.0, 3.0]
+        state_history_depth: 100
+        seed: 5
 macros:
 - type: likelihood_mean_function_fit
   name: mean_fit

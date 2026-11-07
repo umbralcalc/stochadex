@@ -64,7 +64,10 @@ func buildFromYAML(
 	numSteps int,
 	seed uint64,
 ) *simulator.ConfigGenerator {
-	config := api.LoadApiRunConfigFromYaml(path)
+	config, err := api.LoadConfig(path)
+	if err != nil {
+		panic(err)
+	}
 	config.Main.Simulation = simulator.SimulationConfig{
 		OutputCondition: &simulator.EveryStepOutputCondition{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{

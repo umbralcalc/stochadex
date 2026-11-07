@@ -84,7 +84,10 @@ func declarativeBuildStub(
 	prescribingRate float64,
 	numSteps int,
 ) *simulator.ConfigGenerator {
-	config := api.LoadApiRunConfigFromYaml("declarative.yaml")
+	config, err := api.LoadConfig("declarative.yaml")
+	if err != nil {
+		panic(err)
+	}
 	config.Main.Simulation = simulator.SimulationConfig{
 		OutputCondition: &simulator.EveryStepOutputCondition{},
 		TerminationCondition: &simulator.NumberOfStepsTerminationCondition{
