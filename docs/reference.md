@@ -209,8 +209,10 @@ main:
 4 delayed [1]
 ```
 
-Reading further back than a partition keeps fails the run, naming the depth to raise. The
-check happens as the run reads it, so `--check` passes such a config.
+Reading further back than a partition keeps is refused when the config loads, naming the
+partition and the depth to raise, so `--check` refuses it too, even behind a `where` branch the
+run would reach late. A row the expression computes as it goes (`lag(c, min(step, 2))`) is
+checked as the run reads it instead.
 
 ### The one rule: no cycle within a step
 

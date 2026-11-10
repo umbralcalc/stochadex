@@ -420,6 +420,78 @@ func (e *ExpressionIteration) CheckNames(params []string) error {
 	return nil
 }
 
+// ExpressionLag is a lag(name, row) call whose row is a number written in the expression,
+// so the row it reads is known before the run: Call is the call as written.
+type ExpressionLag struct {
+	Name string
+	Row  int
+	Call string
+}
+
+// LiteralLags returns each lag call in the bindings and outputs whose row is a written
+// number, in the order written, with the row it reads (a number is truncated to a whole
+// row, as the run truncates it). A loader can check those rows against the history each
+// partition keeps before the run starts; a row computed from anything else is left to the
+// run. An expression that does not parse is skipped, since Configure reports it.
+func (e *ExpressionIteration) LiteralLags() []ExpressionLag {
+	sources := make([]string, 0, len(e.Bindings)+len(e.Outputs))
+	for _, b := range e.Bindings {
+		sources = append(sources, b.Expr)
+	}
+	sources = append(sources, e.Outputs...)
+	var lags []ExpressionLag
+	for _, source := range sources {
+		parsed, err := parser.ParseExpr(source)
+		if err != nil {
+			continue
+		}
+		ast.Inspect(parsed, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok || len(call.Args) != 2 {
+				return true
+			}
+			if fun, ok := call.Fun.(*ast.Ident); !ok || fun.Name != "lag" {
+				return true
+			}
+			name, ok := call.Args[0].(*ast.Ident)
+			if !ok {
+				return true
+			}
+			if row, ok := literalNumber(call.Args[1]); ok {
+				lags = append(lags, ExpressionLag{Name: name.Name, Row: int(row),
+					Call: source[call.Pos()-1 : call.End()-1]})
+			}
+			return true
+		})
+	}
+	return lags
+}
+
+// literalNumber is the value of a number written in an expression, signed or in brackets.
+func literalNumber(node ast.Expr) (float64, bool) {
+	switch typed := node.(type) {
+	case *ast.BasicLit:
+		if typed.Kind != token.INT && typed.Kind != token.FLOAT {
+			return 0, false
+		}
+		value, err := strconv.ParseFloat(typed.Value, 64)
+		return value, err == nil
+	case *ast.ParenExpr:
+		return literalNumber(typed.X)
+	case *ast.UnaryExpr:
+		value, ok := literalNumber(typed.X)
+		switch {
+		case !ok:
+			return 0, false
+		case typed.Op == token.SUB:
+			return -value, true
+		case typed.Op == token.ADD:
+			return value, true
+		}
+	}
+	return 0, false
+}
+
 // withArticle prefixes a kind of name with its indefinite article.
 func withArticle(kind string) string {
 	if strings.ContainsRune("aeiou", rune(kind[0])) {

@@ -22,6 +22,19 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Changed
+
+- **A lag reading further back than a partition keeps is refused at load.** For each
+  `lag(name, row)` whose row is a written number, loading checks the row against the
+  `state_history_depth` of the partition it reads (an upstream alias's partition, or the
+  expression's own) and refuses a row outside it, naming that partition and the depth to raise
+  it to; `--check` refuses it too. The run refused it only when it first read it, which behind a
+  `where` branch could be well into the run. A row computed as the run goes is still checked
+  as the run reads it. A config whose too-deep lag sits behind a branch the run never takes,
+  and so ran, now fails to load: the history it reads never exists. In a `macros:` config, the
+  check runs on the expansion, after a macro has deepened the partitions it reads. From Go,
+  `general.ExpressionIteration.LiteralLags` lists the lags with written rows.
+
 ## [0.29.2] — 2026-11-07
 
 ### Fixed
