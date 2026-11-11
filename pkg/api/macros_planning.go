@@ -588,7 +588,7 @@ func (m *planningModelSpec) build(injected map[string][]string, what string) (
 		return nil, nil, fmt.Errorf("mcts_planning model: %w", err)
 	}
 	if err := checkExpressionNames(
-		RunConfig{Partitions: partitions}, nil, injected, what+" model", nil); err != nil {
+		RunConfig{Partitions: partitions}, nil, injected, what+" model", nil, true); err != nil {
 		return nil, nil, err
 	}
 	timestep := m.Timestep

@@ -10,24 +10,32 @@ import (
 
 // validateExpressionNames checks, at load, that no expression partition declares a
 // name its expressions would resolve ambiguously (general.ExpressionIteration's
-// CheckNames: a name spelled like a builtin, or declared twice). Configure refuses
-// the same thing, but only once the run starts; here the whole config is in view,
+// CheckNames: a name spelled like a builtin, or declared twice), and that no lag with
+// a written row reads further back than the partition it names keeps. The run refuses
+// both, but only once it starts or reaches the read; here the whole config is in view,
 // including the params a host forwards into its embedded runs, which the inner
 // partition's own Configure never sees.
+//
+// A macros: config's main partitions are not checked for lags here: its expansion
+// raises the history of each partition a macro reads, and is loaded, and so checked,
+// before it runs.
 func validateExpressionNames(config *ApiRunConfig) error {
-	return checkExpressionNames(config.Main, config.Embedded, nil, "main", config.scope)
+	return checkExpressionNames(config.Main, config.Embedded, nil, "main", config.scope,
+		len(config.Macros) == 0)
 }
 
 // checkExpressionNames checks one run's expression partitions and those of the runs
 // they host: the embedded runs, and each embedded_simulation_run's own run. extra
 // maps a partition name to params keys it is given from outside its own config —
 // forwarded by its host, or injected by a planner. where names the run in errors.
+// lags also checks the run's own lags against the history each partition keeps.
 func checkExpressionNames(
 	run RunConfig,
 	embedded []EmbeddedRunConfig,
 	extra map[string][]string,
 	where string,
 	scope *runScope,
+	lags bool,
 ) error {
 	expressions := map[string]*general.ExpressionIteration{}
 	for i := range run.Expressions {
@@ -45,11 +53,16 @@ func checkExpressionNames(
 				paramsKeysOf(partition, extra[partition.Name])); err != nil {
 				return fmt.Errorf("%s expression partition %q: %w", where, partition.Name, err)
 			}
+			if lags {
+				if err := checkLiteralLags(iteration, partition, run.Partitions); err != nil {
+					return fmt.Errorf("%s expression partition %q: %w", where, partition.Name, err)
+				}
+			}
 		}
 		if nested, ok := nestedRunOf(partition, scope); ok {
 			if err := checkExpressionNames(nested.Main, nested.Embedded,
 				forwardedParams(partition),
-				fmt.Sprintf("partition %q's nested run:", partition.Name), scope); err != nil {
+				fmt.Sprintf("partition %q's nested run:", partition.Name), scope, true); err != nil {
 				return err
 			}
 		}
@@ -60,8 +73,48 @@ func checkExpressionNames(
 			continue // an embedded run no partition hosts never runs
 		}
 		if err := checkExpressionNames(inner.Run, nil, forwardedParams(host),
-			fmt.Sprintf("embedded run %q:", inner.Name), scope); err != nil {
+			fmt.Sprintf("embedded run %q:", inner.Name), scope, true); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// checkLiteralLags refuses a lag with a written row that reads outside the history
+// the partition it names keeps: an upstream alias names a partition of the same run,
+// and a field names the expression's own partition. A lag whose partition is not in
+// the run, such as a macro's, is left to the run.
+func checkLiteralLags(
+	iteration *general.ExpressionIteration,
+	partition simulator.PartitionConfig,
+	partitions []simulator.PartitionConfig,
+) error {
+	depths := make(map[string]int, len(partitions))
+	for _, other := range partitions {
+		depths[other.Name] = other.StateHistoryDepth
+	}
+	fields := map[string]bool{}
+	for _, field := range iteration.Fields {
+		fields[field.Name] = true
+	}
+	for _, lag := range iteration.LiteralLags() {
+		target := partition.Name
+		if upstream, ok := iteration.Upstreams[lag.Name]; ok {
+			target = upstream
+		} else if !fields[lag.Name] {
+			continue // the run names what lag can read
+		}
+		depth, known := depths[target]
+		switch {
+		case !known:
+			continue
+		case lag.Row < 0:
+			return fmt.Errorf("%s reads row %d, but rows count back from 0, the "+
+				"last committed state", lag.Call, lag.Row)
+		case lag.Row >= depth:
+			return fmt.Errorf("%s reads %d rows back, but partition %q keeps %d "+
+				"(state_history_depth: %d); raise its state_history_depth to at least %d",
+				lag.Call, lag.Row, target, depth, depth, lag.Row+1)
 		}
 	}
 	return nil
