@@ -206,7 +206,7 @@ robert's), and logged here with its PR.
 | # | Gap | Triage | PR |
 |---|---|---|---|
 | R.1 | Estimating rates from a CSV: a window longer than its input returns its default forever; regression skipped the first row; per-step output too large | engine and error | #164 (done) |
-| R.2 | Cost of composition is invisible until a run is slow: nesting depth and inner steps per outer step | engine: `inspect` reports them | #199 (in review) |
+| R.2 | Cost of composition is invisible until a run is slow: nesting depth and inner steps per outer step | engine: `inspect` reports them | #199 (done) |
 | R.3 | An expression reading further back than its upstream's `state_history_depth` fails only when the run reaches it; `--check` passes it | error: check a literal lag against the depth at load | #197, and lag names #198 (done) |
 
 ### B. Results so far
