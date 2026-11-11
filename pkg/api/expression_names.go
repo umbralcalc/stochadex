@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/general"
 	"github.com/umbralcalc/stochadex/pkg/simulator"
@@ -10,13 +11,13 @@ import (
 
 // validateExpressionNames checks, at load, that no expression partition declares a
 // name its expressions would resolve ambiguously (general.ExpressionIteration's
-// CheckNames: a name spelled like a builtin, or declared twice), and that no lag with
-// a written row reads further back than the partition it names keeps. The run refuses
-// both, but only once it starts or reaches the read; here the whole config is in view,
-// including the params a host forwards into its embedded runs, which the inner
-// partition's own Configure never sees.
+// CheckNames: a name spelled like a builtin, or declared twice), that every lag reads an
+// upstream alias or one of its own fields, and that no lag with a written row reads further
+// back than the partition it names keeps. The run refuses all of these, but only once it
+// starts or reaches the read; here the whole config is in view, including the params a host
+// forwards into its embedded runs, which the inner partition's own Configure never sees.
 //
-// A macros: config's main partitions are not checked for lags here: its expansion
+// A macros: config's main partitions are not checked for lag rows here: its expansion
 // raises the history of each partition a macro reads, and is loaded, and so checked,
 // before it runs.
 func validateExpressionNames(config *ApiRunConfig) error {
@@ -28,14 +29,14 @@ func validateExpressionNames(config *ApiRunConfig) error {
 // they host: the embedded runs, and each embedded_simulation_run's own run. extra
 // maps a partition name to params keys it is given from outside its own config —
 // forwarded by its host, or injected by a planner. where names the run in errors.
-// lags also checks the run's own lags against the history each partition keeps.
+// depths also checks the run's own lag rows against the history each partition keeps.
 func checkExpressionNames(
 	run RunConfig,
 	embedded []EmbeddedRunConfig,
 	extra map[string][]string,
 	where string,
 	scope *runScope,
-	lags bool,
+	depths bool,
 ) error {
 	expressions := map[string]*general.ExpressionIteration{}
 	for i := range run.Expressions {
@@ -53,10 +54,8 @@ func checkExpressionNames(
 				paramsKeysOf(partition, extra[partition.Name])); err != nil {
 				return fmt.Errorf("%s expression partition %q: %w", where, partition.Name, err)
 			}
-			if lags {
-				if err := checkLiteralLags(iteration, partition, run.Partitions); err != nil {
-					return fmt.Errorf("%s expression partition %q: %w", where, partition.Name, err)
-				}
+			if err := checkLags(iteration, partition, run.Partitions, depths); err != nil {
+				return fmt.Errorf("%s expression partition %q: %w", where, partition.Name, err)
 			}
 		}
 		if nested, ok := nestedRunOf(partition, scope); ok {
@@ -80,33 +79,48 @@ func checkExpressionNames(
 	return nil
 }
 
-// checkLiteralLags refuses a lag with a written row that reads outside the history
-// the partition it names keeps: an upstream alias names a partition of the same run,
-// and a field names the expression's own partition. A lag whose partition is not in
-// the run, such as a macro's, is left to the run.
-func checkLiteralLags(
+// checkLags refuses a lag that reads anything but an upstream alias or one of the
+// expression's own fields, which are all lag can read. With depths, it also refuses a
+// written row outside the history the partition it names keeps: an upstream alias names
+// a partition of the same run, and a field names the expression's own partition. A lag
+// whose partition is not in the run, such as a macro's, is left to the run.
+func checkLags(
 	iteration *general.ExpressionIteration,
 	partition simulator.PartitionConfig,
 	partitions []simulator.PartitionConfig,
+	depths bool,
 ) error {
-	depths := make(map[string]int, len(partitions))
+	kept := make(map[string]int, len(partitions))
 	for _, other := range partitions {
-		depths[other.Name] = other.StateHistoryDepth
+		kept[other.Name] = other.StateHistoryDepth
 	}
 	fields := map[string]bool{}
+	names := make([]string, 0, len(iteration.Fields))
 	for _, field := range iteration.Fields {
 		fields[field.Name] = true
+		names = append(names, field.Name)
 	}
-	for _, lag := range iteration.LiteralLags() {
+	aliases := sortedKeys(iteration.Upstreams)
+	readable := fmt.Sprintf("its fields are %s", strings.Join(names, ", "))
+	if len(aliases) > 0 {
+		readable += fmt.Sprintf(" and its upstream aliases %s", strings.Join(aliases, ", "))
+	}
+	for _, lag := range iteration.Lags() {
 		target := partition.Name
-		if upstream, ok := iteration.Upstreams[lag.Name]; ok {
-			target = upstream
-		} else if !fields[lag.Name] {
-			continue // the run names what lag can read
-		}
-		depth, known := depths[target]
+		upstream, aliased := iteration.Upstreams[lag.Name]
 		switch {
-		case !known:
+		case lag.Name == "":
+			return fmt.Errorf("%s's first argument must be an upstream alias or a field "+
+				"name, which lag reads; %s", lag.Call, readable)
+		case aliased:
+			target = upstream
+		case !fields[lag.Name]:
+			return fmt.Errorf("%s reads %s, which is neither an upstream alias nor a field "+
+				"of this partition, the only names lag reads; %s", lag.Call, lag.Name, readable)
+		}
+		depth, known := kept[target]
+		switch {
+		case !depths || !lag.Written || !known:
 			continue
 		case lag.Row < 0:
 			return fmt.Errorf("%s reads row %d, but rows count back from 0, the "+
