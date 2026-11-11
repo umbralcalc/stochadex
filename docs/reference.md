@@ -329,13 +329,23 @@ nowhere: an embedded run with thousands of inner steps per outer step costs no o
 fills no log.
 
 `stochadex inspect --io` gives each host partition's column layout, so you don't have to
-work out which columns hold which inner partition:
+work out which columns hold which inner partition, and what the run costs in inner steps:
 
 ```json
-"embedded": [{"partition": "forecast", "columns": [
+"embedded": [{"partition": "forecast", "depth": 1, "termination": "number_of_steps",
+  "steps": 200, "steps_per_run_step": 200, "columns": [
   {"partition": "inner", "offset": 0, "width": 1},
   {"partition": "other", "offset": 1, "width": 2}]}]
 ```
+
+`steps` is how many inner steps the run takes each time its host steps, and
+`steps_per_run_step` how many it takes at each step of the main run: its steps, times any
+`replicas` of a `replicated_simulation_run`, times the same for every run it sits in. A run
+hosted inside another is listed after it, named by its path (`forecast/inner`) with `depth`
+one deeper, so a nest of runs shows where the steps go before a run is slow. Both are null
+when the run, or one it sits in, stops at a time rather than a number of steps. A `macros:`
+config's nested runs are those of its expansion: `stochadex expand` writes it out, and
+`inspect --io` on that shows them.
 
 To debug an embedded run, write every inner step of every outer step to a log, with no
 edit to the config:

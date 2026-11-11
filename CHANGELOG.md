@@ -22,6 +22,16 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **`inspect --io` says what nested runs cost.** Each `embedded` entry now has its `depth`, its
+  inner run's `termination`, the `steps` it takes each time its host steps, any `replicas`,
+  and `steps_per_run_step`: its steps times those of every run it sits in, which is what one
+  step of the main run costs in inner steps. Runs hosted inside other runs are listed after
+  their host, by path (`outer/inner`), and a `replicated_simulation_run` is listed too, with
+  its output partition's columns. The steps are null when a run stops at a time rather than a
+  number of steps.
+
 ### Changed
 
 - **A lag reading further back than a partition keeps is refused at load.** For each

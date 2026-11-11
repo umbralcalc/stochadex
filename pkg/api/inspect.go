@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/umbralcalc/stochadex/pkg/simulator"
+	"gopkg.in/yaml.v2"
 )
 
 // Inspecting a config without running it: Check validates it, and
@@ -152,12 +153,12 @@ type IOManifest struct {
 	Clock     *ManifestClock  `json:"clock,omitempty"`
 	Inputs    []ManifestInput `json:"inputs"`
 	// Outputs are every place the run writes its results: the outputs: views
-	// (including the shorthand and default view) and each stream input's
-	// record file. Debug logs are listed apart, in Debug.
+	// (including the default view) and each stream input's record file. Debug logs are listed apart, in Debug.
 	Outputs []ManifestOutput `json:"outputs"`
 	// Embedded describes each embedded run as the outer run sees it: a black
 	// box whose host partition's row, each outer step, is its inner partitions'
-	// final states concatenated in Columns' order.
+	// final states concatenated in Columns' order. It lists the runs those runs
+	// host too, each after its host, with what each costs the run in inner steps.
 	Embedded []ManifestEmbedded `json:"embedded,omitempty"`
 	// Debug lists the logs a run writes only because its config asks for an
 	// embedded run's inner detail: every inner step of every outer step. They
@@ -166,10 +167,30 @@ type IOManifest struct {
 	Debug []ManifestOutput `json:"debug,omitempty"`
 }
 
-// ManifestEmbedded is an embedded run's host partition and its column layout.
+// ManifestEmbedded is an embedded run's host partition, its column layout, and
+// what it costs: how many inner steps it takes each time its host steps, and so
+// how many it takes at each step of the run.
 type ManifestEmbedded struct {
-	Partition string            `json:"partition"`
-	Columns   []ManifestColumns `json:"columns"`
+	// Partition is the host partition, by its path from the main run: a run
+	// hosted inside another run is named "<outer host>/<host>".
+	Partition string `json:"partition"`
+	// Depth is how many runs deep it sits: 1 for a run the main run hosts.
+	Depth int `json:"depth"`
+	// Termination is the inner run's termination condition type.
+	Termination string `json:"termination"`
+	// Steps is how many inner steps the run takes each time its host steps (a
+	// whole run from its start, past any burn_in_steps), or null when its
+	// termination condition is not a number of steps.
+	Steps *int `json:"steps"`
+	// Replicas is how many copies of the run a replicated_simulation_run
+	// runs each time it steps; the run's columns are replica 0's, and replica
+	// r's are offset r times their width.
+	Replicas int `json:"replicas,omitempty"`
+	// StepsPerRunStep is how many inner steps the run takes at each step of
+	// the main run: Steps, times Replicas, times the same for each run it sits
+	// in. It is null when any of those runs has no fixed number of steps.
+	StepsPerRunStep *int              `json:"steps_per_run_step"`
+	Columns         []ManifestColumns `json:"columns"`
 }
 
 // ManifestColumns are the columns of a host partition's row that hold one
@@ -302,14 +323,8 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 			Locations: memberLocations(config, location),
 		})
 	}
-	for _, partition := range config.Main.Partitions {
-		if nested, ok := nestedRunOf(partition, config.scope); ok {
-			manifest.Embedded = append(manifest.Embedded, embeddedLayout(
-				EmbeddedRunConfig{Name: partition.Name, Run: nested.Main}))
-		}
-	}
+	manifest.Embedded = hostedRuns(config.Main, config.Embedded, "", 1, intPointer(1), config.scope)
 	for _, embedded := range config.Embedded {
-		manifest.Embedded = append(manifest.Embedded, embeddedLayout(embedded))
 		function := embedded.Run.SimulationStrings.OutputFunction
 		if function.IsZero() || function.Type == "nil" {
 			continue
@@ -324,19 +339,98 @@ func Manifest(config *ApiRunConfig) *IOManifest {
 	return manifest
 }
 
-// embeddedLayout is where each inner partition's final state sits in its host
+// hostedRuns describes the runs that run's partitions host, at depth, each
+// followed by the runs it hosts: an embedded_simulation_run's own run, a
+// replicated_simulation_run's run, and a top-level embedded: run named like its
+// host. prefix is the path of run's own host, and perStep how many steps run
+// takes at each step of the main run, or nil when that is not fixed.
+func hostedRuns(
+	run RunConfig,
+	embedded []EmbeddedRunConfig,
+	prefix string,
+	depth int,
+	perStep *int,
+	scope *runScope,
+) []ManifestEmbedded {
+	byHost := map[string]RunConfig{}
+	for _, inner := range embedded {
+		byHost[inner.Name] = inner.Run
+	}
+	var hosted []ManifestEmbedded
+	for _, partition := range run.Partitions {
+		var inner RunConfig
+		var innerEmbedded []EmbeddedRunConfig
+		replicas, output := 0, ""
+		if nested, ok := nestedRunOf(partition, scope); ok {
+			inner, innerEmbedded = nested.Main, nested.Embedded
+		} else if spec, ok := replicatedRunOf(partition); ok {
+			inner, replicas, output = spec.Run, spec.Replicas, spec.OutputPartition
+		} else if run, ok := byHost[partition.Name]; ok {
+			inner = run
+		} else {
+			continue
+		}
+		entry := ManifestEmbedded{
+			Partition:   prefix + partition.Name,
+			Depth:       depth,
+			Termination: inner.SimulationStrings.TerminationCondition.Type,
+			Steps:       fixedSteps(inner.SimulationStrings.TerminationCondition),
+			Replicas:    replicas,
+			Columns:     columnsOf(inner, output),
+		}
+		if perStep != nil && entry.Steps != nil {
+			entry.StepsPerRunStep = intPointer(*perStep * *entry.Steps * max(replicas, 1))
+		}
+		hosted = append(hosted, entry)
+		hosted = append(hosted, hostedRuns(inner, innerEmbedded, entry.Partition+"/",
+			depth+1, entry.StepsPerRunStep, scope)...)
+	}
+	return hosted
+}
+
+// replicatedRunOf decodes a replicated_simulation_run partition's spec, enough
+// to read its replicas and its run's partitions and simulation block.
+func replicatedRunOf(partition simulator.PartitionConfig) (replicatedRunSpec, bool) {
+	var spec replicatedRunSpec
+	if partition.IterationSpec.Type != "replicated_simulation_run" {
+		return spec, false
+	}
+	// Fields decoded from YAML always marshal back, and loading decoded them.
+	raw, _ := yaml.Marshal(partition.IterationSpec.Fields)
+	_ = yaml.Unmarshal(raw, &spec)
+	return spec, true
+}
+
+// fixedSteps is how many steps a termination condition runs for, when it is a
+// number of steps. Loading has checked max_steps is an integer.
+func fixedSteps(termination simulator.ComponentSpec) *int {
+	if steps, ok := termination.Fields["max_steps"].(int); ok && termination.Type == "number_of_steps" {
+		return intPointer(steps)
+	}
+	return nil
+}
+
+func intPointer(value int) *int {
+	return &value
+}
+
+// columnsOf is where each inner partition's final state sits in its host
 // partition's row: in the inner run's partition order, each as wide as its
-// state.
-func embeddedLayout(embedded EmbeddedRunConfig) ManifestEmbedded {
-	layout := ManifestEmbedded{Partition: embedded.Name, Columns: []ManifestColumns{}}
+// state. A replicated run's row holds only its output partition's, so only
+// output is listed when it is set.
+func columnsOf(run RunConfig, output string) []ManifestColumns {
+	columns := []ManifestColumns{}
 	offset := 0
-	for _, partition := range embedded.Run.Partitions {
+	for _, partition := range run.Partitions {
+		if output != "" && partition.Name != output {
+			continue
+		}
 		width := len(partition.InitStateValues)
-		layout.Columns = append(layout.Columns, ManifestColumns{
+		columns = append(columns, ManifestColumns{
 			Partition: partition.Name, Offset: offset, Width: width})
 		offset += width
 	}
-	return layout
+	return columns
 }
 
 func manifestRun(config *ApiRunConfig) ManifestRun {

@@ -233,8 +233,9 @@ func TestEmbeddedSimulationRunSpec(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := []ManifestEmbedded{{Partition: "nested", Columns: []ManifestColumns{
-			{Partition: "gradient", Offset: 0, Width: 1}, {Partition: "walk", Offset: 1, Width: 1}}}}
+		want := []ManifestEmbedded{{Partition: "nested", Depth: 1, Termination: "number_of_steps",
+			Steps: intPointer(3), StepsPerRunStep: intPointer(3), Columns: []ManifestColumns{
+				{Partition: "gradient", Offset: 0, Width: 1}, {Partition: "walk", Offset: 1, Width: 1}}}}
 		if got := Manifest(config).Embedded; !reflect.DeepEqual(got, want) {
 			t.Errorf("layout %+v, want %+v", got, want)
 		}

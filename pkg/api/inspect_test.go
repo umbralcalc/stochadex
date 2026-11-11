@@ -614,7 +614,8 @@ func TestManifestOfEveryMainRunReadAndWrite(t *testing.T) {
 			{Name: "screen", DeclaredIn: "outputs", Condition: "only_given_partitions", Sink: "stdout",
 				Location: "stdout"},
 		},
-		Embedded: []ManifestEmbedded{{Partition: "nested",
+		Embedded: []ManifestEmbedded{{Partition: "nested", Depth: 1, Termination: "number_of_steps",
+			Steps: intPointer(3), StepsPerRunStep: intPointer(3),
 			Columns: []ManifestColumns{{Partition: "inner", Offset: 0, Width: 1}}}},
 		Debug: []ManifestOutput{
 			{Name: "nested", DeclaredIn: "embedded[name=nested].simulation", Condition: "every_step",
