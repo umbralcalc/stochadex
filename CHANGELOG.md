@@ -33,7 +33,11 @@ an exact version rather than assume stability across minors.
   as the run reads it. A config whose too-deep lag sits behind a branch the run never takes,
   and so ran, now fails to load: the history it reads never exists. In a `macros:` config, the
   check runs on the expansion, after a macro has deepened the partitions it reads. From Go,
-  `general.ExpressionIteration.LiteralLags` lists the lags with written rows.
+  `general.ExpressionIteration.Lags` lists an expression's lags, with each written row.
+- **A lag of anything but an upstream alias or a field is refused at load.** `lag` reads only
+  an upstream alias or one of the expression's own fields; loading refuses a lag of any other
+  name, or one whose first argument is not a name, listing the names it can read. The run
+  refused these only when it first evaluated them.
 
 ## [0.29.2] — 2026-11-07
 

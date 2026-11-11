@@ -212,7 +212,8 @@ main:
 Reading further back than a partition keeps is refused when the config loads, naming the
 partition and the depth to raise, so `--check` refuses it too, even behind a `where` branch the
 run would reach late. A row the expression computes as it goes (`lag(c, min(step, 2))`) is
-checked as the run reads it instead.
+checked as the run reads it instead. `lag` reads only an upstream alias or one of the
+partition's own fields, and a lag of any other name is refused when the config loads.
 
 ### The one rule: no cycle within a step
 

@@ -91,9 +91,23 @@ func TestLiteralLagsAtLoad(t *testing.T) {
 		}
 	})
 
-	t.Run("a lag of a name that is neither an alias nor a field is left to the run", func(t *testing.T) {
-		_, err := RunToStorage(mustLoad(t, writeConfigPath(t, lagYAML(3, "lag(nope, 1)[0]"))))
-		if err == nil || !strings.Contains(err.Error(), "lag needs an upstream alias or one of this partition's own fields, got nope") {
+	t.Run("a lag of a name that is neither an alias nor a field is refused, whatever its row", func(t *testing.T) {
+		const want = `main expression partition "delayed": lag(nope, %s) reads nope, which is neither an ` +
+			`upstream alias nor a field of this partition, the only names lag reads; its fields are x ` +
+			`and its upstream aliases c`
+		refused(t, lagYAML(3, "lag(nope, 1)[0]"), fmt.Sprintf(want, "1"))
+		refused(t, lagYAML(3, "lag(nope, step)[0]"), fmt.Sprintf(want, "step"))
+	})
+
+	t.Run("a lag whose first argument is not a name is refused", func(t *testing.T) {
+		refused(t, lagYAML(3, "lag(slice(c, 0, 1), 1)[0]"), `lag(slice(c, 0, 1), 1)'s first argument `+
+			`must be an upstream alias or a field name, which lag reads; its fields are x and its `+
+			`upstream aliases c`)
+		// With no upstreams, the message lists only the fields.
+		_, err := LoadConfig(writeConfigPath(t, strings.Replace(lagYAML(3, "lag(c + 1, 1)[0]"),
+			"upstreams: {c: counter}, ", "", 1)))
+		if KindOf(err) != ErrConfig || !strings.HasSuffix(err.Error(), "lag(c + 1, 1)'s first argument "+
+			"must be an upstream alias or a field name, which lag reads; its fields are x") {
 			t.Errorf("got %v", err)
 		}
 	})
@@ -132,6 +146,9 @@ func TestLiteralLagsAtLoad(t *testing.T) {
 				t.Fatalf("step %d: lagger %v, want walk five steps back %v", step, lagged[step], walk[step-5])
 			}
 		}
+		// A name lag cannot read is refused before expansion, since no macro changes names.
+		refused(t, walkMain(strings.Replace(lagger, "lag(w, 4)", "lag(v, 4)", 1), mean),
+			`main expression partition "lagger": lag(v, 4) reads v, which is neither an upstream alias nor a field`)
 		// One row past the deepened history: the config loads, and its expansion is refused.
 		_, err := RunToStorage(writeConfig(t, walkMain(strings.Replace(lagger, "lag(w, 4)", "lag(w, 5)", 1), mean)))
 		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(),

@@ -420,20 +420,22 @@ func (e *ExpressionIteration) CheckNames(params []string) error {
 	return nil
 }
 
-// ExpressionLag is a lag(name, row) call whose row is a number written in the expression,
-// so the row it reads is known before the run: Call is the call as written.
+// ExpressionLag is a lag(name, row) call: Call is the call as written. Name is the name it
+// reads, or "" when its first argument is not a name. Row is the row it reads when Written,
+// that is when the row is a number written in the expression, and so known before the run.
 type ExpressionLag struct {
-	Name string
-	Row  int
-	Call string
+	Name    string
+	Row     int
+	Written bool
+	Call    string
 }
 
-// LiteralLags returns each lag call in the bindings and outputs whose row is a written
-// number, in the order written, with the row it reads (a number is truncated to a whole
-// row, as the run truncates it). A loader can check those rows against the history each
-// partition keeps before the run starts; a row computed from anything else is left to the
-// run. An expression that does not parse is skipped, since Configure reports it.
-func (e *ExpressionIteration) LiteralLags() []ExpressionLag {
+// Lags returns each two-argument lag call in the bindings and outputs, in the order written.
+// A written row is truncated to a whole row, as the run truncates it. A loader can check
+// what each reads, and each written row against the history its partition keeps, before
+// the run starts; a row computed from anything else is left to the run. An expression that
+// does not parse is skipped, since Configure reports it.
+func (e *ExpressionIteration) Lags() []ExpressionLag {
 	sources := make([]string, 0, len(e.Bindings)+len(e.Outputs))
 	for _, b := range e.Bindings {
 		sources = append(sources, b.Expr)
@@ -453,14 +455,14 @@ func (e *ExpressionIteration) LiteralLags() []ExpressionLag {
 			if fun, ok := call.Fun.(*ast.Ident); !ok || fun.Name != "lag" {
 				return true
 			}
-			name, ok := call.Args[0].(*ast.Ident)
-			if !ok {
-				return true
+			lag := ExpressionLag{Call: source[call.Pos()-1 : call.End()-1]}
+			if name, ok := call.Args[0].(*ast.Ident); ok {
+				lag.Name = name.Name
 			}
 			if row, ok := literalNumber(call.Args[1]); ok {
-				lags = append(lags, ExpressionLag{Name: name.Name, Row: int(row),
-					Call: source[call.Pos()-1 : call.End()-1]})
+				lag.Row, lag.Written = int(row), true
 			}
+			lags = append(lags, lag)
 			return true
 		})
 	}
