@@ -21,6 +21,10 @@
   "embedded": [
     {
       "partition": "ornstein_uhlenbeck_simulation",
+      "depth": 1,
+      "termination": "number_of_steps",
+      "steps": 200,
+      "steps_per_run_step": 200,
       "columns": [
         {
           "partition": "data_rolling_mean_copy",
