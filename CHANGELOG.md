@@ -22,6 +22,20 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-11-11
+
+This release moves two run-time failures to load time, and shows what composing runs costs
+before a run is slow. An expression's `lag` is checked when the config loads: a name it cannot
+read, or a written row past the history its partition keeps, is refused with the partition and
+the depth that fixes it, so `--check` catches both. `inspect --io` now says how many inner
+steps each nested run takes, and so what one step of the main run costs.
+
+**Upgrading from 0.29.** A config whose `lag` reads a name that is neither an upstream alias
+nor one of its own fields, or a written row outside the history its partition keeps, used to
+fail when the run first evaluated it. It now fails to load, so one whose bad lag sat behind a
+`where` branch the run never took, and so ran, now needs that lag fixed or removed. No config
+in this repository, robert or the downstream repositories was affected.
+
 ### Added
 
 - **`inspect --io` says what nested runs cost.** Each `embedded` entry now has its `depth`, its
@@ -2737,7 +2751,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.29.2...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.30.0...HEAD
+[0.30.0]: https://github.com/umbralcalc/stochadex/compare/v0.29.2...v0.30.0
 [0.29.2]: https://github.com/umbralcalc/stochadex/compare/v0.29.1...v0.29.2
 [0.29.1]: https://github.com/umbralcalc/stochadex/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/umbralcalc/stochadex/compare/v0.28.0...v0.29.0
