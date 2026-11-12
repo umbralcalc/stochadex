@@ -196,7 +196,10 @@ expansions) and card-game-studio one `LoadApiRunConfigFromYaml` call (card-game-
 Removed forms fail at load with their replacement written out. v0.29.0 and v0.29.1 shipped
 short of assets (an inline workflow config still used the pair; GitHub retired `macos-14`);
 v0.29.2 is complete. robert locks v0.29.2 with its skill reworded (robert#25); all 14
-downstreams pass on v0.29.2 (bump PRs open). Flattening `main:` still waits on robert's logs.
+downstreams pass on v0.29.2. Flattening `main:` waits on evidence from robert's authoring
+log (robert#27): `.robert/authoring.jsonl` per project, summarised by `robert authoring
+--projects ...` as config failures and retries, with the share caused by a key on the wrong
+side of `main:`. Decide once enough trials have run.
 
 ### R. Authoring gaps robert surfaces (standing)
 
