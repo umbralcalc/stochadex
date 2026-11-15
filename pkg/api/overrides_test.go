@@ -221,9 +221,9 @@ func TestSetOverrides(t *testing.T) {
 
 func TestSetOverrideErrors(t *testing.T) {
 	model := serveConfigYAML
-	aliased := replaceOnce(t, replaceOnce(t, model, "    params:\n      variances: [1.0, 1.0]",
-		"    params: &shared\n      variances: [1.0, 1.0]"), "    params:\n      variances: [1.0]", "    params: *shared")
-	secondBlock := model[strings.Index(model, "  - name: second"):strings.Index(model, "simulation:")]
+	aliased := replaceOnce(t, replaceOnce(t, model, "  params:\n    variances: [1.0, 1.0]",
+		"  params: &shared\n    variances: [1.0, 1.0]"), "  params:\n    variances: [1.0]", "  params: *shared")
+	secondBlock := model[strings.Index(model, "- name: second"):strings.Index(model, "simulation:")]
 	duplicated := replaceOnce(t, model, "simulation:", secondBlock+"simulation:")
 	cases := []struct{ name, config, path, value, want string }{
 		{"an unknown key", model, "partitons.seed", "1",
@@ -460,12 +460,12 @@ func TestOverridesKeepEveryConfigIntact(t *testing.T) {
 	t.Run("YAML 1.1 spellings yaml.v2 reads specially survive re-encoding", func(t *testing.T) {
 		// A generic yaml.v2 round trip turns the key n into false and y into true.
 		hazards := `partitions:
-  - name: hazard
-    iteration: {type: wiener_process}
-    params: {n: [1.0], y: [2.0], "yes": [3.0], on: [4.0], off: [5.0], no: [6.0]}
-    init_state_values: [1.0e-3, 0x10, .5, 1_000]
-    seed: 18446744073709551615
-    state_history_depth: 1
+- name: hazard
+  iteration: {type: wiener_process}
+  params: {n: [1.0], y: [2.0], "yes": [3.0], on: [4.0], off: [5.0], no: [6.0]}
+  init_state_values: [1.0e-3, 0x10, .5, 1_000]
+  seed: 18446744073709551615
+  state_history_depth: 1
 simulation: &sim
     init_time_value: 0.0
 inputs:

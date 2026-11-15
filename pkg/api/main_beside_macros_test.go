@@ -15,9 +15,9 @@ const walkModel = `  - {name: walk, iteration: {type: wiener_process}, params: {
 // after it and the given macros.
 func walkMain(extra, macros string) string {
 	return "partitions:\n" + walkModel + extra + `simulation:
-    termination_condition: {type: number_of_steps, max_steps: 60}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 60}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 macros:
 ` + macros
 }
@@ -112,13 +112,13 @@ func TestMainBesideMacros(t *testing.T) {
 		storage := composedRun(t, strings.Replace(walkRecorded(
 			"- {type: vector_mean, name: m, data: {partition_name: tripled}, window: 2}\n"),
 			"macros:\n", `partitions:
-  - name: tripled
-    iteration: {type: expression, fields: [{name: x}], outputs: ["3 * w[0]"]}
-    params: {w: [0.0]}
-    params_from_upstream: {w: {upstream: walk}}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
+- name: tripled
+  iteration: {type: expression, fields: [{name: x}], outputs: ["3 * w[0]"]}
+  params: {w: [0.0]}
+  params_from_upstream: {w: {upstream: walk}}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
 macros:
 `, 1)).Storage
 		tripled, walk := storage.GetValues("tripled"), storage.GetValues("walk")
@@ -135,13 +135,13 @@ macros:
 	t.Run("a macro with its own clock steps main-run partitions", func(t *testing.T) {
 		es := readFile(t, "../../cfg/example_evolution_strategy_config.yaml")
 		storage := composedRun(t, strings.Replace(es, "steps: 1000", "steps: 30", 1)+`partitions:
-  - name: watch
-    iteration: {type: param_values}
-    params: {param_values: [0.0, 0.0]}
-    params_from_upstream: {param_values: {upstream: es_mean}}
-    init_state_values: [0.0, 0.0]
-    state_history_depth: 1
-    seed: 0
+- name: watch
+  iteration: {type: param_values}
+  params: {param_values: [0.0, 0.0]}
+  params_from_upstream: {param_values: {upstream: es_mean}}
+  init_state_values: [0.0, 0.0]
+  state_history_depth: 1
+  seed: 0
 `).Storage
 		watch, means := storage.GetValues("watch"), storage.GetValues("es_mean")
 		if len(means) != 31 {
@@ -190,8 +190,8 @@ macros:
 		{"a macro naming its partition as a main-run one", walkMain(`  - {name: m, iteration: {type: constant_values}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
 `, mean), `macros[0] (vector_mean) names its partition "m", which the main run, the inputs or an earlier macro already have`},
 		{"simulation beside a macro with its own clock",
-			"simulation:\n    termination_condition: {type: number_of_steps, max_steps: 3}\n" +
-				"    timestep_function: {type: constant, stepsize: 1.0}\n" +
+			"simulation:\n  termination_condition: {type: number_of_steps, max_steps: 3}\n" +
+				"  timestep_function: {type: constant, stepsize: 1.0}\n" +
 				readFile(t, "../../cfg/example_mcts_config.yaml"),
 			"runs its own clock, and the main run's simulation states one too"},
 		{"main-run partitions beside calibrate, then plan", strings.Replace(calibration, "macros:\n",

@@ -19,24 +19,24 @@ import (
 )
 
 const serveConfigYAML = `partitions:
-  - name: first_wiener_process
-    iteration: {type: wiener_process}
-    params:
-      variances: [1.0, 1.0]
-    init_state_values: [0.0, 0.0]
-    state_history_depth: 1
-    seed: 7167
-  - name: second_wiener_process
-    iteration: {type: wiener_process}
-    params:
-      variances: [1.0]
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 2939
+- name: first_wiener_process
+  iteration: {type: wiener_process}
+  params:
+    variances: [1.0, 1.0]
+  init_state_values: [0.0, 0.0]
+  state_history_depth: 1
+  seed: 7167
+- name: second_wiener_process
+  iteration: {type: wiener_process}
+  params:
+    variances: [1.0]
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 2939
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 40}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 40}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 ` + quietOutput
 
 // readStream connects to the server and collects every PartitionState it sends

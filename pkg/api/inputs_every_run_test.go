@@ -22,32 +22,32 @@ func TestEveryRunReadsItsInputs(t *testing.T) {
 	config, err := LoadConfig(writeConfigPath(t, fmt.Sprintf(`inputs:
   d: {source: {csv: {path: %q, time_column: 0, state_columns: {x: [1]}}}}
 partitions:
-  - {name: x, iteration: {type: from_input, input: d}, state_history_depth: 1, seed: 0}
-  - name: fed
-    iteration: {type: param_values}
-    params: {param_values: [0.0]}
-    params_from_input: {param_values: {input: d, partition: x}}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
-  - name: nested
-    iteration:
-      type: embedded_simulation_run
-      run:
-        partitions:
-        - {name: inner, iteration: {type: from_input, input: d, partition: x}, init_state_values: [1.0], state_history_depth: 1, seed: 0}
-        simulation:
-          termination_condition: {type: input_exhausted, input: d}
-          timestep_function: {type: from_input, input: d}
-          init_time_value: 0.0
-    params: {burn_in_steps: [0]}
-    init_state_values: [1.0]
-    state_history_depth: 1
-    seed: 0
+- {name: x, iteration: {type: from_input, input: d}, state_history_depth: 1, seed: 0}
+- name: fed
+  iteration: {type: param_values}
+  params: {param_values: [0.0]}
+  params_from_input: {param_values: {input: d, partition: x}}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
+- name: nested
+  iteration:
+    type: embedded_simulation_run
+    run:
+      partitions:
+      - {name: inner, iteration: {type: from_input, input: d, partition: x}, init_state_values: [1.0], state_history_depth: 1, seed: 0}
+      simulation:
+        termination_condition: {type: input_exhausted, input: d}
+        timestep_function: {type: from_input, input: d}
+        init_time_value: 0.0
+  params: {burn_in_steps: [0]}
+  init_state_values: [1.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: input_exhausted, input: d}
-    timestep_function: {type: from_input, input: d}
-    init_time_value: 0.0
+  termination_condition: {type: input_exhausted, input: d}
+  timestep_function: {type: from_input, input: d}
+  init_time_value: 0.0
 `, csv)))
 	if err != nil {
 		t.Fatal(err)

@@ -21,9 +21,9 @@ func suggestConfig(out string) string {
     state_history_depth: 1
     seed: 0
 ` + out + `simulation:
-    termination_condition: {type: number_of_steps, max_steps: 120}
-    timestep_function: {type: constant, stepsize: 0.37}
-    init_time_value: 0
+  termination_condition: {type: number_of_steps, max_steps: 120}
+  timestep_function: {type: constant, stepsize: 0.37}
+  init_time_value: 0
 `
 }
 
@@ -268,9 +268,9 @@ expressions:
     fields: [{name: l}]
     outputs: ["l"]
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 200}
-    timestep_function: {type: constant, stepsize: 1}
-    init_time_value: 0
+  termination_condition: {type: number_of_steps, max_steps: 200}
+  timestep_function: {type: constant, stepsize: 1}
+  init_time_value: 0
 `
 		suggestions, err := Suggest(writeConfig(t, config))
 		if err != nil {
@@ -482,8 +482,8 @@ func TestSuggestOnCatalogueTwins(t *testing.T) {
 			text := readFile(t, file)
 			// A twin's caller sets its clock; it is given one here.
 			if !strings.Contains(text, "\nsimulation:") {
-				text += "simulation:\n    termination_condition: {type: number_of_steps, max_steps: 50}\n" +
-					"    timestep_function: {type: constant, stepsize: 0.37}\n    init_time_value: 0\n"
+				text += "simulation:\n  termination_condition: {type: number_of_steps, max_steps: 50}\n" +
+					"  timestep_function: {type: constant, stepsize: 0.37}\n  init_time_value: 0\n"
 			}
 			suggestions, err := Suggest(writeConfig(t, text))
 			if err != nil {

@@ -26,23 +26,23 @@ func runningMeanConfig(t *testing.T, fromUpstream string) string {
     source:
       csv: {path: `+filepath.Join(dir, "rows.csv")+`, time_column: 0, state_columns: {both: [1, 2]}, skip_header: true}
 partitions:
-  - name: both
-    iteration: {type: from_input, input: data}
-    state_history_depth: 1
-    seed: 0
-  - name: mean
-    iteration:
-      type: expression
-      fields: [{name: c}, {name: e}]
-      outputs: ["c + (v[0] - c) / (step + 1)", "e + (v[1] - e) / (step + 1)"]
-    params: {v: [0.0, 0.0]}
-    params_from_upstream: {v: {upstream: both}}
-    init_state_values: [0.0, 0.0]
-`+fromUpstream+`    state_history_depth: 1
-    seed: 0
+- name: both
+  iteration: {type: from_input, input: data}
+  state_history_depth: 1
+  seed: 0
+- name: mean
+  iteration:
+    type: expression
+    fields: [{name: c}, {name: e}]
+    outputs: ["c + (v[0] - c) / (step + 1)", "e + (v[1] - e) / (step + 1)"]
+  params: {v: [0.0, 0.0]}
+  params_from_upstream: {v: {upstream: both}}
+  init_state_values: [0.0, 0.0]
+`+fromUpstream+`  state_history_depth: 1
+  seed: 0
 simulation:
-    timestep_function: {type: from_input, input: data}
-    termination_condition: {type: input_exhausted, input: data}
+  timestep_function: {type: from_input, input: data}
+  termination_condition: {type: input_exhausted, input: data}
 `)
 	return path
 }
@@ -56,7 +56,7 @@ func TestInitStateFromUpstreamConfig(t *testing.T) {
 	n := float64(len(csvRows))
 
 	t.Run("an expression's running mean started from an input's first row counts every row", func(t *testing.T) {
-		config, err := LoadConfig(runningMeanConfig(t, "    init_state_from_upstream: v\n"))
+		config, err := LoadConfig(runningMeanConfig(t, "  init_state_from_upstream: v\n"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -74,14 +74,14 @@ func TestInitStateFromUpstreamConfig(t *testing.T) {
 	})
 
 	t.Run("--check passes it without reading the input", func(t *testing.T) {
-		config := runningMeanConfig(t, "    init_state_from_upstream: v\n")
+		config := runningMeanConfig(t, "  init_state_from_upstream: v\n")
 		if err, _ := executeIn(t, t.TempDir(), "--config", config, "--check"); err != nil {
 			t.Fatalf("--check: %v", err)
 		}
 	})
 
 	t.Run("a key params_from_upstream lacks fails --check as the run fails", func(t *testing.T) {
-		config := runningMeanConfig(t, "    init_state_from_upstream: w\n")
+		config := runningMeanConfig(t, "  init_state_from_upstream: w\n")
 		checked, _ := executeIn(t, t.TempDir(), "--config", config, "--check")
 		ran, _ := executeIn(t, t.TempDir(), "--config", config)
 		const want = `init_state_from_upstream "w" names no params_from_upstream key`

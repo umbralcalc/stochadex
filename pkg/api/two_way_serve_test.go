@@ -26,12 +26,12 @@ func twoWayYAML(steps int, record, extra string) string {
   actions:
     stream: {connection: {}}
 %s%spartitions:
-  - {name: dial, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, params_from_input: {level: {input: actions}}, init_state_values: [0.0], state_history_depth: 1, seed: 1}
-  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, params_from_upstream: {variances: {upstream: dial}}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
+- {name: dial, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, params_from_input: {level: {input: actions}}, init_state_values: [0.0], state_history_depth: 1, seed: 1}
+- {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, params_from_upstream: {variances: {upstream: dial}}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: %d}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: %d}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: stream, function: {type: connection}}
 run: {mode: serve, websocket: {address: "127.0.0.1:0"}}
@@ -129,7 +129,7 @@ func TestTwoWayServe(t *testing.T) {
 
 	t.Run("dexetera's ActionState messages, named and broadcast", func(t *testing.T) {
 		yaml := strings.Replace(twoWayYAML(300, "", "    decode: protobuf_action_state\n"),
-			"simulation:", "  - {name: dial2, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, "+
+			"simulation:", "- {name: dial2, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, "+
 				"params_from_input: {level: {input: actions, partition: values}}, init_state_values: [0.0], "+
 				"state_history_depth: 1, seed: 3}\nsimulation:", 1)
 		named, _ := proto.Marshal(&simulator.ActionState{

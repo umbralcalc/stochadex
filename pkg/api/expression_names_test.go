@@ -12,15 +12,15 @@ import (
 // a value to read; the clock steps by 0.5 so dt is distinguishable from a count.
 func namesRun(walker string) string {
 	return `partitions:
-  - name: source
-    iteration: {type: expression, fields: [{name: level}], outputs: ["level + 1"]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
+- name: source
+  iteration: {type: expression, fields: [{name: level}], outputs: ["level + 1"]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
 ` + walker + `simulation:
-    termination_condition: {type: number_of_steps, max_steps: 4}
-    timestep_function: {type: constant, stepsize: 0.5}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 4}
+  timestep_function: {type: constant, stepsize: 0.5}
+  init_time_value: 0.0
 `
 }
 
@@ -85,8 +85,8 @@ func walkerValues(t *testing.T, config string) []float64 {
 // order the environment is filled in before.
 func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 	walker := func(iteration, extra string) string {
-		return "  - name: walker\n    iteration: " + iteration + "\n" + extra +
-			"    init_state_values: [0.0]\n    state_history_depth: 1\n    seed: 0\n"
+		return "- name: walker\n  iteration: " + iteration + "\n" + extra +
+			"  init_state_values: [0.0]\n  state_history_depth: 1\n  seed: 0\n"
 	}
 	cases := []struct {
 		name   string
@@ -98,16 +98,16 @@ func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 			name: "a params key spelled like a builtin",
 			config: namesRun(walker(
 				`{type: expression, fields: [{name: x}], outputs: ["x + step"]}`,
-				"    params: {step: [5.0]}\n")),
+				"  params: {step: [5.0]}\n")),
 			want: []string{`expression partition "walker"`, `params key "step"`,
 				"builtin step (the step number)", "rename the params key"},
 		},
 		{
 			name: "a field spelled like a builtin, in an expressions: block",
-			config: namesRun("  - name: walker\n    init_state_values: [0.0]\n"+
-				"    state_history_depth: 1\n    seed: 0\n") +
-				"expressions:\n  - partition: walker\n    fields: [{name: dt}]\n" +
-				"    outputs: [\"dt + 1\"]\n",
+			config: namesRun("- name: walker\n  init_state_values: [0.0]\n"+
+				"  state_history_depth: 1\n  seed: 0\n") +
+				"expressions:\n- partition: walker\n  fields: [{name: dt}]\n" +
+				"  outputs: [\"dt + 1\"]\n",
 			want: []string{`expression partition "walker"`, `field "dt"`,
 				"builtin dt (the timestep increment)", "rename the field"},
 		},
@@ -129,21 +129,21 @@ func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 			name: "a params_from_upstream key spelled like a builtin",
 			config: namesRun(walker(
 				`{type: expression, fields: [{name: x}], outputs: ["x + dt"]}`,
-				"    params_from_upstream: {dt: {upstream: source}}\n")),
+				"  params_from_upstream: {dt: {upstream: source}}\n")),
 			want: []string{`expression partition "walker"`, `params key "dt"`, "builtin dt"},
 		},
 		{
 			name: "a params_as_partitions key spelled like a builtin",
 			config: namesRun(walker(
 				`{type: expression, fields: [{name: x}], outputs: ["x + t"]}`,
-				"    params_as_partitions: {t: [source]}\n")),
+				"  params_as_partitions: {t: [source]}\n")),
 			want: []string{`expression partition "walker"`, `params key "t"`, "builtin t"},
 		},
 		{
 			name: "a field and a params key with one name",
 			config: namesRun(walker(
 				`{type: expression, fields: [{name: x}], outputs: ["x + 1"]}`,
-				"    params: {x: [5.0]}\n")),
+				"  params: {x: [5.0]}\n")),
 			want: []string{`expression partition "walker"`,
 				`"x" is both a field and a params key`, "rename one"},
 		},
@@ -163,7 +163,7 @@ func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 			name: "a params key and a binding with one name",
 			config: namesRun(walker(`{type: expression, fields: [{name: x}], `+
 				`bindings: [{name: rate, expr: "rate * 2"}], outputs: ["x + rate"]}`,
-				"    params: {rate: [1.0]}\n")),
+				"  params: {rate: [1.0]}\n")),
 			want: []string{`"rate" is both a params key and a binding`},
 		},
 		{
@@ -190,7 +190,7 @@ func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 		// Reference: x gains stride (5) plus dt (0.5) each step.
 		got := walkerValues(t, namesRun(walker(
 			`{type: expression, fields: [{name: x}], outputs: ["x + stride + dt"]}`,
-			"    params: {stride: [5.0]}\n")))
+			"  params: {stride: [5.0]}\n")))
 		want := []float64{0, 5.5, 11, 16.5, 22}
 		if !floats.EqualApprox(got, want, 1e-12) {
 			t.Errorf("walker = %v, want %v", got, want)
@@ -210,7 +210,7 @@ func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 		// The source counts 1, 2, 3, 4 and walker reads it within the step.
 		got := walkerValues(t, namesRun(walker(
 			`{type: expression, fields: [{name: x}], outputs: ["x + level"]}`,
-			"    params: {level: [0.0]}\n    params_from_upstream: {level: {upstream: source}}\n")))
+			"  params: {level: [0.0]}\n  params_from_upstream: {level: {upstream: source}}\n")))
 		want := []float64{0, 1, 3, 6, 10}
 		if !floats.EqualApprox(got, want, 1e-12) {
 			t.Errorf("walker = %v, want %v", got, want)
@@ -222,15 +222,15 @@ func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 // forwarded the params key named param by its host.
 func forwardingRun(param, output string) string {
 	return `partitions:
-  - name: host
-    params: {burn_in_steps: [0], inner/` + param + `: [3.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
+- name: host
+  params: {burn_in_steps: [0], inner/` + param + `: [3.0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 2}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 2}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 embedded:
 - name: host
   partitions:
@@ -251,29 +251,29 @@ embedded:
 // params key param, and whose host forwards it the key forwarded.
 func nestedNamesRun(param, forwarded string) string {
 	return `partitions:
-  - name: host
-    iteration:
-      type: embedded_simulation_run
-      run:
-        partitions:
-        - name: inner
-          iteration: {type: expression, fields: [{name: x}], outputs: ["x + 1"]}
-          params: {` + param + `: [1.0]}
-          init_state_values: [0.0]
-          state_history_depth: 1
-          seed: 0
-        simulation:
-          termination_condition: {type: number_of_steps, max_steps: 1}
-          timestep_function: {type: constant, stepsize: 1.0}
-          init_time_value: 0.0
-    params: {burn_in_steps: [0], inner/` + forwarded + `: [2.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
+- name: host
+  iteration:
+    type: embedded_simulation_run
+    run:
+      partitions:
+      - name: inner
+        iteration: {type: expression, fields: [{name: x}], outputs: ["x + 1"]}
+        params: {` + param + `: [1.0]}
+        init_state_values: [0.0]
+        state_history_depth: 1
+        seed: 0
+      simulation:
+        termination_condition: {type: number_of_steps, max_steps: 1}
+        timestep_function: {type: constant, stepsize: 1.0}
+        init_time_value: 0.0
+  params: {burn_in_steps: [0], inner/` + forwarded + `: [2.0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 2}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 2}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `
 }
 
@@ -428,8 +428,8 @@ func TestExpressionNamesAreRefusedWhenAModelIsBuilt(t *testing.T) {
 // quote it, where before it reached the expression as the name true or false.
 func TestYAMLBooleanNamesAreRefusedAtLoad(t *testing.T) {
 	walker := func(iteration string) string {
-		return "  - name: walker\n    iteration: " + iteration + "\n" +
-			"    init_state_values: [0.0]\n    state_history_depth: 1\n    seed: 0\n"
+		return "- name: walker\n  iteration: " + iteration + "\n" +
+			"  init_state_values: [0.0]\n  state_history_depth: 1\n  seed: 0\n"
 	}
 	t.Run("an unquoted field name", func(t *testing.T) {
 		assertLoadRefused(t, namesRun(walker(
@@ -449,11 +449,11 @@ func TestYAMLBooleanNamesAreRefusedAtLoad(t *testing.T) {
 	})
 	t.Run("an unquoted field name in a nested run's expressions: block", func(t *testing.T) {
 		config := strings.Replace(nestedNamesRun("rate", "gain"),
-			`          iteration: {type: expression, fields: [{name: x}], outputs: ["x + 1"]}
+			`        iteration: {type: expression, fields: [{name: x}], outputs: ["x + 1"]}
 `, "", 1)
-		config = strings.Replace(config, "        simulation:\n",
-			"        expressions:\n        - {partition: inner, fields: [{name: no}], outputs: [\"1\"]}\n"+
-				"        simulation:\n", 1)
+		config = strings.Replace(config, "      simulation:\n",
+			"      expressions:\n      - {partition: inner, fields: [{name: no}], outputs: [\"1\"]}\n"+
+				"      simulation:\n", 1)
 		assertLoadRefused(t, config, "run.expressions[0].fields[0].name is the boolean false",
 			"quote it")
 	})

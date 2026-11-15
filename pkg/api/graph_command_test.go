@@ -11,24 +11,24 @@ import (
 // deadlockingConfig is a run whose two partitions read each other within the
 // step, which cannot run.
 const deadlockingConfig = `partitions:
-  - name: prey
-    iteration: {type: wiener_process}
-    params_from_upstream:
-      variances: {upstream: predator}
-    init_state_values: [1.0]
-    state_history_depth: 1
-    seed: 1
-  - name: predator
-    iteration: {type: wiener_process}
-    params_from_upstream:
-      variances: {upstream: prey}
-    init_state_values: [1.0]
-    state_history_depth: 1
-    seed: 2
+- name: prey
+  iteration: {type: wiener_process}
+  params_from_upstream:
+    variances: {upstream: predator}
+  init_state_values: [1.0]
+  state_history_depth: 1
+  seed: 1
+- name: predator
+  iteration: {type: wiener_process}
+  params_from_upstream:
+    variances: {upstream: prey}
+  init_state_values: [1.0]
+  state_history_depth: 1
+  seed: 2
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: out, condition: {type: nil}, function: {type: nil}}
 `

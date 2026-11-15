@@ -23,25 +23,25 @@ func groupedYAML(extra, width string) string {
     vals: [[1], [2], [4], [8], [16], [32], [64], [128]],
     grp: [[1], [3], [2], [4], [1], [3], [2], [4]]}}}}
 partitions:
-  - {name: vals, iteration: {type: from_input, input: series}, state_history_depth: 2, seed: 0}
-  - {name: grp, iteration: {type: from_input, input: series}, state_history_depth: 2, seed: 0}
-  - name: agg
-    iteration: {type: values_grouped_aggregation, aggregation: sum, kernel: {type: constant}` + extra + `}
-    params:
-      accepted_value_group_tupindex_0: [1, 2]
-      default_values: ` + width + `
-      float_precision: [1]
-      grouping_value_indices_tupindex_0: [0]
-      state_value_indices: [0]
-    params_as_partitions: {grouping_partition_tupindex_0: [grp], state_partition: [vals]}
-    params_from_upstream: {latest_groupings_tupindex_0: {upstream: grp}, latest_states: {upstream: vals}}
-    init_state_values: ` + width + `
-    state_history_depth: 1
-    seed: 0
+- {name: vals, iteration: {type: from_input, input: series}, state_history_depth: 2, seed: 0}
+- {name: grp, iteration: {type: from_input, input: series}, state_history_depth: 2, seed: 0}
+- name: agg
+  iteration: {type: values_grouped_aggregation, aggregation: sum, kernel: {type: constant}` + extra + `}
+  params:
+    accepted_value_group_tupindex_0: [1, 2]
+    default_values: ` + width + `
+    float_precision: [1]
+    grouping_value_indices_tupindex_0: [0]
+    state_value_indices: [0]
+  params_as_partitions: {grouping_partition_tupindex_0: [grp], state_partition: [vals]}
+  params_from_upstream: {latest_groupings_tupindex_0: {upstream: grp}, latest_states: {upstream: vals}}
+  init_state_values: ` + width + `
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 7}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 7}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `
 }
 

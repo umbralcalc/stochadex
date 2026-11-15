@@ -146,7 +146,7 @@ func TestOutputViews(t *testing.T) {
 	}{
 		{"outputs: alongside the removed output pair",
 			strings.Replace(viewsMain(), "simulation:\n",
-				"simulation:\n    output_function: {type: json_log, path: x.log}\n", 1) +
+				"simulation:\n  output_function: {type: json_log, path: x.log}\n", 1) +
 				"outputs:\n- {name: a, function: {type: nil}}\n",
 			"output_condition / output_function was removed"},
 		{"a view without a name",

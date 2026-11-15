@@ -205,9 +205,9 @@ partitions:
     state_history_depth: 1
     seed: 0
 simulation:
-    timestep_function: {type: from_input, input: prices}
-    termination_condition: {type: input_exhausted, input: prices}
-    init_time_value: 0.0
+  timestep_function: {type: from_input, input: prices}
+  termination_condition: {type: input_exhausted, input: prices}
+  init_time_value: 0.0
 outputs:
 - {name: log, function: {type: json_log, path: out/run.log}}
 - {name: screen, condition: {type: only_given_partitions, partitions: [walk]}, function: {type: stdout}}
@@ -225,11 +225,11 @@ embedded:
 
 // ensembleIOYAML writes one json_log per member.
 const ensembleIOYAML = `partitions:
-  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
+- {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 run: {mode: ensemble, seeds: [4, 9]}
 outputs:
 - {name: log, function: {type: json_log, path: "out/run-{member}-{seed}.log"}}
@@ -304,9 +304,9 @@ func TestManifestMatchesWhatARunReadsAndWrites(t *testing.T) {
 // checkYAML is a five-step main run of the given partitions, plus extra.
 func checkYAML(partitions, extra string) string {
 	return "partitions:\n" + partitions + `simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 ` + extra
 }
 
@@ -469,9 +469,9 @@ func TestManifestReportsNoSecrets(t *testing.T) {
 partitions:
   - {name: p, iteration: {type: from_input, input: db}, init_state_values: [0.0], state_history_depth: 1}
 ` + walkPartition("w", ", params_from_input: {variances: {input: feed}}") + `simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: db, function: {type: postgres, dsn: "postgres://trader:s3cret@db.example.org/market", table: runs}}
 - {name: push, function: {type: websocket, url: "ws://trader:s3cret@sink.example.org:9000/in?token=s3cret"}}

@@ -42,9 +42,9 @@ func indent(text string, n int) string {
 
 // outerClock is two constant outer steps.
 const outerClock = `simulation:
-    termination_condition: {type: number_of_steps, max_steps: 2}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 2}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `
 
 // nestedHost is a main run hosting inputRun in place.

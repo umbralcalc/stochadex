@@ -11,29 +11,29 @@ import (
 // walkRun is a config of its own: a counter and its running total, 5 steps
 // at uneven times.
 const walkRun = `partitions:
-  - {name: count, iteration: {type: expression, fields: [{name: c}], outputs: ["c + 1"]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - name: "y"
-    iteration: {type: expression, fields: [{name: s}], outputs: ["s + v[0]"]}
-    params: {v: [0.0]}
-    params_from_upstream: {v: {upstream: count}}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
+- {name: count, iteration: {type: expression, fields: [{name: c}], outputs: ["c + 1"]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- name: "y"
+  iteration: {type: expression, fields: [{name: s}], outputs: ["s + v[0]"]}
+  params: {v: [0.0]}
+  params_from_upstream: {v: {upstream: count}}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 0.5}
-    init_time_value: 1.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 0.5}
+  init_time_value: 1.0
 `
 
 // replaying is a config replaying a run: input's partitions on its clock.
 func replaying(run string) string {
 	return "inputs:\n  walk:\n    run:\n" + indent(run, 6) + `partitions:
-  - {name: count, iteration: {type: from_input, input: walk}, state_history_depth: 1, seed: 0}
-  - {name: total, iteration: {type: from_input, input: walk, partition: "y"}, state_history_depth: 1, seed: 0}
+- {name: count, iteration: {type: from_input, input: walk}, state_history_depth: 1, seed: 0}
+- {name: total, iteration: {type: from_input, input: walk, partition: "y"}, state_history_depth: 1, seed: 0}
 simulation:
-    termination_condition: {type: input_exhausted, input: walk}
-    timestep_function: {type: from_input, input: walk}
-    init_time_value: 1.0
+  termination_condition: {type: input_exhausted, input: walk}
+  timestep_function: {type: from_input, input: walk}
+  init_time_value: 1.0
 `
 }
 
@@ -107,11 +107,11 @@ func TestRunInputs(t *testing.T) {
 			"macros:\n- {type: vector_mean, name: m, data: {partition_name: x}, window: 2}\n"
 		path := filepath.Join(dir, "outer.yaml")
 		outer := "inputs:\n  walk:\n    run:\n" + indent(inner, 6) + `partitions:
-  - {name: total, iteration: {type: from_input, input: walk, partition: m}, state_history_depth: 1, seed: 0}
+- {name: total, iteration: {type: from_input, input: walk, partition: m}, state_history_depth: 1, seed: 0}
 simulation:
-    termination_condition: {type: input_exhausted, input: walk}
-    timestep_function: {type: from_input, input: walk}
-    init_time_value: 0.0
+  termination_condition: {type: input_exhausted, input: walk}
+  timestep_function: {type: from_input, input: walk}
+  init_time_value: 0.0
 `
 		if err := os.WriteFile(path, []byte(outer), 0o644); err != nil {
 			t.Fatal(err)

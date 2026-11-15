@@ -95,9 +95,9 @@ outputs:
       type: json_log
     name: log
 simulation:
-    init_time_value: 0.0
-    timestep_function: {type: from_input, input: prices}
-    termination_condition: {type: input_exhausted, input: prices}
+  init_time_value: 0.0
+  timestep_function: {type: from_input, input: prices}
+  termination_condition: {type: input_exhausted, input: prices}
 partitions:
     - name: price
       state_history_depth: 1
@@ -113,13 +113,13 @@ inputs:
 	return fmt.Sprintf(`inputs:
   prices: {source: {csv: {path: %q, time_column: 0, state_columns: {price: [1]}}}}
 partitions:
-  - {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1}
-  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: %d}
-  - {name: brain, iteration: {type: model_reader, model_path: %q}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1}
+- {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: %d}
+- {name: brain, iteration: {type: model_reader, model_path: %q}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
 simulation:
-    timestep_function: {type: from_input, input: prices}
-    termination_condition: {type: input_exhausted, input: prices}
-    init_time_value: 0.0
+  timestep_function: {type: from_input, input: prices}
+  termination_condition: {type: input_exhausted, input: prices}
+  init_time_value: 0.0
 outputs:
 - {name: log, function: {type: json_log, path: %q}}
 `, csv, s.seed, model, filepath.Join(s.dir, "run.log"))
@@ -449,12 +449,12 @@ func TestSkipIfUnchanged(t *testing.T) {
 	yaml := fmt.Sprintf(`inputs:
   prices: {source: {csv: {path: %q, time_column: 0, state_columns: {price: [1]}}}}
 partitions:
-  - {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1}
-  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
+- {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1}
+- {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
 simulation:
-    timestep_function: {type: from_input, input: prices}
-    termination_condition: {type: input_exhausted, input: prices}
-    init_time_value: 0.0
+  timestep_function: {type: from_input, input: prices}
+  termination_condition: {type: input_exhausted, input: prices}
+  init_time_value: 0.0
 outputs:
 - {name: log, function: {type: json_log, path: %q}}
 `, csv, log)

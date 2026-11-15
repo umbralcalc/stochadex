@@ -11,77 +11,77 @@ import (
 // partition hosts a 2-step run, beside a run that stops at a time rather than a
 // step count, which hosts a 2-step run.
 const nestedChainYAML = `partitions:
-  - name: outer
-    iteration:
-      type: embedded_simulation_run
-      run:
-        partitions:
-        - name: inner
-          iteration:
-            type: embedded_simulation_run
-            run:
-              partitions:
-              - name: leaf
-                iteration:
-                  type: embedded_simulation_run
-                  run:
-                    partitions:
-                    - {name: bottom, iteration: {type: wiener_process}, params: {variances: [1.0, 1.0]}, init_state_values: [0.0, 1.0], state_history_depth: 1, seed: 1}
-                    simulation:
-                      termination_condition: {type: number_of_steps, max_steps: 2}
-                      timestep_function: {type: constant, stepsize: 1.0}
-                      init_time_value: 0.0
-                params: {burn_in_steps: [0]}
-                init_state_values: [0.0, 1.0]
-                state_history_depth: 1
-                seed: 0
-              simulation:
-                termination_condition: {type: number_of_steps, max_steps: 5}
-                timestep_function: {type: constant, stepsize: 1.0}
-                init_time_value: 0.0
-          params: {burn_in_steps: [0]}
-          init_state_values: [0.0, 1.0]
-          state_history_depth: 1
-          seed: 0
-        simulation:
-          termination_condition: {type: number_of_steps, max_steps: 10}
-          timestep_function: {type: constant, stepsize: 1.0}
-          init_time_value: 0.0
-    params: {burn_in_steps: [0]}
-    init_state_values: [0.0, 1.0]
-    state_history_depth: 1
-    seed: 0
-  - name: timed
-    iteration:
-      type: embedded_simulation_run
-      run:
-        partitions:
-        - name: counted
-          iteration:
-            type: embedded_simulation_run
-            run:
-              partitions:
-              - {name: tick, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
-              simulation:
-                termination_condition: {type: number_of_steps, max_steps: 2}
-                timestep_function: {type: constant, stepsize: 1.0}
-                init_time_value: 0.0
-          params: {burn_in_steps: [0]}
-          init_state_values: [0.0]
-          state_history_depth: 1
-          seed: 0
-        simulation:
-          termination_condition: {type: time_elapsed, max_time_elapsed: 3.0}
-          timestep_function: {type: constant, stepsize: 0.5}
-          init_time_value: 0.0
-    params: {burn_in_steps: [0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
+- name: outer
+  iteration:
+    type: embedded_simulation_run
+    run:
+      partitions:
+      - name: inner
+        iteration:
+          type: embedded_simulation_run
+          run:
+            partitions:
+            - name: leaf
+              iteration:
+                type: embedded_simulation_run
+                run:
+                  partitions:
+                  - {name: bottom, iteration: {type: wiener_process}, params: {variances: [1.0, 1.0]}, init_state_values: [0.0, 1.0], state_history_depth: 1, seed: 1}
+                  simulation:
+                    termination_condition: {type: number_of_steps, max_steps: 2}
+                    timestep_function: {type: constant, stepsize: 1.0}
+                    init_time_value: 0.0
+              params: {burn_in_steps: [0]}
+              init_state_values: [0.0, 1.0]
+              state_history_depth: 1
+              seed: 0
+            simulation:
+              termination_condition: {type: number_of_steps, max_steps: 5}
+              timestep_function: {type: constant, stepsize: 1.0}
+              init_time_value: 0.0
+        params: {burn_in_steps: [0]}
+        init_state_values: [0.0, 1.0]
+        state_history_depth: 1
+        seed: 0
+      simulation:
+        termination_condition: {type: number_of_steps, max_steps: 10}
+        timestep_function: {type: constant, stepsize: 1.0}
+        init_time_value: 0.0
+  params: {burn_in_steps: [0]}
+  init_state_values: [0.0, 1.0]
+  state_history_depth: 1
+  seed: 0
+- name: timed
+  iteration:
+    type: embedded_simulation_run
+    run:
+      partitions:
+      - name: counted
+        iteration:
+          type: embedded_simulation_run
+          run:
+            partitions:
+            - {name: tick, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
+            simulation:
+              termination_condition: {type: number_of_steps, max_steps: 2}
+              timestep_function: {type: constant, stepsize: 1.0}
+              init_time_value: 0.0
+        params: {burn_in_steps: [0]}
+        init_state_values: [0.0]
+        state_history_depth: 1
+        seed: 0
+      simulation:
+        termination_condition: {type: time_elapsed, max_time_elapsed: 3.0}
+        timestep_function: {type: constant, stepsize: 0.5}
+        init_time_value: 0.0
+  params: {burn_in_steps: [0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `
 
 func TestManifestNestingCost(t *testing.T) {

@@ -51,14 +51,14 @@ func init() {
 // Wiener process, a log of both, and an embedded run writing its own log.
 func stagedYAML(failAt, sleepMs int, log, nested string) string {
 	return fmt.Sprintf(`partitions:
-  - {name: counter, iteration: {type: fails_at_step}, params: {fail_at: [%d], sleep_ms: [%d]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 5}
-  - {name: nested, params: {burn_in_steps: [0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: counter, iteration: {type: fails_at_step}, params: {fail_at: [%d], sleep_ms: [%d]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 5}
+- {name: nested, params: {burn_in_steps: [0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 30}
-    timestep_function: {type: constant, stepsize: 1.0}
-    execution_strategy: {type: inline}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 30}
+  timestep_function: {type: constant, stepsize: 1.0}
+  execution_strategy: {type: inline}
+  init_time_value: 0.0
 outputs:
 - {name: log, function: {type: json_log, path: %q}}
 embedded:
@@ -187,7 +187,7 @@ func TestAllOrNothingOutputs(t *testing.T) {
 			"  vol: {source: {csv: {path: %q, time_column: 0, state_columns: {variances: [1]}}}}",
 			feedServer(t, rising), record, csv)
 		yaml := replaceOnce(t, streamConfigYAML(feed, 10), "simulation:",
-			"  - {name: ext, iteration: {type: wiener_process}, params: {variances: [1.0]}, "+
+			"- {name: ext, iteration: {type: wiener_process}, params: {variances: [1.0]}, "+
 				"params_from_input: {variances: {input: vol}}, init_state_values: [0.0], "+
 				"state_history_depth: 1, seed: 3}\nsimulation:")
 		err := Execute([]string{"stochadex", "--config", writeConfigPath(t, yaml)})
@@ -372,11 +372,11 @@ func TestAKilledEnsembleLeavesEveryMembersEarlierOutput(t *testing.T) {
 		writeFileAt(t, path, earlierLog)
 	}
 	yaml := fmt.Sprintf(`partitions:
-  - {name: counter, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [200]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: counter, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [200]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 30}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 30}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 run: {mode: ensemble, seeds: [4, 9]}
 outputs:
 - {name: log, function: {type: json_log, path: %q}}
