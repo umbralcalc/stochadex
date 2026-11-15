@@ -22,6 +22,12 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-11-15
+
+This release writes a run one way everywhere. A config's main run, its `partitions:`,
+`expressions:` and `simulation:`, moves to the top level, where every other run already wrote
+them directly in its own block, and the `main:` wrapper is gone.
+
 **Upgrading from 0.30.** The `main:` level is removed. Write the main run's `partitions:`,
 `expressions:` and `simulation:` at the top level of the config, one level less indented, and
 drop `main.` from `--set` paths (`partitions[name=w].seed=7`,
@@ -2771,7 +2777,8 @@ treat the intermediates as internal, never shipped API.
   stochastic-process formalism (diffusions, Poisson noise, windowed history for noise
   dependencies) before any Go engine existed. The pivot to Go begins Feb 2023.
 
-[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.30.0...HEAD
+[Unreleased]: https://github.com/umbralcalc/stochadex/compare/v0.31.0...HEAD
+[0.31.0]: https://github.com/umbralcalc/stochadex/compare/v0.30.0...v0.31.0
 [0.30.0]: https://github.com/umbralcalc/stochadex/compare/v0.29.2...v0.30.0
 [0.29.2]: https://github.com/umbralcalc/stochadex/compare/v0.29.1...v0.29.2
 [0.29.1]: https://github.com/umbralcalc/stochadex/compare/v0.29.0...v0.29.1
