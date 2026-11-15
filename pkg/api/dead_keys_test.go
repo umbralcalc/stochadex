@@ -12,8 +12,7 @@ import (
 func TestDeadKeysAreRejected(t *testing.T) {
 	t.Run("a key no view reads is reported by name", func(t *testing.T) {
 		err := validateNoDeadKeys([]byte(`
-main:
-  partitions:
+partitions:
   - name: walk
     params: {drift: [0.5]}
     init_state_values: [0.0]
@@ -32,8 +31,7 @@ main:
 		// These belonged to the deleted Go-expression code-generation path; a config that
 		// still carries them must be told they read nothing rather than silently ignored.
 		err := validateNoDeadKeys([]byte(`
-main:
-  partitions:
+partitions:
   - name: walk
     iteration: {type: wiener_process}
     params: {variances: [0.1]}
@@ -57,8 +55,7 @@ main:
 		// params_from_upstream_partition and params_from_indices before becoming the single
 		// params_from_upstream. Neither old key errored; both did nothing.
 		err := validateNoDeadKeys([]byte(`
-main:
-  partitions:
+partitions:
   - name: walk
     init_state_values: [0.0]
     params_from_upstream_partition:
@@ -71,8 +68,7 @@ main:
 
 	t.Run("every dead key is reported at once, sorted", func(t *testing.T) {
 		err := validateNoDeadKeys([]byte(`
-main:
-  partitions:
+partitions:
   - name: walk
     init_state_values: [0.0]
     zebra: 1
@@ -92,8 +88,7 @@ func TestLegitimateKeysAreNotMistakenForDead(t *testing.T) {
 	// Every legitimate key of the (single, data-only) config schema must pass strict parsing.
 	t.Run("the full data-config key surface passes", func(t *testing.T) {
 		err := validateNoDeadKeys([]byte(`
-main:
-  partitions:
+partitions:
   - name: walk
     iteration: {type: wiener_process}
     params: {variances: [0.1]}
@@ -103,13 +98,13 @@ main:
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 3
-  expressions:
+expressions:
   - partition: walk
     fields: [{name: x, width: 1}]
     upstreams: {drv: driver}
     bindings: [{name: b, expr: "x + 1"}]
     outputs: ["b"]
-  simulation:
+simulation:
 outputs:
 - {name: output, condition: {type: nil}, function: {type: stdout}}
 embedded:
@@ -127,8 +122,7 @@ embedded:
 	t.Run("free-form params keys are never dead", func(t *testing.T) {
 		// Params is an inline map, so any key under it is data, not schema.
 		err := validateNoDeadKeys([]byte(`
-main:
-  partitions:
+partitions:
   - name: walk
     init_state_values: [0.0]
     params:

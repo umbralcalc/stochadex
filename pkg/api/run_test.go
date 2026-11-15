@@ -129,14 +129,13 @@ func TestCheckForDeadlock(t *testing.T) {
 // dataOnlyEnsembleYAML is a file-backed, data-only (expressions) config with an
 // ensemble run block. Its simulation components are Go strings (yaml:"-"), so they
 // are supplied separately in tests, mirroring what codegen's ExtraCode does.
-const dataOnlyEnsembleYAML = `main:
-  partitions:
+const dataOnlyEnsembleYAML = `partitions:
   - name: growth
     params: {rate: [0.05], noise: [0.2]}
     init_state_values: [10.0]
     state_history_depth: 1
     seed: 1
-  expressions:
+expressions:
   - partition: growth
     fields: [{name: x}]
     outputs: ["x + rate * x * dt + noise * x * shared(normal(0,1)) * sqrt(dt)"]
@@ -251,18 +250,17 @@ func TestEnsembleRuns(t *testing.T) {
 // fullyDataEnsembleYAML is a file-backed, fully-data ensemble config: unlike
 // dataOnlyEnsembleYAML it carries its own simulation: block, so the exported
 // RunEnsembleToStorage resolves the whole run from the file with no Go stand-in.
-const fullyDataEnsembleYAML = `main:
-  partitions:
+const fullyDataEnsembleYAML = `partitions:
   - name: growth
     params: {rate: [0.05], noise: [0.2]}
     init_state_values: [10.0]
     state_history_depth: 1
     seed: 1
-  expressions:
+expressions:
   - partition: growth
     fields: [{name: x}]
     outputs: ["x + rate * x * dt + noise * x * shared(normal(0,1)) * sqrt(dt)"]
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 10}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -317,18 +315,17 @@ func TestEnsembleMembers(t *testing.T) {
 }
 
 func TestFullyDataResolution(t *testing.T) {
-	const fullyData = `main:
-  partitions:
+	const fullyData = `partitions:
   - name: growth
     params: {rate: [0.05]}
     init_state_values: [10.0]
     state_history_depth: 1
     seed: 42
-  expressions:
+expressions:
   - partition: growth
     fields: [{name: x}]
     outputs: ["x + rate * x * dt"]
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 8}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -356,15 +353,14 @@ outputs:
 		// A component given as a scalar Go string (rather than a {type: ...} data
 		// spec) does not load.
 		goPath := filepath.Join(t.TempDir(), "go.yaml")
-		goYAML := `main:
-  partitions:
+		goYAML := `partitions:
   - name: w
     iteration: "&continuous.WienerProcessIteration{}"
     params: {variances: [1.0]}
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 1
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
 outputs:

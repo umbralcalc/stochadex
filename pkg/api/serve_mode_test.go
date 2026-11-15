@@ -239,10 +239,9 @@ func TestServeMode(t *testing.T) {
 		server := servedHandler(t, servedYAML(fmt.Sprintf(`inputs:
   prices:
     source: {csv: {path: %q, time_column: 0, state_columns: {price: [1]}}}
-main:
-  partitions:
+partitions:
   - {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1, seed: 0}
-  simulation:
+simulation:
     termination_condition: {type: input_exhausted, input: prices}
     timestep_function: {type: from_input, input: prices}
     init_time_value: 0.0
@@ -325,10 +324,9 @@ func servedConfigWithLongPath(t *testing.T) struct{ config, csv string } {
 	config := fmt.Sprintf(`inputs:
   prices:
     source: {csv: {path: %q, time_column: 0, state_columns: {price: [1]}}}
-main:
-  partitions:
+partitions:
   - {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1, seed: 0}
-  simulation:
+simulation:
     termination_condition: {type: input_exhausted, input: prices}
     timestep_function: {type: from_input, input: prices}
     init_time_value: 0.0

@@ -20,15 +20,14 @@ func TestEnsembleExpectedBehaviour(t *testing.T) {
 	for i := range seeds {
 		seeds[i] = fmt.Sprintf("%d", 1000+i)
 	}
-	cfg := fmt.Sprintf(`main:
-  partitions:
+	cfg := fmt.Sprintf(`partitions:
   - name: walk
     iteration: {type: wiener_process}
     params: {variances: [%g]}
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 1
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: %d}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

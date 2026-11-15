@@ -22,6 +22,26 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+**Upgrading from 0.30.** The `main:` level is removed. Write the main run's `partitions:`,
+`expressions:` and `simulation:` at the top level of the config, one level less indented, and
+drop `main.` from `--set` paths (`partitions[name=w].seed=7`,
+`simulation.termination_condition.max_steps=8000`). A config still using `main:` fails to
+load with an error saying so. From Go, `ApiRunConfig.Main` is unchanged.
+
+### Changed
+
+- **A config writes its main run at the top level.** `partitions:`, `expressions:` and
+  `simulation:` sit beside `inputs:`, `outputs:`, `macros:`, `run:` and `embedded:`, as every
+  other run (an `embedded:` entry, a nested or replicated `run:`, an input's `simulation:`)
+  already writes them directly in its own block. So a run is written one way everywhere, and
+  a key can no longer be on the wrong side of a level. `stochadex expand` writes its expansion
+  the same way, `inspect --io` gives paths without `main.`, and messages that named `main:`
+  name the main run.
+
+### Removed
+
+- **The `main:` block.** A config using it fails to load with an error giving the fix.
+
 ## [0.30.0] — 2026-11-11
 
 This release moves two run-time failures to load time, and shows what composing runs costs

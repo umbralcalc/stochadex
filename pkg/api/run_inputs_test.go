@@ -10,8 +10,7 @@ import (
 
 // walkRun is a config of its own: a counter and its running total, 5 steps
 // at uneven times.
-const walkRun = `main:
-  partitions:
+const walkRun = `partitions:
   - {name: count, iteration: {type: expression, fields: [{name: c}], outputs: ["c + 1"]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
   - name: "y"
     iteration: {type: expression, fields: [{name: s}], outputs: ["s + v[0]"]}
@@ -20,7 +19,7 @@ const walkRun = `main:
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 0.5}
     init_time_value: 1.0
@@ -28,11 +27,10 @@ const walkRun = `main:
 
 // replaying is a config replaying a run: input's partitions on its clock.
 func replaying(run string) string {
-	return "inputs:\n  walk:\n    run:\n" + indent(run, 6) + `main:
-  partitions:
+	return "inputs:\n  walk:\n    run:\n" + indent(run, 6) + `partitions:
   - {name: count, iteration: {type: from_input, input: walk}, state_history_depth: 1, seed: 0}
   - {name: total, iteration: {type: from_input, input: walk, partition: "y"}, state_history_depth: 1, seed: 0}
-  simulation:
+simulation:
     termination_condition: {type: input_exhausted, input: walk}
     timestep_function: {type: from_input, input: walk}
     init_time_value: 1.0
@@ -108,10 +106,9 @@ func TestRunInputs(t *testing.T) {
 			filepath.Join(dir, "obs.csv")) +
 			"macros:\n- {type: vector_mean, name: m, data: {partition_name: x}, window: 2}\n"
 		path := filepath.Join(dir, "outer.yaml")
-		outer := "inputs:\n  walk:\n    run:\n" + indent(inner, 6) + `main:
-  partitions:
+		outer := "inputs:\n  walk:\n    run:\n" + indent(inner, 6) + `partitions:
   - {name: total, iteration: {type: from_input, input: walk, partition: m}, state_history_depth: 1, seed: 0}
-  simulation:
+simulation:
     termination_condition: {type: input_exhausted, input: walk}
     timestep_function: {type: from_input, input: walk}
     init_time_value: 0.0
@@ -149,7 +146,7 @@ func TestRunInputs(t *testing.T) {
 	for _, c := range []struct{ name, yaml, want string }{
 		{"a run: input whose config does not load", replaying(strings.Replace(walkRun, "type: constant,", "type: constnat,", 1)),
 			`input "walk"'s run:`},
-		{"a run: input with a key nothing reads", replaying(strings.Replace(walkRun, "  simulation:\n", "  simulaton: {}\n  simulation:\n", 1)),
+		{"a run: input with a key nothing reads", replaying(strings.Replace(walkRun, "simulation:\n", "simulaton: {}\nsimulation:\n", 1)),
 			"simulaton"},
 		{"a run: input run as an ensemble", replaying(walkRun + "run: {mode: ensemble, seeds: [1, 2]}\n"),
 			`input "walk": a run: input runs once, so its run: mode must be batch, not "ensemble"`},

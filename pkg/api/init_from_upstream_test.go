@@ -25,8 +25,7 @@ func runningMeanConfig(t *testing.T, fromUpstream string) string {
   data:
     source:
       csv: {path: `+filepath.Join(dir, "rows.csv")+`, time_column: 0, state_columns: {both: [1, 2]}, skip_header: true}
-main:
-  partitions:
+partitions:
   - name: both
     iteration: {type: from_input, input: data}
     state_history_depth: 1
@@ -41,7 +40,7 @@ main:
     init_state_values: [0.0, 0.0]
 `+fromUpstream+`    state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     timestep_function: {type: from_input, input: data}
     termination_condition: {type: input_exhausted, input: data}
 `)

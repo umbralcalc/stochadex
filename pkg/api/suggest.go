@@ -83,7 +83,7 @@ func Suggest(config *ApiRunConfig) ([]Suggestion, error) {
 	return suggestions, nil
 }
 
-// suggestionCandidates matches each expression partition of a loaded config's main:
+// suggestionCandidates matches each expression partition of a loaded config's main run
 // run against the templates, without running anything, returning each match and its
 // replacement partitions.
 func suggestionCandidates(config *ApiRunConfig) ([]Suggestion, [][]*yaml3.Node) {
@@ -635,7 +635,7 @@ func runCapped(
 		}
 	}
 	root.Content = kept
-	if main := mappingValue(root, "main"); main != nil {
+	if main := root; main != nil {
 		if partitions := mappingValue(main, "partitions"); partitions != nil && partition != "" {
 			var kept []*yaml3.Node
 			for _, entry := range partitions.Content {

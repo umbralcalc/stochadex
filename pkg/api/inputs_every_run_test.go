@@ -21,8 +21,7 @@ func TestEveryRunReadsItsInputs(t *testing.T) {
 	write("0,1\n1,2\n2,3\n")
 	config, err := LoadConfig(writeConfigPath(t, fmt.Sprintf(`inputs:
   d: {source: {csv: {path: %q, time_column: 0, state_columns: {x: [1]}}}}
-main:
-  partitions:
+partitions:
   - {name: x, iteration: {type: from_input, input: d}, state_history_depth: 1, seed: 0}
   - name: fed
     iteration: {type: param_values}
@@ -45,7 +44,7 @@ main:
     init_state_values: [1.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: input_exhausted, input: d}
     timestep_function: {type: from_input, input: d}
     init_time_value: 0.0

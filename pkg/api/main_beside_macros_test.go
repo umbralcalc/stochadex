@@ -6,15 +6,15 @@ import (
 	"testing"
 )
 
-// walkModel is a noisy walk, written as main: partitions or as an input's
+// walkModel is a noisy walk, written as main-run partitions or as an input's
 // sub-simulation.
 const walkModel = `  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
 `
 
-// walkMain runs walkModel as main:, for 60 steps of 1, with extra partitions
+// walkMain runs walkModel as the main run, for 60 steps of 1, with extra partitions
 // after it and the given macros.
 func walkMain(extra, macros string) string {
-	return "main:\n  partitions:\n" + walkModel + extra + `  simulation:
+	return "partitions:\n" + walkModel + extra + `simulation:
     termination_condition: {type: number_of_steps, max_steps: 60}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -46,7 +46,7 @@ func composedRun(t *testing.T, yaml string) *RunResult {
 func TestMainBesideMacros(t *testing.T) {
 	const mean = "- {type: vector_mean, name: m, data: {partition_name: walk}, window: 5}\n"
 
-	t.Run("a macro reads a main: partition live as it reads one recorded", func(t *testing.T) {
+	t.Run("a macro reads a main-run partition live as it reads one recorded", func(t *testing.T) {
 		live := composedRun(t, walkMain("", mean)).Storage
 		recorded, err := runToStorage(mustLoad(t, writeConfigPath(t, walkRecorded(mean))))
 		if err != nil {
@@ -55,7 +55,7 @@ func TestMainBesideMacros(t *testing.T) {
 		assertStoragesEqual(t, "live vs recorded", live, recorded)
 	})
 
-	t.Run("its window deepens the main: partition's history", func(t *testing.T) {
+	t.Run("its window deepens the main-run partition's history", func(t *testing.T) {
 		config, err := LoadConfig(writeConfigPath(t, walkMain("", mean)))
 		if err != nil {
 			t.Fatal(err)
@@ -80,7 +80,7 @@ func TestMainBesideMacros(t *testing.T) {
 		}
 	})
 
-	t.Run("a main: partition reads a macro's output within the step", func(t *testing.T) {
+	t.Run("a main-run partition reads a macro's output within the step", func(t *testing.T) {
 		storage := composedRun(t, walkMain(`  - name: doubled
     iteration: {type: expression, fields: [{name: d}], outputs: ["2 * v[0]"]}
     params: {v: [0.0]}
@@ -97,9 +97,9 @@ func TestMainBesideMacros(t *testing.T) {
 		}
 	})
 
-	t.Run("main: expressions run beside macros", func(t *testing.T) {
+	t.Run("main-run expressions run beside macros", func(t *testing.T) {
 		storage := composedRun(t, strings.Replace(walkMain(`  - {name: twice, params: {v: [0.0]}, params_from_upstream: {v: {upstream: walk}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-`, mean), "  simulation:\n", "  expressions:\n  - {partition: twice, fields: [{name: x}], outputs: [\"2 * v[0]\"]}\n  simulation:\n", 1)).Storage
+`, mean), "simulation:\n", "expressions:\n  - {partition: twice, fields: [{name: x}], outputs: [\"2 * v[0]\"]}\nsimulation:\n", 1)).Storage
 		twice, walk := storage.GetValues("twice"), storage.GetValues("walk")
 		for i := 1; i < len(walk); i++ {
 			if twice[i][0] != 2*walk[i][0] {
@@ -108,11 +108,10 @@ func TestMainBesideMacros(t *testing.T) {
 		}
 	})
 
-	t.Run("main: partitions read the inputs' replays, on the inputs' clock", func(t *testing.T) {
+	t.Run("main-run partitions read the inputs' replays, on the inputs' clock", func(t *testing.T) {
 		storage := composedRun(t, strings.Replace(walkRecorded(
 			"- {type: vector_mean, name: m, data: {partition_name: tripled}, window: 2}\n"),
-			"macros:\n", `main:
-  partitions:
+			"macros:\n", `partitions:
   - name: tripled
     iteration: {type: expression, fields: [{name: x}], outputs: ["3 * w[0]"]}
     params: {w: [0.0]}
@@ -133,10 +132,9 @@ macros:
 		}
 	})
 
-	t.Run("a macro with its own clock steps main: partitions", func(t *testing.T) {
+	t.Run("a macro with its own clock steps main-run partitions", func(t *testing.T) {
 		es := readFile(t, "../../cfg/example_evolution_strategy_config.yaml")
-		storage := composedRun(t, strings.Replace(es, "steps: 1000", "steps: 30", 1)+`main:
-  partitions:
+		storage := composedRun(t, strings.Replace(es, "steps: 1000", "steps: 30", 1)+`partitions:
   - name: watch
     iteration: {type: param_values}
     params: {param_values: [0.0, 0.0]}
@@ -156,7 +154,7 @@ macros:
 		}
 	})
 
-	t.Run("an embedded: run a main: partition hosts runs beside macros as without them", func(t *testing.T) {
+	t.Run("an embedded: run a main-run partition hosts runs beside macros as without them", func(t *testing.T) {
 		hosted := `  - {name: inner_run, params: {burn_in_steps: [0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
 `
 		embedded := `embedded:
@@ -186,20 +184,20 @@ macros:
 	})
 
 	for _, c := range []struct{ name, yaml, want string }{
-		{"a main: partition named as an input's", strings.Replace(walkRecorded(mean), "macros:\n",
-			"main:\n  partitions:\n"+walkModel+"macros:\n", 1),
-			`main: defines partition "walk", which input "data" has too`},
-		{"a macro naming its partition as a main: one", walkMain(`  - {name: m, iteration: {type: constant_values}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-`, mean), `macros[0] (vector_mean) names its partition "m", which main:, the inputs or an earlier macro already have`},
-		{"main.simulation beside a macro with its own clock",
-			"main:\n  simulation:\n    termination_condition: {type: number_of_steps, max_steps: 3}\n" +
+		{"a main-run partition named as an input's", strings.Replace(walkRecorded(mean), "macros:\n",
+			"partitions:\n"+walkModel+"macros:\n", 1),
+			`the main run defines partition "walk", which input "data" has too`},
+		{"a macro naming its partition as a main-run one", walkMain(`  - {name: m, iteration: {type: constant_values}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+`, mean), `macros[0] (vector_mean) names its partition "m", which the main run, the inputs or an earlier macro already have`},
+		{"simulation beside a macro with its own clock",
+			"simulation:\n    termination_condition: {type: number_of_steps, max_steps: 3}\n" +
 				"    timestep_function: {type: constant, stepsize: 1.0}\n" +
 				readFile(t, "../../cfg/example_mcts_config.yaml"),
-			"runs its own clock, and main.simulation states one too"},
-		{"main: partitions beside calibrate, then plan", strings.Replace(calibration, "macros:\n",
-			"main:\n  partitions:\n"+strings.Replace(walkModel, "walk", "extra", 1)+"macros:\n", 1) +
+			"runs its own clock, and the main run's simulation states one too"},
+		{"main-run partitions beside calibrate, then plan", strings.Replace(calibration, "macros:\n",
+			"partitions:\n"+strings.Replace(walkModel, "walk", "extra", 1)+"macros:\n", 1) +
 			strings.Replace(newsvendorPlan, "PARAMETERS", "samples_from: {partition_name: post_sampler, burn_in: 100}", 1),
-			"main: partitions beside macros that calibrate before a macro with its own clock"},
+			"main-run partitions beside macros that calibrate before a macro with its own clock"},
 	} {
 		t.Run(c.name+" does not run, saying why", func(t *testing.T) {
 			_, err := RunToStorage(writeConfig(t, c.yaml))

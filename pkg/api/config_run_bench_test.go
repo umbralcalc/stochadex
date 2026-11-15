@@ -14,19 +14,20 @@ import (
 func benchmarkConfig(b *testing.B, partitions, width, steps int, output, strategy string) {
 	b.Helper()
 	var yaml strings.Builder
-	yaml.WriteString("main:\n  partitions:\n")
+	yaml.WriteString("partitions:\n")
 	values := strings.TrimSuffix(strings.Repeat("1.0, ", width), ", ")
 	zeros := strings.TrimSuffix(strings.Repeat("0.0, ", width), ", ")
 	for i := range partitions {
 		fmt.Fprintf(&yaml, "  - {name: w%d, iteration: {type: wiener_process}, params: {variances: [%s]}, "+
 			"init_state_values: [%s], state_history_depth: 1, seed: %d}\n", i, values, zeros, i+1)
 	}
-	fmt.Fprintf(&yaml, "  simulation:\n    output_condition: {type: every_step}\n    output_function: %s\n", output)
+	yaml.WriteString("simulation:\n")
 	if strategy != "" {
 		fmt.Fprintf(&yaml, "    execution_strategy: {type: %s}\n", strategy)
 	}
 	fmt.Fprintf(&yaml, "    termination_condition: {type: number_of_steps, max_steps: %d}\n"+
-		"    timestep_function: {type: constant, stepsize: 1.0}\n    init_time_value: 0.0\n", steps)
+		"    timestep_function: {type: constant, stepsize: 1.0}\n    init_time_value: 0.0\n"+
+		"outputs:\n- {name: output, function: %s}\n", steps, output)
 	config := writeConfig(b, yaml.String())
 	b.ReportAllocs()
 	for b.Loop() {
@@ -78,10 +79,9 @@ func paramsDrivenYAML(b *testing.B, fromInput bool) string {
 	}
 	return fmt.Sprintf(`inputs:
   vol: {source: {csv: {path: %q, time_column: 0, state_columns: {variances: [1]}}}}
-main:
-  partitions:
+partitions:
 %s  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, %s, init_state_values: [0.0], state_history_depth: 1, seed: 3}
-  simulation:
+simulation:
     execution_strategy: {type: inline}
     termination_condition: {type: number_of_steps, max_steps: 2000}
     timestep_function: {type: constant, stepsize: 1.0}

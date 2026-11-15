@@ -19,7 +19,7 @@ import (
 //
 //   - A --set path=value (WithSet) replaces the value at a path in the config
 //     tree. Mapping keys are joined with dots, and a list entry is selected by
-//     its name, never its position: main.partitions[name=w].seed. The path must
+//     its name, never its position: partitions[name=w].seed. The path must
 //     already exist, and the new value must have the old one's shape (a number
 //     for a number, a list for a list), so a typo is an error naming the path
 //     rather than a run that silently measures the unmodified config.
@@ -67,7 +67,7 @@ func (s setOverride) String() string {
 
 // WithSet replaces the value at path with value, read as YAML. path joins
 // mapping keys with dots and selects a list entry by name, as in
-// main.partitions[name=w].params.rate; it must already exist in the config.
+// partitions[name=w].params.rate; it must already exist in the config.
 func WithSet(path, value string) LoadOption {
 	return func(o *loadOptions) { o.sets = append(o.sets, setOverride{path: path, value: value}) }
 }

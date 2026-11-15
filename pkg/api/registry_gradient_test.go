@@ -23,15 +23,14 @@ func gradientYAML(hostExtra, innerExtra string) string {
 	}
 	return `inputs:
   driver: {source: {inline: {times: [0, 1, 2, 3, 4, 5, 6], partitions: {driver: [` + strings.Join(rows, ", ") + `]}}}}
-main:
-  partitions:
+partitions:
   - {name: driver, iteration: {type: from_input, input: driver}, state_history_depth: 3, seed: 0}
   - name: fit
     params: {burn_in_steps: [0]}
 ` + hostExtra + `    init_state_values: [0.0, 0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 6}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

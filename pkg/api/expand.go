@@ -15,10 +15,10 @@ import (
 // core-language partitions — data specs only, as a hand-written config would
 // state them — so a macros: config becomes one ordinary run:
 //
-//	inputs:  the config's inputs, unchanged
-//	main:    a {type: from_input} replay of every input partition, then each
-//	         macro's partitions, in order, clocked by the inputs' timestamps
-//	outputs: the config's outputs, unchanged
+//	inputs:     the config's inputs, unchanged
+//	partitions: a {type: from_input} replay of every input partition, then each
+//	            macro's partitions, in order, clocked by the inputs' timestamps
+//	outputs:    the config's outputs, unchanged
 //
 // A first macro with a clock of its own (evolution strategy, MCTS, SMC) clocks
 // the run instead, its steps of its timestep from time zero; the run then
@@ -197,14 +197,14 @@ func repeated(value float64, n int) []float64 {
 // expandedDocument is a macros: config written out in the core language.
 type expandedDocument struct {
 	Inputs   *yaml3.Node  `yaml:"inputs,omitempty"`
-	Main     expandedMain `yaml:"main"`
+	Main     expandedMain `yaml:",inline"`
 	Embedded *yaml3.Node  `yaml:"embedded,omitempty"`
 	Outputs  *yaml3.Node  `yaml:"outputs,omitempty"`
 	Run      *yaml3.Node  `yaml:"run,omitempty"`
 }
 
 // expandedMain is the expanded run: its partitions, each an expandedPartition
-// or, for one the config's main: states, its node as written.
+// or, for one the config's main run states, its node as written.
 type expandedMain struct {
 	Partitions  []interface{} `yaml:"partitions"`
 	Expressions *yaml3.Node   `yaml:"expressions,omitempty"`
@@ -297,7 +297,7 @@ func calibrationSplit(config *ApiRunConfig, hasInputs, mainClock bool) (int, err
 	}
 	switch {
 	case mainClock && len(clocked) > 0:
-		return 0, configError(fmt.Errorf("api: %s runs its own clock, and main.simulation "+
+		return 0, configError(fmt.Errorf("api: %s runs its own clock, and the main run's simulation "+
 			"states one too; a simulation has one clock, so set one of them", which(clocked[0])))
 	case len(clocked) > 1:
 		return 0, configError(fmt.Errorf("api: %s and %s each run their own clock; a simulation has "+
@@ -311,7 +311,7 @@ func calibrationSplit(config *ApiRunConfig, hasInputs, mainClock bool) (int, err
 		return clocked[0], nil
 	case !hasInputs && !mainClock && (len(clocked) == 0 || clocked[0] != 0):
 		return 0, configError(fmt.Errorf("api: expanding needs a clock: the inputs the " +
-			"macros read, main.simulation, or a first macro that runs its own"))
+			"macros read, the main run's simulation, or a first macro that runs its own"))
 	}
 	return 0, nil
 }
@@ -346,7 +346,7 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		return nil, err
 	}
 	if split > 0 && len(config.Main.Partitions) > 0 {
-		return nil, configError(fmt.Errorf("api: main: partitions beside macros that " +
+		return nil, configError(fmt.Errorf("api: main-run partitions beside macros that " +
 			"calibrate before a macro with its own clock (calibrate, then plan) do not " +
 			"expand yet"))
 	}
@@ -359,15 +359,15 @@ func ExpandToYAML(config *ApiRunConfig) ([]byte, error) {
 		return nil, err
 	}
 	if mainClock {
-		// main:'s own clock, not the inputs', says how long the run is.
+		// the main run's own clock, not the inputs', says how long the run is.
 		context.inputSteps = 0
 	}
-	// main:'s partitions run beside the macros', which may read them.
+	// the main run's partitions run beside the macros', which may read them.
 	for _, partition := range config.Main.Partitions {
 		if input, replayed := context.owners[partition.Name]; replayed {
-			return nil, configError(fmt.Errorf("api: main: defines partition %q, which "+
+			return nil, configError(fmt.Errorf("api: the main run defines partition %q, which "+
 				"input %q has too; beside macros:, every input partition is replayed "+
-				"under its own name, so rename the main: one or drop it", partition.Name, input))
+				"under its own name, so rename the main run's or drop it", partition.Name, input))
 		}
 		context.widths[partition.Name] = len(partition.InitStateValues)
 		context.firstRows[partition.Name] = partition.InitStateValues
@@ -470,9 +470,9 @@ func inputsContext(inputs map[string]InputConfig) (*expansionContext, error) {
 }
 
 // expandRun expands macros[from:to] into one simulation: a replay of each input
-// partition the context's owners name, then main:'s partitions as written
+// partition the context's owners name, then the main run's partitions as written
 // (when hand is given), then the macros' partitions, clocked by a macro's own
-// clock, in which case nothing is replayed, or by main:'s simulation, or by
+// clock, in which case nothing is replayed, or by the main run's simulation, or by
 // the first input.
 func expandRun(
 	macros []MacroConfig,
@@ -521,7 +521,7 @@ func expandRun(
 		for _, partition := range expanded.partitions {
 			if _, taken := context.widths[partition.Name]; taken {
 				return expandedMain{}, configError(fmt.Errorf("api: %s names its partition %q, which "+
-					"main:, the inputs or an earlier macro already have", which, partition.Name))
+					"the main run, the inputs or an earlier macro already have", which, partition.Name))
 			}
 			context.widths[partition.Name] = len(partition.InitStateValues)
 			context.firstRows[partition.Name] = context.initialState(partition)
@@ -575,7 +575,7 @@ func expandRun(
 }
 
 // raiseHistoryDepth raises a partition node's state_history_depth to depth,
-// leaving a deeper one as it is. Loading requires every main: partition to
+// leaving a deeper one as it is. Loading requires every main-run partition to
 // state a whole state_history_depth of at least 1.
 func raiseHistoryDepth(partition *yaml3.Node, depth int) {
 	node := mappingValue(partition, "state_history_depth")
@@ -602,7 +602,7 @@ func Expand(config *ApiRunConfig) (*ApiRunConfig, error) {
 type expandedSource struct {
 	inputs, outputs, embedded, run *yaml3.Node
 	macros                         []*yaml3.Node
-	// mainPartitions, mainExpressions and mainSimulation are main:'s, as
+	// mainPartitions, mainExpressions and mainSimulation are the main run's, as
 	// written.
 	mainPartitions                  []*yaml3.Node
 	mainExpressions, mainSimulation *yaml3.Node
@@ -634,12 +634,12 @@ func sourceNodes(config *ApiRunConfig) (expandedSource, error) {
 			kept.embedded = value
 		case "run":
 			kept.run = value
-		case "main":
-			if partitions := mappingValue(value, "partitions"); partitions != nil {
-				kept.mainPartitions = partitions.Content
-			}
-			kept.mainExpressions = mappingValue(value, "expressions")
-			kept.mainSimulation = mappingValue(value, "simulation")
+		case "partitions":
+			kept.mainPartitions = value.Content
+		case "expressions":
+			kept.mainExpressions = value
+		case "simulation":
+			kept.mainSimulation = value
 		}
 	}
 	return kept, nil

@@ -11,15 +11,14 @@ import (
 )
 
 // executeMain is a minimal runnable batch config; cases vary one thing each.
-const executeMain = `main:
-  partitions:
+const executeMain = `partitions:
   - name: w
     iteration: {type: wiener_process}
     params: {variances: [1.0]}
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 1
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -85,7 +84,7 @@ func TestExecute(t *testing.T) {
 
 		{name: "a missing config file",
 			args: []string{"--config", filepath.Join(dir, "absent.yaml")}, kind: ErrConfig},
-		{name: "invalid YAML", config: "main: [unclosed\n", kind: ErrConfig},
+		{name: "invalid YAML", config: "partitions: [unclosed\n", kind: ErrConfig},
 		{name: "a key nothing reads",
 			config: strings.Replace(nilOutput, "    seed: 1\n", "    seed: 1\n    state_width: 1\n", 1),
 			kind:   ErrConfig},
@@ -108,14 +107,13 @@ func TestExecute(t *testing.T) {
 				filepath.Join(dir, "missing", "run.log"))),
 			kind: ErrUnavailable},
 
-		{name: "the simulation failing while it runs", config: `main:
-  partitions:
+		{name: "the simulation failing while it runs", config: `partitions:
   - name: replay
     iteration: {type: from_storage, data: [[1.0], [2.0]]}
     init_state_values: [1.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -151,7 +149,7 @@ outputs:
 // error.
 func TestLoadConfigErrors(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "bad.yaml")
-	if err := os.WriteFile(path, []byte("main: [unclosed\n"), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte("partitions: [unclosed\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	config, err := LoadConfig(path)
@@ -183,10 +181,9 @@ func TestFailureClassificationReachesNestedAndDeferredParts(t *testing.T) {
 	dir := t.TempDir()
 	t.Run("an embedded run with an unknown iteration type is a config error at load", func(t *testing.T) {
 		path := filepath.Join(dir, "embedded.yaml")
-		writeFile(t, path, `main:
-  partitions:
+		writeFile(t, path, `partitions:
   - {name: inner_run, init_state_values: [0.0], state_history_depth: 1, seed: 0, params: {burn_in_steps: [0]}}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 2}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

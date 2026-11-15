@@ -41,7 +41,7 @@ func indent(text string, n int) string {
 }
 
 // outerClock is two constant outer steps.
-const outerClock = `  simulation:
+const outerClock = `simulation:
     termination_condition: {type: number_of_steps, max_steps: 2}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -49,8 +49,7 @@ const outerClock = `  simulation:
 
 // nestedHost is a main run hosting inputRun in place.
 func nestedHost(run string) string {
-	return nestedInput + `main:
-  partitions:
+	return nestedInput + `partitions:
   - name: nested
     iteration:
       type: embedded_simulation_run
@@ -64,8 +63,7 @@ func nestedHost(run string) string {
 
 // replicatedHost is a main run replicating inputRun three times.
 func replicatedHost(run string) string {
-	return nestedInput + `main:
-  partitions:
+	return nestedInput + `partitions:
   - name: replicas
     iteration:
       type: replicated_simulation_run
@@ -126,8 +124,7 @@ func TestNestedInputs(t *testing.T) {
 	})
 
 	t.Run("a top-level embedded run replays it", func(t *testing.T) {
-		everyStep(t, lastRows(t, nestedInput+`main:
-  partitions:
+		everyStep(t, lastRows(t, nestedInput+`partitions:
   - {name: inner_run, params: {burn_in_steps: [0]}, init_state_values: [1.0, 0.0, 0.0], state_history_depth: 1, seed: 0}
 `+outerClock+`embedded:
 - name: inner_run

@@ -31,10 +31,9 @@ func init() {
 	})
 }
 
-const configureCounterYAML = `main:
-  partitions:
+const configureCounterYAML = `partitions:
   - {name: counted, iteration: {type: configure_counter}, params: {value: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 1}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

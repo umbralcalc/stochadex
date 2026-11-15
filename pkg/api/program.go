@@ -141,20 +141,20 @@ func clockError(where string, noTermination, noTimestep bool) error {
 		"holds, by its timestep_function", where, strings.Join(missing, " and "))
 }
 
-// checkMainClock checks a main.simulation block, once it states any field,
+// checkMainClock checks a simulation block, once it states any field,
 // states the run's clock whole. One stating no field loads: a library caller
 // may supply the simulation in Go after loading, a run checks it has one
 // (validateMainContext), and beside macros: the expansion supplies the clock
-// (the inputs', or a macro's own). Beside macros:, a main.simulation stating
+// (the inputs', or a macro's own). Beside macros:, a simulation stating
 // any field is the run's clock, so an init_time_value or output pair alone
 // cannot stand in for one; an output goes under outputs:.
 func checkMainClock(config *ApiRunConfig) error {
 	if simulationStringsZero(&config.Main.SimulationStrings) {
 		return nil
 	}
-	where := "main.simulation"
+	where := "simulation"
 	if len(config.Macros) > 0 {
-		where = "main.simulation, which beside macros: is the run's clock (an output goes under outputs:),"
+		where = "simulation, which beside macros: is the run's clock (an output goes under outputs:),"
 	}
 	return config.Main.checkClock(where)
 }
@@ -219,7 +219,9 @@ type RunModeConfig struct {
 // ApiRunConfig is the concrete, YAML-loadable configuration for an API run:
 // a main RunConfig, optional embedded runs, and an optional run-mode selector.
 type ApiRunConfig struct {
-	Main     RunConfig           `yaml:"main"`
+	// Main is the main run, whose partitions, expressions and simulation block
+	// are written at the top level of the config.
+	Main     RunConfig           `yaml:",inline"`
 	Embedded []EmbeddedRunConfig `yaml:"embedded,omitempty"`
 	Run      RunModeConfig       `yaml:"run,omitempty"`
 	// Macros is the optional macros: tier — partition-set-producing analysis
@@ -230,7 +232,7 @@ type ApiRunConfig struct {
 	// to stdout.
 	Outputs []OutputViewConfig `yaml:"outputs,omitempty"`
 	// Inputs are named, read-only storages read when a run starts and replayed
-	// into main: partitions with {type: from_input} (see inputs.go).
+	// into main-run partitions with {type: from_input} (see inputs.go).
 	Inputs map[string]InputConfig `yaml:"inputs,omitempty"`
 	// sourcePath records the file this config was loaded from, and source the
 	// document read from it with any overrides applied (see LoadConfig), so
@@ -537,7 +539,7 @@ func validateEmbeddedRuns(config *ApiRunConfig) error {
 		if !hosts[embedded.Name] {
 			return fmt.Errorf("api: %s has no host: an embedded run runs inside the main "+
 				"partition of its name, so add a partition named %q with no iteration "+
-				"under main.partitions", where, embedded.Name)
+				"under partitions", where, embedded.Name)
 		}
 		if err := embedded.Run.checkClock(where + "'s simulation"); err != nil {
 			return err
@@ -756,6 +758,9 @@ func (c *ApiRunConfig) reload() (*ApiRunConfig, error) {
 // where it came from.
 func loadConfigData(yamlFile []byte, path string) (*ApiRunConfig, error) {
 	if err := rejectRemovedData(yamlFile); err != nil {
+		return nil, configError(err)
+	}
+	if err := rejectRemovedMain(yamlFile); err != nil {
 		return nil, configError(err)
 	}
 	if deadKeyErr := validateNoDeadKeys(yamlFile); deadKeyErr != nil {

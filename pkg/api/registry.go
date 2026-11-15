@@ -67,7 +67,7 @@ var iterationBuilders = map[string]iterationBuilder{
 	"scalar_regression_stats": nullary(func() simulator.Iteration { return &macros.ScalarRegressionStatsIteration{} }),
 
 	// from_storage replays an inline series (its rows carried in the config as data)
-	// into a main: partition by step number: a precomputed external series stepped
+	// into a main-run partition by step number: a precomputed external series stepped
 	// into a simulation partition with no Go. Unlike from_history its
 	// Data is config, not runtime-injected.
 	"from_storage": buildFromStorage,

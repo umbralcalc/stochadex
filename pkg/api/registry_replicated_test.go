@@ -36,8 +36,7 @@ const replicaModel = `      run:
 // replicatedYAML replicates replicaModel three times with the given extra spec
 // lines, each replica's mean taken from a constant partition.
 func replicatedYAML(spec string) string {
-	return `main:
-  partitions:
+	return `partitions:
   - name: centres
     iteration: {type: constant_values}
     params: {}
@@ -53,7 +52,7 @@ func replicatedYAML(spec string) string {
     init_state_values: [0, 0, 0, 0, 0, 0]
     state_history_depth: 1
     seed: 99
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -72,8 +71,8 @@ func referenceReplica(t *testing.T, mean float64, base uint64, step, replica int
 	t.Helper()
 	replicaSeed := simulator.DeriveSeed(simulator.DeriveSeed(base, step), replica)
 	model := strings.NewReplacer(
-		"      run:\n", "main:\n",
-		"        ", "  ",
+		"      run:\n", "",
+		"        ", "",
 		"mus: [0.0]", fmt.Sprintf("mus: [%v]", mean),
 	).Replace(replicaModel)
 	seeds := []uint64{simulator.DeriveSeed(replicaSeed, 0), simulator.DeriveSeed(replicaSeed, 1)}

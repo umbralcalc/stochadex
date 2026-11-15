@@ -260,7 +260,7 @@ func configFileArgs(parser *argparse.Parser) (configFile *string, sets *[]string
 		&argparse.Options{
 			Required: false,
 			Help: "override a config value for this run, as path=value (repeatable); " +
-				"e.g. main.partitions[name=w].seed=7",
+				"e.g. partitions[name=w].seed=7",
 		},
 	)
 	return configFile, sets

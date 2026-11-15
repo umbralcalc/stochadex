@@ -13,19 +13,18 @@ inputs:
   controls:
     stream: {connection: {}}
     record: "controls-{connection}.log"
-main:
-  partitions:
-  - name: walk
-    iteration: {type: drift_diffusion}
-    params: {drift_coefficients: [0.0], diffusion_coefficients: [0.3]}
-    params_from_input: {drift_coefficients: {input: controls, partition: drift}}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 7
-  simulation:
-    termination_condition: {type: number_of_steps, max_steps: 1000}
-    timestep_function: {type: constant, stepsize: 0.1}
-    init_time_value: 0.0
+partitions:
+- name: walk
+  iteration: {type: drift_diffusion}
+  params: {drift_coefficients: [0.0], diffusion_coefficients: [0.3]}
+  params_from_input: {drift_coefficients: {input: controls, partition: drift}}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 7
+simulation:
+  termination_condition: {type: number_of_steps, max_steps: 1000}
+  timestep_function: {type: constant, stepsize: 0.1}
+  init_time_value: 0.0
 outputs:
   - {name: stream, function: {type: connection}}
 run:

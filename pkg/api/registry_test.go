@@ -358,15 +358,14 @@ func TestResolveIterationErrors(t *testing.T) {
 // framework iteration purely as data, with a data-spec simulation, is detected as
 // fully data, resolves at load, and runs — no Go toolchain involved.
 func TestDataSpecIterationRunsInProcess(t *testing.T) {
-	const config = `main:
-  partitions:
+	const config = `partitions:
   - name: walk
     iteration: {type: wiener_process}
     params: {variances: [1.0, 4.0]}
     init_state_values: [0.0, 0.0]
     state_history_depth: 1
     seed: 7
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -396,8 +395,7 @@ outputs:
 // yaml.v2 delivers nested mappings as map[interface{}]interface{}, which the
 // in-Go spec tests never exercise.
 func TestNewlyRegisteredIterationsRunFromYaml(t *testing.T) {
-	const config = `main:
-  partitions:
+	const config = `partitions:
   - name: intensity
     iteration: {type: hawkes_process_intensity, kernel: {type: exponential}}
     params:
@@ -461,7 +459,7 @@ func TestNewlyRegisteredIterationsRunFromYaml(t *testing.T) {
     init_state_values: [0.0, 0.0, 0.0]
     state_history_depth: 2
     seed: 1735
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 20}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -622,8 +620,7 @@ func TestComposableResolution(t *testing.T) {
 // feeding values_function_vector_mean with a named value function and an
 // exponential kernel) is fully data, resolves recursively at load, and runs.
 func TestComposableRunsInProcess(t *testing.T) {
-	const config = `main:
-  partitions:
+	const config = `partitions:
   - name: data_stream
     iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
     params:
@@ -643,7 +640,7 @@ func TestComposableRunsInProcess(t *testing.T) {
     init_state_values: [1.8, 5.0]
     state_history_depth: 50
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 100}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

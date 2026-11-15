@@ -11,14 +11,13 @@ import (
 // is spliced in as walker. The source counts 1, 2, 3, ... so a walker reading it has
 // a value to read; the clock steps by 0.5 so dt is distinguishable from a count.
 func namesRun(walker string) string {
-	return `main:
-  partitions:
+	return `partitions:
   - name: source
     iteration: {type: expression, fields: [{name: level}], outputs: ["level + 1"]}
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-` + walker + `  simulation:
+` + walker + `simulation:
     termination_condition: {type: number_of_steps, max_steps: 4}
     timestep_function: {type: constant, stepsize: 0.5}
     init_time_value: 0.0
@@ -107,7 +106,7 @@ func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 			name: "a field spelled like a builtin, in an expressions: block",
 			config: namesRun("  - name: walker\n    init_state_values: [0.0]\n"+
 				"    state_history_depth: 1\n    seed: 0\n") +
-				"  expressions:\n  - partition: walker\n    fields: [{name: dt}]\n" +
+				"expressions:\n  - partition: walker\n    fields: [{name: dt}]\n" +
 				"    outputs: [\"dt + 1\"]\n",
 			want: []string{`expression partition "walker"`, `field "dt"`,
 				"builtin dt (the timestep increment)", "rename the field"},
@@ -222,14 +221,13 @@ func TestExpressionNamesAreRefusedAtLoad(t *testing.T) {
 // forwardingRun hosts an embedded run whose expression partition, inner, is
 // forwarded the params key named param by its host.
 func forwardingRun(param, output string) string {
-	return `main:
-  partitions:
+	return `partitions:
   - name: host
     params: {burn_in_steps: [0], inner/` + param + `: [3.0]}
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 2}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -252,8 +250,7 @@ embedded:
 // nestedNamesRun states a run in place whose expression partition holds the
 // params key param, and whose host forwards it the key forwarded.
 func nestedNamesRun(param, forwarded string) string {
-	return `main:
-  partitions:
+	return `partitions:
   - name: host
     iteration:
       type: embedded_simulation_run
@@ -273,7 +270,7 @@ func nestedNamesRun(param, forwarded string) string {
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 2}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

@@ -12,7 +12,7 @@
 #
 #   means  a vector_mean with cumulative: true: the running mean of every row,
 #          the CSV's first row included (it is the replay's initial state);
-#   rates  a main: partition dividing each mean count by the mean exposure.
+#   rates  a main-run partition dividing each mean count by the mean exposure.
 #
 # Only the final estimate is wanted, so the one output is a final_step view:
 # it writes each named partition once, as it stands when the input runs out,
@@ -37,18 +37,17 @@ macros:
   name: means
   data: {partition_name: events}
   cumulative: true
-main:
-  partitions:
-  - name: rates
-    iteration:
-      type: expression
-      fields: [{name: goals}, {name: cards}, {name: penalties}]
-      outputs: ["m[0] / m[3]", "m[1] / m[3]", "m[2] / m[3]"]
-    params: {m: [0.0, 0.0, 0.0, 1.0]}
-    params_from_upstream: {m: {upstream: means}}
-    init_state_values: [0.0, 0.0, 0.0]
-    state_history_depth: 1
-    seed: 0
+partitions:
+- name: rates
+  iteration:
+    type: expression
+    fields: [{name: goals}, {name: cards}, {name: penalties}]
+    outputs: ["m[0] / m[3]", "m[1] / m[3]", "m[2] / m[3]"]
+  params: {m: [0.0, 0.0, 0.0, 1.0]}
+  params_from_upstream: {m: {upstream: means}}
+  init_state_values: [0.0, 0.0, 0.0]
+  state_history_depth: 1
+  seed: 0
 outputs:
 - name: estimate
   condition: {type: final_step, partitions: [rates]}

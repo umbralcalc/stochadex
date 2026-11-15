@@ -23,7 +23,7 @@ func macroConfigError(t *testing.T, yamlText string) error {
 
 // TestMCTSSelfPlayMacro drives the whole hook end-to-end through YAML: the macro
 // tier resolves an environment from the registry, builds the self-play stack,
-// and runs it — no Go toolchain, no main.partitions. The assertion is the sharp
+// and runs it — no Go toolchain, no partitions. The assertion is the sharp
 // one: seeded one move from a win, the search has to find it. A macro that wired
 // up but searched nothing would still produce rows, so "it ran" is not the test.
 //

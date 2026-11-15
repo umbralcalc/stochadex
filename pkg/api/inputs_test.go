@@ -50,7 +50,7 @@ func TestSolarFleetDrivenFromAnInput(t *testing.T) {
 	if err := yaml.Unmarshal([]byte(readFile(t, declarative)), &document); err != nil {
 		t.Fatal(err)
 	}
-	main := document["main"].(map[interface{}]interface{})
+	main := document
 	var rows []interface{}
 	for _, entry := range main["partitions"].([]interface{}) {
 		partition := entry.(map[interface{}]interface{})
@@ -116,8 +116,7 @@ func TestSolarFleetDrivenFromAnInput(t *testing.T) {
 // walk so the run has dynamics of its own. INPUTS and REPLAY are filled per test.
 const inputsMain = `inputs:
 INPUTS
-main:
-  partitions:
+partitions:
   - name: replay
     iteration: REPLAY
     state_history_depth: 1
@@ -128,7 +127,7 @@ main:
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 3
-  simulation:
+simulation:
     termination_condition: {type: input_exhausted, input: src}
     timestep_function: {type: from_input, input: src}
     init_time_value: 0.0

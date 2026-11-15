@@ -26,8 +26,7 @@ const fromStorageTwinYAML = `inputs:
           clear_sky_driver: [[0.0], [5.0], [30.0], [120.0], [340.0], [610.0], [790.0], [880.0],
                              [860.0], [720.0], [500.0], [250.0], [90.0], [20.0], [2.0], [0.0],
                              [0.0], [0.0], [0.0], [0.0]]
-main:
-  partitions:
+partitions:
   - name: clear_sky_driver
     iteration: {type: from_input, input: sun}
     init_state_values: [0.0]
@@ -44,7 +43,7 @@ main:
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 10}
     timestep_function: {type: from_input, input: sun}
     init_time_value: 0.0
@@ -111,11 +110,10 @@ func TestInlineInputs(t *testing.T) {
         partitions:
           a: [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]
           b: [[9.0], [8.0], [7.0], [6.0]]
-main:
-  partitions:
+partitions:
   - {name: a, iteration: {type: from_input, input: series}, state_history_depth: 1}
   - {name: renamed, iteration: {type: from_input, input: series, partition: b}, state_history_depth: 1}
-  simulation:
+simulation:
     timestep_function: {type: from_input, input: series}
     termination_condition: {type: input_exhausted, input: series}
     init_time_value: 0.0
@@ -206,8 +204,8 @@ main:
 		if err != nil {
 			t.Fatal(err)
 		}
-		yaml := strings.Replace(string(data), "      type: from_storage\n",
-			"      type: from_storage\n      init_steps_taken: 0\n", 1)
+		yaml := strings.Replace(string(data), "    type: from_storage\n",
+			"    type: from_storage\n    init_steps_taken: 0\n", 1)
 		config, err := LoadConfig(writeConfigPath(t, yaml))
 		if err != nil {
 			t.Fatal(err)
@@ -240,9 +238,9 @@ main:
 		}
 		cases := map[string]struct{ from, to, want string }{
 			// The builder's own message names the partition it belongs to.
-			"a partition's rows": {"      data: [[0.0], [5.0],", "      data: [[zero], [5.0],",
+			"a partition's rows": {"    data: [[0.0], [5.0],", "    data: [[zero], [5.0],",
 				`partition "clear_sky_driver": from_storage: data[0][0] must be a number, got string`},
-			"the clock's times": {"      data: [0.0, 1.0, 2.0,", "      data: [zero, 1.0, 2.0,",
+			"the clock's times": {"    data: [0.0, 1.0, 2.0,", "    data: [zero, 1.0, 2.0,",
 				"from_storage: data[0] must be a number, got string"},
 		}
 		for name, c := range cases {
