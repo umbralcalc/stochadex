@@ -19,10 +19,12 @@ many times to run it.
   a pre-pass simulation, or a live stream. They are read when the run starts, never when the
   config loads.
 - **The simulation** is one set of partitions stepped together on one clock. It is
-  written in the core language: `main:` partitions, each advanced by an `iteration:` or by
-  `expressions:`, wired together with `params_from_upstream` and `params_as_partitions`, and a
-  `simulation:` block that sets the clock. `embedded:` and the `embedded_simulation_run`
-  iteration put a whole simulation inside a partition.
+  written in the core language, at the top level of the config: `partitions:`, each advanced
+  by an `iteration:` or by `expressions:`, wired together with `params_from_upstream` and
+  `params_as_partitions`, and a `simulation:` block that sets the clock. This is the main run.
+  `embedded:` and the `embedded_simulation_run` iteration put a whole simulation inside a
+  partition, written the same way inside its own block. (An older `main:` block around the
+  main run fails to load with an error saying to write its contents at the top level.)
 - **`macros:`** are shortcuts. Each expands into ordinary partitions in the same simulation,
   so a `macros:` config is its expansion, which `stochadex expand` prints.
 - **`outputs:`** are views of a run, each a condition and a destination.
@@ -79,20 +81,19 @@ before writing an expression.
 **Bespoke maths**, written as expressions:
 
 ```yaml
-main:
-  partitions:
-  - name: growth
-    params: {rate: [0.05], capacity: [100.0], noise: [0.1]}
-    init_state_values: [10.0]
-    state_history_depth: 1
-    seed: 42
-  expressions:
-  - partition: growth
-    fields: [{name: x}]                  # names the state slots, in order
-    bindings:                            # optional intermediates, evaluated in order
-    - {name: drift, expr: "rate * x * (1 - x / capacity)"}
-    outputs:                             # one expression per field = the next state
-    - "x + drift * dt + noise * x * shared(normal(0, 1)) * sqrt(dt)"
+partitions:
+- name: growth
+  params: {rate: [0.05], capacity: [100.0], noise: [0.1]}
+  init_state_values: [10.0]
+  state_history_depth: 1
+  seed: 42
+expressions:
+- partition: growth
+  fields: [{name: x}]                  # names the state slots, in order
+  bindings:                            # optional intermediates, evaluated in order
+  - {name: drift, expr: "rate * x * (1 - x / capacity)"}
+  outputs:                             # one expression per field = the next state
+  - "x + drift * dt + noise * x * shared(normal(0, 1)) * sqrt(dt)"
 ```
 
 Expressions use field names, params keys, `dt`, `t`, `step`, earlier bindings, and upstream aliases. Functions: `sqrt pow exp log abs min max clamp where floor sin cos erf`, `slice`, `concat`, `lag`, plus arithmetic and comparisons, all elementwise with length-1 broadcasting.
@@ -104,34 +105,33 @@ Expressions use field names, params keys, `dt`, `t`, `step`, earlier bindings, a
 
 ```yaml
 # step.yaml
-main:
-  partitions:
-  - name: counter
-    iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
-    init_state_values: [0]
-    state_history_depth: 1
-    seed: 0
-  - name: same_step
-    iteration: {type: expression, fields: [{name: x}], outputs: ["10 * c"]}
-    params: {c: [0]}
-    params_from_upstream: {c: {upstream: counter}}
-    init_state_values: [-1]
-    state_history_depth: 1
-    seed: 0
-  - name: last_step
-    iteration: {type: expression, fields: [{name: x}], upstreams: {m: counter}, outputs: ["10 * m[0]"]}
-    init_state_values: [-1]
-    state_history_depth: 1
-    seed: 0
-  - name: clock
-    iteration: {type: expression, fields: [{name: time}, {name: number}, {name: size}], outputs: ["t", "step", "dt"]}
-    init_state_values: [-1, -1, -1]
-    state_history_depth: 1
-    seed: 0
-  simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 0.5}
-    init_time_value: 10
+partitions:
+- name: counter
+  iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
+  init_state_values: [0]
+  state_history_depth: 1
+  seed: 0
+- name: same_step
+  iteration: {type: expression, fields: [{name: x}], outputs: ["10 * c"]}
+  params: {c: [0]}
+  params_from_upstream: {c: {upstream: counter}}
+  init_state_values: [-1]
+  state_history_depth: 1
+  seed: 0
+- name: last_step
+  iteration: {type: expression, fields: [{name: x}], upstreams: {m: counter}, outputs: ["10 * m[0]"]}
+  init_state_values: [-1]
+  state_history_depth: 1
+  seed: 0
+- name: clock
+  iteration: {type: expression, fields: [{name: time}, {name: number}, {name: size}], outputs: ["t", "step", "dt"]}
+  init_state_values: [-1, -1, -1]
+  state_history_depth: 1
+  seed: 0
+simulation:
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 0.5}
+  init_time_value: 10
 ```
 
 ```text
@@ -178,22 +178,21 @@ the upstream's last committed state:
 
 ```yaml
 # history.yaml
-main:
-  partitions:
-  - name: counter
-    iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
-    init_state_values: [0]
-    state_history_depth: 3
-    seed: 0
-  - name: delayed
-    iteration: {type: expression, fields: [{name: x}], upstreams: {c: counter}, outputs: ["lag(c, 2)[0]"]}
-    init_state_values: [-1]
-    state_history_depth: 1
-    seed: 0
-  simulation:
-    termination_condition: {type: number_of_steps, max_steps: 4}
-    timestep_function: {type: constant, stepsize: 1}
-    init_time_value: 0
+partitions:
+- name: counter
+  iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
+  init_state_values: [0]
+  state_history_depth: 3
+  seed: 0
+- name: delayed
+  iteration: {type: expression, fields: [{name: x}], upstreams: {c: counter}, outputs: ["lag(c, 2)[0]"]}
+  init_state_values: [-1]
+  state_history_depth: 1
+  seed: 0
+simulation:
+  termination_condition: {type: number_of_steps, max_steps: 4}
+  timestep_function: {type: constant, stepsize: 1}
+  init_time_value: 0
 ```
 
 ```text
@@ -222,26 +221,25 @@ refused before anything runs:
 
 ```yaml
 # cycle.yaml
-main:
-  partitions:
-  - name: prey
-    iteration: {type: expression, fields: [{name: x}], outputs: ["x + p"]}
-    params: {p: [0]}
-    params_from_upstream: {p: {upstream: predator}}
-    init_state_values: [1]
-    state_history_depth: 1
-    seed: 0
-  - name: predator
-    iteration: {type: expression, fields: [{name: x}], outputs: ["x + p"]}
-    params: {p: [0]}
-    params_from_upstream: {p: {upstream: prey}}
-    init_state_values: [1]
-    state_history_depth: 1
-    seed: 0
-  simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 1}
-    init_time_value: 0
+partitions:
+- name: prey
+  iteration: {type: expression, fields: [{name: x}], outputs: ["x + p"]}
+  params: {p: [0]}
+  params_from_upstream: {p: {upstream: predator}}
+  init_state_values: [1]
+  state_history_depth: 1
+  seed: 0
+- name: predator
+  iteration: {type: expression, fields: [{name: x}], outputs: ["x + p"]}
+  params: {p: [0]}
+  params_from_upstream: {p: {upstream: prey}}
+  init_state_values: [1]
+  state_history_depth: 1
+  seed: 0
+simulation:
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1}
+  init_time_value: 0
 ```
 
 ```text
@@ -268,37 +266,36 @@ partitions' final states, joined in their order. A params key written
 
 ```yaml
 # nested.yaml
-main:
-  partitions:
-  - name: rate
-    iteration: {type: expression, fields: [{name: r}], outputs: ["r + 1"]}
-    init_state_values: [1]
-    state_history_depth: 1
-    seed: 0
-  - name: three_steps
-    iteration:
-      type: embedded_simulation_run
-      run:
-        partitions:
-        - name: grow
-          iteration: {type: expression, fields: [{name: g}], outputs: ["g + k"]}
-          params: {k: [0]}
-          init_state_values: [0]
-          state_history_depth: 1
-          seed: 0
-        simulation:
-          termination_condition: {type: number_of_steps, max_steps: 3}
-          timestep_function: {type: constant, stepsize: 1}
-          init_time_value: 0
-    params: {burn_in_steps: [0]}
-    params_from_upstream: {grow/k: {upstream: rate}}
-    init_state_values: [0]
-    state_history_depth: 1
-    seed: 0
-  simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 1}
-    init_time_value: 0
+partitions:
+- name: rate
+  iteration: {type: expression, fields: [{name: r}], outputs: ["r + 1"]}
+  init_state_values: [1]
+  state_history_depth: 1
+  seed: 0
+- name: three_steps
+  iteration:
+    type: embedded_simulation_run
+    run:
+      partitions:
+      - name: grow
+        iteration: {type: expression, fields: [{name: g}], outputs: ["g + k"]}
+        params: {k: [0]}
+        init_state_values: [0]
+        state_history_depth: 1
+        seed: 0
+      simulation:
+        termination_condition: {type: number_of_steps, max_steps: 3}
+        timestep_function: {type: constant, stepsize: 1}
+        init_time_value: 0
+  params: {burn_in_steps: [0]}
+  params_from_upstream: {grow/k: {upstream: rate}}
+  init_state_values: [0]
+  state_history_depth: 1
+  seed: 0
+simulation:
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1}
+  init_time_value: 0
 ```
 
 ```text
@@ -362,21 +359,20 @@ inner run follows the last, so inner times repeat once per outer step.
 ## Inputs
 
 A run can replay recorded or generated data. Declare it under `inputs:`, then replay one of an
-input's partitions into a `main:` partition with `{type: from_input}`:
+input's partitions into a main-run partition with `{type: from_input}`:
 
 ```yaml
 inputs:
   obs:  {source: {csv: {path: obs.csv, time_column: 0, state_columns: {flow: [1]}}}}
-main:
-  partitions:
-  - name: flow                      # replays obs's "flow" (partition: renames)
-    iteration: {type: from_input, input: obs}
-    state_history_depth: 1          # init_state_values default to the input's first row
-    seed: 0
-  # ... partitions that read flow via params_from_upstream ...
-  simulation:
-    timestep_function:     {type: from_input, input: obs}       # the clock follows the input
-    termination_condition: {type: input_exhausted, input: obs}  # and stops when it runs out
+partitions:
+- name: flow                      # replays obs's "flow" (partition: renames)
+  iteration: {type: from_input, input: obs}
+  state_history_depth: 1          # init_state_values default to the input's first row
+  seed: 0
+# ... partitions that read flow via params_from_upstream ...
+simulation:
+  timestep_function:     {type: from_input, input: obs}       # the clock follows the input
+  termination_condition: {type: input_exhausted, input: obs}  # and stops when it runs out
 ```
 
 An input's first row is the replaying partition's initial state, and each step reads the next
@@ -392,23 +388,22 @@ inputs:
         times: [0, 1, 3, 6]
         partitions:
           orders: [[5], [7], [2], [9]]
-main:
-  partitions:
-  - name: orders
-    iteration: {type: from_input, input: demand}
-    state_history_depth: 1
-    seed: 0
-  - name: backlog
-    iteration: {type: expression, fields: [{name: b}], outputs: ["b + o - 4"]}
-    params: {o: [0]}
-    params_from_upstream: {o: {upstream: orders}}
-    init_state_values: [0]
-    state_history_depth: 1
-    seed: 0
-  simulation:
-    termination_condition: {type: input_exhausted, input: demand}
-    timestep_function: {type: from_input, input: demand}
-    init_time_value: 0
+partitions:
+- name: orders
+  iteration: {type: from_input, input: demand}
+  state_history_depth: 1
+  seed: 0
+- name: backlog
+  iteration: {type: expression, fields: [{name: b}], outputs: ["b + o - 4"]}
+  params: {o: [0]}
+  params_from_upstream: {o: {upstream: orders}}
+  init_state_values: [0]
+  state_history_depth: 1
+  seed: 0
+simulation:
+  termination_condition: {type: input_exhausted, input: demand}
+  timestep_function: {type: from_input, input: demand}
+  init_time_value: 0
 ```
 
 ```text
@@ -423,7 +418,7 @@ main:
 ```
 
 The run never steps *to* the first row, but it is data like any other, and the macros count it
-(see [Estimating from every row](#estimating-from-every-row)). A `main:` partition that folds
+(see [Estimating from every row](#estimating-from-every-row)). A main-run partition that folds
 in its upstream's value each step (a running sum or mean) sees only the rows after the first, so
 start it from its upstream's initial state with `init_state_from_upstream`, naming one of its
 `params_from_upstream` keys:
@@ -471,11 +466,10 @@ and name it in the iteration field that takes its path:
 ```yaml
 inputs:
   brain: {file: {path: models/brain.onnx}}
-main:
-  partitions:
-  - name: policy
-    iteration: {type: onnx_inference, model_path: {input: brain}}
-    # ...
+partitions:
+- name: policy
+  iteration: {type: onnx_inference, model_path: {input: brain}}
+  # ...
 ```
 
 Any iteration field written `{input: NAME}` is given that file's path when the config
@@ -516,11 +510,10 @@ inputs:
   feed:
     stream: {websocket: {url: "ws://localhost:9000/prices"}}   # connects as a client
     record: feed.log                                           # optional
-main:
-  partitions:
-  - name: trader
-    params: {price: [100.0]}                     # the price until the first message
-    params_from_input: {price: {input: feed}}
+partitions:
+- name: trader
+  params: {price: [100.0]}                     # the price until the first message
+  params_from_input: {price: {input: feed}}
 ```
 
 - **Messages:** each message is a `json_log` entry, `{"partition_name": "price", "state":
@@ -546,16 +539,15 @@ inputs:
     stream:
       keyboard: {partition: steer, keys: {a: [-1.0], d: [1.0], s: [0.0]}}
     record: keys.log                # what the keyboard gave each step, for replay
-main:
-  partitions:
-  - name: steering
-    iteration: {type: param_values}
-    params: {param_values: [0.0]}
-    params_from_input: {param_values: {input: keys, partition: steer}}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
-  # ... partitions that read steering via params_from_upstream ...
+partitions:
+- name: steering
+  iteration: {type: param_values}
+  params: {param_values: [0.0]}
+  params_from_input: {param_values: {input: keys, partition: steer}}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
+# ... partitions that read steering via params_from_upstream ...
 run: {pace_ms: 200}                 # a step every 200ms
 ```
 
@@ -575,13 +567,12 @@ inputs:
   controls:
     stream: {connection: {}}
     record: "controls-{connection}.log"     # one record per connection
-main:
-  partitions:
-  - name: walk
-    iteration: {type: drift_diffusion}
-    params: {drift_coefficients: [0.0], diffusion_coefficients: [0.3]}
-    params_from_input: {drift_coefficients: {input: controls, partition: drift}}
-    ...
+partitions:
+- name: walk
+  iteration: {type: drift_diffusion}
+  params: {drift_coefficients: [0.0], diffusion_coefficients: [0.3]}
+  params_from_input: {drift_coefficients: {input: controls, partition: drift}}
+  ...
 outputs:
   - {name: stream, function: {type: connection}}
 run: {mode: serve, websocket: {address: ":2112", handle: /handle}, pace_ms: 100}
@@ -625,24 +616,23 @@ and 4, and `final_step` writes `double` once, as the run ends:
 
 ```yaml
 # views.yaml
-main:
-  partitions:
-  - name: counter
-    iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
-    init_state_values: [0]
-    state_history_depth: 1
-    seed: 0
-  - name: double
-    iteration: {type: expression, fields: [{name: x}], outputs: ["2 * c"]}
-    params: {c: [0]}
-    params_from_upstream: {c: {upstream: counter}}
-    init_state_values: [0]
-    state_history_depth: 1
-    seed: 0
-  simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1}
-    init_time_value: 0
+partitions:
+- name: counter
+  iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
+  init_state_values: [0]
+  state_history_depth: 1
+  seed: 0
+- name: double
+  iteration: {type: expression, fields: [{name: x}], outputs: ["2 * c"]}
+  params: {c: [0]}
+  params_from_upstream: {c: {upstream: counter}}
+  init_state_values: [0]
+  state_history_depth: 1
+  seed: 0
+simulation:
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1}
+  init_time_value: 0
 outputs:
 - {name: sparse, condition: {type: every_n_steps, n: 2}, function: {type: stdout}}
 - {name: final, condition: {type: final_step, partitions: [double]}, function: {type: stdout}}
@@ -791,8 +781,8 @@ be repeated:
 
 ```bash
 stochadex --config model.yaml \
-  --set 'main.partitions[name=price].seed=7' \
-  --set main.simulation.termination_condition.max_steps=8000 \
+  --set 'partitions[name=price].seed=7' \
+  --set simulation.termination_condition.max_steps=8000 \
   --set 'run.seeds=[1, 2, 3]'
 ```
 
@@ -878,10 +868,10 @@ fields.
 A `macros:` config runs as its expansion, one ordinary simulation:
 
 - **Its partitions:** each input's partitions, replayed under their own names, then the
-  `main:` partitions, then each macro's partitions, in order. A macro reads the inputs, the
-  `main:` partitions and earlier macros' outputs live, and a `main:` partition can read a
+  main-run partitions, then each macro's partitions, in order. A macro reads the inputs, the
+  main-run partitions and earlier macros' outputs live, and a main-run partition can read a
   macro's output. A partition name may be defined only once across all of them.
-- **Its clock:** `main.simulation` when the config states one; otherwise the clock of the one
+- **Its clock:** `simulation` when the config states one; otherwise the clock of the one
   macro that has its own (steps of a timestep, or an SMC run's rounds); otherwise the inputs',
   stopping when they run out. A run has one clock, so a second macro with its own is refused,
   and several inputs must share one time axis.
@@ -943,7 +933,7 @@ outputs:
 ```
 
 [`cfg/example_poisson_rate_config.yaml`](https://github.com/umbralcalc/stochadex/blob/main/cfg/example_poisson_rate_config.yaml)
-does this per group, with the rates themselves as a `main:` partition.
+does this per group, with the rates themselves as a main-run partition.
 
 ### The learning macros have levers
 
@@ -1116,21 +1106,20 @@ built-in and the YAML to replace it with:
 
 ```yaml
 # pull.yaml
-main:
-  partitions:
-  - name: level                     # mean-reverting, written out as an expression
-    iteration:
-      type: expression
-      fields: [{name: x}]
-      outputs: ["x + 0.5 * (target - x) * dt + 0.2 * sqrt(dt) * shared(normal(0, 1))"]
-    params: {target: [3.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 7
-  simulation:
-    termination_condition: {type: number_of_steps, max_steps: 100}
-    timestep_function: {type: constant, stepsize: 0.1}
-    init_time_value: 0
+partitions:
+- name: level                     # mean-reverting, written out as an expression
+  iteration:
+    type: expression
+    fields: [{name: x}]
+    outputs: ["x + 0.5 * (target - x) * dt + 0.2 * sqrt(dt) * shared(normal(0, 1))"]
+  params: {target: [3.0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 7
+simulation:
+  termination_condition: {type: number_of_steps, max_steps: 100}
+  timestep_function: {type: constant, stepsize: 0.1}
+  init_time_value: 0
 ```
 
 ```bash
@@ -1229,7 +1218,7 @@ condition.
 
 ```go
 config, err := api.LoadConfig("model.yaml",
-    api.WithSet("main.partitions[name=price].seed", "7")) // optional overrides, as --set
+    api.WithSet("partitions[name=price].seed", "7")) // optional overrides, as --set
 result, err := api.RunWith(config,
     api.CaptureView("prices", &simulator.OnlyGivenPartitionsOutputCondition{
         Partitions: map[string]bool{"price": true}}),

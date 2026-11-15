@@ -81,11 +81,10 @@ func streamConfigYAML(feed string, steps int) string {
 	return fmt.Sprintf(`inputs:
   feed:
 %s
-main:
-  partitions:
+partitions:
   - {name: dial, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, params_from_input: {level: {input: feed}}, init_state_values: [0.0], state_history_depth: 1, seed: 1}
   - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, params_from_upstream: {variances: {upstream: dial}}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: %d}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -190,9 +189,9 @@ func TestStreamInputs(t *testing.T) {
 				`[{"partition_name": "level", "state": [3]}, {"partition_name": "other", "state": [7]}]`))
 		})
 		yaml := strings.Replace(streamConfigYAML(fmt.Sprintf("    stream: {websocket: {url: %q}}", url), 200),
-			"  simulation:", "  - {name: dial2, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, "+
+			"simulation:", "  - {name: dial2, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, "+
 				"params_from_input: {level: {input: feed, partition: other}}, init_state_values: [0.0], "+
-				"state_history_depth: 1, seed: 4}\n  simulation:", 1)
+				"state_history_depth: 1, seed: 4}\nsimulation:", 1)
 		result, err := RunToStorage(writeConfig(t, yaml))
 		if err != nil {
 			t.Fatal(err)
@@ -223,7 +222,7 @@ func TestStreamInputs(t *testing.T) {
 		defer server.Close()
 		url := "ws" + strings.TrimPrefix(server.URL, "http")
 		yaml := strings.Replace(streamConfigYAML(fmt.Sprintf("    stream: {websocket: {url: %q}}", url), 5),
-			"main:", "  gone:\n    stream: {websocket: {url: \"ws://127.0.0.1:1/feed\"}}\nmain:", 1)
+			"partitions:", "  gone:\n    stream: {websocket: {url: \"ws://127.0.0.1:1/feed\"}}\npartitions:", 1)
 		yaml = strings.Replace(yaml, "params: {variances: [1.0]}, params_from_upstream: {variances: {upstream: dial}}",
 			"params: {variances: [1.0]}, params_from_input: {variances: {input: gone}}", 1)
 		_, err := RunToStorage(writeConfig(t, yaml))
@@ -250,10 +249,9 @@ func TestStreamInputs(t *testing.T) {
 func storedParamsYAML(csv string, steps int, binding string) string {
 	return fmt.Sprintf(`inputs:
   vol: {source: {csv: {path: %q, time_column: 0, state_columns: {variances: [1]}}}}
-main:
-  partitions:
+partitions:
   - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, %s, init_state_values: [0.0], state_history_depth: 1, seed: 3}
-%s  simulation:
+%ssimulation:
     termination_condition: {type: number_of_steps, max_steps: %d}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -276,8 +274,8 @@ func TestParamsFromStoredInput(t *testing.T) {
 		// Reference: the input replayed as a partition, read within the step.
 		reference, err := RunToStorage(writeConfig(t, strings.Replace(storedParamsYAML(csv, 5,
 			"params_from_upstream: {variances: {upstream: variances}}"),
-			"  simulation:", "  - {name: variances, iteration: {type: from_input, input: vol}, "+
-				"state_history_depth: 1, seed: 0}\n  simulation:", 1)))
+			"simulation:", "  - {name: variances, iteration: {type: from_input, input: vol}, "+
+				"state_history_depth: 1, seed: 0}\nsimulation:", 1)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -285,7 +283,7 @@ func TestParamsFromStoredInput(t *testing.T) {
 			storageWith(got.Storage, "walk"), storageWith(reference.Storage, "walk"))
 		// Positive control: the input changes the run.
 		withoutInput := storedParamsYAML(csv, 5, "seed: 3")
-		withoutInput = withoutInput[strings.Index(withoutInput, "main:"):]
+		withoutInput = withoutInput[strings.Index(withoutInput, "partitions:"):]
 		constant, err := RunToStorage(writeConfig(t, withoutInput))
 		if err != nil {
 			t.Fatal(err)

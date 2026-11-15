@@ -13,15 +13,14 @@ import (
 func hostedYAML(csv, binding, extra string) string {
 	return fmt.Sprintf(`inputs:
   vol: {source: {csv: {path: %q, time_column: 0, state_columns: {variances: [1]}}}}
-main:
-  partitions:
+partitions:
 %s  - name: nested
     params: {burn_in_steps: [0], inner/variances: [1.0]}
     %s
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -64,7 +63,7 @@ func TestParamsReachEmbeddedRunsThroughTheirHost(t *testing.T) {
 		}
 		// Positive control: the input changes the inner run.
 		withoutInput := hostedYAML(csv, "", "")
-		constant, err := RunToStorage(writeConfig(t, withoutInput[strings.Index(withoutInput, "main:"):]))
+		constant, err := RunToStorage(writeConfig(t, withoutInput[strings.Index(withoutInput, "partitions:"):]))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -73,7 +72,7 @@ func TestParamsReachEmbeddedRunsThroughTheirHost(t *testing.T) {
 		}
 	})
 
-	withoutInputs := func(yaml string) string { return yaml[strings.Index(yaml, "main:"):] }
+	withoutInputs := func(yaml string) string { return yaml[strings.Index(yaml, "partitions:"):] }
 	misspelled := func(yaml string) string {
 		return strings.Replace(yaml, "inner/variances: [1.0]", "innr/variances: [1.0]", 1)
 	}

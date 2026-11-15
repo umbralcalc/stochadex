@@ -651,7 +651,7 @@ func RunToStorage(config *ApiRunConfig) (*RunResult, error) {
 	return result, nil
 }
 
-// preparedRun is a main:-path config made ready to run: its generator, and the
+// preparedRun is a main-run config made ready to run: its generator, and the
 // settings and implementations it generated, which the run uses as they are.
 type preparedRun struct {
 	generator       *simulator.ConfigGenerator
@@ -662,7 +662,7 @@ type preparedRun struct {
 	feeds *paramFeeds
 }
 
-// preparedMainGenerator validates a main:-path config and returns it ready to
+// preparedMainGenerator validates a main-run config and returns it ready to
 // run, pre-flighted for within-step deadlocks and for wiring that cannot be
 // built (an expression or upstream naming a partition that does not exist, an
 // index out of range). Generating the configs panics on those, so the panic is
@@ -723,9 +723,9 @@ func unknownRunModeError(mode string) error {
 }
 
 // validateMainContext checks the main run has its clock, which a config loaded
-// with no main.simulation block leaves for its caller to supply.
+// with no simulation block leaves for its caller to supply.
 func validateMainContext(config *ApiRunConfig) error {
-	return clockError("main.simulation", config.Main.Simulation.TerminationCondition == nil,
+	return clockError("simulation", config.Main.Simulation.TerminationCondition == nil,
 		config.Main.Simulation.TimestepFunction == nil)
 }
 

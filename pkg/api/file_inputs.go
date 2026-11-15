@@ -12,10 +12,9 @@ import (
 //
 //	inputs:
 //	  brain: {file: {path: models/brain.onnx}}
-//	main:
-//	  partitions:
-//	  - name: policy
-//	    iteration: {type: onnx_inference, model_path: {input: brain}, ...}
+//	partitions:
+//	- name: policy
+//	  iteration: {type: onnx_inference, model_path: {input: brain}, ...}
 //
 // Any iteration field written {input: NAME}, naming a file input, is given that
 // file's path when the config loads, before the iteration is built, so an
@@ -63,7 +62,7 @@ func resolveFileInputs(config *ApiRunConfig) error {
 		}
 		return nil
 	}
-	if err := visit("main.partitions", "main", config.Main.Partitions); err != nil {
+	if err := visit("partitions", "main", config.Main.Partitions); err != nil {
 		return err
 	}
 	for _, embedded := range config.Embedded {

@@ -38,12 +38,11 @@ simulation:
 	return indent + strings.ReplaceAll(strings.TrimSuffix(run, "\n"), "\n", "\n"+indent) + "\n"
 }
 
-const nestedOuter = `main:
-  partitions:
+const nestedOuter = `partitions:
   - {name: drive, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [1.0], state_history_depth: 3, seed: 3}
 `
 
-const nestedClock = `  simulation:
+const nestedClock = `simulation:
     termination_condition: {type: number_of_steps, max_steps: 8}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -60,8 +59,7 @@ var specNested = nestedOuter + "  - name: nested\n    iteration:\n      type: em
 // threeLevels nests a run hosting a run: level1's run steps a Wiener walk mid
 // and hosts level2, whose run is an Ornstein-Uhlenbeck process deep reverting
 // to mid, forwarded each step.
-const threeLevels = `main:
-  partitions:
+const threeLevels = `partitions:
   - name: level1
     iteration:
       type: embedded_simulation_run
@@ -92,7 +90,7 @@ const threeLevels = `main:
     init_state_values: [0.0, 0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -100,8 +98,7 @@ const threeLevels = `main:
 
 // levelTwoAsTopLevel is level1's run on its own, with level2 as a top-level
 // embedded: block: the established path the reference is built from.
-const levelTwoAsTopLevel = `main:
-  partitions:
+const levelTwoAsTopLevel = `partitions:
   - {name: mid, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 5}
   - name: level2
     params: {burn_in_steps: [0], deep/mus: [0.0]}
@@ -109,7 +106,7 @@ const levelTwoAsTopLevel = `main:
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -204,7 +201,7 @@ func TestEmbeddedSimulationRunSpec(t *testing.T) {
     state_history_depth: 1
     seed: 0
 `
-		result, err := RunToStorage(writeConfig(t, "main:\n  partitions:\n  - name: first\n"+nested+
+		result, err := RunToStorage(writeConfig(t, "partitions:\n  - name: first\n"+nested+
 			"  - name: second\n"+nested+nestedClock))
 		if err != nil {
 			t.Fatal(err)

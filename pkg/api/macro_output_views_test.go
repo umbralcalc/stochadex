@@ -15,8 +15,7 @@ import (
 // and variance macros over a Normal stream), which reproduces the macro path
 // exactly. It runs as one live
 // simulation, so a view fed by it is what a live run of the same model outputs.
-const macroTwinYAML = `main:
-  partitions:
+const macroTwinYAML = `partitions:
   - name: data_stream
     iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
     params:
@@ -51,7 +50,7 @@ const macroTwinYAML = `main:
     init_state_values: [0.0, 0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 500}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

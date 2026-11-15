@@ -168,11 +168,11 @@ func lagSum(alias string, n int) string {
 // pairConfig is a config of one side of a pair, for steps of 0.1. Without
 // record, it outputs nothing, so a run times only its arithmetic.
 func pairConfig(pair builtinPair, out func(int) string, width, steps int, record bool) string {
-	config := "main:\n  partitions:\n"
+	config := "partitions:\n"
 	if pair.sources != nil {
 		config += pair.sources(width)
 	}
-	config += out(width) + fmt.Sprintf(`  simulation:
+	config += out(width) + fmt.Sprintf(`simulation:
     termination_condition: {type: number_of_steps, max_steps: %d}
     timestep_function: {type: constant, stepsize: 0.1}
     init_time_value: 0

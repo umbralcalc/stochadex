@@ -12,7 +12,7 @@ import (
 
 // The inputs: tier. An input is a named, read-only storage
 // that exists before the runtime is built: loaded from a source (a file, a
-// database), or produced by a labelled pre-pass simulation. A main: partition
+// database), or produced by a labelled pre-pass simulation. A main-run partition
 // replays one of an input's partitions with {type: from_input}; the run's clock
 // can follow an input's timestamps with timestep_function {type: from_input}
 // and stop when it runs out with termination_condition {type: input_exhausted}.
@@ -31,7 +31,7 @@ type InputConfig struct {
 	// Simulation produces the input by running a sub-simulation first.
 	Simulation *DataConfig `yaml:"simulation,omitempty"`
 	// Run produces the input by running a config of its own first: one with
-	// inputs:, main: and embedded:, or macros:, which runs once (batch). Its
+	// inputs:, a main run and embedded:, or macros:, which runs once (batch). Its
 	// recorded rows are the input's, as RunToStorage returns them; its own
 	// outputs are not written.
 	Run *ApiRunConfig `yaml:"run,omitempty"`
@@ -520,7 +520,7 @@ func validateInputs(config *ApiRunConfig) error {
 		}
 	}
 	// A macros: config analyses every input (they are combined into the storage
-	// its macros read), so only main: inputs can go unused.
+	// its macros read), so only main-run inputs can go unused.
 	for name := range config.Inputs {
 		if len(config.Macros) == 0 && !used[name] {
 			return fmt.Errorf("api: input %q is never used; replay it with "+

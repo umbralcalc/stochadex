@@ -25,11 +25,10 @@ func twoWayYAML(steps int, record, extra string) string {
 	return fmt.Sprintf(`inputs:
   actions:
     stream: {connection: {}}
-%s%smain:
-  partitions:
+%s%spartitions:
   - {name: dial, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, params_from_input: {level: {input: actions}}, init_state_values: [0.0], state_history_depth: 1, seed: 1}
   - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, params_from_upstream: {variances: {upstream: dial}}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: %d}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -130,9 +129,9 @@ func TestTwoWayServe(t *testing.T) {
 
 	t.Run("dexetera's ActionState messages, named and broadcast", func(t *testing.T) {
 		yaml := strings.Replace(twoWayYAML(300, "", "    decode: protobuf_action_state\n"),
-			"  simulation:", "  - {name: dial2, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, "+
+			"simulation:", "  - {name: dial2, iteration: {type: sleepy_param_echo}, params: {level: [0.0]}, "+
 				"params_from_input: {level: {input: actions, partition: values}}, init_state_values: [0.0], "+
-				"state_history_depth: 1, seed: 3}\n  simulation:", 1)
+				"state_history_depth: 1, seed: 3}\nsimulation:", 1)
 		named, _ := proto.Marshal(&simulator.ActionState{
 			Partitions: map[string]*simulator.ActionValues{"level": {Values: []float64{7}}},
 			Values:     []float64{100}, // ignored: named entries take precedence
@@ -230,7 +229,7 @@ func TestTwoWayServeValidation(t *testing.T) {
 		).Replace(twoWayYAML(5, "", "")),
 			`input "actions" reads a served client (stream: {connection: {}}), which only applies to run: {mode: serve}`},
 		{"two inputs reading the served client", strings.Replace(twoWayYAML(5, "", ""),
-			"main:", "  more:\n    stream: {connection: {}}\nmain:", 1) + "",
+			"partitions:", "  more:\n    stream: {connection: {}}\npartitions:", 1) + "",
 			"2 inputs read the served client"},
 		{"a record every connection would share", twoWayYAML(5, "actions.log", ""),
 			"put {connection} in it"},

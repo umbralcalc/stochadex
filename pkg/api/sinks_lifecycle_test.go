@@ -109,14 +109,13 @@ func TestSinksOpenOnlyWhenARunStarts(t *testing.T) {
 		// The nested sink is configured and finalized once per outer step; its
 		// records must accumulate, not be truncated by each inner run.
 		logPath := filepath.Join(t.TempDir(), "inner.log")
-		config := writeConfig(t, fmt.Sprintf(`main:
-  partitions:
+		config := writeConfig(t, fmt.Sprintf(`partitions:
   - name: nested
     params: {burn_in_steps: [0]}
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

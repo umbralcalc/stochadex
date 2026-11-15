@@ -15,11 +15,10 @@ import (
 // shardedYAML is a six-member ensemble of two partitions, each member writing
 // its own log named by its seed under dir.
 func shardedYAML(dir, name string) string {
-	return fmt.Sprintf(`main:
-  partitions:
+	return fmt.Sprintf(`partitions:
   - {name: a, iteration: {type: wiener_process}, params: {variances: [1.0, 2.0]}, init_state_values: [0.0, 1.0], state_history_depth: 1, seed: 3}
   - {name: b, iteration: {type: wiener_process}, params: {variances: [0.5]}, init_state_values: [2.0], state_history_depth: 1, seed: 4}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 20}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

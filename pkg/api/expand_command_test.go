@@ -79,7 +79,7 @@ func TestExpandCommand(t *testing.T) {
 			t.Fatal(err)
 		}
 		// The stream's history is as deep as the windows reading it.
-		if !strings.Contains(out, "iteration: {type: from_input, input: data}\n      state_history_depth: 150") {
+		if !strings.Contains(out, "iteration: {type: from_input, input: data}\n    state_history_depth: 150") {
 			t.Fatalf("expected the windows of 150 to set the stream's depth:\n%s", out)
 		}
 		out, err = runExpand(t, "-c", filepath.Join(root, "cfg", "example_macro_config.yaml"),
@@ -87,7 +87,7 @@ func TestExpandCommand(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(out, "iteration: {type: from_input, input: data}\n      state_history_depth: 200") {
+		if !strings.Contains(out, "iteration: {type: from_input, input: data}\n    state_history_depth: 200") {
 			t.Errorf("the overridden windows did not reach the expansion:\n%s", out)
 		}
 	})

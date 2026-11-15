@@ -11,8 +11,7 @@ import (
 // lagYAML is docs/reference.md's history example: delayed reads counter (which
 // counts 1, 2, 3, ...) through output, with counter keeping depth rows.
 func lagYAML(depth int, output string) string {
-	return fmt.Sprintf(`main:
-  partitions:
+	return fmt.Sprintf(`partitions:
   - name: counter
     iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
     init_state_values: [0]
@@ -23,7 +22,7 @@ func lagYAML(depth int, output string) string {
     init_state_values: [-1]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 4}
     timestep_function: {type: constant, stepsize: 1}
     init_time_value: 0

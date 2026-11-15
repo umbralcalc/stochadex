@@ -1,26 +1,25 @@
-main:
-  partitions:
+partitions:
 
-  - name: first_wiener_process
-    iteration: {type: wiener_process}
-    params:
-      variances: [1.0, 1.0, 1.0, 1.0, 1.0]
-    init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
-    state_history_depth: 1
-    seed: 7167
+- name: first_wiener_process
+  iteration: {type: wiener_process}
+  params:
+    variances: [1.0, 1.0, 1.0, 1.0, 1.0]
+  init_state_values: [0.45, 1.4, 0.01, -0.13, 0.7]
+  state_history_depth: 1
+  seed: 7167
 
-  - name: second_wiener_process
-    iteration: {type: wiener_process}
-    params:
-      variances: [1.0, 1.0, 1.0]
-    init_state_values: [0.0, 0.0, 0.0]
-    state_history_depth: 1
-    seed: 2939
+- name: second_wiener_process
+  iteration: {type: wiener_process}
+  params:
+    variances: [1.0, 1.0, 1.0]
+  init_state_values: [0.0, 0.0, 0.0]
+  state_history_depth: 1
+  seed: 2939
 
-  simulation:
+simulation:
 
-    termination_condition: {type: number_of_steps, max_steps: 100}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 100}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: json_log, path: "./nbs/data/test.log"}}

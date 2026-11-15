@@ -185,8 +185,7 @@ func TestManifestGolden(t *testing.T) {
 const ioYAML = `inputs:
   prices: {source: {csv: {path: data/prices.csv, time_column: 0, state_columns: {close: [1], volume: [2]}}}}
   rates: {source: {json_log: {path: data/rates.log}}}
-main:
-  partitions:
+partitions:
   - name: price
     iteration: {type: from_input, input: prices, partition: close}
     state_history_depth: 1
@@ -205,7 +204,7 @@ main:
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     timestep_function: {type: from_input, input: prices}
     termination_condition: {type: input_exhausted, input: prices}
     init_time_value: 0.0
@@ -225,10 +224,9 @@ embedded:
 `
 
 // ensembleIOYAML writes one json_log per member.
-const ensembleIOYAML = `main:
-  partitions:
+const ensembleIOYAML = `partitions:
   - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -305,7 +303,7 @@ func TestManifestMatchesWhatARunReadsAndWrites(t *testing.T) {
 
 // checkYAML is a five-step main run of the given partitions, plus extra.
 func checkYAML(partitions, extra string) string {
-	return "main:\n  partitions:\n" + partitions + `  simulation:
+	return "partitions:\n" + partitions + `simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -468,10 +466,9 @@ func TestManifestReportsNoSecrets(t *testing.T) {
 	yaml := `inputs:
   db: {source: {postgres: {user: trader, password: s3cret, dbname: market, table: prices, partition_names: [p], start_time: 0, end_time: 5}}}
   feed: {stream: {websocket: {url: "ws://trader:s3cret@feeds.example.org/live?token=s3cret"}}}
-main:
-  partitions:
+partitions:
   - {name: p, iteration: {type: from_input, input: db}, init_state_values: [0.0], state_history_depth: 1}
-` + walkPartition("w", ", params_from_input: {variances: {input: feed}}") + `  simulation:
+` + walkPartition("w", ", params_from_input: {variances: {input: feed}}") + `simulation:
     termination_condition: {type: number_of_steps, max_steps: 5}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -480,7 +477,7 @@ outputs:
 - {name: push, function: {type: websocket, url: "ws://trader:s3cret@sink.example.org:9000/in?token=s3cret"}}
 - {name: log, function: {type: json_log, path: "out/${RUN_ID}.log"}}
 `
-	config, err := LoadConfig(writeConfigPath(t, yaml), WithSet("main.partitions[name=w].seed", "4"),
+	config, err := LoadConfig(writeConfigPath(t, yaml), WithSet("partitions[name=w].seed", "4"),
 		envOf(map[string]string{"RUN_ID": "run-77"}))
 	if err != nil {
 		t.Fatal(err)
@@ -512,7 +509,7 @@ outputs:
 			t.Errorf("%s at %q, want %q", key, locations[key], location)
 		}
 	}
-	if !slices.Equal(manifest.Overrides, []string{"--set main.partitions[name=w].seed=4"}) ||
+	if !slices.Equal(manifest.Overrides, []string{"--set partitions[name=w].seed=4"}) ||
 		!slices.Equal(manifest.Variables, []string{"RUN_ID"}) {
 		t.Errorf("overrides %v and variables %v", manifest.Overrides, manifest.Variables)
 	}
@@ -583,7 +580,7 @@ func TestInspectCLI(t *testing.T) {
 		})
 	}
 	t.Run("inspect --io on a bad config is a config error", func(t *testing.T) {
-		err, printed := executeIn(t, t.TempDir(), "inspect", "--io", "-c", writeConfigPath(t, "main: {partitons: []}\n"))
+		err, printed := executeIn(t, t.TempDir(), "inspect", "--io", "-c", writeConfigPath(t, "simulation: {terminaton_condition: {}}\n"))
 		if KindOf(err) != ErrConfig || printed != "" {
 			t.Errorf("expected ErrConfig and nothing printed, got %v and %q", err, printed)
 		}
@@ -602,11 +599,11 @@ func TestManifestOfEveryMainRunReadAndWrite(t *testing.T) {
 			Termination: "input_exhausted", TerminationInput: "prices"},
 		Inputs: []ManifestInput{
 			{Name: "prices", Kind: "csv", Location: "data/prices.csv", Partitions: []string{"close"},
-				ReadBy: []string{"main.partitions[name=price]", "main.partitions[name=close_again]",
-					"main.simulation.timestep_function",
-					"main.simulation.termination_condition"}},
+				ReadBy: []string{"partitions[name=price]", "partitions[name=close_again]",
+					"simulation.timestep_function",
+					"simulation.termination_condition"}},
 			{Name: "rates", Kind: "json_log", Location: "data/rates.log", Partitions: []string{"rate"},
-				ReadBy: []string{"main.partitions[name=walk].params_from_input.variances"}},
+				ReadBy: []string{"partitions[name=walk].params_from_input.variances"}},
 		},
 		Outputs: []ManifestOutput{
 			{Name: "log", DeclaredIn: "outputs", Condition: "every_step", Sink: "json_log",

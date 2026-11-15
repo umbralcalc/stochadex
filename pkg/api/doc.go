@@ -30,8 +30,10 @@
 //	inputs:   named, read-only data the run reads when it starts: a source (csv, json_log,
 //	          postgres, inline, plus registered ones), a pre-pass simulation, a nested run,
 //	          a file, or a live stream (InputConfig).
-//	main:     partitions, expressions and the simulation block (termination condition,
-//	          timestep function, initial time, execution strategy) — see RunConfig.
+//	partitions, expressions, simulation:
+//	          the main run, written at the top level: its partitions, their expressions
+//	          and the simulation block (termination condition, timestep function,
+//	          initial time, execution strategy) — see RunConfig.
 //	embedded: named sub-runs, each a whole RunConfig (EmbeddedRunConfig). A main-run
 //	          partition whose name matches one is replaced by an embedded simulation
 //	          iteration wired to it, which is how a simulation nests inside a partition.

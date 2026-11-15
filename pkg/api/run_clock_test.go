@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// clockWalk is a one-partition main: run with the given simulation block.
+// clockWalk is a one-partition main run with the given simulation block.
 func clockWalk(simulation string) string {
-	return "main:\n  partitions:\n" + walkModel + simulation
+	return "partitions:\n" + walkModel + simulation
 }
 
 const (
@@ -15,17 +15,17 @@ const (
 	clockTimestep    = "    timestep_function: {type: constant, stepsize: 1.0}\n"
 )
 
-// clockHostedRun is a main: walk hosting embedded run e, stated by embedded.
+// clockHostedRun is a main-run walk hosting embedded run e, stated by embedded.
 func clockHostedRun(embedded string) string {
 	return clockWalk("  - {name: e, params: {burn_in_steps: [0]}, init_state_values: [0.0], "+
-		"state_history_depth: 1, seed: 0}\n  simulation:\n"+clockTermination+clockTimestep) +
+		"state_history_depth: 1, seed: 0}\nsimulation:\n"+clockTermination+clockTimestep) +
 		"embedded:\n- name: e\n" + embedded
 }
 
 const embeddedWalk = "  partitions:\n  - {name: inner, iteration: {type: wiener_process}, " +
 	"params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 2}\n"
 
-// clockNestedHost is a main: partition running the given run in place.
+// clockNestedHost is a main-run partition running the given run in place.
 func clockNestedHost(simulation string) string {
 	return clockWalk(`  - name: host
     iteration:
@@ -37,7 +37,7 @@ func clockNestedHost(simulation string) string {
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
 ` + clockTermination + clockTimestep)
 }
 
@@ -62,17 +62,17 @@ func assertClockRefused(t *testing.T, yaml string, want, avoid []string) {
 }
 
 func TestRunClockIsCheckedAtLoad(t *testing.T) {
-	t.Run("main.simulation missing a field is refused, naming what is missing", func(t *testing.T) {
+	t.Run("simulation missing a field is refused, naming what is missing", func(t *testing.T) {
 		cases := []struct {
 			name, simulation string
 			want, avoid      []string
 		}{
-			{"output only", "  simulation:\n    output_function: {type: stdout}\n",
-				[]string{"main.simulation needs termination_condition", "and timestep_function"}, nil},
-			{"no termination", "  simulation:\n" + clockTimestep,
-				[]string{"main.simulation needs termination_condition"}, []string{"and timestep_function"}},
-			{"no timestep", "  simulation:\n" + clockTermination,
-				[]string{"main.simulation needs timestep_function"}, []string{"needs termination_condition"}},
+			{"output only", "simulation:\n    output_function: {type: stdout}\n",
+				[]string{"simulation needs termination_condition", "and timestep_function"}, nil},
+			{"no termination", "simulation:\n" + clockTimestep,
+				[]string{"simulation needs termination_condition"}, []string{"and timestep_function"}},
+			{"no timestep", "simulation:\n" + clockTermination,
+				[]string{"simulation needs timestep_function"}, []string{"needs termination_condition"}},
 		}
 		for _, c := range cases {
 			t.Run(c.name, func(t *testing.T) {
@@ -81,13 +81,13 @@ func TestRunClockIsCheckedAtLoad(t *testing.T) {
 		}
 	})
 
-	t.Run("no main.simulation loads, for Go to supply, but does not run or check", func(t *testing.T) {
+	t.Run("no simulation loads, for Go to supply, but does not run or check", func(t *testing.T) {
 		path := writeConfigPath(t, clockWalk(""))
 		config, err := LoadConfig(path)
 		if err != nil {
-			t.Fatalf("a config with no main.simulation should load: %v", err)
+			t.Fatalf("a config with no simulation should load: %v", err)
 		}
-		const want = "main.simulation needs termination_condition (e.g. {type: number_of_steps, " +
+		const want = "simulation needs termination_condition (e.g. {type: number_of_steps, " +
 			"max_steps: 100}) and timestep_function"
 		if _, err := RunToStorage(config); KindOf(err) != ErrConfig || !strings.Contains(err.Error(), want) {
 			t.Errorf("expected the run to be an ErrConfig saying %q, got %v", want, err)
@@ -98,8 +98,8 @@ func TestRunClockIsCheckedAtLoad(t *testing.T) {
 		}
 	})
 
-	t.Run("a whole main.simulation loads and runs", func(t *testing.T) {
-		result, err := RunToStorage(writeConfig(t, clockWalk("  simulation:\n"+clockTermination+clockTimestep)))
+	t.Run("a whole simulation loads and runs", func(t *testing.T) {
+		result, err := RunToStorage(writeConfig(t, clockWalk("simulation:\n"+clockTermination+clockTimestep)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -109,10 +109,10 @@ func TestRunClockIsCheckedAtLoad(t *testing.T) {
 	})
 
 	t.Run("the CLI's --check refuses it as a config error", func(t *testing.T) {
-		path := writeConfigPath(t, clockWalk("  simulation:\n    output_function: {type: stdout}\n"))
+		path := writeConfigPath(t, clockWalk("simulation:\n    output_function: {type: stdout}\n"))
 		err, _ := executeIn(t, t.TempDir(), "--config", path, "--check")
-		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "main.simulation needs termination_condition") {
-			t.Errorf("expected an ErrConfig naming main.simulation's termination_condition, got %v", err)
+		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "simulation needs termination_condition") {
+			t.Errorf("expected an ErrConfig naming simulation's termination_condition, got %v", err)
 		}
 	})
 
@@ -124,7 +124,7 @@ func TestRunClockIsCheckedAtLoad(t *testing.T) {
 			{"no partitions", clockHostedRun("  partitions: []\n  simulation:\n" +
 				clockTermination + clockTimestep),
 				[]string{`embedded[0] ("e") has no partitions`}},
-			{"no host", clockWalk("  simulation:\n"+clockTermination+clockTimestep) +
+			{"no host", clockWalk("simulation:\n"+clockTermination+clockTimestep) +
 				"embedded:\n- name: e\n" + embeddedWalk + "  simulation:\n" + clockTermination + clockTimestep,
 				[]string{`embedded[0] ("e") has no host`, `partition named "e"`}},
 			{"no simulation", clockHostedRun(embeddedWalk),
@@ -167,8 +167,8 @@ func TestRunClockIsCheckedAtLoad(t *testing.T) {
 }
 
 func TestMainClockBesideMacros(t *testing.T) {
-	t.Run("a partial main.simulation is refused as the run's clock", func(t *testing.T) {
-		const where = "main.simulation, which beside macros: is the run's clock " +
+	t.Run("a partial simulation is refused as the run's clock", func(t *testing.T) {
+		const where = "simulation, which beside macros: is the run's clock " +
 			"(an output goes under outputs:), needs "
 		cases := []struct{ name, simulation, missing string }{
 			{"output only", "    output_function: {type: stdout}\n", "termination_condition"},
@@ -177,26 +177,26 @@ func TestMainClockBesideMacros(t *testing.T) {
 		}
 		for _, c := range cases {
 			t.Run(c.name, func(t *testing.T) {
-				assertClockRefused(t, macroConfigYAML+"main:\n  simulation:\n"+c.simulation,
+				assertClockRefused(t, macroConfigYAML+"simulation:\n"+c.simulation,
 					[]string{where + c.missing}, nil)
 			})
 		}
 	})
 
-	t.Run("no main.simulation leaves the clock to the inputs", func(t *testing.T) {
+	t.Run("no simulation leaves the clock to the inputs", func(t *testing.T) {
 		if _, err := RunToStorage(writeConfig(t, macroConfigYAML)); err != nil {
 			t.Fatal(err)
 		}
 	})
 
-	t.Run("a whole main.simulation beside macros is the run's clock", func(t *testing.T) {
-		result, err := RunToStorage(writeConfig(t, macroConfigYAML+"main:\n  simulation:\n"+
+	t.Run("a whole simulation beside macros is the run's clock", func(t *testing.T) {
+		result, err := RunToStorage(writeConfig(t, macroConfigYAML+"simulation:\n"+
 			"    termination_condition: {type: number_of_steps, max_steps: 7}\n"+clockTimestep))
 		if err != nil {
 			t.Fatal(err)
 		}
 		if steps := len(result.Storage.GetTimes()); steps != 8 {
-			t.Errorf("expected the initial row and main.simulation's 7 steps, got %d", steps)
+			t.Errorf("expected the initial row and simulation's 7 steps, got %d", steps)
 		}
 	})
 }

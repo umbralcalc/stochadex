@@ -475,7 +475,7 @@ func inputReaders(config *ApiRunConfig) map[string]readers {
 		found[input] = r
 	}
 	for _, partition := range config.Main.Partitions {
-		at := "main.partitions[name=" + partition.Name + "]"
+		at := "partitions[name=" + partition.Name + "]"
 		if spec := partition.IterationSpec; spec.Type == "from_input" {
 			input, _ := spec.Fields["input"].(string)
 			source, _ := spec.Fields["partition"].(string)
@@ -490,10 +490,10 @@ func inputReaders(config *ApiRunConfig) map[string]readers {
 		}
 	}
 	if input := inputField(config.Main.SimulationStrings.TimestepFunction); input != "" {
-		add(input, "main.simulation.timestep_function", "")
+		add(input, "simulation.timestep_function", "")
 	}
 	if input := inputField(config.Main.SimulationStrings.TerminationCondition); input != "" {
-		add(input, "main.simulation.termination_condition", "")
+		add(input, "simulation.termination_condition", "")
 	}
 	for name, r := range found {
 		sort.Strings(r.partitions)

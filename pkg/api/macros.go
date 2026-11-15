@@ -12,8 +12,8 @@ import (
 // iteration, which adds one partition, a macro expands to a *set* of
 // partitions in the core config language (see expand.go). A config with
 // macros runs as its expansion, one ordinary run: its inputs replayed, any
-// main: partitions, then each macro's partitions, which read the inputs, main:
-// and earlier macros live. The whole thing is data, so it runs in-process with
+// main-run partitions, then each macro's partitions, which read the inputs, the main
+// run and earlier macros live. The whole thing is data, so it runs in-process with
 // no Go toolchain.
 //
 // Each macro is a typed, YAML-decodable spec implementing macroSpec. Decoding

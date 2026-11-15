@@ -15,11 +15,10 @@ import (
 // pairYAML is a two-partition run whose output is the removed main simulation
 // pair: a condition and a json_log at path, which may need quoting.
 func pairYAML(path string) string {
-	return fmt.Sprintf(`main:
-  partitions:
+	return fmt.Sprintf(`partitions:
   - {name: a, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
   - {name: b, iteration: {type: wiener_process}, params: {variances: [2.0]}, init_state_values: [1.0], state_history_depth: 1, seed: 4}
-  simulation:
+simulation:
     output_condition: {type: only_given_partitions, partitions: [b]}
     output_function: {type: json_log, path: %q}
     termination_condition: {type: number_of_steps, max_steps: 20}

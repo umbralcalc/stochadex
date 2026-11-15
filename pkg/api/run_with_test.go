@@ -14,8 +14,7 @@ import (
 // views (every step to all.log; partition w only to w.log) and a json_log
 // inside a nested (embedded) run (nested.log).
 func nestedSinksYAML(dir string) string {
-	return fmt.Sprintf(`main:
-  partitions:
+	return fmt.Sprintf(`partitions:
   - name: nested
     params: {burn_in_steps: [0]}
     init_state_values: [0.0]
@@ -27,7 +26,7 @@ func nestedSinksYAML(dir string) string {
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 1
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 6}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

@@ -48,7 +48,7 @@ func TestMCTSIterationSpecs(t *testing.T) {
 			strings.Replace(planning, "  sims_per_decision: 60\n",
 				"  sims_per_decision: 60\n  pinned_noise: true\n  scenario_seed: 5\n", 1),
 			strings.NewReplacer(
-				"        type: simulation\n", "        type: simulation\n        scenario_seed: 5\n",
+				"      type: simulation\n", "      type: simulation\n      scenario_seed: 5\n",
 				"max_tree_depth: 5}", "max_tree_depth: 5, pinned_noise: true}",
 			).Replace(planningTwin))
 		assertStoragesEqual(t, "twin vs macro", twin.Storage, macro.Storage)
@@ -129,7 +129,7 @@ func TestMCTSIterationSpecs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		without, err := RunToStorage(writeConfig(t, strings.Replace(truncated, "        progress_partition: progress\n", "", 1)))
+		without, err := RunToStorage(writeConfig(t, strings.Replace(truncated, "      progress_partition: progress\n", "", 1)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -146,9 +146,9 @@ func TestMCTSIterationSpecs(t *testing.T) {
 	})
 
 	t.Run("an environment with no model partitions is a config error at load", func(t *testing.T) {
-		start := strings.Index(planningTwin, "        model:\n")
-		end := strings.Index(planningTwin, "    params_as_partitions: {best_idx_partition")
-		yaml := planningTwin[:start] + "        model: {partitions: []}\n" + planningTwin[end:]
+		start := strings.Index(planningTwin, "      model:\n")
+		end := strings.Index(planningTwin, "  params_as_partitions: {best_idx_partition")
+		yaml := planningTwin[:start] + "      model: {partitions: []}\n" + planningTwin[end:]
 		_, err := LoadConfig(writeConfigPath(t, yaml))
 		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "environment simulation needs model.partitions") {
 			t.Errorf("got %v", err)
@@ -156,20 +156,20 @@ func TestMCTSIterationSpecs(t *testing.T) {
 	})
 
 	cases := []struct{ name, from, to, want string }{
-		{"an unknown environment type", "        type: simulation\n", "        type: casino\n",
+		{"an unknown environment type", "      type: simulation\n", "      type: casino\n",
 			`mcts_apply: field "environment": unknown environment type "casino" (expected simulation, or a registered environment: `},
 		{"an environment reading recorded samples without naming the input", "samples: [[2.0], [8.0]]",
 			"samples_from: {partition_name: post}",
 			"parameters.samples_from and weights_from read an input's recorded rows when the run starts, so name it"},
-		{"an environment field it does not know", "        horizon: 8\n", "        horizon: 8\n        steps: 8\n",
+		{"an environment field it does not know", "      horizon: 8\n", "      horizon: 8\n      steps: 8\n",
 			"environment simulation: yaml: unmarshal errors"},
-		{"an environment with no horizon", "        horizon: 8\n", "        horizon: 0\n",
+		{"an environment with no horizon", "      horizon: 8\n", "      horizon: 0\n",
 			"environment simulation needs horizon: > 0"},
-		{"an environment rewarding a partition its model lacks", "        reward_partition: revenue\n",
-			"        reward_partition: profit\n", `reward_partition: no model partition named "profit"`},
-		{"a model partition with an unknown iteration", "              type: expression\n              fields: [{name: soc}",
-			"              type: battery_model\n              fields: [{name: soc}", `unknown data-spec type "battery_model"`},
-		{"an environment with no reward", "        reward_partition: revenue\n", "",
+		{"an environment rewarding a partition its model lacks", "      reward_partition: revenue\n",
+			"      reward_partition: profit\n", `reward_partition: no model partition named "profit"`},
+		{"a model partition with an unknown iteration", "            type: expression\n            fields: [{name: soc}",
+			"            type: battery_model\n            fields: [{name: soc}", `unknown data-spec type "battery_model"`},
+		{"an environment with no reward", "      reward_partition: revenue\n", "",
 			"environment simulation needs reward_partition: naming the model partition"},
 		{"a progress proxy its model lacks", "progress_partition: battery", "progress_partition: charge",
 			`progress_partition: no model partition named "charge"`},
@@ -191,7 +191,7 @@ func TestMCTSIterationSpecs(t *testing.T) {
 			`mcts_tree: field "pinned_noise" must be a bool, got string`},
 		{"a fractional rollout length", "rollout_max_steps: 4", "rollout_max_steps: 4.5",
 			`mcts_rollout: field "rollout_max_steps" must be an integer, got float64`},
-		{"a non-integer best index slot", "      type: mcts_apply\n", "      type: mcts_apply\n      best_index_slot: first\n",
+		{"a non-integer best index slot", "    type: mcts_apply\n", "    type: mcts_apply\n    best_index_slot: first\n",
 			`mcts_apply: field "best_index_slot" must be an integer, got string`},
 		{"a rollout with no environment", "{type: mcts_rollout, environment: *env, ", "{type: mcts_rollout, ",
 			`mcts_rollout: missing required field "environment"`},

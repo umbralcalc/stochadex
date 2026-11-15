@@ -22,8 +22,7 @@ func groupedYAML(extra, width string) string {
   series: {source: {inline: {times: [0, 1, 2, 3, 4, 5, 6, 7], partitions: {
     vals: [[1], [2], [4], [8], [16], [32], [64], [128]],
     grp: [[1], [3], [2], [4], [1], [3], [2], [4]]}}}}
-main:
-  partitions:
+partitions:
   - {name: vals, iteration: {type: from_input, input: series}, state_history_depth: 2, seed: 0}
   - {name: grp, iteration: {type: from_input, input: series}, state_history_depth: 2, seed: 0}
   - name: agg
@@ -39,7 +38,7 @@ main:
     init_state_values: ` + width + `
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 7}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

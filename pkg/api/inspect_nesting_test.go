@@ -10,8 +10,7 @@ import (
 // nestedChainYAML hosts a 10-step run whose partition hosts a 5-step run whose
 // partition hosts a 2-step run, beside a run that stops at a time rather than a
 // step count, which hosts a 2-step run.
-const nestedChainYAML = `main:
-  partitions:
+const nestedChainYAML = `partitions:
   - name: outer
     iteration:
       type: embedded_simulation_run
@@ -79,7 +78,7 @@ const nestedChainYAML = `main:
     init_state_values: [0.0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

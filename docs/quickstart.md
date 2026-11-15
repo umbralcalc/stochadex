@@ -127,18 +127,17 @@ A 1-D random walk, recorded every step:
 
 ```yaml
 # walk.yaml
-main:
-  partitions:
-  - name: walk
-    iteration: {type: wiener_process}
-    params: {variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 7
-  simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+partitions:
+- name: walk
+  iteration: {type: wiener_process}
+  params: {variances: [1.0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 7
+simulation:
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 ```
 
 ```bash

@@ -50,12 +50,11 @@ func init() {
 // fixed order: a counter that fails at step failAt (0 for never) beside a
 // Wiener process, a log of both, and an embedded run writing its own log.
 func stagedYAML(failAt, sleepMs int, log, nested string) string {
-	return fmt.Sprintf(`main:
-  partitions:
+	return fmt.Sprintf(`partitions:
   - {name: counter, iteration: {type: fails_at_step}, params: {fail_at: [%d], sleep_ms: [%d]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
   - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 5}
   - {name: nested, params: {burn_in_steps: [0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 30}
     timestep_function: {type: constant, stepsize: 1.0}
     execution_strategy: {type: inline}
@@ -168,7 +167,7 @@ func TestAllOrNothingOutputs(t *testing.T) {
 		csv := filepath.Join(dir, "vol.csv")
 		writeFileAt(t, csv, "0,1.0\n1,2.0\n2,3.0\n")
 		yaml := hostedYAML(csv, "params_from_input: {inner/variances: {input: vol, partition: variances}}", "")
-		yaml = strings.Replace(yaml, "    output_condition: {type: every_step}\n    output_function: {type: nil}\n", "", 1) +
+		yaml = replaceOnce(t, yaml, "outputs:\n- {name: output, condition: {type: every_step}, function: {type: nil}}\n", "") +
 			fmt.Sprintf("outputs:\n- {name: log, function: {type: json_log, path: %q}}\n", log)
 		err := Execute([]string{"stochadex", "--config", writeConfigPath(t, yaml)})
 		if KindOf(err) != ErrData {
@@ -187,10 +186,10 @@ func TestAllOrNothingOutputs(t *testing.T) {
 		feed := fmt.Sprintf("    stream: {websocket: {url: %q}}\n    record: %q\n"+
 			"  vol: {source: {csv: {path: %q, time_column: 0, state_columns: {variances: [1]}}}}",
 			feedServer(t, rising), record, csv)
-		yaml := replaceOnce(t, streamConfigYAML(feed, 10), "  simulation:",
+		yaml := replaceOnce(t, streamConfigYAML(feed, 10), "simulation:",
 			"  - {name: ext, iteration: {type: wiener_process}, params: {variances: [1.0]}, "+
 				"params_from_input: {variances: {input: vol}}, init_state_values: [0.0], "+
-				"state_history_depth: 1, seed: 3}\n  simulation:")
+				"state_history_depth: 1, seed: 3}\nsimulation:")
 		err := Execute([]string{"stochadex", "--config", writeConfigPath(t, yaml)})
 		if KindOf(err) != ErrData {
 			t.Fatalf("expected the stored input to run out, got %v", err)
@@ -372,10 +371,9 @@ func TestAKilledEnsembleLeavesEveryMembersEarlierOutput(t *testing.T) {
 	for _, path := range members {
 		writeFileAt(t, path, earlierLog)
 	}
-	yaml := fmt.Sprintf(`main:
-  partitions:
+	yaml := fmt.Sprintf(`partitions:
   - {name: counter, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [200]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 30}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

@@ -10,8 +10,7 @@ import (
 
 // deadlockingConfig is a run whose two partitions read each other within the
 // step, which cannot run.
-const deadlockingConfig = `main:
-  partitions:
+const deadlockingConfig = `partitions:
   - name: prey
     iteration: {type: wiener_process}
     params_from_upstream:
@@ -26,7 +25,7 @@ const deadlockingConfig = `main:
     init_state_values: [1.0]
     state_history_depth: 1
     seed: 2
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 3}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -89,7 +88,7 @@ func TestGraphCommand(t *testing.T) {
 	t.Run("applies --set overrides before drawing", func(t *testing.T) {
 		// Pointed at itself, rolling_mean's upstream read becomes a self-loop.
 		out, err := runGraph(t, "-c", config, "--set",
-			"main.partitions[name=rolling_mean].params_from_upstream.latest_data_values.upstream=rolling_mean")
+			"partitions[name=rolling_mean].params_from_upstream.latest_data_values.upstream=rolling_mean")
 		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "[rolling_mean]") {
 			t.Errorf("want the self-loop reported, got %v", err)
 		}

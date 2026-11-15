@@ -21,12 +21,11 @@ import (
 //	  keys:
 //	    stream:
 //	      keyboard: {partition: steer, keys: {a: [-1.0], d: [1.0], s: [0.0]}}
-//	main:
-//	  partitions:
-//	  - name: steering
-//	    iteration: {type: param_values}
-//	    params: {param_values: [0.0]}
-//	    params_from_input: {param_values: {input: keys, partition: steer}}
+//	partitions:
+//	- name: steering
+//	  iteration: {type: param_values}
+//	  params: {param_values: [0.0]}
+//	  params_from_input: {param_values: {input: keys, partition: steer}}
 //
 // A value holds until the next mapped key (hold_last), unmapped keys are
 // ignored, and Esc stops listening; the run carries on with the last value.

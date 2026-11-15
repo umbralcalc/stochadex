@@ -56,9 +56,9 @@ func envOf(values map[string]string) LoadOption {
 }
 
 const (
-	firstSeed   = "main.partitions[name=first_wiener_process].seed"
-	maxSteps    = "main.simulation.termination_condition.max_steps"
-	secondParam = "main.partitions[name=second_wiener_process].params.variances"
+	firstSeed   = "partitions[name=first_wiener_process].seed"
+	maxSteps    = "simulation.termination_condition.max_steps"
+	secondParam = "partitions[name=second_wiener_process].params.variances"
 )
 
 func TestSetOverrides(t *testing.T) {
@@ -78,13 +78,13 @@ func TestSetOverrides(t *testing.T) {
 			[][2]string{{maxSteps, "12"}},
 			replaceOnce(t, model, "max_steps: 40", "max_steps: 12")},
 		{"a whole component, replaced as a mapping",
-			[][2]string{{"main.simulation.timestep_function", "{type: constant, stepsize: 0.25}"}},
+			[][2]string{{"simulation.timestep_function", "{type: constant, stepsize: 0.25}"}},
 			replaceOnce(t, model, "stepsize: 1.0", "stepsize: 0.25")},
 		{"a value under an entry whose name has a dot",
-			[][2]string{{"main.partitions[name=second.wiener].seed", "5"}},
+			[][2]string{{"partitions[name=second.wiener].seed", "5"}},
 			replaceOnce(t, model, "seed: 2939", "seed: 5")},
 		{"a value that was null",
-			[][2]string{{"main.simulation.init_time_value", "3.0"}},
+			[][2]string{{"simulation.init_time_value", "3.0"}},
 			replaceOnce(t, model, "init_time_value: 0.0", "init_time_value: 3.0")},
 		{"several, applied in order so the last wins",
 			[][2]string{{firstSeed, "1"}, {maxSteps, "12"}, {firstSeed, "99"}},
@@ -223,30 +223,30 @@ func TestSetOverrideErrors(t *testing.T) {
 	model := serveConfigYAML
 	aliased := replaceOnce(t, replaceOnce(t, model, "    params:\n      variances: [1.0, 1.0]",
 		"    params: &shared\n      variances: [1.0, 1.0]"), "    params:\n      variances: [1.0]", "    params: *shared")
-	secondBlock := model[strings.Index(model, "  - name: second"):strings.Index(model, "  simulation:")]
-	duplicated := replaceOnce(t, model, "  simulation:", secondBlock+"  simulation:")
+	secondBlock := model[strings.Index(model, "  - name: second"):strings.Index(model, "simulation:")]
+	duplicated := replaceOnce(t, model, "simulation:", secondBlock+"simulation:")
 	cases := []struct{ name, config, path, value, want string }{
-		{"an unknown key", model, "main.partitons.seed", "1",
-			"--set main.partitons.seed=1: the config has no main.partitons"},
-		{"an unknown entry name", model, "main.partitions[name=nope].seed", "1",
-			`main.partitions has no entry named "nope"`},
-		{"a name selector on a mapping", model, "main.simulation[name=x].seed", "1",
-			"main.simulation is not a list, so [name=x] selects nothing"},
-		{"a positional index", model, "main.partitions[0].seed", "1",
+		{"an unknown key", model, "partitons.seed", "1",
+			"--set partitons.seed=1: the config has no partitons"},
+		{"an unknown entry name", model, "partitions[name=nope].seed", "1",
+			`partitions has no entry named "nope"`},
+		{"a name selector on a mapping", model, "simulation[name=x].seed", "1",
+			"simulation is not a list, so [name=x] selects nothing"},
+		{"a positional index", model, "partitions[0].seed", "1",
 			`"partitions[0]" is not a path segment`},
 		{"a key under a scalar", model, firstSeed + ".x", "1",
-			"main.partitions[name=first_wiener_process].seed is not a mapping, so it has no x"},
+			"partitions[name=first_wiener_process].seed is not a mapping, so it has no x"},
 		{"text for a number", model, maxSteps, "many",
 			"--set " + maxSteps + "=many: the config has a number here, not text"},
 		{"a number for a list", model, secondParam, "4.0",
 			"the config has a list here, not a number"},
-		{"a number for a mapping", model, "main.simulation.timestep_function", "0.5",
+		{"a number for a mapping", model, "simulation.timestep_function", "0.5",
 			"the config has a mapping here, not a number"},
 		{"a float for an int field", model, maxSteps, "1.5",
 			"--set " + maxSteps + `=1.5: component "number_of_steps": field "max_steps" must be an integer, got float64`},
-		{"a replacement mapping with a dead key", model, "main.simulation.termination_condition",
+		{"a replacement mapping with a dead key", model, "simulation.termination_condition",
 			"{type: number_of_steps, max_stpes: 5}",
-			"--set main.simulation.termination_condition={type: number_of_steps, max_stpes: 5}: " +
+			"--set simulation.termination_condition={type: number_of_steps, max_stpes: 5}: " +
 				`component "number_of_steps": missing required field "max_steps"`},
 		{"a negative seed, which the decoder rejects", model, firstSeed, "-1",
 			"--set " + firstSeed + "=-1: yaml: unmarshal errors:\n  cannot unmarshal !!int `-1` into uint64"},
@@ -254,10 +254,10 @@ func TestSetOverrideErrors(t *testing.T) {
 			`x has no entry named "q"`},
 		{"a value that is not YAML", model, secondParam, "[4.0",
 			"the value is not valid YAML"},
-		{"two entries with the name", duplicated, "main.partitions[name=second_wiener_process].seed", "1",
-			`main.partitions has more than one entry named "second_wiener_process"`},
+		{"two entries with the name", duplicated, "partitions[name=second_wiener_process].seed", "1",
+			`partitions has more than one entry named "second_wiener_process"`},
 		{"a path through an alias", aliased, secondParam, "[2.0]",
-			"main.partitions[name=second_wiener_process].params is a YAML alias"},
+			"partitions[name=second_wiener_process].params is a YAML alias"},
 		{"an empty path segment", model, "main..seed", "1", `"" is not a path segment`},
 	}
 	for _, c := range cases {
@@ -270,12 +270,12 @@ func TestSetOverrideErrors(t *testing.T) {
 	}
 
 	t.Run("an error in the file itself is reported as the file's, at the file's line", func(t *testing.T) {
-		// Re-encoding drops the blank lines, so only the file's own error says line 22.
+		// Re-encoding drops the blank lines, so only the file's own error says line 21.
 		broken := replaceOnce(t, replaceOnce(t, model, "init_time_value: 0.0", "init_time_value: zero"),
-			"  simulation:", "\n\n  simulation:")
+			"simulation:", "\n\nsimulation:")
 		_, err := LoadConfig(writeConfigPath(t, broken), WithSet(firstSeed, "99"), WithSet(maxSteps, "12"))
 		if KindOf(err) != ErrConfig || strings.Contains(err.Error(), "--set") ||
-			!strings.Contains(err.Error(), "line 22: cannot unmarshal !!str `zero` into float64") {
+			!strings.Contains(err.Error(), "line 21: cannot unmarshal !!str `zero` into float64") {
 			t.Errorf("expected the file's own error, got %v", err)
 		}
 	})
@@ -288,7 +288,7 @@ func TestSetOverrideErrors(t *testing.T) {
 		}
 	})
 
-	for _, arg := range []string{"no-equals-sign", "=7", "main.partitions[name=w=1].seed"} {
+	for _, arg := range []string{"no-equals-sign", "=7", "partitions[name=w=1].seed"} {
 		t.Run(fmt.Sprintf("--set %s is a usage error", arg), func(t *testing.T) {
 			err := Execute([]string{"stochadex", "--config", writeConfigPath(t, model), "--set", arg})
 			if KindOf(err) != ErrUsage || !strings.Contains(err.Error(), "expected path=value") {
@@ -372,18 +372,18 @@ func TestPlaceholders(t *testing.T) {
 		env          map[string]string
 		want         string
 	}{
-		{"an unset variable", templated, nil, "line 9: ${SEED} is not set"},
+		{"an unset variable", templated, nil, "line 8: ${SEED} is not set"},
 		{"an empty variable", templated, map[string]string{"SEED": ""},
-			"line 9: ${SEED} is set but empty"},
+			"line 8: ${SEED} is set but empty"},
 		{"a placeholder in a key", replaceOnce(t, model, "variances: [1.0]", "${KEY}: [1.0]"),
 			map[string]string{"KEY": "variances"},
-			"line 13: placeholders are only allowed in values, not in the key ${KEY}"},
+			"line 12: placeholders are only allowed in values, not in the key ${KEY}"},
 		{"a malformed name", replaceOnce(t, model, "seed: 7167", "seed: ${1X}"), nil,
-			"line 9: ${1X} is not a placeholder"},
+			"line 8: ${1X} is not a placeholder"},
 		{"an unclosed placeholder", replaceOnce(t, model, "seed: 7167", "seed: ${SEED"), nil,
-			"line 9: unclosed ${ placeholder"},
+			"line 8: unclosed ${ placeholder"},
 		{"a value that is not YAML", replaceOnce(t, model, "variances: [1.0]\n", "variances: ${VS}\n"),
-			map[string]string{"VS": "[4.0"}, "line 13: ${VS}, filled in, is not valid YAML"},
+			map[string]string{"VS": "[4.0"}, "line 12: ${VS}, filled in, is not valid YAML"},
 		{"a value of the wrong type", replaceOnce(t, model, "max_steps: 40", "max_steps: ${STEPS}"),
 			map[string]string{"STEPS": "many"},
 			`component "number_of_steps": field "max_steps" must be an integer, got string (with ${STEPS}=many)`},
@@ -459,15 +459,14 @@ func TestOverridesKeepEveryConfigIntact(t *testing.T) {
 
 	t.Run("YAML 1.1 spellings yaml.v2 reads specially survive re-encoding", func(t *testing.T) {
 		// A generic yaml.v2 round trip turns the key n into false and y into true.
-		hazards := `main:
-  partitions:
+		hazards := `partitions:
   - name: hazard
     iteration: {type: wiener_process}
     params: {n: [1.0], y: [2.0], "yes": [3.0], on: [4.0], off: [5.0], no: [6.0]}
     init_state_values: [1.0e-3, 0x10, .5, 1_000]
     seed: 18446744073709551615
     state_history_depth: 1
-  simulation: &sim
+simulation: &sim
     init_time_value: 0.0
 inputs:
   data:

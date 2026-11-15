@@ -20,7 +20,7 @@ var orderedOutputPartitions = []string{"p5", "p2", "p7", "p0", "p6", "p3", "p1",
 // sink, under the given execution strategy ("" for the default).
 func orderedOutputConfig(function, strategy string) string {
 	var config strings.Builder
-	config.WriteString("main:\n  partitions:\n")
+	config.WriteString("partitions:\n")
 	for i, name := range orderedOutputPartitions {
 		fmt.Fprintf(&config, `  - name: %s
     iteration: {type: wiener_process}
@@ -30,7 +30,7 @@ func orderedOutputConfig(function, strategy string) string {
     seed: %d
 `, name, 100+i)
 	}
-	config.WriteString(`  simulation:
+	config.WriteString(`simulation:
     termination_condition: {type: number_of_steps, max_steps: 200}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

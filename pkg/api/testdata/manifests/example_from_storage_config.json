@@ -17,14 +17,14 @@
         "clear_sky_driver"
       ],
       "read_by": [
-        "main.partitions[name=clear_sky_driver]"
+        "partitions[name=clear_sky_driver]"
       ]
     },
     {
       "name": "from_storage/timestep_function",
       "kind": "inline",
       "read_by": [
-        "main.simulation.timestep_function"
+        "simulation.timestep_function"
       ]
     }
   ],

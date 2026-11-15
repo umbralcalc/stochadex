@@ -134,11 +134,10 @@ func TestEnvironmentsAreSharedWithinARun(t *testing.T) {
 	})
 
 	t.Run("so do an apply and a search stated as a top-level embedded: run", func(t *testing.T) {
-		yaml := `main:
-  partitions:
+		yaml := `partitions:
   - {name: ttt_apply, iteration: {type: mcts_apply, environment: {type: counted_environment}}, params_as_partitions: {best_idx_partition: [ttt_search]}, init_state_values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], state_history_depth: 1, seed: 1}
   - {name: ttt_search, params: {burn_in_steps: [0]}, init_state_values: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], state_history_depth: 1, seed: 1}
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 1}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0
@@ -172,8 +171,7 @@ embedded:
 	})
 
 	t.Run("each replica of a replicated run has its own", func(t *testing.T) {
-		yaml := `main:
-  partitions:
+		yaml := `partitions:
   - name: replicas
     iteration:
       type: replicated_simulation_run
@@ -191,7 +189,7 @@ embedded:
     init_state_values: [0, 0, 0]
     state_history_depth: 1
     seed: 0
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 1}
     timestep_function: {type: constant, stepsize: 1.0}
     init_time_value: 0.0

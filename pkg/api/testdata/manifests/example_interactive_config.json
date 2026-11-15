@@ -19,7 +19,7 @@
         "drift"
       ],
       "read_by": [
-        "main.partitions[name=walk].params_from_input.drift_coefficients"
+        "partitions[name=walk].params_from_input.drift_coefficients"
       ]
     }
   ],

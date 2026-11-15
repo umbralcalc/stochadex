@@ -19,6 +19,26 @@ import (
 //
 // An embedded run's own output pair is not shorthand and still loads: it is
 // that run's debug log.
+//
+// The main: level was removed too. The main run's partitions, expressions and
+// simulation block are written at the top level, as every other run's are written
+// directly in its own block.
+
+// rejectRemovedMain fails a config document with a top-level main: block, saying
+// where its contents go.
+func rejectRemovedMain(document []byte) error {
+	var top map[string]yaml3.Node
+	if yaml3.Unmarshal(document, &top) != nil {
+		// Decoding reports the document's own error.
+		return nil
+	}
+	if _, found := top["main"]; !found {
+		return nil
+	}
+	return fmt.Errorf("api: main: was removed: write its partitions, expressions and " +
+		"simulation at the top level of the config, one level less indented, and drop " +
+		"main. from --set paths (partitions[name=w].seed=7)")
+}
 
 // rejectRemovedData fails a config document with a top-level data: block, naming
 // the input it becomes. It reads the document before anything decodes it, so
@@ -60,7 +80,7 @@ func rejectRemovedOutputPair(config *ApiRunConfig) error {
 		function = simulator.ComponentSpec{Type: "stdout"}
 	}
 	view += ", function: " + flowSpec(function) + "}"
-	return fmt.Errorf("api: main.simulation's output_condition / output_function was "+
+	return fmt.Errorf("api: the main run's simulation.output_condition / output_function was "+
 		"removed: declare the output as a view, outputs: [%s]", view)
 }
 

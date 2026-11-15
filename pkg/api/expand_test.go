@@ -208,14 +208,14 @@ macros:
 			`macros[1] (vector_mean) reads "level" over a window of 5, but macros[0] (vector_mean) reads it over 3`},
 		{"a macro naming its partition as an input's",
 			aggregationConfig("- {type: vector_mean, name: level, data: {partition_name: stream}, window: 3}\n"),
-			`macros[0] (vector_mean) names its partition "level", which main:, the inputs or an earlier macro already have`},
+			`macros[0] (vector_mean) names its partition "level", which the main run, the inputs or an earlier macro already have`},
 		{"a macro naming its partition as an earlier macro's",
 			aggregationConfig("- {type: vector_mean, name: m, data: {partition_name: stream}, window: 3}\n" +
 				"- {type: vector_mean, name: m, data: {partition_name: level}, window: 2}\n"),
 			`macros[1] (vector_mean) names its partition "m"`},
 		{"a macro with nothing to read: no inputs, and no clock of its own",
 			"macros:\n- {type: vector_mean, name: m, data: {partition_name: x}, window: 2}\n",
-			"expanding needs a clock: the inputs the macros read, main.simulation, or a first macro that runs its own"},
+			"expanding needs a clock: the inputs the macros read, the main run's simulation, or a first macro that runs its own"},
 	}
 	for _, c := range cases {
 		t.Run(c.name+" does not expand, saying why", func(t *testing.T) {

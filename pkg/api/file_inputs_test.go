@@ -84,7 +84,7 @@ func TestFileInputs(t *testing.T) {
 		manifest := Manifest(config)
 		if len(manifest.Inputs) != 1 || manifest.Inputs[0].Kind != "file" ||
 			manifest.Inputs[0].Location != brain ||
-			!slices.Equal(manifest.Inputs[0].ReadBy, []string{"main.partitions[name=policy].iteration.model_path"}) {
+			!slices.Equal(manifest.Inputs[0].ReadBy, []string{"partitions[name=policy].iteration.model_path"}) {
 			t.Errorf("manifest inputs %+v", manifest.Inputs)
 		}
 	})
@@ -109,8 +109,8 @@ func TestFileInputs(t *testing.T) {
 		}
 		inputs := Manifest(config).Inputs
 		if len(inputs) != 2 || inputs[0].Name != implicitFilePrefix+brain ||
-			!slices.Equal(inputs[0].ReadBy, []string{"main.partitions[name=a].iteration.model_path",
-				"main.partitions[name=b].iteration.model_path"}) || inputs[1].Location != other {
+			!slices.Equal(inputs[0].ReadBy, []string{"partitions[name=a].iteration.model_path",
+				"partitions[name=b].iteration.model_path"}) || inputs[1].Location != other {
 			t.Errorf("implicit inputs %+v", inputs)
 		}
 	})
@@ -159,8 +159,8 @@ func TestFileInputs(t *testing.T) {
 				readers = input.ReadBy
 			}
 		}
-		if !slices.Equal(readers, []string{"main.partitions[name=r].iteration.options.weights",
-			"main.partitions[name=r].iteration.stages[0]"}) {
+		if !slices.Equal(readers, []string{"partitions[name=r].iteration.options.weights",
+			"partitions[name=r].iteration.stages[0]"}) {
 			t.Errorf("read_by %v", readers)
 		}
 	})
@@ -290,7 +290,7 @@ func TestFileInputs(t *testing.T) {
 				`inputs.data.simulation.partitions[name=stream].iteration.model_path names input "nope"`},
 			"in a sub-spec's list": {checkYAML("  - {name: r, iteration: {type: model_reader, model_path: x.onnx, "+
 				"stages: [{weights: {input: nope}}]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}\n", ""),
-				`main.partitions[name=r].iteration.stages[0].weights names input "nope"`},
+				`partitions[name=r].iteration.stages[0].weights names input "nope"`},
 		}
 		for name, c := range cases {
 			_, err := LoadConfig(writeConfigPath(t, c.yaml))
@@ -316,7 +316,7 @@ func TestFileInputs(t *testing.T) {
 	csvInput := "  obs: {source: {csv: {path: x.csv, time_column: 0, state_columns: {o: [1]}}}}\n"
 	errorCases := []struct{ name, yaml, want string }{
 		{"a reference to an undeclared input", checkYAML(sizedPartition("p", "{input: nope}"), ""),
-			`main.partitions[name=p].iteration.model_path names input "nope", which inputs: does not declare`},
+			`partitions[name=p].iteration.model_path names input "nope", which inputs: does not declare`},
 		{"a reference to an input that is not a file", "inputs:\n" + csvInput +
 			checkYAML(sizedPartition("p", "{input: obs}"), ""),
 			`names input "obs", which is not a file input`},

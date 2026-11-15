@@ -14,14 +14,13 @@ import (
 // suggestConfig is a config whose last partition is out, given as its YAML entry, after a
 // partition rate (2 + sin(t), width 2) it may read, stepping 0.37 for 120 steps.
 func suggestConfig(out string) string {
-	return `main:
-  partitions:
+	return `partitions:
   - name: rate
     iteration: {type: expression, fields: [{name: r, width: 2}], outputs: ["2 + sin(t) + 0 * r"]}
     init_state_values: [2, 2]
     state_history_depth: 1
     seed: 0
-` + out + `  simulation:
+` + out + `simulation:
     termination_condition: {type: number_of_steps, max_steps: 120}
     timestep_function: {type: constant, stepsize: 0.37}
     init_time_value: 0
@@ -39,7 +38,7 @@ func expressionPartition(w int, update, params, wiring string, initial float64) 
 		repeatedList(initial, w))
 }
 
-// suggestedPartitions indents a suggestion's YAML to sit in main.partitions.
+// suggestedPartitions indents a suggestion's YAML to sit in partitions.
 func suggestedPartitions(yaml string) string {
 	var lines []string
 	for _, line := range strings.Split(strings.TrimRight(yaml, "\n"), "\n") {
@@ -251,8 +250,7 @@ func TestSuggest(t *testing.T) {
 	}
 
 	t.Run("the expressions: block form is replaced, its entry removed", func(t *testing.T) {
-		config := `main:
-  partitions:
+		config := `partitions:
   - name: walk
     params: {variances: [2]}
     init_state_values: [0]
@@ -262,14 +260,14 @@ func TestSuggest(t *testing.T) {
     init_state_values: [4]
     state_history_depth: 1
     seed: 0
-  expressions:
+expressions:
   - partition: walk
     fields: [{name: w}]
     outputs: ["w + sqrt(variances * dt) * shared(normal(0, 1))"]
   - partition: level
     fields: [{name: l}]
     outputs: ["l"]
-  simulation:
+simulation:
     termination_condition: {type: number_of_steps, max_steps: 200}
     timestep_function: {type: constant, stepsize: 1}
     init_time_value: 0
@@ -284,7 +282,7 @@ func TestSuggest(t *testing.T) {
 		}
 	})
 
-	t.Run("a macros config's main: partitions are checked through its expansion", func(t *testing.T) {
+	t.Run("a macros config's main-run partitions are checked through its expansion", func(t *testing.T) {
 		config := strings.Replace(walkMain("", "- {type: vector_mean, name: m, data: {partition_name: walk}, window: 5}\n"),
 			"{name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}",
 			`{name: walk, iteration: {type: expression, fields: [{name: w}], outputs: ["w + sqrt(variances * dt) * shared(normal(0, 1))"]}, params: {variances: [1.0]}`, 1)
@@ -483,8 +481,8 @@ func TestSuggestOnCatalogueTwins(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			text := readFile(t, file)
 			// A twin's caller sets its clock; it is given one here.
-			if !strings.Contains(text, "\n  simulation:") {
-				text += "  simulation:\n    termination_condition: {type: number_of_steps, max_steps: 50}\n" +
+			if !strings.Contains(text, "\nsimulation:") {
+				text += "simulation:\n    termination_condition: {type: number_of_steps, max_steps: 50}\n" +
 					"    timestep_function: {type: constant, stepsize: 0.37}\n    init_time_value: 0\n"
 			}
 			suggestions, err := Suggest(writeConfig(t, text))
