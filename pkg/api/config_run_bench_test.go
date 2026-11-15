@@ -82,10 +82,10 @@ func paramsDrivenYAML(b *testing.B, fromInput bool) string {
 partitions:
 %s  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, %s, init_state_values: [0.0], state_history_depth: 1, seed: 3}
 simulation:
-    execution_strategy: {type: inline}
-    termination_condition: {type: number_of_steps, max_steps: 2000}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  execution_strategy: {type: inline}
+  termination_condition: {type: number_of_steps, max_steps: 2000}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `, path, extra, binding)

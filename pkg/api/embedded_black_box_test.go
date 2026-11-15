@@ -16,12 +16,12 @@ import (
 // zero variance, so its state stays at its initial values and the host row's
 // layout can be checked value for value.
 const blackBoxYAML = `partitions:
-  - {name: host, params: {burn_in_steps: [0]}, init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], state_history_depth: 1, seed: 0}
-  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
+- {name: host, params: {burn_in_steps: [0]}, init_state_values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], state_history_depth: 1, seed: 0}
+- {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 2}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 embedded:
 - name: host
   partitions:

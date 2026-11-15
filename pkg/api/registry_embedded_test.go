@@ -43,9 +43,9 @@ const nestedOuter = `partitions:
 `
 
 const nestedClock = `simulation:
-    termination_condition: {type: number_of_steps, max_steps: 8}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 8}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `
 
 // topLevelNested is the run as a top-level embedded: block.
@@ -91,9 +91,9 @@ const threeLevels = `partitions:
     state_history_depth: 1
     seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `
 
 // levelTwoAsTopLevel is level1's run on its own, with level2 as a top-level
@@ -107,9 +107,9 @@ const levelTwoAsTopLevel = `partitions:
     state_history_depth: 1
     seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 embedded:
 - name: level2
   partitions:

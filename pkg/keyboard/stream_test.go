@@ -161,24 +161,24 @@ func steeredYAML(keys, record, log string) string {
   keys:
 %s
 partitions:
-  - name: steering
-    iteration: {type: param_values}
-    params: {param_values: [0.5]}
-    params_from_input: {param_values: {input: keys, partition: steer}}
-    init_state_values: [0.5]
-    state_history_depth: 1
-    seed: 0
-  - name: walk
-    iteration: {type: wiener_process}
-    params: {variances: [1.0]}
-    params_from_upstream: {variances: {upstream: steering}}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 7
+- name: steering
+  iteration: {type: param_values}
+  params: {param_values: [0.5]}
+  params_from_input: {param_values: {input: keys, partition: steer}}
+  init_state_values: [0.5]
+  state_history_depth: 1
+  seed: 0
+- name: walk
+  iteration: {type: wiener_process}
+  params: {variances: [1.0]}
+  params_from_upstream: {variances: {upstream: steering}}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 7
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 40}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 40}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: log, function: {type: json_log, path: %q}}
 run: {pace_ms: 5}

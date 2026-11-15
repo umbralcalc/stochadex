@@ -13,11 +13,11 @@ func TestDeadKeysAreRejected(t *testing.T) {
 	t.Run("a key no view reads is reported by name", func(t *testing.T) {
 		err := validateNoDeadKeys([]byte(`
 partitions:
-  - name: walk
-    params: {drift: [0.5]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    state_widht: 1
+- name: walk
+  params: {drift: [0.5]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  state_widht: 1
 `))
 		if err == nil {
 			t.Fatal("expected a typo'd key to be rejected")
@@ -32,14 +32,14 @@ partitions:
 		// still carries them must be told they read nothing rather than silently ignored.
 		err := validateNoDeadKeys([]byte(`
 partitions:
-  - name: walk
-    iteration: {type: wiener_process}
-    params: {variances: [0.1]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 1
-    extra_packages: ["github.com/umbralcalc/stochadex/pkg/continuous"]
-    extra_vars: [{variance: "0.1"}]
+- name: walk
+  iteration: {type: wiener_process}
+  params: {variances: [0.1]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 1
+  extra_packages: ["github.com/umbralcalc/stochadex/pkg/continuous"]
+  extra_vars: [{variance: "0.1"}]
 `))
 		if err == nil {
 			t.Fatal("expected extra_packages/extra_vars to be reported as dead keys")
@@ -56,10 +56,10 @@ partitions:
 		// params_from_upstream. Neither old key errored; both did nothing.
 		err := validateNoDeadKeys([]byte(`
 partitions:
-  - name: walk
-    init_state_values: [0.0]
-    params_from_upstream_partition:
-      other: source
+- name: walk
+  init_state_values: [0.0]
+  params_from_upstream_partition:
+    other: source
 `))
 		if err == nil || !strings.Contains(err.Error(), "params_from_upstream_partition") {
 			t.Fatalf("expected the superseded key to be reported, got: %v", err)
@@ -69,10 +69,10 @@ partitions:
 	t.Run("every dead key is reported at once, sorted", func(t *testing.T) {
 		err := validateNoDeadKeys([]byte(`
 partitions:
-  - name: walk
-    init_state_values: [0.0]
-    zebra: 1
-    apple: 2
+- name: walk
+  init_state_values: [0.0]
+  zebra: 1
+  apple: 2
 `))
 		if err == nil {
 			t.Fatal("expected the dead keys to be rejected")
@@ -89,15 +89,15 @@ func TestLegitimateKeysAreNotMistakenForDead(t *testing.T) {
 	t.Run("the full data-config key surface passes", func(t *testing.T) {
 		err := validateNoDeadKeys([]byte(`
 partitions:
-  - name: walk
-    iteration: {type: wiener_process}
-    params: {variances: [0.1]}
-    params_as_partitions: {other: [somewhere]}
-    params_from_upstream:
-      inflow: {upstream: source}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 3
+- name: walk
+  iteration: {type: wiener_process}
+  params: {variances: [0.1]}
+  params_as_partitions: {other: [somewhere]}
+  params_from_upstream:
+    inflow: {upstream: source}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 3
 expressions:
   - partition: walk
     fields: [{name: x, width: 1}]
@@ -123,11 +123,11 @@ embedded:
 		// Params is an inline map, so any key under it is data, not schema.
 		err := validateNoDeadKeys([]byte(`
 partitions:
-  - name: walk
-    init_state_values: [0.0]
-    params:
-      anything_at_all: [1.0]
-      state_width: [7.0]
+- name: walk
+  init_state_values: [0.0]
+  params:
+    anything_at_all: [1.0]
+    state_width: [7.0]
 `))
 		if err != nil {
 			t.Errorf("param names must not be checked against the schema: %v", err)

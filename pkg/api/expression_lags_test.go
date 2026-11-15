@@ -12,20 +12,20 @@ import (
 // counts 1, 2, 3, ...) through output, with counter keeping depth rows.
 func lagYAML(depth int, output string) string {
 	return fmt.Sprintf(`partitions:
-  - name: counter
-    iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
-    init_state_values: [0]
-    state_history_depth: %d
-    seed: 0
-  - name: delayed
-    iteration: {type: expression, fields: [{name: x}], upstreams: {c: counter}, outputs: [%q]}
-    init_state_values: [-1]
-    state_history_depth: 1
-    seed: 0
+- name: counter
+  iteration: {type: expression, fields: [{name: count}], outputs: ["count + 1"]}
+  init_state_values: [0]
+  state_history_depth: %d
+  seed: 0
+- name: delayed
+  iteration: {type: expression, fields: [{name: x}], upstreams: {c: counter}, outputs: [%q]}
+  init_state_values: [-1]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 4}
-    timestep_function: {type: constant, stepsize: 1}
-    init_time_value: 0
+  termination_condition: {type: number_of_steps, max_steps: 4}
+  timestep_function: {type: constant, stepsize: 1}
+  init_time_value: 0
 `, depth, output)
 }
 
@@ -69,8 +69,8 @@ func TestLiteralLagsAtLoad(t *testing.T) {
 	})
 
 	t.Run("a lag of its own field reads its own history", func(t *testing.T) {
-		own := strings.Replace(lagYAML(1, "lag(x, 1)[0] + 1"), "    init_state_values: [-1]\n    state_history_depth: 1",
-			"    init_state_values: [-1]\n    state_history_depth: 2", 1)
+		own := strings.Replace(lagYAML(1, "lag(x, 1)[0] + 1"), "  init_state_values: [-1]\n  state_history_depth: 1",
+			"  init_state_values: [-1]\n  state_history_depth: 2", 1)
 		if _, err := LoadConfig(writeConfigPath(t, own)); err != nil {
 			t.Errorf("a lag within the partition's own rows was refused: %v", err)
 		}

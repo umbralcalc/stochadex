@@ -31,9 +31,9 @@ partitions:
     state_history_depth: 1
     seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 6}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 6}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 embedded:
 - name: fit
   partitions:

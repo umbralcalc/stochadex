@@ -16,44 +16,44 @@ import (
 // exactly. It runs as one live
 // simulation, so a view fed by it is what a live run of the same model outputs.
 const macroTwinYAML = `partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
-    params:
-      mean: [1.8, 5.0]
-      covariance_matrix: [2.5, 0.0, 0.0, 9.0]
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 150
-    seed: 291
-  - name: rolling_mean
-    iteration: {type: values_function_vector_mean, function: data_values, kernel: {type: exponential}}
-    params:
-      data_values_indices: [0, 1]
-      exponential_weighting_timescale: [100.0]
-    params_from_upstream:
-      latest_data_values: {upstream: data_stream, indices: [0, 1]}
-    params_as_partitions:
-      data_values_partition: [data_stream]
-    init_state_values: [0.0, 0.0]
-    state_history_depth: 150
-    seed: 0
-  - name: rolling_var
-    iteration: {type: values_function_vector_mean, function: data_values_variance, kernel: {type: exponential}}
-    params:
-      data_values_indices: [0, 1]
-      exponential_weighting_timescale: [100.0]
-      subtract_from_normalisation: [1]
-    params_from_upstream:
-      latest_data_values: {upstream: data_stream, indices: [0, 1]}
-      mean: {upstream: rolling_mean, indices: [0, 1]}
-    params_as_partitions:
-      data_values_partition: [data_stream]
-    init_state_values: [0.0, 0.0]
-    state_history_depth: 1
-    seed: 0
+- name: data_stream
+  iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
+  params:
+    mean: [1.8, 5.0]
+    covariance_matrix: [2.5, 0.0, 0.0, 9.0]
+  init_state_values: [1.3, 8.3]
+  state_history_depth: 150
+  seed: 291
+- name: rolling_mean
+  iteration: {type: values_function_vector_mean, function: data_values, kernel: {type: exponential}}
+  params:
+    data_values_indices: [0, 1]
+    exponential_weighting_timescale: [100.0]
+  params_from_upstream:
+    latest_data_values: {upstream: data_stream, indices: [0, 1]}
+  params_as_partitions:
+    data_values_partition: [data_stream]
+  init_state_values: [0.0, 0.0]
+  state_history_depth: 150
+  seed: 0
+- name: rolling_var
+  iteration: {type: values_function_vector_mean, function: data_values_variance, kernel: {type: exponential}}
+  params:
+    data_values_indices: [0, 1]
+    exponential_weighting_timescale: [100.0]
+    subtract_from_normalisation: [1]
+  params_from_upstream:
+    latest_data_values: {upstream: data_stream, indices: [0, 1]}
+    mean: {upstream: rolling_mean, indices: [0, 1]}
+  params_as_partitions:
+    data_values_partition: [data_stream]
+  init_state_values: [0.0, 0.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 500}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 500}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `
 
 // viewsBlock builds an outputs: block of json_log views under dir, one per

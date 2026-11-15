@@ -19,22 +19,22 @@ import (
 // what condition %s selects to a json_log sink at %s, so the sink path and the
 // storage path can be compared.
 const batchConfigYAML = `partitions:
-  - name: first
-    iteration: {type: wiener_process}
-    params: {variances: [1.0, 2.0]}
-    init_state_values: [0.0, 1.0]
-    state_history_depth: 1
-    seed: 7167
-  - name: second
-    iteration: {type: wiener_process}
-    params: {variances: [0.5]}
-    init_state_values: [3.0]
-    state_history_depth: 1
-    seed: 2939
+- name: first
+  iteration: {type: wiener_process}
+  params: {variances: [1.0, 2.0]}
+  init_state_values: [0.0, 1.0]
+  state_history_depth: 1
+  seed: 7167
+- name: second
+  iteration: {type: wiener_process}
+  params: {variances: [0.5]}
+  init_state_values: [3.0]
+  state_history_depth: 1
+  seed: 2939
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 30}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 30}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: %s, function: {type: json_log, path: "%s"}}
 `
@@ -182,16 +182,16 @@ func TestRunToStorage(t *testing.T) {
 			"run.seeds"},
 		{"an upstream naming a missing partition",
 			strings.Replace(fmt.Sprintf(batchConfigYAML, "{type: every_step}", scratchLog),
-				"    seed: 2939\n", "    seed: 2939\n    params_from_upstream: {variances: {upstream: ghost}}\n", 1),
+				"  seed: 2939\n", "  seed: 2939\n  params_from_upstream: {variances: {upstream: ghost}}\n", 1),
 			"ghost"},
 		{"a within-step dependency cycle",
 			`partitions:
-  - {name: a, iteration: {type: copy_values}, params: {partitions: [1], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: b, iteration: {type: copy_values}, params: {partitions: [0], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: a, iteration: {type: copy_values}, params: {partitions: [1], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: b, iteration: {type: copy_values}, params: {partitions: [0], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `,

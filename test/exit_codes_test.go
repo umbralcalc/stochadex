@@ -11,16 +11,16 @@ import (
 
 // validMain is a minimal runnable batch config; cases below vary one thing each.
 const validMain = `partitions:
-  - name: w
-    iteration: {type: wiener_process}
-    params: {variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 1
+- name: w
+  iteration: {type: wiener_process}
+  params: {variances: [1.0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 1
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: OUTPUT}
 `
@@ -102,25 +102,25 @@ func TestBinaryExitCodes(t *testing.T) {
 			args: []string{"--config", filepath.Join(dir, "absent.yaml")}, want: 78},
 		{name: "invalid YAML", config: "partitions: [unclosed\n", want: 78},
 		{name: "a key nothing reads",
-			config: strings.Replace(withOutput("{type: nil}"), "    seed: 1\n",
-				"    seed: 1\n    state_width: 1\n", 1), want: 78},
+			config: strings.Replace(withOutput("{type: nil}"), "  seed: 1\n",
+				"  seed: 1\n  state_width: 1\n", 1), want: 78},
 		{name: "an unknown iteration type",
 			config: strings.Replace(withOutput("{type: nil}"), "wiener_process", "no_such_process", 1),
 			want:   78},
 		{name: "a partition with no iteration",
 			config: strings.Replace(withOutput("{type: nil}"),
-				"    iteration: {type: wiener_process}\n", "", 1), want: 78},
+				"  iteration: {type: wiener_process}\n", "", 1), want: 78},
 		{name: "an upstream naming a missing partition",
-			config: strings.Replace(withOutput("{type: nil}"), "    seed: 1\n",
-				"    seed: 1\n    params_from_upstream: {variances: {upstream: ghost}}\n", 1),
+			config: strings.Replace(withOutput("{type: nil}"), "  seed: 1\n",
+				"  seed: 1\n  params_from_upstream: {variances: {upstream: ghost}}\n", 1),
 			want: 78},
 		{name: "a within-step dependency cycle", config: `partitions:
-  - {name: a, iteration: {type: copy_values}, params: {partitions: [1], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: b, iteration: {type: copy_values}, params: {partitions: [0], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: a, iteration: {type: copy_values}, params: {partitions: [1], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: b, iteration: {type: copy_values}, params: {partitions: [0], partition_state_values: [0]}, params_from_upstream: {partition_state_values: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `, want: 78},
@@ -148,16 +148,16 @@ outputs:
 				`table: results}`), want: 75},
 
 		{name: "the simulation failing while it runs", config: `partitions:
-  - name: replay
-    iteration: {type: from_storage, data: [[1.0], [2.0]]}
-    init_state_values: [1.0]
-    state_history_depth: 1
-    seed: 0
+- name: replay
+  iteration: {type: from_storage, data: [[1.0], [2.0]]}
+  init_state_values: [1.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
-    execution_strategy: {type: inline}
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
+  execution_strategy: {type: inline}
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `, want: 70},

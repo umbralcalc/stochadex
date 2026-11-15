@@ -110,15 +110,15 @@ func TestSinksOpenOnlyWhenARunStarts(t *testing.T) {
 		// records must accumulate, not be truncated by each inner run.
 		logPath := filepath.Join(t.TempDir(), "inner.log")
 		config := writeConfig(t, fmt.Sprintf(`partitions:
-  - name: nested
-    params: {burn_in_steps: [0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
+- name: nested
+  params: {burn_in_steps: [0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 3}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 embedded:

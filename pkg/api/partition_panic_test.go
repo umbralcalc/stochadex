@@ -20,18 +20,18 @@ import (
 func panickingYAML(failAt int, strategy string) string {
 	strategyLine := ""
 	if strategy != "" {
-		strategyLine = fmt.Sprintf("    execution_strategy: {type: %s}\n", strategy)
+		strategyLine = fmt.Sprintf("  execution_strategy: {type: %s}\n", strategy)
 	}
 	return fmt.Sprintf(`partitions:
-  - {name: a, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: b, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: counter, iteration: {type: fails_at_step}, params: {fail_at: [%d], sleep_ms: [0]}, params_from_upstream: {from_a: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: c, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [0]}, params_from_upstream: {from_counter: {upstream: counter}, from_b: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
-  - {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 5}
+- {name: a, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: b, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [0]}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: counter, iteration: {type: fails_at_step}, params: {fail_at: [%d], sleep_ms: [0]}, params_from_upstream: {from_a: {upstream: a}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: c, iteration: {type: fails_at_step}, params: {fail_at: [0], sleep_ms: [0]}, params_from_upstream: {from_counter: {upstream: counter}, from_b: {upstream: b}}, init_state_values: [0.0], state_history_depth: 1, seed: 0}
+- {name: walk, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 5}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 30}
-    timestep_function: {type: constant, stepsize: 1.0}
-%s    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 30}
+  timestep_function: {type: constant, stepsize: 1.0}
+%s  init_time_value: 0.0
 outputs:
 - {name: none, function: {type: nil}}
 `, failAt, strategyLine)
@@ -154,8 +154,8 @@ func TestUndeclaredGroupErrorComesBackAsAnError(t *testing.T) {
 		t.Run("strategy "+strategy, func(t *testing.T) {
 			yaml := groupedYAML(", undeclared_groups: error", "[0, 0]")
 			if strategy != "" {
-				yaml = strings.Replace(yaml, "    init_time_value: 0.0\n",
-					"    init_time_value: 0.0\n    execution_strategy: {type: "+strategy+"}\n", 1)
+				yaml = strings.Replace(yaml, "  init_time_value: 0.0\n",
+					"  init_time_value: 0.0\n  execution_strategy: {type: "+strategy+"}\n", 1)
 			}
 			before := runtime.NumGoroutine()
 			_, err := RunToStorage(writeConfig(t, yaml))

@@ -16,14 +16,14 @@ import (
 // pair: a condition and a json_log at path, which may need quoting.
 func pairYAML(path string) string {
 	return fmt.Sprintf(`partitions:
-  - {name: a, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
-  - {name: b, iteration: {type: wiener_process}, params: {variances: [2.0]}, init_state_values: [1.0], state_history_depth: 1, seed: 4}
+- {name: a, iteration: {type: wiener_process}, params: {variances: [1.0]}, init_state_values: [0.0], state_history_depth: 1, seed: 3}
+- {name: b, iteration: {type: wiener_process}, params: {variances: [2.0]}, init_state_values: [1.0], state_history_depth: 1, seed: 4}
 simulation:
-    output_condition: {type: only_given_partitions, partitions: [b]}
-    output_function: {type: json_log, path: %q}
-    termination_condition: {type: number_of_steps, max_steps: 20}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  output_condition: {type: only_given_partitions, partitions: [b]}
+  output_function: {type: json_log, path: %q}
+  termination_condition: {type: number_of_steps, max_steps: 20}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `, path)
 }
 
@@ -49,8 +49,8 @@ func TestRemovedForms(t *testing.T) {
 			t.Fatalf("the error gives no replacement: %q", message)
 		}
 		pasted := strings.NewReplacer(
-			"    output_condition: {type: only_given_partitions, partitions: [b]}\n", "",
-			fmt.Sprintf("    output_function: {type: json_log, path: %q}\n", path), "",
+			"  output_condition: {type: only_given_partitions, partitions: [b]}\n", "",
+			fmt.Sprintf("  output_function: {type: json_log, path: %q}\n", path), "",
 		).Replace(legacy) + replacement + "\n"
 		config, err := LoadConfig(writeConfigPath(t, pasted))
 		if err != nil {
@@ -70,7 +70,7 @@ func TestRemovedForms(t *testing.T) {
 
 	t.Run("a pair with only a function gives a view with no condition", func(t *testing.T) {
 		message := loadError(t, strings.Replace(pairYAML(filepath.Join(t.TempDir(), "x.log")),
-			"    output_condition: {type: only_given_partitions, partitions: [b]}\n", "", 1))
+			"  output_condition: {type: only_given_partitions, partitions: [b]}\n", "", 1))
 		if strings.Contains(message, "condition:") ||
 			!strings.Contains(message, "outputs: [{name: output, function: {type: json_log, path: ") {
 			t.Errorf("error %q", message)
@@ -79,7 +79,7 @@ func TestRemovedForms(t *testing.T) {
 
 	t.Run("a pair with only a condition gives stdout, the function it defaulted to", func(t *testing.T) {
 		message := loadError(t, strings.Replace(pairYAML("x.log"),
-			"    output_function: {type: json_log, path: \"x.log\"}\n", "", 1))
+			"  output_function: {type: json_log, path: \"x.log\"}\n", "", 1))
 		want := "outputs: [{name: output, condition: {type: only_given_partitions, partitions: [b]}, function: {type: stdout}}]"
 		if !strings.HasSuffix(message, want) {
 			t.Errorf("error %q, want it to end %q", message, want)

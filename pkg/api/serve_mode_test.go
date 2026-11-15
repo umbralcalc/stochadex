@@ -240,11 +240,11 @@ func TestServeMode(t *testing.T) {
   prices:
     source: {csv: {path: %q, time_column: 0, state_columns: {price: [1]}}}
 partitions:
-  - {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1, seed: 0}
+- {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1, seed: 0}
 simulation:
-    termination_condition: {type: input_exhausted, input: prices}
-    timestep_function: {type: from_input, input: prices}
-    init_time_value: 0.0
+  termination_condition: {type: input_exhausted, input: prices}
+  timestep_function: {type: from_input, input: prices}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `, csv), "127.0.0.1:0"))
@@ -325,11 +325,11 @@ func servedConfigWithLongPath(t *testing.T) struct{ config, csv string } {
   prices:
     source: {csv: {path: %q, time_column: 0, state_columns: {price: [1]}}}
 partitions:
-  - {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1, seed: 0}
+- {name: price, iteration: {type: from_input, input: prices}, state_history_depth: 1, seed: 0}
 simulation:
-    termination_condition: {type: input_exhausted, input: prices}
-    timestep_function: {type: from_input, input: prices}
-    init_time_value: 0.0
+  termination_condition: {type: input_exhausted, input: prices}
+  timestep_function: {type: from_input, input: prices}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `, csv)

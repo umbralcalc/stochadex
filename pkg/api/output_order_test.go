@@ -22,21 +22,21 @@ func orderedOutputConfig(function, strategy string) string {
 	var config strings.Builder
 	config.WriteString("partitions:\n")
 	for i, name := range orderedOutputPartitions {
-		fmt.Fprintf(&config, `  - name: %s
-    iteration: {type: wiener_process}
-    params: {variances: [1.0, 1.0]}
-    init_state_values: [0.0, 0.0]
-    state_history_depth: 1
-    seed: %d
+		fmt.Fprintf(&config, `- name: %s
+  iteration: {type: wiener_process}
+  params: {variances: [1.0, 1.0]}
+  init_state_values: [0.0, 0.0]
+  state_history_depth: 1
+  seed: %d
 `, name, 100+i)
 	}
 	config.WriteString(`simulation:
-    termination_condition: {type: number_of_steps, max_steps: 200}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 200}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 `)
 	if strategy != "" {
-		fmt.Fprintf(&config, "    execution_strategy: {type: %s}\n", strategy)
+		fmt.Fprintf(&config, "  execution_strategy: {type: %s}\n", strategy)
 	}
 	fmt.Fprintf(&config, "outputs:\n- {name: out, condition: {type: every_step}, function: %s}\n",
 		function)

@@ -12,16 +12,16 @@ import (
 
 // executeMain is a minimal runnable batch config; cases vary one thing each.
 const executeMain = `partitions:
-  - name: w
-    iteration: {type: wiener_process}
-    params: {variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 1
+- name: w
+  iteration: {type: wiener_process}
+  params: {variances: [1.0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 1
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: OUTPUT}
 `
@@ -86,14 +86,14 @@ func TestExecute(t *testing.T) {
 			args: []string{"--config", filepath.Join(dir, "absent.yaml")}, kind: ErrConfig},
 		{name: "invalid YAML", config: "partitions: [unclosed\n", kind: ErrConfig},
 		{name: "a key nothing reads",
-			config: strings.Replace(nilOutput, "    seed: 1\n", "    seed: 1\n    state_width: 1\n", 1),
+			config: strings.Replace(nilOutput, "  seed: 1\n", "  seed: 1\n  state_width: 1\n", 1),
 			kind:   ErrConfig},
 		{name: "a partition with no iteration",
-			config: strings.Replace(nilOutput, "    iteration: {type: wiener_process}\n", "", 1),
+			config: strings.Replace(nilOutput, "  iteration: {type: wiener_process}\n", "", 1),
 			kind:   ErrConfig},
 		{name: "an upstream naming a missing partition",
-			config: strings.Replace(nilOutput, "    seed: 1\n",
-				"    seed: 1\n    params_from_upstream: {variances: {upstream: ghost}}\n", 1),
+			config: strings.Replace(nilOutput, "  seed: 1\n",
+				"  seed: 1\n  params_from_upstream: {variances: {upstream: ghost}}\n", 1),
 			kind: ErrConfig},
 		{name: "an unknown run mode", config: nilOutput + "run: {mode: sweep}\n", kind: ErrConfig},
 		{name: "a macro referencing a missing partition", config: macroOn(subSim, "ghost"), kind: ErrConfig},
@@ -108,16 +108,16 @@ func TestExecute(t *testing.T) {
 			kind: ErrUnavailable},
 
 		{name: "the simulation failing while it runs", config: `partitions:
-  - name: replay
-    iteration: {type: from_storage, data: [[1.0], [2.0]]}
-    init_state_values: [1.0]
-    state_history_depth: 1
-    seed: 0
+- name: replay
+  iteration: {type: from_storage, data: [[1.0], [2.0]]}
+  init_state_values: [1.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
-    execution_strategy: {type: inline}
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
+  execution_strategy: {type: inline}
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `, kind: ErrRuntime},
@@ -182,11 +182,11 @@ func TestFailureClassificationReachesNestedAndDeferredParts(t *testing.T) {
 	t.Run("an embedded run with an unknown iteration type is a config error at load", func(t *testing.T) {
 		path := filepath.Join(dir, "embedded.yaml")
 		writeFile(t, path, `partitions:
-  - {name: inner_run, init_state_values: [0.0], state_history_depth: 1, seed: 0, params: {burn_in_steps: [0]}}
+- {name: inner_run, init_state_values: [0.0], state_history_depth: 1, seed: 0, params: {burn_in_steps: [0]}}
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 2}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 2}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 embedded:
@@ -205,15 +205,15 @@ embedded:
 			t.Errorf("expected an ErrConfig naming the unknown type, got %v", err)
 		}
 	})
-	t.Run("a data: sub-simulation with an unknown iteration type is a config error when run", func(t *testing.T) {
-		// data: partitions are resolved only when the macros tier builds storage.
+	t.Run("an input's sub-simulation with an unknown iteration type is a config error when run", func(t *testing.T) {
+		// An input's partitions are resolved only when the macros tier builds storage.
 		path := filepath.Join(dir, "data.yaml")
 		writeFile(t, path, replaceOnce(t, macroConfigYAML,
 			"iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}",
 			"iteration: {type: no_such_process}"))
 		config, err := LoadConfig(path)
 		if err != nil {
-			t.Fatalf("the data: block is resolved at run time, so loading should succeed: %v", err)
+			t.Fatalf("an input is resolved at run time, so loading should succeed: %v", err)
 		}
 		_, err = RunToStorage(config)
 		if KindOf(err) != ErrConfig || !strings.Contains(err.Error(), "no_such_process") {

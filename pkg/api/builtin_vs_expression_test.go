@@ -173,9 +173,9 @@ func pairConfig(pair builtinPair, out func(int) string, width, steps int, record
 		config += pair.sources(width)
 	}
 	config += out(width) + fmt.Sprintf(`simulation:
-    termination_condition: {type: number_of_steps, max_steps: %d}
-    timestep_function: {type: constant, stepsize: 0.1}
-    init_time_value: 0
+  termination_condition: {type: number_of_steps, max_steps: %d}
+  timestep_function: {type: constant, stepsize: 0.1}
+  init_time_value: 0
 `, steps)
 	if !record {
 		config += "outputs:\n- {name: none, condition: {type: nil}, function: {type: nil}}\n"

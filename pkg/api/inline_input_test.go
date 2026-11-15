@@ -27,26 +27,26 @@ const fromStorageTwinYAML = `inputs:
                              [860.0], [720.0], [500.0], [250.0], [90.0], [20.0], [2.0], [0.0],
                              [0.0], [0.0], [0.0], [0.0]]
 partitions:
-  - name: clear_sky_driver
-    iteration: {type: from_input, input: sun}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
-  - name: site_power
-    iteration:
-      type: expression
-      fields: [{name: p}]
-      outputs: ["max(0.2 * irradiance, 0)"]
-    params: {irradiance: [0.0]}
-    params_from_upstream:
-      irradiance: {upstream: clear_sky_driver, indices: [0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 0
+- name: clear_sky_driver
+  iteration: {type: from_input, input: sun}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
+- name: site_power
+  iteration:
+    type: expression
+    fields: [{name: p}]
+    outputs: ["max(0.2 * irradiance, 0)"]
+  params: {irradiance: [0.0]}
+  params_from_upstream:
+    irradiance: {upstream: clear_sky_driver, indices: [0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 10}
-    timestep_function: {type: from_input, input: sun}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 10}
+  timestep_function: {type: from_input, input: sun}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: stdout}}
 `
@@ -111,12 +111,12 @@ func TestInlineInputs(t *testing.T) {
           a: [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]
           b: [[9.0], [8.0], [7.0], [6.0]]
 partitions:
-  - {name: a, iteration: {type: from_input, input: series}, state_history_depth: 1}
-  - {name: renamed, iteration: {type: from_input, input: series, partition: b}, state_history_depth: 1}
+- {name: a, iteration: {type: from_input, input: series}, state_history_depth: 1}
+- {name: renamed, iteration: {type: from_input, input: series, partition: b}, state_history_depth: 1}
 simulation:
-    timestep_function: {type: from_input, input: series}
-    termination_condition: {type: input_exhausted, input: series}
-    init_time_value: 0.0
+  timestep_function: {type: from_input, input: series}
+  termination_condition: {type: input_exhausted, input: series}
+  init_time_value: 0.0
 `
 		result, err := RunToStorage(writeConfig(t, yaml))
 		if err != nil {

@@ -359,16 +359,16 @@ func TestResolveIterationErrors(t *testing.T) {
 // fully data, resolves at load, and runs — no Go toolchain involved.
 func TestDataSpecIterationRunsInProcess(t *testing.T) {
 	const config = `partitions:
-  - name: walk
-    iteration: {type: wiener_process}
-    params: {variances: [1.0, 4.0]}
-    init_state_values: [0.0, 0.0]
-    state_history_depth: 1
-    seed: 7
+- name: walk
+  iteration: {type: wiener_process}
+  params: {variances: [1.0, 4.0]}
+  init_state_values: [0.0, 0.0]
+  state_history_depth: 1
+  seed: 7
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 5}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 5}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `
@@ -396,73 +396,73 @@ outputs:
 // in-Go spec tests never exercise.
 func TestNewlyRegisteredIterationsRunFromYaml(t *testing.T) {
 	const config = `partitions:
-  - name: intensity
-    iteration: {type: hawkes_process_intensity, kernel: {type: exponential}}
-    params:
-      background_rates: [1.4, 1.2]
-      exponential_weighting_timescale: [1.1]
-    params_as_partitions: {hawkes_partition_index: [counter]}
-    init_state_values: [0.0, 0.0]
-    state_history_depth: 10
-    seed: 253
-  - name: counter
-    iteration: {type: hawkes_process}
-    params: {}
-    params_from_upstream:
-      intensity: {upstream: intensity}
-    init_state_values: [0.0, 0.0]
-    state_history_depth: 10
-    seed: 1112
-  - name: switcher
-    iteration:
-      type: values_changing_events
-      event_iteration: {type: values_function, function: params_event}
-      iteration_by_event:
-      - event: 1.0
-        iteration: {type: wiener_process}
-      - event: 2.0
-        iteration: {type: constant_values}
-    params: {event: [1.0], variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 99
-  - name: weights_a
-    iteration: {type: constant_values}
-    params: {}
-    init_state_values: [-0.5]
-    state_history_depth: 5
-    seed: 0
-  - name: weights_b
-    iteration: {type: constant_values}
-    params: {}
-    init_state_values: [-1.5]
-    state_history_depth: 5
-    seed: 0
-  - name: data_a
-    iteration: {type: constant_values}
-    params: {}
-    init_state_values: [1.0, 2.0, 3.0]
-    state_history_depth: 5
-    seed: 0
-  - name: data_b
-    iteration: {type: constant_values}
-    params: {}
-    init_state_values: [4.0, 5.0, 6.0]
-    state_history_depth: 5
-    seed: 0
-  - name: resampled
-    iteration: {type: values_weighted_resampling}
-    params: {past_discounting_factor: [0.98]}
-    params_as_partitions:
-      log_weight_partitions: [weights_a, weights_b]
-      data_values_partitions: [data_a, data_b]
-    init_state_values: [0.0, 0.0, 0.0]
-    state_history_depth: 2
-    seed: 1735
+- name: intensity
+  iteration: {type: hawkes_process_intensity, kernel: {type: exponential}}
+  params:
+    background_rates: [1.4, 1.2]
+    exponential_weighting_timescale: [1.1]
+  params_as_partitions: {hawkes_partition_index: [counter]}
+  init_state_values: [0.0, 0.0]
+  state_history_depth: 10
+  seed: 253
+- name: counter
+  iteration: {type: hawkes_process}
+  params: {}
+  params_from_upstream:
+    intensity: {upstream: intensity}
+  init_state_values: [0.0, 0.0]
+  state_history_depth: 10
+  seed: 1112
+- name: switcher
+  iteration:
+    type: values_changing_events
+    event_iteration: {type: values_function, function: params_event}
+    iteration_by_event:
+    - event: 1.0
+      iteration: {type: wiener_process}
+    - event: 2.0
+      iteration: {type: constant_values}
+  params: {event: [1.0], variances: [1.0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 99
+- name: weights_a
+  iteration: {type: constant_values}
+  params: {}
+  init_state_values: [-0.5]
+  state_history_depth: 5
+  seed: 0
+- name: weights_b
+  iteration: {type: constant_values}
+  params: {}
+  init_state_values: [-1.5]
+  state_history_depth: 5
+  seed: 0
+- name: data_a
+  iteration: {type: constant_values}
+  params: {}
+  init_state_values: [1.0, 2.0, 3.0]
+  state_history_depth: 5
+  seed: 0
+- name: data_b
+  iteration: {type: constant_values}
+  params: {}
+  init_state_values: [4.0, 5.0, 6.0]
+  state_history_depth: 5
+  seed: 0
+- name: resampled
+  iteration: {type: values_weighted_resampling}
+  params: {past_discounting_factor: [0.98]}
+  params_as_partitions:
+    log_weight_partitions: [weights_a, weights_b]
+    data_values_partitions: [data_a, data_b]
+  init_state_values: [0.0, 0.0, 0.0]
+  state_history_depth: 2
+  seed: 1735
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 20}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 20}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `
@@ -621,29 +621,29 @@ func TestComposableResolution(t *testing.T) {
 // exponential kernel) is fully data, resolves recursively at load, and runs.
 func TestComposableRunsInProcess(t *testing.T) {
 	const config = `partitions:
-  - name: data_stream
-    iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
-    params:
-      mean: [1.8, 5.0]
-      covariance_matrix: [2.5, 0.0, 0.0, 9.0]
-    init_state_values: [1.3, 8.3]
-    state_history_depth: 50
-    seed: 291
-  - name: rolling_mean
-    iteration: {type: values_function_vector_mean, function: data_values, kernel: {type: exponential}}
-    params:
-      exponential_weighting_timescale: [10.0]
-    params_as_partitions:
-      data_values_partition: [data_stream]
-    params_from_upstream:
-      latest_data_values: {upstream: data_stream}
-    init_state_values: [1.8, 5.0]
-    state_history_depth: 50
-    seed: 0
+- name: data_stream
+  iteration: {type: data_generation, likelihood: {type: normal, allow_default_covariance_fallback: true}}
+  params:
+    mean: [1.8, 5.0]
+    covariance_matrix: [2.5, 0.0, 0.0, 9.0]
+  init_state_values: [1.3, 8.3]
+  state_history_depth: 50
+  seed: 291
+- name: rolling_mean
+  iteration: {type: values_function_vector_mean, function: data_values, kernel: {type: exponential}}
+  params:
+    exponential_weighting_timescale: [10.0]
+  params_as_partitions:
+    data_values_partition: [data_stream]
+  params_from_upstream:
+    latest_data_values: {upstream: data_stream}
+  init_state_values: [1.8, 5.0]
+  state_history_depth: 50
+  seed: 0
 simulation:
-    termination_condition: {type: number_of_steps, max_steps: 100}
-    timestep_function: {type: constant, stepsize: 1.0}
-    init_time_value: 0.0
+  termination_condition: {type: number_of_steps, max_steps: 100}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `

@@ -117,20 +117,20 @@ func TestSolarFleetDrivenFromAnInput(t *testing.T) {
 const inputsMain = `inputs:
 INPUTS
 partitions:
-  - name: replay
-    iteration: REPLAY
-    state_history_depth: 1
-    seed: 0
-  - name: walk
-    iteration: {type: wiener_process}
-    params: {variances: [1.0]}
-    init_state_values: [0.0]
-    state_history_depth: 1
-    seed: 3
+- name: replay
+  iteration: REPLAY
+  state_history_depth: 1
+  seed: 0
+- name: walk
+  iteration: {type: wiener_process}
+  params: {variances: [1.0]}
+  init_state_values: [0.0]
+  state_history_depth: 1
+  seed: 3
 simulation:
-    termination_condition: {type: input_exhausted, input: src}
-    timestep_function: {type: from_input, input: src}
-    init_time_value: 0.0
+  termination_condition: {type: input_exhausted, input: src}
+  timestep_function: {type: from_input, input: src}
+  init_time_value: 0.0
 outputs:
 - {name: output, condition: {type: every_step}, function: {type: nil}}
 `
@@ -259,7 +259,7 @@ func TestInputs(t *testing.T) {
 		}, ErrData, `has no partition "ghost" (it has: source)`},
 		{"init_state_values of the wrong width", func(t *testing.T) string {
 			return strings.Replace(inputsConfig(simulationInput, "{type: from_input, input: src, partition: source}"),
-				"    state_history_depth: 1\n    seed: 0\n", "    init_state_values: [0.0]\n    state_history_depth: 1\n    seed: 0\n", 1)
+				"  state_history_depth: 1\n  seed: 0\n", "  init_state_values: [0.0]\n  state_history_depth: 1\n  seed: 0\n", 1)
 		}, ErrData, "1 init_state_values"},
 	}
 	for _, c := range failures {
