@@ -6,7 +6,7 @@ import (
 	"github.com/umbralcalc/stochadex/pkg/simulator"
 )
 
-// EdgeKind distinguishes the three dependency types between partitions.
+// EdgeKind distinguishes the dependency types between partitions.
 type EdgeKind int
 
 const (
@@ -17,6 +17,11 @@ const (
 	// CrossHistory is a lag>=1 dependency declared by params_as_partitions: the
 	// target may read the source partition's previous-step state history.
 	CrossHistory
+	// HistoryRead is a lag>=1 dependency an iteration states in its own spec:
+	// the target reads the source partition's committed state, one step behind
+	// or further (an expression's upstreams, for example). Unlike CrossHistory
+	// it is the iteration's own declaration of what it reads, so it is exact.
+	HistoryRead
 )
 
 // String returns a stable snake_case label for the edge kind.
@@ -26,15 +31,31 @@ func (k EdgeKind) String() string {
 		return "params_inject"
 	case CrossHistory:
 		return "cross_history"
+	case HistoryRead:
+		return "history_read"
 	default:
 		return "unknown"
 	}
 }
 
-// Reliable reports whether this edge kind is derived from engine-enforced
-// wiring (exact) rather than declared capacity (a may-read hint). Only
-// ParamsInject edges are reliable, and only they should be asserted on.
-func (k EdgeKind) Reliable() bool { return k == ParamsInject }
+// Reliable reports whether this edge kind is exact (engine-enforced wiring, or
+// an iteration's own statement of what it reads) rather than declared capacity
+// (a may-read hint). ParamsInject and HistoryRead edges are reliable, and only
+// they should be asserted on.
+func (k EdgeKind) Reliable() bool { return k == ParamsInject || k == HistoryRead }
+
+// Lagged reports whether this edge kind reads the source's past committed
+// state rather than its this-step output. A lagged edge imposes no computation
+// order and can never deadlock.
+func (k EdgeKind) Lagged() bool { return k == CrossHistory || k == HistoryRead }
+
+// HistoryReader is implemented by an iteration whose spec states which other
+// partitions' committed state it reads. HistoryReads maps the name the
+// iteration reads each by (an expression's upstream alias) to that partition's
+// name. Build draws each as a HistoryRead edge.
+type HistoryReader interface {
+	HistoryReads() map[string]string
+}
 
 // Edge is a directed dependency: the Target partition depends on the Source.
 type Edge struct {
@@ -42,11 +63,12 @@ type Edge struct {
 	// SourceName and TargetName are the partition names for the indices above.
 	SourceName, TargetName string
 	Kind                   EdgeKind
-	// Param is the param key that carries the dependency (the params_from_upstream
-	// or params_as_partitions key).
+	// Param is the name that carries the dependency: the params_from_upstream or
+	// params_as_partitions key, or the name a HistoryReader reads the source by.
 	Param string
 	// Window is the maximum readable lag: the source partition's state history
-	// depth for a CrossHistory edge, 0 for a within-step ParamsInject edge.
+	// depth for a CrossHistory or HistoryRead edge, 0 for a within-step
+	// ParamsInject edge.
 	Window int
 }
 
@@ -59,7 +81,8 @@ type Graph struct {
 
 // Build derives the dependency graph from a ConfigGenerator. It is
 // deterministic — edges are emitted in a stable order (by target index, then
-// kind, then sorted param key) — and performs no simulation run.
+// kind, then sorted param key) — and performs no simulation run. It calls no
+// method of a partition's iteration but HistoryReads.
 func Build(gen *simulator.ConfigGenerator) *Graph {
 	names := gen.PartitionNames()
 	index := make(map[string]int, len(names))
@@ -108,6 +131,28 @@ func Build(gen *simulator.ConfigGenerator) *Graph {
 					Window:     gen.GetPartition(ref).StateHistoryDepth,
 				})
 			}
+		}
+
+		// HistoryRead: the lagged reads the iteration's own spec states.
+		reader, ok := cfg.Iteration.(HistoryReader)
+		if !ok {
+			continue
+		}
+		reads := reader.HistoryReads()
+		for _, param := range sortedKeys(reads) {
+			src, ok := index[reads[param]]
+			if !ok || src == target {
+				continue
+			}
+			g.Edges = append(g.Edges, Edge{
+				Source:     src,
+				Target:     target,
+				SourceName: reads[param],
+				TargetName: name,
+				Kind:       HistoryRead,
+				Param:      param,
+				Window:     gen.GetPartition(reads[param]).StateHistoryDepth,
+			})
 		}
 	}
 	return g

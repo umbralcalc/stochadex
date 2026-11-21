@@ -181,10 +181,22 @@ run by a test:
 
 ## Authoring with an agent
 
-Using stochadex from an AI agent is [robert](https://github.com/umbralcalc/robert)'s job, not
-this repo's; see its documentation. It drives stochadex through the same CLI described above,
-with `--check`, `inspect --io`, `inspect --suggest`, `graph`, `expand` and `catalogue` as its machine-readable
-contract.
+An agent needs nothing but the CLI described above: `--check`, `inspect --io`,
+`inspect --suggest`, `graph`, `expand` and `catalogue` are its machine-readable contract, and
+every error names its fix.
+
+For [Claude Code](https://claude.com/claude-code), the repository carries a plugin whose
+skills start from a diagram. Give Claude a diagram of a system (Mermaid, a draw.io file, boxes
+and arrows, a photo of a whiteboard) and it reads it as a config, checks and runs it, tests
+what you expect of it, and writes the results back onto the diagram for the next experiment:
+
+```bash
+claude plugin marketplace add umbralcalc/stochadex
+claude plugin install stochadex@stochadex
+```
+
+See the [plugin's README](https://github.com/umbralcalc/stochadex/tree/main/plugins/stochadex)
+for its skills and the files a session leaves behind.
 
 ## Example analysis notebooks
 

@@ -12,9 +12,10 @@ import (
 //
 // Edge styling encodes the reliability distinction from the package doc:
 //   - solid arrow  (-->)  : ParamsInject, the exact within-step wiring.
-//   - dashed arrow (-.->) : CrossHistory, the may-read hint.
+//   - dashed arrow (-.->) : a lagged read, one step behind or further: a
+//     CrossHistory may-read hint, or a HistoryRead the iteration states.
 //
-// CrossHistory dependencies are reads of a partition's *past* committed state,
+// Lagged dependencies are reads of a partition's *past* committed state,
 // not of its live within-step output. So that the rendered graph stays a DAG,
 // such an edge does not point back at the live producer node; instead each
 // producer read this way gets a distinct, differently coloured past-copy node
@@ -38,11 +39,10 @@ func (g *Graph) Mermaid() string {
 		fmt.Fprintf(&b, "  n%dpast[%q]\n", src, g.Names[src])
 	}
 	for _, e := range g.Edges {
-		switch e.Kind {
-		case ParamsInject:
-			fmt.Fprintf(&b, "  n%d -->|%s| n%d\n", e.Source, mermaidLabel(e.Param), e.Target)
-		case CrossHistory:
+		if e.Kind.Lagged() {
 			fmt.Fprintf(&b, "  n%dpast -.->|%s| n%d\n", e.Source, mermaidLabel(e.Param), e.Target)
+		} else {
+			fmt.Fprintf(&b, "  n%d -->|%s| n%d\n", e.Source, mermaidLabel(e.Param), e.Target)
 		}
 	}
 	if len(pastSources) > 0 {
@@ -68,7 +68,7 @@ func (g *Graph) Mermaid() string {
 }
 
 // DOT renders the graph in Graphviz DOT for users who want a rendered image
-// (stochadex graph --format dot ... | dot -Tsvg). CrossHistory reads of past
+// (stochadex graph --format dot ... | dot -Tsvg). Lagged reads of past
 // state render as differently coloured past-copy nodes, exactly as in Mermaid,
 // so the drawn graph is a DAG (see the Mermaid doc for the rationale).
 func (g *Graph) DOT() string {
@@ -86,11 +86,10 @@ func (g *Graph) DOT() string {
 			src, g.Names[src])
 	}
 	for _, e := range g.Edges {
-		switch e.Kind {
-		case ParamsInject:
-			fmt.Fprintf(&b, "  n%d -> n%d [label=%q];\n", e.Source, e.Target, e.Param)
-		case CrossHistory:
+		if e.Kind.Lagged() {
 			fmt.Fprintf(&b, "  n%dpast -> n%d [label=%q, style=dashed];\n", e.Source, e.Target, e.Param)
+		} else {
+			fmt.Fprintf(&b, "  n%d -> n%d [label=%q];\n", e.Source, e.Target, e.Param)
 		}
 	}
 	seen := make(map[int]bool)
@@ -107,13 +106,13 @@ func (g *Graph) DOT() string {
 }
 
 // crossHistorySources returns, in ascending index order, the distinct partition
-// indices that are read as past state via a CrossHistory edge. Each gets one
+// indices that are read as past state via a lagged edge. Each gets one
 // past-copy node in the rendered graph, shared by all its lag consumers.
 func (g *Graph) crossHistorySources() []int {
 	seen := make(map[int]bool)
 	srcs := make([]int, 0)
 	for _, e := range g.Edges {
-		if e.Kind == CrossHistory && !seen[e.Source] {
+		if e.Kind.Lagged() && !seen[e.Source] {
 			seen[e.Source] = true
 			srcs = append(srcs, e.Source)
 		}

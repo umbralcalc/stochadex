@@ -22,6 +22,30 @@ an exact version rather than assume stability across minors.
 
 ## [Unreleased]
 
+### Added
+
+- **A Claude Code plugin for experimenting on a diagram** ([plugins/stochadex](plugins/stochadex)).
+  Give Claude a diagram of a system (Mermaid, a draw.io file, boxes and arrows, a photo of a
+  whiteboard) and it reads it as a config, checks and runs it, tests what you expect of it,
+  and writes the results back onto the diagram for the next experiment. Three skills:
+  `experiment` (the loop, and the folder of diagram, config, claims, log and runs it keeps),
+  `diagram` (the notation, how boxes and arrows become partitions and reads, and checking a
+  config against a diagram with `stochadex graph`) and `config` (writing, checking and running
+  a config). A bundled `run_report.py` summarises `json_log` runs across an ensemble and tests
+  claims against them. Install with `claude plugin marketplace add umbralcalc/stochadex`, then
+  `claude plugin install stochadex@stochadex`. The skills drive the CLI and nothing else, and
+  `TestDocsExamples` runs every complete config they show.
+
+### Changed
+
+- **`stochadex graph` draws an expression's `upstreams:`.** Each is a dashed edge from a past
+  copy of the partition read, labelled with the alias, as a `params_as_partitions` reference
+  is drawn. Before, a model coupled through expressions, such as a predator and prey reading
+  each other one step behind, drew as nodes with no edges. In `pkg/graph` these are a new
+  exact edge kind, `HistoryRead`, which `Build` takes from any iteration that implements
+  `graph.HistoryReader`; `EdgeKind.Lagged` says whether a kind reads past state. Deadlock
+  detection is unchanged: only within-step reads can form a cycle.
+
 ## [0.31.0] — 2026-11-15
 
 This release writes a run one way everywhere. A config's main run, its `partitions:`,
@@ -60,7 +84,7 @@ steps each nested run takes, and so what one step of the main run costs.
 nor one of its own fields, or a written row outside the history its partition keeps, used to
 fail when the run first evaluated it. It now fails to load, so one whose bad lag sat behind a
 `where` branch the run never took, and so ran, now needs that lag fixed or removed. No config
-in this repository, robert or the downstream repositories was affected.
+in this repository or the downstream repositories was affected.
 
 ### Added
 
@@ -261,8 +285,7 @@ test. The quickstart is now a short path to a first run.
   `name` from each. Every other key is new.
 - `evolution_strategy_optimisation`'s covariance partition no longer takes its mean as a param.
   Results are unchanged; a config that set it by hand, outside the macro, can drop it.
-- The Claude Code marketplace is gone from this repo; install
-  [robert](https://github.com/umbralcalc/robert) for agent use.
+- The Claude Code marketplace is gone from this repo.
 
 ### Added
 
@@ -288,11 +311,9 @@ test. The quickstart is now a short path to a first run.
 
 ### Removed
 
-- **`.claude-plugin/marketplace.json`**, the deprecated Claude Code marketplace that only
-  pointed existing installs at robert. Agent integration for stochadex is
-  [robert](https://github.com/umbralcalc/robert)'s. An install of the old `stochadex` plugin
-  can no longer refresh this marketplace: remove it (`claude plugin marketplace remove
-  stochadex`) and install robert instead.
+- **`.claude-plugin/marketplace.json`**, the deprecated Claude Code marketplace, which
+  carried no skills. An install of the old `stochadex` plugin can no longer refresh this
+  marketplace: remove it (`claude plugin marketplace remove stochadex`).
 
 ## [0.26.0] — 2026-11-01
 
@@ -471,14 +492,12 @@ contract, and finishes turning macros into config shortcuts: every macro, includ
 calibrate-then-plan, now expands into the core config language and runs exactly as the
 macro tier does. Identical runs now write byte-identical output, since rows within a step
 come out in partition order whatever the execution strategy. The new `stochadex graph` and
-`stochadex catalogue` commands, and a `SHA256SUMS` file on every release, give tools such as
-[robert](https://github.com/umbralcalc/robert) a stable surface to build on. Agent integration
-moves there: the Claude Code plugin and the `stochadex-model` skill are removed.
+`stochadex catalogue` commands, and a `SHA256SUMS` file on every release, give tools a stable
+surface to build on. The Claude Code plugin and the `stochadex-model` skill are removed.
 
 **Upgrading from 0.23.**
 
-- If you use the Claude Code plugin, switch to robert (`claude plugin marketplace add
-  umbralcalc/robert`, or its one-line installer), which carries the same skill.
+- The Claude Code plugin no longer carries a skill; uninstall it.
 - Replace `stochadex-graph` with `stochadex graph`. The old binary still works as an alias
   but is deprecated, and no release ships it.
 - A config whose `window_data_history_depth` exceeds its window's `depth` now fails as a
@@ -650,15 +669,14 @@ moves there: the Claude Code plugin and the `stochadex-model` skill are removed.
 
 ### Removed
 
-- **The Claude Code plugin and the `stochadex-model` skill.** Agent integration now lives in
-  [robert](https://github.com/umbralcalc/robert) (PyPI `robert-ai`), which drives stochadex
-  through its CLI (`--check`, `inspect`, `graph`, `catalogue`) and carries the skill. The
+- **The Claude Code plugin and the `stochadex-model` skill.** An agent drives stochadex
+  through its CLI (`--check`, `inspect`, `graph`, `catalogue`). The
   engine is a deterministic engine and CLI with no agent code. `.claude-plugin/plugin.json`
   and `.claude/skills/stochadex-model/` (with its recipes, which were byte-identical copies
   of `cfg/example_evolution_strategy_config.yaml`, `example_smc_config.yaml`,
   `example_posterior_macro_config.yaml` and `example_regression_config.yaml`, still tested
   there) are gone. `.claude-plugin/marketplace.json` stays, so existing installs resolve,
-  with its plugin's description replaced by a notice pointing to robert. The
+  with its plugin's description replaced by a notice that the skill is gone. The
   prepare-release workflow no longer bumps plugin manifests.
 - **No `stochadex-graph` binary is released** (none ever was, and the release workflow now
   says so); use `stochadex graph`.

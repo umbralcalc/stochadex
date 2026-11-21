@@ -1,0 +1,17 @@
+{
+  "name": "stochadex",
+  "owner": {
+    "name": "umbralcalc",
+    "url": "https://github.com/umbralcalc/stochadex"
+  },
+  "description": "Skills for building and experimenting on stochadex simulations with Claude.",
+  "plugins": [
+    {
+      "name": "stochadex",
+      "source": "./plugins/stochadex",
+      "description": "Experiment on a diagram of a system: Claude reads it as a stochadex simulation config, checks and runs it, tests what you expect of it, and writes the results back onto the diagram for the next round.",
+      "category": "modeling",
+      "tags": ["simulation", "stochastic-processes", "modeling", "diagrams", "yaml"]
+    }
+  ]
+}

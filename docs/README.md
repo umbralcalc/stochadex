@@ -46,7 +46,12 @@ chmod +x stochadex
 docker pull ghcr.io/umbralcalc/stochadex:latest
 ```
 
-**With an agent** → using stochadex from an AI agent is [robert](https://github.com/umbralcalc/robert)'s job; see its documentation. It drives the same CLI, with `--check`, `inspect --io`, `inspect --suggest`, `graph`, `expand` and `catalogue` as its machine-readable contract, and the engine itself stays deterministic and agent-free.
+**With an agent** → give Claude a diagram of a system and it writes the config, checks and runs it, tests what you expect of it, and writes the results back onto the diagram for the next round. The [Claude Code plugin](https://github.com/umbralcalc/stochadex/tree/main/plugins/stochadex) carries the skills. They drive the same CLI, with `--check`, `inspect --io`, `inspect --suggest`, `graph`, `expand` and `catalogue` as its machine-readable contract, and the engine itself stays deterministic and agent-free.
+
+```bash
+claude plugin marketplace add umbralcalc/stochadex
+claude plugin install stochadex@stochadex
+```
 
 **As a Go library** → implement the `Iteration` interface to add a primitive the catalogue doesn't have, or embed the engine in your own service. Start with the [quickstart](https://stochadex.github.io/pkg/quickstart.html).
 

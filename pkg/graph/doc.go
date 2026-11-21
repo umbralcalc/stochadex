@@ -10,16 +10,20 @@
 //   - What depends on what? Build produces the full dependency graph for
 //     documentation and visualisation (see Mermaid / DOT).
 //
-// # Reliability: one edge class is exact, two are hints
+// # Reliability: two edge classes are exact, one is a hint
 //
-// The three edge kinds do not have the same relationship to config, and the
+// The edge kinds do not have the same relationship to config, and the
 // difference is load-bearing:
 //
 //   - ParamsInject (from params_from_upstream) is engine-enforced wiring. The
 //     coordinator builds a channel the consumer blocks on receiving before its
 //     Iterate even runs, so the dependency exists whether or not the iteration
-//     reads the injected param. These edges are exact — sound and complete —
-//     and are the only ones safe to assert on.
+//     reads the injected param. These edges are exact — sound and complete.
+//   - HistoryRead (from an iteration that implements HistoryReader, as an
+//     expression does for its upstreams) is the iteration's own statement of
+//     the partitions whose committed state it reads, one step behind or
+//     further. It is exact too, and like every lagged read it imposes no order
+//     and cannot deadlock.
 //   - CrossHistory (from params_as_partitions) is declared capacity, not
 //     wiring. The actual read lives in iteration code, which config cannot see.
 //     It over-reports (a configured partition ref the iteration ignores) and

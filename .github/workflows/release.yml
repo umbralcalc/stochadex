@@ -1,7 +1,7 @@
 name: Release binaries
 # On every version tag, build the stochadex CLI and attach it to that tag's GitHub
 # Release. This is what makes the "no Go toolchain" promise real: a user (or a tool
-# such as robert installing the engine) downloads a prebuilt binary instead of needing
+# installing the engine) downloads a prebuilt binary instead of needing
 # `go`, and checks it against the release's SHA256SUMS (see the checksums job).
 #
 # Two tiers, both from cmd/stochadex (one main package, two builds):
