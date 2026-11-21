@@ -74,6 +74,54 @@ func TestGraphCommand(t *testing.T) {
 		}
 	})
 
+	t.Run("draws an expression's upstreams as reads one step behind", func(t *testing.T) {
+		// The same model written both ways an expression can be: inline, and in
+		// the expressions: block. Each partition reads the other by alias.
+		const partitionTail = `
+  init_state_values: [1.0]
+  state_history_depth: 1
+  seed: 0
+`
+		const clock = `simulation:
+  termination_condition: {type: number_of_steps, max_steps: 3}
+  timestep_function: {type: constant, stepsize: 1.0}
+  init_time_value: 0.0
+`
+		inline := `partitions:
+- name: prey
+  iteration: {type: expression, fields: [{name: a}], upstreams: {hunters: predator}, outputs: ["a - hunters[0]"]}` +
+			partitionTail + `- name: predator
+  iteration: {type: expression, fields: [{name: b}], upstreams: {food: prey}, outputs: ["b + food[0]"]}` +
+			partitionTail + clock
+		block := `partitions:
+- name: prey` + partitionTail + `- name: predator` + partitionTail + `expressions:
+- {partition: prey, fields: [{name: a}], upstreams: {hunters: predator}, outputs: ["a - hunters[0]"]}
+- {partition: predator, fields: [{name: b}], upstreams: {food: prey}, outputs: ["b + food[0]"]}
+` + clock
+		want := `flowchart TB
+  n0["prey"]
+  n1["predator"]
+  n0past["prey"]
+  n1past["predator"]
+  n1past -.->|hunters| n0
+  n0past -.->|food| n1
+  classDef pastcopy fill:#d8e6f3,stroke:#4a7ba6,color:#000;
+  class n0past pastcopy;
+  class n1past pastcopy;
+`
+		for name, text := range map[string]string{"inline": inline, "block": block} {
+			path := filepath.Join(t.TempDir(), name+".yaml")
+			writeFile(t, path, text)
+			out, err := runGraph(t, "-c", path)
+			if err != nil {
+				t.Fatalf("%s: mutual reads one step behind are no deadlock: %v", name, err)
+			}
+			if out != want {
+				t.Errorf("%s: got\n%s\nwant\n%s", name, out, want)
+			}
+		}
+	})
+
 	t.Run("prints DOT with --format dot", func(t *testing.T) {
 		out, err := runGraph(t, "-c", config, "--format", "dot")
 		if err != nil {

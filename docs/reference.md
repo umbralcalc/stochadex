@@ -984,9 +984,9 @@ without their values. From Go, use `api.Check(config)` and `api.Manifest(config)
 
 `stochadex graph` prints the run's partition dependency graph without running it:
 one node per partition, a solid edge for each `params_from_upstream` read (exact
-within-step wiring), and a dashed edge from a past copy of the producer for each
-`params_as_partitions` reference (a hint that the partition may read the other's history,
-one step behind). It prints Mermaid by default, or Graphviz DOT with `--format dot`, and
+within-step wiring), and a dashed edge from a past copy of the producer for each read one
+step behind: an expression's `upstreams:` (exact, labelled with the alias) and each
+`params_as_partitions` reference (a hint that the partition may read the other's history). It prints Mermaid by default, or Graphviz DOT with `--format dot`, and
 takes `--set` like a run does. A `macros:` config's graph is its expansion's, the
 partitions it runs as; it reads the config's inputs, as the run would.
 
@@ -1251,5 +1251,5 @@ status 2. Treat it like 70. From Go, `api.Execute(os.Args)` returns the classifi
 - [How it works](how_it_works.html): the engine behind partitions and histories, and how to
   write an iteration in Go.
 - [`cfg/`](https://github.com/umbralcalc/stochadex/tree/main/cfg): worked example configs.
-- [robert](https://github.com/umbralcalc/robert): authoring and running stochadex configs with
-  an AI agent.
+- [The Claude Code plugin](https://github.com/umbralcalc/stochadex/tree/main/plugins/stochadex):
+  experimenting on a diagram of a system with Claude, which writes and runs the config.
