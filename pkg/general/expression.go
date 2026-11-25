@@ -197,6 +197,13 @@ func (e *ExpressionIteration) fieldWidth(i int) int {
 	return 1
 }
 
+// HistoryReads returns the partitions whose last committed state the
+// expressions read, by alias: the Upstreams. It is what a dependency graph
+// draws as this partition's lagged reads.
+func (e *ExpressionIteration) HistoryReads() map[string]string {
+	return e.Upstreams
+}
+
 // Configure resolves the state layout, resolves upstream partition names to indices, parses
 // every expression once, and seeds the draw sampler from the partition's seed. It panics on a
 // malformed specification: a partition that cannot be built is a configuration error, not

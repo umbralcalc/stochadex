@@ -15,14 +15,25 @@ var docsBlock = regexp.MustCompile("(?s)```([a-z]*)\n(.*?)```")
 // configName is the first line of a docs block that is a whole config file.
 var configName = regexp.MustCompile(`^# ([a-z_]+\.yaml)\n`)
 
-// TestDocsExamples runs the configs the docs pages show. A yaml block that
+// examplePages are the pages whose configs TestDocsExamples runs: the docs
+// pages, and the Claude Code plugin's skills.
+var examplePages = []string{
+	"docs/reference.md",
+	"docs/quickstart.md",
+	"plugins/stochadex/skills/config/SKILL.md",
+	"plugins/stochadex/skills/diagram/SKILL.md",
+	"plugins/stochadex/skills/experiment/SKILL.md",
+}
+
+// TestDocsExamples runs the configs the docs pages and the skills show. A yaml block that
 // starts with its file name (# step.yaml) is a whole config: it must pass
 // --check, and when a text block follows it, running it must print exactly
 // that text, with a failed run's error line last as the CLI prints it.
 func TestDocsExamples(t *testing.T) {
 	examples, checked := 0, 0
-	for _, page := range []string{"reference.md", "quickstart.md"} {
-		text, err := os.ReadFile(filepath.Join(repoDir, "docs", page))
+	pages := map[string]int{}
+	for _, page := range examplePages {
+		text, err := os.ReadFile(filepath.Join(repoDir, filepath.FromSlash(page)))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -64,11 +75,48 @@ func TestDocsExamples(t *testing.T) {
 			checked++
 			if hasOutput {
 				examples++
+				pages[page]++
 			}
 		}
 	}
 	// The pages show their examples; finding none means this test stopped reading them.
 	if examples < 6 || checked < 7 {
 		t.Errorf("ran %d examples and checked %d configs, want the pages' every one", examples, checked)
+	}
+	if skill := "plugins/stochadex/skills/config/SKILL.md"; pages[skill] < 2 {
+		t.Errorf("ran %d examples of %s, want its every one", pages[skill], skill)
+	}
+}
+
+// TestSkillGraphExample checks the graph the diagram skill shows is what
+// stochadex graph prints for the config skill's reservoir.yaml, the model both
+// skills use.
+func TestSkillGraphExample(t *testing.T) {
+	skills := filepath.Join(repoDir, "plugins", "stochadex", "skills")
+	configSkill, err := os.ReadFile(filepath.Join(skills, "config", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config string
+	for _, block := range docsBlock.FindAllStringSubmatch(string(configSkill), -1) {
+		if strings.HasPrefix(block[2], "# reservoir.yaml\n") {
+			config = block[2]
+		}
+	}
+	if config == "" {
+		t.Fatal("the config skill has no reservoir.yaml")
+	}
+	path := filepath.Join(t.TempDir(), "reservoir.yaml")
+	writeFile(t, path, config)
+	printed, err := runGraph(t, "-c", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	diagramSkill, err := os.ReadFile(filepath.Join(skills, "diagram", "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(diagramSkill), "```text\n"+printed+"```") {
+		t.Errorf("the diagram skill does not show the graph of reservoir.yaml:\n%s", printed)
 	}
 }

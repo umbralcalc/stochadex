@@ -70,13 +70,19 @@ jobs:
       # module, CGO + a dlopened ONNX Runtime shared library, kept out of the engine's go.mod.
       # Fetch the ONNX Runtime library and point ONNXRUNTIME_LIB_PATH at it so the differential
       # inference test runs for real (it skips, rather than fails, when the library is absent).
+      # The library comes from Microsoft's NuGet package, a zip that carries the shared
+      # library for each platform, and is checked against a pinned SHA-256 before it is
+      # unpacked. To move to another version, change ORT_VERSION and ORT_SHA256 together.
       - name: Build and test onnx module (opt-in ONNX inference)
+        env:
+          ORT_VERSION: 1.27.1
+          ORT_SHA256: 9359e46eba4482ded00e678c98f22b68f51bb411d7934f5516d64050edfa3383
         run: |
-          ORT=onnxruntime-linux-x64-1.27.1
-          curl -sSL -o ort.tgz "https://github.com/microsoft/onnxruntime/releases/download/v1.27.1/${ORT}.tgz"
-          tar xzf ort.tgz
+          curl -fsSL -o ort.nupkg "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/${ORT_VERSION}/microsoft.ml.onnxruntime.${ORT_VERSION}.nupkg"
+          echo "${ORT_SHA256}  ort.nupkg" | sha256sum --check
+          unzip -q ort.nupkg 'runtimes/linux-x64/native/libonnxruntime.so' -d ort
           cd pkg/onnx && CGO_ENABLED=1 go build -tags onnx ./... && \
-            CGO_ENABLED=1 ONNXRUNTIME_LIB_PATH="${GITHUB_WORKSPACE}/${ORT}/lib/libonnxruntime.so" \
+            CGO_ENABLED=1 ONNXRUNTIME_LIB_PATH="${GITHUB_WORKSPACE}/ort/runtimes/linux-x64/native/libonnxruntime.so" \
             go test -tags onnx ./... -count=1
       # The CLI (cmd/stochadex) is a SEPARATE module bundling the opt-in
       # egress modules, so `./...` above excludes it. Build both flavours it ships so a

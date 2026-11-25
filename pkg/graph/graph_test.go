@@ -203,3 +203,70 @@ func TestPastCopyMakesMutualLagAcyclic(t *testing.T) {
 		t.Errorf("live producer node must not carry the lag edge:\n%s", mermaid)
 	}
 }
+
+// statedReads is an iteration that states the partitions it reads one step
+// behind, as an expression does for its upstreams.
+type statedReads map[string]string
+
+func (statedReads) Configure(int, *simulator.Settings) {}
+
+func (statedReads) Iterate(
+	*simulator.Params, int, []*simulator.StateHistory, *simulator.CumulativeTimestepsHistory,
+) []float64 {
+	return nil
+}
+
+func (s statedReads) HistoryReads() map[string]string { return s }
+
+func TestBuildHistoryReads(t *testing.T) {
+	// prey and predator each read the other one step behind, by alias; prey
+	// also names itself and a partition that is not there, neither an edge.
+	prey := partition("prey", 3, nil, nil)
+	prey.Iteration = statedReads{"pred": "predator", "self": "prey", "gone": "missing"}
+	predator := partition("predator", 2, nil, nil)
+	predator.Iteration = statedReads{"b": "prey", "a": "prey"}
+	g := Build(newGen(prey, predator))
+
+	want := []Edge{
+		{Source: 1, Target: 0, SourceName: "predator", TargetName: "prey",
+			Kind: HistoryRead, Param: "pred", Window: 2},
+		{Source: 0, Target: 1, SourceName: "prey", TargetName: "predator",
+			Kind: HistoryRead, Param: "a", Window: 3},
+		{Source: 0, Target: 1, SourceName: "prey", TargetName: "predator",
+			Kind: HistoryRead, Param: "b", Window: 3},
+	}
+	if !reflect.DeepEqual(g.Edges, want) {
+		t.Fatalf("got edges\n%+v\nwant\n%+v", g.Edges, want)
+	}
+	if !HistoryRead.Reliable() || !HistoryRead.Lagged() || HistoryRead.String() != "history_read" {
+		t.Errorf("a history read is exact and lagged, named history_read")
+	}
+	if ParamsInject.Lagged() || !CrossHistory.Lagged() || CrossHistory.Reliable() {
+		t.Errorf("only params_inject is within the step, and cross_history stays a hint")
+	}
+	// Reading each other one step behind is the safe coupling: no deadlock,
+	// and each read leaves from a past copy, never the live node.
+	if cycles := g.InjectCycles(); len(cycles) != 0 {
+		t.Errorf("mutual history reads are not a deadlock, got %v", cycles)
+	}
+	mermaid := g.Mermaid()
+	for _, line := range []string{
+		"n1past -.->|pred| n0", "n0past -.->|a| n1", "n0past -.->|b| n1",
+		"class n0past pastcopy;", "class n1past pastcopy;",
+	} {
+		if !strings.Contains(mermaid, line) {
+			t.Errorf("mermaid output missing %q:\n%s", line, mermaid)
+		}
+	}
+	if strings.Contains(mermaid, "-->") || strings.Contains(mermaid, "deadlock") {
+		t.Errorf("a history read is drawn dashed and never as a deadlock:\n%s", mermaid)
+	}
+	dot := g.DOT()
+	for _, line := range []string{
+		`n1past -> n0 [label="pred", style=dashed];`, `n0past -> n1 [label="a", style=dashed];`,
+	} {
+		if !strings.Contains(dot, line) {
+			t.Errorf("dot output missing %q:\n%s", line, dot)
+		}
+	}
+}

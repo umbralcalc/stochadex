@@ -40,6 +40,7 @@ models/        — Domain-models catalogue: data-free SDK stubs of real-world do
 test/          — Integration tests mirroring the nbs/ notebook examples
 nbs/           — Jupyter (GoNB) notebooks with worked examples
 docs/          — Documentation source and build script
+plugins/       — The Claude Code plugin: skills for experimenting on a diagram of a system
 ```
 
 **Where the depth lives.** This file stays high-level on purpose. Packages with non-obvious
@@ -231,6 +232,8 @@ cd docs && bash build.sh                         # build HTML docs (needs pandoc
   does and why. They never refer to planning documents (a `PLAN.md`, its items, phases or
   rules), to PR numbers, or to how a change came about; that history belongs in commit
   messages and PRs.
-- Agent integration (skills, plugins, agent-facing guides) is
-  [robert](https://github.com/umbralcalc/robert)'s, not this repo's: don't add it here, and
-  don't describe it in the docs beyond pointing there.
+- Agent integration is the Claude Code plugin in `plugins/stochadex/` (its marketplace is
+  `.claude-plugin/marketplace.json`): skills that drive the CLI and nothing else. The engine
+  stays deterministic and agent-free. A skill's complete configs are run by
+  `TestDocsExamples`, and beyond them a skill sends the reader to the binary (`catalogue`,
+  `--check`, `graph`, `inspect`) rather than restating it, so it cannot drift.
