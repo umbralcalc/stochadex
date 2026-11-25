@@ -1127,3 +1127,26 @@ func TestExpressionNameClashes(t *testing.T) {
 		}
 	})
 }
+
+func TestExpressionHistoryReads(t *testing.T) {
+	t.Run("an expression's history reads are its upstreams, by alias", func(t *testing.T) {
+		iteration := &ExpressionIteration{
+			Fields:    []ExpressionField{{Name: "x"}},
+			Upstreams: map[string]string{"drv": "driver", "coh": "cohort"},
+			Outputs:   []string{"x + drv[0] + coh[0]"},
+		}
+		reads := iteration.HistoryReads()
+		if len(reads) != 2 || reads["drv"] != "driver" || reads["coh"] != "cohort" {
+			t.Errorf("got %v, want the two upstreams by alias", reads)
+		}
+	})
+	t.Run("an expression with no upstreams reads no other partition", func(t *testing.T) {
+		iteration := &ExpressionIteration{
+			Fields:  []ExpressionField{{Name: "x"}},
+			Outputs: []string{"x + 1"},
+		}
+		if reads := iteration.HistoryReads(); len(reads) != 0 {
+			t.Errorf("got %v, want none", reads)
+		}
+	})
+}
